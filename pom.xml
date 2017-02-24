@@ -13,9 +13,6 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>hugegraph-core</module>
-        <module>hugegraph-server</module>
-        <module>hugegraph-web</module>
     </modules>
-
 
 </project>
