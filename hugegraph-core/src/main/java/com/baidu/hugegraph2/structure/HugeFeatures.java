@@ -40,10 +40,8 @@ public class HugeFeatures implements Graph.Features {
         return StringFactory.featureString(this);
     }
 
-    public class HugeGraphFeatures implements GraphFeatures{
+    public class HugeGraphFeatures implements GraphFeatures {
         private final VariableFeatures variableFeatures = new HugeVariableFeatures();
-
-
 
         @Override
         public boolean supportsConcurrentAccess() {
@@ -75,7 +73,8 @@ public class HugeFeatures implements Graph.Features {
             return false;
         }
     }
-    public class HugeElementFeatures implements ElementFeatures{
+
+    public class HugeElementFeatures implements ElementFeatures {
         @Override
         public boolean supportsUserSuppliedIds() {
             return true;
@@ -111,7 +110,8 @@ public class HugeFeatures implements Graph.Features {
             return id instanceof Serializable;
         }
     }
-    public class HugeVariableFeatures implements VariableFeatures{
+
+    public class HugeVariableFeatures implements VariableFeatures {
         @Override
         public boolean supportsVariables() {
             return false;
@@ -269,8 +269,10 @@ public class HugeFeatures implements Graph.Features {
         }
 
     }
-    public class HugeVertexFeatures extends HugeElementFeatures implements VertexFeatures{
+
+    public class HugeVertexFeatures extends HugeElementFeatures implements VertexFeatures {
         private final VertexPropertyFeatures vertexPropertyFeatures = new HugeVertexPropertyFeatures();
+
         @Override
         public VertexPropertyFeatures properties() {
             return vertexPropertyFeatures;
@@ -291,6 +293,7 @@ public class HugeFeatures implements Graph.Features {
             return VertexProperty.Cardinality.single;
         }
     }
+
     public class HugeEdgeFeatures extends HugeElementFeatures implements EdgeFeatures {
 
         private final EdgePropertyFeatures edgePropertyFeatures = new HugeEdgePropertyFeatures();
