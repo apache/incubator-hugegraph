@@ -51,6 +51,9 @@ public class ExampleGraphFactory {
         schema.vertexLabel("meal").create();
         schema.vertexLabel("reviewer").create();
 
+        // index 表示要添加一个索引
+        // secondary表示要添加的是二级索引
+        // by指定了给哪一列添加索引
 //        schema.vertexLabel("author").index("byName").secondary().by("name").add();
 //        schema.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
 //        schema.vertexLabel("meal").index("byMeal").materialized().by("name").add();

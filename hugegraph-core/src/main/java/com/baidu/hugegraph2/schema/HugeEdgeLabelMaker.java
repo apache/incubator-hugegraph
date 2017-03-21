@@ -24,7 +24,6 @@ public class HugeEdgeLabelMaker implements EdgeLabelMaker {
     private HugeEdgeLabel edgeLabel;
     private String name;
 
-    private List<String> partitionKeys;
 
     public HugeEdgeLabelMaker(SchemaStore schemaStore, String name) {
         this.name = name;
@@ -51,11 +50,8 @@ public class HugeEdgeLabelMaker implements EdgeLabelMaker {
     }
 
     @Override
-    public EdgeLabelMaker signature(String... keys) {
-        if (partitionKeys == null) {
-            partitionKeys = new ArrayList<>();
-        }
-        partitionKeys.addAll(Arrays.asList(keys));
+    public EdgeLabelMaker partitionKeys(String... keys) {
+        this.edgeLabel.addPartitionKeys(keys);
         return this;
     }
 
@@ -91,15 +87,11 @@ public class HugeEdgeLabelMaker implements EdgeLabelMaker {
     @Override
     public SchemaType create() {
         // 如果Cardinality为MULTIPLE，但是没有设置分区键
-        if (edgeLabel.cardinality() == Cardinality.MULTIPLE && !hasPartitionKeys()) {
+        if (edgeLabel.cardinality() == Cardinality.MULTIPLE && !edgeLabel.hasPartitionKeys()) {
             logger.error("The edgelabel with Cardinality.MULTIPLE must specified partition key.");
         }
         schemaStore.addEdgeLabel(edgeLabel);
         return edgeLabel;
-    }
-
-    private boolean hasPartitionKeys() {
-        return partitionKeys != null && !partitionKeys.isEmpty();
     }
 
     @Override
