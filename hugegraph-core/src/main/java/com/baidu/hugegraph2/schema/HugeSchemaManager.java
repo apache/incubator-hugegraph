@@ -16,6 +16,9 @@ public class HugeSchemaManager implements SchemaManager {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeSchemaManager.class);
     private PropertyKeyMaker propertyKeyMaker;
+    private VertexLabelMaker vertexLabelMaker;
+    private EdgeLabelMaker edgeLabelMaker;
+
 
     private SchemaStore schemaStore;
 
@@ -32,12 +35,14 @@ public class HugeSchemaManager implements SchemaManager {
 
     @Override
     public VertexLabelMaker vertexLabel(String name) {
-        return null;
+        vertexLabelMaker = new HugeVertexLabelMaker(schemaStore, name);
+        return vertexLabelMaker;
     }
 
     @Override
     public EdgeLabelMaker edgeLabel(String name) {
-        return null;
+        edgeLabelMaker = new HugeEdgeLabelMaker(schemaStore, name);
+        return edgeLabelMaker;
     }
 
     @Override
