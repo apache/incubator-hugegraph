@@ -42,6 +42,7 @@ public class HugeVertexLabelMaker implements VertexLabelMaker {
 
     @Override
     public VertexLabelMaker index(String byName) {
+
         return null;
     }
 

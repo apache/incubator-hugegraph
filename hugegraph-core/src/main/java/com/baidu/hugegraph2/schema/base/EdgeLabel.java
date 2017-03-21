@@ -14,5 +14,7 @@ public interface EdgeLabel extends SchemaType {
 
     public boolean isDirected();
 
-    boolean hasPartitionKey();
+    public void addPartitionKeys(String... keys);
+
+    public boolean hasPartitionKeys();
 }

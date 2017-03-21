@@ -10,7 +10,7 @@ public interface EdgeLabelMaker extends SchemaMaker {
     public EdgeLabelMaker single();
     public EdgeLabelMaker multiple();
 
-    public EdgeLabelMaker signature(String... keys);
+    public EdgeLabelMaker partitionKeys(String... keys);
 
     public EdgeLabelMaker inMany2One();
     public EdgeLabelMaker inMany2Many();

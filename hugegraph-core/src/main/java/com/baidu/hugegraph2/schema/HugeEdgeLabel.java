@@ -1,5 +1,9 @@
 package com.baidu.hugegraph2.schema;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.Multiplicity;
 import com.baidu.hugegraph2.schema.base.EdgeLabel;
@@ -18,6 +22,8 @@ public class HugeEdgeLabel implements EdgeLabel {
     private HugeVertexLabel srcVertexLabel;
     private HugeVertexLabel tgtVertexLabel;
 
+    // 指定的分区键列表
+    private List<String> partitionKeys;
 
     public HugeEdgeLabel(String name) {
         this.name = name;
@@ -49,8 +55,8 @@ public class HugeEdgeLabel implements EdgeLabel {
     }
 
     @Override
-    public boolean hasPartitionKey() {
-        return false;
+    public boolean hasPartitionKeys() {
+        return partitionKeys != null && !partitionKeys.isEmpty();
     }
 
     @Override
@@ -66,5 +72,12 @@ public class HugeEdgeLabel implements EdgeLabel {
     public void connection(String fromVertexLabel, String toVertexLabel) {
         this.srcVertexLabel = new HugeVertexLabel(fromVertexLabel);
         this.tgtVertexLabel = new HugeVertexLabel(toVertexLabel);
+    }
+
+    public void addPartitionKeys(String... keys) {
+        if (partitionKeys == null) {
+            partitionKeys = new ArrayList<>();
+        }
+        partitionKeys.addAll(Arrays.asList(keys));
     }
 }
