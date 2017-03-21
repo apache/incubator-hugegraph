@@ -106,4 +106,9 @@ public class HugeVertexLabel implements VertexLabel {
         }
         clusteringKeys.addAll(Arrays.asList(keys));
     }
+
+    @Override
+    public String toString() {
+        return String.format("{name=%s}", name);
+    }
 }

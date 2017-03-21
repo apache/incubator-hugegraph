@@ -4,38 +4,27 @@ import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.store.*;
 import com.google.common.base.Preconditions;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by jishilei on 17/3/19.
  */
-public class InMemoryDBStoreProvider implements StoreProvider {
+public class InMemoryDBStoreProvider implements BackendStoreProvider {
 
-    private final ConcurrentHashMap<String, DBStore> stores;
+    private final ConcurrentHashMap<String, BackendStore> stores;
 
     public InMemoryDBStoreProvider() {
-        stores = new ConcurrentHashMap<String, DBStore>();
+        stores = new ConcurrentHashMap<String, BackendStore>();
     }
 
     @Override
-    public DBStore open(final String name) throws BackendException {
+    public BackendStore open(final String name) throws BackendException {
         if (!stores.containsKey(name)) {
             stores.putIfAbsent(name, new InMemoryDBStore(name));
         }
-        DBStore store = stores.get(name);
+        BackendStore store = stores.get(name);
         Preconditions.checkNotNull(store);
         return store;
-    }
-
-    @Override
-    public void mutate(Map<String, StoreMutation> mutations, StoreTransaction tx) {
-
-        mutations.forEach((k, mutation) -> {
-            DBStore store = stores.get(k);
-            Preconditions.checkNotNull(store);
-            store.mutate(mutation.getAdditions(), mutation.getDeletions(), tx);
-        });
     }
 
     @Override
@@ -46,13 +35,13 @@ public class InMemoryDBStoreProvider implements StoreProvider {
     @Override
     public void clear() throws BackendException {
 
-        stores.forEach((String k, DBStore store) -> {
+        stores.forEach((String k, BackendStore store) -> {
             store.clear();
         });
     }
 
     @Override
-    public String getName() {
-        return toString();
+    public String name() {
+        return "memory";
     }
 }

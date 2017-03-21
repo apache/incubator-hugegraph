@@ -1,24 +1,22 @@
 package com.baidu.hugegraph2.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
-
 import java.util.NoSuchElementException;
+
+import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Property;
 
 /**
  * Created by jishilei on 17/3/16.
  */
 public class HugeProperty<V> implements Property<V> {
 
-    protected final Graph graph;
-    protected final HugeElement element;
+    protected final HugeElement owner;
+    // TODO: change key into PropertyKey
     protected final String key;
     protected final V value;
 
-    public HugeProperty(final Graph graph, final HugeElement element, final String key, final V value) {
-        this.graph = graph;
-        this.element = element;
+    public HugeProperty(final HugeElement owner, final String key, final V value) {
+        this.owner = owner;
         this.key = key;
         this.value = value;
     }
@@ -40,11 +38,16 @@ public class HugeProperty<V> implements Property<V> {
 
     @Override
     public Element element() {
-        return this.element;
+        return this.owner;
     }
 
     @Override
     public void remove() {
+        throw Property.Exceptions.propertyRemovalNotSupported();
+    }
 
+    @Override
+    public String toString() {
+        return String.format("{type=%s, value=%s}", this.key, this.value);
     }
 }
