@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.Multiplicity;
-import com.baidu.hugegraph2.backend.store.SchemaStore;
+import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.schema.base.SchemaType;
 import com.baidu.hugegraph2.schema.base.maker.EdgeLabelMaker;
 
@@ -20,14 +20,14 @@ public class HugeEdgeLabelMaker implements EdgeLabelMaker {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeEdgeLabelMaker.class);
 
-    private SchemaStore schemaStore;
+    private SchemaTransaction transaction;
     private HugeEdgeLabel edgeLabel;
     private String name;
 
 
-    public HugeEdgeLabelMaker(SchemaStore schemaStore, String name) {
+    public HugeEdgeLabelMaker(SchemaTransaction transaction, String name) {
         this.name = name;
-        this.schemaStore = schemaStore;
+        this.transaction = transaction;
         edgeLabel = new HugeEdgeLabel(name);
     }
 
@@ -91,7 +91,7 @@ public class HugeEdgeLabelMaker implements EdgeLabelMaker {
             logger.error("The edgelabel with Cardinality.MULTIPLE must specified partition key.");
             System.exit(-1);
         }
-        schemaStore.addEdgeLabel(edgeLabel);
+        transaction.addEdgeLabel(edgeLabel);
         return edgeLabel;
     }
 

@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.IndexType;
-import com.baidu.hugegraph2.backend.store.SchemaStore;
+import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.schema.base.SchemaType;
 import com.baidu.hugegraph2.schema.base.maker.VertexLabelMaker;
 
@@ -16,12 +16,12 @@ public class HugeVertexLabelMaker implements VertexLabelMaker {
     private static final Logger logger = LoggerFactory.getLogger(HugeVertexLabelMaker.class);
 
     private String name;
-    private SchemaStore schemaStore;
+    private SchemaTransaction transaction;
     private HugeVertexLabel vertexLabel;
 
-    public HugeVertexLabelMaker(SchemaStore schemaStore, String name) {
+    public HugeVertexLabelMaker(SchemaTransaction transaction, String name) {
         this.name = name;
-        this.schemaStore = schemaStore;
+        this.transaction = transaction;
         vertexLabel = new HugeVertexLabel(name);
     }
 
@@ -32,20 +32,20 @@ public class HugeVertexLabelMaker implements VertexLabelMaker {
 
     @Override
     public SchemaType create() {
-        schemaStore.addVertexLabel(vertexLabel);
+        transaction.addVertexLabel(vertexLabel);
         return vertexLabel;
     }
 
     @Override
     public SchemaType add() {
-        schemaStore.removeVertexLabel(name);
-        schemaStore.addVertexLabel(vertexLabel);
+        transaction.removeVertexLabel(name);
+        transaction.addVertexLabel(vertexLabel);
         return vertexLabel;
     }
 
     @Override
     public void remove() {
-        schemaStore.removeVertexLabel(name);
+        transaction.removeVertexLabel(name);
     }
 
     @Override

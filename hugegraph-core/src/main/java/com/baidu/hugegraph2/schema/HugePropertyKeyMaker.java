@@ -2,10 +2,10 @@ package com.baidu.hugegraph2.schema;
 
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.DataType;
-import com.baidu.hugegraph2.backend.store.SchemaStore;
-import com.baidu.hugegraph2.schema.base.maker.PropertyKeyMaker;
+import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.schema.base.PropertyKey;
 import com.baidu.hugegraph2.schema.base.SchemaType;
+import com.baidu.hugegraph2.schema.base.maker.PropertyKeyMaker;
 
 /**
  * Created by jishilei on 17/3/17.
@@ -13,12 +13,12 @@ import com.baidu.hugegraph2.schema.base.SchemaType;
 public class HugePropertyKeyMaker implements PropertyKeyMaker {
 
     private String name;
-    private SchemaStore schemaStore;
+    private SchemaTransaction transaction;
     private HugePropertyKey propertyKey;
 
-    public HugePropertyKeyMaker(SchemaStore schemaStore, String name) {
+    public HugePropertyKeyMaker(SchemaTransaction transaction, String name) {
         this.name = name;
-        this.schemaStore = schemaStore;
+        this.transaction = transaction;
         propertyKey = new HugePropertyKey(name);
     }
 
@@ -75,19 +75,19 @@ public class HugePropertyKeyMaker implements PropertyKeyMaker {
 
     @Override
     public PropertyKey create() {
-        schemaStore.addPropertyKey(propertyKey);
+        transaction.addPropertyKey(propertyKey);
         return propertyKey;
     }
 
     @Override
     public SchemaType add() {
-        schemaStore.removePropertyKey(name);
-        schemaStore.addPropertyKey(propertyKey);
+        transaction.removePropertyKey(name);
+        transaction.addPropertyKey(propertyKey);
         return propertyKey;
     }
 
     @Override
     public void remove() {
-        schemaStore.removePropertyKey(name);
+        transaction.removePropertyKey(name);
     }
 }

@@ -78,6 +78,7 @@ public class HugeEdgeLabel implements EdgeLabel {
         this.tgtVertexLabel = new HugeVertexLabel(toVertexLabel);
     }
 
+    @Override
     public void partitionKeys(String... keys) {
         if (partitionKeys == null) {
             partitionKeys = new HashSet<>();
@@ -95,5 +96,11 @@ public class HugeEdgeLabel implements EdgeLabel {
             properties = new HashSet<>();
         }
         properties.addAll(Arrays.asList(propertyNames));
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{name=%s, multiplicity=%s, cardinality=%s}",
+                name, multiplicity.toString(), cardinality.toString());
     }
 }

@@ -2,11 +2,17 @@ package com.baidu.hugegraph2.structure;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+
+import com.baidu.hugegraph2.backend.id.Id;
+import com.baidu.hugegraph2.backend.id.IdGenerator;
+import com.baidu.hugegraph2.schema.base.VertexLabel;
+import com.google.common.base.Preconditions;
 
 
 /**
@@ -14,25 +20,26 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
  */
 public abstract class HugeElement implements Element {
 
-    protected final Object id;
-    protected final String label;
-    private final Graph graph;
-    protected Map<String, Object> properties;
+    protected final Graph graph;
+    protected final Id id;
+    protected final VertexLabel label;
+    protected Map<String, HugeProperty<? extends Object>> properties;
 
-    public HugeElement(final Graph graph, final Object id, final String label) {
+    public HugeElement(final Graph graph, final Id id, final VertexLabel label) {
         this.graph = graph;
         this.id = id;
         this.label = label;
+        this.properties = new HashMap<>();
     }
 
     @Override
-    public Object id() {
+    public Id id() {
         return this.id;
     }
 
     @Override
     public String label() {
-        return this.label;
+        return this.label.name();
     }
 
     @Override
@@ -40,34 +47,41 @@ public abstract class HugeElement implements Element {
         return this.graph;
     }
 
-    public Map<String, Object> getProperties() {
-        return properties;
+    public Map<String, HugeProperty<? extends Object>> getProperties() {
+        return this.properties;
     }
 
-    public void setProperties(Object... keyValues) {
-        ElementHelper.legalPropertyKeyValueArray(keyValues);
-        if (this.properties == null) {
-            this.properties = new HashMap<>();
-        }
-        for (int i = 0; i < keyValues.length; i = i + 2) {
-            if (!keyValues[i].equals(T.id) && !keyValues[i].equals(T.label)) {
-                this.properties.put((String) keyValues[i], keyValues[i + 1]);
-            }
-        }
-
+    public <V> HugeProperty<? extends Object> getProperty(String key) {
+        return this.properties.get(key);
     }
 
-    public void setPropertyMap(Map<String, Object> map) {
-        this.properties = map;
+    public HugeProperty<? extends Object> setProperty(HugeProperty<?> prop) {
+        return this.properties.put(prop.key(), prop);
     }
 
-    public <V> V getProperty(String key) {
-        if (properties != null) {
-            V val = (V) properties.get(key);
-            if (val != null) {
-                return val;
-            }
+    public static Id getIdValue(Object... keyValues) {
+        Optional<Object> id = ElementHelper.getIdValue(keyValues);
+        if (id.isPresent()) {
+            // TODO: to support non-string id
+            return IdGenerator.generate(id.get().toString());
         }
         return null;
+    }
+
+    public static Object getLabelValue(Object... keyValues) {
+        Object labelValue = null;
+        for (int i = 0; i < keyValues.length; i = i + 2) {
+            if (keyValues[i].equals(T.label)) {
+                labelValue = keyValues[i + 1];
+                Preconditions.checkArgument(
+                        labelValue instanceof VertexLabel || labelValue instanceof String,
+                        "Expected a string or VertexLabel as the vertex label argument,"
+                                + "but got: %s", labelValue);
+                if (labelValue instanceof String) {
+                    ElementHelper.validateLabel((String) labelValue);
+                }
+            }
+        }
+        return labelValue;
     }
 }

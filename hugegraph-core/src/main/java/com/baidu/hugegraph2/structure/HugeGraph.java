@@ -1,8 +1,6 @@
 package com.baidu.hugegraph2.structure;
 
-import com.baidu.hugegraph2.configuration.HugeConfiguration;
-import com.baidu.hugegraph2.schema.HugeSchemaManager;
-import com.baidu.hugegraph2.schema.base.maker.SchemaManager;
+import java.util.Iterator;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -10,20 +8,39 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import java.util.Iterator;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.baidu.hugegraph2.backend.BackendException;
+import com.baidu.hugegraph2.backend.store.BackendStore;
+import com.baidu.hugegraph2.backend.store.BackendStoreManager;
+import com.baidu.hugegraph2.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph2.backend.tx.GraphTransaction;
+import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph2.configuration.HugeConfiguration;
+import com.baidu.hugegraph2.schema.HugeSchemaManager;
+import com.baidu.hugegraph2.schema.base.maker.SchemaManager;
 
 /**
  * Created by jishilei on 17/3/17.
  */
 public class HugeGraph implements Graph {
 
+    public static String STORE_SCHEMA = "huge_schema";
+    public static String STORE_GRAPH = "huge_graph";
+    public static String STORE_INDEX = "huge_index";
+
     private static final Logger logger = LoggerFactory.getLogger(HugeGraph.class);
+
     protected HugeConfiguration configuration = null;
     protected HugeFeatures features = null;
+
+    // store provider like Cassandra
+    private BackendStoreProvider storeProvider = null;
+
+    // default transactions
+    private GraphTransaction graphTransaction = null;
+    private SchemaTransaction schemaTransaction = null;
 
     public HugeGraph() {
         this(new HugeConfiguration());
@@ -34,6 +51,29 @@ public class HugeGraph implements Graph {
         // TODO : get supportsPersistence from configuration;
         this.features = new HugeFeatures(true);
 
+        try {
+            this.initBackend();
+        } catch (BackendException e) {
+            logger.error("Failed to init backend: {}", e.getMessage());
+        }
+    }
+
+    public void initBackend() throws BackendException {
+        String backend = "memory"; // TODO: read from conf
+        this.storeProvider = BackendStoreManager.provider(backend);
+
+        this.schemaTransaction = this.openSchemaTransaction();
+        this.graphTransaction = this.openGraphTransaction();
+    }
+
+    public SchemaTransaction openSchemaTransaction() throws BackendException {
+        BackendStore store = this.storeProvider.open(STORE_SCHEMA);
+        return new SchemaTransaction(store);
+    }
+
+    public GraphTransaction openGraphTransaction() throws BackendException {
+        BackendStore store = this.storeProvider.open(STORE_GRAPH);
+        return new GraphTransaction(this, store);
     }
 
     /**
@@ -47,12 +87,18 @@ public class HugeGraph implements Graph {
         return new HugeGraph(conf);
     }
 
-    public static SchemaManager openSchemaManager() {
-        return new HugeSchemaManager();
+    public SchemaManager openSchemaManager() throws BackendException {
+        return new HugeSchemaManager(this.schemaTransaction);
     }
 
     @Override
-    public Vertex addVertex(Object... objects) {
+    public Vertex addVertex(Object... keyValues) {
+        try {
+            return this.graphTransaction.addVertex(keyValues);
+        } catch (BackendException e) {
+            logger.error("Failed to add vertex: {}", e.getMessage());
+        }
+
         return null;
     }
 
@@ -68,17 +114,17 @@ public class HugeGraph implements Graph {
 
     @Override
     public Iterator<Vertex> vertices(Object... objects) {
-        return null;
+        return this.graphTransaction.vertices(objects);
     }
 
     @Override
     public Iterator<Edge> edges(Object... objects) {
-        return null;
+        return this.graphTransaction.edges(objects);
     }
 
     @Override
     public Transaction tx() {
-        return null;
+        return this.graphTransaction.tx();
     }
 
     @Override

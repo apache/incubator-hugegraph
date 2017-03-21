@@ -64,10 +64,8 @@ public class HugePropertyKey implements PropertyKey {
 
     @Override
     public String toString() {
-
-        return "name = " + name
-                + " , dataType=" + dataType.toString()
-                + " , cardinality=" + cardinality.toString();
+        return String.format("{name=%s, dataType=%s, cardinality=%s}",
+                name, dataType.toString(), cardinality.toString());
     }
 
     @Override
