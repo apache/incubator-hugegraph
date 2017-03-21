@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.backend.BackendException;
-import com.baidu.hugegraph2.example.ExampleGraphFactory;
 import com.baidu.hugegraph2.schema.HugeEdgeLabel;
 import com.baidu.hugegraph2.schema.HugePropertyKey;
 import com.baidu.hugegraph2.schema.HugeVertexLabel;
