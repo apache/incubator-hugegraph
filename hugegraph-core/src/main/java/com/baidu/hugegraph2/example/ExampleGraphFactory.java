@@ -19,14 +19,14 @@ public class ExampleGraphFactory {
         logger.info("ExampleGraphFactory start!");
 
         HugeGraph graph = HugeFactory.open();
-
         ExampleGraphFactory.load(graph);
-
     }
+
 
     public static void load(final HugeGraph graph) {
 
         SchemaManager schema = graph.openSchemaManager();
+        System.out.println("===============  propertyKey  ================");
         // 设置属性的schema
         schema.propertyKey("name").asText().create();
         schema.propertyKey("gender").asText().create();
@@ -39,38 +39,43 @@ public class ExampleGraphFactory {
         schema.propertyKey("amount").asText().create();
         schema.propertyKey("stars").asInt().create();
         schema.propertyKey("comment").asText().single().create();
+        schema.propertyKey("nickname").asText().multiple().create();
         schema.propertyKey("lived").asText().create();
         // 给property设置property
         schema.propertyKey("country").asText().multiple().properties("livedIn").create();
 
+        System.out.println("===============  vertexLabel  ================");
+
         // 设置顶点的schema
-        schema.vertexLabel("author").create();
-        schema.vertexLabel("recipe").create();
+        schema.vertexLabel("author").properties("name").create();
+        schema.vertexLabel("recipe").properties("name", "instructions").create();
+        schema.vertexLabel("recipe").properties("name", "instructions").add();
         schema.vertexLabel("ingredient").create();
         schema.vertexLabel("book").create();
         schema.vertexLabel("meal").create();
         schema.vertexLabel("reviewer").create();
+        schema.propertyKey("city_id").asInt().create();
+        schema.propertyKey("sensor_id").asUUID().create();
+        schema.vertexLabel("FridgeSensor").partitionKey("city_id").clusteringKey("sensor_id").create();
 
-        // index 表示要添加一个索引
-        // secondary表示要添加的是二级索引
-        // by指定了给哪一列添加索引
-//        schema.vertexLabel("author").index("byName").secondary().by("name").add();
-//        schema.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
-//        schema.vertexLabel("meal").index("byMeal").materialized().by("name").add();
-//        schema.vertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
-//        schema.vertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
+        System.out.println("===============  vertexLabel & index  ================");
+        // index 表示要添加一个索引，secondary表示要添加的是二级索引，by指定了给哪一列添加索引
+        schema.vertexLabel("author").index("byName").secondary().by("name").add();
+        schema.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
+        schema.vertexLabel("meal").index("byMeal").materialized().by("name").add();
+        schema.vertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
+        schema.vertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
 
+
+        System.out.println("===============  edgeLabel  ================");
         schema.edgeLabel("authored").inOne2Many().create();
         schema.edgeLabel("created").single().inMany2Many().create();
         schema.edgeLabel("includes").single().inOne2Many().create();
         schema.edgeLabel("includedIn").inMany2One().create();
         schema.edgeLabel("rated").multiple().inMany2Many().connection("reviewer", "recipe").create();
 
-//        schema.commit();
-//        schema.rollback();
+
         // Transaction tx = graph.openTX();
-
-
 
     }
 }

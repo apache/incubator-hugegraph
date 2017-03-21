@@ -1,5 +1,6 @@
 package com.baidu.hugegraph2.schema;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -12,18 +13,17 @@ import com.baidu.hugegraph2.schema.base.PropertyKey;
  */
 public class HugePropertyKey implements PropertyKey {
 
+    private String name;
     private DataType dataType;
     private Cardinality cardinality;
-    private String name;
-
-    // propertykey可能还有properties，这里应该要有一个怎样的变量呢
-    private Set<PropertyKey> properties;
+    // propertykey可能还有properties
+    private Set<String> properties;
 
 
     public HugePropertyKey(String name) {
+        this.name = name;
         this.dataType = DataType.OBJECT;
         this.cardinality = Cardinality.SINGLE;
-        this.name = name;
         this.properties = null;
     }
 
@@ -32,29 +32,29 @@ public class HugePropertyKey implements PropertyKey {
         return dataType;
     }
 
-    @Override
-    public Cardinality cardinality() {
-        return this.cardinality;
-    }
-
-    public void setCardinality(Cardinality cardinality) {
-        this.cardinality = cardinality;
-    }
-
-    public void setDataType(DataType dataType) {
-
+    public void dataType(DataType dataType) {
         this.dataType = dataType;
     }
 
-    /**
-     * 给属性键再添加属性
-     * @param propertyName
-     */
-    public void addProperties(String propertyName) {
+    @Override
+    public Cardinality cardinality() {
+        return cardinality;
+    }
+
+    public void cardinality(Cardinality cardinality) {
+        this.cardinality = cardinality;
+    }
+
+    @Override
+    public Set<String> properties() {
+        return properties;
+    }
+
+    public void properties(String... propertyNames) {
         if (properties == null) {
             properties = new HashSet<>();
         }
-        properties.add(new HugePropertyKey(propertyName));
+        properties.addAll(Arrays.asList(propertyNames));
     }
 
     @Override

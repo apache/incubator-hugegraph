@@ -1,8 +1,8 @@
 package com.baidu.hugegraph2.schema;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.Multiplicity;
@@ -22,13 +22,17 @@ public class HugeEdgeLabel implements EdgeLabel {
     private HugeVertexLabel srcVertexLabel;
     private HugeVertexLabel tgtVertexLabel;
 
-    // 指定的分区键列表
-    private List<String> partitionKeys;
+    private Set<String> partitionKeys;
+    private Set<String> properties;
 
     public HugeEdgeLabel(String name) {
         this.name = name;
         this.multiplicity = Multiplicity.ONE2ONE;
         this.cardinality = Cardinality.SINGLE;
+        this.srcVertexLabel = null;
+        this.tgtVertexLabel = null;
+        this.partitionKeys = null;
+        this.properties = null;
     }
 
     @Override
@@ -74,10 +78,22 @@ public class HugeEdgeLabel implements EdgeLabel {
         this.tgtVertexLabel = new HugeVertexLabel(toVertexLabel);
     }
 
-    public void addPartitionKeys(String... keys) {
+    public void partitionKeys(String... keys) {
         if (partitionKeys == null) {
-            partitionKeys = new ArrayList<>();
+            partitionKeys = new HashSet<>();
         }
         partitionKeys.addAll(Arrays.asList(keys));
+    }
+
+    @Override
+    public Set<String> properties() {
+        return properties;
+    }
+
+    public void properties(String... propertyNames) {
+        if (properties == null) {
+            properties = new HashSet<>();
+        }
+        properties.addAll(Arrays.asList(propertyNames));
     }
 }
