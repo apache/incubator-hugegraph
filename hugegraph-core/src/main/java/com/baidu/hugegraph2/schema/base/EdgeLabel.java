@@ -1,5 +1,6 @@
 package com.baidu.hugegraph2.schema.base;
 
+import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.Multiplicity;
 
 /**
@@ -7,8 +8,11 @@ import com.baidu.hugegraph2.Multiplicity;
  */
 public interface EdgeLabel extends SchemaType {
 
-    public Multiplicity getMultiplicity();
+    public Cardinality cardinality();
+
+    public Multiplicity multiplicity();
 
     public boolean isDirected();
 
+    boolean hasPartitionKey();
 }

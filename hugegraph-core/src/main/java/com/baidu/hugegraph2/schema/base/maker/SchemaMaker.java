@@ -16,7 +16,8 @@ public interface SchemaMaker {
 
     public SchemaType create();
 
-    public SchemaType save();
+    public SchemaType add();
 
     public void remove();
+
 }

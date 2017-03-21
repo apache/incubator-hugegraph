@@ -1,5 +1,6 @@
 package com.baidu.hugegraph2.schema;
 
+import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.DataType;
 import com.baidu.hugegraph2.backend.store.SchemaStore;
 import com.baidu.hugegraph2.schema.base.maker.PropertyKeyMaker;
@@ -16,9 +17,9 @@ public class HugePropertyKeyMaker implements PropertyKeyMaker {
     private String name;
 
     public HugePropertyKeyMaker(SchemaStore schemaStore, String name) {
-        propertyKey = new HugePropertyKey(name);
         this.name = name;
         this.schemaStore = schemaStore;
+        propertyKey = new HugePropertyKey(name);
     }
 
     public PropertyKey getPropertyKey() {
@@ -26,14 +27,38 @@ public class HugePropertyKeyMaker implements PropertyKeyMaker {
     }
 
     @Override
-    public PropertyKeyMaker toText() {
+    public PropertyKeyMaker asText() {
         this.propertyKey.setDataType(DataType.TEXT);
         return this;
     }
 
     @Override
-    public PropertyKeyMaker toInt() {
+    public PropertyKeyMaker asInt() {
         this.propertyKey.setDataType(DataType.INT);
+        return this;
+    }
+
+    @Override
+    public PropertyKeyMaker asTimeStamp() {
+        this.propertyKey.setDataType(DataType.TIMESTAMP);
+        return this;
+    }
+
+    @Override
+    public PropertyKeyMaker single() {
+        this.propertyKey.setCardinality(Cardinality.SINGLE);
+        return this;
+    }
+
+    @Override
+    public PropertyKeyMaker multiple() {
+        this.propertyKey.setCardinality(Cardinality.MULTIPLE);
+        return this;
+    }
+
+    @Override
+    public PropertyKeyMaker properties(String propertyName) {
+        this.propertyKey.addProperties(propertyName);
         return this;
     }
 
@@ -44,20 +69,19 @@ public class HugePropertyKeyMaker implements PropertyKeyMaker {
 
     @Override
     public PropertyKey create() {
-        // schemaStore.addPropertyKey(propertyKey);
+        schemaStore.addPropertyKey(propertyKey);
         return propertyKey;
     }
 
     @Override
-    public SchemaType save() {
-        // schemaStore.removePropertyKey(name);
-        // schemaStore.addPropertyKey(propertyKey);
+    public SchemaType add() {
+        schemaStore.removePropertyKey(name);
+        schemaStore.addPropertyKey(propertyKey);
         return propertyKey;
     }
 
     @Override
     public void remove() {
-
-        // schemaStore.removePropertyKey(name);
+        schemaStore.removePropertyKey(name);
     }
 }

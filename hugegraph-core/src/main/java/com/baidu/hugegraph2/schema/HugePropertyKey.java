@@ -1,5 +1,8 @@
 package com.baidu.hugegraph2.schema;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.DataType;
 import com.baidu.hugegraph2.schema.base.PropertyKey;
@@ -13,10 +16,15 @@ public class HugePropertyKey implements PropertyKey {
     private Cardinality cardinality;
     private String name;
 
+    // propertykey可能还有properties，这里应该要有一个怎样的变量呢
+    private Set<PropertyKey> properties;
+
+
     public HugePropertyKey(String name) {
         this.dataType = DataType.OBJECT;
         this.cardinality = Cardinality.SINGLE;
         this.name = name;
+        this.properties = null;
     }
 
     @Override
@@ -36,6 +44,17 @@ public class HugePropertyKey implements PropertyKey {
     public void setDataType(DataType dataType) {
 
         this.dataType = dataType;
+    }
+
+    /**
+     * 给属性键再添加属性
+     * @param propertyName
+     */
+    public void addProperties(String propertyName) {
+        if (properties == null) {
+            properties = new HashSet<>();
+        }
+        properties.add(new HugePropertyKey(propertyName));
     }
 
     @Override

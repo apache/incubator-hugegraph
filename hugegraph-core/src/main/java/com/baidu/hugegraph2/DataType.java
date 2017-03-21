@@ -6,6 +6,6 @@ package com.baidu.hugegraph2;
 public enum DataType {
     OBJECT,
     TEXT,
-    INT;
-
+    INT,
+    TIMESTAMP;
 }
