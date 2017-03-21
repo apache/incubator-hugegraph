@@ -23,13 +23,16 @@ public class HugeGraph implements Graph {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeGraph.class);
     protected HugeConfiguration configuration = null;
+    protected HugeFeatures features = null;
 
     public HugeGraph() {
-        this.configuration = new HugeConfiguration();
+        this(new HugeConfiguration());
     }
 
     public HugeGraph(HugeConfiguration configuration) {
         this.configuration = configuration;
+        // TODO : get supportsPersistence from configuration;
+        this.features = new HugeFeatures(true);
 
     }
 
@@ -81,6 +84,11 @@ public class HugeGraph implements Graph {
     @Override
     public void close() throws Exception {
 
+    }
+
+    @Override
+    public Features features() {
+        return features;
     }
 
     @Override
