@@ -2,6 +2,7 @@ package com.baidu.hugegraph2.schema.base.maker;
 
 /**
  * Created by jishilei on 17/3/17.
+ * 这一层接口是否可以去掉呢？
  */
 public interface PropertyKeyMaker extends SchemaMaker {
 
@@ -11,12 +12,11 @@ public interface PropertyKeyMaker extends SchemaMaker {
 
     public PropertyKeyMaker asTimeStamp();
 
-
+    public PropertyKeyMaker asUUID();
 
     public PropertyKeyMaker single();
+
     public PropertyKeyMaker multiple();
 
-
-    // 这个貌似很重要
-    public PropertyKeyMaker properties(String propertyName);
+    public PropertyKeyMaker properties(String... propertyName);
 }

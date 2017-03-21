@@ -51,7 +51,7 @@ public class HugeEdgeLabelMaker implements EdgeLabelMaker {
 
     @Override
     public EdgeLabelMaker partitionKeys(String... keys) {
-        this.edgeLabel.addPartitionKeys(keys);
+        this.edgeLabel.partitionKeys(keys);
         return this;
     }
 
@@ -80,7 +80,7 @@ public class HugeEdgeLabelMaker implements EdgeLabelMaker {
     }
 
     @Override
-    public String getName() {
+    public String name() {
         return this.name;
     }
 
@@ -89,6 +89,7 @@ public class HugeEdgeLabelMaker implements EdgeLabelMaker {
         // 如果Cardinality为MULTIPLE，但是没有设置分区键
         if (edgeLabel.cardinality() == Cardinality.MULTIPLE && !edgeLabel.hasPartitionKeys()) {
             logger.error("The edgelabel with Cardinality.MULTIPLE must specified partition key.");
+            System.exit(-1);
         }
         schemaStore.addEdgeLabel(edgeLabel);
         return edgeLabel;

@@ -1,5 +1,8 @@
 package com.baidu.hugegraph2.schema;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,33 +18,48 @@ import com.baidu.hugegraph2.schema.base.maker.VertexLabelMaker;
 public class HugeSchemaManager implements SchemaManager {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeSchemaManager.class);
-    private PropertyKeyMaker propertyKeyMaker;
-    private VertexLabelMaker vertexLabelMaker;
-    private EdgeLabelMaker edgeLabelMaker;
+
+    private Map<String, PropertyKeyMaker> propertyKeyMakers;
+    private Map<String, VertexLabelMaker> vertexLabelMakers;
+    private Map<String, EdgeLabelMaker> edgeLabelMakers;
 
 
     private SchemaStore schemaStore;
 
     public HugeSchemaManager() {
-
+        propertyKeyMakers = new HashMap<>();
+        vertexLabelMakers = new HashMap<>();
+        edgeLabelMakers = new HashMap<>();
         schemaStore = new SchemaStore();
     }
 
     @Override
     public PropertyKeyMaker propertyKey(String name) {
-        propertyKeyMaker = new HugePropertyKeyMaker(schemaStore, name);
+        PropertyKeyMaker propertyKeyMaker = propertyKeyMakers.get(name);
+        if (propertyKeyMaker == null) {
+            propertyKeyMaker = new HugePropertyKeyMaker(schemaStore, name);
+            propertyKeyMakers.put(name, propertyKeyMaker);
+        }
         return propertyKeyMaker;
     }
 
     @Override
     public VertexLabelMaker vertexLabel(String name) {
-        vertexLabelMaker = new HugeVertexLabelMaker(schemaStore, name);
+        VertexLabelMaker vertexLabelMaker = vertexLabelMakers.get(name);
+        if (vertexLabelMaker == null) {
+            vertexLabelMaker = new HugeVertexLabelMaker(schemaStore, name);
+            vertexLabelMakers.put(name, vertexLabelMaker);
+        }
         return vertexLabelMaker;
     }
 
     @Override
     public EdgeLabelMaker edgeLabel(String name) {
-        edgeLabelMaker = new HugeEdgeLabelMaker(schemaStore, name);
+        EdgeLabelMaker edgeLabelMaker = edgeLabelMakers.get(name);
+        if (edgeLabelMaker == null) {
+            edgeLabelMaker = new HugeEdgeLabelMaker(schemaStore, name);
+            edgeLabelMakers.put(name, edgeLabelMaker);
+        }
         return edgeLabelMaker;
     }
 

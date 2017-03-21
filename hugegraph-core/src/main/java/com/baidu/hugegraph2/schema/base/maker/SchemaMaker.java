@@ -9,10 +9,9 @@ public interface SchemaMaker {
 
     /**
      * Returns the name of this configured relation type.
-     *
      * @return
      */
-    public String getName();
+    public String name();
 
     public SchemaType create();
 

@@ -7,5 +7,6 @@ public enum DataType {
     OBJECT,
     TEXT,
     INT,
+    UUID,
     TIMESTAMP;
 }

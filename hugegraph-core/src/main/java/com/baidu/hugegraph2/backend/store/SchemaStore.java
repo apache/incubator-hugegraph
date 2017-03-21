@@ -42,10 +42,12 @@ public class SchemaStore implements DBStore {
      * @param propertyKey
      */
     public void addPropertyKey(HugePropertyKey propertyKey) {
-        logger.info("SchemaStore add property key, "
+        logger.info("SchemaStore add a property key, "
                 + "name: " + propertyKey.name() + ", "
                 + "dataType: " + propertyKey.dataType() + ", "
-                + "cardinality: " + propertyKey.cardinality());
+                + "cardinality: " + propertyKey.cardinality() + ", "
+                + "properties: " + propertyKey.properties()
+        );
     }
 
     public void removePropertyKey(String name) {
@@ -54,13 +56,24 @@ public class SchemaStore implements DBStore {
 
     public void addVertexLabel(HugeVertexLabel vertexLabel) {
         logger.info("SchemaStore add vertex label, "
-                + "name: " + vertexLabel.name());
+                + "name: " + vertexLabel.name() + ", "
+                + "properties: " + vertexLabel.properties() + ", "
+                + "partitionKeys: " + vertexLabel.partitionKeys() + ", "
+                + "clusteringKeys: " + vertexLabel.clusteringKeys()
+        );
+    }
+
+    public void removeVertexLabel(String name) {
+        logger.info("SchemaStore remove vertex label " + name);
     }
 
     public void addEdgeLabel(HugeEdgeLabel edgeLabel) {
         logger.info("SchemaStore add edge label, "
                 + "name: " + edgeLabel.name() + ", "
+                + "isDirected: " + edgeLabel.isDirected() + ", "
                 + "multiplicity: " + edgeLabel.multiplicity() + ", "
-                + "cardinality: " + edgeLabel.cardinality());
+                + "cardinality: " + edgeLabel.cardinality() + ", "
+                + "properties: " + edgeLabel.properties()
+        );
     }
 }

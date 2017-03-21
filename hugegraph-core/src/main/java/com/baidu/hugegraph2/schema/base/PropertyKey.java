@@ -1,5 +1,7 @@
 package com.baidu.hugegraph2.schema.base;
 
+import java.util.Set;
+
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.DataType;
 
@@ -12,4 +14,5 @@ public interface PropertyKey extends SchemaType {
 
     public Cardinality cardinality();
 
+    public Set<String> properties();
 }

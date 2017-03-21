@@ -12,9 +12,9 @@ import com.baidu.hugegraph2.schema.base.SchemaType;
  */
 public class HugePropertyKeyMaker implements PropertyKeyMaker {
 
+    private String name;
     private SchemaStore schemaStore;
     private HugePropertyKey propertyKey;
-    private String name;
 
     public HugePropertyKeyMaker(SchemaStore schemaStore, String name) {
         this.name = name;
@@ -22,48 +22,54 @@ public class HugePropertyKeyMaker implements PropertyKeyMaker {
         propertyKey = new HugePropertyKey(name);
     }
 
-    public PropertyKey getPropertyKey() {
+    public PropertyKey propertyKey() {
         return propertyKey;
     }
 
     @Override
     public PropertyKeyMaker asText() {
-        this.propertyKey.setDataType(DataType.TEXT);
+        this.propertyKey.dataType(DataType.TEXT);
         return this;
     }
 
     @Override
     public PropertyKeyMaker asInt() {
-        this.propertyKey.setDataType(DataType.INT);
+        this.propertyKey.dataType(DataType.INT);
         return this;
     }
 
     @Override
     public PropertyKeyMaker asTimeStamp() {
-        this.propertyKey.setDataType(DataType.TIMESTAMP);
+        this.propertyKey.dataType(DataType.TIMESTAMP);
+        return this;
+    }
+
+    @Override
+    public PropertyKeyMaker asUUID() {
+        this.propertyKey.dataType(DataType.UUID);
         return this;
     }
 
     @Override
     public PropertyKeyMaker single() {
-        this.propertyKey.setCardinality(Cardinality.SINGLE);
+        this.propertyKey.cardinality(Cardinality.SINGLE);
         return this;
     }
 
     @Override
     public PropertyKeyMaker multiple() {
-        this.propertyKey.setCardinality(Cardinality.MULTIPLE);
+        this.propertyKey.cardinality(Cardinality.MULTIPLE);
         return this;
     }
 
     @Override
-    public PropertyKeyMaker properties(String propertyName) {
-        this.propertyKey.addProperties(propertyName);
+    public PropertyKeyMaker properties(String... propertyNames) {
+        this.propertyKey.properties(propertyNames);
         return this;
     }
 
     @Override
-    public String getName() {
+    public String name() {
         return this.name;
     }
 
