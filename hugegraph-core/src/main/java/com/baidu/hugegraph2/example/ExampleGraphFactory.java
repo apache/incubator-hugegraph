@@ -23,10 +23,10 @@ public class ExampleGraphFactory {
         ExampleGraphFactory.load(graph);
     }
 
-
-    public static void showFeatures(final HugeGraph graph){
-        logger.info("supportsPersistence : "+graph.features().graph().supportsPersistence());
+    public static void showFeatures(final HugeGraph graph) {
+        logger.info("supportsPersistence : " + graph.features().graph().supportsPersistence());
     }
+
     public static void load(final HugeGraph graph) {
 
         SchemaManager schema = graph.openSchemaManager();
@@ -77,7 +77,6 @@ public class ExampleGraphFactory {
         schema.edgeLabel("includedIn").inMany2One().create();
         schema.edgeLabel("rated").multiple().inMany2Many().connection("reviewer", "recipe").create();
 
-//        schema.commit();
         // Transaction tx = graph.openTX();
 
     }
