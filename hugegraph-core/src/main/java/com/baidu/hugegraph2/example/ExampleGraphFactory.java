@@ -19,10 +19,14 @@ public class ExampleGraphFactory {
         logger.info("ExampleGraphFactory start!");
 
         HugeGraph graph = HugeFactory.open();
+        ExampleGraphFactory.showFeatures(graph);
         ExampleGraphFactory.load(graph);
     }
 
 
+    public static void showFeatures(final HugeGraph graph){
+        logger.info("supportsPersistence : "+graph.features().graph().supportsPersistence());
+    }
     public static void load(final HugeGraph graph) {
 
         SchemaManager schema = graph.openSchemaManager();
