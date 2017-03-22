@@ -18,6 +18,6 @@ public interface Query {
      *
      * @return The maximum number of results this query should return
      */
-    public int getLimit();
+    public int limit();
 
 }

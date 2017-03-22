@@ -85,10 +85,10 @@ public class ExampleGraphFactory {
 
         System.out.println("===============  edgeLabel  ================");
 
-        schema.edgeLabel("authored").inOne2Many().create();
-        schema.edgeLabel("created").single().inMany2Many().create();
-        schema.edgeLabel("includes").single().inOne2Many().create();
-        schema.edgeLabel("includedIn").inMany2One().create();
+        schema.edgeLabel("authored").isOne2Many().create();
+        schema.edgeLabel("created").single().isMany2Many().create();
+        schema.edgeLabel("includes").single().isOne2Many().create();
+        schema.edgeLabel("includedIn").isMany2One().create();
         // schema.edgeLabel("rated").multiple().inMany2Many().connection("reviewer", "recipe").create();
 
         // commit schema changes

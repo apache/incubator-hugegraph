@@ -54,7 +54,7 @@ public abstract class AbstractTransaction implements Transaction {
             entry = new BackendEntry(id);
             this.additions.put(id, entry);
         }
-        entry.setColume(colume, value);
+        entry.colume(colume, value);
     }
 
     public void removeEntry(Id id) {

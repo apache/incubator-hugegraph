@@ -36,7 +36,7 @@ public class InMemoryDBStore implements BackendStore {
 
         additions.forEach((entry)->{
             logger.info("[store {}] add entry: {}", this.name, entry);
-            store.put(entry.getId(),entry);
+            store.put(entry.id(),entry);
         });
 
         deletions.forEach((k)->{

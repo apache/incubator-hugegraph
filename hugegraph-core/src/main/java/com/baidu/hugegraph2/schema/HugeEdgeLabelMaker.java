@@ -56,25 +56,25 @@ public class HugeEdgeLabelMaker implements EdgeLabelMaker {
     }
 
     @Override
-    public EdgeLabelMaker inOne2One() {
+    public EdgeLabelMaker isOne2One() {
         this.edgeLabel.setMultiplicity(Multiplicity.ONE2ONE);
         return this;
     }
 
     @Override
-    public EdgeLabelMaker inOne2Many() {
+    public EdgeLabelMaker isOne2Many() {
         this.edgeLabel.setMultiplicity(Multiplicity.ONE2MANY);
         return this;
     }
 
     @Override
-    public EdgeLabelMaker inMany2Many() {
+    public EdgeLabelMaker isMany2Many() {
         this.edgeLabel.setMultiplicity(Multiplicity.MANY2MANY);
         return this;
     }
 
     @Override
-    public EdgeLabelMaker inMany2One() {
+    public EdgeLabelMaker isMany2One() {
         this.edgeLabel.setMultiplicity(Multiplicity.MANY2ONE);
         return this;
     }
