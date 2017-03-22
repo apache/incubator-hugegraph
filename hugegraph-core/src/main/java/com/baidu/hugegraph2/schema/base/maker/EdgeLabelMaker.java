@@ -12,8 +12,8 @@ public interface EdgeLabelMaker extends SchemaMaker {
 
     public EdgeLabelMaker partitionKeys(String... keys);
 
-    public EdgeLabelMaker inMany2One();
-    public EdgeLabelMaker inMany2Many();
-    public EdgeLabelMaker inOne2Many();
-    public EdgeLabelMaker inOne2One();
+    public EdgeLabelMaker isMany2One();
+    public EdgeLabelMaker isMany2Many();
+    public EdgeLabelMaker isOne2Many();
+    public EdgeLabelMaker isOne2One();
 }

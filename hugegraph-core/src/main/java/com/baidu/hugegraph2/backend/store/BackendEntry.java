@@ -18,27 +18,27 @@ public class BackendEntry {
         this.columns = new HashMap<String, Object>();
     }
 
-    public Id getId() {
+    public Id id() {
         return id;
     }
 
-    public void setId(Id id) {
+    public void id(Id id) {
         this.id = id;
     }
 
-    public Map<String, Object> getColumns() {
+    public Map<String, Object> columns() {
         return columns;
     }
 
-    public void setColumns(Map<String, Object> columns) {
+    public void columns(Map<String, Object> columns) {
         this.columns = columns;
     }
 
-    public void setColume(String colume, Object value) {
+    public void colume(String colume, Object value) {
         this.columns.put(colume, value);
     }
 
-    public Object getColume(String colume) {
+    public Object colume(String colume) {
         return this.columns.get(colume);
     }
 

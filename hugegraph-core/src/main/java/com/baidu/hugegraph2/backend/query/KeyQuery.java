@@ -19,7 +19,7 @@ public class KeyQuery implements Query {
     }
 
     @Override
-    public int getLimit() {
+    public int limit() {
         return 1;
     }
 }
