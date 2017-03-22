@@ -1,6 +1,8 @@
 package com.baidu.hugegraph2.backend.store.memory;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -10,8 +12,10 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.id.Id;
+import com.baidu.hugegraph2.backend.query.SliceQuery;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendStore;
+import com.google.common.base.Preconditions;
 
 /**
  * Created by jishilei on 17/3/19.
@@ -20,6 +24,9 @@ public class InMemoryDBStore implements BackendStore {
 
     private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStore.class);
 
+    // TODO get from configuration
+    private static final String SCHEMATYPE_COLUME = "_schema";
+
     private final String name;
     private final ConcurrentNavigableMap<Object, BackendEntry> store;
 
@@ -27,6 +34,29 @@ public class InMemoryDBStore implements BackendStore {
         logger.info("init: " + name);
         this.name = name;
         this.store = new ConcurrentSkipListMap<Object, BackendEntry>();
+    }
+
+    @Override
+    public List<BackendEntry> getSlice(SliceQuery query) {
+
+        List<BackendEntry> entries = new ArrayList<BackendEntry>();
+        store.forEach((Object key, BackendEntry entry) ->{
+
+
+            query.conditions.forEach((quality,value)->{
+                boolean isContain = false;
+                if(entry.columns().containsKey(quality) && entry.columns().get(quality).equals(value)){
+                    isContain = true;
+                }else {
+                    isContain =false;
+                }
+                if(isContain){
+                    entries.add(entry);
+                }
+            });
+
+        });
+        return entries;
     }
 
     @Override

@@ -1,10 +1,17 @@
 package com.baidu.hugegraph2.backend.tx;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph2.Cardinality;
+import com.baidu.hugegraph2.DataType;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.id.IdGenerator;
+import com.baidu.hugegraph2.backend.query.SliceQuery;
+import com.baidu.hugegraph2.backend.store.BackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.schema.HugeEdgeLabel;
 import com.baidu.hugegraph2.schema.HugePropertyKey;
@@ -18,9 +25,30 @@ public class SchemaTransaction extends AbstractTransaction {
     // this could be an empty string, now setting a value just for test
     private static final String DEFAULT_COLUME = "default-colume";
 
+    private static final String ID_COLUME = "_id";
+    private static final String SCHEMATYPE_COLUME = "_schema";
+    private static final String TIMESTANMP_COLUME = "_timestamp";
+
     public SchemaTransaction(BackendStore store) {
         super(store);
         // TODO Auto-generated constructor stub
+    }
+
+    public List<HugePropertyKey> getPropertyKeys() {
+        List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
+        SliceQuery query = new SliceQuery();
+        query.condition(SCHEMATYPE_COLUME, "PROPERTY");
+        List<BackendEntry> entries = getSlice(query);
+        entries.forEach(entry -> {
+            // TODO : util to covert
+            String name = entry.colume("name").toString();
+            HugePropertyKey propertyKey = new HugePropertyKey(name);
+            propertyKey.cardinality(Cardinality.valueOf(entry.colume("cardinality").toString()));
+            propertyKey.dataType(DataType.valueOf(entry.colume("datatype").toString()));
+            propertyKeys.add(propertyKey);
+        });
+        return  propertyKeys;
+
     }
 
     public void addPropertyKey(HugePropertyKey propertyKey) {
@@ -30,7 +58,15 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "cardinality: " + propertyKey.cardinality());
 
         Id id = IdGenerator.generate(propertyKey);
-        this.addEntry(id, DEFAULT_COLUME, propertyKey);
+        BackendEntry entry = new BackendEntry(id);
+        entry.colume(ID_COLUME, id.asString());
+        entry.colume(SCHEMATYPE_COLUME, "PROPERTY");
+        //entry.colume(DEFAULT_COLUME,propertyKey);
+        entry.colume(TIMESTANMP_COLUME, System.currentTimeMillis());
+        entry.colume("name", propertyKey.name());
+        entry.colume("datatype", propertyKey.dataType());
+        entry.colume("cardinality", propertyKey.cardinality().toString());
+        this.addEntry(entry);
     }
 
     public void removePropertyKey(String name) {

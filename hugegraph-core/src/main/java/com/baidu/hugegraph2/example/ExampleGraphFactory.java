@@ -105,6 +105,8 @@ public class ExampleGraphFactory {
             }
         }
 
+        schema.desc();
+
         /************************* data operating *************************/
 
         GraphTransaction tx = graph.openGraphTransaction();

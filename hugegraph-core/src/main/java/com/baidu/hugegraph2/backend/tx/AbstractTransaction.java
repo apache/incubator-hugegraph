@@ -2,15 +2,17 @@ package com.baidu.hugegraph2.backend.tx;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.Transaction;
 import com.baidu.hugegraph2.backend.id.Id;
+import com.baidu.hugegraph2.backend.query.SliceQuery;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendStore;
-
+import com.google.common.base.Preconditions;
 
 public abstract class AbstractTransaction implements Transaction {
 
@@ -48,16 +50,32 @@ public abstract class AbstractTransaction implements Transaction {
         store.rollbackTx();
     }
 
+
+    public void addEntry(BackendEntry entry) {
+        Preconditions.checkNotNull(entry);
+        Preconditions.checkNotNull(entry.id());
+        Id id = entry.id();
+        if (this.additions.containsKey(id)) {
+            this.additions.remove(id);
+        }
+        this.additions.put(id, entry);
+    }
+
     public void addEntry(Id id, String colume, Object value) {
         BackendEntry entry = this.additions.getOrDefault(id, null);
         if (entry == null) {
             entry = new BackendEntry(id);
-            this.additions.put(id, entry);
+
         }
         entry.colume(colume, value);
+        addEntry(entry);
     }
 
     public void removeEntry(Id id) {
         deletions.add(id);
+    }
+
+    public List<BackendEntry> getSlice(SliceQuery query){
+        return store.getSlice(query);
     }
 }
