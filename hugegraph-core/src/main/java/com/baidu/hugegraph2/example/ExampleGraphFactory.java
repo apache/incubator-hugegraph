@@ -66,7 +66,6 @@ public class ExampleGraphFactory {
         schema.vertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
         schema.vertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
 
-
         System.out.println("===============  edgeLabel  ================");
         schema.edgeLabel("authored").inOne2Many().create();
         schema.edgeLabel("created").single().inMany2Many().create();
@@ -74,7 +73,7 @@ public class ExampleGraphFactory {
         schema.edgeLabel("includedIn").inMany2One().create();
         schema.edgeLabel("rated").multiple().inMany2Many().connection("reviewer", "recipe").create();
 
-
+//        schema.commit();
         // Transaction tx = graph.openTX();
 
     }
