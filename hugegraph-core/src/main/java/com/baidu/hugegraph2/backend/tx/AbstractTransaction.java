@@ -50,7 +50,6 @@ public abstract class AbstractTransaction implements Transaction {
         store.rollbackTx();
     }
 
-
     public void addEntry(BackendEntry entry) {
         Preconditions.checkNotNull(entry);
         Preconditions.checkNotNull(entry.id());
@@ -75,7 +74,7 @@ public abstract class AbstractTransaction implements Transaction {
         deletions.add(id);
     }
 
-    public List<BackendEntry> getSlice(SliceQuery query){
+    public List<BackendEntry> getSlice(SliceQuery query) {
         return store.getSlice(query);
     }
 }
