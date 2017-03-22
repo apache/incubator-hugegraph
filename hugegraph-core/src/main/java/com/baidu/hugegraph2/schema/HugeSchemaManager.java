@@ -68,9 +68,9 @@ public class HugeSchemaManager implements SchemaManager {
     @Override
     public void desc() {
 
-        //        for(Map.Entry<String, PropertyKey> entry : schemaStore.getPropertyKeys().entrySet()){
-        //            logger.info(entry.getValue().schema());
-        //        }
+        transaction.getPropertyKeys().forEach((p)->{
+            logger.info(p.schema());
+        });
     }
 
     @Override

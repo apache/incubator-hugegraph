@@ -7,6 +7,7 @@ import java.util.Set;
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.DataType;
 import com.baidu.hugegraph2.schema.base.PropertyKey;
+import com.baidu.hugegraph2.util.StringUtil;
 
 /**
  * Created by jishilei on 17/3/17.
@@ -71,8 +72,8 @@ public class HugePropertyKey implements PropertyKey {
     @Override
     public String schema() {
         return "schema.propertyKey(\"" + name + "\")"
-                + "." + cardinality.toString() + "()"
-                + "." + dataType.toString() + "()"
+                + "." + cardinality.toString().toLowerCase() + "()"
+                + ".as" + StringUtil.captureName(dataType.toString().toLowerCase()) + "()"
                 + ".create();";
     }
 }

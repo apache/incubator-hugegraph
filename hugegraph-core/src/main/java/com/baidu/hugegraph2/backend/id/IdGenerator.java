@@ -3,11 +3,17 @@ package com.baidu.hugegraph2.backend.id;
 import java.io.UnsupportedEncodingException;
 
 import com.baidu.hugegraph2.schema.base.Namifiable;
+import com.baidu.hugegraph2.schema.base.PropertyKey;
 
 public class IdGenerator {
 
-    public static Id generate(Namifiable id) {
-        return new StringId(id.name());
+    public static Id generate(Namifiable entry) {
+
+        if (entry instanceof PropertyKey) {
+            return new StringId(String.format("%s:%s", "propertykey", entry.name()));
+        }
+
+        return new StringId(entry.name());
     }
 
     public static Id generate(String id) {
