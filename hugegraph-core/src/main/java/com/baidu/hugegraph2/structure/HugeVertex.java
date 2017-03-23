@@ -12,7 +12,8 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph2.backend.id.Id;
-import com.baidu.hugegraph2.schema.base.VertexLabel;
+import com.baidu.hugegraph2.type.HugeTypes;
+import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**
  * Created by jishilei on 17/3/16.
@@ -24,6 +25,11 @@ public class HugeVertex extends HugeElement implements Vertex {
 
         public HugeVertexProperty(HugeElement owner, String key, V value) {
             super(owner, key, value);
+        }
+
+        @Override
+        public HugeTypes type() {
+            return HugeTypes.VERTEX_PROPERTY;
         }
 
         @Override
@@ -52,6 +58,11 @@ public class HugeVertex extends HugeElement implements Vertex {
 
     public HugeVertex(final Graph graph, final Id id, final VertexLabel label) {
         super(graph, id, label);
+    }
+
+    @Override
+    public HugeTypes type() {
+        return HugeTypes.VERTEX;
     }
 
     public List<Edge> getEdges() {

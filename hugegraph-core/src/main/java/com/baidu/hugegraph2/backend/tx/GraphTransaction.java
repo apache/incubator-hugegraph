@@ -15,11 +15,11 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.store.BackendStore;
-import com.baidu.hugegraph2.schema.base.VertexLabel;
 import com.baidu.hugegraph2.schema.base.maker.SchemaManager;
 import com.baidu.hugegraph2.structure.HugeGraph;
 import com.baidu.hugegraph2.structure.HugeProperty;
 import com.baidu.hugegraph2.structure.HugeVertex;
+import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 public class GraphTransaction extends AbstractTransaction {
 
@@ -35,7 +35,7 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     @Override
-    public void prepareCommit() {
+    protected void prepareCommit() {
         for (HugeVertex v : this.vertexes) {
             // label
             this.addEntry(v.id(), T.label.name(), v.label());
@@ -43,7 +43,9 @@ public class GraphTransaction extends AbstractTransaction {
             // add all properties of a Vertex
             for (HugeProperty<?> prop : v.getProperties().values()) {
                 // TODO: use serializer instead, with encoded bytes
-                this.addEntry(v.id(), "property:" + prop.key(), prop.value());
+                String colume = String.format("%02x:%s",
+                        prop.type().code(), prop.key());
+                this.addEntry(v.id(), colume, prop.value());
             }
 
             // add all edges of a Vertex

@@ -2,18 +2,13 @@ package com.baidu.hugegraph2.backend.id;
 
 import java.io.UnsupportedEncodingException;
 
-import com.baidu.hugegraph2.schema.base.Namifiable;
-import com.baidu.hugegraph2.schema.base.PropertyKey;
+import com.baidu.hugegraph2.type.schema.SchemaType;
 
 public class IdGenerator {
 
-    public static Id generate(Namifiable entry) {
-
-        if (entry instanceof PropertyKey) {
-            return new StringId(String.format("%s:%s", "propertykey", entry.name()));
-        }
-
-        return new StringId(entry.name());
+    public static Id generate(SchemaType entry) {
+        String id = String.format("%02X:%s", entry.type().code(), entry.name());
+        return generate(id);
     }
 
     public static Id generate(String id) {
@@ -23,6 +18,9 @@ public class IdGenerator {
     public static Id generate(long id) {
         return new LongId(id);
     }
+
+
+    /****************************** id defines ******************************/
 
     static class StringId implements Id {
 

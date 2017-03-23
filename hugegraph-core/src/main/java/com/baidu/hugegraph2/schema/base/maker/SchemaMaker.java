@@ -1,6 +1,6 @@
 package com.baidu.hugegraph2.schema.base.maker;
 
-import com.baidu.hugegraph2.schema.base.SchemaType;
+import com.baidu.hugegraph2.type.schema.SchemaType;
 
 /**
  * Created by jishilei on 17/3/17.

@@ -1,4 +1,4 @@
-package com.baidu.hugegraph2.schema.base;
+package com.baidu.hugegraph2.type.schema;
 
 import java.util.List;
 

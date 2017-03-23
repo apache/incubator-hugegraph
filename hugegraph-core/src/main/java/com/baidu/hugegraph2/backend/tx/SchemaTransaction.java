@@ -16,7 +16,7 @@ import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.schema.HugeEdgeLabel;
 import com.baidu.hugegraph2.schema.HugePropertyKey;
 import com.baidu.hugegraph2.schema.HugeVertexLabel;
-import com.baidu.hugegraph2.schema.base.VertexLabel;
+import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 public class SchemaTransaction extends AbstractTransaction {
 

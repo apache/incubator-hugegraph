@@ -1,6 +1,6 @@
 package com.baidu.hugegraph2.schema.base.maker;
 
-import com.baidu.hugegraph2.schema.base.VertexLabel;
+import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**
  * Created by jishilei on 17/3/17.

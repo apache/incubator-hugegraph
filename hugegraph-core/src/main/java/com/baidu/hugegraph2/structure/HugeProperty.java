@@ -5,10 +5,12 @@ import java.util.NoSuchElementException;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 
+import com.baidu.hugegraph2.type.HugeTypes;
+
 /**
  * Created by jishilei on 17/3/16.
  */
-public class HugeProperty<V> implements Property<V> {
+public class HugeProperty<V> implements Property<V>, GraphType {
 
     protected final HugeElement owner;
     // TODO: change key into PropertyKey
@@ -19,6 +21,16 @@ public class HugeProperty<V> implements Property<V> {
         this.owner = owner;
         this.key = key;
         this.value = value;
+    }
+
+    @Override
+    public HugeTypes type() {
+        return HugeTypes.PROPERTY;
+    }
+
+    @Override
+    public String name() {
+        return this.key;
     }
 
     @Override

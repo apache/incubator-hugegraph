@@ -3,9 +3,9 @@ package com.baidu.hugegraph2.schema;
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.DataType;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph2.schema.base.PropertyKey;
-import com.baidu.hugegraph2.schema.base.SchemaType;
 import com.baidu.hugegraph2.schema.base.maker.PropertyKeyMaker;
+import com.baidu.hugegraph2.type.schema.PropertyKey;
+import com.baidu.hugegraph2.type.schema.SchemaType;
 
 /**
  * Created by jishilei on 17/3/17.

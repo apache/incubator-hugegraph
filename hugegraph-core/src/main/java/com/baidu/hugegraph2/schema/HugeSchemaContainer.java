@@ -3,7 +3,7 @@ package com.baidu.hugegraph2.schema;
 import java.util.List;
 
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph2.schema.base.SchemaContainer;
+import com.baidu.hugegraph2.type.schema.SchemaContainer;
 
 /**
  * Created by jishilei on 2017/3/22.
