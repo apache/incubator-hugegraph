@@ -10,7 +10,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
-import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.schema.base.VertexLabel;
@@ -56,7 +55,7 @@ public class GraphTransaction extends AbstractTransaction {
         return this.vertexes.add(vertex) ? vertex : null;
     }
 
-    public Vertex addVertex(Object... keyValues) throws BackendException {
+    public Vertex addVertex(Object... keyValues) {
         ElementHelper.legalPropertyKeyValueArray(keyValues);
 
         Id id = HugeVertex.getIdValue(keyValues);

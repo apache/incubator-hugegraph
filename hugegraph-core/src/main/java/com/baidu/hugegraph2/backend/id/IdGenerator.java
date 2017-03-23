@@ -85,7 +85,7 @@ public class IdGenerator {
         public byte[] asBytes() {
             byte[] bytes = new byte[Long.BYTES];
             for (int i = 0; i < bytes.length; i++) {
-                bytes[i] = (byte) (this.id << i);
+                bytes[i] = (byte) (this.id >> i);
             }
             return bytes;
         }

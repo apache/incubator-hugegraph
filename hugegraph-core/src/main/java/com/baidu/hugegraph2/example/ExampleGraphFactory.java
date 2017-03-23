@@ -25,18 +25,14 @@ public class ExampleGraphFactory {
 
         ExampleGraphFactory.showFeatures(graph);
 
-        try {
-            ExampleGraphFactory.load(graph);
-        } catch (BackendException e) {
-            logger.error("Failed to load graph: {}", e.getMessage());
-        }
+        ExampleGraphFactory.load(graph);
     }
 
     public static void showFeatures(final HugeGraph graph) {
         logger.info("supportsPersistence : " + graph.features().graph().supportsPersistence());
     }
 
-    public static void load(final HugeGraph graph) throws BackendException {
+    public static void load(final HugeGraph graph) {
 
         /************************* schema operating *************************/
 
@@ -92,18 +88,7 @@ public class ExampleGraphFactory {
         // schema.edgeLabel("rated").multiple().inMany2Many().connection("reviewer", "recipe").create();
 
         // commit schema changes
-        try {
-            schema.commit();
-        } catch (BackendException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                schema.rollback();
-            } catch (BackendException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
+        schema.commit();
 
         schema.desc();
 
@@ -120,12 +105,11 @@ public class ExampleGraphFactory {
             tx.commit();
         } catch (BackendException e) {
             e.printStackTrace();
-        } finally {
             try {
                 tx.rollback();
-            } catch (BackendException e) {
+            } catch (BackendException e2) {
                 // TODO Auto-generated catch block
-                e.printStackTrace();
+                e2.printStackTrace();
             }
         }
     }

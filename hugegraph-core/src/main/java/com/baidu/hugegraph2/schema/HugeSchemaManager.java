@@ -30,37 +30,37 @@ public class HugeSchemaManager implements SchemaManager {
     public HugeSchemaManager(SchemaTransaction transaction) {
         this.transaction = transaction;
 
-        propertyKeyMakers = new HashMap<>();
-        vertexLabelMakers = new HashMap<>();
-        edgeLabelMakers = new HashMap<>();
+        this.propertyKeyMakers = new HashMap<>();
+        this.vertexLabelMakers = new HashMap<>();
+        this.edgeLabelMakers = new HashMap<>();
     }
 
     @Override
     public PropertyKeyMaker propertyKey(String name) {
-        PropertyKeyMaker propertyKeyMaker = propertyKeyMakers.get(name);
+        PropertyKeyMaker propertyKeyMaker = this.propertyKeyMakers.get(name);
         if (propertyKeyMaker == null) {
-            propertyKeyMaker = new HugePropertyKeyMaker(transaction, name);
-            propertyKeyMakers.put(name, propertyKeyMaker);
+            propertyKeyMaker = new HugePropertyKeyMaker(this.transaction, name);
+            this.propertyKeyMakers.put(name, propertyKeyMaker);
         }
         return propertyKeyMaker;
     }
 
     @Override
     public VertexLabelMaker vertexLabel(String name) {
-        VertexLabelMaker vertexLabelMaker = vertexLabelMakers.get(name);
+        VertexLabelMaker vertexLabelMaker = this.vertexLabelMakers.get(name);
         if (vertexLabelMaker == null) {
-            vertexLabelMaker = new HugeVertexLabelMaker(transaction, name);
-            vertexLabelMakers.put(name, vertexLabelMaker);
+            vertexLabelMaker = new HugeVertexLabelMaker(this.transaction, name);
+            this.vertexLabelMakers.put(name, vertexLabelMaker);
         }
         return vertexLabelMaker;
     }
 
     @Override
     public EdgeLabelMaker edgeLabel(String name) {
-        EdgeLabelMaker edgeLabelMaker = edgeLabelMakers.get(name);
+        EdgeLabelMaker edgeLabelMaker = this.edgeLabelMakers.get(name);
         if (edgeLabelMaker == null) {
-            edgeLabelMaker = new HugeEdgeLabelMaker(transaction, name);
-            edgeLabelMakers.put(name, edgeLabelMaker);
+            edgeLabelMaker = new HugeEdgeLabelMaker(this.transaction, name);
+            this.edgeLabelMakers.put(name, edgeLabelMaker);
         }
         return edgeLabelMaker;
     }
@@ -68,7 +68,7 @@ public class HugeSchemaManager implements SchemaManager {
     @Override
     public void desc() {
 
-        transaction.getPropertyKeys().forEach((p)->{
+        this.transaction.getPropertyKeys().forEach((p)->{
             logger.info(p.schema());
         });
     }
@@ -79,12 +79,20 @@ public class HugeSchemaManager implements SchemaManager {
     }
 
     @Override
-    public void commit() throws BackendException {
-        this.transaction.commit();
-    }
-
-    @Override
-    public void rollback() throws BackendException {
-        this.transaction.rollback();
+    public boolean commit() {
+        // commit schema changes
+        try {
+            this.transaction.commit();
+            return true;
+        } catch (BackendException e) {
+            logger.error("Failed to commit schema changes: {}", e.getMessage());
+            try {
+                this.transaction.rollback();
+            } catch (BackendException e2) {
+                // TODO: any better ways?
+                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
+            }
+        }
+        return false;
     }
 }
