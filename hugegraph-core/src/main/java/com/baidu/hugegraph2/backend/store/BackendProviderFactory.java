@@ -2,9 +2,9 @@ package com.baidu.hugegraph2.backend.store;
 
 import com.baidu.hugegraph2.backend.store.memory.InMemoryDBStoreProvider;
 
-public class BackendStoreManager {
+public class BackendProviderFactory {
 
-    public static BackendStoreProvider provider(String backend) {
+    public static BackendStoreProvider open(String backend) {
         if (backend.equalsIgnoreCase("memory")) {
             return new InMemoryDBStoreProvider();
         }

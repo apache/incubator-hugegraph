@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph2.HugeException;
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.store.BackendStore;
-import com.baidu.hugegraph2.backend.store.BackendStoreManager;
+import com.baidu.hugegraph2.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph2.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph2.backend.tx.GraphTransaction;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
@@ -61,7 +61,7 @@ public class HugeGraph implements Graph {
 
     public void initBackend() throws BackendException {
         String backend = "memory"; // TODO: read from conf
-        this.storeProvider = BackendStoreManager.provider(backend);
+        this.storeProvider = BackendProviderFactory.open(backend);
 
         this.schemaTransaction = this.openSchemaTransaction();
         this.graphTransaction = this.openGraphTransaction();
