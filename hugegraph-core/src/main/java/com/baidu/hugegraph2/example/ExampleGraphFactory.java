@@ -24,7 +24,7 @@ public class ExampleGraphFactory {
 
         HugeConfiguration configuration = new HugeConfiguration()
                 .useMemoryBackend();
-        HugeGraph graph = HugeFactory.open();
+        HugeGraph graph = HugeFactory.open(configuration);
 
         ExampleGraphFactory.showFeatures(graph);
 
