@@ -1,4 +1,4 @@
-package com.baidu.hugegraph2.schema.base.maker;
+package com.baidu.hugegraph2.schema.maker;
 
 /**
  * Created by jishilei on 17/3/17.

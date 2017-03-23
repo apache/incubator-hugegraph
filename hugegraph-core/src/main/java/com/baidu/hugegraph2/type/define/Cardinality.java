@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.baidu.hugegraph2;
+package com.baidu.hugegraph2.type.define;
 
 /**
  * The cardinality of the values associated with given key for a particular element.

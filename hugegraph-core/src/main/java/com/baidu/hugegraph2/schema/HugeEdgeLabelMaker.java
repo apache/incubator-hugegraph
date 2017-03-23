@@ -7,10 +7,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph2.Cardinality;
-import com.baidu.hugegraph2.Multiplicity;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph2.schema.base.maker.EdgeLabelMaker;
+import com.baidu.hugegraph2.schema.maker.EdgeLabelMaker;
+import com.baidu.hugegraph2.type.define.Cardinality;
+import com.baidu.hugegraph2.type.define.Multiplicity;
 import com.baidu.hugegraph2.type.schema.SchemaType;
 
 /**

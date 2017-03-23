@@ -1,4 +1,4 @@
-package com.baidu.hugegraph2.schema.base.maker;
+package com.baidu.hugegraph2.schema.maker;
 
 import com.baidu.hugegraph2.type.schema.SchemaType;
 

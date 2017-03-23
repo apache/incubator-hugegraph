@@ -6,8 +6,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph2.Cardinality;
-import com.baidu.hugegraph2.DataType;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.id.IdGenerator;
 import com.baidu.hugegraph2.backend.query.SliceQuery;
@@ -16,6 +14,8 @@ import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.schema.HugeEdgeLabel;
 import com.baidu.hugegraph2.schema.HugePropertyKey;
 import com.baidu.hugegraph2.schema.HugeVertexLabel;
+import com.baidu.hugegraph2.type.define.Cardinality;
+import com.baidu.hugegraph2.type.define.DataType;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 public class SchemaTransaction extends AbstractTransaction {

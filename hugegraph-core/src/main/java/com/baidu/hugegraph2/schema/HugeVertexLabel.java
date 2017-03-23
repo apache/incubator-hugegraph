@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.baidu.hugegraph2.IndexType;
+import com.baidu.hugegraph2.type.define.IndexType;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**

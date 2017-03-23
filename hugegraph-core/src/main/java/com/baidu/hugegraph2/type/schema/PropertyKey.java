@@ -2,9 +2,9 @@ package com.baidu.hugegraph2.type.schema;
 
 import java.util.Set;
 
-import com.baidu.hugegraph2.Cardinality;
-import com.baidu.hugegraph2.DataType;
 import com.baidu.hugegraph2.type.HugeTypes;
+import com.baidu.hugegraph2.type.define.Cardinality;
+import com.baidu.hugegraph2.type.define.DataType;
 
 /**
  * Created by jishilei on 17/3/17.

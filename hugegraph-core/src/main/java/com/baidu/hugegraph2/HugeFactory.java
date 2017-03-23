@@ -1,7 +1,5 @@
 package com.baidu.hugegraph2;
 
-import com.baidu.hugegraph2.structure.HugeGraph;
-
 import org.apache.commons.configuration.Configuration;
 
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;

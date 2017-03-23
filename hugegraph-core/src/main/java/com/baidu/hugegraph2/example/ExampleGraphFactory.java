@@ -5,11 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.HugeFactory;
+import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.GraphTransaction;
 import com.baidu.hugegraph2.configuration.HugeConfiguration;
-import com.baidu.hugegraph2.schema.base.maker.SchemaManager;
-import com.baidu.hugegraph2.structure.HugeGraph;
+import com.baidu.hugegraph2.schema.maker.SchemaManager;
 
 /**
  * Created by jishilei on 17/3/16.
