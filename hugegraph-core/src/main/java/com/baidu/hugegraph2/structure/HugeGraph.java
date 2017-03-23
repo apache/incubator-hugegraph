@@ -11,6 +11,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph2.HugeException;
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.backend.store.BackendStoreManager;
@@ -66,14 +67,26 @@ public class HugeGraph implements Graph {
         this.graphTransaction = this.openGraphTransaction();
     }
 
-    public SchemaTransaction openSchemaTransaction() throws BackendException {
-        BackendStore store = this.storeProvider.open(STORE_SCHEMA);
-        return new SchemaTransaction(store);
+    public SchemaTransaction openSchemaTransaction() {
+        try {
+            BackendStore store = this.storeProvider.open(STORE_SCHEMA);
+            return new SchemaTransaction(store);
+        } catch (BackendException e) {
+            String message = "Failed to open schema transaction";
+            logger.error("{}: {}", message, e.getMessage());
+            throw new HugeException(message);
+        }
     }
 
-    public GraphTransaction openGraphTransaction() throws BackendException {
-        BackendStore store = this.storeProvider.open(STORE_GRAPH);
-        return new GraphTransaction(this, store);
+    public GraphTransaction openGraphTransaction() {
+        try {
+            BackendStore store = this.storeProvider.open(STORE_GRAPH);
+            return new GraphTransaction(this, store);
+        } catch (BackendException e) {
+            String message = "Failed to open graph transaction";
+            logger.error("{}: {}", message, e.getMessage());
+            throw new HugeException(message);
+        }
     }
 
     /**
@@ -87,19 +100,13 @@ public class HugeGraph implements Graph {
         return new HugeGraph(conf);
     }
 
-    public SchemaManager openSchemaManager() throws BackendException {
+    public SchemaManager openSchemaManager() {
         return new HugeSchemaManager(this.schemaTransaction);
     }
 
     @Override
     public Vertex addVertex(Object... keyValues) {
-        try {
-            return this.graphTransaction.addVertex(keyValues);
-        } catch (BackendException e) {
-            logger.error("Failed to add vertex: {}", e.getMessage());
-        }
-
-        return null;
+        return this.graphTransaction.addVertex(keyValues);
     }
 
     @Override
@@ -134,7 +141,7 @@ public class HugeGraph implements Graph {
 
     @Override
     public Features features() {
-        return features;
+        return this.features;
     }
 
     @Override

@@ -1,9 +1,13 @@
 package com.baidu.hugegraph2.backend;
 
+import com.baidu.hugegraph2.HugeException;
+
 /**
  * Created by jishilei on 17/3/19.
  */
-public class BackendException extends Exception {
+public class BackendException extends HugeException {
+
+    private static final long serialVersionUID = -1947589125372576298L;
 
     /**
      * @param message Exception message
@@ -26,6 +30,6 @@ public class BackendException extends Exception {
      * @param cause Cause of the exception
      */
     public BackendException(Throwable cause) {
-        this("Exception in backend backend.", cause);
+        this("Exception in backend.", cause);
     }
 }
