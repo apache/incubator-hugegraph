@@ -1,4 +1,4 @@
-package com.baidu.hugegraph2.structure;
+package com.baidu.hugegraph2;
 
 import java.util.Iterator;
 
@@ -11,7 +11,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph2.HugeException;
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.backend.store.BackendProviderFactory;
@@ -20,7 +19,8 @@ import com.baidu.hugegraph2.backend.tx.GraphTransaction;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.configuration.HugeConfiguration;
 import com.baidu.hugegraph2.schema.HugeSchemaManager;
-import com.baidu.hugegraph2.schema.base.maker.SchemaManager;
+import com.baidu.hugegraph2.schema.maker.SchemaManager;
+import com.baidu.hugegraph2.structure.HugeFeatures;
 
 /**
  * Created by jishilei on 17/3/17.

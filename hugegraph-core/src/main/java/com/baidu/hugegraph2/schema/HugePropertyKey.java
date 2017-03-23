@@ -4,8 +4,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.baidu.hugegraph2.Cardinality;
-import com.baidu.hugegraph2.DataType;
+import com.baidu.hugegraph2.type.define.Cardinality;
+import com.baidu.hugegraph2.type.define.DataType;
 import com.baidu.hugegraph2.type.schema.PropertyKey;
 import com.baidu.hugegraph2.util.StringUtil;
 

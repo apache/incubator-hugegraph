@@ -3,9 +3,9 @@ package com.baidu.hugegraph2.schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph2.IndexType;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph2.schema.base.maker.VertexLabelMaker;
+import com.baidu.hugegraph2.schema.maker.VertexLabelMaker;
+import com.baidu.hugegraph2.type.define.IndexType;
 import com.baidu.hugegraph2.type.schema.SchemaType;
 
 /**

@@ -8,10 +8,10 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph2.schema.base.maker.EdgeLabelMaker;
-import com.baidu.hugegraph2.schema.base.maker.PropertyKeyMaker;
-import com.baidu.hugegraph2.schema.base.maker.SchemaManager;
-import com.baidu.hugegraph2.schema.base.maker.VertexLabelMaker;
+import com.baidu.hugegraph2.schema.maker.EdgeLabelMaker;
+import com.baidu.hugegraph2.schema.maker.PropertyKeyMaker;
+import com.baidu.hugegraph2.schema.maker.SchemaManager;
+import com.baidu.hugegraph2.schema.maker.VertexLabelMaker;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**

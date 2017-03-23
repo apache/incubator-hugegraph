@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.baidu.hugegraph2;
-
+package com.baidu.hugegraph2.type.define;
 
 /**
  * The multiplicity of edges between vertices for a given label. Multiplicity here is understood in the same sense as

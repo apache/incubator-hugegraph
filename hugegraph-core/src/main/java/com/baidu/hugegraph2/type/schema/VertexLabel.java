@@ -2,8 +2,8 @@ package com.baidu.hugegraph2.type.schema;
 
 import java.util.Set;
 
-import com.baidu.hugegraph2.IndexType;
 import com.baidu.hugegraph2.type.HugeTypes;
+import com.baidu.hugegraph2.type.define.IndexType;
 
 /**
  * Created by jishilei on 17/3/18.

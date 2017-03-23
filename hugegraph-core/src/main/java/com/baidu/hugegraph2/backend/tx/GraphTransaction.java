@@ -13,10 +13,10 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
+import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.store.BackendStore;
-import com.baidu.hugegraph2.schema.base.maker.SchemaManager;
-import com.baidu.hugegraph2.structure.HugeGraph;
+import com.baidu.hugegraph2.schema.maker.SchemaManager;
 import com.baidu.hugegraph2.structure.HugeProperty;
 import com.baidu.hugegraph2.structure.HugeVertex;
 import com.baidu.hugegraph2.type.schema.VertexLabel;

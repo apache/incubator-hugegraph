@@ -5,9 +5,9 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
-import java.util.Iterator;
+import com.baidu.hugegraph2.HugeGraph;
 
-import com.baidu.hugegraph2.structure.HugeGraph;
+import java.util.Iterator;
 
 /**
  * Created by liningrui on 17/3/23.
