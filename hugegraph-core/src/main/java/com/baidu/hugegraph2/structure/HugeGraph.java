@@ -27,10 +27,6 @@ import com.baidu.hugegraph2.schema.base.maker.SchemaManager;
  */
 public class HugeGraph implements Graph {
 
-    public static String STORE_SCHEMA = "huge_schema";
-    public static String STORE_GRAPH = "huge_graph";
-    public static String STORE_INDEX = "huge_index";
-
     private static final Logger logger = LoggerFactory.getLogger(HugeGraph.class);
 
     protected HugeConfiguration configuration = null;
@@ -60,8 +56,8 @@ public class HugeGraph implements Graph {
     }
 
     public void initBackend() throws BackendException {
-        String backend = "memory"; // TODO: read from conf
-        this.storeProvider = BackendProviderFactory.open(backend);
+
+        this.storeProvider = BackendProviderFactory.open(configuration.getGraphBackend());
 
         this.schemaTransaction = this.openSchemaTransaction();
         this.graphTransaction = this.openGraphTransaction();
@@ -69,7 +65,7 @@ public class HugeGraph implements Graph {
 
     public SchemaTransaction openSchemaTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(STORE_SCHEMA);
+            BackendStore store = this.storeProvider.open(configuration.getStoreSchema());
             return new SchemaTransaction(store);
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
@@ -80,7 +76,7 @@ public class HugeGraph implements Graph {
 
     public GraphTransaction openGraphTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(STORE_GRAPH);
+            BackendStore store = this.storeProvider.open(configuration.getStoreGraph());
             return new GraphTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";
