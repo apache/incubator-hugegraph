@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.baidu.hugegraph2.schema.base;
+package com.baidu.hugegraph2.type;
 
 /**
  * Represents an entity that can be uniquely identified by a String name.

@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph2.IndexType;
-import com.baidu.hugegraph2.schema.base.VertexLabel;
+import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**
  * Created by liningrui on 2017/3/20.

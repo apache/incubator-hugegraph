@@ -11,14 +11,14 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.id.IdGenerator;
-import com.baidu.hugegraph2.schema.base.VertexLabel;
+import com.baidu.hugegraph2.type.schema.VertexLabel;
 import com.google.common.base.Preconditions;
 
 
 /**
  * Created by jishilei on 17/3/16.
  */
-public abstract class HugeElement implements Element {
+public abstract class HugeElement implements Element, GraphType {
 
     protected final Graph graph;
     protected final Id id;
@@ -35,6 +35,11 @@ public abstract class HugeElement implements Element {
     @Override
     public Id id() {
         return this.id;
+    }
+
+    @Override
+    public String name() {
+        return this.id.asString();
     }
 
     @Override

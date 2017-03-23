@@ -18,8 +18,8 @@ public abstract class AbstractTransaction implements Transaction {
 
     private BackendStore store;
 
-    Map<Id, BackendEntry> additions;
-    Set<Id> deletions;
+    private Map<Id, BackendEntry> additions;
+    private Set<Id> deletions;
 
     public AbstractTransaction(BackendStore store) {
         this.store = store;
@@ -28,7 +28,7 @@ public abstract class AbstractTransaction implements Transaction {
         this.deletions = new HashSet<Id>();
     }
 
-    public void prepareCommit() {
+    protected void prepareCommit() {
         // for sub-class preparing data, nothing to do here
     }
 
@@ -37,9 +37,9 @@ public abstract class AbstractTransaction implements Transaction {
         this.prepareCommit();
 
         // if an exception occurred, catch in the upper layer and roll back
-        store.beginTx();
-        store.mutate(additions.values(), deletions);
-        store.commitTx();
+        this.store.beginTx();
+        this.store.mutate(this.additions.values(), this.deletions);
+        this.store.commitTx();
 
         this.additions.clear();
         this.deletions.clear();
@@ -47,7 +47,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Override
     public void rollback() throws BackendException {
-        store.rollbackTx();
+        this.store.rollbackTx();
     }
 
     public void addEntry(BackendEntry entry) {
@@ -71,10 +71,10 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     public void removeEntry(Id id) {
-        deletions.add(id);
+        this.deletions.add(id);
     }
 
     public List<BackendEntry> getSlice(SliceQuery query) {
-        return store.getSlice(query);
+        return this.store.getSlice(query);
     }
 }

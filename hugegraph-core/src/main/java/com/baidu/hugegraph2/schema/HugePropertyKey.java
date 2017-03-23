@@ -6,7 +6,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.DataType;
-import com.baidu.hugegraph2.schema.base.PropertyKey;
+import com.baidu.hugegraph2.type.schema.PropertyKey;
 import com.baidu.hugegraph2.util.StringUtil;
 
 /**

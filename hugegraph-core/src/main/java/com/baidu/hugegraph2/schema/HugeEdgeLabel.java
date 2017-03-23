@@ -6,7 +6,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.Multiplicity;
-import com.baidu.hugegraph2.schema.base.EdgeLabel;
+import com.baidu.hugegraph2.type.schema.EdgeLabel;
 
 /**
  * Created by liningrui on 2017/3/20.

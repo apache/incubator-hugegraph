@@ -10,8 +10,8 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph2.Cardinality;
 import com.baidu.hugegraph2.Multiplicity;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph2.schema.base.SchemaType;
 import com.baidu.hugegraph2.schema.base.maker.EdgeLabelMaker;
+import com.baidu.hugegraph2.type.schema.SchemaType;
 
 /**
  * Created by jishilei on 17/3/17.
