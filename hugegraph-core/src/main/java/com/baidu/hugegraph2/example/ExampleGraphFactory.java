@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph2.HugeFactory;
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.GraphTransaction;
+import com.baidu.hugegraph2.configuration.HugeConfiguration;
 import com.baidu.hugegraph2.schema.base.maker.SchemaManager;
 import com.baidu.hugegraph2.structure.HugeGraph;
 
@@ -21,6 +22,8 @@ public class ExampleGraphFactory {
 
         logger.info("ExampleGraphFactory start!");
 
+        HugeConfiguration configuration = new HugeConfiguration()
+                .useMemoryBackend();
         HugeGraph graph = HugeFactory.open();
 
         ExampleGraphFactory.showFeatures(graph);
