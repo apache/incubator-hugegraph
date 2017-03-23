@@ -3,11 +3,14 @@ package com.baidu.hugegraph2.backend.tx;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph2.backend.id.Id;
@@ -88,7 +91,46 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public org.apache.tinkerpop.gremlin.structure.Transaction tx() {
-        // TODO Auto-generated method stub
-        return null;
+        return new AbstractThreadedTransaction(this.graph) {
+            @Override
+            public void doOpen() {
+                // NOTE: we assume that a Transaction is opened as long as
+                // the object exists
+            }
+
+            @Override
+            public void doCommit() {
+                GraphTransaction.this.commit();
+            }
+
+            @Override
+            public void doRollback() {
+                GraphTransaction.this.rollback();
+            }
+
+            @Override
+            public <R> Workload<R> submit(Function<Graph, R> graphRFunction) {
+                throw new UnsupportedOperationException(
+                        "HugeGraph does not support nested transactions. "
+                        + "Call submit on a HugeGraph not an individual transaction.");
+            }
+
+            @Override
+            public <G extends Graph> G createThreadedTx() {
+                throw new UnsupportedOperationException(
+                        "HugeGraph does not support nested transactions.");
+            }
+
+            @Override
+            public boolean isOpen() {
+                return true;
+            }
+
+            @Override
+            public void doClose() {
+                // calling super will clear listeners
+                super.doClose();
+            }
+        };
     }
 }

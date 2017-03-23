@@ -112,5 +112,9 @@ public class ExampleGraphFactory {
                 e2.printStackTrace();
             }
         }
+
+        // use the default Transaction to commit
+        graph.addVertex(T.id, "3", T.label, "book", "name", "java-3");
+        graph.tx().commit();
     }
 }
