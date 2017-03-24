@@ -21,8 +21,11 @@ public class ExampleGraphFactory {
 
         logger.info("ExampleGraphFactory start!");
 
-        String propFile = ExampleGraphFactory.class.getClassLoader().getResource("hugegraph.properties").getPath();
-        HugeGraph graph = HugeFactory.open(propFile);
+//        HugeConfiguration configuration = new HugeConfiguration("/Users/liningrui/IdeaProjects/baidu/"
+//                + "xbu-data/hugegraph/hugegraph-core/src/main/resources/hugegraph.properties");
+//        HugeGraph graph = HugeFactory.open(configuration);
+
+        HugeGraph graph = HugeFactory.open("/Users/lizhangmei/baidu/xbu-data/hugegraph/hugegraph-core/src/main/resources/hugegraph.properties");
 
         ExampleGraphFactory.showFeatures(graph);
         ExampleGraphFactory.load(graph);
@@ -44,7 +47,7 @@ public class ExampleGraphFactory {
         schema.propertyKey("instructions").asText().create();
         schema.propertyKey("category").asText().create();
         schema.propertyKey("year").asInt().create();
-        schema.propertyKey("timestamp").asTimestamp().create();
+        schema.propertyKey("timestamp").asTimeStamp().create();
         schema.propertyKey("ISBN").asText().create();
         schema.propertyKey("calories").asInt().create();
         schema.propertyKey("amount").asText().create();
@@ -67,7 +70,7 @@ public class ExampleGraphFactory {
         schema.vertexLabel("reviewer").create();
 
         schema.propertyKey("city_id").asInt().create();
-        schema.propertyKey("sensor_id").asUuid().create();
+        schema.propertyKey("sensor_id").asUUID().create();
         schema.vertexLabel("FridgeSensor").partitionKey("city_id").clusteringKey("sensor_id").create();
 
         System.out.println("===============  vertexLabel & index  ================");
@@ -90,7 +93,6 @@ public class ExampleGraphFactory {
         // commit schema changes
         schema.commit();
 
-        System.out.println("===============  schema desc  ================");
         schema.desc();
 
         /************************* data operating *************************/
@@ -98,8 +100,8 @@ public class ExampleGraphFactory {
         GraphTransaction tx = graph.openGraphTransaction();
 
         System.out.println("===============  addVertex  ================");
-        tx.addVertex(T.id, "1", T.label, "book", "name", "java-1");
-        tx.addVertex(T.id, "2", T.label, "book", "name", "java-2");
+        tx.addVertex(T.label, "book", "name", "java-1");
+        tx.addVertex(T.label, "book", "name", "java-2");
 
         // commit data changes
         try {
@@ -115,7 +117,7 @@ public class ExampleGraphFactory {
         }
 
         // use the default Transaction to commit
-        graph.addVertex(T.id, "3", T.label, "book", "name", "java-3");
+        graph.addVertex(T.label, "book", "name", "java-3");
         graph.tx().commit();
     }
 }

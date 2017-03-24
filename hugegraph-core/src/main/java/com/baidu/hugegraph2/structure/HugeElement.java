@@ -21,8 +21,8 @@ import com.google.common.base.Preconditions;
 public abstract class HugeElement implements Element, GraphType {
 
     protected final Graph graph;
-    protected final Id id;
-    protected final VertexLabel label;
+    protected Id id;
+    protected VertexLabel label;
     protected Map<String, HugeProperty<? extends Object>> properties;
 
     public HugeElement(final Graph graph, final Id id, final VertexLabel label) {
@@ -38,13 +38,12 @@ public abstract class HugeElement implements Element, GraphType {
     }
 
     @Override
-    public String name() {
-        return this.id.asString();
-    }
-
-    @Override
     public String label() {
         return this.label.name();
+    }
+
+    public VertexLabel vertexLabel() {
+        return this.label;
     }
 
     @Override
@@ -67,8 +66,19 @@ public abstract class HugeElement implements Element, GraphType {
     public static Id getIdValue(Object... keyValues) {
         Optional<Object> id = ElementHelper.getIdValue(keyValues);
         if (id.isPresent()) {
-            // TODO: to support non-string id
-            return IdGenerator.generate(id.get().toString());
+            Object idValue = id.get();
+            // number id
+            if (idValue instanceof Number) {
+                return IdGenerator.generate(((Number) idValue).longValue());
+            }
+            // string id
+            else if (idValue instanceof String) {
+                return IdGenerator.generate((String) idValue);
+            }
+            // error
+            String msg = "Not supported id type(must be a number or string): ";
+            msg += idValue.getClass().getSimpleName();
+            throw new UnsupportedOperationException(msg);
         }
         return null;
     }
