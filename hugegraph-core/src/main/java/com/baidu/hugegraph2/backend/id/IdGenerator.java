@@ -1,10 +1,22 @@
 package com.baidu.hugegraph2.backend.id;
 
-import java.io.UnsupportedEncodingException;
-
 import com.baidu.hugegraph2.type.schema.SchemaType;
+import com.baidu.hugegraph2.util.NumericUtils;
+import com.baidu.hugegraph2.util.StringEncoding;
 
 public class IdGenerator {
+
+    /****************************** id type ******************************/
+
+    public static enum IdType {
+        LONG,
+        STRING;
+    }
+
+    // this could be set by conf
+    public static IdType ID_SAVE_TYPE = IdType.STRING;
+
+    /****************************** id generate ******************************/
 
     public static Id generate(SchemaType entry) {
         String id = String.format("%02X:%s", entry.type().code(), entry.name());
@@ -12,13 +24,40 @@ public class IdGenerator {
     }
 
     public static Id generate(String id) {
-        return new StringId(id);
+        switch (ID_SAVE_TYPE) {
+            case LONG:
+                return new LongId(Long.parseLong(id));
+            case STRING:
+                return new StringId(id);
+            default:
+                assert false;
+                return null;
+        }
     }
 
     public static Id generate(long id) {
-        return new LongId(id);
+        switch (ID_SAVE_TYPE) {
+            case LONG:
+                return new LongId(id);
+            case STRING:
+                return new StringId(String.valueOf(id));
+            default:
+                assert false;
+                return null;
+        }
     }
 
+    public static Id parse(byte[] bytes) {
+        switch (ID_SAVE_TYPE) {
+            case LONG:
+                return new LongId(bytes);
+            case STRING:
+                return new StringId(bytes);
+            default:
+                assert false;
+                return null;
+        }
+    }
 
     /****************************** id defines ******************************/
 
@@ -28,6 +67,10 @@ public class IdGenerator {
 
         public StringId(String id) {
             this.id = id;
+        }
+
+        public StringId(byte[] bytes) {
+            this.id = StringEncoding.decodeString(bytes);
         }
 
         @Override
@@ -42,12 +85,7 @@ public class IdGenerator {
 
         @Override
         public byte[] asBytes() {
-            try {
-                return this.id.getBytes("utf-8");
-            } catch (UnsupportedEncodingException e) {
-                // TODO: serialize string
-                return null;
-            }
+            return StringEncoding.encodeString(this.id);
         }
 
         @Override
@@ -69,6 +107,10 @@ public class IdGenerator {
             this.id = id;
         }
 
+        public LongId(byte[] bytes) {
+            this.id = NumericUtils.bytesToLong(bytes);
+        }
+
         @Override
         public String asString() {
             return String.valueOf(this.id);
@@ -81,11 +123,7 @@ public class IdGenerator {
 
         @Override
         public byte[] asBytes() {
-            byte[] bytes = new byte[Long.BYTES];
-            for (int i = 0; i < bytes.length; i++) {
-                bytes[i] = (byte) (this.id >> i);
-            }
-            return bytes;
+            return NumericUtils.longToBytes(this.id);
         }
 
         @Override
