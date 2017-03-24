@@ -10,6 +10,7 @@ import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.Transaction;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.query.SliceQuery;
+import com.baidu.hugegraph2.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.google.common.base.Preconditions;
@@ -60,14 +61,16 @@ public abstract class AbstractTransaction implements Transaction {
         this.additions.put(id, entry);
     }
 
-    public void addEntry(Id id, String colume, Object value) {
+    public void addEntry(Id id, String column, String value) {
+        // add a column to an Entry
+        // create a new one if the Entry with `id` not exists
         BackendEntry entry = this.additions.getOrDefault(id, null);
         if (entry == null) {
-            entry = new BackendEntry(id);
-
+            entry = new TextBackendEntry(id);
+            this.additions.put(id, entry);
         }
-        entry.colume(colume, value);
-        addEntry(entry);
+        assert (entry instanceof TextBackendEntry);
+        ((TextBackendEntry) entry).column(column, value);
     }
 
     public void removeEntry(Id id) {
