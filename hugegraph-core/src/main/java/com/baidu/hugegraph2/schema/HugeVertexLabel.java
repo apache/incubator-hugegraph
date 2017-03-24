@@ -8,15 +8,19 @@ import java.util.Set;
 
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.IndexType;
+import com.baidu.hugegraph2.type.schema.SchemaType;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**
  * Created by liningrui on 2017/3/20.
  */
-public class HugeVertexLabel extends VertexLabel {
+public class HugeVertexLabel implements VertexLabel {
 
+    private String name;
+    private SchemaTransaction transaction;
     private IndexType indexType;
 
+    private Set<String> properties;
     private Set<String> partitionKeys;
     private Set<String> clusteringKeys;
 
@@ -25,17 +29,22 @@ public class HugeVertexLabel extends VertexLabel {
     private Map<String, String> indexMap;
 
     public HugeVertexLabel(String name, SchemaTransaction transaction) {
-        super(name, transaction);
+        this.name = name;
+        this.transaction = transaction;
         this.indexType = null;
+        this.properties = null;
         this.indexName = null;
         this.indexMap = null;
     }
 
+    @Override
     public String schema() {
-        schema = "schema.vertexLabel(\"" + name + "\")"
-                + "." + propertiesSchema()
-                + ".create();";
-        return schema;
+        return null;
+    }
+
+    @Override
+    public String name() {
+        return this.name;
     }
 
     @Override
@@ -45,7 +54,7 @@ public class HugeVertexLabel extends VertexLabel {
 
     @Override
     public IndexType indexType() {
-        return indexType;
+        return this.indexType;
     }
 
     public void indexType(IndexType indexType) {
@@ -53,46 +62,79 @@ public class HugeVertexLabel extends VertexLabel {
     }
 
     public void bindIndex(String propertyKeyName) {
-        if (indexMap == null) {
-            indexMap = new HashMap<>();
+        if (this.indexMap == null) {
+            this.indexMap = new HashMap<>();
         }
-        indexMap.put(indexName, propertyKeyName);
+        this.indexMap.put(this.indexName, propertyKeyName);
     }
 
-    public void create() {
-        transaction.addVertexLabel(this);
-    }
-
-    public void remove() {
-        transaction.removeVertexLabel(name);
-    }
-
-    public Set<String> partitionKey() {
-        return partitionKeys;
-    }
-
-    public VertexLabel partitionKey(String... keys) {
-        if (partitionKeys == null) {
-            partitionKeys = new HashSet<>();
+    public boolean containPropertyKey(String name) {
+        if (this.properties == null || this.properties.isEmpty()) {
+            return false;
         }
-        partitionKeys.addAll(Arrays.asList(keys));
-        return this;
+        return this.properties.contains(name);
     }
 
-    public Set<String> clusteringKey() {
-        return clusteringKeys;
+    @Override
+    public Set<String> properties() {
+        return this.properties;
     }
 
-    public VertexLabel clusteringKey(String... keys) {
-        if (clusteringKeys == null) {
-            clusteringKeys = new HashSet<>();
+    @Override
+    public SchemaType properties(String... propertyNames) {
+        if (this.properties == null) {
+            this.properties = new HashSet<>();
         }
-        clusteringKeys.addAll(Arrays.asList(keys));
+        this.properties.addAll(Arrays.asList(propertyNames));
         return this;
     }
 
     @Override
+    public void create() {
+        this.transaction.addVertexLabel(this);
+    }
+
+    @Override
+    public void remove() {
+        this.transaction.removeVertexLabel(this.name);
+    }
+
+    public Set<String> partitionKey() {
+        return this.partitionKeys;
+    }
+
+    @Override
+    public VertexLabel partitionKey(String... keys) {
+        if (this.partitionKeys == null) {
+            this.partitionKeys = new HashSet<>();
+        }
+        this.partitionKeys.addAll(Arrays.asList(keys));
+        return this;
+    }
+
+    public Set<String> clusteringKey() {
+        return this.clusteringKeys;
+    }
+
+    @Override
+    public VertexLabel clusteringKey(String... keys) {
+        if (this.clusteringKeys == null) {
+            this.clusteringKeys = new HashSet<>();
+        }
+        this.clusteringKeys.addAll(Arrays.asList(keys));
+        return this;
+    }
+
+    @Override
+    public Set<String> sortKeys() {
+        // TODO: implement
+        Set<String> s = new HashSet<>();
+        s.add("name");
+        return s;
+    }
+
+    @Override
     public String toString() {
-        return String.format("{name=%s}", name);
+        return String.format("{name=%s}", this.name);
     }
 }

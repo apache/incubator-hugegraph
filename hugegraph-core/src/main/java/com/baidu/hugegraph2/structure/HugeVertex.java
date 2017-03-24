@@ -2,6 +2,7 @@ package com.baidu.hugegraph2.structure;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -12,6 +13,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph2.backend.id.Id;
+import com.baidu.hugegraph2.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
@@ -65,6 +67,24 @@ public class HugeVertex extends HugeElement implements Vertex {
         return HugeTypes.VERTEX;
     }
 
+    @Override
+    public String name() {
+        List<String> properties = new LinkedList<>();
+        for (String key : this.vertexLabel().sortKeys()) {
+            properties.add(this.property(key).value().toString());
+        }
+        // TODO: use a better delimiter
+        return String.join("\u0002\t", properties);
+    }
+
+    public void assignId() {
+        assert this.id == null;
+        // generate an id and assign
+        if (this.id == null) {
+            this.id = SplicingIdGenerator.generate(this);
+        }
+    }
+
     public List<Edge> getEdges() {
         // TODO: return a list of HugeEdge
         return new ArrayList<>();
@@ -101,9 +121,11 @@ public class HugeVertex extends HugeElement implements Vertex {
 
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
-        List<VertexProperty<V>> propertyList = new ArrayList<>();
+        List<VertexProperty<V>> propertyList = new ArrayList<>(propertyKeys.length);
         for (String pk : propertyKeys) {
-            // TODO : build props
+            HugeProperty<? extends Object> prop = this.getProperty(pk);
+            assert prop instanceof VertexProperty;
+            propertyList.add((VertexProperty<V>) prop);
         }
         return propertyList.iterator();
     }

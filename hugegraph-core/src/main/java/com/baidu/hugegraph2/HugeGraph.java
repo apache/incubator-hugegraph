@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.backend.BackendException;
+import com.baidu.hugegraph2.backend.serializer.AbstractSerializer;
+import com.baidu.hugegraph2.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph2.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.backend.store.BackendStoreProvider;
@@ -68,7 +70,7 @@ public class HugeGraph implements Graph {
     }
 
     public void initBackend() throws BackendException {
-        this.storeProvider = BackendProviderFactory.open(configuration.get(BACKEND));
+        this.storeProvider = BackendProviderFactory.open(this.configuration.get(BACKEND));
 
         this.schemaTransaction = this.openSchemaTransaction();
         this.graphTransaction = this.openGraphTransaction();
@@ -76,7 +78,7 @@ public class HugeGraph implements Graph {
 
     public SchemaTransaction openSchemaTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(configuration.get(TABLE_SCHEMA));
+            BackendStore store = this.storeProvider.open(this.configuration.get(TABLE_SCHEMA));
             return new SchemaTransaction(store);
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
@@ -87,7 +89,7 @@ public class HugeGraph implements Graph {
 
     public GraphTransaction openGraphTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(configuration.get(TABLE_GRAPH));
+            BackendStore store = this.storeProvider.open(this.configuration.get(TABLE_GRAPH));
             return new GraphTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";
@@ -97,7 +99,17 @@ public class HugeGraph implements Graph {
     }
 
     public SchemaManager openSchemaManager() {
-        return new HugeSchemaManager(schemaTransaction);
+        return new HugeSchemaManager(this.schemaTransaction);
+    }
+
+    public AbstractSerializer serializer() {
+        // TODO: read from conf
+        String name = "text";
+        AbstractSerializer serializer = SerializerFactory.serializer(name, this);
+        if (serializer == null) {
+            throw new HugeException("Can't load serializer with name " + name);
+        }
+        return serializer;
     }
 
     @Override

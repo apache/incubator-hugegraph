@@ -16,6 +16,8 @@ public abstract class VertexLabel extends SchemaElement {
         super(name, transaction);
     }
 
+    public Set<String> sortKeys();
+
     @Override
     public HugeTypes type() {
         return HugeTypes.VERTEX_LABEL;

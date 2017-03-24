@@ -71,6 +71,11 @@ public class HugeSchemaManager implements SchemaManager {
     }
 
     @Override
+    public VertexLabel getVertexLabel(String label) {
+        return this.transaction.getVertexLabel(label);
+    }
+
+    @Override
     public boolean commit() {
         // commit schema changes
         try {
