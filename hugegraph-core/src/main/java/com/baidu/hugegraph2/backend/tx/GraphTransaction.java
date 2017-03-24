@@ -45,7 +45,7 @@ public class GraphTransaction extends AbstractTransaction {
                 // TODO: use serializer instead, with encoded bytes
                 String colume = String.format("%02x:%s",
                         prop.type().code(), prop.key());
-                this.addEntry(v.id(), colume, prop.value());
+                this.addEntry(v.id(), colume, prop.value().toString());
             }
 
             // add all edges of a Vertex

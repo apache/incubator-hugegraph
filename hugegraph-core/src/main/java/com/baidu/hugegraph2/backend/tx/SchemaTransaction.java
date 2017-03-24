@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.id.IdGenerator;
 import com.baidu.hugegraph2.backend.query.SliceQuery;
+import com.baidu.hugegraph2.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.schema.HugeEdgeLabel;
@@ -39,12 +40,15 @@ public class SchemaTransaction extends AbstractTransaction {
         SliceQuery query = new SliceQuery();
         query.condition(SCHEMATYPE_COLUME, "PROPERTY");
         List<BackendEntry> entries = getSlice(query);
-        entries.forEach(entry -> {
+        entries.forEach(item -> {
+            // TODO: use serializer instead
+            TextBackendEntry entry = (TextBackendEntry) item;
+
             // TODO : util to covert
-            String name = entry.colume("name").toString();
+            String name = entry.column("name").toString();
             HugePropertyKey propertyKey = new HugePropertyKey(name);
-            propertyKey.cardinality(Cardinality.valueOf(entry.colume("cardinality").toString()));
-            propertyKey.dataType(DataType.valueOf(entry.colume("datatype").toString()));
+            propertyKey.cardinality(Cardinality.valueOf(entry.column("cardinality").toString()));
+            propertyKey.dataType(DataType.valueOf(entry.column("datatype").toString()));
             propertyKeys.add(propertyKey);
         });
         return  propertyKeys;
@@ -58,14 +62,14 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "cardinality: " + propertyKey.cardinality());
 
         Id id = IdGenerator.generate(propertyKey);
-        BackendEntry entry = new BackendEntry(id);
-        entry.colume(ID_COLUME, id.asString());
-        entry.colume(SCHEMATYPE_COLUME, "PROPERTY");
+        // TODO: use serializer instead
+        TextBackendEntry entry = new TextBackendEntry(id);
+        entry.column(ID_COLUME, id.asString());
+        entry.column(SCHEMATYPE_COLUME, "PROPERTY");
         //entry.colume(DEFAULT_COLUME,propertyKey);
-        entry.colume(TIMESTANMP_COLUME, System.currentTimeMillis());
-        entry.colume("name", propertyKey.name());
-        entry.colume("datatype", propertyKey.dataType());
-        entry.colume("cardinality", propertyKey.cardinality().toString());
+        entry.column("name", propertyKey.name());
+        entry.column("datatype", propertyKey.dataType().name());
+        entry.column("cardinality", propertyKey.cardinality().toString());
         this.addEntry(entry);
     }
 
@@ -81,7 +85,8 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "name: " + vertexLabel.name());
 
         Id id = IdGenerator.generate(vertexLabel);
-        this.addEntry(id, DEFAULT_COLUME, vertexLabel);
+        // TODO: use serializer instead
+        this.addEntry(id, DEFAULT_COLUME, vertexLabel.toString());
     }
 
     public void removeVertexLabel(String name) {
@@ -98,7 +103,8 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "cardinality: " + edgeLabel.cardinality());
 
         Id id = IdGenerator.generate(edgeLabel);
-        this.addEntry(id, DEFAULT_COLUME, edgeLabel);
+        // TODO: use serializer instead
+        this.addEntry(id, DEFAULT_COLUME, edgeLabel.toString());
     }
 
     public VertexLabel getOrCreateVertexLabel(String label) {

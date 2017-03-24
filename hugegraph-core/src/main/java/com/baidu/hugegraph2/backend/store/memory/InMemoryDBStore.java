@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.query.SliceQuery;
+import com.baidu.hugegraph2.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendStore;
-import com.google.common.base.Preconditions;
 
 /**
  * Created by jishilei on 17/3/19.
@@ -40,12 +40,14 @@ public class InMemoryDBStore implements BackendStore {
     public List<BackendEntry> getSlice(SliceQuery query) {
 
         List<BackendEntry> entries = new ArrayList<BackendEntry>();
-        store.forEach((Object key, BackendEntry entry) ->{
+        this.store.forEach((Object key, BackendEntry item) ->{
 
+            // TODO: Compatible with BackendEntry
+            TextBackendEntry entry = (TextBackendEntry) item;
 
             query.conditions.forEach((quality,value)->{
                 boolean isContain = false;
-                if(entry.columns().containsKey(quality) && entry.columns().get(quality).equals(value)){
+                if(entry.contains(quality) && entry.column(quality).equals(value)){
                     isContain = true;
                 }else {
                     isContain =false;
@@ -66,24 +68,24 @@ public class InMemoryDBStore implements BackendStore {
 
         additions.forEach((entry)->{
             logger.info("[store {}] add entry: {}", this.name, entry);
-            store.put(entry.id(),entry);
+            this.store.put(entry.id(),entry);
         });
 
         deletions.forEach((k)->{
             logger.info("[store {}] remove id: {}", this.name, k.asString());
-            store.remove(k);
+            this.store.remove(k);
         });
     }
 
     @Override
     public String name() {
-        return name;
+        return this.name;
     }
 
     @Override
     public void clear() {
         logger.info("clear()");
-        store.clear();
+        this.store.clear();
     }
 
     @Override
