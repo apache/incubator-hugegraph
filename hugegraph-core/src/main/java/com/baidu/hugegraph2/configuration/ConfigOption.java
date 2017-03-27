@@ -1,4 +1,4 @@
-package com.baidu.toolkit.hugegraph.configuration;
+package com.baidu.hugegraph2.configuration;
 
 import java.util.Set;
 
@@ -126,13 +126,13 @@ public class ConfigOption<T> {
         return result;
     }
 
-    public static final<E extends Enum> E getEnumValue(String str, Class<E> enumClass) {
-        str = str.trim();
-        if (StringUtils.isBlank(str)) return null;
-        for (E e : enumClass.getEnumConstants()) {
-            if (e.toString().equalsIgnoreCase(str)) return e;
-        }
-        throw new IllegalArgumentException("Invalid enum string provided for ["+enumClass+"]: " + str);
-    }
+//    public static final<E extends Enum> E getEnumValue(String str, Class<E> enumClass) {
+//        str = str.trim();
+//        if (StringUtils.isBlank(str)) return null;
+//        for (E e : enumClass.getEnumConstants()) {
+//            if (e.toString().equalsIgnoreCase(str)) return e;
+//        }
+//        throw new IllegalArgumentException("Invalid enum string provided for ["+enumClass+"]: " + str);
+//    }
 
 }

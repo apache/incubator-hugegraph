@@ -1,4 +1,4 @@
-package com.baidu.toolkit.hugegraph.configuration;
+package com.baidu.hugegraph2.configuration;
 
 import java.lang.reflect.Array;
 import java.util.Collection;

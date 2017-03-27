@@ -1,4 +1,7 @@
-package com.baidu.toolkit.hugegraph.configuration;
+package com.baidu.hugegraph2.configuration;
+
+import static com.baidu.hugegraph2.configuration.ConfigVerifier.disallowEmpty;
+import static com.baidu.hugegraph2.configuration.ConfigVerifier.rangeInt;
 
 import java.util.Map;
 
@@ -11,6 +14,54 @@ import com.google.common.collect.Maps;
 public class ConfigSpace {
 
     private static final Map<String, ConfigOption> configOptions = Maps.newHashMap();
+
+    public static final ConfigOption<String> BACKEND = new ConfigOption<>(
+            "backend",
+            "memory",
+            true,
+            "The data store type.",
+            disallowEmpty(String.class)
+    );
+
+    public static final ConfigOption<String> CASSANDRA_HOST = new ConfigOption<>(
+            "cassandra.host",
+            "localhost",
+            true,
+            "The seeds hostname or ip address of cassandra cluster.",
+            disallowEmpty(String.class)
+    );
+
+    public static final ConfigOption<Integer> CASSANDRA_PORT = new ConfigOption<>(
+            "cassandra.port",
+            9042,
+            true,
+            "The seeds port address of cassandra cluster.",
+            rangeInt(1024, 10000)
+    );
+
+    public static final ConfigOption<String> CASSANDRA_KEYSPACE = new ConfigOption<String>(
+            "cassandra.keyspace",
+            "hugegraph",
+            true,
+            "keyspace name",
+            disallowEmpty(String.class)
+    );
+
+    public static final ConfigOption<String> TABLE_SCHEMA = new ConfigOption<>(
+            "table.schema",
+            "huge_schema",
+            true,
+            "the table store graph schema element info.",
+            disallowEmpty(String.class)
+    );
+
+    public static final ConfigOption<String> TABLE_GRAPH = new ConfigOption<>(
+            "table.graph",
+            "huge_graph",
+            true,
+            "the table store graph vertex, edge and property info.",
+            disallowEmpty(String.class)
+    );
 
     /**
      * 每个configOption只会被注册一次
