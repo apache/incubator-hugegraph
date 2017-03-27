@@ -14,6 +14,8 @@
 
 package com.baidu.hugegraph2.util;
 
+import java.nio.charset.Charset;
+
 import com.google.common.base.Preconditions;
 
 /**
@@ -65,12 +67,12 @@ public class StringEncoding {
 
     public static byte[] encodeString(String value) {
         // TODO Auto-generated method stub
-        return null;
+        return value.getBytes(Charset.forName("utf-8"));
     }
 
     public static String decodeString(byte[] name) {
         // TODO Auto-generated method stub
-        return null;
+        return new String(name,Charset.forName("utf-8"));
     }
 
 }
