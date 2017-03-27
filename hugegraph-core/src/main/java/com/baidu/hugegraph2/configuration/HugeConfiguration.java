@@ -69,7 +69,7 @@ public class HugeConfiguration extends AbstractConfiguration {
                     Method method = configuration.getClass().getMethod(getMethod, String.class, dataType);
                     configOption.value(method.invoke(configuration, key, configOption.value()));
                 } else {
-                    logger.warn("设置了冗余的配置项：" + key);
+                    logger.warn("A redundant configuration item is set：" + key);
                 }
             }
         } catch (Exception e) {
