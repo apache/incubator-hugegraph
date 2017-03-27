@@ -45,7 +45,7 @@ public class ConfigVerifier {
         };
     }
 
-    public static final Predicate<Integer> nonnegativeInt() {
+    public static final Predicate<Integer> nonNegativeInt() {
         return new Predicate<Integer>() {
             @Override
             public boolean apply(@Nullable Integer num) {
