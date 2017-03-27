@@ -13,13 +13,13 @@ public class IdGenerator {
     }
 
     // this could be set by conf
-    public static IdType ID_SAVE_TYPE = IdType.STRING;
+    public static IdType ID_TYPE = IdType.STRING;
 
     /****************************** id generate ******************************/
 
     // generate a string id
     public static Id generate(String id) {
-        switch (ID_SAVE_TYPE) {
+        switch (ID_TYPE) {
             case LONG:
                 return new LongId(Long.parseLong(id));
             case STRING:
@@ -32,7 +32,7 @@ public class IdGenerator {
 
     // generate a long id
     public static Id generate(long id) {
-        switch (ID_SAVE_TYPE) {
+        switch (ID_TYPE) {
             case LONG:
                 return new LongId(id);
             case STRING:
@@ -45,7 +45,7 @@ public class IdGenerator {
 
     // parse an id from bytes
     public static Id parse(byte[] bytes) {
-        switch (ID_SAVE_TYPE) {
+        switch (ID_TYPE) {
             case LONG:
                 return new LongId(bytes);
             case STRING:
