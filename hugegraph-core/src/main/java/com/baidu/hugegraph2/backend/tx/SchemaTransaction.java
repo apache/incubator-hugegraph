@@ -46,7 +46,7 @@ public class SchemaTransaction extends AbstractTransaction {
 
             // TODO : util to covert
             String name = entry.column("name").toString();
-            HugePropertyKey propertyKey = new HugePropertyKey(name);
+            HugePropertyKey propertyKey = new HugePropertyKey(name, this);
             propertyKey.cardinality(Cardinality.valueOf(entry.column("cardinality").toString()));
             propertyKey.dataType(DataType.valueOf(entry.column("datatype").toString()));
             propertyKeys.add(propertyKey);
@@ -107,8 +107,15 @@ public class SchemaTransaction extends AbstractTransaction {
         this.addEntry(id, DEFAULT_COLUME, edgeLabel.toString());
     }
 
+    public void removeEdgeLabel(String name) {
+        logger.info("SchemaTransaction remove edge label " + name);
+
+        Id id = IdGenerator.generate(name);
+        this.removeEntry(id);
+    }
+
     public VertexLabel getOrCreateVertexLabel(String label) {
         // TODO: get from cache or db, now let it just returns a fake label
-        return new HugeVertexLabel(label);
+        return new HugeVertexLabel(label, this);
     }
 }

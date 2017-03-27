@@ -8,10 +8,9 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph2.schema.maker.EdgeLabelMaker;
-import com.baidu.hugegraph2.schema.maker.PropertyKeyMaker;
-import com.baidu.hugegraph2.schema.maker.SchemaManager;
-import com.baidu.hugegraph2.schema.maker.VertexLabelMaker;
+import com.baidu.hugegraph2.type.schema.EdgeLabel;
+import com.baidu.hugegraph2.type.schema.PropertyKey;
+import com.baidu.hugegraph2.type.schema.SchemaElement;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**
@@ -21,48 +20,43 @@ public class HugeSchemaManager implements SchemaManager {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeSchemaManager.class);
 
-    private Map<String, PropertyKeyMaker> propertyKeyMakers;
-    private Map<String, VertexLabelMaker> vertexLabelMakers;
-    private Map<String, EdgeLabelMaker> edgeLabelMakers;
+    private Map<String, SchemaElement> schemaElements;
 
     private final SchemaTransaction transaction;
 
     public HugeSchemaManager(SchemaTransaction transaction) {
         this.transaction = transaction;
-
-        this.propertyKeyMakers = new HashMap<>();
-        this.vertexLabelMakers = new HashMap<>();
-        this.edgeLabelMakers = new HashMap<>();
+        schemaElements = new HashMap<>();
     }
 
     @Override
-    public PropertyKeyMaker propertyKey(String name) {
-        PropertyKeyMaker propertyKeyMaker = this.propertyKeyMakers.get(name);
-        if (propertyKeyMaker == null) {
-            propertyKeyMaker = new HugePropertyKeyMaker(this.transaction, name);
-            this.propertyKeyMakers.put(name, propertyKeyMaker);
+    public PropertyKey propertyKey(String name) {
+        PropertyKey propertyKey = (PropertyKey) schemaElements.get(name);
+        if (propertyKey == null) {
+            propertyKey = new HugePropertyKey(name, transaction);
+            this.schemaElements.put(name, propertyKey);
         }
-        return propertyKeyMaker;
+        return propertyKey;
     }
 
     @Override
-    public VertexLabelMaker vertexLabel(String name) {
-        VertexLabelMaker vertexLabelMaker = this.vertexLabelMakers.get(name);
-        if (vertexLabelMaker == null) {
-            vertexLabelMaker = new HugeVertexLabelMaker(this.transaction, name);
-            this.vertexLabelMakers.put(name, vertexLabelMaker);
+    public VertexLabel vertexLabel(String name) {
+        VertexLabel vertexLabel = (VertexLabel) schemaElements.get(name);
+        if (vertexLabel == null) {
+            vertexLabel = new HugeVertexLabel(name, transaction);
+            this.schemaElements.put(name, vertexLabel);
         }
-        return vertexLabelMaker;
+        return vertexLabel;
     }
 
     @Override
-    public EdgeLabelMaker edgeLabel(String name) {
-        EdgeLabelMaker edgeLabelMaker = this.edgeLabelMakers.get(name);
-        if (edgeLabelMaker == null) {
-            edgeLabelMaker = new HugeEdgeLabelMaker(this.transaction, name);
-            this.edgeLabelMakers.put(name, edgeLabelMaker);
+    public EdgeLabel edgeLabel(String name) {
+        EdgeLabel edgeLabel = (EdgeLabel) schemaElements.get(name);
+        if (edgeLabel == null) {
+            edgeLabel = new HugeEdgeLabel(name, transaction);
+            this.schemaElements.put(name, edgeLabel);
         }
-        return edgeLabelMaker;
+        return edgeLabel;
     }
 
     @Override

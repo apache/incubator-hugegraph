@@ -6,7 +6,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.IndexType;
+import com.baidu.hugegraph2.type.schema.SchemaElement;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**
@@ -15,6 +17,7 @@ import com.baidu.hugegraph2.type.schema.VertexLabel;
 public class HugeVertexLabel implements VertexLabel {
 
     private String name;
+    private SchemaTransaction transaction;
     private IndexType indexType;
 
     private Set<String> properties;
@@ -27,8 +30,9 @@ public class HugeVertexLabel implements VertexLabel {
     private Map<String, String> indexMap;
 
 
-    public HugeVertexLabel(String name) {
+    public HugeVertexLabel(String name, SchemaTransaction transaction) {
         this.name = name;
+        this.transaction = transaction;
         this.indexType = null;
         this.properties = null;
         this.indexName = null;
@@ -78,33 +82,47 @@ public class HugeVertexLabel implements VertexLabel {
         return properties;
     }
 
-    public void properties(String... propertyNames) {
+    @Override
+    public SchemaElement properties(String... propertyNames) {
         if (properties == null) {
             properties = new HashSet<>();
         }
         properties.addAll(Arrays.asList(propertyNames));
+        return this;
     }
 
-    public Set<String> partitionKeys() {
+    @Override
+    public void create() {
+        transaction.addVertexLabel(this);
+    }
+
+    @Override
+    public void remove() {
+        transaction.removeVertexLabel(name);
+    }
+
+    public Set<String> partitionKey() {
         return partitionKeys;
     }
 
-    public void partitionKeys(String... keys) {
+    public VertexLabel partitionKey(String... keys) {
         if (partitionKeys == null) {
             partitionKeys = new HashSet<>();
         }
         partitionKeys.addAll(Arrays.asList(keys));
+        return this;
     }
 
-    public Set<String> clusteringKeys() {
+    public Set<String> clusteringKey() {
         return clusteringKeys;
     }
 
-    public void clusteringKey(String... keys) {
+    public VertexLabel clusteringKey(String... keys) {
         if (clusteringKeys == null) {
             clusteringKeys = new HashSet<>();
         }
         clusteringKeys.addAll(Arrays.asList(keys));
+        return this;
     }
 
     @Override

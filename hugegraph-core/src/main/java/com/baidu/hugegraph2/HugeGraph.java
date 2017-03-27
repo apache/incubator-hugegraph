@@ -19,7 +19,7 @@ import com.baidu.hugegraph2.backend.tx.GraphTransaction;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.configuration.HugeConfiguration;
 import com.baidu.hugegraph2.schema.HugeSchemaManager;
-import com.baidu.hugegraph2.schema.maker.SchemaManager;
+import com.baidu.hugegraph2.schema.SchemaManager;
 import com.baidu.hugegraph2.structure.HugeFeatures;
 
 /**
@@ -97,7 +97,7 @@ public class HugeGraph implements Graph {
     }
 
     public SchemaManager openSchemaManager() {
-        return new HugeSchemaManager(this.schemaTransaction);
+        return new HugeSchemaManager(schemaTransaction);
     }
 
     @Override
