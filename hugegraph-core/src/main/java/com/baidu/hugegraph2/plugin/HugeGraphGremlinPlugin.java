@@ -24,7 +24,6 @@ public class HugeGraphGremlinPlugin implements GremlinPlugin {
         return "hugegraph2.imports";
     }
 
-
     @Override
     public void pluginTo(final PluginAcceptor pluginAcceptor) {
         pluginAcceptor.addImports(IMPORTS);
