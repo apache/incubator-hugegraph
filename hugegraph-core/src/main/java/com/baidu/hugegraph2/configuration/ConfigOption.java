@@ -34,20 +34,19 @@ public class ConfigOption<T> {
                 String[].class
         );
 
-//        StandardSerializer ss = new StandardSerializer();
-//        for (Class<?> c : ACCEPTED_DATATYPES) {
-//            if (!ss.validDataType(c)) {
-//                String msg = String.format("%s datatype %s is not accepted by %s",
-//                        ConfigOption.class.getSimpleName(), c, StandardSerializer.class.getSimpleName());
-//                log.error(msg);
-//                throw new IllegalStateException(msg);
-//            }
-//        }
+        //        StandardSerializer ss = new StandardSerializer();
+        //        for (Class<?> c : ACCEPTED_DATATYPES) {
+        //            if (!ss.validDataType(c)) {
+        //                String msg = String.format("%s datatype %s is not accepted by %s",
+        //                        ConfigOption.class.getSimpleName(), c, StandardSerializer.class.getSimpleName());
+        //                log.error(msg);
+        //                throw new IllegalStateException(msg);
+        //            }
+        //        }
 
         // 这里是把所有支持的数据类型拼接成字符串
         ACCEPTED_DATATYPES_STRING = Joiner.on(", ").join(ACCEPTED_DATATYPES);
     }
-
 
     private final String name;
     private final String desc;
@@ -56,12 +55,12 @@ public class ConfigOption<T> {
     private T value;
     private final Predicate<T> verifyFunc;
 
-
     public ConfigOption(String name, T value, Boolean rewritable, String desc, Predicate<T> verifyFunc) {
         this(name, (Class<T>) value.getClass(), value, rewritable, desc, verifyFunc);
     }
 
-    public ConfigOption(String name, Class<T> dataType, T value, Boolean rewritable, String desc, Predicate<T> verifyFunc) {
+    public ConfigOption(String name, Class<T> dataType, T value, Boolean rewritable, String desc,
+                        Predicate<T> verifyFunc) {
         Preconditions.checkNotNull(name);
         Preconditions.checkNotNull(dataType);
         Preconditions.checkNotNull(rewritable);
@@ -97,6 +96,7 @@ public class ConfigOption<T> {
 
     /**
      * 返回值
+     *
      * @return
      */
     public T value() {
@@ -105,6 +105,7 @@ public class ConfigOption<T> {
 
     /**
      * 更新值的时候也检查是否合法
+     *
      * @param value
      */
     public void value(T value) {
@@ -125,13 +126,13 @@ public class ConfigOption<T> {
         return result;
     }
 
-//    public static final<E extends Enum> E getEnumValue(String str, Class<E> enumClass) {
-//        str = str.trim();
-//        if (StringUtils.isBlank(str)) return null;
-//        for (E e : enumClass.getEnumConstants()) {
-//            if (e.toString().equalsIgnoreCase(str)) return e;
-//        }
-//        throw new IllegalArgumentException("Invalid enum string provided for ["+enumClass+"]: " + str);
-//    }
+    //    public static final<E extends Enum> E getEnumValue(String str, Class<E> enumClass) {
+    //        str = str.trim();
+    //        if (StringUtils.isBlank(str)) return null;
+    //        for (E e : enumClass.getEnumConstants()) {
+    //            if (e.toString().equalsIgnoreCase(str)) return e;
+    //        }
+    //        throw new IllegalArgumentException("Invalid enum string provided for ["+enumClass+"]: " + str);
+    //    }
 
 }
