@@ -15,9 +15,11 @@ public class HugeGraphGremlinPlugin implements GremlinPlugin {
     private static final String IMPORT_STATIC = IMPORT + "static ";
     private static final String DOT_STAR = ".*";
 
-    private static final Set<String> IMPORTS = new HashSet<String>() {{
-        add(IMPORT + "com.baidu.hugegraph2" + DOT_STAR);
-    }};
+    private static final Set<String> IMPORTS = new HashSet<String>() {
+        {
+            add(IMPORT + "com.baidu.hugegraph2" + DOT_STAR);
+        }
+    };
 
     @Override
     public String getName() {
