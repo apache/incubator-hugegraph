@@ -23,6 +23,22 @@ public class ConfigSpace {
             disallowEmpty(String.class)
     );
 
+    public static final ConfigOption<String> TABLE_SCHEMA = new ConfigOption<>(
+            "table.schema",
+            "huge_schema",
+            true,
+            "the table store graph schema info.",
+            disallowEmpty(String.class)
+    );
+
+    public static final ConfigOption<String> TABLE_GRAPH = new ConfigOption<>(
+            "table.graph",
+            "huge_graph",
+            true,
+            "the table store graph vertex, edge and property info.",
+            disallowEmpty(String.class)
+    );
+
     public static final ConfigOption<String> CASSANDRA_HOST = new ConfigOption<>(
             "cassandra.host",
             "localhost",
@@ -47,24 +63,8 @@ public class ConfigSpace {
             disallowEmpty(String.class)
     );
 
-    public static final ConfigOption<String> TABLE_SCHEMA = new ConfigOption<>(
-            "table.schema",
-            "huge_schema",
-            true,
-            "the table store graph schema element info.",
-            disallowEmpty(String.class)
-    );
-
-    public static final ConfigOption<String> TABLE_GRAPH = new ConfigOption<>(
-            "table.graph",
-            "huge_graph",
-            true,
-            "the table store graph vertex, edge and property info.",
-            disallowEmpty(String.class)
-    );
-
     /**
-     * 每个configOption只会被注册一次
+     * 每个option只会被注册一次
      * @param element
      */
     public static void register(ConfigOption element) {
@@ -74,7 +74,6 @@ public class ConfigSpace {
                 element.name());
         configOptions.put(element.name(), element);
     }
-
 
     public static Boolean containKey(String key) {
         Preconditions.checkNotNull(key);

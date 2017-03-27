@@ -21,11 +21,14 @@ public class ExampleGraphFactory {
 
         logger.info("ExampleGraphFactory start!");
 
+//        HugeConfiguration configuration = new HugeConfiguration("/Users/liningrui/IdeaProjects/baidu/"
+//                + "xbu-data/hugegraph/hugegraph-core/src/main/resources/hugegraph.properties");
+//        HugeGraph graph = HugeFactory.open(configuration);
+
         HugeGraph graph = HugeFactory.open("/Users/liningrui/IdeaProjects/baidu/"
                 + "xbu-data/hugegraph/hugegraph-core/src/main/resources/hugegraph.properties");
 
         ExampleGraphFactory.showFeatures(graph);
-
         ExampleGraphFactory.load(graph);
     }
 
