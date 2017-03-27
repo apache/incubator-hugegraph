@@ -16,8 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.backend.BackendException;
-import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.backend.store.BackendProviderFactory;
+import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph2.backend.tx.GraphTransaction;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
@@ -43,8 +43,16 @@ public class HugeGraph implements Graph {
     private GraphTransaction graphTransaction = null;
     private SchemaTransaction schemaTransaction = null;
 
-    public HugeGraph() {
-        this(new HugeConfiguration());
+    /**
+     * Construct a HugeGraph instance
+     * @return
+     */
+    public static HugeGraph open(final Configuration configuration) {
+        return new HugeGraph(configuration);
+    }
+
+    public HugeGraph(Configuration configuration) {
+        this(new HugeConfiguration(configuration));
     }
 
     public HugeGraph(HugeConfiguration configuration) {
@@ -87,16 +95,6 @@ public class HugeGraph implements Graph {
             throw new HugeException(message);
         }
     }
-
-    /**
-     * Construct a HugeGraph instance
-     * @return
-     */
-//    public static HugeGraph open(final Configuration configuration) {
-//        HugeConfiguration conf = new HugeConfiguration(configuration);
-//        conf.copy(configuration);
-//        return new HugeGraph(conf);
-//    }
 
     public SchemaManager openSchemaManager() {
         return new HugeSchemaManager(schemaTransaction);
