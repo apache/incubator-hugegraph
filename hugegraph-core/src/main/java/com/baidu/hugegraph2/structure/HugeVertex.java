@@ -78,6 +78,7 @@ public class HugeVertex extends HugeElement implements Vertex {
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality,
             String key, V value, Object... objects) {
+        this.property("name");
         // TODO: extra props
         HugeVertexProperty<V> prop = new HugeVertexProperty<V>(this, key, value);
         return super.setProperty(prop) != null ? prop : null;
