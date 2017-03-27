@@ -1,5 +1,9 @@
 package com.baidu.hugegraph2;
 
+import static com.baidu.hugegraph2.configuration.ConfigSpace.BACKEND;
+import static com.baidu.hugegraph2.configuration.ConfigSpace.TABLE_GRAPH;
+import static com.baidu.hugegraph2.configuration.ConfigSpace.TABLE_SCHEMA;
+
 import java.util.Iterator;
 
 import org.apache.commons.configuration.Configuration;
@@ -56,8 +60,7 @@ public class HugeGraph implements Graph {
     }
 
     public void initBackend() throws BackendException {
-
-        this.storeProvider = BackendProviderFactory.open(configuration.getGraphBackend());
+        this.storeProvider = BackendProviderFactory.open(configuration.get(BACKEND));
 
         this.schemaTransaction = this.openSchemaTransaction();
         this.graphTransaction = this.openGraphTransaction();
@@ -65,7 +68,7 @@ public class HugeGraph implements Graph {
 
     public SchemaTransaction openSchemaTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(configuration.getStoreSchema());
+            BackendStore store = this.storeProvider.open(configuration.get(TABLE_SCHEMA));
             return new SchemaTransaction(store);
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
@@ -76,7 +79,7 @@ public class HugeGraph implements Graph {
 
     public GraphTransaction openGraphTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(configuration.getStoreGraph());
+            BackendStore store = this.storeProvider.open(configuration.get(TABLE_GRAPH));
             return new GraphTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";
@@ -87,14 +90,13 @@ public class HugeGraph implements Graph {
 
     /**
      * Construct a HugeGraph instance
-     *
      * @return
      */
-    public static HugeGraph open(final Configuration configuration) {
-        HugeConfiguration conf = new HugeConfiguration();
-        conf.copy(configuration);
-        return new HugeGraph(conf);
-    }
+//    public static HugeGraph open(final Configuration configuration) {
+//        HugeConfiguration conf = new HugeConfiguration(configuration);
+//        conf.copy(configuration);
+//        return new HugeGraph(conf);
+//    }
 
     public SchemaManager openSchemaManager() {
         return new HugeSchemaManager(schemaTransaction);

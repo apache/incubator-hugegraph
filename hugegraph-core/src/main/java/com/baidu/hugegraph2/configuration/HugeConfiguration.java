@@ -2,27 +2,32 @@
  * Copyright (C) 2017 Baidu, Inc. All Rights Reserved.
  */
 
-package com.baidu.toolkit.hugegraph.configuration;
+package com.baidu.hugegraph2.configuration;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
 import org.apache.commons.configuration.AbstractConfiguration;
+import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.toolkit.hugegraph.exception.HugeException;
+import com.baidu.hugegraph2.HugeException;
 import com.google.common.base.Preconditions;
 
 public class HugeConfiguration extends AbstractConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeConfiguration.class);
 
-    // TODO:应该定义一个类继承PropertiesConfiguration，并且加上所有ConfigOption支持的类的get方法
+    // TODO:最好定义一个类继承PropertiesConfiguration，并且加上所有ConfigOption支持的类的get方法
     private PropertiesConfiguration configuration;
 
+
+    public HugeConfiguration() {
+
+    }
 
     public HugeConfiguration(String configurationFile) {
         File file = new File(configurationFile);
@@ -33,7 +38,6 @@ public class HugeConfiguration extends AbstractConfiguration {
 
             Iterator<String> keys = configuration.getKeys();
             while (keys.hasNext()) {
-                // 找到对应的option，完成赋值。这里要能够用一个map存起来就最好了
                 String key = keys.next();
                 // 如果该key已经注册过，表示可用
                 if (ConfigSpace.containKey(key)) {
@@ -55,8 +59,8 @@ public class HugeConfiguration extends AbstractConfiguration {
         }
     }
 
+
     /**
-     * 重要方法
      * @param option
      * @param <T>
      * @return
