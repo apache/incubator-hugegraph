@@ -12,7 +12,7 @@ import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.Multiplicity;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
-import com.baidu.hugegraph2.type.schema.SchemaElement;
+import com.baidu.hugegraph2.type.schema.SchemaType;
 
 /**
  * Created by liningrui on 2017/3/20.
@@ -142,7 +142,7 @@ public class HugeEdgeLabel implements EdgeLabel {
     }
 
     @Override
-    public SchemaElement properties(String... propertyNames) {
+    public SchemaType properties(String... propertyNames) {
         if (properties == null) {
             properties = new HashSet<>();
         }

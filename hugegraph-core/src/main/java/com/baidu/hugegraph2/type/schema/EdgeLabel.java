@@ -9,7 +9,7 @@ import com.baidu.hugegraph2.type.define.Multiplicity;
 /**
  * Created by jishilei on 17/3/18.
  */
-public interface EdgeLabel extends SchemaElement {
+public interface EdgeLabel extends SchemaType {
 
     public Set<String> properties();
 

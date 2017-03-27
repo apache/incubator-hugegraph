@@ -8,7 +8,7 @@ import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.DataType;
 import com.baidu.hugegraph2.type.schema.PropertyKey;
-import com.baidu.hugegraph2.type.schema.SchemaElement;
+import com.baidu.hugegraph2.type.schema.SchemaType;
 import com.baidu.hugegraph2.util.StringUtil;
 
 /**
@@ -94,7 +94,7 @@ public class HugePropertyKey implements PropertyKey {
     }
 
     @Override
-    public SchemaElement properties(String... propertyNames) {
+    public SchemaType properties(String... propertyNames) {
         if (properties == null) {
             properties = new HashSet<>();
         }
