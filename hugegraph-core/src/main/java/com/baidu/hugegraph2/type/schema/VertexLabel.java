@@ -8,7 +8,7 @@ import com.baidu.hugegraph2.type.define.IndexType;
 /**
  * Created by jishilei on 17/3/18.
  */
-public interface VertexLabel extends SchemaType {
+public interface VertexLabel extends SchemaElement {
 
     public Set<String> properties();
 
@@ -20,4 +20,8 @@ public interface VertexLabel extends SchemaType {
     public default HugeTypes type() {
         return HugeTypes.VERTEX_LABEL;
     }
+
+    public VertexLabel partitionKey(String... keys);
+
+    public VertexLabel clusteringKey(String... keys);
 }

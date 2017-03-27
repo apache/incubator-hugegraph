@@ -9,7 +9,7 @@ import com.baidu.hugegraph2.type.define.DataType;
 /**
  * Created by jishilei on 17/3/17.
  */
-public interface PropertyKey extends SchemaType {
+public interface PropertyKey extends SchemaElement {
 
     public DataType dataType();
 
@@ -21,4 +21,16 @@ public interface PropertyKey extends SchemaType {
     public default HugeTypes type() {
         return HugeTypes.PROPERTY_KEY;
     }
+
+    public PropertyKey asText();
+
+    public PropertyKey asInt();
+
+    public PropertyKey asTimeStamp();
+
+    public PropertyKey asUUID();
+
+    public PropertyKey single();
+
+    public PropertyKey multiple();
 }

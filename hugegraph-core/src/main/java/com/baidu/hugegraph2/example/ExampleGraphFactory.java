@@ -9,7 +9,7 @@ import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.GraphTransaction;
 import com.baidu.hugegraph2.configuration.HugeConfiguration;
-import com.baidu.hugegraph2.schema.maker.SchemaManager;
+import com.baidu.hugegraph2.schema.SchemaManager;
 
 /**
  * Created by jishilei on 17/3/16.
@@ -63,7 +63,7 @@ public class ExampleGraphFactory {
         // 设置顶点的schema
         schema.vertexLabel("author").properties("name").create();
         schema.vertexLabel("recipe").properties("name", "instructions").create();
-        schema.vertexLabel("recipe").properties("name", "instructions").add();
+//        schema.vertexLabel("recipe").properties("name", "instructions").add();
         schema.vertexLabel("ingredient").create();
         schema.vertexLabel("book").create();
         schema.vertexLabel("meal").create();
@@ -75,8 +75,8 @@ public class ExampleGraphFactory {
 
         System.out.println("===============  vertexLabel & index  ================");
         // index 表示要添加一个索引，secondary表示要添加的是二级索引，by指定了给哪一列添加索引
-        schema.vertexLabel("author").index("byName").secondary().by("name").add();
-        schema.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
+//        schema.vertexLabel("author").index("byName").secondary().by("name").add();
+//        schema.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // TODO: fix these errors!
         // schema.vertexLabel("meal").index("byMeal").materialized().by("name").add();
         // schema.vertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
@@ -84,11 +84,11 @@ public class ExampleGraphFactory {
 
         System.out.println("===============  edgeLabel  ================");
 
-        schema.edgeLabel("authored").isOne2Many().create();
-        schema.edgeLabel("created").single().isMany2Many().create();
-        schema.edgeLabel("includes").single().isOne2Many().create();
-        schema.edgeLabel("includedIn").isMany2One().create();
-        // schema.edgeLabel("rated").multiple().inMany2Many().connection("reviewer", "recipe").create();
+        schema.edgeLabel("authored").linkOne2One().create();
+        schema.edgeLabel("created").single().linkMany2Many().create();
+        schema.edgeLabel("includes").single().linkOne2Many().create();
+        schema.edgeLabel("includedIn").linkMany2One().create();
+        schema.edgeLabel("rated").multiple().linkMany2Many().link("reviewer", "recipe").create();
 
         // commit schema changes
         schema.commit();

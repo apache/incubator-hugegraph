@@ -9,7 +9,7 @@ import com.baidu.hugegraph2.type.define.Multiplicity;
 /**
  * Created by jishilei on 17/3/18.
  */
-public interface EdgeLabel extends SchemaType {
+public interface EdgeLabel extends SchemaElement {
 
     public Set<String> properties();
 
@@ -27,4 +27,18 @@ public interface EdgeLabel extends SchemaType {
     public default HugeTypes type() {
         return HugeTypes.EDGE_LABEL;
     }
+
+    public EdgeLabel linkOne2One();
+
+    public EdgeLabel linkOne2Many();
+
+    public EdgeLabel linkMany2Many();
+
+    public EdgeLabel linkMany2One();
+
+    public EdgeLabel single();
+
+    public EdgeLabel multiple();
+
+    public EdgeLabel link(String srcName, String tgtName);
 }
