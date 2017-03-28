@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.id.SplicingIdGenerator;
-import com.baidu.hugegraph2.backend.query.SliceQuery;
+import com.baidu.hugegraph2.backend.query.HugeQuery;
 import com.baidu.hugegraph2.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendStore;
@@ -28,18 +28,21 @@ public class SchemaTransaction extends AbstractTransaction {
 
     private static final String ID_COLUME = "_id";
     private static final String SCHEMATYPE_COLUME = "_schema";
-    private static final String TIMESTANMP_COLUME = "_timestamp";
 
     public SchemaTransaction(BackendStore store) {
         super(store);
         // TODO Auto-generated constructor stub
     }
 
+
+
     public List<HugePropertyKey> getPropertyKeys() {
         List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
-        SliceQuery query = new SliceQuery();
-        query.condition(SCHEMATYPE_COLUME, "PROPERTY");
-        List<BackendEntry> entries = getSlice(query);
+
+        HugeQuery query = new HugeQuery();
+        query.has(SCHEMATYPE_COLUME,"PROPERTY");
+
+        Iterable<BackendEntry> entries = query(query);
         entries.forEach(item -> {
             // TODO: use serializer instead
             TextBackendEntry entry = (TextBackendEntry) item;
@@ -66,7 +69,6 @@ public class SchemaTransaction extends AbstractTransaction {
         TextBackendEntry entry = new TextBackendEntry(id);
         entry.column(ID_COLUME, id.asString());
         entry.column(SCHEMATYPE_COLUME, "PROPERTY");
-        //entry.colume(DEFAULT_COLUME,propertyKey);
         entry.column("name", propertyKey.name());
         entry.column("datatype", propertyKey.dataType().name());
         entry.column("cardinality", propertyKey.cardinality().toString());

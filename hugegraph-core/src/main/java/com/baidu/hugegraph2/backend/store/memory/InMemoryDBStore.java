@@ -12,10 +12,11 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.id.Id;
-import com.baidu.hugegraph2.backend.query.SliceQuery;
+import com.baidu.hugegraph2.backend.query.Query;
 import com.baidu.hugegraph2.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendStore;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Created by jishilei on 17/3/19.
@@ -32,35 +33,35 @@ public class InMemoryDBStore implements BackendStore {
         this.store = new ConcurrentSkipListMap<Object, BackendEntry>();
     }
 
+
     @Override
-    public List<BackendEntry> getSlice(SliceQuery query) {
-
+    public Iterable<BackendEntry> query(Query query) {
         List<BackendEntry> entries = new ArrayList<BackendEntry>();
-        this.store.forEach((Object key, BackendEntry item) -> {
 
+        this.store.forEach((Object key, BackendEntry item) -> {
             // TODO: Compatible with BackendEntry
             TextBackendEntry entry = (TextBackendEntry) item;
-
-            query.conditions.forEach((quality, value) -> {
-                boolean isContain = false;
-                if (entry.contains(quality) && entry.column(quality).equals(value)) {
-                    isContain = true;
-                } else {
-                    isContain = false;
-                }
-                if (isContain) {
+            query.conditions().forEach((k, v) -> {
+                if (entry.contains(k.toString(),v.toString())) {
                     entries.add(entry);
                 }
+
             });
 
         });
-        return entries;
+        return ImmutableList.copyOf(entries);
     }
 
     @Override
     public BackendEntry get(Id id) {
 
         return store.get(id);
+    }
+
+    @Override
+    public void delete(Id id) {
+
+        store.remove(id);
     }
 
     @Override
