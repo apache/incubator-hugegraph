@@ -59,7 +59,7 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public BackendEntry get(Id id) {
-        
+
         return store.get(id);
     }
 

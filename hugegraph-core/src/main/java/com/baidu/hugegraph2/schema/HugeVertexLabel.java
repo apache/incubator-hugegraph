@@ -3,6 +3,7 @@ package com.baidu.hugegraph2.schema;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ public class HugeVertexLabel extends VertexLabel {
 
     public HugeVertexLabel(String name, SchemaTransaction transaction) {
         super(name, transaction);
-        this.primaryKeys = null;
+        this.primaryKeys = new LinkedHashSet<>();
     }
 
     public Set<String> primaryKeys() {
