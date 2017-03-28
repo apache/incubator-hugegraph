@@ -19,7 +19,6 @@ public abstract class SchemaElement implements Namifiable, HugeType {
     protected SchemaTransaction transaction;
     protected Map<String, PropertyKey> properties;
 
-
     public SchemaElement(String name, SchemaTransaction transaction) {
         this.name = name;
         this.transaction = transaction;

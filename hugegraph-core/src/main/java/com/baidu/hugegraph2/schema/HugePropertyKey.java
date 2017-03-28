@@ -1,5 +1,9 @@
 package com.baidu.hugegraph2.schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.DataType;
@@ -9,6 +13,8 @@ import com.baidu.hugegraph2.type.schema.PropertyKey;
  * Created by jishilei on 17/3/17.
  */
 public class HugePropertyKey extends PropertyKey {
+
+    private static final Logger logger = LoggerFactory.getLogger(HugePropertyKey.class);
 
     private DataType dataType;
     private Cardinality cardinality;
@@ -89,7 +95,18 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     public void create() {
-        transaction.addPropertyKey(this);
+        try {
+            this.transaction.addPropertyKey(this);
+            this.transaction.commit();
+        } catch (BackendException e) {
+            logger.error("Failed to commit schema changes: {}", e.getMessage());
+            try {
+                this.transaction.rollback();
+            } catch (BackendException e2) {
+                // TODO: any better ways?
+                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
+            }
+        }
     }
 
     public void remove() {

@@ -60,9 +60,6 @@ public class HugeSchemaManager implements SchemaManager {
 
     @Override
     public void desc() {
-//        for (String key: schemaElements.keySet()) {
-//            logger.info(schemaElements.get(key).schema());
-//        }
         schemaElements.forEach((key, val) -> logger.info(val.schema()));
     }
 
