@@ -32,5 +32,8 @@ public enum Cardinality {
     MULTIPLE;
 
 
-
+    public String schema() {
+        // 枚举对象 -> 字符串 -> 小写
+        return this.toString().toLowerCase();
+    }
 }

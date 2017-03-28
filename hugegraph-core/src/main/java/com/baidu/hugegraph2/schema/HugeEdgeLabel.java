@@ -12,15 +12,12 @@ import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.Multiplicity;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
-import com.baidu.hugegraph2.type.schema.SchemaType;
 
 /**
  * Created by liningrui on 2017/3/20.
  */
-public class HugeEdgeLabel implements EdgeLabel {
+public class HugeEdgeLabel extends EdgeLabel {
 
-    private String name;
-    private SchemaTransaction transaction;
     // multiplicity：图的角度，描述多个顶点之间的关系。多对一，多对多，一对多，一对一
     private Multiplicity multiplicity;
     // cardinality：两个顶点之间是否可以有多条边
@@ -30,17 +27,13 @@ public class HugeEdgeLabel implements EdgeLabel {
     private List<Pair<String, String>> links;
 
     private Set<String> partitionKeys;
-    private Set<String> properties;
-
 
     public HugeEdgeLabel(String name, SchemaTransaction transaction) {
-        this.name = name;
-        this.transaction = transaction;
+        super(name, transaction);
         this.multiplicity = Multiplicity.ONE2ONE;
         this.cardinality = Cardinality.SINGLE;
         this.links = null;
         this.partitionKeys = null;
-        this.properties = null;
     }
 
     @Override
@@ -117,16 +110,29 @@ public class HugeEdgeLabel implements EdgeLabel {
         return this;
     }
 
-    @Override
+    public String linkSchema() {
+        String linkSchema = "";
+        if (links != null) {
+            for (Pair<String, String> link : links) {
+                linkSchema += ".link(\"";
+                linkSchema += link.getValue0();
+                linkSchema += "\",\"";
+                linkSchema += link.getValue1();
+                linkSchema += "\")";
+            }
+        }
+        return linkSchema;
+    }
+
     public String schema() {
-        return null;
+        schema = "schema.edgeLabel(\"" + name + "\")"
+                + "." + cardinality.schema() + "()"
+                + "." + multiplicity.schema() + "()"
+                + linkSchema()
+                + "." + propertiesSchema()
+                + ".create();";
+        return schema;
     }
-
-    @Override
-    public String name() {
-        return name;
-    }
-
 
     @Override
     public void partitionKeys(String... keys) {
@@ -136,26 +142,10 @@ public class HugeEdgeLabel implements EdgeLabel {
         partitionKeys.addAll(Arrays.asList(keys));
     }
 
-    @Override
-    public Set<String> properties() {
-        return properties;
-    }
-
-    @Override
-    public SchemaType properties(String... propertyNames) {
-        if (properties == null) {
-            properties = new HashSet<>();
-        }
-        properties.addAll(Arrays.asList(propertyNames));
-        return this;
-    }
-
-    @Override
     public void create() {
         transaction.addEdgeLabel(this);
     }
 
-    @Override
     public void remove() {
         transaction.removeEdgeLabel(name);
     }

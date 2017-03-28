@@ -1,6 +1,6 @@
 package com.baidu.hugegraph2.backend.id;
 
-import com.baidu.hugegraph2.type.schema.SchemaType;
+import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.util.NumericUtils;
 import com.baidu.hugegraph2.util.StringEncoding;
 
@@ -18,7 +18,7 @@ public class IdGenerator {
 
     /****************************** id generate ******************************/
 
-    public static Id generate(SchemaType entry) {
+    public static Id generate(SchemaElement entry) {
         String id = String.format("%02X:%s", entry.type().code(), entry.name());
         return generate(id);
     }

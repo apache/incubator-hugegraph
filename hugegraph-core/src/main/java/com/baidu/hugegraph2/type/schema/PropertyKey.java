@@ -2,6 +2,8 @@ package com.baidu.hugegraph2.type.schema;
 
 import java.util.Set;
 
+import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.DataType;
@@ -9,28 +11,30 @@ import com.baidu.hugegraph2.type.define.DataType;
 /**
  * Created by jishilei on 17/3/17.
  */
-public interface PropertyKey extends SchemaType {
+public abstract class PropertyKey extends SchemaElement {
 
-    public DataType dataType();
-
-    public Cardinality cardinality();
-
-    public Set<String> properties();
+    public PropertyKey(String name, SchemaTransaction transaction) {
+        super(name, transaction);
+    }
 
     @Override
-    public default HugeTypes type() {
+    public HugeTypes type() {
         return HugeTypes.PROPERTY_KEY;
     }
 
-    public PropertyKey asText();
+    public abstract DataType dataType();
 
-    public PropertyKey asInt();
+    public abstract Cardinality cardinality();
 
-    public PropertyKey asTimeStamp();
+    public abstract PropertyKey asText();
 
-    public PropertyKey asUUID();
+    public abstract PropertyKey asInt();
 
-    public PropertyKey single();
+    public abstract PropertyKey asTimestamp();
 
-    public PropertyKey multiple();
+    public abstract PropertyKey asUuid();
+
+    public abstract PropertyKey single();
+
+    public abstract PropertyKey multiple();
 }
