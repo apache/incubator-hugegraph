@@ -13,7 +13,7 @@ public enum DataType {
     TIMESTAMP;
 
     public String schema() {
-        // 枚举对象 -> 字符串 -> 小写 -> 首字母大写
+        // enum object -> string -> lowercase -> capture name
         return "as" + StringUtils.capitalize(this.toString().toLowerCase());
     }
 }

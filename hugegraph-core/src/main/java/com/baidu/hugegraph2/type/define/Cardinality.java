@@ -33,7 +33,7 @@ public enum Cardinality {
 
 
     public String schema() {
-        // 枚举对象 -> 字符串 -> 小写
+        // enum object -> string -> lowercase
         return this.toString().toLowerCase();
     }
 }

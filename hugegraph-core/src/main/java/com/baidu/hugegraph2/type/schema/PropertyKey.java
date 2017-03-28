@@ -1,8 +1,10 @@
 package com.baidu.hugegraph2.type.schema;
 
+import java.util.HashMap;
 import java.util.Set;
 
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph2.schema.HugePropertyKey;
 import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.define.Cardinality;
@@ -20,6 +22,17 @@ public abstract class PropertyKey extends SchemaElement {
     @Override
     public HugeTypes type() {
         return HugeTypes.PROPERTY_KEY;
+    }
+
+    @Override
+    public PropertyKey properties(String... propertyNames) {
+        if (properties == null) {
+            properties = new HashMap<>();
+        }
+        for (String propertyName : propertyNames) {
+            properties.put(propertyName, new HugePropertyKey(propertyName, transaction));
+        }
+        return this;
     }
 
     public abstract DataType dataType();
