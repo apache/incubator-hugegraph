@@ -26,7 +26,9 @@ import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.configuration.HugeConfiguration;
 import com.baidu.hugegraph2.schema.HugeSchemaManager;
 import com.baidu.hugegraph2.schema.SchemaManager;
+import com.baidu.hugegraph2.structure.GraphManager;
 import com.baidu.hugegraph2.structure.HugeFeatures;
+import com.baidu.hugegraph2.structure.HugeGraphManager;
 
 /**
  * Created by jishilei on 17/3/17.
@@ -100,6 +102,10 @@ public class HugeGraph implements Graph {
 
     public SchemaManager openSchemaManager() {
         return new HugeSchemaManager(this.schemaTransaction);
+    }
+
+    public GraphManager openGraphManager() {
+        return new HugeGraphManager(this.graphTransaction);
     }
 
     public AbstractSerializer serializer() {

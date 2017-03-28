@@ -9,6 +9,7 @@ import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.GraphTransaction;
 import com.baidu.hugegraph2.schema.SchemaManager;
+import com.baidu.hugegraph2.structure.GraphManager;
 
 /**
  * Created by jishilei on 17/3/16.
@@ -34,61 +35,68 @@ public class ExampleGraphFactory {
 
     public static void load(final HugeGraph graph) {
 
-        /************************* schema operating *************************/
-        SchemaManager schema = graph.openSchemaManager();
+        /************************* schemaManager operating *************************/
+        SchemaManager schemaManager = graph.openSchemaManager();
         logger.info("===============  propertyKey  ================");
-        schema.propertyKey("name").asText().create();
-        schema.propertyKey("gender").asText().create();
-        schema.propertyKey("instructions").asText().create();
-        schema.propertyKey("category").asText().create();
-        schema.propertyKey("year").asInt().create();
-        schema.propertyKey("timestamp").asTimestamp().create();
-        schema.propertyKey("ISBN").asText().create();
-        schema.propertyKey("calories").asInt().create();
-        schema.propertyKey("amount").asText().create();
-        schema.propertyKey("stars").asInt().create();
-        schema.propertyKey("comment").asText().single().create();
-        schema.propertyKey("nickname").asText().multiple().create();
-        schema.propertyKey("lived").asText().create();
-        schema.propertyKey("country").asText().multiple().properties("livedIn").create();
-        schema.propertyKey("city_id").asInt().create();
-        schema.propertyKey("sensor_id").asUuid().create();
+        schemaManager.propertyKey("name").asText().create();
+        schemaManager.propertyKey("gender").asText().create();
+        schemaManager.propertyKey("instructions").asText().create();
+        schemaManager.propertyKey("category").asText().create();
+        schemaManager.propertyKey("year").asInt().create();
+        schemaManager.propertyKey("timestamp").asTimestamp().create();
+        schemaManager.propertyKey("ISBN").asText().create();
+        schemaManager.propertyKey("calories").asInt().create();
+        schemaManager.propertyKey("amount").asText().create();
+        schemaManager.propertyKey("stars").asInt().create();
+        schemaManager.propertyKey("comment").asText().single().create();
+        schemaManager.propertyKey("nickname").asText().multiple().create();
+        schemaManager.propertyKey("lived").asText().create();
+        schemaManager.propertyKey("country").asText().multiple().properties("livedIn").create();
+        schemaManager.propertyKey("city_id").asInt().create();
+        schemaManager.propertyKey("sensor_id").asUuid().create();
 
         logger.info("===============  vertexLabel  ================");
 
-        schema.vertexLabel("author").properties("name").create();
-        schema.vertexLabel("recipe").properties("name", "instructions").create();
-        schema.vertexLabel("ingredient").create();
-        schema.vertexLabel("book").create();
-        schema.vertexLabel("meal").create();
-        schema.vertexLabel("reviewer").create();
+        schemaManager.vertexLabel("author").properties("name").create();
+        schemaManager.vertexLabel("recipe").properties("name", "instructions").create();
+        schemaManager.vertexLabel("ingredient").create();
+        schemaManager.vertexLabel("book").create();
+        schemaManager.vertexLabel("meal").create();
+        schemaManager.vertexLabel("reviewer").create();
         // vertex label must have the properties that specified in primary key
-        schema.vertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
+        schemaManager.vertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
 
         logger.info("===============  vertexLabel & index  ================");
         // TODO: implement index feature.
-        // schema.vertexLabel("author").index("byName").secondary().by("name").add();
-        // schema.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
-        // schema.vertexLabel("meal").index("byMeal").materialized().by("name").add();
-        // schema.vertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
-        // schema.vertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
+        // schemaManager.vertexLabel("author").index("byName").secondary().by("name").add();
+        // schemaManager.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
+        // schemaManager.vertexLabel("meal").index("byMeal").materialized().by("name").add();
+        // schemaManager.vertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
+        // schemaManager.vertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
 
         logger.info("===============  edgeLabel  ================");
 
-        schema.edgeLabel("authored").linkOne2One().properties("contribution").sortKeys("contribution").create();
-        schema.edgeLabel("created").single().linkMany2Many().create();
-        schema.edgeLabel("includes").single().linkOne2Many().create();
-        schema.edgeLabel("includedIn").linkMany2One().create();
-        schema.edgeLabel("rated").multiple().linkMany2Many().link("reviewer", "recipe").create();
+        schemaManager.edgeLabel("authored").linkOne2One().properties("contribution").sortKeys("contribution").create();
+        schemaManager.edgeLabel("created").single().linkMany2Many().create();
+        schemaManager.edgeLabel("includes").single().linkOne2Many().create();
+        schemaManager.edgeLabel("includedIn").linkMany2One().create();
+        schemaManager.edgeLabel("rated").multiple().linkMany2Many().link("reviewer", "recipe").create();
 
-        // commit schema changes
-//        schema.commit();
 
-        logger.info("===============  schema desc  ================");
-        schema.desc();
+        logger.info("===============  schemaManager desc  ================");
+        schemaManager.desc();
 
         /************************* data operating *************************/
 
+        GraphManager graphManager = graph.openGraphManager();
+
+        // Directly into the back-end
+        graphManager.addVertex(T.label, "book", "name", "java-3");
+        graphManager.addVertex(T.label, "person", "name", "zhangsan");
+
+
+
+        // Must commit manually
         GraphTransaction tx = graph.openGraphTransaction();
 
         logger.info("===============  addVertex  ================");
