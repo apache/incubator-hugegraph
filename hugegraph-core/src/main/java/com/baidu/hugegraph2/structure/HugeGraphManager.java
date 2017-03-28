@@ -4,6 +4,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.GraphTransaction;
 
 /**
@@ -21,8 +22,19 @@ public class HugeGraphManager implements GraphManager {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
-        Vertex vertex = this.transaction.addVertex(keyValues);
-        this.transaction.commit();
+        Vertex vertex = null;
+        try {
+            vertex = this.transaction.addVertex(keyValues);
+            this.transaction.commit();
+        } catch (BackendException e) {
+            logger.error("Failed to commit schema changes: {}", e.getMessage());
+            try {
+                this.transaction.rollback();
+            } catch (BackendException e2) {
+                // TODO: any better ways?
+                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
+            }
+        }
         return vertex;
     }
 }
