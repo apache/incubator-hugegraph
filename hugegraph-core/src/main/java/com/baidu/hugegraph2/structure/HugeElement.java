@@ -9,6 +9,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
+import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.id.IdGenerator;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
@@ -19,30 +20,19 @@ import com.google.common.base.Preconditions;
  */
 public abstract class HugeElement implements Element, GraphType {
 
-    protected final Graph graph;
+    protected final HugeGraph graph;
     protected Id id;
-    protected VertexLabel label;
     protected Map<String, HugeProperty<? extends Object>> properties;
 
-    public HugeElement(final Graph graph, final Id id, final VertexLabel label) {
+    public HugeElement(final HugeGraph graph, final Id id) {
         this.graph = graph;
         this.id = id;
-        this.label = label;
         this.properties = new HashMap<>();
     }
 
     @Override
     public Id id() {
         return this.id;
-    }
-
-    @Override
-    public String label() {
-        return this.label.name();
-    }
-
-    public VertexLabel vertexLabel() {
-        return this.label;
     }
 
     @Override

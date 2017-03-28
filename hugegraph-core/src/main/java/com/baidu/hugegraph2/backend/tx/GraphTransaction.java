@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -14,7 +15,6 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
-import com.baidu.hugegraph2.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.schema.SchemaManager;
 import com.baidu.hugegraph2.structure.HugeVertex;
@@ -31,9 +31,20 @@ public class GraphTransaction extends AbstractTransaction {
 
     @Override
     protected void prepareCommit() {
+        // ensure all the target vertexes (of out edges) are in this.vertexes
+        for (HugeVertex source : this.vertexes) {
+            Iterator<Vertex> targets = source.vertices(Direction.OUT);
+            while (targets.hasNext()) {
+                HugeVertex target = (HugeVertex) targets.next();
+                this.vertexes.add(target);
+            }
+        }
+
+        // serialize and add into super.additions
         for (HugeVertex v : this.vertexes) {
             this.addEntry(this.serializer.writeVertex(v));
         }
+
         this.vertexes.clear();
     }
 

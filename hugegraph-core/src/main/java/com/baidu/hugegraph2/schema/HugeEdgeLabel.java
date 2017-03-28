@@ -2,7 +2,7 @@ package com.baidu.hugegraph2.schema;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -35,12 +35,12 @@ public class HugeEdgeLabel extends EdgeLabel {
         this.multiplicity = Multiplicity.ONE2ONE;
         this.cardinality = Cardinality.SINGLE;
         this.links = null;
-        this.sortKeys = null;
+        this.sortKeys = new LinkedHashSet<>();
     }
 
     @Override
     public Multiplicity multiplicity() {
-        return multiplicity;
+        return this.multiplicity;
     }
 
     public void multiplicity(Multiplicity multiplicity) {
@@ -49,7 +49,7 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     @Override
     public Cardinality cardinality() {
-        return cardinality;
+        return this.cardinality;
     }
 
     public void cardinality(Cardinality cardinality) {
@@ -58,7 +58,8 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     @Override
     public boolean isDirected() {
-        return false;
+        // TODO: please implement
+        return true;
     }
 
     @Override
@@ -99,29 +100,27 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     @Override
     public EdgeLabel link(String src, String tgt) {
-        if (links == null) {
-            links = new ArrayList<>();
+        if (this.links == null) {
+            this.links = new ArrayList<>();
         }
         Pair<String, String> pair = new Pair<>(src, tgt);
-        links.add(pair);
+        this.links.add(pair);
         return this;
     }
 
+    @Override
     public Set<String> sortKeys() {
-        return sortKeys;
+        return this.sortKeys;
     }
 
     @Override
     public EdgeLabel sortKeys(String... keys) {
         // Check whether the properties contains the specified keys
-        Preconditions.checkNotNull(properties);
+        Preconditions.checkNotNull(this.properties);
         for (String key : keys) {
             Preconditions
-                    .checkArgument(properties.containsKey(key),
+                    .checkArgument(this.properties.containsKey(key),
                             "Properties must contain the specified key : " + key);
-        }
-        if (this.sortKeys == null) {
-            this.sortKeys = new HashSet<>();
         }
         this.sortKeys.addAll(Arrays.asList(keys));
         return this;
@@ -130,13 +129,13 @@ public class HugeEdgeLabel extends EdgeLabel {
     @Override
     public String toString() {
         return String.format("{name=%s, multiplicity=%s, cardinality=%s}",
-                name, multiplicity.toString(), cardinality.toString());
+                this.name, this.multiplicity.toString(), this.cardinality.toString());
     }
 
     public String linkSchema() {
         String linkSchema = "";
-        if (links != null) {
-            for (Pair<String, String> link : links) {
+        if (this.links != null) {
+            for (Pair<String, String> link : this.links) {
                 linkSchema += ".link(\"";
                 linkSchema += link.getValue0();
                 linkSchema += "\",\"";
@@ -147,17 +146,19 @@ public class HugeEdgeLabel extends EdgeLabel {
         return linkSchema;
     }
 
+    @Override
     public String schema() {
-        schema = "schema.edgeLabel(\"" + name + "\")"
-                + "." + cardinality.schema() + "()"
-                + "." + multiplicity.schema() + "()"
+        this.schema = "schema.edgeLabel(\"" + this.name + "\")"
+                + "." + this.cardinality.schema() + "()"
+                + "." + this.multiplicity.schema() + "()"
                 + "." + propertiesSchema()
                 + linkSchema()
-                + StringUtil.descSchema("sortKeys", sortKeys)
+                + StringUtil.descSchema("sortKeys", this.sortKeys)
                 + ".create();";
-        return schema;
+        return this.schema;
     }
 
+    @Override
     public void create() {
         if (this.transaction.getEdgeLabel(this.name) != null) {
             throw new HugeException("The edgeLabel:" + this.name + " has exised.");
@@ -166,7 +167,8 @@ public class HugeEdgeLabel extends EdgeLabel {
         this.commit();
     }
 
+    @Override
     public void remove() {
-        transaction.removeEdgeLabel(name);
+        this.transaction.removeEdgeLabel(this.name);
     }
 }

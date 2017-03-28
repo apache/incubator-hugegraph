@@ -2,64 +2,33 @@ package com.baidu.hugegraph2.structure;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
+import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph2.type.HugeTypes;
+import com.baidu.hugegraph2.type.schema.EdgeLabel;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
-/**
- * Created by jishilei on 17/3/16.
- */
 public class HugeVertex extends HugeElement implements Vertex {
 
-    public static class HugeVertexProperty<V> extends HugeProperty<V>
-            implements VertexProperty<V> {
+    protected VertexLabel label;
+    protected Set<HugeEdge> edges;
 
-        public HugeVertexProperty(HugeElement owner, String key, V value) {
-            super(owner, key, value);
-        }
-
-        @Override
-        public HugeTypes type() {
-            return HugeTypes.VERTEX_PROPERTY;
-        }
-
-        @Override
-        public Object id() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public <V> Property<V> property(String key, V value) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Vertex element() {
-            return (Vertex) super.element();
-        }
-
-        @Override
-        public <U> Iterator<Property<U>> properties(String... propertyKeys) {
-            return null;
-        }
-
-    }
-
-    public HugeVertex(final Graph graph, final Id id, final VertexLabel label) {
-        super(graph, id, label);
+    public HugeVertex(final HugeGraph graph, final Id id, final VertexLabel label) {
+        super(graph, id);
+        this.label = label;
+        this.edges = new LinkedHashSet<>();
     }
 
     @Override
@@ -74,7 +43,7 @@ public class HugeVertex extends HugeElement implements Vertex {
             properties.add(this.property(key).value().toString());
         }
         // TODO: use a better delimiter
-        return String.join("\u0002\t", properties);
+        return String.join(SplicingIdGenerator.NAME_SPLITOR, properties);
     }
 
     public void assignId() {
@@ -85,33 +54,98 @@ public class HugeVertex extends HugeElement implements Vertex {
         }
     }
 
-    public List<Edge> getEdges() {
+    @Override
+    public String label() {
+        return this.label.name();
+    }
+
+    public VertexLabel vertexLabel() {
+        return this.label;
+    }
+
+    public Set<HugeEdge> getEdges() {
         // TODO: return a list of HugeEdge
-        return new ArrayList<>();
+        return this.edges;
     }
 
     @Override
-    public Edge addEdge(String s, Vertex vertex, Object... objects) {
-        return null;
+    public Edge addEdge(String label, Vertex vertex, Object... properties) {
+        HugeVertex targetVertex = (HugeVertex) vertex;
+        EdgeLabel edgeLabel = this.graph.openSchemaManager().edgeLabel(label);
+        Id id = HugeElement.getIdValue(properties);
+
+        HugeEdge edge = new HugeEdge(this.graph, id, edgeLabel);
+        edge.vertices(this, targetVertex);
+        edge = this.addOutEdge(edge) ? edge : null;
+
+        // set properties
+        ElementHelper.attachProperties(edge, properties);
+
+        // set id if it not exists
+        if (id == null) {
+            edge.assignId();
+        }
+
+        // add to other Vertex
+        if (edge != null) {
+            targetVertex.addInEdge(edge.switchOwner());
+        }
+
+        return edge;
+    }
+
+    // add edge of direction OUT
+    public boolean addOutEdge(HugeEdge edge) {
+        if (edge.owner() == null) {
+            edge.owner(this);
+            edge.sourceVertex(this);
+        }
+        assert edge.type() == HugeTypes.EDGE_OUT;
+        return this.edges.add(edge);
+    }
+
+    // add edge of direction IN
+    public boolean addInEdge(HugeEdge edge) {
+        if (edge.owner() == null) {
+            edge.owner(this);
+            edge.targetVertex(this);
+        }
+        assert edge.type() == HugeTypes.EDGE_IN;
+        return this.edges.add(edge);
+    }
+
+    public boolean edge(HugeEdge edge) {
+        return this.edges.add(edge);
     }
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality,
             String key, V value, Object... objects) {
-        this.property("name");
         // TODO: extra props
         HugeVertexProperty<V> prop = new HugeVertexProperty<V>(this, key, value);
         return super.setProperty(prop) != null ? prop : null;
     }
 
     @Override
-    public Iterator<Edge> edges(Direction direction, String... strings) {
-        return null;
+    public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
+        List<Edge> list = new LinkedList<>();
+        for (HugeEdge edge : this.edges) {
+            if (edge.direction() == direction && edge.belongToLabels(edgeLabels)) {
+                list.add(edge);
+            }
+        }
+        return list.iterator();
     }
 
     @Override
-    public Iterator<Vertex> vertices(Direction direction, String... strings) {
-        return null;
+    public Iterator<Vertex> vertices(Direction direction, String... edgeLabels) {
+        List<Vertex> list = new LinkedList<>();
+        Iterator<Edge> edges = this.edges(direction, edgeLabels);
+        while (edges.hasNext()) {
+            HugeEdge edge = (HugeEdge) edges.next();
+            list.add(edge.otherVertex(this));
+        }
+        return list.iterator();
     }
 
     @Override
@@ -128,5 +162,14 @@ public class HugeVertex extends HugeElement implements Vertex {
             propertyList.add((VertexProperty<V>) prop);
         }
         return propertyList.iterator();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{id=%s, label=%s, edges=%s, properties=%s}",
+                this.id,
+                this.label.name(),
+                this.edges,
+                this.properties.values());
     }
 }

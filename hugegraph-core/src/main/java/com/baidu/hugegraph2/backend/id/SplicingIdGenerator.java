@@ -1,12 +1,14 @@
 package com.baidu.hugegraph2.backend.id;
 
 import com.baidu.hugegraph2.schema.SchemaElement;
+import com.baidu.hugegraph2.structure.HugeEdge;
 import com.baidu.hugegraph2.structure.HugeVertex;
 import com.baidu.hugegraph2.util.HashUtil;
 
 public class SplicingIdGenerator extends IdGenerator {
 
     public static final String ID_SPLITOR = "\u0001";
+    public static final String NAME_SPLITOR = "\u0002";
 
     /****************************** id generate ******************************/
 
@@ -23,6 +25,22 @@ public class SplicingIdGenerator extends IdGenerator {
         // we can also use LongEncoding.encode() to encode the int/long hash if needed
         id = String.format("%s%s%s", HashUtil.hash(id), ID_SPLITOR, id);
         // TODO: use binary Id with binary fields instead of string id
+        return generate(id);
+    }
+
+    // generate a string id of HugeEdge from:
+    //  { edge-label + edge-name + source-vertex-id + target-vertex-id }
+    // NOTE: if we use `entry.type()` which is IN or OUT as a part of id,
+    // an edge's id will be different due to different directions (belongs to 2 vertex)
+    public static Id generate(HugeEdge entry) {
+        String id = String.format("%s%s%s%s%s%s%s",
+                entry.label(),
+                ID_SPLITOR,
+                entry.name(),
+                ID_SPLITOR,
+                entry.sourceVertex().id().asString(),
+                ID_SPLITOR,
+                entry.targetVertex().id().asString());
         return generate(id);
     }
 }

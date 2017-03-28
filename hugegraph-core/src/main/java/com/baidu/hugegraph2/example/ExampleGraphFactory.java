@@ -1,6 +1,7 @@
 package com.baidu.hugegraph2.example;
 
 import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +61,7 @@ public class ExampleGraphFactory {
         schemaManager.vertexLabel("author").properties("name").create();
         schemaManager.vertexLabel("recipe").properties("name", "instructions").create();
         schemaManager.vertexLabel("ingredient").create();
-        schemaManager.vertexLabel("book").create();
+        schemaManager.vertexLabel("book").properties("name").primaryKeys("name").create();
         schemaManager.vertexLabel("meal").create();
         schemaManager.vertexLabel("reviewer").create();
         // vertex label must have the properties that specified in primary key
@@ -94,14 +95,18 @@ public class ExampleGraphFactory {
         graphManager.addVertex(T.label, "book", "name", "java-3");
         graphManager.addVertex(T.label, "person", "name", "zhangsan");
 
-
-
         // Must commit manually
         GraphTransaction tx = graph.openGraphTransaction();
 
         logger.info("===============  addVertex  ================");
-        tx.addVertex(T.label, "book", "name", "java-1");
-        tx.addVertex(T.label, "book", "name", "java-2");
+        Vertex person = tx.addVertex(T.label, "person",
+                "name", "James Gosling", "age", "60");
+
+        Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
+        Vertex book2 = tx.addVertex(T.label, "book", "name", "java-2");
+
+        person.addEdge("authored", book1, "contribution", "1990-1-1");
+        person.addEdge("authored", book2, "contribution", "2017-4-28");
 
         // commit data changes
         try {
