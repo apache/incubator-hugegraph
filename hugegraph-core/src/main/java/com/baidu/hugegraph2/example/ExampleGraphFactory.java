@@ -21,11 +21,8 @@ public class ExampleGraphFactory {
 
         logger.info("ExampleGraphFactory start!");
 
-//        HugeConfiguration configuration = new HugeConfiguration("/Users/liningrui/IdeaProjects/baidu/"
-//                + "xbu-data/hugegraph/hugegraph-core/src/main/resources/hugegraph.properties");
-//        HugeGraph graph = HugeFactory.open(configuration);
-
-        HugeGraph graph = HugeFactory.open("/Users/lizhangmei/baidu/xbu-data/hugegraph/hugegraph-core/src/main/resources/hugegraph.properties");
+        String confFile = ExampleGraphFactory.class.getClassLoader().getResource("hugegraph.properties").getPath();
+        HugeGraph graph = HugeFactory.open(confFile);
 
         ExampleGraphFactory.showFeatures(graph);
         ExampleGraphFactory.load(graph);
@@ -38,16 +35,14 @@ public class ExampleGraphFactory {
     public static void load(final HugeGraph graph) {
 
         /************************* schema operating *************************/
-
         SchemaManager schema = graph.openSchemaManager();
-        System.out.println("===============  propertyKey  ================");
-        // 设置属性的schema
+        logger.info("===============  propertyKey  ================");
         schema.propertyKey("name").asText().create();
         schema.propertyKey("gender").asText().create();
         schema.propertyKey("instructions").asText().create();
         schema.propertyKey("category").asText().create();
         schema.propertyKey("year").asInt().create();
-        schema.propertyKey("timestamp").asTimeStamp().create();
+        schema.propertyKey("timestamp").asTimestamp().create();
         schema.propertyKey("ISBN").asText().create();
         schema.propertyKey("calories").asInt().create();
         schema.propertyKey("amount").asText().create();
@@ -55,51 +50,48 @@ public class ExampleGraphFactory {
         schema.propertyKey("comment").asText().single().create();
         schema.propertyKey("nickname").asText().multiple().create();
         schema.propertyKey("lived").asText().create();
-        // 给property设置property
         schema.propertyKey("country").asText().multiple().properties("livedIn").create();
+        schema.propertyKey("city_id").asInt().create();
+        schema.propertyKey("sensor_id").asUuid().create();
 
-        System.out.println("===============  vertexLabel  ================");
+        logger.info("===============  vertexLabel  ================");
 
-        // 设置顶点的schema
         schema.vertexLabel("author").properties("name").create();
         schema.vertexLabel("recipe").properties("name", "instructions").create();
-        //        schema.vertexLabel("recipe").properties("name", "instructions").add();
         schema.vertexLabel("ingredient").create();
         schema.vertexLabel("book").create();
         schema.vertexLabel("meal").create();
         schema.vertexLabel("reviewer").create();
+        // vertex label must have the properties that specified in primary key
+        schema.vertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
 
-        schema.propertyKey("city_id").asInt().create();
-        schema.propertyKey("sensor_id").asUUID().create();
-        schema.vertexLabel("FridgeSensor").partitionKey("city_id").clusteringKey("sensor_id").create();
-
-        System.out.println("===============  vertexLabel & index  ================");
-        // index 表示要添加一个索引，secondary表示要添加的是二级索引，by指定了给哪一列添加索引
-        //        schema.vertexLabel("author").index("byName").secondary().by("name").add();
-        //        schema.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
-        // TODO: fix these errors!
+        logger.info("===============  vertexLabel & index  ================");
+        // TODO: implement index feature.
+        // schema.vertexLabel("author").index("byName").secondary().by("name").add();
+        // schema.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schema.vertexLabel("meal").index("byMeal").materialized().by("name").add();
         // schema.vertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
         // schema.vertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
 
-        System.out.println("===============  edgeLabel  ================");
+        logger.info("===============  edgeLabel  ================");
 
-        schema.edgeLabel("authored").linkOne2One().create();
+        schema.edgeLabel("authored").linkOne2One().properties("contribution").sortKeys("contribution").create();
         schema.edgeLabel("created").single().linkMany2Many().create();
         schema.edgeLabel("includes").single().linkOne2Many().create();
         schema.edgeLabel("includedIn").linkMany2One().create();
         schema.edgeLabel("rated").multiple().linkMany2Many().link("reviewer", "recipe").create();
 
         // commit schema changes
-        schema.commit();
+//        schema.commit();
 
+        logger.info("===============  schema desc  ================");
         schema.desc();
 
         /************************* data operating *************************/
 
         GraphTransaction tx = graph.openGraphTransaction();
 
-        System.out.println("===============  addVertex  ================");
+        logger.info("===============  addVertex  ================");
         tx.addVertex(T.label, "book", "name", "java-1");
         tx.addVertex(T.label, "book", "name", "java-2");
 

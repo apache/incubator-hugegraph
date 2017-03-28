@@ -12,6 +12,7 @@ import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.Multiplicity;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
+import com.google.common.base.Preconditions;
 
 /**
  * Created by liningrui on 2017/3/20.
@@ -26,14 +27,14 @@ public class HugeEdgeLabel extends EdgeLabel {
     // 每组被连接的顶点形成一个Pair，一类边可能在多组顶点间建立连接
     private List<Pair<String, String>> links;
 
-    private Set<String> partitionKeys;
+    private Set<String> sortKeys;
 
     public HugeEdgeLabel(String name, SchemaTransaction transaction) {
         super(name, transaction);
         this.multiplicity = Multiplicity.ONE2ONE;
         this.cardinality = Cardinality.SINGLE;
         this.links = null;
-        this.partitionKeys = null;
+        this.sortKeys = null;
     }
 
     @Override
@@ -57,11 +58,6 @@ public class HugeEdgeLabel extends EdgeLabel {
     @Override
     public boolean isDirected() {
         return false;
-    }
-
-    @Override
-    public boolean hasPartitionKeys() {
-        return partitionKeys != null && !partitionKeys.isEmpty();
     }
 
     @Override
@@ -101,12 +97,28 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     @Override
-    public EdgeLabel link(String srcName, String tgtName) {
+    public EdgeLabel link(String src, String tgt) {
         if (links == null) {
             links = new ArrayList<>();
         }
-        Pair<String, String> pair = new Pair<>(srcName, tgtName);
+        Pair<String, String> pair = new Pair<>(src, tgt);
         links.add(pair);
+        return this;
+    }
+
+    @Override
+    public EdgeLabel sortKeys(String... keys) {
+        // Check whether the properties contains the specified keys
+        Preconditions.checkNotNull(properties);
+        for (String key : keys) {
+            Preconditions
+                    .checkArgument(properties.containsKey(key), "Properties must contain the specified key : " +
+                            key);
+        }
+        if (this.sortKeys == null) {
+            this.sortKeys = new HashSet<>();
+        }
+        this.sortKeys.addAll(Arrays.asList(keys));
         return this;
     }
 
@@ -132,14 +144,6 @@ public class HugeEdgeLabel extends EdgeLabel {
                 + "." + propertiesSchema()
                 + ".create();";
         return schema;
-    }
-
-    @Override
-    public void partitionKeys(String... keys) {
-        if (partitionKeys == null) {
-            partitionKeys = new HashSet<>();
-        }
-        partitionKeys.addAll(Arrays.asList(keys));
     }
 
     public void create() {

@@ -1,9 +1,10 @@
 package com.baidu.hugegraph2.type.schema;
 
-import java.util.LinkedHashSet;
+import java.util.HashMap;
 import java.util.Set;
 
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph2.schema.HugePropertyKey;
 import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.define.Cardinality;
@@ -18,11 +19,20 @@ public abstract class EdgeLabel extends SchemaElement {
         super(name, transaction);
     }
 
-    public abstract Set<String> sortKeys();
-
     @Override
     public HugeTypes type() {
         return HugeTypes.EDGE_LABEL;
+    }
+
+    @Override
+    public EdgeLabel properties(String... propertyNames) {
+        if (properties == null) {
+            properties = new HashMap<>();
+        }
+        for (String propertyName : propertyNames) {
+            properties.put(propertyName, new HugePropertyKey(propertyName, transaction));
+        }
+        return this;
     }
 
     public abstract Cardinality cardinality();
@@ -30,10 +40,6 @@ public abstract class EdgeLabel extends SchemaElement {
     public abstract Multiplicity multiplicity();
 
     public abstract boolean isDirected();
-
-    public abstract void partitionKeys(String... keys);
-
-    public abstract boolean hasPartitionKeys();
 
     public abstract EdgeLabel linkOne2One();
 
@@ -47,5 +53,7 @@ public abstract class EdgeLabel extends SchemaElement {
 
     public abstract EdgeLabel multiple();
 
-    public abstract EdgeLabel link(String srcName, String tgtName);
+    public abstract EdgeLabel link(String src, String tgt);
+
+    public abstract EdgeLabel sortKeys(String... keys);
 }

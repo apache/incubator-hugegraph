@@ -14,7 +14,6 @@ import com.baidu.hugegraph2.backend.id.IdGenerator;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 import com.google.common.base.Preconditions;
 
-
 /**
  * Created by jishilei on 17/3/16.
  */
