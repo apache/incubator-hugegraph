@@ -7,11 +7,15 @@ import java.util.List;
 import java.util.Set;
 
 import org.javatuples.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.Multiplicity;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
+import com.baidu.hugegraph2.util.StringUtil;
 import com.google.common.base.Preconditions;
 
 /**
@@ -19,14 +23,11 @@ import com.google.common.base.Preconditions;
  */
 public class HugeEdgeLabel extends EdgeLabel {
 
-    // multiplicity：图的角度，描述多个顶点之间的关系。多对一，多对多，一对多，一对一
+    private static final Logger logger = LoggerFactory.getLogger(HugeEdgeLabel.class);
+
     private Multiplicity multiplicity;
-    // cardinality：两个顶点之间是否可以有多条边
     private Cardinality cardinality;
-
-    // 每组被连接的顶点形成一个Pair，一类边可能在多组顶点间建立连接
     private List<Pair<String, String>> links;
-
     private Set<String> sortKeys;
 
     public HugeEdgeLabel(String name, SchemaTransaction transaction) {
@@ -106,6 +107,10 @@ public class HugeEdgeLabel extends EdgeLabel {
         return this;
     }
 
+    public Set<String> sortKeys() {
+        return sortKeys;
+    }
+
     @Override
     public EdgeLabel sortKeys(String... keys) {
         // Check whether the properties contains the specified keys
@@ -120,6 +125,12 @@ public class HugeEdgeLabel extends EdgeLabel {
         }
         this.sortKeys.addAll(Arrays.asList(keys));
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{name=%s, multiplicity=%s, cardinality=%s}",
+                name, multiplicity.toString(), cardinality.toString());
     }
 
     public String linkSchema() {
@@ -140,23 +151,29 @@ public class HugeEdgeLabel extends EdgeLabel {
         schema = "schema.edgeLabel(\"" + name + "\")"
                 + "." + cardinality.schema() + "()"
                 + "." + multiplicity.schema() + "()"
-                + linkSchema()
                 + "." + propertiesSchema()
+                + linkSchema()
+                + StringUtil.descSchema("sortKeys", sortKeys)
                 + ".create();";
         return schema;
     }
 
     public void create() {
-        transaction.addEdgeLabel(this);
+        try {
+            this.transaction.addEdgeLabel(this);
+            this.transaction.commit();
+        } catch (BackendException e) {
+            logger.error("Failed to commit schema changes: {}", e.getMessage());
+            try {
+                this.transaction.rollback();
+            } catch (BackendException e2) {
+                // TODO: any better ways?
+                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
+            }
+        }
     }
 
     public void remove() {
         transaction.removeEdgeLabel(name);
-    }
-
-    @Override
-    public String toString() {
-        return String.format("{name=%s, multiplicity=%s, cardinality=%s}",
-                name, multiplicity.toString(), cardinality.toString());
     }
 }

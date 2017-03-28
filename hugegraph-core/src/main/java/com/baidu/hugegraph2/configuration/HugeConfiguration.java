@@ -22,9 +22,7 @@ public class HugeConfiguration extends AbstractConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeConfiguration.class);
 
-    // TODO:最好定义一个类继承PropertiesConfiguration，并且加上所有ConfigOption支持的类的get方法
     private PropertiesConfiguration configuration;
-
 
     public HugeConfiguration(String configurationFile) {
         File file = new File(configurationFile);
@@ -37,7 +35,6 @@ public class HugeConfiguration extends AbstractConfiguration {
             throw new HugeException(e.getMessage());
         }
     }
-
 
     public HugeConfiguration(Configuration config) {
         if (configuration == null) {
@@ -52,20 +49,15 @@ public class HugeConfiguration extends AbstractConfiguration {
         updateDefaultConfiguration();
     }
 
-
     public void updateDefaultConfiguration() {
         try {
             Iterator<String> keys = configuration.getKeys();
             while (keys.hasNext()) {
                 String key = keys.next();
-                // 如果该key已经注册过，表示可用
                 if (ConfigSpace.containKey(key)) {
                     ConfigOption configOption = ConfigSpace.get(key);
-
-                    // 获取到option的数据类型
                     Class dataType = configOption.dataType();
                     String getMethod = "get" + dataType.getSimpleName();
-                    // 得到对应的get方法
                     Method method = configuration.getClass().getMethod(getMethod, String.class, dataType);
                     configOption.value(method.invoke(configuration, key, configOption.value()));
                 } else {
@@ -78,13 +70,13 @@ public class HugeConfiguration extends AbstractConfiguration {
         }
     }
 
-
     /**
      * @param option
      * @param <T>
+     *
      * @return
      */
-    public<T> T get(ConfigOption<T> option) {
+    public <T> T get(ConfigOption<T> option) {
         return option.value();
     }
 
