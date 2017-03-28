@@ -1,6 +1,6 @@
 package com.baidu.hugegraph2.backend.id;
 
-import com.baidu.hugegraph2.util.NumericUtils;
+import com.baidu.hugegraph2.util.NumericUtil;
 import com.baidu.hugegraph2.util.StringEncoding;
 
 public class IdGenerator {
@@ -105,7 +105,7 @@ public class IdGenerator {
         }
 
         public LongId(byte[] bytes) {
-            this.id = NumericUtils.bytesToLong(bytes);
+            this.id = NumericUtil.bytesToLong(bytes);
         }
 
         @Override
@@ -120,7 +120,7 @@ public class IdGenerator {
 
         @Override
         public byte[] asBytes() {
-            return NumericUtils.longToBytes(this.id);
+            return NumericUtil.longToBytes(this.id);
         }
 
         @Override

@@ -11,8 +11,8 @@ public enum HugeTypes {
 
     // data types
     VERTEX(101),
-    EDGE_IN(102), // edge's direction is IN for the specified vertex
-    EDGE_OUT(103), // edge's direction is OUT for the specified vertex
+    EDGE_OUT(102), // edge's direction is OUT for the specified vertex
+    EDGE_IN(103), // edge's direction is IN for the specified vertex
     PROPERTY(104),
     VERTEX_PROPERTY(105),
 
