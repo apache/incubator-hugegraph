@@ -1,7 +1,7 @@
 package com.baidu.hugegraph2.backend.id;
 
+import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.structure.HugeVertex;
-import com.baidu.hugegraph2.type.schema.SchemaType;
 import com.baidu.hugegraph2.util.HashUtil;
 
 public class SplicingIdGenerator extends IdGenerator {
@@ -11,7 +11,7 @@ public class SplicingIdGenerator extends IdGenerator {
     /****************************** id generate ******************************/
 
     // generate a string id of SchemaType from Schema type and name
-    public static Id generate(SchemaType entry) {
+    public static Id generate(SchemaElement entry) {
         String id = String.format("%x%s%s", entry.type().code(), ID_SPLITOR, entry.name());
         return generate(id);
     }

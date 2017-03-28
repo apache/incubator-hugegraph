@@ -70,7 +70,7 @@ public class HugeVertex extends HugeElement implements Vertex {
     @Override
     public String name() {
         List<String> properties = new LinkedList<>();
-        for (String key : this.vertexLabel().sortKeys()) {
+        for (String key : this.vertexLabel().primaryKeys()) {
             properties.add(this.property(key).value().toString());
         }
         // TODO: use a better delimiter

@@ -1,5 +1,6 @@
 package com.baidu.hugegraph2.type.schema;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
@@ -16,7 +17,7 @@ public abstract class VertexLabel extends SchemaElement {
         super(name, transaction);
     }
 
-    public Set<String> sortKeys();
+    public abstract Set<String> primaryKeys();
 
     @Override
     public HugeTypes type() {
