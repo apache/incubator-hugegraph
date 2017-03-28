@@ -2,26 +2,30 @@ package com.baidu.hugegraph2.type.schema;
 
 import java.util.Set;
 
+import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.define.IndexType;
 
 /**
  * Created by jishilei on 17/3/18.
  */
-public interface VertexLabel extends SchemaType {
+public abstract class VertexLabel extends SchemaElement {
 
-    public Set<String> properties();
-
-    public IndexType indexType();
-
-    public void index(String indexName);
+    public VertexLabel(String name, SchemaTransaction transaction) {
+        super(name, transaction);
+    }
 
     @Override
-    public default HugeTypes type() {
+    public HugeTypes type() {
         return HugeTypes.VERTEX_LABEL;
     }
 
-    public VertexLabel partitionKey(String... keys);
+    public abstract IndexType indexType();
 
-    public VertexLabel clusteringKey(String... keys);
+    public abstract void index(String indexName);
+
+    public abstract VertexLabel partitionKey(String... keys);
+
+    public abstract VertexLabel clusteringKey(String... keys);
 }

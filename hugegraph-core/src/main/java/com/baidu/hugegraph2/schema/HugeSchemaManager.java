@@ -10,7 +10,6 @@ import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
 import com.baidu.hugegraph2.type.schema.PropertyKey;
-import com.baidu.hugegraph2.type.schema.SchemaType;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**
@@ -20,9 +19,9 @@ public class HugeSchemaManager implements SchemaManager {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeSchemaManager.class);
 
-    private Map<String, SchemaType> schemaElements;
-
+    private Map<String, SchemaElement> schemaElements;
     private final SchemaTransaction transaction;
+
 
     public HugeSchemaManager(SchemaTransaction transaction) {
         this.transaction = transaction;
@@ -61,10 +60,9 @@ public class HugeSchemaManager implements SchemaManager {
 
     @Override
     public void desc() {
-
-        this.transaction.getPropertyKeys().forEach((p)->{
-            logger.info(p.schema());
-        });
+        for (String key: schemaElements.keySet()) {
+            logger.info(schemaElements.get(key).schema());
+        }
     }
 
     @Override

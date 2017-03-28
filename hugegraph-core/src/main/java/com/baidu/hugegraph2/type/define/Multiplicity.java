@@ -40,6 +40,25 @@ public enum Multiplicity {
     /**
      * There can be only a single in and out-edge of this label for a given vertex (i.e. unique in both directions).
      */
-    ONE2ONE
+    ONE2ONE;
 
+
+    public String schema() {
+        String shema = "link";
+        switch (this) {
+            case ONE2ONE:
+                shema += "One2One";
+                break;
+            case ONE2MANY:
+                shema += "One2Many";
+                break;
+            case MANY2ONE:
+                shema += "Many2One";
+                break;
+            case MANY2MANY:
+                shema += "Many2Many";
+                break;
+        }
+        return shema;
+    }
 }

@@ -2,6 +2,8 @@ package com.baidu.hugegraph2.type.schema;
 
 import java.util.Set;
 
+import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.Multiplicity;
@@ -9,36 +11,38 @@ import com.baidu.hugegraph2.type.define.Multiplicity;
 /**
  * Created by jishilei on 17/3/18.
  */
-public interface EdgeLabel extends SchemaType {
+public abstract class EdgeLabel extends SchemaElement {
 
-    public Set<String> properties();
-
-    public Cardinality cardinality();
-
-    public Multiplicity multiplicity();
-
-    public boolean isDirected();
-
-    public void partitionKeys(String... keys);
-
-    public boolean hasPartitionKeys();
+    public EdgeLabel(String name, SchemaTransaction transaction) {
+        super(name, transaction);
+    }
 
     @Override
-    public default HugeTypes type() {
+    public HugeTypes type() {
         return HugeTypes.EDGE_LABEL;
     }
 
-    public EdgeLabel linkOne2One();
+    public abstract Cardinality cardinality();
 
-    public EdgeLabel linkOne2Many();
+    public abstract Multiplicity multiplicity();
 
-    public EdgeLabel linkMany2Many();
+    public abstract boolean isDirected();
 
-    public EdgeLabel linkMany2One();
+    public abstract void partitionKeys(String... keys);
 
-    public EdgeLabel single();
+    public abstract boolean hasPartitionKeys();
 
-    public EdgeLabel multiple();
+    public abstract EdgeLabel linkOne2One();
 
-    public EdgeLabel link(String srcName, String tgtName);
+    public abstract EdgeLabel linkOne2Many();
+
+    public abstract EdgeLabel linkMany2Many();
+
+    public abstract EdgeLabel linkMany2One();
+
+    public abstract EdgeLabel single();
+
+    public abstract EdgeLabel multiple();
+
+    public abstract EdgeLabel link(String srcName, String tgtName);
 }

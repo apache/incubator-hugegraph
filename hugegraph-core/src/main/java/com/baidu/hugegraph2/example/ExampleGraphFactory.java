@@ -21,12 +21,8 @@ public class ExampleGraphFactory {
 
         logger.info("ExampleGraphFactory start!");
 
-//        HugeConfiguration configuration = new HugeConfiguration("/Users/liningrui/IdeaProjects/baidu/"
-//                + "xbu-data/hugegraph/hugegraph-core/src/main/resources/hugegraph.properties");
-//        HugeGraph graph = HugeFactory.open(configuration);
-
-        HugeGraph graph = HugeFactory.open("/Users/liningrui/IdeaProjects/baidu/"
-                + "xbu-data/hugegraph/hugegraph-core/src/main/resources/hugegraph.properties");
+        String propFile = ExampleGraphFactory.class.getClassLoader().getResource("hugegraph.properties").getPath();
+        HugeGraph graph = HugeFactory.open(propFile);
 
         ExampleGraphFactory.showFeatures(graph);
         ExampleGraphFactory.load(graph);
@@ -48,7 +44,7 @@ public class ExampleGraphFactory {
         schema.propertyKey("instructions").asText().create();
         schema.propertyKey("category").asText().create();
         schema.propertyKey("year").asInt().create();
-        schema.propertyKey("timestamp").asTimeStamp().create();
+        schema.propertyKey("timestamp").asTimestamp().create();
         schema.propertyKey("ISBN").asText().create();
         schema.propertyKey("calories").asInt().create();
         schema.propertyKey("amount").asText().create();
@@ -71,7 +67,7 @@ public class ExampleGraphFactory {
         schema.vertexLabel("reviewer").create();
 
         schema.propertyKey("city_id").asInt().create();
-        schema.propertyKey("sensor_id").asUUID().create();
+        schema.propertyKey("sensor_id").asUuid().create();
         schema.vertexLabel("FridgeSensor").partitionKey("city_id").clusteringKey("sensor_id").create();
 
         System.out.println("===============  vertexLabel & index  ================");
@@ -94,6 +90,7 @@ public class ExampleGraphFactory {
         // commit schema changes
         schema.commit();
 
+        System.out.println("===============  schema desc  ================");
         schema.desc();
 
         /************************* data operating *************************/

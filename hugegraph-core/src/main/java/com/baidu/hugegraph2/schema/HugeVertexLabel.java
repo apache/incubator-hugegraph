@@ -8,45 +8,34 @@ import java.util.Set;
 
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.IndexType;
-import com.baidu.hugegraph2.type.schema.SchemaType;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 
 /**
  * Created by liningrui on 2017/3/20.
  */
-public class HugeVertexLabel implements VertexLabel {
+public class HugeVertexLabel extends VertexLabel {
 
-    private String name;
-    private SchemaTransaction transaction;
     private IndexType indexType;
 
-    private Set<String> properties;
     private Set<String> partitionKeys;
     private Set<String> clusteringKeys;
-
 
     private String indexName;
     // key: indexName, val: propertyKeyName
     private Map<String, String> indexMap;
 
-
     public HugeVertexLabel(String name, SchemaTransaction transaction) {
-        this.name = name;
-        this.transaction = transaction;
+        super(name, transaction);
         this.indexType = null;
-        this.properties = null;
         this.indexName = null;
         this.indexMap = null;
     }
 
-    @Override
     public String schema() {
-        return null;
-    }
-
-    @Override
-    public String name() {
-        return name;
+        schema = "schema.vertexLabel(\"" + name + "\")"
+                + "." + propertiesSchema()
+                + ".create();";
+        return schema;
     }
 
     @Override
@@ -70,33 +59,10 @@ public class HugeVertexLabel implements VertexLabel {
         indexMap.put(indexName, propertyKeyName);
     }
 
-    public boolean containPropertyKey(String name) {
-        if (properties == null || properties.isEmpty()) {
-            return false;
-        }
-        return properties.contains(name);
-    }
-
-    @Override
-    public Set<String> properties() {
-        return properties;
-    }
-
-    @Override
-    public SchemaType properties(String... propertyNames) {
-        if (properties == null) {
-            properties = new HashSet<>();
-        }
-        properties.addAll(Arrays.asList(propertyNames));
-        return this;
-    }
-
-    @Override
     public void create() {
         transaction.addVertexLabel(this);
     }
 
-    @Override
     public void remove() {
         transaction.removeVertexLabel(name);
     }

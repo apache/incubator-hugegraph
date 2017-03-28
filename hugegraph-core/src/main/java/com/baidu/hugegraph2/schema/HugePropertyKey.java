@@ -1,38 +1,23 @@
 package com.baidu.hugegraph2.schema;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.DataType;
 import com.baidu.hugegraph2.type.schema.PropertyKey;
-import com.baidu.hugegraph2.type.schema.SchemaType;
-import com.baidu.hugegraph2.util.StringUtil;
 
 /**
  * Created by jishilei on 17/3/17.
  */
-public class HugePropertyKey implements PropertyKey {
-
-    private String name;
-    private SchemaTransaction transaction;
+public class HugePropertyKey extends PropertyKey {
 
     private DataType dataType;
     private Cardinality cardinality;
-    // propertykey可能还有properties
-    private Set<String> properties;
-
 
     public HugePropertyKey(String name, SchemaTransaction transaction) {
-        this.name = name;
-        this.transaction = transaction;
+        super(name, transaction);
         this.dataType = DataType.OBJECT;
         this.cardinality = Cardinality.SINGLE;
-        this.properties = null;
     }
-
 
     @Override
     public DataType dataType() {
@@ -53,11 +38,6 @@ public class HugePropertyKey implements PropertyKey {
     }
 
     @Override
-    public Set<String> properties() {
-        return properties;
-    }
-
-    @Override
     public PropertyKey asText() {
         this.dataType(DataType.TEXT);
         return this;
@@ -70,13 +50,13 @@ public class HugePropertyKey implements PropertyKey {
     }
 
     @Override
-    public PropertyKey asTimeStamp() {
+    public PropertyKey asTimestamp() {
         this.dataType(DataType.TIMESTAMP);
         return this;
     }
 
     @Override
-    public PropertyKey asUUID() {
+    public PropertyKey asUuid() {
         this.dataType(DataType.UUID);
         return this;
     }
@@ -94,39 +74,24 @@ public class HugePropertyKey implements PropertyKey {
     }
 
     @Override
-    public SchemaType properties(String... propertyNames) {
-        if (properties == null) {
-            properties = new HashSet<>();
-        }
-        properties.addAll(Arrays.asList(propertyNames));
-        return this;
-    }
-
-    @Override
-    public String name() {
-        return name;
-    }
-
-    @Override
     public String toString() {
         return String.format("{name=%s, dataType=%s, cardinality=%s}",
                 name, dataType.toString(), cardinality.toString());
     }
 
-    @Override
     public String schema() {
-        return "schema.propertyKey(\"" + name + "\")"
-                + "." + cardinality.toString().toLowerCase() + "()"
-                + ".as" + StringUtil.captureName(dataType.toString().toLowerCase()) + "()"
+        String schema = "schema.propertyKey(\"" + name + "\")"
+                + "." + dataType.schema() + "()"
+                + "." + cardinality.schema() + "()"
+                + "." + propertiesSchema()
                 + ".create();";
+        return schema;
     }
 
-    @Override
     public void create() {
         transaction.addPropertyKey(this);
     }
 
-    @Override
     public void remove() {
         transaction.removePropertyKey(name);
     }
