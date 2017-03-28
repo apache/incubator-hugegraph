@@ -48,8 +48,8 @@ public class HugeVertexLabel extends VertexLabel {
         Preconditions.checkNotNull(properties);
         for (String key : keys) {
             Preconditions
-                    .checkArgument(properties.containsKey(key), "Properties must contain the specified key : " +
-                            key);
+                    .checkArgument(properties.containsKey(key),
+                            "Properties must contain the specified key : " + key);
         }
         if (this.primaryKeys == null) {
             this.primaryKeys = new HashSet<>();
