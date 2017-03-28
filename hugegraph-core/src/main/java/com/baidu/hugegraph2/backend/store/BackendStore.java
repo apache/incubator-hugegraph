@@ -14,10 +14,15 @@ import java.util.Set;
 public interface BackendStore {
 
     public List<BackendEntry> getSlice(SliceQuery query);
+
+    public BackendEntry get(Id id);
+
     public void mutate(Collection<BackendEntry> additions, Set<Id> deletions);
 
     public void beginTx();
+
     public void commitTx();
+
     public void rollbackTx();
 
     public String name();
