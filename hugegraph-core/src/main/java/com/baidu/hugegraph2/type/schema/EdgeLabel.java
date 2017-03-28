@@ -1,5 +1,6 @@
 package com.baidu.hugegraph2.type.schema;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
@@ -16,6 +17,8 @@ public abstract class EdgeLabel extends SchemaElement {
     public EdgeLabel(String name, SchemaTransaction transaction) {
         super(name, transaction);
     }
+
+    public abstract Set<String> sortKeys();
 
     @Override
     public HugeTypes type() {
