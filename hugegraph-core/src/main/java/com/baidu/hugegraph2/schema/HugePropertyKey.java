@@ -3,7 +3,7 @@ package com.baidu.hugegraph2.schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph2.backend.BackendException;
+import com.baidu.hugegraph2.HugeException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.DataType;
@@ -95,18 +95,12 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     public void create() {
-        this.transaction.addPropertyKey(this);
-        try {
-            this.transaction.commit();
-        } catch (BackendException e) {
-            logger.error("Failed to commit schema changes: {}", e.getMessage());
-            try {
-                this.transaction.rollback();
-            } catch (BackendException e2) {
-                // TODO: any better ways?
-                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
-            }
+        // Try to read, if exist throw an error
+        if (this.transaction.getPropertyKey(this.name) != null) {
+            throw new HugeException("The propertyKey:" + this.name + " has exised.");
         }
+        this.transaction.addPropertyKey(this);
+        this.commit();
     }
 
     public void remove() {

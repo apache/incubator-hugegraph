@@ -3,6 +3,10 @@ package com.baidu.hugegraph2.schema;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.HugeType;
 import com.baidu.hugegraph2.type.Namifiable;
@@ -13,9 +17,11 @@ import com.baidu.hugegraph2.type.schema.PropertyKey;
  */
 public abstract class SchemaElement implements Namifiable, HugeType {
 
+    private static final Logger logger = LoggerFactory.getLogger(SchemaElement.class);
+
     protected String name;
-    // 关于自身的描述
     protected String schema;
+    // TODO:This is a questionable place，mutual reference
     protected SchemaTransaction transaction;
     protected Map<String, PropertyKey> properties;
 
@@ -39,9 +45,6 @@ public abstract class SchemaElement implements Namifiable, HugeType {
         return this;
     }
 
-    // ============================================================ //
-    // 辅助方法
-    // ============================================================ //
     public String propertiesSchema() {
         String props = "";
         if (properties != null) {
@@ -53,6 +56,21 @@ public abstract class SchemaElement implements Namifiable, HugeType {
         }
         int endIdx = props.lastIndexOf(",") > 0 ? props.length() - 1 : props.length();
         return "properties(" + props.substring(0, endIdx) + ")";
+    }
+
+    public boolean commit() {
+        try {
+            this.transaction.commit();
+            return true;
+        } catch (BackendException e) {
+            logger.error("Failed to commit schema changes: {}", e.getMessage());
+            try {
+                this.transaction.rollback();
+            } catch (BackendException e2) {
+                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
+            }
+        }
+        return false;
     }
 
     @Override

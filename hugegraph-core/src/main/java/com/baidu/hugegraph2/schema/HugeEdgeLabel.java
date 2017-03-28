@@ -10,7 +10,7 @@ import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph2.backend.BackendException;
+import com.baidu.hugegraph2.HugeException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.Multiplicity;
@@ -159,18 +159,11 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     public void create() {
-        try {
-            this.transaction.addEdgeLabel(this);
-            this.transaction.commit();
-        } catch (BackendException e) {
-            logger.error("Failed to commit schema changes: {}", e.getMessage());
-            try {
-                this.transaction.rollback();
-            } catch (BackendException e2) {
-                // TODO: any better ways?
-                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
-            }
+        if (this.transaction.getEdgeLabel(this.name) != null) {
+            throw new HugeException("The edgeLabel:" + this.name + " has exised.");
         }
+        this.transaction.addEdgeLabel(this);
+        this.commit();
     }
 
     public void remove() {

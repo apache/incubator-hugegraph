@@ -6,7 +6,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
 import com.baidu.hugegraph2.type.schema.PropertyKey;
@@ -22,7 +21,6 @@ public class HugeSchemaManager implements SchemaManager {
     private Map<String, SchemaElement> schemaElements;
     private final SchemaTransaction transaction;
 
-
     public HugeSchemaManager(SchemaTransaction transaction) {
         this.transaction = transaction;
         schemaElements = new HashMap<>();
@@ -30,30 +28,27 @@ public class HugeSchemaManager implements SchemaManager {
 
     @Override
     public PropertyKey propertyKey(String name) {
-        PropertyKey propertyKey = (PropertyKey) schemaElements.get(name);
+        PropertyKey propertyKey = this.transaction.getPropertyKey(name);
         if (propertyKey == null) {
             propertyKey = new HugePropertyKey(name, transaction);
-            this.schemaElements.put(name, propertyKey);
         }
         return propertyKey;
     }
 
     @Override
     public VertexLabel vertexLabel(String name) {
-        VertexLabel vertexLabel = (VertexLabel) schemaElements.get(name);
+        VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
         if (vertexLabel == null) {
             vertexLabel = new HugeVertexLabel(name, transaction);
-            this.schemaElements.put(name, vertexLabel);
         }
         return vertexLabel;
     }
 
     @Override
     public EdgeLabel edgeLabel(String name) {
-        EdgeLabel edgeLabel = (EdgeLabel) schemaElements.get(name);
+        EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
         if (edgeLabel == null) {
             edgeLabel = new HugeEdgeLabel(name, transaction);
-            this.schemaElements.put(name, edgeLabel);
         }
         return edgeLabel;
     }
@@ -63,31 +58,4 @@ public class HugeSchemaManager implements SchemaManager {
         schemaElements.forEach((key, val) -> logger.info(val.schema()));
     }
 
-    @Override
-    public VertexLabel getOrCreateVertexLabel(String label) {
-        return this.transaction.getOrCreateVertexLabel(label);
-    }
-
-    @Override
-    public VertexLabel getVertexLabel(String label) {
-        return this.transaction.getVertexLabel(label);
-    }
-
-    @Override
-    public boolean commit() {
-        // commit schema changes
-        try {
-            this.transaction.commit();
-            return true;
-        } catch (BackendException e) {
-            logger.error("Failed to commit schema changes: {}", e.getMessage());
-            try {
-                this.transaction.rollback();
-            } catch (BackendException e2) {
-                // TODO: any better ways?
-                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
-            }
-        }
-        return false;
-    }
 }
