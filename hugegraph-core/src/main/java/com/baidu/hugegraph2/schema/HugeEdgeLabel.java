@@ -112,8 +112,8 @@ public class HugeEdgeLabel extends EdgeLabel {
         Preconditions.checkNotNull(properties);
         for (String key : keys) {
             Preconditions
-                    .checkArgument(properties.containsKey(key), "Properties must contain the specified key : " +
-                            key);
+                    .checkArgument(properties.containsKey(key),
+                            "Properties must contain the specified key : " + key);
         }
         if (this.sortKeys == null) {
             this.sortKeys = new HashSet<>();
