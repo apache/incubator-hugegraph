@@ -95,8 +95,8 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     public void create() {
+        this.transaction.addPropertyKey(this);
         try {
-            this.transaction.addPropertyKey(this);
             this.transaction.commit();
         } catch (BackendException e) {
             logger.error("Failed to commit schema changes: {}", e.getMessage());
