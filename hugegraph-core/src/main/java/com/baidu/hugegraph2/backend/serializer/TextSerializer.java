@@ -61,7 +61,7 @@ public class TextSerializer extends AbstractSerializer {
 
         // label
         String labelName = entry.column(HugeKeys.LABEL.string());
-        VertexLabel label = this.graph.openSchemaManager().getVertexLabel(labelName);
+        VertexLabel label = this.graph.openSchemaManager().vertexLabel(labelName);
 
         // id
         HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);

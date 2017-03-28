@@ -81,7 +81,7 @@ public class HugeGraph implements Graph {
     public SchemaTransaction openSchemaTransaction() {
         try {
             BackendStore store = this.storeProvider.open(this.configuration.get(TABLE_SCHEMA));
-            return new SchemaTransaction(store);
+            return new SchemaTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
             logger.error("{}: {}", message, e.getMessage());

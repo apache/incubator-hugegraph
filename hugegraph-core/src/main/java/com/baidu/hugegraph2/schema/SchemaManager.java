@@ -17,8 +17,4 @@ public interface SchemaManager {
 
     public void desc();
 
-    public VertexLabel getOrCreateVertexLabel(String label);
-    public VertexLabel getVertexLabel(String label);
-
-    public boolean commit();
 }

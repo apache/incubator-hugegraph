@@ -23,16 +23,9 @@ import com.baidu.hugegraph2.type.schema.VertexLabel;
 public class GraphTransaction extends AbstractTransaction {
 
     private Set<HugeVertex> vertexes;
-    // parent
-    private final HugeGraph graph;
-    private AbstractSerializer serializer;
 
     public GraphTransaction(final HugeGraph graph, BackendStore store) {
-        super(store);
-
-        this.graph = graph;
-        this.serializer = this.graph.serializer();
-
+        super(graph, store);
         this.vertexes = new LinkedHashSet<HugeVertex>();
     }
 
@@ -66,7 +59,7 @@ public class GraphTransaction extends AbstractTransaction {
         }
         else if (label instanceof String) {
             SchemaManager schema = this.graph.openSchemaManager();
-            label = schema.getOrCreateVertexLabel((String) label);
+            label = schema.vertexLabel((String) label);
         }
 
         // create HugeVertex

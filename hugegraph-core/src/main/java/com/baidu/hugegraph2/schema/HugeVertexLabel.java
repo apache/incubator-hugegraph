@@ -1,18 +1,15 @@
 package com.baidu.hugegraph2.schema;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph2.backend.BackendException;
+import com.baidu.hugegraph2.HugeException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph2.type.define.IndexType;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 import com.baidu.hugegraph2.util.StringUtil;
 import com.google.common.base.Preconditions;
@@ -65,18 +62,11 @@ public class HugeVertexLabel extends VertexLabel {
     }
 
     public void create() {
-        try {
-            this.transaction.addVertexLabel(this);
-            this.transaction.commit();
-        } catch (BackendException e) {
-            logger.error("Failed to commit schema changes: {}", e.getMessage());
-            try {
-                this.transaction.rollback();
-            } catch (BackendException e2) {
-                // TODO: any better ways?
-                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
-            }
+        if (this.transaction.getVertexLabel(this.name) != null) {
+            throw new HugeException("The vertexlabel:" + this.name + " has exised.");
         }
+        this.transaction.addVertexLabel(this);
+        this.commit();
     }
 
     public void remove() {

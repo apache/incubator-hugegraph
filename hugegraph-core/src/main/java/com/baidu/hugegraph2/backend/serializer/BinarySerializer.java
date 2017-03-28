@@ -38,7 +38,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     private VertexLabel parseLabel(BackendColumn col) {
         String label = StringEncoding.decodeString(col.value);
-        return this.graph.openSchemaManager().getVertexLabel(label);
+        return this.graph.openSchemaManager().vertexLabel(label);
     }
 
     private byte[] formatPropertyName(HugeProperty<?> prop) {
