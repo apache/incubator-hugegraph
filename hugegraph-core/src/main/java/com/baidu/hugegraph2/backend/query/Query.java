@@ -1,23 +1,30 @@
 package com.baidu.hugegraph2.backend.query;
 
+import java.util.Map;
+
 /**
  * Created by jishilei on 17/3/19.
  */
-public interface Query {
+public interface Query<Q extends Query<Q>>  {
 
-    public static final int NO_LIMIT = Integer.MAX_VALUE;
+   /* ---------------------------------------------------------------
+    * Query Specification
+    * ---------------------------------------------------------------
+    */
 
-    /**
-     * Whether this query has a defined limit
-     *
-     * @return
-     */
-    public boolean hasLimit();
+    public Map<String,Object> conditions();
 
-    /**
-     *
-     * @return The maximum number of results this query should return
-     */
     public int limit();
+
+    public Q has(String key, Object value);
+
+    /**
+     * Limits the size of the returned result set
+     *
+     * @param max The maximum number of results to return
+     *
+     * @return This query
+     */
+    public Q limit(final int max);
 
 }

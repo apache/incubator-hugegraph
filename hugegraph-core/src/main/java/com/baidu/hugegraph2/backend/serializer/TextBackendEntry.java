@@ -48,6 +48,10 @@ public class TextBackendEntry implements BackendEntry {
         return this.columns.containsKey(colume);
     }
 
+    public boolean contains(String colume,String value) {
+        return this.columns.containsKey(colume) && this.columns.get(colume).equals(value);
+    }
+
     @Override
     public String toString() {
         return String.format("%s: %s", this.id, this.columns.toString());

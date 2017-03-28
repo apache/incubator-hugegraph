@@ -2,10 +2,9 @@ package com.baidu.hugegraph2.backend.store;
 
 import com.baidu.hugegraph2.backend.BackendException;
 import com.baidu.hugegraph2.backend.id.Id;
-import com.baidu.hugegraph2.backend.query.SliceQuery;
+import com.baidu.hugegraph2.backend.query.Query;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -13,9 +12,11 @@ import java.util.Set;
  */
 public interface BackendStore {
 
-    public List<BackendEntry> getSlice(SliceQuery query);
+    public Iterable<BackendEntry> query(Query query);
 
     public BackendEntry get(Id id);
+
+    public void delete(Id id);
 
     public void mutate(Collection<BackendEntry> additions, Set<Id> deletions);
 
