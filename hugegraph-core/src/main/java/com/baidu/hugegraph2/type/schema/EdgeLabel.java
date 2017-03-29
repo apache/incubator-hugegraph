@@ -63,4 +63,5 @@ public abstract class EdgeLabel extends SchemaElement {
     public abstract EdgeLabel sortKeys(String... keys);
 
     public abstract Set<String> sortKeys();
+
 }

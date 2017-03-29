@@ -28,22 +28,13 @@ public class HugeVertexLabel extends VertexLabel {
         this.primaryKeys = new LinkedHashSet<>();
     }
 
+    @Override
     public Set<String> primaryKeys() {
         return primaryKeys;
     }
 
     @Override
     public VertexLabel primaryKeys(String... keys) {
-        // Check whether the properties contains the specified keys
-        Preconditions.checkNotNull(properties);
-        for (String key : keys) {
-            Preconditions
-                    .checkArgument(properties.containsKey(key),
-                            "Properties must contain the specified key : " + key);
-        }
-        if (this.primaryKeys == null) {
-            this.primaryKeys = new HashSet<>();
-        }
         this.primaryKeys.addAll(Arrays.asList(keys));
         return this;
     }
@@ -65,6 +56,19 @@ public class HugeVertexLabel extends VertexLabel {
         if (this.transaction.getVertexLabel(this.name) != null) {
             throw new HugeException("The vertexlabel:" + this.name + " has exised.");
         }
+
+        StringUtil.verifyName(name);
+
+        if (primaryKeys != null && !primaryKeys.isEmpty()) {
+            // Check whether the properties contains the specified keys
+            Preconditions.checkNotNull(properties, "properties can not be null");
+            Preconditions.checkArgument(!properties.isEmpty(), "properties can not be empty");
+            for (String key : primaryKeys) {
+                Preconditions.checkArgument(properties.containsKey(key),
+                        "properties must contain the specified key : " + key);
+            }
+        }
+
         this.transaction.addVertexLabel(this);
         this.commit();
     }

@@ -1,8 +1,5 @@
 package com.baidu.hugegraph2.schema;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,12 +15,10 @@ public class HugeSchemaManager implements SchemaManager {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeSchemaManager.class);
 
-    private Map<String, SchemaElement> schemaElements;
     private final SchemaTransaction transaction;
 
     public HugeSchemaManager(SchemaTransaction transaction) {
         this.transaction = transaction;
-        schemaElements = new HashMap<>();
     }
 
     @Override
@@ -55,7 +50,11 @@ public class HugeSchemaManager implements SchemaManager {
 
     @Override
     public void desc() {
-        schemaElements.forEach((key, val) -> logger.info(val.schema()));
+        this.transaction.getPropertyKeys();
+//        this.transaction.getVertexLabels();
+//        this.transaction.getEdgeLabels();
+
+        //        schemaElements.forEach((key, val) -> logger.info(val.schema()));
     }
 
 }

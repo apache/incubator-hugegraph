@@ -116,13 +116,6 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     @Override
     public EdgeLabel sortKeys(String... keys) {
-        // Check whether the properties contains the specified keys
-        Preconditions.checkNotNull(this.properties);
-        for (String key : keys) {
-            Preconditions
-                    .checkArgument(this.properties.containsKey(key),
-                            "Properties must contain the specified key : " + key);
-        }
         this.sortKeys.addAll(Arrays.asList(keys));
         return this;
     }
@@ -164,6 +157,29 @@ public class HugeEdgeLabel extends EdgeLabel {
         if (this.transaction.getEdgeLabel(this.name) != null) {
             throw new HugeException("The edgeLabel:" + this.name + " has exised.");
         }
+
+        StringUtil.verifyName(name);
+
+        if (this.cardinality == Cardinality.SINGLE) {
+            Preconditions.checkArgument(sortKeys.isEmpty(), "edgeLabel can not contain sortKeys when the cardinality"
+                    + " property is single.");
+        } else {
+            Preconditions.checkNotNull(sortKeys, "the sortKeys can not be null when the cardinality property is "
+                    + "multiple.");
+            Preconditions.checkArgument(!sortKeys.isEmpty(), "edgeLabel must contain sortKeys when the cardinality"
+                    + " property is multiple.");
+        }
+
+        if (sortKeys != null && !sortKeys.isEmpty()) {
+            // Check whether the properties contains the specified keys
+            Preconditions.checkNotNull(properties, "properties can not be null");
+            Preconditions.checkArgument(!properties.isEmpty(), "properties can not be empty");
+            for (String key : sortKeys) {
+                Preconditions.checkArgument(properties.containsKey(key),
+                        "Properties must contain the specified key : " + key);
+            }
+        }
+
         this.transaction.addEdgeLabel(this);
         this.commit();
     }

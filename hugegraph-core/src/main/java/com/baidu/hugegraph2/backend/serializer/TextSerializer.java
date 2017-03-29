@@ -294,7 +294,6 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         entry = convertEntry(entry);
-
         assert entry instanceof TextBackendEntry;
 
         TextBackendEntry textEntry = (TextBackendEntry) entry;
