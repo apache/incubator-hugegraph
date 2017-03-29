@@ -34,7 +34,7 @@ public class HugeEdgeLabel extends EdgeLabel {
         super(name, transaction);
         this.multiplicity = Multiplicity.ONE2ONE;
         this.cardinality = Cardinality.SINGLE;
-        this.links = null;
+        this.links = new ArrayList<>();
         this.sortKeys = new LinkedHashSet<>();
     }
 
@@ -98,11 +98,12 @@ public class HugeEdgeLabel extends EdgeLabel {
         return this;
     }
 
+    public List<Pair<String, String>> links() {
+        return links;
+    }
+
     @Override
     public EdgeLabel link(String src, String tgt) {
-        if (this.links == null) {
-            this.links = new ArrayList<>();
-        }
         Pair<String, String> pair = new Pair<>(src, tgt);
         this.links.add(pair);
         return this;

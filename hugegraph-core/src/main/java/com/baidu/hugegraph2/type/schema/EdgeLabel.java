@@ -1,7 +1,10 @@
 package com.baidu.hugegraph2.type.schema;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
+
+import org.javatuples.Pair;
 
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.schema.HugePropertyKey;
@@ -54,6 +57,8 @@ public abstract class EdgeLabel extends SchemaElement {
     public abstract EdgeLabel multiple();
 
     public abstract EdgeLabel link(String src, String tgt);
+
+    public abstract List<Pair<String, String>> links();
 
     public abstract EdgeLabel sortKeys(String... keys);
 

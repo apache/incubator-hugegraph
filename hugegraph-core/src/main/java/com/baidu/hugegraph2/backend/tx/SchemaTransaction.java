@@ -40,7 +40,7 @@ public class SchemaTransaction extends AbstractTransaction {
         List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
 
         HugeQuery query = new HugeQuery();
-        query.has(SCHEMATYPE_COLUME,"PROPERTY");
+        query.has(SCHEMATYPE_COLUME, "PROPERTY");
 
         Iterable<BackendEntry> entries = query(query);
         entries.forEach(item -> {
@@ -64,15 +64,7 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "dataType: " + propertyKey.dataType() + ", "
                 + "cardinality: " + propertyKey.cardinality());
 
-        Id id = this.idGenerator.generate(propertyKey);
-        // TODO: use serializer instead
-        TextBackendEntry entry = new TextBackendEntry(id);
-        entry.column(ID_COLUME, id.asString());
-        entry.column(SCHEMATYPE_COLUME, "PROPERTY");
-        entry.column("name", propertyKey.name());
-        entry.column("datatype", propertyKey.dataType().name());
-        entry.column("cardinality", propertyKey.cardinality().toString());
-        this.addEntry(entry);
+        this.addEntry(serializer.writePropertyKey(propertyKey));
     }
 
     public PropertyKey getPropertyKey(String name) {
@@ -92,9 +84,7 @@ public class SchemaTransaction extends AbstractTransaction {
         logger.debug("SchemaTransaction add vertex label, "
                 + "name: " + vertexLabel.name());
 
-        Id id = this.idGenerator.generate(vertexLabel);
-        // TODO: use serializer instead
-        this.addEntry(id, DEFAULT_COLUME, vertexLabel.toString());
+        this.addEntry(serializer.writeVertexLabel(vertexLabel));
     }
 
     public VertexLabel getVertexLabel(String name) {
@@ -116,9 +106,7 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "multiplicity: " + edgeLabel.multiplicity() + ", "
                 + "cardinality: " + edgeLabel.cardinality());
 
-        Id id = this.idGenerator.generate(edgeLabel);
-        // TODO: use serializer instead
-        this.addEntry(id, DEFAULT_COLUME, edgeLabel.toString());
+        this.addEntry(serializer.writeEdgeLabel(edgeLabel));
     }
 
     public EdgeLabel getEdgeLabel(String name) {

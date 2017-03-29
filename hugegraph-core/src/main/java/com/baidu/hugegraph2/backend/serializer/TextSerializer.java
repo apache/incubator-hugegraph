@@ -1,26 +1,48 @@
 package com.baidu.hugegraph2.backend.serializer;
 
+import java.util.Map;
+
 import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph2.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
+import com.baidu.hugegraph2.schema.HugeEdgeLabel;
+import com.baidu.hugegraph2.schema.HugePropertyKey;
+import com.baidu.hugegraph2.schema.HugeVertexLabel;
+import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.structure.HugeEdge;
 import com.baidu.hugegraph2.structure.HugeProperty;
 import com.baidu.hugegraph2.structure.HugeVertex;
 import com.baidu.hugegraph2.type.HugeTypes;
+import com.baidu.hugegraph2.type.define.Cardinality;
+import com.baidu.hugegraph2.type.define.DataType;
 import com.baidu.hugegraph2.type.define.HugeKeys;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
 import com.baidu.hugegraph2.type.schema.PropertyKey;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
+import com.google.gson.Gson;
 
 public class TextSerializer extends AbstractSerializer {
 
+    private static final String DEFAULT_COLUME = "default-colume";
+    private static final String ID_COLUME = "_id";
+    private static final String SCHEMATYPE_COLUME = "_schema";
     private static final String COLUME_SPLITOR = SplicingIdGenerator.NAME_SPLITOR;
     private static final String VALUE_SPLITOR = "\u0003";
 
+    private static Gson gson = new Gson();
+
     public TextSerializer(final HugeGraph graph) {
         super(graph);
+    }
+
+    public static String toJson(Object object) {
+        return gson.toJson(object);
+    }
+
+    public static <T> T fromJson(String json, Class<T> clazz) {
+        return gson.fromJson(json, clazz);
     }
 
     @Override
@@ -99,8 +121,7 @@ public class TextSerializer extends AbstractSerializer {
         if (isOutEdge) {
             edge.targetVertex(otherVertex);
             vertex.addOutEdge(edge);
-        }
-        else {
+        } else {
             edge.sourceVertex(otherVertex);
             vertex.addInEdge(edge);
         }
@@ -149,9 +170,9 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         // test readVertex
-//        System.out.println("writeVertex:" + entry);
-//        HugeVertex v = readVertex(entry);
-//        System.out.println("readVertex:" + v);
+        //        System.out.println("writeVertex:" + entry);
+        //        HugeVertex v = readVertex(entry);
+        //        System.out.println("readVertex:" + v);
 
         return entry;
     }
@@ -178,38 +199,118 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
-        // TODO Auto-generated method stub
-        return null;
+        Id id = IdGeneratorFactory.generator().generate(vertexLabel);
+
+        TextBackendEntry entry = new TextBackendEntry(id);
+        entry.column(HugeKeys.NAME.string(), vertexLabel.name());
+        entry.column(HugeKeys.PRIMARY_KEYS.string(), toJson(vertexLabel.primaryKeys().toArray()));
+        writeProperties(vertexLabel, entry);
+        return entry;
     }
 
     @Override
     public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel) {
-        // TODO Auto-generated method stub
-        return null;
+        Id id = IdGeneratorFactory.generator().generate(edgeLabel);
+
+        TextBackendEntry entry = new TextBackendEntry(id);
+        entry.column(HugeKeys.NAME.string(), edgeLabel.name());
+        entry.column(HugeKeys.CARDINALITY.string(), toJson(edgeLabel.cardinality()));
+        entry.column(HugeKeys.MULTIPLICITY.string(), toJson(edgeLabel.multiplicity()));
+        entry.column(HugeKeys.LINKS.string(), toJson(edgeLabel.links().toArray()));
+        entry.column(HugeKeys.SORT_KEYS.string(), toJson(edgeLabel.sortKeys().toArray()));
+        writeProperties(edgeLabel, entry);
+        return entry;
     }
 
     @Override
     public BackendEntry writePropertyKey(PropertyKey propertyKey) {
-        // TODO Auto-generated method stub
-        return null;
+        Id id = IdGeneratorFactory.generator().generate(propertyKey);
+
+        TextBackendEntry entry = new TextBackendEntry(id);
+        entry.column(HugeKeys.NAME.string(), propertyKey.name());
+        entry.column(HugeKeys.DATA_TYPE.string(), toJson(propertyKey.dataType()));
+        entry.column(HugeKeys.CARDINALITY.string(), toJson(propertyKey.cardinality()));
+        writeProperties(propertyKey, entry);
+        return entry;
+    }
+
+    public void writeProperties(SchemaElement schemaElement, TextBackendEntry entry) {
+        Map<String, PropertyKey> properties = schemaElement.properties();
+        if (properties == null) {
+            entry.column(HugeKeys.PROPERTIES.string(), toJson(""));
+        } else {
+            entry.column(HugeKeys.PROPERTIES.string(), toJson(properties.keySet().toArray()));
+        }
     }
 
     @Override
     public VertexLabel readVertexLabel(BackendEntry entry) {
-        // TODO Auto-generated method stub
-        return null;
+        if (entry == null) {
+            return null;
+        }
+
+        entry = convertEntry(entry);
+        assert entry instanceof TextBackendEntry;
+
+        TextBackendEntry textEntry = (TextBackendEntry) entry;
+        String name = textEntry.column(HugeKeys.NAME.string());
+        String properties = textEntry.column(HugeKeys.PROPERTIES.string());
+        String primarykeys = textEntry.column(HugeKeys.PRIMARY_KEYS.string());
+
+        HugeVertexLabel vertexLabel = new HugeVertexLabel(name, graph.openSchemaTransaction());
+        vertexLabel.properties(fromJson(properties, String[].class));
+        vertexLabel.primaryKeys(fromJson(primarykeys, String[].class));
+
+        return vertexLabel;
     }
 
     @Override
     public EdgeLabel readEdgeLabel(BackendEntry entry) {
-        // TODO Auto-generated method stub
-        return null;
+        if (entry == null) {
+            return null;
+        }
+
+        entry = convertEntry(entry);
+        assert entry instanceof TextBackendEntry;
+
+        TextBackendEntry textEntry = (TextBackendEntry) entry;
+        String name = textEntry.column(HugeKeys.NAME.string());
+        String sortKeys = textEntry.column(HugeKeys.SORT_KEYS.string());
+        String links = textEntry.column(HugeKeys.LINKS.string());
+        String properties = textEntry.column(HugeKeys.PROPERTIES.string());
+
+        HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name, graph.openSchemaTransaction());
+        edgeLabel.properties(fromJson(properties, String[].class));
+        edgeLabel.sortKeys(fromJson(sortKeys, String[].class));
+        String[] linksArray = fromJson(links, String[].class);
+        for (int i = 0; i < linksArray.length - 1; i += 2) {
+            edgeLabel.link(linksArray[i], linksArray[i + 1]);
+        }
+
+        return edgeLabel;
     }
 
     @Override
     public PropertyKey readPropertyKey(BackendEntry entry) {
-        // TODO Auto-generated method stub
-        return null;
-    }
+        if (entry == null) {
+            return null;
+        }
 
+        entry = convertEntry(entry);
+
+        assert entry instanceof TextBackendEntry;
+
+        TextBackendEntry textEntry = (TextBackendEntry) entry;
+        String name = textEntry.column(HugeKeys.NAME.string());
+        String dataType = textEntry.column(HugeKeys.DATA_TYPE.string());
+        String cardinality = textEntry.column(HugeKeys.CARDINALITY.string());
+        String properties = textEntry.column(HugeKeys.PROPERTIES.string());
+
+        HugePropertyKey propertyKey = new HugePropertyKey(name, graph.openSchemaTransaction());
+        propertyKey.dataType(fromJson(dataType, DataType.class));
+        propertyKey.cardinality(fromJson(cardinality, Cardinality.class));
+        propertyKey.properties(fromJson(properties, String[].class));
+
+        return propertyKey;
+    }
 }
