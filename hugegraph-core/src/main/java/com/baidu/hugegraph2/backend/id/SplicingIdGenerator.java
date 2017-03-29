@@ -29,16 +29,16 @@ public class SplicingIdGenerator extends IdGenerator {
     }
 
     // generate a string id of HugeEdge from:
-    //  { edge-label + edge-name + source-vertex-id + target-vertex-id }
+    //  { source-vertex-id + edge-label + edge-name + target-vertex-id }
     // NOTE: if we use `entry.type()` which is IN or OUT as a part of id,
     // an edge's id will be different due to different directions (belongs to 2 vertex)
     public static Id generate(HugeEdge entry) {
         String id = String.format("%s%s%s%s%s%s%s",
+                entry.sourceVertex().id().asString(),
+                ID_SPLITOR,
                 entry.label(),
                 ID_SPLITOR,
                 entry.name(),
-                ID_SPLITOR,
-                entry.sourceVertex().id().asString(),
                 ID_SPLITOR,
                 entry.targetVertex().id().asString());
         return generate(id);

@@ -11,13 +11,13 @@ public enum HugeTypes {
 
     // data types
     VERTEX(101),
-    EDGE_OUT(102), // edge's direction is OUT for the specified vertex
-    EDGE_IN(103), // edge's direction is IN for the specified vertex
-    PROPERTY(104),
-    VERTEX_PROPERTY(105),
+    SYS_PROPERTY(102), // system meta
+    VERTEX_PROPERTY(103), // vertex property
+    EDGE_OUT(120), // edge's direction is OUT for the specified vertex
+    EDGE_IN(121), // edge's direction is IN for the specified vertex
+    PROPERTY(130), // edge property
 
-    // system meta
-    SYS_PROPERTY(255);
+    MAX_TYPE(255);
 
     // HugeType define
     private byte type = 0;

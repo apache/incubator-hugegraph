@@ -39,10 +39,6 @@ public class BinaryBackendEntry implements BackendEntry {
         return null;
     }
 
-    public BackendColumn column(byte name) {
-        return this.column(new byte[]{ name });
-    }
-
     public void column(BackendColumn column) {
         this.columns.add(column);
     }
