@@ -13,4 +13,8 @@ public abstract class AbstractSerializer implements VertexSerializer, SchemaSeri
     }
 
     public abstract BackendEntry newBackendEntry(Id id);
+
+    protected BackendEntry convertEntry(BackendEntry entry) {
+        return entry;
+    }
 }

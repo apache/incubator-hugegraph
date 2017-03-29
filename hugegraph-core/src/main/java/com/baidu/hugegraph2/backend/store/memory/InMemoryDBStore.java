@@ -26,11 +26,11 @@ public class InMemoryDBStore implements BackendStore {
     private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStore.class);
 
     private final String name;
-    private final ConcurrentNavigableMap<Object, BackendEntry> store;
+    private final ConcurrentNavigableMap<Id, BackendEntry> store;
 
     public InMemoryDBStore(final String name) {
         this.name = name;
-        this.store = new ConcurrentSkipListMap<Object, BackendEntry>();
+        this.store = new ConcurrentSkipListMap<Id, BackendEntry>();
     }
 
 
@@ -54,19 +54,16 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public BackendEntry get(Id id) {
-
         return store.get(id);
     }
 
     @Override
     public void delete(Id id) {
-
         store.remove(id);
     }
 
     @Override
     public void mutate(Collection<BackendEntry> additions, Set<Id> deletions) {
-
         additions.forEach((entry) -> {
             logger.info("[store {}] add entry: {}", this.name, entry);
             this.store.put(entry.id(), entry);
