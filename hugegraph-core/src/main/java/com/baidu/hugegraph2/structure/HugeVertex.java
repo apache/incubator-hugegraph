@@ -17,9 +17,12 @@ import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph2.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph2.schema.HugeEdgeLabel;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
+import com.baidu.hugegraph2.util.CollectionUtil;
+import com.google.common.base.Preconditions;
 
 public class HugeVertex extends HugeElement implements Vertex {
 
@@ -73,9 +76,16 @@ public class HugeVertex extends HugeElement implements Vertex {
     public Edge addEdge(String label, Vertex vertex, Object... properties) {
         HugeVertex targetVertex = (HugeVertex) vertex;
         EdgeLabel edgeLabel = this.graph.openSchemaManager().edgeLabel(label);
+
+        Preconditions.checkArgument(
+                CollectionUtil.containsAll(ElementHelper.getKeys(properties), ((HugeEdgeLabel) edgeLabel)
+                        .sortKeys()), "the sort key must "
+                        + "set in 'addEdge' method, you can refer to the definition of edgeLabel.");
+
         Id id = HugeElement.getIdValue(properties);
 
         HugeEdge edge = new HugeEdge(this.graph, id, edgeLabel);
+
         edge.vertices(this, targetVertex);
         edge = this.addOutEdge(edge) ? edge : null;
 

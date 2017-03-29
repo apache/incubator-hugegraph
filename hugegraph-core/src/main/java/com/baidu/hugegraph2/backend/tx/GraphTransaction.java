@@ -19,6 +19,8 @@ import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.schema.SchemaManager;
 import com.baidu.hugegraph2.structure.HugeVertex;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
+import com.baidu.hugegraph2.util.CollectionUtil;
+import com.google.common.base.Preconditions;
 
 public class GraphTransaction extends AbstractTransaction {
 
@@ -67,16 +69,21 @@ public class GraphTransaction extends AbstractTransaction {
         if (label == null) {
             // Preconditions.checkArgument(label != null, "Vertex label must be not null");
             throw Element.Exceptions.labelCanNotBeNull();
-        }
-        else if (label instanceof String) {
+        } else if (label instanceof String) {
             SchemaManager schema = this.graph.openSchemaManager();
             label = schema.vertexLabel((String) label);
         }
 
         // create HugeVertex
         assert (label instanceof VertexLabel);
-        HugeVertex vertex = new HugeVertex(this.graph, id, (VertexLabel) label);
 
+        // check keyValues whether contain primaryKey in definition of vertexLabel.
+        Preconditions.checkArgument(
+                CollectionUtil.containsAll(ElementHelper.getKeys(keyValues), ((VertexLabel) label)
+                        .primaryKeys()), "the primary key must "
+                        + "set in 'addVertex' method, you can refer to the definition of vertexLabel.");
+
+        HugeVertex vertex = new HugeVertex(this.graph, id, (VertexLabel) label);
         // set properties
         ElementHelper.attachProperties(vertex, keyValues);
 
@@ -120,7 +127,7 @@ public class GraphTransaction extends AbstractTransaction {
             public <R> Workload<R> submit(Function<Graph, R> graphRFunction) {
                 throw new UnsupportedOperationException(
                         "HugeGraph does not support nested transactions. "
-                        + "Call submit on a HugeGraph not an individual transaction.");
+                                + "Call submit on a HugeGraph not an individual transaction.");
             }
 
             @Override

@@ -33,7 +33,6 @@ public class InMemoryDBStore implements BackendStore {
         this.store = new ConcurrentSkipListMap<Id, BackendEntry>();
     }
 
-
     @Override
     public Iterable<BackendEntry> query(Query query) {
         List<BackendEntry> entries = new ArrayList<BackendEntry>();
@@ -42,7 +41,7 @@ public class InMemoryDBStore implements BackendStore {
             // TODO: Compatible with BackendEntry
             TextBackendEntry entry = (TextBackendEntry) item;
             query.conditions().forEach((k, v) -> {
-                if (entry.contains(k.toString(),v.toString())) {
+                if (entry.contains(k.toString(), v.toString())) {
                     entries.add(entry);
                 }
 

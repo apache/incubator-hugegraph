@@ -47,7 +47,8 @@ public class ExampleGraphFactory2 {
 
         logger.info("===============  edgeLabel  ================");
 
-        schemaManager.edgeLabel("authored").linkOne2One().properties("contribution").sortKeys("contribution").create();
+        schemaManager.edgeLabel("authored").multiple().linkOne2One().properties("time").sortKeys("time")
+                .create();
 
         /************************* data operating *************************/
 
@@ -60,14 +61,14 @@ public class ExampleGraphFactory2 {
         Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
         Vertex book2 = tx.addVertex(T.label, "book", "name", "java-2");
 
-        person.addEdge("authored", book1, "contribution", "1990-1-1");
-        person.addEdge("authored", book2, "contribution", "2017-4-28");
+        person.addEdge("authored", book1, "time", "1990-1-1");
+        person.addEdge("authored", book2, "time", "2017-4-28");
 
         // commit data changes
         try {
             tx.commit();
         } catch (BackendException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
             try {
                 tx.rollback();
             } catch (BackendException e2) {

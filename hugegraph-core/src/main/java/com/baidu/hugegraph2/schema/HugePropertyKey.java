@@ -8,6 +8,7 @@ import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.DataType;
 import com.baidu.hugegraph2.type.schema.PropertyKey;
+import com.baidu.hugegraph2.util.StringUtil;
 
 /**
  * Created by jishilei on 17/3/17.
@@ -99,6 +100,9 @@ public class HugePropertyKey extends PropertyKey {
         if (this.transaction.getPropertyKey(this.name) != null) {
             throw new HugeException("The propertyKey:" + this.name + " has exised.");
         }
+
+        // check name is valid
+        StringUtil.verifyName(name);
         this.transaction.addPropertyKey(this);
         this.commit();
     }

@@ -37,4 +37,5 @@ public abstract class VertexLabel extends SchemaElement {
     public abstract Set<String> primaryKeys();
 
     public abstract VertexLabel primaryKeys(String... keys);
+
 }
