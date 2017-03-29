@@ -25,9 +25,6 @@ import com.google.gson.Gson;
 
 public class TextSerializer extends AbstractSerializer {
 
-    private static final String DEFAULT_COLUME = "default-colume";
-    private static final String ID_COLUME = "_id";
-    private static final String SCHEMATYPE_COLUME = "_schema";
     private static final String COLUME_SPLITOR = SplicingIdGenerator.NAME_SPLITOR;
     private static final String VALUE_SPLITOR = "\u0003";
 
@@ -257,7 +254,7 @@ public class TextSerializer extends AbstractSerializer {
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
         String primarykeys = textEntry.column(HugeKeys.PRIMARY_KEYS.string());
 
-        HugeVertexLabel vertexLabel = new HugeVertexLabel(name, graph.openSchemaTransaction());
+        HugeVertexLabel vertexLabel = new HugeVertexLabel(name, this.graph.openSchemaTransaction());
         vertexLabel.properties(fromJson(properties, String[].class));
         vertexLabel.primaryKeys(fromJson(primarykeys, String[].class));
 
@@ -279,7 +276,7 @@ public class TextSerializer extends AbstractSerializer {
         String links = textEntry.column(HugeKeys.LINKS.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
 
-        HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name, graph.openSchemaTransaction());
+        HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name, this.graph.openSchemaTransaction());
         edgeLabel.properties(fromJson(properties, String[].class));
         edgeLabel.sortKeys(fromJson(sortKeys, String[].class));
         String[] linksArray = fromJson(links, String[].class);
@@ -306,7 +303,7 @@ public class TextSerializer extends AbstractSerializer {
         String cardinality = textEntry.column(HugeKeys.CARDINALITY.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
 
-        HugePropertyKey propertyKey = new HugePropertyKey(name, graph.openSchemaTransaction());
+        HugePropertyKey propertyKey = new HugePropertyKey(name, this.graph.openSchemaTransaction());
         propertyKey.dataType(fromJson(dataType, DataType.class));
         propertyKey.cardinality(fromJson(cardinality, Cardinality.class));
         propertyKey.properties(fromJson(properties, String[].class));

@@ -9,7 +9,6 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph2.HugeException;
 import com.baidu.hugegraph2.HugeGraph;
@@ -94,7 +93,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         List<Property<V>> propertyList = new ArrayList<>(propertyKeys.length);
         for (String pk : propertyKeys) {
             HugeProperty<? extends Object> prop = this.getProperty(pk);
-            assert prop instanceof VertexProperty;
             propertyList.add((Property<V>) prop);
         }
         return propertyList.iterator();
