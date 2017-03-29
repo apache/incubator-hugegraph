@@ -14,6 +14,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import com.baidu.hugegraph2.HugeException;
 import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
+import com.baidu.hugegraph2.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph2.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
@@ -73,7 +74,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         assert this.id == null;
         // generate an id and assign
         if (this.id == null) {
-            this.id = SplicingIdGenerator.generate(this);
+            this.id = IdGeneratorFactory.generator().generate(this);
         }
     }
 

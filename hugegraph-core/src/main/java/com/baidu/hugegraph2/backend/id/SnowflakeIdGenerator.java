@@ -3,22 +3,41 @@ package com.baidu.hugegraph2.backend.id;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import src.main.java.com.baidu.hugegraph2.HugeException;
-import src.main.java.com.baidu.hugegraph2.util.TimeUtil;
+import com.baidu.hugegraph2.HugeException;
+import com.baidu.hugegraph2.backend.id.IdGenerator;
+import com.baidu.hugegraph2.schema.SchemaElement;
+import com.baidu.hugegraph2.structure.HugeEdge;
+import com.baidu.hugegraph2.structure.HugeVertex;
+import com.baidu.hugegraph2.util.TimeUtil;
 
 public class SnowflakeIdGenerator extends IdGenerator {
 
-    private static IdWorker idWorker = null;
+    private IdWorker idWorker = null;
 
-    public static void init(long workerId, long datacenterId) {
-        idWorker = new IdWorker(workerId, datacenterId);
+    public SnowflakeIdGenerator(long workerId, long datacenterId) {
+        this.idWorker = new IdWorker(workerId, datacenterId);
     }
 
-    public static Id generate() {
-        if (idWorker == null) {
+    public Id generate() {
+        if (this.idWorker == null) {
             throw new HugeException("Please initialize before using it");
         }
-        return generate(idWorker.nextId());
+        return generate(this.idWorker.nextId());
+    }
+
+    @Override
+    public Id generate(SchemaElement entry) {
+        return this.generate();
+    }
+
+    @Override
+    public Id generate(HugeVertex entry) {
+        return this.generate();
+    }
+
+    @Override
+    public Id generate(HugeEdge entry) {
+        return this.generate();
     }
 
     /*

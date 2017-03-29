@@ -15,6 +15,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
+import com.baidu.hugegraph2.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph2.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
@@ -50,7 +51,7 @@ public class HugeVertex extends HugeElement implements Vertex {
         assert this.id == null;
         // generate an id and assign
         if (this.id == null) {
-            this.id = SplicingIdGenerator.generate(this);
+            this.id = IdGeneratorFactory.generator().generate(this);
         }
     }
 

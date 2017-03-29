@@ -1,9 +1,12 @@
 package com.baidu.hugegraph2.backend.id;
 
+import com.baidu.hugegraph2.schema.SchemaElement;
+import com.baidu.hugegraph2.structure.HugeEdge;
+import com.baidu.hugegraph2.structure.HugeVertex;
 import com.baidu.hugegraph2.util.NumericUtil;
 import com.baidu.hugegraph2.util.StringEncoding;
 
-public class IdGenerator {
+public abstract class IdGenerator {
 
     /****************************** id type ******************************/
 
@@ -17,8 +20,12 @@ public class IdGenerator {
 
     /****************************** id generate ******************************/
 
+    public abstract Id generate(SchemaElement entry);
+    public abstract Id generate(HugeVertex entry);
+    public abstract Id generate(HugeEdge entry);
+
     // generate a string id
-    public static Id generate(String id) {
+    public Id generate(String id) {
         switch (ID_TYPE) {
             case LONG:
                 return new LongId(Long.parseLong(id));
@@ -31,7 +38,7 @@ public class IdGenerator {
     }
 
     // generate a long id
-    public static Id generate(long id) {
+    public Id generate(long id) {
         switch (ID_TYPE) {
             case LONG:
                 return new LongId(id);
@@ -44,7 +51,7 @@ public class IdGenerator {
     }
 
     // parse an id from bytes
-    public static Id parse(byte[] bytes) {
+    public Id parse(byte[] bytes) {
         switch (ID_TYPE) {
             case LONG:
                 return new LongId(bytes);

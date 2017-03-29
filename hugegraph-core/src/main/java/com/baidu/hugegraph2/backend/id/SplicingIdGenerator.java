@@ -13,13 +13,15 @@ public class SplicingIdGenerator extends IdGenerator {
     /****************************** id generate ******************************/
 
     // generate a string id of SchemaType from Schema type and name
-    public static Id generate(SchemaElement entry) {
+    @Override
+    public Id generate(SchemaElement entry) {
         String id = String.format("%x%s%s", entry.type().code(), ID_SPLITOR, entry.name());
         return generate(id);
     }
 
     // generate a string id of HugeVertex from Vertex name
-    public static Id generate(HugeVertex entry) {
+    @Override
+    public Id generate(HugeVertex entry) {
         String id = String.format("%s%s%s", entry.label(), ID_SPLITOR, entry.name());
         // hash for row-key which will be evenly distributed
         // we can also use LongEncoding.encode() to encode the int/long hash if needed
@@ -32,7 +34,8 @@ public class SplicingIdGenerator extends IdGenerator {
     //  { source-vertex-id + edge-label + edge-name + target-vertex-id }
     // NOTE: if we use `entry.type()` which is IN or OUT as a part of id,
     // an edge's id will be different due to different directions (belongs to 2 vertex)
-    public static Id generate(HugeEdge entry) {
+    @Override
+    public Id generate(HugeEdge entry) {
         String id = String.format("%s%s%s%s%s%s%s",
                 entry.sourceVertex().id().asString(),
                 ID_SPLITOR,
