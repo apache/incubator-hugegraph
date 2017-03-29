@@ -28,9 +28,13 @@ public class BinarySerializer extends AbstractSerializer {
         return new BinaryBackendEntry(id);
     }
 
+    protected byte[] formatSystemPropertyName(HugeKeys col) {
+        return new byte[]{ HugeTypes.SYS_PROPERTY.code(), col.code() };
+    }
+
     private BackendColumn formatLabel(VertexLabel vertexLabel) {
         BackendColumn col = new BackendColumn();
-        col.name = new byte[]{ HugeKeys.LABEL.code() };
+        col.name = this.formatSystemPropertyName(HugeKeys.LABEL);
         // TODO: save label name or id?
         col.value = StringEncoding.encodeString(vertexLabel.name());
         return col;
@@ -112,7 +116,8 @@ public class BinarySerializer extends AbstractSerializer {
         BinaryBackendEntry entry = (BinaryBackendEntry) bytesEntry;
 
         // label
-        VertexLabel label = this.parseLabel(entry.column(HugeKeys.LABEL.code()));
+        byte[] labelCol = this.formatSystemPropertyName(HugeKeys.LABEL);
+        VertexLabel label = this.parseLabel(entry.column(labelCol));
 
         // id
         HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);

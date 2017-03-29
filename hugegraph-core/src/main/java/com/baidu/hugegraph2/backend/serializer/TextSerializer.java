@@ -28,6 +28,17 @@ public class TextSerializer extends AbstractSerializer {
         return new TextBackendEntry(id);
     }
 
+    protected String formatSystemPropertyName(String name) {
+        return String.format("%s%s%s",
+                HugeTypes.SYS_PROPERTY.name(),
+                COLUME_SPLITOR,
+                name);
+    }
+
+    protected String formatSystemPropertyName(HugeKeys col) {
+        return this.formatSystemPropertyName(col.string());
+    }
+
     protected String formatPropertyName(HugeProperty<?> prop) {
         return String.format("%s%s%s",
                 prop.type().name(),
@@ -69,9 +80,10 @@ public class TextSerializer extends AbstractSerializer {
         return sb.toString();
     }
 
-    protected HugeEdge parseEdge(String name, String value, HugeVertex vertex) {
-        String[] colParts = name.split(COLUME_SPLITOR);
-        String[] valParts = value.split(VALUE_SPLITOR);
+    // parse an edge from a column item
+    protected HugeEdge parseEdge(String colName, String colValue, HugeVertex vertex) {
+        String[] colParts = colName.split(COLUME_SPLITOR);
+        String[] valParts = colValue.split(VALUE_SPLITOR);
 
         boolean isOutEdge = colParts[0].equals(HugeTypes.EDGE_OUT.name());
         EdgeLabel label = this.graph.openSchemaManager().edgeLabel(colParts[1]);
@@ -100,17 +112,18 @@ public class TextSerializer extends AbstractSerializer {
         return edge;
     }
 
-    protected void parseColumn(String name, String value, HugeVertex vertex) {
+    protected void parseColumn(String colName, String colValue, HugeVertex vertex) {
         // column name
-        String[] colParts = name.split(COLUME_SPLITOR);
+        String[] colParts = colName.split(COLUME_SPLITOR);
         // property
         if (colParts[0].equals(HugeTypes.VERTEX_PROPERTY.name())) {
-            vertex.property(colParts[1], value);
+            // TODO: currently we assume property value is a string
+            vertex.property(colParts[1], colValue);
         }
         // edge
         else if (colParts[0].equals(HugeTypes.EDGE_OUT.name())
                 || colParts[0].equals(HugeTypes.EDGE_IN.name())) {
-            this.parseEdge(name, value, vertex);
+            this.parseEdge(colName, colValue, vertex);
         }
     }
 
@@ -119,7 +132,8 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = new TextBackendEntry(vertex.id());
 
         // label
-        entry.column(HugeKeys.LABEL.string(), vertex.label());
+        entry.column(this.formatSystemPropertyName(HugeKeys.LABEL),
+                vertex.label());
 
         // add all properties of a Vertex
         for (HugeProperty<?> prop : vertex.getProperties().values()) {
@@ -148,7 +162,7 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = (TextBackendEntry) bytesEntry;
 
         // label
-        String labelName = entry.column(HugeKeys.LABEL.string());
+        String labelName = entry.column(this.formatSystemPropertyName(HugeKeys.LABEL));
         VertexLabel label = this.graph.openSchemaManager().vertexLabel(labelName);
 
         // id
