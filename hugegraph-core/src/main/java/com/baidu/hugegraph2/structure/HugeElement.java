@@ -11,7 +11,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
-import com.baidu.hugegraph2.backend.id.IdGenerator;
+import com.baidu.hugegraph2.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 import com.google.common.base.Preconditions;
 
@@ -58,11 +58,11 @@ public abstract class HugeElement implements Element, GraphType {
             Object idValue = id.get();
             // number id
             if (idValue instanceof Number) {
-                return IdGenerator.generate(((Number) idValue).longValue());
+                return IdGeneratorFactory.generator().generate(((Number) idValue).longValue());
             }
             // string id
             else if (idValue instanceof String) {
-                return IdGenerator.generate((String) idValue);
+                return IdGeneratorFactory.generator().generate((String) idValue);
             }
             // error
             String msg = "Not supported id type(must be a number or string): ";

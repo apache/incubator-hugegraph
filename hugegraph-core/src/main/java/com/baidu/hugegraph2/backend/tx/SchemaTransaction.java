@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
-import com.baidu.hugegraph2.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph2.backend.query.HugeQuery;
 import com.baidu.hugegraph2.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
@@ -36,8 +35,6 @@ public class SchemaTransaction extends AbstractTransaction {
         super(graph, store);
         // TODO Auto-generated constructor stub
     }
-
-
 
     public List<HugePropertyKey> getPropertyKeys() {
         List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
@@ -67,7 +64,7 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "dataType: " + propertyKey.dataType() + ", "
                 + "cardinality: " + propertyKey.cardinality());
 
-        Id id = SplicingIdGenerator.generate(propertyKey);
+        Id id = this.idGenerator.generate(propertyKey);
         // TODO: use serializer instead
         TextBackendEntry entry = new TextBackendEntry(id);
         entry.column(ID_COLUME, id.asString());
@@ -79,15 +76,15 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public PropertyKey getPropertyKey(String name) {
-        Id id = SplicingIdGenerator.generate(new HugePropertyKey(name, null));
-        BackendEntry entry = store.get(id);
+        Id id = this.idGenerator.generate(new HugePropertyKey(name, null));
+        BackendEntry entry = this.store.get(id);
         return this.serializer.readPropertyKey(entry);
     }
 
     public void removePropertyKey(String name) {
         logger.debug("SchemaTransaction remove property key " + name);
 
-        Id id = SplicingIdGenerator.generate(new HugePropertyKey(name, null));
+        Id id = this.idGenerator.generate(new HugePropertyKey(name, null));
         this.removeEntry(id);
     }
 
@@ -95,21 +92,21 @@ public class SchemaTransaction extends AbstractTransaction {
         logger.debug("SchemaTransaction add vertex label, "
                 + "name: " + vertexLabel.name());
 
-        Id id = SplicingIdGenerator.generate(vertexLabel);
+        Id id = this.idGenerator.generate(vertexLabel);
         // TODO: use serializer instead
         this.addEntry(id, DEFAULT_COLUME, vertexLabel.toString());
     }
 
     public VertexLabel getVertexLabel(String name) {
-        Id id = SplicingIdGenerator.generate(new HugeVertexLabel(name, null));
-        BackendEntry entry = store.get(id);
+        Id id = this.idGenerator.generate(new HugeVertexLabel(name, null));
+        BackendEntry entry = this.store.get(id);
         return this.serializer.readVertexLabel(entry);
     }
 
     public void removeVertexLabel(String name) {
         logger.info("SchemaTransaction remove vertex label " + name);
 
-        Id id = SplicingIdGenerator.generate(new HugeVertexLabel(name, null));
+        Id id = this.idGenerator.generate(new HugeVertexLabel(name, null));
         this.removeEntry(id);
     }
 
@@ -119,21 +116,21 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "multiplicity: " + edgeLabel.multiplicity() + ", "
                 + "cardinality: " + edgeLabel.cardinality());
 
-        Id id = SplicingIdGenerator.generate(edgeLabel);
+        Id id = this.idGenerator.generate(edgeLabel);
         // TODO: use serializer instead
         this.addEntry(id, DEFAULT_COLUME, edgeLabel.toString());
     }
 
     public EdgeLabel getEdgeLabel(String name) {
-        Id id = SplicingIdGenerator.generate(new HugeEdgeLabel(name, null));
-        BackendEntry entry = store.get(id);
+        Id id = this.idGenerator.generate(new HugeEdgeLabel(name, null));
+        BackendEntry entry = this.store.get(id);
         return this.serializer.readEdgeLabel(entry);
     }
 
     public void removeEdgeLabel(String name) {
         logger.info("SchemaTransaction remove edge label " + name);
 
-        Id id = SplicingIdGenerator.generate(new HugeEdgeLabel(name, null));
+        Id id = this.idGenerator.generate(new HugeEdgeLabel(name, null));
         this.removeEntry(id);
     }
 

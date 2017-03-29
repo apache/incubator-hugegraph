@@ -2,7 +2,7 @@ package com.baidu.hugegraph2.backend.serializer;
 
 import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
-import com.baidu.hugegraph2.backend.id.IdGenerator;
+import com.baidu.hugegraph2.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph2.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph2.backend.store.BackendEntry;
 import com.baidu.hugegraph2.structure.HugeEdge;
@@ -89,10 +89,10 @@ public class TextSerializer extends AbstractSerializer {
         EdgeLabel label = this.graph.openSchemaManager().edgeLabel(colParts[1]);
 
         // TODO: how to construct targetVertex with id
-        Id otherVertexId = IdGenerator.generate(colParts[3]);
+        Id otherVertexId = IdGeneratorFactory.generator().generate(colParts[3]);
         HugeVertex otherVertex = new HugeVertex(this.graph, otherVertexId, null);
 
-        Id id = IdGenerator.generate(valParts[0]);
+        Id id = IdGeneratorFactory.generator().generate(valParts[0]);
 
         HugeEdge edge = new HugeEdge(this.graph, id, label);
 
