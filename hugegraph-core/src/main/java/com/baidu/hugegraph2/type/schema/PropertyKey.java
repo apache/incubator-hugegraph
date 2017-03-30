@@ -47,7 +47,9 @@ public abstract class PropertyKey extends SchemaElement {
 
     public abstract PropertyKey asUuid();
 
-    public abstract PropertyKey single();
+    public abstract PropertyKey valueSingle();
 
-    public abstract PropertyKey multiple();
+    public abstract PropertyKey valueRepeatable();
+
+    public abstract PropertyKey valueUnrepeatable();
 }

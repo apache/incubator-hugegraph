@@ -25,6 +25,7 @@ public enum HugeKeys {
     TGT_VERTEX_LABEL(104, "tgtVertexLabel"),
     SORT_KEYS(105, "sortKeys"),
     LINKS(106, "links"),
+    FREQUENCY(107, "frequency"),
 
     // column names of schema type (PropertyKey)
     DATA_TYPE(150, "dataType"),

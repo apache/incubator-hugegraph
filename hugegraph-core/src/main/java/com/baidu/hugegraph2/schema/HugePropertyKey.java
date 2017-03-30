@@ -69,14 +69,20 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     @Override
-    public PropertyKey single() {
+    public PropertyKey valueSingle() {
         this.cardinality(Cardinality.SINGLE);
         return this;
     }
 
     @Override
-    public PropertyKey multiple() {
-        this.cardinality(Cardinality.MULTIPLE);
+    public PropertyKey valueRepeatable() {
+        this.cardinality(Cardinality.LIST);
+        return this;
+    }
+
+    @Override
+    public PropertyKey valueUnrepeatable() {
+        this.cardinality(Cardinality.SET);
         return this;
     }
 

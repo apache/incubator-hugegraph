@@ -37,6 +37,8 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public List<HugePropertyKey> getPropertyKeys() {
+        // TODO:to be checked
+
         List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
 
         HugeQuery query = new HugeQuery();
@@ -44,18 +46,18 @@ public class SchemaTransaction extends AbstractTransaction {
 
         Iterable<BackendEntry> entries = query(query);
         entries.forEach(item -> {
-            // TODO: use serializer instead
             TextBackendEntry entry = (TextBackendEntry) item;
-
-            // TODO : util to covert
-            String name = entry.column("name").toString();
-            HugePropertyKey propertyKey = new HugePropertyKey(name, this);
-            propertyKey.cardinality(Cardinality.valueOf(entry.column("cardinality").toString()));
-            propertyKey.dataType(DataType.valueOf(entry.column("datatype").toString()));
-            propertyKeys.add(propertyKey);
+            propertyKeys.add((HugePropertyKey) this.serializer.readPropertyKey(entry));
         });
         return propertyKeys;
+    }
 
+    public void getVertexLabels() {
+        // todo:to be implemented
+    }
+
+    public void getEdgeLabels() {
+        // todo:to be implemented
     }
 
     public void addPropertyKey(HugePropertyKey propertyKey) {
@@ -104,7 +106,7 @@ public class SchemaTransaction extends AbstractTransaction {
         logger.debug("SchemaTransaction add edge label, "
                 + "name: " + edgeLabel.name() + ", "
                 + "multiplicity: " + edgeLabel.multiplicity() + ", "
-                + "cardinality: " + edgeLabel.cardinality());
+                + "frequency: " + edgeLabel.frequency());
 
         this.addEntry(serializer.writeEdgeLabel(edgeLabel));
     }
@@ -121,5 +123,4 @@ public class SchemaTransaction extends AbstractTransaction {
         Id id = this.idGenerator.generate(new HugeEdgeLabel(name, null));
         this.removeEntry(id);
     }
-
 }

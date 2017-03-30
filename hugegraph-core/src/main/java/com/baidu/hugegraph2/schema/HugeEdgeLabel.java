@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph2.HugeException;
 import com.baidu.hugegraph2.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph2.type.define.Cardinality;
+import com.baidu.hugegraph2.type.define.Frequency;
 import com.baidu.hugegraph2.type.define.Multiplicity;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
 import com.baidu.hugegraph2.util.StringUtil;
@@ -26,14 +27,14 @@ public class HugeEdgeLabel extends EdgeLabel {
     private static final Logger logger = LoggerFactory.getLogger(HugeEdgeLabel.class);
 
     private Multiplicity multiplicity;
-    private Cardinality cardinality;
+    private Frequency frequency;
     private List<Pair<String, String>> links;
     private Set<String> sortKeys;
 
     public HugeEdgeLabel(String name, SchemaTransaction transaction) {
         super(name, transaction);
         this.multiplicity = Multiplicity.ONE2ONE;
-        this.cardinality = Cardinality.SINGLE;
+        this.frequency = Frequency.SINGLE;
         this.links = new ArrayList<>();
         this.sortKeys = new LinkedHashSet<>();
     }
@@ -48,12 +49,12 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     @Override
-    public Cardinality cardinality() {
-        return this.cardinality;
+    public Frequency frequency() {
+        return this.frequency;
     }
 
-    public void cardinality(Cardinality cardinality) {
-        this.cardinality = cardinality;
+    public void frequency(Frequency frequency) {
+        this.frequency = frequency;
     }
 
     @Override
@@ -87,14 +88,14 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     @Override
-    public EdgeLabel single() {
-        this.cardinality(Cardinality.SINGLE);
+    public EdgeLabel singleTime() {
+        this.frequency(Frequency.SINGLE);
         return this;
     }
 
     @Override
-    public EdgeLabel multiple() {
-        this.cardinality(Cardinality.MULTIPLE);
+    public EdgeLabel multiTimes() {
+        this.frequency(Frequency.MULTIPLE);
         return this;
     }
 
@@ -123,7 +124,7 @@ public class HugeEdgeLabel extends EdgeLabel {
     @Override
     public String toString() {
         return String.format("{name=%s, multiplicity=%s, cardinality=%s}",
-                this.name, this.multiplicity.toString(), this.cardinality.toString());
+                this.name, this.multiplicity.toString(), this.frequency.toString());
     }
 
     public String linkSchema() {
@@ -143,7 +144,7 @@ public class HugeEdgeLabel extends EdgeLabel {
     @Override
     public String schema() {
         this.schema = "schema.edgeLabel(\"" + this.name + "\")"
-                + "." + this.cardinality.schema() + "()"
+                + "." + this.frequency.schema() + "()"
                 + "." + this.multiplicity.schema() + "()"
                 + "." + propertiesSchema()
                 + linkSchema()
@@ -159,8 +160,19 @@ public class HugeEdgeLabel extends EdgeLabel {
         }
 
         StringUtil.verifyName(name);
+        verifySortKeys();
 
-        if (this.cardinality == Cardinality.SINGLE) {
+        this.transaction.addEdgeLabel(this);
+        this.commit();
+    }
+
+    @Override
+    public void remove() {
+        this.transaction.removeEdgeLabel(this.name);
+    }
+
+    private void verifySortKeys() {
+        if (this.frequency == Frequency.SINGLE) {
             Preconditions.checkArgument(sortKeys.isEmpty(), "edgeLabel can not contain sortKeys when the cardinality"
                     + " property is single.");
         } else {
@@ -179,13 +191,6 @@ public class HugeEdgeLabel extends EdgeLabel {
                         "Properties must contain the specified key : " + key);
             }
         }
-
-        this.transaction.addEdgeLabel(this);
-        this.commit();
     }
 
-    @Override
-    public void remove() {
-        this.transaction.removeEdgeLabel(this.name);
-    }
 }

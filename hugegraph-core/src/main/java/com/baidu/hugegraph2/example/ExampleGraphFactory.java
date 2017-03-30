@@ -49,10 +49,10 @@ public class ExampleGraphFactory {
         schemaManager.propertyKey("calories").asInt().create();
         schemaManager.propertyKey("amount").asText().create();
         schemaManager.propertyKey("stars").asInt().create();
-        schemaManager.propertyKey("comment").asText().single().create();
-        schemaManager.propertyKey("nickname").asText().multiple().create();
+        schemaManager.propertyKey("comment").asText().valueSingle().create();
+        schemaManager.propertyKey("nickname").asText().valueRepeatable().create();
         schemaManager.propertyKey("lived").asText().create();
-        schemaManager.propertyKey("country").asText().multiple().properties("livedIn").create();
+        schemaManager.propertyKey("country").asText().valueUnrepeatable().properties("livedIn").create();
         schemaManager.propertyKey("city_id").asInt().create();
         schemaManager.propertyKey("sensor_id").asUuid().create();
 
@@ -78,10 +78,10 @@ public class ExampleGraphFactory {
         logger.info("===============  edgeLabel  ================");
 
         schemaManager.edgeLabel("authored").linkOne2One().properties("contribution").sortKeys("contribution").create();
-        schemaManager.edgeLabel("created").single().linkMany2Many().create();
-        schemaManager.edgeLabel("includes").single().linkOne2Many().create();
+        schemaManager.edgeLabel("created").singleTime().linkMany2Many().create();
+        schemaManager.edgeLabel("includes").singleTime().linkOne2Many().create();
         schemaManager.edgeLabel("includedIn").linkMany2One().create();
-        schemaManager.edgeLabel("rated").multiple().linkMany2Many().link("reviewer", "recipe").create();
+        schemaManager.edgeLabel("rated").multiTimes().linkMany2Many().link("reviewer", "recipe").create();
 
 
         logger.info("===============  schemaManager desc  ================");
