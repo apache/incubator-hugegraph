@@ -28,27 +28,27 @@ public abstract class SchemaElement implements Namifiable, HugeType {
     public SchemaElement(String name, SchemaTransaction transaction) {
         this.name = name;
         this.transaction = transaction;
-        this.properties = null;
+        this.properties = new HashMap<>();
     }
 
     public Map<String, PropertyKey> properties() {
-        return properties;
+        return this.properties;
     }
 
     public SchemaElement properties(String... propertyNames) {
-        if (properties == null) {
-            properties = new HashMap<>();
+        if (this.properties == null) {
+            this.properties = new HashMap<>();
         }
         for (String propertyName : propertyNames) {
-            properties.put(propertyName, new HugePropertyKey(propertyName, transaction));
+            this.properties.put(propertyName, new HugePropertyKey(propertyName, this.transaction));
         }
         return this;
     }
 
     public String propertiesSchema() {
         String props = "";
-        if (properties != null) {
-            for (String propertyName : properties.keySet()) {
+        if (this.properties != null) {
+            for (String propertyName : this.properties.keySet()) {
                 props += "\"";
                 props += propertyName;
                 props += "\",";
@@ -75,7 +75,7 @@ public abstract class SchemaElement implements Namifiable, HugeType {
 
     @Override
     public String name() {
-        return name;
+        return this.name;
     }
 
     public abstract String schema();

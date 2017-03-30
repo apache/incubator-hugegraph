@@ -49,7 +49,8 @@ public class ExampleGraphFactory {
         schemaManager.propertyKey("calories").asInt().create();
         schemaManager.propertyKey("amount").asText().create();
         schemaManager.propertyKey("stars").asInt().create();
-        schemaManager.propertyKey("comment").asText().valueSingle().create();
+        schemaManager.propertyKey("age").asText().valueSingle().create();
+        schemaManager.propertyKey("comment").asText().valueUnrepeatable().create();
         schemaManager.propertyKey("nickname").asText().valueRepeatable().create();
         schemaManager.propertyKey("lived").asText().create();
         schemaManager.propertyKey("country").asText().valueUnrepeatable().properties("livedIn").create();
@@ -77,11 +78,11 @@ public class ExampleGraphFactory {
 
         logger.info("===============  edgeLabel  ================");
 
-        schemaManager.edgeLabel("authored").linkOne2One().properties("contribution").sortKeys("contribution").create();
+        schemaManager.edgeLabel("authored").singleTime().linkOne2One().properties("contribution").create();
         schemaManager.edgeLabel("created").singleTime().linkMany2Many().create();
         schemaManager.edgeLabel("includes").singleTime().linkOne2Many().create();
         schemaManager.edgeLabel("includedIn").linkMany2One().create();
-        schemaManager.edgeLabel("rated").multiTimes().linkMany2Many().link("reviewer", "recipe").create();
+        schemaManager.edgeLabel("rated").linkMany2Many().link("reviewer", "recipe").create();
 
 
         logger.info("===============  schemaManager desc  ================");
@@ -105,7 +106,11 @@ public class ExampleGraphFactory {
         Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
         Vertex book2 = tx.addVertex(T.label, "book", "name", "java-2");
 
-        person.addEdge("authored", book1, "contribution", "1990-1-1");
+        person.addEdge("authored", book1,
+                "contribution", "1990-1-1",
+                "comment", "it's a good book",
+                "comment", "it's a good book",
+                "comment", "it's a good book too");
         person.addEdge("authored", book2, "contribution", "2017-4-28");
 
         // commit data changes

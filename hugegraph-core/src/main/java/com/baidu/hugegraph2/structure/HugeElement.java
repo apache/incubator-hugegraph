@@ -48,7 +48,11 @@ public abstract class HugeElement implements Element, GraphType {
         return this.properties.get(key);
     }
 
-    public HugeProperty<? extends Object> setProperty(HugeProperty<?> prop) {
+    public boolean existsProperty(String key) {
+        return this.properties.containsKey(key);
+    }
+
+    public <V> HugeProperty<? extends Object> setProperty(HugeProperty<V> prop) {
         return this.properties.put(prop.key(), prop);
     }
 

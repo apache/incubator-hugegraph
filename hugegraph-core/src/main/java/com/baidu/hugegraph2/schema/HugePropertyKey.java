@@ -22,13 +22,13 @@ public class HugePropertyKey extends PropertyKey {
 
     public HugePropertyKey(String name, SchemaTransaction transaction) {
         super(name, transaction);
-        this.dataType = DataType.OBJECT;
+        this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
     }
 
     @Override
     public DataType dataType() {
-        return dataType;
+        return this.dataType;
     }
 
     public void dataType(DataType dataType) {
@@ -37,7 +37,7 @@ public class HugePropertyKey extends PropertyKey {
 
     @Override
     public Cardinality cardinality() {
-        return cardinality;
+        return this.cardinality;
     }
 
     public void cardinality(Cardinality cardinality) {
@@ -89,18 +89,20 @@ public class HugePropertyKey extends PropertyKey {
     @Override
     public String toString() {
         return String.format("{name=%s, dataType=%s, cardinality=%s}",
-                name, dataType.toString(), cardinality.toString());
+                this.name, this.dataType.toString(), this.cardinality.toString());
     }
 
+    @Override
     public String schema() {
-        String schema = "schema.propertyKey(\"" + name + "\")"
-                + "." + dataType.schema() + "()"
-                + "." + cardinality.schema() + "()"
+        String schema = "schema.propertyKey(\"" + this.name + "\")"
+                + "." + this.dataType.schema() + "()"
+                + "." + this.cardinality.schema() + "()"
                 + "." + propertiesSchema()
                 + ".create();";
         return schema;
     }
 
+    @Override
     public void create() {
         // Try to read, if exist throw an error
         if (this.transaction.getPropertyKey(this.name) != null) {
@@ -108,13 +110,14 @@ public class HugePropertyKey extends PropertyKey {
         }
 
         // check name is valid
-        StringUtil.verifyName(name);
+        StringUtil.verifyName(this.name);
         this.transaction.addPropertyKey(this);
         this.commit();
     }
 
+    @Override
     public void remove() {
-        transaction.removePropertyKey(name);
+        this.transaction.removePropertyKey(this.name);
     }
 
 }

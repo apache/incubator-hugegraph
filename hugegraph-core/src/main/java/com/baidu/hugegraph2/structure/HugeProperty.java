@@ -6,6 +6,8 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 
 import com.baidu.hugegraph2.type.HugeTypes;
+import com.baidu.hugegraph2.type.schema.PropertyKey;
+import com.google.common.base.Preconditions;
 
 /**
  * Created by jishilei on 17/3/16.
@@ -13,14 +15,23 @@ import com.baidu.hugegraph2.type.HugeTypes;
 public class HugeProperty<V> implements Property<V>, GraphType {
 
     protected final HugeElement owner;
-    // TODO: change key into PropertyKey
-    protected final String key;
+    protected final PropertyKey key;
     protected final V value;
 
-    public HugeProperty(final HugeElement owner, final String key, final V value) {
+    public HugeProperty(final HugeElement owner, final PropertyKey key, final V value) {
+        Preconditions.checkArgument(owner != null, "Property owner can't be null");
+        Preconditions.checkArgument(key != null, "Property key can't be null");
+
         this.owner = owner;
         this.key = key;
         this.value = value;
+
+        Preconditions.checkArgument(key.checkValue(value), String.format(
+                "Invalid property value '%s' for key '%s'", value, key.name()));
+    }
+
+    public PropertyKey propertyKey() {
+        return this.key;
     }
 
     @Override
@@ -30,12 +41,12 @@ public class HugeProperty<V> implements Property<V>, GraphType {
 
     @Override
     public String name() {
-        return this.key;
+        return this.key.name();
     }
 
     @Override
     public String key() {
-        return this.key;
+        return this.key.name();
     }
 
     @Override
