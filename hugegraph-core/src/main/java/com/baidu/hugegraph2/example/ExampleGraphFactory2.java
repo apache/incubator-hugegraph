@@ -47,8 +47,11 @@ public class ExampleGraphFactory2 {
 
         logger.info("===============  edgeLabel  ================");
 
-        schemaManager.edgeLabel("authored").multiple().linkOne2One().properties("time").sortKeys("time")
+        schemaManager.edgeLabel("authored").multiTimes().linkOne2One().properties("time").sortKeys("time")
                 .create();
+
+        logger.info("===============  schemaManager desc  ================");
+        schemaManager.desc();
 
         /************************* data operating *************************/
 

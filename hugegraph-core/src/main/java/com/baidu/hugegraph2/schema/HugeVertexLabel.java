@@ -58,7 +58,17 @@ public class HugeVertexLabel extends VertexLabel {
         }
 
         StringUtil.verifyName(name);
+        verifyPrimaryKeys();
 
+        this.transaction.addVertexLabel(this);
+        this.commit();
+    }
+
+    public void remove() {
+        this.transaction.removeVertexLabel(this.name);
+    }
+
+    private void verifyPrimaryKeys() {
         if (primaryKeys != null && !primaryKeys.isEmpty()) {
             // Check whether the properties contains the specified keys
             Preconditions.checkNotNull(properties, "properties can not be null");
@@ -68,12 +78,5 @@ public class HugeVertexLabel extends VertexLabel {
                         "properties must contain the specified key : " + key);
             }
         }
-
-        this.transaction.addVertexLabel(this);
-        this.commit();
-    }
-
-    public void remove() {
-        this.transaction.removeVertexLabel(this.name);
     }
 }

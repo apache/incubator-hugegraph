@@ -11,6 +11,7 @@ import com.baidu.hugegraph2.schema.HugePropertyKey;
 import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.define.Cardinality;
+import com.baidu.hugegraph2.type.define.Frequency;
 import com.baidu.hugegraph2.type.define.Multiplicity;
 
 /**
@@ -38,11 +39,15 @@ public abstract class EdgeLabel extends SchemaElement {
         return this;
     }
 
-    public abstract Cardinality cardinality();
+    public abstract boolean isDirected();
+
+    public abstract Frequency frequency();
+
+    public abstract EdgeLabel singleTime();
+
+    public abstract EdgeLabel multiTimes();
 
     public abstract Multiplicity multiplicity();
-
-    public abstract boolean isDirected();
 
     public abstract EdgeLabel linkOne2One();
 
@@ -52,10 +57,6 @@ public abstract class EdgeLabel extends SchemaElement {
 
     public abstract EdgeLabel linkMany2One();
 
-    public abstract EdgeLabel single();
-
-    public abstract EdgeLabel multiple();
-
     public abstract EdgeLabel link(String src, String tgt);
 
     public abstract List<Pair<String, String>> links();
@@ -63,5 +64,4 @@ public abstract class EdgeLabel extends SchemaElement {
     public abstract EdgeLabel sortKeys(String... keys);
 
     public abstract Set<String> sortKeys();
-
 }

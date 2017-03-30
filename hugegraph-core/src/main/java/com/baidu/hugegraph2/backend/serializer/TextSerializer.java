@@ -17,6 +17,7 @@ import com.baidu.hugegraph2.structure.HugeVertex;
 import com.baidu.hugegraph2.type.HugeTypes;
 import com.baidu.hugegraph2.type.define.Cardinality;
 import com.baidu.hugegraph2.type.define.DataType;
+import com.baidu.hugegraph2.type.define.Frequency;
 import com.baidu.hugegraph2.type.define.HugeKeys;
 import com.baidu.hugegraph2.type.schema.EdgeLabel;
 import com.baidu.hugegraph2.type.schema.PropertyKey;
@@ -211,7 +212,7 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = new TextBackendEntry(id);
         entry.column(HugeKeys.NAME.string(), edgeLabel.name());
-        entry.column(HugeKeys.CARDINALITY.string(), toJson(edgeLabel.cardinality()));
+        entry.column(HugeKeys.FREQUENCY.string(), toJson(edgeLabel.frequency()));
         entry.column(HugeKeys.MULTIPLICITY.string(), toJson(edgeLabel.multiplicity()));
         entry.column(HugeKeys.LINKS.string(), toJson(edgeLabel.links().toArray()));
         entry.column(HugeKeys.SORT_KEYS.string(), toJson(edgeLabel.sortKeys().toArray()));
@@ -272,11 +273,13 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry textEntry = (TextBackendEntry) entry;
         String name = textEntry.column(HugeKeys.NAME.string());
+        String frequency = textEntry.column(HugeKeys.FREQUENCY.string());
         String sortKeys = textEntry.column(HugeKeys.SORT_KEYS.string());
         String links = textEntry.column(HugeKeys.LINKS.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
 
         HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name, this.graph.openSchemaTransaction());
+        edgeLabel.frequency(fromJson(frequency, Frequency.class));
         edgeLabel.properties(fromJson(properties, String[].class));
         edgeLabel.sortKeys(fromJson(sortKeys, String[].class));
         String[] linksArray = fromJson(links, String[].class);
