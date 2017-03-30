@@ -1,5 +1,6 @@
 package com.baidu.hugegraph2.backend.serializer;
 
+import java.util.Collection;
 import java.util.Map;
 
 import com.baidu.hugegraph2.HugeGraph;
@@ -12,6 +13,7 @@ import com.baidu.hugegraph2.schema.HugePropertyKey;
 import com.baidu.hugegraph2.schema.HugeVertexLabel;
 import com.baidu.hugegraph2.schema.SchemaElement;
 import com.baidu.hugegraph2.structure.HugeEdge;
+import com.baidu.hugegraph2.structure.HugeElement;
 import com.baidu.hugegraph2.structure.HugeProperty;
 import com.baidu.hugegraph2.structure.HugeVertex;
 import com.baidu.hugegraph2.type.HugeTypes;
@@ -67,9 +69,33 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     protected String formatPropertyValue(HugeProperty<?> prop) {
-        Object value = prop.value();
-        assert value instanceof String;
-        return value.toString();
+        // may be a single value or a list of values
+        return toJson(prop.value());
+    }
+
+    protected void parseProperty(String colName, String colValue, HugeElement owner) {
+        String[] colParts = colName.split(COLUME_SPLITOR);
+
+        // get PropertyKey by PropertyKey name
+        PropertyKey pkey = this.graph.openSchemaManager().propertyKey(colParts[1]);
+
+        // parse value
+        Object value = fromJson(colValue, pkey.clazz());
+
+        // set properties of vertex/edge
+        if (pkey.cardinality() == Cardinality.SINGLE) {
+            owner.property(pkey.name(), value);
+        }
+        else {
+            if (value instanceof Collection) {
+                for (Object v : (Collection<?>) value) {
+                    owner.property(pkey.name(), v);
+                }
+            }
+            else {
+                assert false : "invalid value of non-sigle property";
+            }
+        }
     }
 
     protected String formatEdgeName(HugeEdge edge) {
@@ -92,16 +118,15 @@ public class TextSerializer extends AbstractSerializer {
         // edge properties
         for (HugeProperty<?> property : edge.getProperties().values()) {
             sb.append(VALUE_SPLITOR);
-            sb.append(property.key());
+            sb.append(this.formatPropertyName(property));
             sb.append(VALUE_SPLITOR);
-            // TODO: property value is non-string
-            sb.append(property.value().toString());
+            sb.append(this.formatPropertyValue(property));
         }
         return sb.toString();
     }
 
     // parse an edge from a column item
-    protected HugeEdge parseEdge(String colName, String colValue, HugeVertex vertex) {
+    protected void parseEdge(String colName, String colValue, HugeVertex vertex) {
         String[] colParts = colName.split(COLUME_SPLITOR);
         String[] valParts = colValue.split(VALUE_SPLITOR);
 
@@ -124,24 +149,23 @@ public class TextSerializer extends AbstractSerializer {
             vertex.addInEdge(edge);
         }
 
+        // edge properties
         for (int i = 1; i < valParts.length; i += 2) {
-            edge.property(valParts[i], valParts[i + 1]);
+            this.parseProperty(valParts[i], valParts[i + 1], edge);
         }
 
-        return edge;
     }
 
     protected void parseColumn(String colName, String colValue, HugeVertex vertex) {
         // column name
-        String[] colParts = colName.split(COLUME_SPLITOR);
+        String type = colName.split(COLUME_SPLITOR, 2)[0];
         // property
-        if (colParts[0].equals(HugeTypes.VERTEX_PROPERTY.name())) {
-            // TODO: currently we assume property value is a string
-            vertex.property(colParts[1], colValue);
+        if (type.equals(HugeTypes.VERTEX_PROPERTY.name())) {
+            this.parseProperty(colName, colValue, vertex);
         }
         // edge
-        else if (colParts[0].equals(HugeTypes.EDGE_OUT.name())
-                || colParts[0].equals(HugeTypes.EDGE_IN.name())) {
+        else if (type.equals(HugeTypes.EDGE_OUT.name())
+                || type.equals(HugeTypes.EDGE_IN.name())) {
             this.parseEdge(colName, colValue, vertex);
         }
     }
@@ -162,15 +186,14 @@ public class TextSerializer extends AbstractSerializer {
 
         // add all edges of a Vertex
         for (HugeEdge edge : vertex.getEdges()) {
-            // TODO: this.addEntry(v.id(), "edge:" + edge.colume(), edge);
             entry.column(this.formatEdgeName(edge),
                     this.formatEdgeValue(edge));
         }
 
         // test readVertex
-        //        System.out.println("writeVertex:" + entry);
-        //        HugeVertex v = readVertex(entry);
-        //        System.out.println("readVertex:" + v);
+//        System.out.println("writeVertex:" + entry);
+//        HugeVertex v = readVertex(entry);
+//        System.out.println("readVertex:" + v);
 
         return entry;
     }

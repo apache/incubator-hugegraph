@@ -13,7 +13,7 @@ import com.baidu.hugegraph2.structure.HugeProperty;
  * Created by jishilei on 17/3/18.
  */
 public enum DataType {
-    OBJECT(1, "object", HugeProperty.class),
+    OBJECT(1, "object", HugeProperty.class), // this property has sub properties
     TEXT(2, "text", String.class),
     INT(3, "int", Integer.class),
     LONG(4, "long", Long.class),
@@ -22,11 +22,11 @@ public enum DataType {
 
     private byte code = 0;
     private String name = null;
-    private Class clazz = null;
+    private Class<?> clazz = null;
 
     private static final Map<Byte, DataType> ALL_CODE = new HashMap<>();
     private static final Map<String, DataType> ALL_NAME = new HashMap<>();
-    private static final Map<Class, DataType> ALL_CLASS = new HashMap<>();
+    private static final Map<Class<?>, DataType> ALL_CLASS = new HashMap<>();
 
     static {
         for (DataType dataType : values()) {
@@ -36,7 +36,7 @@ public enum DataType {
         }
     }
 
-    private DataType(int code, String name, Class clazz) {
+    private DataType(int code, String name, Class<?> clazz) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
@@ -64,7 +64,7 @@ public enum DataType {
         return this.name;
     }
 
-    public Class clazz() {
+    public Class<?> clazz() {
         return this.clazz;
     }
 }

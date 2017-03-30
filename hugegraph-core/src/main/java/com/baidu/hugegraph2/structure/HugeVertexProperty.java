@@ -7,10 +7,11 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph2.type.HugeTypes;
+import com.baidu.hugegraph2.type.schema.PropertyKey;
 
 public class HugeVertexProperty<V> extends HugeProperty<V> implements VertexProperty<V> {
 
-    public HugeVertexProperty(HugeElement owner, String key, V value) {
+    public HugeVertexProperty(HugeElement owner, PropertyKey key, V value) {
         super(owner, key, value);
     }
 
@@ -40,5 +41,4 @@ public class HugeVertexProperty<V> extends HugeProperty<V> implements VertexProp
     public <U> Iterator<Property<U>> properties(String... propertyKeys) {
         return null;
     }
-
 }
