@@ -258,9 +258,10 @@ public class TextSerializer extends AbstractSerializer {
     public void writeProperties(SchemaElement schemaElement, TextBackendEntry entry) {
         Map<String, PropertyKey> properties = schemaElement.properties();
         if (properties == null) {
-            entry.column(HugeKeys.PROPERTIES.string(), toJson(""));
+            entry.column(HugeKeys.PROPERTIES.string(), "[]");
         } else {
-            entry.column(HugeKeys.PROPERTIES.string(), toJson(properties.keySet().toArray()));
+            entry.column(HugeKeys.PROPERTIES.string(),
+                    toJson(properties.keySet().toArray()));
         }
     }
 
