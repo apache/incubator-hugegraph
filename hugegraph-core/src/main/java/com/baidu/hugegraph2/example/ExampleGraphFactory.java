@@ -1,5 +1,6 @@
 package com.baidu.hugegraph2.example;
 
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ public class ExampleGraphFactory {
         /************************* schemaManager operating *************************/
         SchemaManager schemaManager = graph.openSchemaManager();
         logger.info("===============  propertyKey  ================");
+        schemaManager.propertyKey("id").asInt().create();
         schemaManager.propertyKey("name").asText().create();
         schemaManager.propertyKey("gender").asText().create();
         schemaManager.propertyKey("instructions").asText().create();
@@ -59,7 +61,7 @@ public class ExampleGraphFactory {
 
         logger.info("===============  vertexLabel  ================");
 
-        schemaManager.vertexLabel("author").properties("name").create();
+        schemaManager.vertexLabel("author").properties("id", "name").primaryKeys("id").create();
         schemaManager.vertexLabel("recipe").properties("name", "instructions").create();
         schemaManager.vertexLabel("ingredient").create();
         schemaManager.vertexLabel("book").properties("name").primaryKeys("name").create();
@@ -100,8 +102,8 @@ public class ExampleGraphFactory {
         GraphTransaction tx = graph.openGraphTransaction();
 
         logger.info("===============  addVertex  ================");
-        Vertex person = tx.addVertex(T.label, "person",
-                "name", "James Gosling", "age", "60");
+        Vertex person = tx.addVertex(T.label, "author",
+                "id", 1, "name", "James Gosling", "age", "60", "lived", "");
 
         Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
         Vertex book2 = tx.addVertex(T.label, "book", "name", "java-2");
@@ -129,5 +131,9 @@ public class ExampleGraphFactory {
         // use the default Transaction to commit
         graph.addVertex(T.label, "book", "name", "java-3");
         graph.tx().commit();
+
+        // query
+        GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V("author\u00011");
+        System.out.println(">>>> query: " + vertex.toList());
     }
 }

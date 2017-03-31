@@ -68,6 +68,10 @@ public abstract class HugeElement implements Element, GraphType {
             else if (idValue instanceof String) {
                 return IdGeneratorFactory.generator().generate((String) idValue);
             }
+            // id itself
+            else if (idValue instanceof Id) {
+                return (Id) idValue;
+            }
             // error
             String msg = "Not supported id type(must be a number or string): ";
             msg += idValue.getClass().getSimpleName();
