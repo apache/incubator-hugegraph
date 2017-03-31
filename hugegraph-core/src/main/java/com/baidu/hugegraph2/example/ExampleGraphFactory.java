@@ -1,6 +1,7 @@
 package com.baidu.hugegraph2.example;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -62,6 +63,7 @@ public class ExampleGraphFactory {
         logger.info("===============  vertexLabel  ================");
 
         schemaManager.vertexLabel("author").properties("id", "name").primaryKeys("id").create();
+        schemaManager.vertexLabel("language").properties("name").primaryKeys("name").create();
         schemaManager.vertexLabel("recipe").properties("name", "instructions").create();
         schemaManager.vertexLabel("ingredient").create();
         schemaManager.vertexLabel("book").properties("name").primaryKeys("name").create();
@@ -105,9 +107,11 @@ public class ExampleGraphFactory {
         Vertex person = tx.addVertex(T.label, "author",
                 "id", 1, "name", "James Gosling", "age", "60", "lived", "");
 
+        Vertex java = tx.addVertex(T.label, "language", "name", "java");
         Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
         Vertex book2 = tx.addVertex(T.label, "book", "name", "java-2");
 
+        person.addEdge("created", java);
         person.addEdge("authored", book1,
                 "contribution", "1990-1-1",
                 "comment", "it's a good book",
@@ -134,6 +138,7 @@ public class ExampleGraphFactory {
 
         // query
         GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V("author\u00011");
-        System.out.println(">>>> query: " + vertex.toList());
+        GraphTraversal<Vertex, Edge> edge = vertex.outE("created");
+        System.out.println(">>>> query: " + edge.toList());
     }
 }
