@@ -50,10 +50,10 @@ public class ExampleGraphFactory {
         schemaManager.propertyKey("amount").asText().create();
         schemaManager.propertyKey("stars").asInt().create();
         schemaManager.propertyKey("age").asText().valueSingle().create();
-        schemaManager.propertyKey("comment").asText().valueUnrepeatable().create();
-        schemaManager.propertyKey("nickname").asText().valueRepeatable().create();
+        schemaManager.propertyKey("comment").asText().valueSet().create();
+        schemaManager.propertyKey("nickname").asText().valueList().create();
         schemaManager.propertyKey("lived").asText().create();
-        schemaManager.propertyKey("country").asText().valueUnrepeatable().properties("livedIn").create();
+        schemaManager.propertyKey("country").asText().valueSet().properties("livedIn").create();
         schemaManager.propertyKey("city_id").asInt().create();
         schemaManager.propertyKey("sensor_id").asUuid().create();
 
