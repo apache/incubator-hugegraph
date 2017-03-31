@@ -75,13 +75,13 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     @Override
-    public PropertyKey valueRepeatable() {
+    public PropertyKey valueList() {
         this.cardinality(Cardinality.LIST);
         return this;
     }
 
     @Override
-    public PropertyKey valueUnrepeatable() {
+    public PropertyKey valueSet() {
         this.cardinality(Cardinality.SET);
         return this;
     }

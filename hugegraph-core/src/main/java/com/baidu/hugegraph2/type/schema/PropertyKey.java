@@ -115,7 +115,7 @@ public abstract class PropertyKey extends SchemaElement {
 
     public abstract PropertyKey valueSingle();
 
-    public abstract PropertyKey valueRepeatable();
+    public abstract PropertyKey valueList();
 
-    public abstract PropertyKey valueUnrepeatable();
+    public abstract PropertyKey valueSet();
 }
