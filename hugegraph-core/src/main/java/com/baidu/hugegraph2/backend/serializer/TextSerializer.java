@@ -50,6 +50,18 @@ public class TextSerializer extends AbstractSerializer {
         return new TextBackendEntry(id);
     }
 
+    @Override
+    protected BackendEntry convertEntry(BackendEntry entry) {
+        if (entry instanceof TextBackendEntry) {
+            return entry;
+        }
+        else {
+            TextBackendEntry text = new TextBackendEntry(entry.id());
+            text.columns(entry.columns());
+            return text;
+        }
+    }
+
     protected String formatSystemPropertyName(String name) {
         return String.format("%s%s%s",
                 HugeTypes.SYS_PROPERTY.name(),
@@ -153,7 +165,6 @@ public class TextSerializer extends AbstractSerializer {
         for (int i = 1; i < valParts.length; i += 2) {
             this.parseProperty(valParts[i], valParts[i + 1], edge);
         }
-
     }
 
     protected void parseColumn(String colName, String colValue, HugeVertex vertex) {
@@ -200,6 +211,10 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public HugeVertex readVertex(BackendEntry bytesEntry) {
+        if (bytesEntry == null) {
+            return null;
+        }
+        bytesEntry = this.convertEntry(bytesEntry);
         assert bytesEntry instanceof TextBackendEntry;
         TextBackendEntry entry = (TextBackendEntry) bytesEntry;
 

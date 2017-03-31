@@ -1,7 +1,9 @@
 package com.baidu.hugegraph2.backend.tx;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -9,6 +11,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -17,6 +20,7 @@ import com.baidu.hugegraph2.HugeGraph;
 import com.baidu.hugegraph2.backend.id.Id;
 import com.baidu.hugegraph2.backend.store.BackendStore;
 import com.baidu.hugegraph2.schema.SchemaManager;
+import com.baidu.hugegraph2.structure.HugeElement;
 import com.baidu.hugegraph2.structure.HugeVertex;
 import com.baidu.hugegraph2.type.schema.VertexLabel;
 import com.baidu.hugegraph2.util.CollectionUtil;
@@ -96,8 +100,17 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Iterator<Vertex> vertices(Object... vertexIds) {
-        // TODO Auto-generated method stub
-        return null;
+        List<Vertex> list = new ArrayList<Vertex>(vertexIds.length);
+
+        for (Object vertexId : vertexIds) {
+            Id id = HugeElement.getIdValue(T.id, vertexId);
+            Vertex vertex = this.serializer.readVertex(this.store.get(id));
+            if (vertex != null) {
+                list.add(vertex);
+            }
+        }
+
+        return list.iterator();
     }
 
     public Iterator<Edge> edges(Object... edgeIds) {

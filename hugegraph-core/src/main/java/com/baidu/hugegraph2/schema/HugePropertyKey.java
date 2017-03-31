@@ -106,7 +106,7 @@ public class HugePropertyKey extends PropertyKey {
     public void create() {
         // Try to read, if exist throw an error
         if (this.transaction.getPropertyKey(this.name) != null) {
-            throw new HugeException("The propertyKey:" + this.name + " has exised.");
+            throw new HugeException("The propertyKey:" + this.name + " has existed.");
         }
 
         // check name is valid

@@ -1,6 +1,7 @@
 package com.baidu.hugegraph2.backend.serializer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 
 import com.baidu.hugegraph2.backend.id.Id;
@@ -33,8 +34,9 @@ public class BinaryBackendEntry implements BackendEntry {
 
     public BackendColumn column(byte[] name) {
         for (BackendColumn col : this.columns) {
-            if (col.name.equals(name))
+            if (Arrays.equals(col.name, name)) {
                 return col;
+            }
         }
         return null;
     }
