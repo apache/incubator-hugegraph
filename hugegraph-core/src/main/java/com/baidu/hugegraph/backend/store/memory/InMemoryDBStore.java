@@ -1,9 +1,7 @@
 package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -15,7 +13,9 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.configuration.HugeConfiguration;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -53,23 +53,23 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public BackendEntry get(Id id) {
-        return store.get(id);
+        return this.store.get(id);
     }
 
     @Override
     public void delete(Id id) {
-        store.remove(id);
+        this.store.remove(id);
     }
 
     @Override
-    public void mutate(Collection<BackendEntry> additions, Set<Id> deletions) {
-        additions.forEach((entry) -> {
+    public void mutate(BackendMutation mutation) {
+        mutation.additions().forEach((entry) -> {
             logger.info("[store {}] add entry: {}", this.name, entry);
             this.store.put(entry.id(), entry);
         });
 
-        deletions.forEach((k) -> {
-            logger.info("[store {}] remove id: {}", this.name, k.asString());
+        mutation.deletions().forEach((k) -> {
+            logger.info("[store {}] remove id: {}", this.name, k.toString());
             this.store.remove(k);
         });
     }
@@ -80,14 +80,25 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     @Override
-    public void clear() {
-        logger.info("clear()");
-        this.store.clear();
+    public void open(HugeConfiguration config) {
+        logger.info("open()");
     }
 
     @Override
     public void close() throws BackendException {
         logger.info("close()");
+    }
+
+    @Override
+    public void init() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void clear() {
+        logger.info("clear()");
+        this.store.clear();
     }
 
     @Override
