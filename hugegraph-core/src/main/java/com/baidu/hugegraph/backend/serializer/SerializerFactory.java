@@ -11,6 +11,7 @@ public class SerializerFactory {
         else if (name.equalsIgnoreCase("text")) {
             return new TextSerializer(graph);
         }
+        // TODO return registered serializer
         return null;
     }
 }

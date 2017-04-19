@@ -131,6 +131,11 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
+    public BackendEntry writeId(Id id) {
+        return newBackendEntry(id);
+    }
+
+    @Override
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
         // TODO Auto-generated method stub
         return null;

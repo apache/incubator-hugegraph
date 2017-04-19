@@ -12,9 +12,11 @@ public abstract class AbstractSerializer implements VertexSerializer, SchemaSeri
         this.graph=graph;
     }
 
-    public abstract BackendEntry newBackendEntry(Id id);
-
     protected BackendEntry convertEntry(BackendEntry entry) {
         return entry;
     }
+
+    public abstract BackendEntry newBackendEntry(Id id);
+
+    public abstract BackendEntry writeId(Id id);
 }

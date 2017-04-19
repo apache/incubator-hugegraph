@@ -30,10 +30,14 @@ public enum HugeKeys {
     // column names of schema type (PropertyKey)
     DATA_TYPE(150, "dataType"),
 
-    // column names of data type
+    // column names of data type (Vertex/Edge)
     LABEL(200, "label"),
-    TARGET_VERTEX(201, "targetVertex"),
-    SYS_PROPERTIES(202, "systemProperties");
+    SOURCE_VERTEX(201, "sourceVertex"),
+    TARGET_VERTEX(202, "targetVertex"),
+    PROPERTY_KEY(203, "propertyKey"),
+    PROPERTY_VALUE(204, "propertyValue"),
+    DIRECTION(205, "direction"),
+    SORT_VALUES(206, "sortValues");
 
     // HugeKeys define
     private byte code = 0;

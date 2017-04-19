@@ -234,6 +234,11 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
+    public BackendEntry writeId(Id id) {
+        return new TextBackendEntry(id);
+    }
+
+    @Override
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
         Id id = IdGeneratorFactory.generator().generate(vertexLabel);
 

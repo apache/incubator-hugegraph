@@ -8,10 +8,6 @@ public class BackendProviderFactory {
         if (backend.equalsIgnoreCase("memory")) {
             return new InMemoryDBStoreProvider();
         }
-        else if (backend.equalsIgnoreCase("cassandra")) {
-            // TODO: return new CassandraStoreProvider();
-            return null;
-        }
 
         return null;
     }

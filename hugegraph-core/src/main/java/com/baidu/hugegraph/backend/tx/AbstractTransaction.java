@@ -1,9 +1,7 @@
 package com.baidu.hugegraph.backend.tx;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -13,8 +11,8 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
-import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.google.common.base.Preconditions;
 
@@ -28,7 +26,7 @@ public abstract class AbstractTransaction implements Transaction {
     protected BackendStore store;
 
     protected Map<Id, BackendEntry> additions;
-    protected Set<Id> deletions;
+    protected Map<Id, BackendEntry> deletions;
 
     public AbstractTransaction(HugeGraph graph, BackendStore store) {
         this.graph = graph;
@@ -36,8 +34,8 @@ public abstract class AbstractTransaction implements Transaction {
         this.idGenerator = IdGeneratorFactory.generator();
 
         this.store = store;
-        this.additions = new HashMap<Id, BackendEntry>();
-        this.deletions = new HashSet<Id>();
+        this.additions = new ConcurrentHashMap<Id, BackendEntry>();
+        this.deletions = new ConcurrentHashMap<Id, BackendEntry>();
     }
 
     public Iterable<BackendEntry> query(Query query) {
@@ -60,9 +58,13 @@ public abstract class AbstractTransaction implements Transaction {
     public void commit() throws BackendException {
         this.prepareCommit();
 
+        BackendMutation m = new BackendMutation(
+                this.additions.values(),
+                this.deletions.values());
+
         // if an exception occurred, catch in the upper layer and roll back
         this.store.beginTx();
-        this.store.mutate(this.additions.values(), this.deletions);
+        this.store.mutate(m);
         this.store.commitTx();
 
         this.additions.clear();
@@ -77,6 +79,7 @@ public abstract class AbstractTransaction implements Transaction {
     public void addEntry(BackendEntry entry) {
         Preconditions.checkNotNull(entry);
         Preconditions.checkNotNull(entry.id());
+
         Id id = entry.id();
         if (this.additions.containsKey(id)) {
             this.additions.remove(id);
@@ -84,20 +87,19 @@ public abstract class AbstractTransaction implements Transaction {
         this.additions.put(id, entry);
     }
 
-    public void addEntry(Id id, String column, String value) {
-        // add a column to an Entry
-        // create a new one if the Entry with `id` not exists
-        BackendEntry entry = this.additions.getOrDefault(id, null);
-        if (entry == null) {
-            entry = new TextBackendEntry(id);
-            this.additions.put(id, entry);
+    public void removeEntry(BackendEntry entry) {
+        Preconditions.checkNotNull(entry);
+        Preconditions.checkNotNull(entry.id());
+
+        Id id = entry.id();
+        if (this.deletions.containsKey(id)) {
+            this.deletions.remove(id);
         }
-        assert (entry instanceof TextBackendEntry);
-        ((TextBackendEntry) entry).column(column, value);
+        this.deletions.put(id, entry);
     }
 
     public void removeEntry(Id id) {
-        this.deletions.add(id);
+        this.removeEntry(this.serializer.writeId(id));
     }
 
 }

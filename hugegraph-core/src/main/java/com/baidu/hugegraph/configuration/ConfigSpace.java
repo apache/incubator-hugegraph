@@ -63,6 +63,22 @@ public class ConfigSpace {
             disallowEmpty(String.class)
     );
 
+    public static final ConfigOption<String> CASSANDRA_STRATEGY = new ConfigOption<String>(
+            "cassandra.strategy",
+            "hugegraph",
+            true,
+            "keyspace strategy",
+            disallowEmpty(String.class)
+    );
+
+    public static final ConfigOption<Integer> CASSANDRA_REPLICATION = new ConfigOption<Integer>(
+            "cassandra.replication",
+            1,
+            true,
+            "replication factor",
+            rangeInt(1, 100)
+    );
+
     /**
      * 每个option只会被注册一次
      * @param element
