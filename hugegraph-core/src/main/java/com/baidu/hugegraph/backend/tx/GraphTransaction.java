@@ -18,6 +18,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -99,7 +100,7 @@ public class GraphTransaction extends AbstractTransaction {
         return this.addVertex(vertex);
     }
 
-    public Iterator<Vertex> vertices(Object... vertexIds) {
+    public Iterator<Vertex> queryVertices(Object... vertexIds) {
         List<Vertex> list = new ArrayList<Vertex>(vertexIds.length);
 
         for (Object vertexId : vertexIds) {
@@ -113,7 +114,17 @@ public class GraphTransaction extends AbstractTransaction {
         return list.iterator();
     }
 
-    public Iterator<Edge> edges(Object... edgeIds) {
+    public Iterator<Vertex> queryVertices(Query q) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Iterator<Edge> queryEdges(Object... edgeIds) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Iterator<Edge> queryEdges(Query q) {
         // TODO Auto-generated method stub
         return null;
     }

@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -40,12 +41,16 @@ public class InMemoryDBStore implements BackendStore {
         this.store.forEach((Object key, BackendEntry item) -> {
             // TODO: Compatible with BackendEntry
             TextBackendEntry entry = (TextBackendEntry) item;
-            query.conditions().forEach((k, v) -> {
-                if (entry.contains(k.toString(), v.toString())) {
-                    entries.add(entry);
+            for (Condition c : query.conditions()) {
+                // TODO: deal with others Condition like: and, or...
+                if (c instanceof Condition.Relation) {
+                    Condition.Relation r = (Condition.Relation) c;
+                    // TODO: deal with others Relation like: <, >=, ...
+                    if (entry.contains(r.key().string(), r.value().toString())) {
+                        entries.add(entry);
+                    }
                 }
-
-            });
+            }
 
         });
         return ImmutableList.copyOf(entries);
