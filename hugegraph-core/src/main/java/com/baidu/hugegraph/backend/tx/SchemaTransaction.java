@@ -8,13 +8,15 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.HugeQuery;
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -34,15 +36,20 @@ public class SchemaTransaction extends AbstractTransaction {
         // TODO Auto-generated constructor stub
     }
 
-    public List<HugePropertyKey> getPropertyKeys() {
+    public List<HugePropertyKey> getPropertyKeys(String... names) {
         // TODO:to be checked
 
         List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
 
-        HugeQuery query = new HugeQuery(HugeTypes.PROPERTY_KEY);
-        query.has(SCHEMATYPE_COLUME, "PROPERTY");
+        Condition c = Condition.none();
+        for (String name : names) {
+            c = c.or(Condition.eq(HugeKeys.NAME, name));
+        }
 
-        Iterable<BackendEntry> entries = query(query);
+        ConditionQuery q = new ConditionQuery(HugeTypes.PROPERTY_KEY);
+        q.query(c);
+
+        Iterable<BackendEntry> entries = query(q);
         entries.forEach(item -> {
             propertyKeys.add((HugePropertyKey) this.serializer.readPropertyKey(item));
         });

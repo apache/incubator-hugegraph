@@ -153,12 +153,12 @@ public class HugeGraph implements Graph {
 
     @Override
     public Iterator<Vertex> vertices(Object... objects) {
-        return this.graphTransaction.vertices(objects);
+        return this.graphTransaction.queryVertices(objects);
     }
 
     @Override
     public Iterator<Edge> edges(Object... objects) {
-        return this.graphTransaction.edges(objects);
+        return this.graphTransaction.queryEdges(objects);
     }
 
     @Override
