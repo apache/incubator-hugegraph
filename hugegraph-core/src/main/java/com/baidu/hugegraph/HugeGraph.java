@@ -110,6 +110,14 @@ public class HugeGraph implements Graph {
         }
     }
 
+    public SchemaTransaction schemaTransaction() {
+        return this.schemaTransaction;
+    }
+
+    public GraphTransaction graphTransaction() {
+        return this.graphTransaction;
+    }
+
     public SchemaManager openSchemaManager() {
         return new HugeSchemaManager(this.schemaTransaction);
     }
