@@ -299,7 +299,8 @@ public class TextSerializer extends AbstractSerializer {
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
         String primarykeys = textEntry.column(HugeKeys.PRIMARY_KEYS.string());
 
-        HugeVertexLabel vertexLabel = new HugeVertexLabel(name, this.graph.openSchemaTransaction());
+        HugeVertexLabel vertexLabel = new HugeVertexLabel(name,
+                this.graph.schemaTransaction());
         vertexLabel.properties(fromJson(properties, String[].class));
         vertexLabel.primaryKeys(fromJson(primarykeys, String[].class));
 
@@ -322,7 +323,8 @@ public class TextSerializer extends AbstractSerializer {
         String links = textEntry.column(HugeKeys.LINKS.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
 
-        HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name, this.graph.openSchemaTransaction());
+        HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name,
+                this.graph.schemaTransaction());
         edgeLabel.frequency(fromJson(frequency, Frequency.class));
         edgeLabel.properties(fromJson(properties, String[].class));
         edgeLabel.sortKeys(fromJson(sortKeys, String[].class));
@@ -349,7 +351,8 @@ public class TextSerializer extends AbstractSerializer {
         String cardinality = textEntry.column(HugeKeys.CARDINALITY.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
 
-        HugePropertyKey propertyKey = new HugePropertyKey(name, this.graph.openSchemaTransaction());
+        HugePropertyKey propertyKey = new HugePropertyKey(name,
+                this.graph.schemaTransaction());
         propertyKey.dataType(fromJson(dataType, DataType.class));
         propertyKey.cardinality(fromJson(cardinality, Cardinality.class));
         propertyKey.properties(fromJson(properties, String[].class));

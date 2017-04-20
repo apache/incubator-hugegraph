@@ -275,7 +275,7 @@ public class CassandraSerializer extends AbstractSerializer {
         String primarykeys = textEntry.column(HugeKeys.PRIMARY_KEYS);
 
         HugeVertexLabel vertexLabel = new HugeVertexLabel(name,
-                this.graph.openSchemaTransaction());
+                this.graph.schemaTransaction());
         vertexLabel.properties(fromJson(properties, String[].class));
         vertexLabel.primaryKeys(fromJson(primarykeys, String[].class));
 
@@ -299,7 +299,7 @@ public class CassandraSerializer extends AbstractSerializer {
         String properties = textEntry.column(HugeKeys.PROPERTIES);
 
         HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name,
-                this.graph.openSchemaTransaction());
+                this.graph.schemaTransaction());
         edgeLabel.frequency(fromJson(frequency, Frequency.class));
         edgeLabel.properties(fromJson(properties, String[].class));
         edgeLabel.sortKeys(fromJson(sortKeys, String[].class));
@@ -327,7 +327,7 @@ public class CassandraSerializer extends AbstractSerializer {
         String properties = textEntry.column(HugeKeys.PROPERTIES);
 
         HugePropertyKey propertyKey = new HugePropertyKey(name,
-                this.graph.openSchemaTransaction());
+                this.graph.schemaTransaction());
         propertyKey.dataType(fromJson(dataType, DataType.class));
         propertyKey.cardinality(fromJson(cardinality, Cardinality.class));
         propertyKey.properties(fromJson(properties, String[].class));

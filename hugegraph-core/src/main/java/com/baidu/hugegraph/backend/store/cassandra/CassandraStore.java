@@ -273,12 +273,12 @@ public class CassandraStore implements BackendStore {
                 "Cassandra session has been closed");
     }
 
-    protected static CassandraBackendEntry castBackendEntry(BackendEntry i) {
-        assert i instanceof CassandraBackendEntry;
-        if (!(i instanceof CassandraBackendEntry)) {
+    protected static CassandraBackendEntry castBackendEntry(BackendEntry entry) {
+        assert entry instanceof CassandraBackendEntry;
+        if (!(entry instanceof CassandraBackendEntry)) {
             throw new BackendException(
                     "Cassandra store only supports CassandraBackendEntry");
         }
-        return (CassandraBackendEntry) i;
+        return (CassandraBackendEntry) entry;
     }
 }
