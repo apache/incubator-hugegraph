@@ -76,6 +76,12 @@ public abstract class Condition {
         public Condition right() {
             return this.right;
         }
+
+        @Override
+        public String toString() {
+            return String.format("%s %s %s",
+                    this.left, this.type().name(), this.right);
+        }
     }
 
     public static class And extends BinCondition {
@@ -138,12 +144,23 @@ public abstract class Condition {
         public Object value() {
             return this.value;
         }
+
+        @Override
+        public String toString() {
+            return String.format("%s %s %s",
+                    this.key, this.relation.name(), this.value);
+        }
     }
 
     private static final Condition NONE = new Condition() {
         @Override
         public ConditionType type() {
             return ConditionType.NONE;
+        }
+
+        @Override
+        public String toString() {
+            return "<NONE>";
         }
     };
 }

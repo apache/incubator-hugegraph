@@ -16,13 +16,29 @@ public class IdQuery extends Query {
         this.ids = new LinkedHashSet<>();
     }
 
+    public IdQuery(HugeTypes resultType, Id id) {
+        this(resultType);
+        this.query(id);
+    }
+
     @Override
     public Set<Id> ids() {
         return this.ids;
     }
 
+    public void resetIds() {
+        this.ids = new LinkedHashSet<>();
+    }
+
     public IdQuery query(Id id) {
         this.ids.add(id);
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s where id in %s",
+                super.toString(),
+                this.ids.toString());
     }
 }

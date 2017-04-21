@@ -7,6 +7,8 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.IdQuery;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.schema.HugeIndexLabel;
@@ -32,7 +34,7 @@ import com.google.gson.Gson;
 public class TextSerializer extends AbstractSerializer {
 
     private static final String COLUME_SPLITOR = SplicingIdGenerator.NAME_SPLITOR;
-    private static final String VALUE_SPLITOR = "\u0003";
+    private static final String VALUE_SPLITOR = "\u0004";
 
     private static Gson gson = new Gson();
 
@@ -237,15 +239,30 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public BackendEntry writeId(Id id) {
-        return new TextBackendEntry(id);
+    public TextBackendEntry writeId(HugeTypes type, Id id) {
+        return new TextBackendEntry(id.prefixWith(type));
+    }
+
+    @Override
+    public Query writeQuery(Query query) {
+        if (SchemaElement.isSchema(query.resultType())
+                && query instanceof IdQuery) {
+            // serialize query id of schema
+            IdQuery result = (IdQuery) query.clone();
+            result.resetIds();
+            for (Id id : query.ids()) {
+                result.query(id.prefixWith(query.resultType()));
+            }
+            return result;
+        }
+        return query;
     }
 
     @Override
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
         Id id = IdGeneratorFactory.generator().generate(vertexLabel);
 
-        TextBackendEntry entry = new TextBackendEntry(id);
+        TextBackendEntry entry = this.writeId(vertexLabel.type(), id);
         entry.column(HugeKeys.NAME.string(), vertexLabel.name());
         entry.column(HugeKeys.PRIMARY_KEYS.string(), toJson(vertexLabel.primaryKeys().toArray()));
         writeProperties(vertexLabel, entry);
@@ -256,7 +273,7 @@ public class TextSerializer extends AbstractSerializer {
     public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel) {
         Id id = IdGeneratorFactory.generator().generate(edgeLabel);
 
-        TextBackendEntry entry = new TextBackendEntry(id);
+        TextBackendEntry entry = this.writeId(edgeLabel.type(), id);
         entry.column(HugeKeys.NAME.string(), edgeLabel.name());
         entry.column(HugeKeys.FREQUENCY.string(), toJson(edgeLabel.frequency()));
         entry.column(HugeKeys.MULTIPLICITY.string(), toJson(edgeLabel.multiplicity()));
@@ -270,7 +287,7 @@ public class TextSerializer extends AbstractSerializer {
     public BackendEntry writePropertyKey(PropertyKey propertyKey) {
         Id id = IdGeneratorFactory.generator().generate(propertyKey);
 
-        TextBackendEntry entry = new TextBackendEntry(id);
+        TextBackendEntry entry = this.writeId(propertyKey.type(), id);
         entry.column(HugeKeys.NAME.string(), propertyKey.name());
         entry.column(HugeKeys.DATA_TYPE.string(), toJson(propertyKey.dataType()));
         entry.column(HugeKeys.CARDINALITY.string(), toJson(propertyKey.cardinality()));

@@ -16,6 +16,7 @@ import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
@@ -25,12 +26,6 @@ import com.baidu.hugegraph.type.schema.VertexLabel;
 public class SchemaTransaction extends AbstractTransaction {
 
     private static final Logger logger = LoggerFactory.getLogger(SchemaTransaction.class);
-
-    // this could be an empty string, now setting a value just for test
-    private static final String DEFAULT_COLUME = "default-colume";
-
-    private static final String ID_COLUME = "_id";
-    private static final String SCHEMATYPE_COLUME = "_schema";
 
     public SchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
@@ -75,16 +70,14 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public PropertyKey getPropertyKey(String name) {
-        Id id = this.idGenerator.generate(new HugePropertyKey(name, null));
-        BackendEntry entry = this.store.get(id);
+        BackendEntry entry = querySchema(new HugePropertyKey(name, null));
         return this.serializer.readPropertyKey(entry);
     }
 
     public void removePropertyKey(String name) {
         logger.debug("SchemaTransaction remove property key " + name);
 
-        Id id = this.idGenerator.generate(new HugePropertyKey(name, null));
-        this.removeEntry(id);
+        this.removeSchema(new HugePropertyKey(name, null));
     }
 
     public void addVertexLabel(HugeVertexLabel vertexLabel) {
@@ -95,16 +88,14 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public VertexLabel getVertexLabel(String name) {
-        Id id = this.idGenerator.generate(new HugeVertexLabel(name, null));
-        BackendEntry entry = this.store.get(id);
+        BackendEntry entry = querySchema(new HugeVertexLabel(name, null));
         return this.serializer.readVertexLabel(entry);
     }
 
     public void removeVertexLabel(String name) {
         logger.info("SchemaTransaction remove vertex label " + name);
 
-        Id id = this.idGenerator.generate(new HugeVertexLabel(name, null));
-        this.removeEntry(id);
+        this.removeSchema(new HugeVertexLabel(name, null));
     }
 
     public void addEdgeLabel(HugeEdgeLabel edgeLabel) {
@@ -117,16 +108,24 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public EdgeLabel getEdgeLabel(String name) {
-        Id id = this.idGenerator.generate(new HugeEdgeLabel(name, null));
-        BackendEntry entry = this.store.get(id);
+        BackendEntry entry = querySchema(new HugeEdgeLabel(name, null));
         return this.serializer.readEdgeLabel(entry);
     }
 
     public void removeEdgeLabel(String name) {
         logger.info("SchemaTransaction remove edge label " + name);
 
-        Id id = this.idGenerator.generate(new HugeEdgeLabel(name, null));
-        this.removeEntry(id);
+        this.removeSchema(new HugeEdgeLabel(name, null));
+    }
+
+    private BackendEntry querySchema(SchemaElement schema) {
+        Id id = this.idGenerator.generate(schema);
+        return this.query(schema.type(), id);
+    }
+
+    private void removeSchema(SchemaElement schema) {
+        Id id = this.idGenerator.generate(schema);
+        this.removeEntry(schema.type(), id);
     }
 
     public void addIndexLabel(HugeIndexLabel indexLabel) {

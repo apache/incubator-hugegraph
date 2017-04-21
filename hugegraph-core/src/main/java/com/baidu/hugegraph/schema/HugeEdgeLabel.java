@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.Multiplicity;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
@@ -99,8 +98,9 @@ public class HugeEdgeLabel extends EdgeLabel {
         return this;
     }
 
+    @Override
     public List<Pair<String, String>> links() {
-        return links;
+        return this.links;
     }
 
     @Override
@@ -121,12 +121,6 @@ public class HugeEdgeLabel extends EdgeLabel {
         return this;
     }
 
-    @Override
-    public String toString() {
-        return String.format("{name=%s, multiplicity=%s, cardinality=%s}",
-                this.name, this.multiplicity.toString(), this.frequency.toString());
-    }
-
     public String linkSchema() {
         String linkSchema = "";
         if (this.links != null) {
@@ -143,14 +137,13 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     @Override
     public String schema() {
-        this.schema = "schema.edgeLabel(\"" + this.name + "\")"
-                + "." + this.frequency.string() + "()"
-                + "." + this.multiplicity.string() + "()"
+        return "schema.edgeLabel(\"" + this.name + "\")"
+                + "." + this.frequency.schema() + "()"
+                + "." + this.multiplicity.schema() + "()"
                 + "." + propertiesSchema()
                 + linkSchema()
                 + StringUtil.descSchema("sortKeys", this.sortKeys)
                 + ".create();";
-        return this.schema;
     }
 
     @Override
@@ -159,7 +152,7 @@ public class HugeEdgeLabel extends EdgeLabel {
             throw new HugeException("The edgeLabel:" + this.name + " has exised.");
         }
 
-        StringUtil.verifyName(name);
+        StringUtil.verifyName(this.name);
         verifySortKeys();
 
         this.transaction.addEdgeLabel(this);
@@ -173,21 +166,21 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     private void verifySortKeys() {
         if (this.frequency == Frequency.SINGLE) {
-            Preconditions.checkArgument(sortKeys.isEmpty(), "edgeLabel can not contain sortKeys when the cardinality"
+            Preconditions.checkArgument(this.sortKeys.isEmpty(), "edgeLabel can not contain sortKeys when the cardinality"
                     + " property is single.");
         } else {
-            Preconditions.checkNotNull(sortKeys, "the sortKeys can not be null when the cardinality property is "
+            Preconditions.checkNotNull(this.sortKeys, "the sortKeys can not be null when the cardinality property is "
                     + "multiple.");
-            Preconditions.checkArgument(!sortKeys.isEmpty(), "edgeLabel must contain sortKeys when the cardinality"
+            Preconditions.checkArgument(!this.sortKeys.isEmpty(), "edgeLabel must contain sortKeys when the cardinality"
                     + " property is multiple.");
         }
 
-        if (sortKeys != null && !sortKeys.isEmpty()) {
+        if (this.sortKeys != null && !this.sortKeys.isEmpty()) {
             // Check whether the properties contains the specified keys
-            Preconditions.checkNotNull(properties, "properties can not be null");
-            Preconditions.checkArgument(!properties.isEmpty(), "properties can not be empty");
-            for (String key : sortKeys) {
-                Preconditions.checkArgument(properties.containsKey(key),
+            Preconditions.checkNotNull(this.properties, "properties can not be null");
+            Preconditions.checkArgument(!this.properties.isEmpty(), "properties can not be empty");
+            for (String key : this.sortKeys) {
+                Preconditions.checkArgument(this.properties.containsKey(key),
                         "Properties must contain the specified key : " + key);
             }
         }

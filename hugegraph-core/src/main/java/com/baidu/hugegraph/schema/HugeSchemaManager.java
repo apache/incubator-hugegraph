@@ -27,7 +27,7 @@ public class HugeSchemaManager implements SchemaManager {
     public PropertyKey propertyKey(String name) {
         PropertyKey propertyKey = this.transaction.getPropertyKey(name);
         if (propertyKey == null) {
-            propertyKey = new HugePropertyKey(name, transaction);
+            propertyKey = new HugePropertyKey(name, this.transaction);
         }
         return propertyKey;
     }
@@ -36,7 +36,8 @@ public class HugeSchemaManager implements SchemaManager {
     public VertexLabel vertexLabel(String name) {
         VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
         if (vertexLabel == null) {
-            vertexLabel = new HugeVertexLabel(name, transaction);
+            // TODO: should let return null when adding vertex with non exists label
+            vertexLabel = new HugeVertexLabel(name, this.transaction);
         }
         return vertexLabel;
     }
@@ -45,7 +46,7 @@ public class HugeSchemaManager implements SchemaManager {
     public EdgeLabel edgeLabel(String name) {
         EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
         if (edgeLabel == null) {
-            edgeLabel = new HugeEdgeLabel(name, transaction);
+            edgeLabel = new HugeEdgeLabel(name, this.transaction);
         }
         return edgeLabel;
     }

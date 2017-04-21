@@ -19,10 +19,12 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.google.common.base.Preconditions;
@@ -105,10 +107,10 @@ public class GraphTransaction extends AbstractTransaction {
 
         for (Object vertexId : vertexIds) {
             Id id = HugeElement.getIdValue(T.id, vertexId);
-            Vertex vertex = this.serializer.readVertex(this.store.get(id));
-            if (vertex != null) {
-                list.add(vertex);
-            }
+            BackendEntry entry = this.get(HugeTypes.VERTEX, id);
+            Vertex vertex = this.serializer.readVertex(entry);
+            assert vertex != null;
+            list.add(vertex);
         }
 
         return list.iterator();

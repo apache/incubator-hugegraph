@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 
@@ -20,7 +21,7 @@ public abstract class SchemaElement implements Namifiable, HugeType {
     private static final Logger logger = LoggerFactory.getLogger(SchemaElement.class);
 
     protected String name;
-    protected String schema;
+
     // TODO:This is a questionable place，mutual reference
     protected SchemaTransaction transaction;
     protected Map<String, PropertyKey> properties;
@@ -45,7 +46,7 @@ public abstract class SchemaElement implements Namifiable, HugeType {
         return this;
     }
 
-    public String propertiesSchema() {
+    protected String propertiesSchema() {
         String props = "";
         if (this.properties != null) {
             for (String propertyName : this.properties.keySet()) {
@@ -58,7 +59,7 @@ public abstract class SchemaElement implements Namifiable, HugeType {
         return "properties(" + props.substring(0, endIdx) + ")";
     }
 
-    public boolean commit() {
+    protected boolean commit() {
         try {
             this.transaction.commit();
             return true;
@@ -76,6 +77,21 @@ public abstract class SchemaElement implements Namifiable, HugeType {
     @Override
     public String name() {
         return this.name;
+    }
+
+    @Override
+    public String toString() {
+        return schema();
+    }
+
+    public static boolean isSchema(HugeTypes type) {
+        if (type == HugeTypes.VERTEX_LABEL
+                || type == HugeTypes.EDGE_LABEL
+                || type == HugeTypes.PROPERTY_KEY
+                /* || type == HugeTypes.INDEX_LABEL */) {
+            return true;
+        }
+        return false;
     }
 
     public abstract String schema();

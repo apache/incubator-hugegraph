@@ -1,7 +1,6 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -30,7 +29,7 @@ public class HugeVertexLabel extends VertexLabel {
 
     @Override
     public Set<String> primaryKeys() {
-        return primaryKeys;
+        return this.primaryKeys;
     }
 
     @Override
@@ -40,41 +39,38 @@ public class HugeVertexLabel extends VertexLabel {
     }
 
     @Override
-    public String toString() {
-        return String.format("{name=%s}", this.name);
-    }
-
     public String schema() {
-        schema = "schema.vertexLabel(\"" + name + "\")"
+        return "schema.vertexLabel(\"" + this.name + "\")"
                 + "." + propertiesSchema()
-                + StringUtil.descSchema("primaryKeys", primaryKeys)
+                + StringUtil.descSchema("primaryKeys", this.primaryKeys)
                 + ".create();";
-        return schema;
     }
 
+    @Override
     public void create() {
         if (this.transaction.getVertexLabel(this.name) != null) {
             throw new HugeException("The vertexlabel:" + this.name + " has exised.");
         }
 
-        StringUtil.verifyName(name);
+        StringUtil.verifyName(this.name);
         verifyPrimaryKeys();
 
         this.transaction.addVertexLabel(this);
         this.commit();
     }
 
+    @Override
     public void remove() {
         this.transaction.removeVertexLabel(this.name);
     }
 
     private void verifyPrimaryKeys() {
-        if (primaryKeys != null && !primaryKeys.isEmpty()) {
+        if (this.primaryKeys != null && !this.primaryKeys.isEmpty()) {
             // Check whether the properties contains the specified keys
-            Preconditions.checkNotNull(properties, "properties can not be null");
-            Preconditions.checkArgument(!properties.isEmpty(), "properties can not be empty");
-            for (String key : primaryKeys) {
-                Preconditions.checkArgument(properties.containsKey(key),
+            Preconditions.checkNotNull(this.properties, "properties can not be null");
+            Preconditions.checkArgument(!this.properties.isEmpty(), "properties can not be empty");
+            for (String key : this.primaryKeys) {
+                Preconditions.checkArgument(this.properties.containsKey(key),
                         "properties must contain the specified key : " + key);
             }
         }

@@ -6,16 +6,17 @@ import com.baidu.hugegraph.structure.HugeVertex;
 
 public class SplicingIdGenerator extends IdGenerator {
 
-    public static final String ID_SPLITOR = "\u0001";
-    public static final String NAME_SPLITOR = "\u0002";
+    public static final String IDS_SPLITOR = "\u0001";
+    public static final String ID_SPLITOR = "\u0002";
+    public static final String NAME_SPLITOR = "\u0003";
 
     /****************************** id generate ******************************/
 
-    // generate a string id of SchemaType from Schema type and name
+    // generate a string id of SchemaType from Schema name
     @Override
     public Id generate(SchemaElement entry) {
-        String id = String.format("%x%s%s", entry.type().code(), ID_SPLITOR, entry.name());
-        return generate(id);
+        // String id = String.format("%x%s%s", entry.type().code(), ID_SPLITOR, entry.name());
+        return generate(entry.name());
     }
 
     // generate a string id of HugeVertex from Vertex name
@@ -39,18 +40,18 @@ public class SplicingIdGenerator extends IdGenerator {
     public Id generate(HugeEdge entry) {
         String id = String.format("%s%s%s%s%s%s%s",
                 entry.sourceVertex().id().asString(),
-                ID_SPLITOR,
+                IDS_SPLITOR,
                 entry.label(),
-                ID_SPLITOR,
+                IDS_SPLITOR,
                 entry.name(),
-                ID_SPLITOR,
+                IDS_SPLITOR,
                 entry.targetVertex().id().asString());
         return generate(id);
     }
 
     @Override
     public Id[] split(Id id) {
-        String[] parts = id.asString().split(ID_SPLITOR);
+        String[] parts = id.asString().split(IDS_SPLITOR);
         Id[] ids = new Id[parts.length];
         for (int i = 0; i < parts.length; i++) {
             ids[i] = generate(parts[i]);
