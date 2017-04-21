@@ -46,7 +46,7 @@ public class CassandraStore implements BackendStore {
         this.tables.put(HugeTypes.VERTEX_LABEL, new CassandraTable.VertexLabel());
         this.tables.put(HugeTypes.EDGE_LABEL, new CassandraTable.EdgeLabel());
         this.tables.put(HugeTypes.PROPERTY_KEY, new CassandraTable.PropertyKey());
-        // this.tables.put(HugeTypes.INDEX_LABEL, new CassandraTable.IndexLabel());
+        this.tables.put(HugeTypes.INDEX_LABEL, new CassandraTable.IndexLabel());
 
         this.tables.put(HugeTypes.VERTEX, new CassandraTable.Vertex());
         this.tables.put(HugeTypes.EDGE, new CassandraTable.Edge());

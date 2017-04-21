@@ -26,28 +26,34 @@ public enum Cardinality {
     /**
      * Only a single value may be associated with the given key.
      */
-    SINGLE(1),
+    SINGLE(1, "single"),
 
     /**
      * Multiple values and duplicate values may be associated with the given key.
      */
-    LIST(2),
+    LIST(2, "list"),
 
     /**
      * Multiple but distinct values may be associated with the given key.
      */
-    SET(3);
+    SET(3, "set");
 
     // HugeKeys define
     private byte code = 0;
+    private String name = null;
 
-    private Cardinality(int code) {
+    private Cardinality(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
+        this.name = name;
     }
 
     public byte code() {
         return this.code;
+    }
+
+    public String string() {
+        return this.name;
     }
 
     public VertexProperty.Cardinality convert() {
@@ -74,10 +80,5 @@ public enum Cardinality {
             default:
                 throw new AssertionError("Unrecognized cardinality: " + cardinality);
         }
-    }
-
-    public String schema() {
-        // enum object -> string -> lowercase
-        return this.toString().toLowerCase();
     }
 }

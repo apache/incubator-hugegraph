@@ -8,11 +8,13 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.StringEncoding;
@@ -26,6 +28,11 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public BackendEntry newBackendEntry(Id id) {
         return new BinaryBackendEntry(id);
+    }
+
+    @Override
+    public BackendEntry writeId(Id id) {
+        return null;
     }
 
     protected byte[] formatSystemPropertyName(HugeKeys col) {
@@ -168,6 +175,16 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public PropertyKey readPropertyKey(BackendEntry entry) {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public BackendEntry writeIndexLabel(HugeIndexLabel indexLabel) {
+        return null;
+    }
+
+    @Override
+    public IndexLabel readIndexLabel(BackendEntry entry) {
         return null;
     }
 

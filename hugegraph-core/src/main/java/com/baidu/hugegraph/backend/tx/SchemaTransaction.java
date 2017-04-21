@@ -13,6 +13,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
+import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.type.HugeTypes;
@@ -126,5 +127,21 @@ public class SchemaTransaction extends AbstractTransaction {
 
         Id id = this.idGenerator.generate(new HugeEdgeLabel(name, null));
         this.removeEntry(id);
+    }
+
+    public void addIndexLabel(HugeIndexLabel indexLabel) {
+        logger.debug("SchemaTransaction add index label, "
+                + "name: " + indexLabel.name() + ", "
+                + "base-type: " + indexLabel.baseType() + ", "
+                + "indexType: " + indexLabel.indexType() + ", "
+                + "fields: " + indexLabel.indexFields());
+
+        this.addEntry(this.serializer.writeIndexLabel(indexLabel));
+    }
+
+    public Object getIndexLabel(String name) {
+        Id id = this.idGenerator.generate(new HugeIndexLabel(name, null, null));
+        BackendEntry entry = this.store.get(id);
+        return this.serializer.readIndexLabel(entry);
     }
 }

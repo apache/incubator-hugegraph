@@ -9,6 +9,7 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
+import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -21,7 +22,9 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.google.gson.Gson;
@@ -358,5 +361,40 @@ public class TextSerializer extends AbstractSerializer {
         propertyKey.properties(fromJson(properties, String[].class));
 
         return propertyKey;
+    }
+
+    @Override
+    public BackendEntry writeIndexLabel(HugeIndexLabel indexLabel) {
+        Id id = IdGeneratorFactory.generator().generate(indexLabel);
+
+        TextBackendEntry entry = new TextBackendEntry(id);
+        entry.column(HugeKeys.NAME.string(), indexLabel.name());
+        entry.column(HugeKeys.BASE_TYPE.string(), toJson(indexLabel.baseType()));
+        entry.column(HugeKeys.INDEX_TYPE.string(), toJson(indexLabel.indexType()));
+        entry.column(HugeKeys.FIELDS.string(), toJson(indexLabel.indexFields().toArray()));
+        return entry;
+    }
+
+    @Override
+    public IndexLabel readIndexLabel(BackendEntry entry) {
+        if (entry == null) {
+            return null;
+        }
+
+        entry = convertEntry(entry);
+        assert entry instanceof TextBackendEntry;
+
+        TextBackendEntry textEntry = (TextBackendEntry) entry;
+        String name = textEntry.column(HugeKeys.NAME.string());
+        String baseType = textEntry.column(HugeKeys.BASE_TYPE.string());
+        String indexType = textEntry.column(HugeKeys.INDEX_TYPE.string());
+        String indexFields = textEntry.column(HugeKeys.FIELDS.string());
+
+        HugeIndexLabel indexLabel = new HugeIndexLabel(name, baseType,
+                this.graph.schemaTransaction());
+        indexLabel.indexType(fromJson(indexType, IndexType.class));
+        indexLabel.by(fromJson(indexFields, String[].class));
+
+        return indexLabel;
     }
 }

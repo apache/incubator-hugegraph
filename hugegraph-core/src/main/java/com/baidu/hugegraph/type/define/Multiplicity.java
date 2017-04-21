@@ -25,40 +25,38 @@ public enum Multiplicity {
      * The given edge label specifies a multi-graph, meaning that the multiplicity is not constrained and that
      * there may be multiple edges of this label between any given pair of vertices.
      */
-    MANY2MANY,
+    MANY2MANY(1, "many2many"),
 
     /**
      * There can only be a single in-edge of this label for a given vertex but multiple out-edges (i.e. in-unique)
      */
-    ONE2MANY,
+    ONE2MANY(2, "one2many"),
 
     /**
      * There can only be a single out-edge of this label for a given vertex but multiple in-edges (i.e. out-unique)
      */
-    MANY2ONE,
+    MANY2ONE(3, "many2one"),
 
     /**
      * There can be only a single in and out-edge of this label for a given vertex (i.e. unique in both directions).
      */
-    ONE2ONE;
+    ONE2ONE(4, "one2one");
 
+    private byte code = 0;
+    private String name = null;
 
-    public String schema() {
-        String shema = "link";
-        switch (this) {
-            case ONE2ONE:
-                shema += "One2One";
-                break;
-            case ONE2MANY:
-                shema += "One2Many";
-                break;
-            case MANY2ONE:
-                shema += "Many2One";
-                break;
-            case MANY2MANY:
-                shema += "Many2Many";
-                break;
-        }
-        return shema;
+    private Multiplicity(int code, String name) {
+        assert code < 256;
+        this.code = (byte) code;
+        this.name = name;
     }
+
+    public byte code() {
+        return this.code;
+    }
+
+    public String string() {
+        return this.name;
+    }
+
 }
