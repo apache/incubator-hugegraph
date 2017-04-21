@@ -137,7 +137,7 @@ public class CassandraStore implements BackendStore {
     public Iterable<BackendEntry> query(Query query) {
         logger.debug("Store query: {}", query);
         this.checkConneted();
-        return this.table(query.resultType()).query(query);
+        return this.table(query.resultType()).query(this.session, query);
     }
 
     @Override

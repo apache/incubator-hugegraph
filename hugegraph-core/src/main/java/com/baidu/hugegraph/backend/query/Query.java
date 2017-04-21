@@ -23,7 +23,7 @@ public class Query implements Cloneable {
         this.resultType = resultType;
         this.orders = new ConcurrentHashMap<>();
         this.offset = 0;
-        this.limit = 0;
+        this.limit = Integer.MAX_VALUE;
     }
 
     public HugeTypes resultType() {

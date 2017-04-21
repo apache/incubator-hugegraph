@@ -307,7 +307,6 @@ public class CassandraSerializer extends AbstractSerializer {
         String name = textEntry.column(HugeKeys.NAME);
         String frequency = textEntry.column(HugeKeys.FREQUENCY);
         String sortKeys = textEntry.column(HugeKeys.SORT_KEYS);
-        String links = textEntry.column(HugeKeys.LINKS);
         String properties = textEntry.column(HugeKeys.PROPERTIES);
 
         HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name,
@@ -315,10 +314,6 @@ public class CassandraSerializer extends AbstractSerializer {
         edgeLabel.frequency(fromJson(frequency, Frequency.class));
         edgeLabel.properties(fromJson(properties, String[].class));
         edgeLabel.sortKeys(fromJson(sortKeys, String[].class));
-        String[] linksArray = fromJson(links, String[].class);
-        for (int i = 0; i < linksArray.length - 1; i += 2) {
-            edgeLabel.link(linksArray[i], linksArray[i + 1]);
-        }
 
         return edgeLabel;
     }

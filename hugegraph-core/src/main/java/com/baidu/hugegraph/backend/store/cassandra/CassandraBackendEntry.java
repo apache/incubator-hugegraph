@@ -60,6 +60,15 @@ public class CassandraBackendEntry implements BackendEntry {
         public void value(String value) {
             this.value = value;
         }
+
+        @Override
+        public String toString() {
+            return String.format("Cell{%s(%s): %s(%s)}",
+                    this.name,
+                    this.nameType,
+                    this.value,
+                    this.valueType);
+        }
     }
 
     public static class Row {
@@ -67,6 +76,10 @@ public class CassandraBackendEntry implements BackendEntry {
         private Id id;
         private Map<HugeKeys, String> keys;
         private List<Cell> cells;
+
+        public Row(HugeTypes type) {
+            this(type, null);
+        }
 
         public Row(HugeTypes type, Id id) {
             this.type = type;
@@ -91,12 +104,12 @@ public class CassandraBackendEntry implements BackendEntry {
             this.keys.put(key, String.valueOf(value));
         }
 
-        public Map<HugeKeys, String> keys() {
-            return this.keys;
+        public String key(HugeKeys key) {
+            return this.keys.get(key);
         }
 
-        public String key(HugeKeys key) {
-            return this.keys.get(key.string());
+        public Map<HugeKeys, String> keys() {
+            return this.keys;
         }
 
         public void cell(Cell value) {
@@ -106,6 +119,15 @@ public class CassandraBackendEntry implements BackendEntry {
         public List<Cell> cells() {
             return this.cells;
         }
+
+        @Override
+        public String toString() {
+            return String.format("Row{type=%s, id=%s, keys=%s, cells=%s}",
+                    this.type,
+                    this.id,
+                    this.keys,
+                    this.cells);
+        }
     }
 
     private Row row = null;
@@ -113,6 +135,10 @@ public class CassandraBackendEntry implements BackendEntry {
 
     public CassandraBackendEntry(Id id) {
         this(null, id);
+    }
+
+    public CassandraBackendEntry(HugeTypes type) {
+        this(type, null);
     }
 
     public CassandraBackendEntry(HugeTypes type, Id id) {
@@ -170,9 +196,13 @@ public class CassandraBackendEntry implements BackendEntry {
         return this.subRows;
     }
 
+    public void subRows(List<Row> rows) {
+        this.subRows = rows;
+    }
+
     @Override
     public String toString() {
-        return String.format("%s, %s",
+        return String.format("CassandraBackendEntry{%s, sub-rows: %s}",
                 this.row.toString(),
                 this.subRows.toString());
     }
