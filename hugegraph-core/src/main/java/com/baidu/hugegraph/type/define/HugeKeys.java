@@ -13,9 +13,6 @@ public enum HugeKeys {
     PROPERTIES(50, "properties"),
     PARTITION_KEYS(51, "partitionKeys"),
     CLUSTERING_KEYS(52, "clusteringKeys"),
-    INDEX_TYPE(53, "indexType"),
-    INDEX_NAME(54, "indexName"),
-    INDEX_MAP(55, "indexMap"),
     PRIMARY_KEYS(56, "primaryKeys"),
 
     // column names of schema type (EdgeLabel)
@@ -29,6 +26,11 @@ public enum HugeKeys {
 
     // column names of schema type (PropertyKey)
     DATA_TYPE(150, "dataType"),
+
+    // column names of schema type (IndexLabel)
+    BASE_TYPE(175, "baseType"),
+    INDEX_TYPE(176, "indexType"),
+    FIELDS(177, "fields"),
 
     // column names of data type (Vertex/Edge)
     LABEL(200, "label"),

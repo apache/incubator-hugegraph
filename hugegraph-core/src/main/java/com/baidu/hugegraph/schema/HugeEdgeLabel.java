@@ -144,8 +144,8 @@ public class HugeEdgeLabel extends EdgeLabel {
     @Override
     public String schema() {
         this.schema = "schema.edgeLabel(\"" + this.name + "\")"
-                + "." + this.frequency.schema() + "()"
-                + "." + this.multiplicity.schema() + "()"
+                + "." + this.frequency.string() + "()"
+                + "." + this.multiplicity.string() + "()"
                 + "." + propertiesSchema()
                 + linkSchema()
                 + StringUtil.descSchema("sortKeys", this.sortKeys)

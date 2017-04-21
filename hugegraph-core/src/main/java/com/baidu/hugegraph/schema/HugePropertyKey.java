@@ -96,7 +96,7 @@ public class HugePropertyKey extends PropertyKey {
     public String schema() {
         String schema = "schema.propertyKey(\"" + this.name + "\")"
                 + "." + this.dataType.schema() + "()"
-                + "." + this.cardinality.schema() + "()"
+                + "." + this.cardinality.string() + "()"
                 + "." + propertiesSchema()
                 + ".create();";
         return schema;

@@ -176,7 +176,7 @@ public abstract class CassandraTable {
 
             HugeKeys[] primaryKeys = new HugeKeys[] { HugeKeys.NAME };
 
-           super.createTable(session, columns, primaryKeys);
+            super.createTable(session, columns, primaryKeys);
         }
     }
 
@@ -225,6 +225,33 @@ public abstract class CassandraTable {
         }
     }
 
+    public static class IndexLabel extends CassandraTable {
+
+        public static final String TABLE = "index_labels";
+
+        public IndexLabel() {
+            super(TABLE);
+        }
+
+        @Override
+        public void init(Session session) {
+            HugeKeys[] columns = new HugeKeys[] {
+                    HugeKeys.NAME,
+                    HugeKeys.BASE_TYPE,
+                    HugeKeys.INDEX_TYPE,
+                    HugeKeys.FIELDS
+            };
+
+            // base-type as clustering key
+            HugeKeys[] primaryKeys = new HugeKeys[] {
+                    HugeKeys.NAME,
+                    HugeKeys.BASE_TYPE
+            };
+
+            super.createTable(session, columns, primaryKeys);
+        }
+    }
+
     public static class Vertex extends CassandraTable {
 
         public static final String TABLE = "vertices";
@@ -232,7 +259,6 @@ public abstract class CassandraTable {
         public Vertex() {
             super(TABLE);
         }
-
         @Override
         public void init(Session session) {
              HugeKeys[] columns = new HugeKeys[] {
@@ -246,6 +272,7 @@ public abstract class CassandraTable {
 
             super.createTable(session, columns, primaryKeys);
         }
+
     }
 
     public static class Edge extends CassandraTable {
@@ -255,7 +282,6 @@ public abstract class CassandraTable {
         public Edge() {
             super(TABLE);
         }
-
         @Override
         public void init(Session session) {
             HugeKeys[] columns = new HugeKeys[] {
@@ -277,6 +303,6 @@ public abstract class CassandraTable {
 
            super.createTable(session, columns, primaryKeys);
         }
-    }
 
+    }
 }

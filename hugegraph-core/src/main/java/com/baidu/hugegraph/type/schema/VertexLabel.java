@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeTypes;
@@ -37,4 +38,9 @@ public abstract class VertexLabel extends SchemaElement {
 
     public abstract VertexLabel primaryKeys(String... keys);
 
+
+    public IndexLabel index(String indexName) {
+        // name reference the base-type column
+        return new HugeIndexLabel(indexName, name, transaction);
+    }
 }

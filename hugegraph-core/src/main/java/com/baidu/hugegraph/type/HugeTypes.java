@@ -8,6 +8,7 @@ public enum HugeTypes {
     VERTEX_LABEL(1),
     EDGE_LABEL(2),
     PROPERTY_KEY(3),
+    INDEX_LABEL(4),
 
     // data types
     VERTEX(101),
