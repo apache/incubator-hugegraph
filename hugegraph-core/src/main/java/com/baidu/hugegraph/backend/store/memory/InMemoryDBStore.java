@@ -38,9 +38,18 @@ public class InMemoryDBStore implements BackendStore {
     public Iterable<BackendEntry> query(Query query) {
         List<BackendEntry> entries = new ArrayList<BackendEntry>();
 
+        // query by id
+        for (Id id : query.ids()) {
+            if (this.store.containsKey(id)) {
+                entries.add(this.store.get(id));
+            }
+        }
+
         this.store.forEach((Object key, BackendEntry item) -> {
             // TODO: Compatible with BackendEntry
             TextBackendEntry entry = (TextBackendEntry) item;
+
+            // query by conditions
             for (Condition c : query.conditions()) {
                 // TODO: deal with others Condition like: and, or...
                 if (c instanceof Condition.Relation) {
@@ -53,17 +62,10 @@ public class InMemoryDBStore implements BackendStore {
             }
 
         });
+
+        logger.info("[store {}] return {} for query: {}",
+                this.name, entries, query);
         return ImmutableList.copyOf(entries);
-    }
-
-    @Override
-    public BackendEntry get(Id id) {
-        return this.store.get(id);
-    }
-
-    @Override
-    public void delete(Id id) {
-        this.store.remove(id);
     }
 
     @Override

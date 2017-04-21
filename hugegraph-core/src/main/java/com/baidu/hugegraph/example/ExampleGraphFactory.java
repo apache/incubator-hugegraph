@@ -140,7 +140,7 @@ public class ExampleGraphFactory {
         graph.tx().commit();
 
         // query
-        GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V("author\u00011");
+        GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V("author\u00021");
         GraphTraversal<Vertex, Edge> edge = vertex.outE("created");
         System.out.println(">>>> query: " + edge.toList());
     }

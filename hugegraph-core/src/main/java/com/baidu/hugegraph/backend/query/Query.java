@@ -3,14 +3,16 @@ package com.baidu.hugegraph.backend.query;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-public class Query {
+public class Query implements Cloneable {
 
     private HugeTypes resultType;
     private Map<HugeKeys, Order> orders;
@@ -19,6 +21,9 @@ public class Query {
 
     public Query(HugeTypes resultType) {
         this.resultType = resultType;
+        this.orders = new ConcurrentHashMap<>();
+        this.offset = 0;
+        this.limit = 0;
     }
 
     public HugeTypes resultType() {
@@ -33,8 +38,8 @@ public class Query {
         return this.orders;
     }
 
-    public void orders(Map<HugeKeys, Order> orders) {
-        this.orders = orders;
+    public void order(HugeKeys key, Order order) {
+        this.orders.put(key, order);
     }
 
     public int offset() {
@@ -59,6 +64,24 @@ public class Query {
 
     public List<Condition> conditions() {
         return ImmutableList.of();
+    }
+
+    @Override
+    public Query clone() {
+        try {
+            return (Query) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new BackendException(e);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Query for %s offset=%d, limit=%d, order by %s",
+                this.resultType,
+                this.offset,
+                this.limit,
+                this.orders.toString());
     }
 
     public enum Order {

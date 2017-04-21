@@ -87,12 +87,6 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     @Override
-    public String toString() {
-        return String.format("{name=%s, dataType=%s, cardinality=%s}",
-                this.name, this.dataType.toString(), this.cardinality.toString());
-    }
-
-    @Override
     public String schema() {
         String schema = "schema.propertyKey(\"" + this.name + "\")"
                 + "." + this.dataType.schema() + "()"

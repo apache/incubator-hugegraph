@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
@@ -161,18 +160,6 @@ public class CassandraStore implements BackendStore {
         }
 
         logger.info("Store cleared: {}", this.name);
-    }
-
-    @Override
-    public BackendEntry get(Id id) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public void delete(Id id) {
-        // TODO Auto-generated method stub
-
     }
 
     @Override

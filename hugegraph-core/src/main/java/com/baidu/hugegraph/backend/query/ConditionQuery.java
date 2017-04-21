@@ -62,4 +62,11 @@ public class ConditionQuery extends IdQuery {
     public List<Condition> conditions() {
         return this.conditions;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s and %s",
+                super.toString(),
+                this.conditions.toString());
+    }
 }
