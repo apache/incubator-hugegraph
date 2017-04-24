@@ -136,7 +136,9 @@ public class HugeVertex extends HugeElement implements Vertex {
     public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
         List<Edge> list = new LinkedList<>();
         for (HugeEdge edge : this.edges) {
-            if (edge.direction() == direction && edge.belongToLabels(edgeLabels)) {
+            if ((edge.direction() == direction
+                    || direction == Direction.BOTH)
+                    && edge.belongToLabels(edgeLabels)) {
                 list.add(edge);
             }
         }

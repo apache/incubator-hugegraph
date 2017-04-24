@@ -161,8 +161,8 @@ public class GraphTransaction extends AbstractTransaction {
     public Iterator<Edge> queryEdges(Object... edgeIds) {
         List<Edge> list = new ArrayList<Edge>(edgeIds.length);
 
-        for (Object vertexId : edgeIds) {
-            Id id = HugeElement.getIdValue(T.id, vertexId);
+        for (Object edgeId : edgeIds) {
+            Id id = HugeElement.getIdValue(T.id, edgeId);
             BackendEntry entry = this.get(HugeTypes.EDGE, id);
             Vertex vertex = this.serializer.readVertex(entry);
             assert vertex != null;
