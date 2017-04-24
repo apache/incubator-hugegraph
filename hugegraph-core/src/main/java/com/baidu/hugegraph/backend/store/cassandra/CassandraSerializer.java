@@ -117,7 +117,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
         // sourceVertex + direction + edge-label-name + sortValues + targetVertex
         row.key(HugeKeys.SOURCE_VERTEX, edge.owner().id().asString());
-        row.key(HugeKeys.DIRECTION, edge.direction().ordinal());
+        row.key(HugeKeys.DIRECTION, edge.direction().name());
         row.key(HugeKeys.LABEL, edge.label());
         row.key(HugeKeys.SORT_VALUES, edge.name());
         row.key(HugeKeys.TARGET_VERTEX, edge.otherVertex().id().asString());
@@ -139,11 +139,11 @@ public class CassandraSerializer extends AbstractSerializer {
     // parse an edge from a sub row
     protected void parseEdge(Row row, HugeVertex vertex) {
         String sourceVertexId = row.key(HugeKeys.SOURCE_VERTEX);
-        int direction = Integer.parseInt(row.key(HugeKeys.DIRECTION));
+        Direction direction = Direction.valueOf(row.key(HugeKeys.DIRECTION));
         String labelName = row.key(HugeKeys.LABEL);
         String targetVertexId = row.key(HugeKeys.TARGET_VERTEX);
 
-        boolean isOutEdge = (direction == Direction.OUT.ordinal());
+        boolean isOutEdge = (direction == Direction.OUT);
         EdgeLabel label = this.graph.openSchemaManager().edgeLabel(labelName);
 
         // TODO: how to construct targetVertex with id

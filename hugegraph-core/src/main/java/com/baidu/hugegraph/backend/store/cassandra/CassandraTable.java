@@ -16,6 +16,8 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.Query.Order;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -27,6 +29,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
+import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -67,6 +70,10 @@ public abstract class CassandraTable {
         select.limit(query.limit());
 
         // NOTE: Cassandra does not support query.offset()
+        if (query.offset() != 0) {
+            logger.warn("Query offset are not currently supported"
+                    + " on Cassandra strore, it will be ignored");
+        }
 
         // order-by
         for (Entry<HugeKeys, Order> order : query.orders().entrySet()) {
@@ -78,6 +85,7 @@ public abstract class CassandraTable {
             }
         }
 
+        // by id
         List<Select> ids = this.queryId2Select(query, select);
 
         if (query.conditions().isEmpty()) {
@@ -85,6 +93,7 @@ public abstract class CassandraTable {
         } else {
             List<Select> conds = new ArrayList<Select>(ids.size());
             for (Select selection : ids) {
+                // by condition
                 conds.addAll(this.queryCondition2Select(query, selection));
             }
             return conds;
@@ -93,6 +102,10 @@ public abstract class CassandraTable {
 
     protected List<Select> queryId2Select(Query query, Select select) {
         // query by id(s)
+        if (query.ids().isEmpty()) {
+            return ImmutableList.of(select);
+        }
+
         List<List<String>> ids = new ArrayList<>(query.ids().size());
         for (Id id : query.ids()) {
             ids.add(this.idColumnValue(id));
@@ -128,7 +141,7 @@ public abstract class CassandraTable {
                 Select idSelection = select;
                 // NOTE: concat with AND relation
                 // like: pk = id and ck1 = v1 and ck2 = v2
-                for (int i = 0; i< names.size(); i++) {
+                for (int i = 0; i < names.size(); i++) {
                     idSelection.where(QueryBuilder.eq(names.get(i), id.get(i)));
                 }
                 selections.add(idSelection);
@@ -139,8 +152,52 @@ public abstract class CassandraTable {
 
     protected Collection<Select> queryCondition2Select(
             Query query, Select select) {
-        // TODO: query by conditions
+        // query by conditions
+        List<Condition> conditions = query.conditions();
+        for (Condition condition : conditions) {
+            select.where(condition2Cql(condition));
+        }
+        logger.debug("query by conditions: {}", select);
         return ImmutableList.of(select);
+    }
+
+    protected static Clause condition2Cql(Condition condition) {
+        switch(condition.type()) {
+            case AND:
+                Condition.And and = (Condition.And) condition;
+                // TODO: return QueryBuilder.and(and.left(), and.right());
+                Clause left = condition2Cql(and.left());
+                Clause right = condition2Cql(and.right());
+                return (Clause) QueryBuilder.raw(String.format("%s AND %s",
+                        left, right));
+            case OR:
+                throw new BackendException("Not support OR currently");
+            case RELATION:
+                Condition.Relation r = (Condition.Relation) condition;
+                return relation2Cql(r);
+            default:
+                String msg = "Not supported condition: " + condition;
+                throw new AssertionError(msg);
+        }
+    }
+
+    protected static Clause relation2Cql(Relation relation) {
+        Relation r = relation;
+        switch (relation.relation()) {
+            case EQ:
+                return QueryBuilder.eq(r.key().name(), r.value());
+            case GT:
+                return QueryBuilder.gt(r.key().name(), r.value());
+            case GTE:
+                return QueryBuilder.gte(r.key().name(), r.value());
+            case LT:
+                return QueryBuilder.lt(r.key().name(), r.value());
+            case LTE:
+                return QueryBuilder.lte(r.key().name(), r.value());
+            case NEQ:
+            default:
+                throw new AssertionError("Not supported relation: " + r);
+        }
     }
 
     protected List<BackendEntry> results2Entries(HugeTypes resultType,
@@ -169,7 +226,8 @@ public abstract class CassandraTable {
                 entry.column(key, value);
             } else if (this.isCellKey(key)) {
                 // about key: such as prop-key, now let's get prop-value by it
-                // TODO: we should improve this code, let Vertex and Edge implement result2Entry()
+                // TODO: we should improve this code,
+                // let Vertex and Edge implement results2Entries()
                 HugeKeys cellKeyType = key;
                 String cellKeyValue = value;
                 HugeKeys cellValueType = this.cellValueType(cellKeyType);
@@ -613,7 +671,7 @@ public abstract class CassandraTable {
             return ImmutableList.copyOf(vertices.values());
         }
 
-        private String formatEdgeId(CassandraBackendEntry.Row row) {
+        protected static String formatEdgeId(CassandraBackendEntry.Row row) {
             String[] values = new String[KEYS.length];
             for (int i = 0; i < KEYS.length; i++) {
                 values[i] = row.key(KEYS[i]);

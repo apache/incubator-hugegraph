@@ -1,6 +1,9 @@
 package com.baidu.hugegraph.example;
 
+import java.util.Iterator;
+
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -10,9 +13,13 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.GraphManager;
+import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.define.HugeKeys;
 
 /**
  * Created by jishilei on 17/3/16.
@@ -139,14 +146,41 @@ public class ExampleGraphFactory {
         graph.addVertex(T.label, "book", "name", "java-3");
         graph.tx().commit();
 
-        // query vertex
+        // query vertex by id
         GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V("author\u00021");
         GraphTraversal<Vertex, Edge> edgesOfVertex = vertex.outE("created");
         System.out.println(">>>> query vertex edge: " + edgesOfVertex.toList());
 
-        // query edge
-        String id = "author\u00021\u00010\u0001authored\u0001\u0001book\u0002java-2";
+        // query edge by condition
+        ConditionQuery q = new ConditionQuery(HugeTypes.VERTEX);
+        q.query(IdGeneratorFactory.generator().generate("author\u00021"));
+        q.eq(HugeKeys.PROPERTY_KEY, "age");
+
+        Iterator<Vertex> vertices = graph.openGraphTransaction().queryVertices(q);
+        System.out.println(">>>> queryVertices(): " + vertices.hasNext());
+        while (vertices.hasNext()) {
+            System.out.println(">>>> " + vertices.next().toString());
+        }
+
+        // query edge by id
+        String id = "author\u00021\u0001OUT\u0001authored\u0001\u0001book\u0002java-2";
         GraphTraversal<Edge, Edge> edges = graph.traversal().E(id);
         System.out.println(">>>> query edge: " + edges.toList());
+
+        // query edge by condition
+        q = new ConditionQuery(HugeTypes.EDGE);
+        q.eq(HugeKeys.SOURCE_VERTEX, "author\u00021");
+        q.eq(HugeKeys.DIRECTION, Direction.OUT.name());
+        q.eq(HugeKeys.LABEL, "authored");
+        q.eq(HugeKeys.SORT_VALUES, "");
+        q.eq(HugeKeys.TARGET_VERTEX, "book\u0002java-1");
+        q.eq(HugeKeys.PROPERTY_KEY, "contribution");
+
+        Iterator<Edge> edges2 = graph.openGraphTransaction().queryEdges(q);
+        System.out.println(">>>> queryEdges(): " + edges2.hasNext());
+        while (edges2.hasNext()) {
+            System.out.println(">>>> " + edges2.next().toString());
+        }
     }
+
 }

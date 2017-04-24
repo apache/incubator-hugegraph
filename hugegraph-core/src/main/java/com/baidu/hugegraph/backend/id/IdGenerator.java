@@ -104,6 +104,19 @@ public abstract class IdGenerator {
         }
 
         @Override
+        public int hashCode() {
+            return this.id.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof StringId)) {
+                return false;
+            }
+            return this.id.equals(((StringId) other).id);
+        }
+
+        @Override
         public String toString() {
             return this.asString();
         }
@@ -147,6 +160,19 @@ public abstract class IdGenerator {
         public int compareTo(Id other) {
             long otherId = ((LongId) other).id;
             return Long.compare(this.id, otherId);
+        }
+
+        @Override
+        public int hashCode() {
+            return (int) this.id;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof LongId)) {
+                return false;
+            }
+            return this.id == ((LongId) other).id;
         }
 
         @Override
