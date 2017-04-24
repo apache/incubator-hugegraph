@@ -28,6 +28,7 @@ import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 public class GraphTransaction extends AbstractTransaction {
 
@@ -122,8 +123,17 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Iterator<Edge> queryEdges(Object... edgeIds) {
-        // TODO Auto-generated method stub
-        return null;
+        List<Edge> list = new ArrayList<Edge>(edgeIds.length);
+
+        for (Object vertexId : edgeIds) {
+            Id id = HugeElement.getIdValue(T.id, vertexId);
+            BackendEntry entry = this.get(HugeTypes.EDGE, id);
+            Vertex vertex = this.serializer.readVertex(entry);
+            assert vertex != null;
+            list.addAll(ImmutableList.copyOf(vertex.edges(Direction.BOTH)));
+        }
+
+        return list.iterator();
     }
 
     public Iterator<Edge> queryEdges(Query q) {
