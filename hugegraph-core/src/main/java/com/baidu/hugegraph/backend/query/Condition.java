@@ -1,7 +1,5 @@
 package com.baidu.hugegraph.backend.query;
 
-import org.apache.tinkerpop.gremlin.process.traversal.Compare;
-
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public abstract class Condition {
@@ -11,6 +9,15 @@ public abstract class Condition {
         RELATION,
         AND,
         OR;
+    }
+
+    public enum RelationType {
+        EQ,
+        GT,
+        GTE,
+        LT,
+        LTE,
+        NEQ;
     }
 
     public abstract ConditionType type();
@@ -32,27 +39,27 @@ public abstract class Condition {
     }
 
     public static Relation eq(HugeKeys key, Object value) {
-        return new Relation(key, Compare.eq, value);
+        return new Relation(key, RelationType.EQ, value);
     }
 
     public static Relation gt(HugeKeys key, Object value) {
-        return new Relation(key, Compare.gt, value);
+        return new Relation(key, RelationType.GT, value);
     }
 
     public static Relation gte(HugeKeys key, Object value) {
-        return new Relation(key, Compare.gte, value);
+        return new Relation(key, RelationType.GTE, value);
     }
 
     public static Relation lt(HugeKeys key, Object value) {
-        return new Relation(key, Compare.lt, value);
+        return new Relation(key, RelationType.LT, value);
     }
 
     public static Relation lte(HugeKeys key, Object value) {
-        return new Relation(key, Compare.lte, value);
+        return new Relation(key, RelationType.LTE, value);
     }
 
     public static Relation neq(HugeKeys key, Object value) {
-        return new Relation(key, Compare.neq, value);
+        return new Relation(key, RelationType.NEQ, value);
     }
 
     public static Condition none() {
@@ -110,7 +117,7 @@ public abstract class Condition {
         // column name
         private HugeKeys key;
         // relational operator (like: =, >, <, in, ...)
-        private Compare relation;
+        private RelationType relation;
         // single-type value or a list of single-type value
         private Object value;
 
@@ -119,10 +126,10 @@ public abstract class Condition {
         }
 
         public Relation(HugeKeys key, Object value) {
-            this(key, Compare.eq, value);
+            this(key, RelationType.EQ, value);
         }
 
-        public Relation(HugeKeys key, Compare op, Object value) {
+        public Relation(HugeKeys key, RelationType op, Object value) {
             this.key =key;
             this.relation = op;
             this.value = value;
@@ -137,7 +144,7 @@ public abstract class Condition {
             return this.key;
         }
 
-        public Compare relation() {
+        public RelationType relation() {
             return this.relation;
         }
 

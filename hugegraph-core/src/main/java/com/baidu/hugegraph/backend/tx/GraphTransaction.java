@@ -154,8 +154,16 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query q) {
-        // TODO Auto-generated method stub
-        return null;
+        List<Vertex> list = new ArrayList<Vertex>();
+
+        Iterator<BackendEntry> entries = super.query(q).iterator();
+        while (entries.hasNext()) {
+            Vertex vertex = this.serializer.readVertex(entries.next());
+            assert vertex != null;
+            list.add(vertex);
+        }
+
+        return list.iterator();
     }
 
     public Iterator<Edge> queryEdges(Object... edgeIds) {
@@ -173,8 +181,15 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Iterator<Edge> queryEdges(Query q) {
-        // TODO Auto-generated method stub
-        return null;
+        Iterator<Vertex> vertices = this.queryVertices(q);
+
+        List<Edge> list = new ArrayList<Edge>();
+        while (vertices.hasNext()) {
+            Vertex vertex = vertices.next();
+            list.addAll(ImmutableList.copyOf(vertex.edges(Direction.BOTH)));
+        }
+
+        return list.iterator();
     }
 
     public org.apache.tinkerpop.gremlin.structure.Transaction tx() {
