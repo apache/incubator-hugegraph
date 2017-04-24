@@ -2,7 +2,6 @@ package com.baidu.hugegraph.backend.id;
 
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.util.NumericUtil;
@@ -23,14 +22,8 @@ public abstract class IdGenerator {
     /****************************** id generate ******************************/
 
     public abstract Id generate(SchemaElement entry);
-
     public abstract Id generate(HugeVertex entry);
-
     public abstract Id generate(HugeEdge entry);
-
-    public abstract Id generate(HugeIndex index);
-
-    public abstract Id[] split(Id id);
 
     // generate a string id
     public Id generate(String id) {
