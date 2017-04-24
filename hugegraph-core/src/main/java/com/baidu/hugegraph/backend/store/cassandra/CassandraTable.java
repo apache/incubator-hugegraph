@@ -44,20 +44,11 @@ public abstract class CassandraTable {
     }
 
     public Iterable<BackendEntry> query(Session session, Query query) {
-        List<BackendEntry> entries = new LinkedList<>();
-
         Select select = query2Select(query);
         ResultSet results = session.execute(select);
-
-        Iterator<Row> iterator = results.iterator();
-        while (iterator.hasNext()) {
-            Row row = iterator.next();
-            entries.add(result2Entry(query.resultType(), row));
-        }
-
-        Iterable<BackendEntry> rs = this.mergeEntries(entries);
-        logger.debug("Cassandra return {} for query {}",
-                rs, select);
+        Iterable<BackendEntry> rs = this.results2Entries(
+                query.resultType(), results);
+        logger.debug("Cassandra return {} for query {}", rs, select);
         return rs;
     }
 
@@ -70,16 +61,51 @@ public abstract class CassandraTable {
         // NOTE: Cassandra does not support query.offset()
         // TODO: deal with order-by: QueryBuilder.asc(columnName)
 
-        // query by id(s)
-        List<String> idList = new ArrayList<>(query.ids().size());
-        for (Id id : query.ids()) {
-            idList.add(id.asString());
-        }
-        select.where(QueryBuilder.in(this.idColumn().name(), idList));
-
-        // TODO: query by conditions
+        this.queryId2Select(query, select);
+        this.queryCondition2Select(query, select);
 
         return select;
+    }
+
+    protected Select queryId2Select(Query query, Select select) {
+        // query by id(s)
+        List<List<String>> idList = new ArrayList<>(query.ids().size());
+        for (Id id : query.ids()) {
+            idList.add(this.idColumnValue(id));
+        }
+
+        List<String> names = this.idColumnName();
+        if (names.size() == 1) {
+            assert idList.size() == 1;
+            select.where(QueryBuilder.in(names.get(0), idList.get(0)));
+
+        } else {
+            // NOTE: error of multi-column IN when including partition key:
+            // Multi-column relations can only be applied to clustering columns
+            select.where(QueryBuilder.in(names, idList));
+        }
+        logger.debug("Cassandra ... query {}", select);
+
+
+        return select;
+    }
+
+    protected Select queryCondition2Select(Query query, Select select) {
+        // TODO: query by conditions
+        return select;
+    }
+
+    protected Iterable<BackendEntry> results2Entries(HugeTypes resultType,
+            ResultSet results) {
+        List<BackendEntry> entries = new LinkedList<>();
+
+        Iterator<Row> iterator = results.iterator();
+        while (iterator.hasNext()) {
+            Row row = iterator.next();
+            entries.add(result2Entry(resultType, row));
+        }
+
+        return this.mergeEntries(entries);
     }
 
     protected CassandraBackendEntry result2Entry(HugeTypes type, Row row) {
@@ -112,8 +138,12 @@ public abstract class CassandraTable {
         return entry;
     }
 
-    protected HugeKeys idColumn() {
-        return HugeKeys.NAME;
+    protected List<String> idColumnName() {
+        return ImmutableList.of(HugeKeys.NAME.name());
+    }
+
+    protected List<String> idColumnValue(Id id) {
+        return ImmutableList.of(id.asString());
     }
 
     protected Iterable<BackendEntry> mergeEntries(List<BackendEntry> entries) {
@@ -350,8 +380,8 @@ public abstract class CassandraTable {
         }
 
         @Override
-        protected HugeKeys idColumn() {
-            return HugeKeys.ID;
+        protected List<String> idColumnName() {
+            return ImmutableList.of(HugeKeys.ID.name());
         }
 
         @Override
@@ -399,6 +429,15 @@ public abstract class CassandraTable {
 
         public static final String TABLE = "edges";
 
+        private static final HugeKeys[] KEYS = new HugeKeys[] {
+                HugeKeys.SOURCE_VERTEX,
+                HugeKeys.DIRECTION,
+                HugeKeys.LABEL,
+                HugeKeys.SORT_VALUES,
+                HugeKeys.TARGET_VERTEX };
+
+        private static List<String> KEYS_STRING = null;
+
         public Edge() {
             super(TABLE);
         }
@@ -426,8 +465,19 @@ public abstract class CassandraTable {
         }
 
         @Override
-        protected HugeKeys idColumn() {
-            return HugeKeys.SOURCE_VERTEX;
+        protected List<String> idColumnName() {
+            if (KEYS_STRING == null) {
+                KEYS_STRING = new ArrayList<>(KEYS.length);
+                for (HugeKeys k : KEYS) {
+                    KEYS_STRING.add(k.name());
+                }
+            }
+            return KEYS_STRING;
+        }
+
+        @Override
+        protected List<String> idColumnValue(Id id) {
+            return ImmutableList.copyOf(id.asString().split("\u0001"));
         }
 
         @Override
@@ -485,14 +535,8 @@ public abstract class CassandraTable {
         }
 
         private String formatEdgeId(CassandraBackendEntry.Row row) {
-            final HugeKeys[] keys = new HugeKeys[] {
-                    HugeKeys.SOURCE_VERTEX,
-                    HugeKeys.DIRECTION,
-                    HugeKeys.LABEL,
-                    HugeKeys.SORT_VALUES,
-                    HugeKeys.TARGET_VERTEX };
-            List<String> values = new ArrayList<>(keys.length);
-            for (HugeKeys key : keys) {
+            List<String> values = new ArrayList<>(KEYS.length);
+            for (HugeKeys key : KEYS) {
                 values.add(row.key(key));
             }
             return String.join("\u0001", values);

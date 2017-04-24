@@ -139,9 +139,14 @@ public class ExampleGraphFactory {
         graph.addVertex(T.label, "book", "name", "java-3");
         graph.tx().commit();
 
-        // query
+        // query vertex
         GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V("author\u00021");
-        GraphTraversal<Vertex, Edge> edge = vertex.outE("created");
-        System.out.println(">>>> query: " + edge.toList());
+        GraphTraversal<Vertex, Edge> edgesOfVertex = vertex.outE("created");
+        System.out.println(">>>> query vertex edge: " + edgesOfVertex.toList());
+
+        // query edge
+        String id = "author\u00021\u00010\u0001authored\u0001\u0001book\u0002java-2";
+        GraphTraversal<Edge, Edge> edges = graph.traversal().E(id);
+        System.out.println(">>>> query edge: " + edges.toList());
     }
 }
