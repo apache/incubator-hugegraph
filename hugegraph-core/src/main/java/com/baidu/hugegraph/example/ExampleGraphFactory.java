@@ -146,17 +146,25 @@ public class ExampleGraphFactory {
         graph.addVertex(T.label, "book", "name", "java-3");
         graph.tx().commit();
 
+        // query all
+        GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V();
+        System.out.println(">>>> query all vertices: size=" + vertex.toList().size());
+
         // query vertex by id
-        GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V("author\u00021");
+        vertex = graph.traversal().V("author\u00021");
         GraphTraversal<Vertex, Edge> edgesOfVertex = vertex.outE("created");
-        System.out.println(">>>> query vertex edge: " + edgesOfVertex.toList());
+        System.out.println(">>>> query edges of vertex: " + edgesOfVertex.toList());
+
+        vertex = graph.traversal().V("author\u00021");
+        GraphTraversal<Vertex, Vertex> verticesOfVertex = vertex.out("created");
+        System.out.println(">>>> query vertices of vertex: " + verticesOfVertex.toList());
 
         // query edge by condition
         ConditionQuery q = new ConditionQuery(HugeTypes.VERTEX);
         q.query(IdGeneratorFactory.generator().generate("author\u00021"));
         q.eq(HugeKeys.PROPERTY_KEY, "age");
 
-        Iterator<Vertex> vertices = graph.openGraphTransaction().queryVertices(q);
+        Iterator<Vertex> vertices = graph.vertices(q);
         System.out.println(">>>> queryVertices(): " + vertices.hasNext());
         while (vertices.hasNext()) {
             System.out.println(">>>> " + vertices.next().toString());
@@ -176,11 +184,15 @@ public class ExampleGraphFactory {
         q.eq(HugeKeys.TARGET_VERTEX, "book\u0002java-1");
         q.eq(HugeKeys.PROPERTY_KEY, "contribution");
 
-        Iterator<Edge> edges2 = graph.openGraphTransaction().queryEdges(q);
+        Iterator<Edge> edges2 = graph.edges(q);
         System.out.println(">>>> queryEdges(): " + edges2.hasNext());
         while (edges2.hasNext()) {
             System.out.println(">>>> " + edges2.next().toString());
         }
+
+        // query by vertex label
+        vertex = graph.traversal().V().hasLabel("book");
+        //System.out.println(">>>> query all books: size=" + vertex.toList().size());
     }
 
 }

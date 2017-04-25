@@ -59,15 +59,18 @@ public abstract class CassandraTable {
             rs.addAll(this.results2Entries(query.resultType(), results));
         }
 
-        logger.debug("Cassandra return {} for query {}", rs, query);
+        logger.debug("return {} for query {}", rs, query);
         return rs;
     }
 
     protected List<Select> query2Select(Query query) {
         // table
         Select select = QueryBuilder.select().from(this.table);
+
         // limit
-        select.limit(query.limit());
+        if (query.limit() != Query.NO_LIMIT) {
+            select.limit(query.limit());
+        }
 
         // NOTE: Cassandra does not support query.offset()
         if (query.offset() != 0) {
@@ -89,6 +92,7 @@ public abstract class CassandraTable {
         List<Select> ids = this.queryId2Select(query, select);
 
         if (query.conditions().isEmpty()) {
+            logger.debug("query only by id(s): {}", ids);
             return ids;
         } else {
             List<Select> conds = new ArrayList<Select>(ids.size());
@@ -96,6 +100,7 @@ public abstract class CassandraTable {
                 // by condition
                 conds.addAll(this.queryCondition2Select(query, selection));
             }
+            logger.debug("query by conditions: {}", conds);
             return conds;
         }
     }
@@ -157,7 +162,6 @@ public abstract class CassandraTable {
         for (Condition condition : conditions) {
             select.where(condition2Cql(condition));
         }
-        logger.debug("query by conditions: {}", select);
         return ImmutableList.of(select);
     }
 

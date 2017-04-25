@@ -14,6 +14,8 @@ import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
 
+    public static final int NO_LIMIT = Integer.MAX_VALUE;
+
     private HugeTypes resultType;
     private Map<HugeKeys, Order> orders;
     private int offset;
@@ -23,7 +25,7 @@ public class Query implements Cloneable {
         this.resultType = resultType;
         this.orders = new ConcurrentHashMap<>();
         this.offset = 0;
-        this.limit = Integer.MAX_VALUE;
+        this.limit = NO_LIMIT;
     }
 
     public HugeTypes resultType() {

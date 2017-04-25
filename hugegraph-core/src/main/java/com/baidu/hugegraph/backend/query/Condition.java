@@ -12,12 +12,22 @@ public abstract class Condition {
     }
 
     public enum RelationType {
-        EQ,
-        GT,
-        GTE,
-        LT,
-        LTE,
-        NEQ;
+        EQ("=="),
+        GT(">"),
+        GTE(">="),
+        LT("<"),
+        LTE("<="),
+        NEQ("!=");
+
+        private final String operator;
+
+        private RelationType(String op) {
+            this.operator = op;
+        }
+
+        public String string() {
+            return this.operator;
+        }
     }
 
     public abstract ConditionType type();
@@ -154,8 +164,8 @@ public abstract class Condition {
 
         @Override
         public String toString() {
-            return String.format("%s %s %s",
-                    this.key, this.relation.name(), this.value);
+            return String.format("%s%s%s",
+                    this.key, this.relation.string(), this.value);
         }
     }
 

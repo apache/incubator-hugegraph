@@ -206,7 +206,7 @@ public class CassandraSerializer extends AbstractSerializer {
         // assume id with a label
         // String labelName = entry.column(HugeKeys.LABEL);
         // TODO: improve Id split()
-        String labelName = SplicingIdGenerator.split(entry.id())[0];
+        String labelName = SplicingIdGenerator.parse(entry.id())[0];
         VertexLabel label = this.graph.openSchemaManager().vertexLabel(labelName);
 
         // id
