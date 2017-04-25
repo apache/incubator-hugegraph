@@ -15,6 +15,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.Multiplicity;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.StringUtil;
 import com.google.common.base.Preconditions;
 
@@ -36,6 +37,12 @@ public class HugeEdgeLabel extends EdgeLabel {
         this.frequency = Frequency.SINGLE;
         this.links = new ArrayList<>();
         this.sortKeys = new LinkedHashSet<>();
+    }
+
+    @Override
+    public HugeEdgeLabel indexNames(String... names) {
+        this.indexNames.addAll(Arrays.asList(names));
+        return this;
     }
 
     @Override

@@ -1,11 +1,11 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.util.StringUtil;
@@ -15,27 +15,36 @@ import com.baidu.hugegraph.util.StringUtil;
  */
 public class HugeIndexLabel extends IndexLabel {
 
-    private String indexName;
-    private String baseType;
+    private HugeTypes baseType;
+    private String baseValue;
     private IndexType indexType;
     private Set<String> indexFields;
 
-    public HugeIndexLabel(String indexName, String name, SchemaTransaction transaction) {
+    public HugeIndexLabel(String name) {
+        this(name, null, null, null);
+    }
+
+    public HugeIndexLabel(String name, HugeTypes baseType, String baseValue, SchemaTransaction transaction) {
         super(name, transaction);
-        this.indexName = indexName;
-        // TODO: I always feel that some stranger in here.
-        this.baseType = name;
+        this.baseType = baseType;
+        this.baseValue = baseValue;
         this.indexFields = new HashSet<>();
     }
 
+    // TODO: index label weather contain it's indexes?
     @Override
-    public String indexName() {
-        return indexName;
+    public HugeIndexLabel indexNames(String... names) {
+        return null;
     }
 
     @Override
-    public String baseType() {
+    public HugeTypes baseType() {
         return this.baseType;
+    }
+
+    @Override
+    public String baseValue() {
+        return baseValue;
     }
 
     @Override
@@ -67,12 +76,6 @@ public class HugeIndexLabel extends IndexLabel {
     }
 
     @Override
-    public IndexLabel range() {
-        this.indexType = IndexType.RANGE;
-        return this;
-    }
-
-    @Override
     public IndexLabel search() {
         this.indexType = IndexType.SEARCH;
         return this;
@@ -80,10 +83,11 @@ public class HugeIndexLabel extends IndexLabel {
 
     @Override
     public String schema() {
-        this.schema = ".index(\"" + this.indexName + "\")"
+        String schema = "";
+        schema = ".index(\"" + this.name + "\")"
                 + StringUtil.descSchema("by", this.indexFields)
                 + "." + this.indexType.string() + "()";
-        return this.schema;
+        return schema;
     }
 
     @Override
@@ -92,6 +96,9 @@ public class HugeIndexLabel extends IndexLabel {
             throw new HugeException("The indexLabel:" + this.name + " has exised.");
         }
 
+        // TODO: should implement update operation
+        this.transaction.updateSchemaElement(this.baseType, this.baseValue, this.name);
+
         // TODO: need to check param.
         this.transaction.addIndexLabel(this);
         this.commit();
@@ -99,6 +106,6 @@ public class HugeIndexLabel extends IndexLabel {
 
     @Override
     public void remove() {
-
+        this.transaction.removeIndexLabel(this.name);
     }
 }

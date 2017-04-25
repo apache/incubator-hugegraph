@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.TimeUtil;
 
@@ -36,6 +37,11 @@ public class SnowflakeIdGenerator extends IdGenerator {
 
     @Override
     public Id generate(HugeEdge entry) {
+        return this.generate();
+    }
+
+    @Override
+    public Id generate(HugeIndex index) {
         return this.generate();
     }
 
@@ -93,8 +99,8 @@ public class SnowflakeIdGenerator extends IdGenerator {
             this.datacenterId = datacenterId;
             LOG.info(String.format(
                     "worker starting. timestamp left shift %d,"
-                    + "datacenter id bits %d, worker id bits %d,"
-                    + "sequence bits %d, workerid %d",
+                            + "datacenter id bits %d, worker id bits %d,"
+                            + "sequence bits %d, workerid %d",
                     this.timestampLeftShift,
                     this.datacenterIdBits,
                     this.workerIdBits,
@@ -107,10 +113,10 @@ public class SnowflakeIdGenerator extends IdGenerator {
 
             if (timestamp < this.lastTimestamp) {
                 LOG.error(String.format("clock is moving backwards."
-                        + "Rejecting requests until %d.",
+                                + "Rejecting requests until %d.",
                         this.lastTimestamp));
                 throw new RuntimeException(String.format("Clock moved backwards."
-                        + "Refusing to generate id for %d milliseconds",
+                                + "Refusing to generate id for %d milliseconds",
                         this.lastTimestamp - timestamp));
             }
 

@@ -6,7 +6,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeTypes;
 
-public abstract class AbstractSerializer implements VertexSerializer, SchemaSerializer {
+public abstract class AbstractSerializer implements VertexSerializer, SchemaSerializer, IndexSerializer {
 
     protected HugeGraph graph = null;
 
