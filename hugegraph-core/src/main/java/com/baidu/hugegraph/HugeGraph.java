@@ -8,6 +8,7 @@ import java.util.Iterator;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
+import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
@@ -29,6 +31,8 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.GraphManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeGraphManager;
+import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
+import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 
 /**
  * Created by jishilei on 17/3/17.
@@ -36,6 +40,17 @@ import com.baidu.hugegraph.structure.HugeGraphManager;
 public class HugeGraph implements Graph {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeGraph.class);
+
+    static {
+        TraversalStrategies strategies = null;
+        strategies = TraversalStrategies.GlobalCache.getStrategies(
+                Graph.class).clone();
+        strategies.addStrategies(
+                HugeVertexStepStrategy.instance(),
+                HugeGraphStepStrategy.instance());
+        TraversalStrategies.GlobalCache.registerStrategies(
+                HugeGraph.class, strategies);
+    }
 
     protected HugeConfiguration configuration = null;
     protected HugeFeatures features = null;
@@ -156,9 +171,17 @@ public class HugeGraph implements Graph {
         return this.graphTransaction.queryVertices(objects);
     }
 
+    public Iterator<Vertex> vertices(Query query) {
+        return this.graphTransaction.queryVertices(query);
+    }
+
     @Override
     public Iterator<Edge> edges(Object... objects) {
         return this.graphTransaction.queryEdges(objects);
+    }
+
+    public Iterator<Edge> edges(Query query) {
+        return this.graphTransaction.queryEdges(query);
     }
 
     @Override

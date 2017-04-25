@@ -54,7 +54,12 @@ public class SplicingIdGenerator extends IdGenerator {
     }
 
     public static String[] split(Id id) {
-        String[] parts = id.asString().split(IDS_SPLITOR);
+        String[] ids = id.asString().split(IDS_SPLITOR);
+        return ids;
+    }
+
+    public static String[] parse(Id id) {
+        String[] parts = id.asString().split(ID_SPLITOR);
         return parts;
     }
 }
