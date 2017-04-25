@@ -38,7 +38,6 @@ public abstract class VertexLabel extends SchemaElement {
 
     public abstract VertexLabel primaryKeys(String... keys);
 
-
     public IndexLabel index(String indexName) {
         // name reference the base-type column
         return new HugeIndexLabel(indexName, name, transaction);

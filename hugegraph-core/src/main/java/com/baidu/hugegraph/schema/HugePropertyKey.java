@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.schema;
 
+import java.util.Arrays;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,6 +10,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
+import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.StringUtil;
 
 /**
@@ -24,6 +27,12 @@ public class HugePropertyKey extends PropertyKey {
         super(name, transaction);
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
+    }
+
+    @Override
+    public HugePropertyKey indexNames(String... names) {
+        this.indexNames.addAll(Arrays.asList(names));
+        return this;
     }
 
     @Override

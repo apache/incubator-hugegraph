@@ -1,12 +1,16 @@
 package com.baidu.hugegraph.backend.tx;
 
+import static com.baidu.hugegraph.backend.id.SplicingIdGenerator.ID_SPLITOR;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -23,8 +27,11 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.google.common.base.Preconditions;
@@ -59,6 +66,35 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Vertex addVertex(HugeVertex vertex) {
+        // serialize vertex to entry
+        this.addEntry(this.serializer.writeVertex(vertex));
+
+        // 得到当前顶点对应的索引元数据信息
+        // fetch index names of current vertex label.
+        VertexLabel vertexLabel = graph.schemaTransaction().getVertexLabel(vertex.label());
+        Set<String> indexNames = vertexLabel.indexNames();
+        for (String indexName : indexNames) {
+            IndexLabel indexLabel = graph.schemaTransaction().getIndexLabel(indexName);
+
+            String indexLabelId = indexLabel.name();
+            Set<String> indexFields = indexLabel.indexFields();
+
+            IndexType baseType = indexLabel.indexType();
+            List<String> propertyValues = new LinkedList<>();
+
+            indexFields.forEach(field -> propertyValues.add(vertex.property(field).value().toString()));
+
+            Set<String> elemenetIds = new LinkedHashSet<>();
+            elemenetIds.add(vertex.id().asString());
+
+            HugeIndex index = new HugeIndex(baseType);
+            // TODO: I feel not confortable by use static import
+            index.setPropertyValues(StringUtils.join(propertyValues, ID_SPLITOR));
+            index.setIndexLabelId(indexLabelId);
+            index.setElementIds(elemenetIds);
+            this.addEntry(this.serializer.writeIndex(index));
+        }
+
         return this.vertexes.add(vertex) ? vertex : null;
     }
 

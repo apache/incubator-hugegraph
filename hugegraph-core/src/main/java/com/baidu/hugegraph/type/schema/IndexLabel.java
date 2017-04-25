@@ -27,8 +27,6 @@ public abstract class IndexLabel extends SchemaElement {
 
     public abstract IndexLabel secondary();
 
-    public abstract IndexLabel range();
-
     public abstract IndexLabel search();
 
     public abstract void create();

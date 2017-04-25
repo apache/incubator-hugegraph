@@ -17,6 +17,6 @@ public interface SchemaSerializer {
     public EdgeLabel readEdgeLabel(BackendEntry entry);
     public PropertyKey readPropertyKey(BackendEntry entry);
 
-    public BackendEntry writeIndexLabel(HugeIndexLabel indexLabel);
+    public BackendEntry writeIndexLabel(IndexLabel indexLabel);
     public IndexLabel readIndexLabel(BackendEntry entry);
 }

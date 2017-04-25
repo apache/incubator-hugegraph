@@ -2,7 +2,9 @@ package com.baidu.hugegraph.backend.id;
 
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.type.define.IndexType;
 
 public class SplicingIdGenerator extends IdGenerator {
 
@@ -47,6 +49,15 @@ public class SplicingIdGenerator extends IdGenerator {
                 IDS_SPLITOR,
                 entry.targetVertex().id().asString());
         return generate(id);
+    }
+
+    @Override
+    public Id generate(HugeIndex index) {
+        if (index.getIndexType() == IndexType.SECONDARY) {
+            return generate(index.getPropertyValues());
+        } else {
+            return generate(index.getIndexLabelId());
+        }
     }
 
     @Override

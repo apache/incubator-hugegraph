@@ -19,6 +19,9 @@ public enum HugeTypes {
     EDGE_IN(121), // edge's direction is IN for the specified vertex
     PROPERTY(130), // edge property
 
+    SECONDARY_INDEX(150),
+    SEARCH_INDEX(151),
+
     MAX_TYPE(255);
 
     // HugeType define

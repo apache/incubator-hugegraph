@@ -1,7 +1,9 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +14,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.schema.PropertyKey;
+import com.baidu.hugegraph.type.schema.VertexLabel;
 
 /**
  * Created by liningrui on 2017/3/27.
@@ -25,11 +28,13 @@ public abstract class SchemaElement implements Namifiable, HugeType {
     // TODO:This is a questionable place，mutual reference
     protected SchemaTransaction transaction;
     protected Map<String, PropertyKey> properties;
+    protected Set<String> indexNames;
 
     public SchemaElement(String name, SchemaTransaction transaction) {
         this.name = name;
         this.transaction = transaction;
         this.properties = new HashMap<>();
+        this.indexNames = new LinkedHashSet<>();
     }
 
     public Map<String, PropertyKey> properties() {
@@ -58,6 +63,12 @@ public abstract class SchemaElement implements Namifiable, HugeType {
         int endIdx = props.lastIndexOf(",") > 0 ? props.length() - 1 : props.length();
         return "properties(" + props.substring(0, endIdx) + ")";
     }
+
+    public Set<String> indexNames() {
+        return this.indexNames;
+    }
+
+    public abstract SchemaElement indexNames(String... names);
 
     protected boolean commit() {
         try {

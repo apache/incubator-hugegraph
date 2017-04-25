@@ -10,6 +10,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.cassandra.CassandraBackendEntry;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
@@ -17,6 +18,7 @@ import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeTypes;
@@ -381,12 +383,13 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public BackendEntry writeIndexLabel(HugeIndexLabel indexLabel) {
+    public BackendEntry writeIndexLabel(IndexLabel indexLabel) {
         Id id = IdGeneratorFactory.generator().generate(indexLabel);
+        TextBackendEntry entry = this.writeId(indexLabel.type(), id);
 
-        TextBackendEntry entry = new TextBackendEntry(id);
-        entry.column(HugeKeys.NAME.string(), indexLabel.name());
         entry.column(HugeKeys.BASE_TYPE.string(), toJson(indexLabel.baseType()));
+        entry.column(HugeKeys.BASE_VALUE.string(), toJson(indexLabel.baseValue()));
+        entry.column(HugeKeys.NAME.string(), indexLabel.name());
         entry.column(HugeKeys.INDEX_TYPE.string(), toJson(indexLabel.indexType()));
         entry.column(HugeKeys.FIELDS.string(), toJson(indexLabel.indexFields().toArray()));
         return entry;
@@ -394,24 +397,36 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public IndexLabel readIndexLabel(BackendEntry entry) {
+
         if (entry == null) {
             return null;
         }
 
         entry = convertEntry(entry);
-        assert entry instanceof TextBackendEntry;
+        assert entry instanceof CassandraBackendEntry;
 
         TextBackendEntry textEntry = (TextBackendEntry) entry;
-        String name = textEntry.column(HugeKeys.NAME.string());
-        String baseType = textEntry.column(HugeKeys.BASE_TYPE.string());
+        HugeTypes baseType = fromJson(textEntry.column(HugeKeys.BASE_TYPE.string()), HugeTypes.class);
+        String baseValue = textEntry.column(HugeKeys.BASE_VALUE.string());
+        String indexName = textEntry.column(HugeKeys.NAME.string());
         String indexType = textEntry.column(HugeKeys.INDEX_TYPE.string());
         String indexFields = textEntry.column(HugeKeys.FIELDS.string());
 
-        HugeIndexLabel indexLabel = new HugeIndexLabel(name, baseType,
+        HugeIndexLabel indexLabel = new HugeIndexLabel(indexName, baseType, baseValue,
                 this.graph.schemaTransaction());
         indexLabel.indexType(fromJson(indexType, IndexType.class));
         indexLabel.by(fromJson(indexFields, String[].class));
 
         return indexLabel;
+    }
+
+    @Override
+    public BackendEntry writeIndex(HugeIndex index) {
+        return null;
+    }
+
+    @Override
+    public HugeIndex readIndex(BackendEntry entry, IndexType indexType) {
+        return null;
     }
 }

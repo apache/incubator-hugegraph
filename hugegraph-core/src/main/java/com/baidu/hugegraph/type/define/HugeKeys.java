@@ -39,7 +39,13 @@ public enum HugeKeys {
     PROPERTY_KEY(203, "propertyKey"),
     PROPERTY_VALUE(204, "propertyValue"),
     DIRECTION(205, "direction"),
-    SORT_VALUES(206, "sortValues");
+    SORT_VALUES(206, "sortValues"),
+
+    // column names of index type
+    INDEX_NAME(220, "indexName"),
+    INDEX_LABEL_ID(221, "indexLabelId"),
+    ELEMENT_IDS(222, "elementIds");
+
 
     // HugeKeys define
     private byte code = 0;

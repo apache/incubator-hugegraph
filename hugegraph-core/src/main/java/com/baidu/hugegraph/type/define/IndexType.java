@@ -7,9 +7,7 @@ public enum IndexType {
 
     SECONDARY(1, "secondary"),
 
-    RANGE(2, "range"),
-
-    SEARCH(3, "search");
+    SEARCH(2, "search");
 
     private byte code = 0;
     private String name = null;

@@ -39,6 +39,12 @@ public class HugeVertexLabel extends VertexLabel {
     }
 
     @Override
+    public HugeVertexLabel indexNames(String... names) {
+        this.indexNames.addAll(Arrays.asList(names));
+        return this;
+    }
+
+    @Override
     public String schema() {
         return "schema.vertexLabel(\"" + this.name + "\")"
                 + "." + propertiesSchema()
