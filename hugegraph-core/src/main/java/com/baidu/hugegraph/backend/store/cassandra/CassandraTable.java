@@ -451,19 +451,16 @@ public abstract class CassandraTable {
         session.execute(SchemaBuilder.dropTable(this.table).ifExists());
     }
 
-    protected void createIndex(Session session,
-                               Map<String, HugeKeys> indexColumns) {
+    protected void createIndex(Session session, String indexName, HugeKeys column) {
 
         StringBuilder sb = new StringBuilder();
-        indexColumns.forEach((indexName, column) -> {
-            sb.append("CREATE INDEX ");
-            sb.append(indexName);
-            sb.append(" ON ");
-            sb.append(this.table);
-            sb.append("(");
-            sb.append(column.name());
-            sb.append(");");
-        });
+        sb.append("CREATE INDEX ");
+        sb.append(indexName);
+        sb.append(" ON ");
+        sb.append(this.table);
+        sb.append("(");
+        sb.append(column.name());
+        sb.append(");");
 
         logger.info("create index: {}", sb);
         session.execute(sb.toString());
@@ -518,7 +515,7 @@ public abstract class CassandraTable {
                     HugeKeys.PROPERTIES,
                     HugeKeys.SORT_KEYS,
                     HugeKeys.FREQUENCY,
-                    //                    HugeKeys.INDEX_NAMES
+                    HugeKeys.INDEX_NAMES
             };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
@@ -604,11 +601,8 @@ public abstract class CassandraTable {
                     HugeKeys.PROPERTY_KEY
             };
 
-            Map<String, HugeKeys> indexColumns = new HashMap<>();
-            indexColumns.put("vertices_label_index", HugeKeys.LABEL);
-
             super.createTable(session, columns, partitionKeys, clusterKeys);
-            super.createIndex(session, indexColumns);
+            super.createIndex(session, "vertices_label_index", HugeKeys.LABEL);
         }
 
         @Override
@@ -703,11 +697,8 @@ public abstract class CassandraTable {
                     HugeKeys.TARGET_VERTEX,
                     HugeKeys.PROPERTY_KEY};
 
-            Map<String, HugeKeys> indexColumns = new HashMap<>();
-            indexColumns.put("edges_label_index", HugeKeys.LABEL);
-
             super.createTable(session, columns, primaryKeys);
-            super.createIndex(session, indexColumns);
+            super.createIndex(session, "edges_label_index", HugeKeys.LABEL);
         }
 
         @Override

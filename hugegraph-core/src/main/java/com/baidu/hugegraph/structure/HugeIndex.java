@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 
@@ -14,7 +15,7 @@ public class HugeIndex {
 
     private IndexLabel indexLabel;
     private String propertyValues;
-    private Set<String> elementIds;
+    private Set<Id> elementIds;
 
     public HugeIndex(IndexLabel indexLabel) {
         this.indexLabel = indexLabel;
@@ -45,15 +46,15 @@ public class HugeIndex {
         return this.indexLabel.name();
     }
 
-    public Set<String> elementIds() {
+    public Set<Id> elementIds() {
         return elementIds;
     }
 
-    public void elementIds(Set<String> elementIds) {
+    public void elementIds(Set<Id> elementIds) {
         this.elementIds = elementIds;
     }
 
-    public void elementIds(String... elementIds) {
+    public void elementIds(Id... elementIds) {
         this.elementIds.addAll(Arrays.asList(elementIds));
     }
 

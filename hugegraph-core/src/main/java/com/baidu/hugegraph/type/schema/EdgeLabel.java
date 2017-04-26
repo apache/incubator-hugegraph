@@ -7,6 +7,7 @@ import java.util.Set;
 import org.javatuples.Pair;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeTypes;
@@ -37,6 +38,11 @@ public abstract class EdgeLabel extends SchemaElement {
             this.properties.put(propertyName, new HugePropertyKey(propertyName, this.transaction));
         }
         return this;
+    }
+
+    public IndexLabel index(String indexName) {
+        // name reference the base-type column
+        return new HugeIndexLabel(indexName, HugeTypes.EDGE_LABEL, name, transaction);
     }
 
     public abstract boolean isDirected();

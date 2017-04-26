@@ -246,6 +246,8 @@ public class CassandraSerializer extends AbstractSerializer {
         entry.column(HugeKeys.MULTIPLICITY, toJson(edgeLabel.multiplicity()));
         // entry.column(HugeKeys.LINKS, toJson(edgeLabel.links().toArray()));
         entry.column(HugeKeys.SORT_KEYS, toJson(edgeLabel.sortKeys().toArray()));
+        entry.column(HugeKeys.INDEX_NAMES,
+                toJson(edgeLabel.indexNames().toArray()));
         writeProperties(edgeLabel, entry);
         return entry;
     }
@@ -308,15 +310,14 @@ public class CassandraSerializer extends AbstractSerializer {
         String frequency = entry.column(HugeKeys.FREQUENCY);
         String sortKeys = entry.column(HugeKeys.SORT_KEYS);
         String properties = entry.column(HugeKeys.PROPERTIES);
-        // TODO: edge index need to implement
-//        String indexNames = entry.column(HugeKeys.INDEX_NAMES);
+        String indexNames = entry.column(HugeKeys.INDEX_NAMES);
 
         HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name,
                 this.graph.schemaTransaction());
         edgeLabel.frequency(fromJson(frequency, Frequency.class));
         edgeLabel.properties(fromJson(properties, String[].class));
         edgeLabel.sortKeys(fromJson(sortKeys, String[].class));
-
+        edgeLabel.indexNames(fromJson(indexNames, String[].class));
         return edgeLabel;
     }
 
@@ -386,9 +387,9 @@ public class CassandraSerializer extends AbstractSerializer {
         entry.column(HugeKeys.PROPERTY_VALUES, index.propertyValues());
         entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
         // TODO: try to make these code more clear.
-        String[] ids = index.elementIds().toArray(new String[0]);
+        Id[] ids = index.elementIds().toArray(new Id[0]);
         assert ids.length == 1;
-        entry.column(HugeKeys.ELEMENT_IDS, ids[0]);
+        entry.column(HugeKeys.ELEMENT_IDS, ids[0].asString());
         return entry;
     }
 
@@ -410,7 +411,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
         HugeIndex index = new HugeIndex(indexLabel);
         index.propertyValues(indexValues);
-        index.elementIds(fromJson(elementIds, String[].class));
+        index.elementIds(fromJson(elementIds, Id[].class));
 
         return index;
     }

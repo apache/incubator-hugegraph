@@ -59,16 +59,17 @@ public class Example2 {
         schema.propertyKey("name").asText().create();
         schema.propertyKey("age").asInt().create();
         schema.propertyKey("lang").asText().create();
-        schema.propertyKey("weight").asInt().create();
+        schema.propertyKey("date").asText().create();
+
         schema.vertexLabel("person").properties("name", "age").primaryKeys("name").create();
         schema.vertexLabel("software").properties("name", "lang").primaryKeys("name").create();
-
         schema.vertexLabel("person").index("personByName").by("name").secondary().create();
         schema.vertexLabel("software").index("softwareByName").by("name").search().create();
         schema.vertexLabel("software").index("softwareByLang").by("lang").search().create();
 
-        schema.edgeLabel("knows").properties("weight").link("person", "person").create();
-        schema.edgeLabel("created").properties("weight").link("person", "software").create();
+        schema.edgeLabel("knows").properties("date").link("person", "person").create();
+        schema.edgeLabel("created").properties("date").link("person", "software").create();
+        schema.edgeLabel("created").index("createdByDate").by("date").secondary().create();
 
         graph.tx().open();
         Vertex marko = graph.addVertex(T.label, "person", "name", "marko", "age", 29);
@@ -78,13 +79,12 @@ public class Example2 {
         Vertex ripple = graph.addVertex(T.label, "software", "name", "ripple", "lang", "java");
         Vertex peter = graph.addVertex(T.label, "person", "name", "peter", "age", 35);
 
-
-        marko.addEdge("knows", vadas, "weight", 5);
-        marko.addEdge("knows", josh, "weight", 10);
-        marko.addEdge("created", lop, "weight", 5);
-        josh.addEdge("created", ripple, "weight", 1);
-        josh.addEdge("created", lop, "weight", 4);
-        peter.addEdge("created", lop, "weight", 2);
+        marko.addEdge("knows", vadas, "date", "20160110");
+        marko.addEdge("knows", josh, "date", "20130220");
+        marko.addEdge("created", lop, "date", "20171210");
+        josh.addEdge("created", ripple, "date", "20171210");
+        josh.addEdge("created", lop, "date", "20091111");
+        peter.addEdge("created", lop, "date", "20170324");
 
         graph.tx().commit();
 

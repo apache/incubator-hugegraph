@@ -23,6 +23,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -56,26 +57,46 @@ public class GraphTransaction extends AbstractTransaction {
         // serialize and add into super.additions
         for (HugeVertex v : this.vertexes) {
             this.addEntry(this.serializer.writeVertex(v));
-            this.indexUpdate(v, false);
+            this.updateVertexIndex(v, false);
+            this.updateEdgeIndex(v.getEdges().iterator(), false);
         }
 
         this.vertexes.clear();
     }
 
-    protected void indexUpdate(HugeVertex vertex, boolean removed) {
-        for (String indexName : vertex.vertexLabel().indexNames()) {
-            IndexLabel indexLabel = this.graph.schemaTransaction().getIndexLabel(indexName);
-
-            List<String> propertyValues = new LinkedList<>();
-            indexLabel.indexFields().forEach(field ->
-                    propertyValues.add(vertex.property(field).value().toString()));
-
-            HugeIndex index = new HugeIndex(indexLabel);
-            // TODO: I feel not confortable by use static import
-            index.propertyValues(StringUtils.join(propertyValues, ID_SPLITOR));
-            index.elementIds(vertex.id().asString());
-            this.addEntry(this.serializer.writeIndex(index));
+    private void updateVertexIndex(HugeVertex vertex, boolean removed) {
+        if (removed) {
+            // TODO: removed to be implemented!
+        } else {
+            for (String indexName : vertex.vertexLabel().indexNames()) {
+                updateIndex(indexName, vertex);
+            }
         }
+    }
+
+    private void updateEdgeIndex(Iterator<HugeEdge> edges, boolean removed) {
+        if (removed) {
+            // TODO: removed to be implemented!
+        } else {
+            edges.forEachRemaining(edge -> {
+                for (String indexName : edge.edgeLabel().indexNames()) {
+                    updateIndex(indexName, edge);
+                }
+            });
+        }
+    }
+
+    protected void updateIndex(String indexName, HugeElement element) {
+        IndexLabel indexLabel = this.graph.schemaTransaction().getIndexLabel(indexName);
+
+        List<String> propertyValues = new LinkedList<>();
+        indexLabel.indexFields().forEach(field ->
+                propertyValues.add(element.property(field).value().toString()));
+
+        HugeIndex index = new HugeIndex(indexLabel);
+        index.propertyValues(StringUtils.join(propertyValues, ID_SPLITOR));
+        index.elementIds(element.id());
+        this.addEntry(this.serializer.writeIndex(index));
     }
 
     public Vertex addVertex(HugeVertex vertex) {
