@@ -96,7 +96,7 @@ public class TextSerializer extends AbstractSerializer {
         String[] colParts = colName.split(COLUME_SPLITOR);
 
         // get PropertyKey by PropertyKey name
-        PropertyKey pkey = this.graph.openSchemaManager().propertyKey(colParts[1]);
+        PropertyKey pkey = this.graph.schema().propertyKey(colParts[1]);
 
         // parse value
         Object value = fromJson(colValue, pkey.clazz());
@@ -150,7 +150,7 @@ public class TextSerializer extends AbstractSerializer {
         String[] valParts = colValue.split(VALUE_SPLITOR);
 
         boolean isOutEdge = colParts[0].equals(HugeTypes.EDGE_OUT.name());
-        EdgeLabel label = this.graph.openSchemaManager().edgeLabel(colParts[1]);
+        EdgeLabel label = this.graph.schema().edgeLabel(colParts[1]);
 
         // TODO: how to construct targetVertex with id
         Id otherVertexId = IdGeneratorFactory.generator().generate(colParts[3]);
@@ -227,7 +227,7 @@ public class TextSerializer extends AbstractSerializer {
 
         // label
         String labelName = entry.column(this.formatSystemPropertyName(HugeKeys.LABEL));
-        VertexLabel label = this.graph.openSchemaManager().vertexLabel(labelName);
+        VertexLabel label = this.graph.schema().vertexLabel(labelName);
 
         // id
         HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);

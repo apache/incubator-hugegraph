@@ -24,6 +24,8 @@ import com.google.common.base.Preconditions;
 
 public abstract class AbstractTransaction implements Transaction {
 
+    private boolean autoCommit;
+
     // parent graph
     protected final HugeGraph graph;
     protected AbstractSerializer serializer;
@@ -37,6 +39,8 @@ public abstract class AbstractTransaction implements Transaction {
     private static final Logger logger = LoggerFactory.getLogger(AbstractTransaction.class);
 
     public AbstractTransaction(HugeGraph graph, BackendStore store) {
+        this.autoCommit = false;
+
         this.graph = graph;
         this.serializer = this.graph.serializer();
         this.idGenerator = IdGeneratorFactory.generator();
@@ -53,7 +57,12 @@ public abstract class AbstractTransaction implements Transaction {
     public Iterable<BackendEntry> query(Query query) {
         logger.debug("Transaction query: {}", query);
         query = this.serializer.writeQuery(query);
-        return this.store.query(query);
+
+        this.beforeRead();
+        Iterable<BackendEntry> result = this.store.query(query);
+        this.afterRead();
+
+        return result;
     }
 
     public BackendEntry query(HugeTypes type, Id id) {
@@ -76,14 +85,9 @@ public abstract class AbstractTransaction implements Transaction {
         return entry;
     }
 
-    protected void prepareCommit() {
-        // for sub-class preparing data, nothing to do here
-        logger.debug("Transaction prepare commit...");
-    }
-
     @Override
     public void commit() throws BackendException {
-        logger.debug("Transaction commit...");
+        logger.debug("Transaction commit [auto: {}]...", this.autoCommit);
         this.prepareCommit();
 
         BackendMutation m = new BackendMutation(
@@ -103,6 +107,65 @@ public abstract class AbstractTransaction implements Transaction {
     public void rollback() throws BackendException {
         logger.debug("Transaction rollback...");
         this.store.rollbackTx();
+    }
+
+    @Override
+    public boolean autoCommit() {
+        return this.autoCommit;
+    }
+
+    public void autoCommit(boolean autoCommit) {
+        this.autoCommit = autoCommit;
+    }
+
+    @Override
+    public void beforeWrite() {
+        // TODO: auto open()
+    }
+
+    @Override
+    public void afterWrite() {
+        if (autoCommit()) {
+            this.commitOrRollback();
+        }
+    }
+
+    @Override
+    public void beforeRead() {
+        // TODO: auto open()
+        if (!this.additions.isEmpty() || !this.deletions.isEmpty()) {
+            this.commitOrRollback();
+        }
+    }
+
+    @Override
+    public void afterRead() {
+        // pass
+    }
+
+    protected void prepareCommit() {
+        // for sub-class preparing data, nothing to do here
+        logger.debug("Transaction prepare commit...");
+    }
+
+    protected void commitOrRollback() {
+        boolean success = false;
+
+        try {
+            this.commit();
+            success = true;
+        } catch (BackendException e1) {
+            logger.error("Failed to commit changes:", e1);
+            try {
+                this.rollback();
+            } catch (BackendException e2) {
+                logger.error("Failed to rollback changes:", e2);
+            }
+        }
+
+        if (!success) {
+            throw new BackendException("Failed to commit changes");
+        }
     }
 
     public void addEntry(BackendEntry entry) {

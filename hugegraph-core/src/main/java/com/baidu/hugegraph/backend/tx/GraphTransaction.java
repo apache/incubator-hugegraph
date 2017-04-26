@@ -8,16 +8,13 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -30,7 +27,6 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeTypes;
-import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -60,42 +56,33 @@ public class GraphTransaction extends AbstractTransaction {
         // serialize and add into super.additions
         for (HugeVertex v : this.vertexes) {
             this.addEntry(this.serializer.writeVertex(v));
+            this.indexUpdate(v, false);
         }
 
         this.vertexes.clear();
     }
 
-    public Vertex addVertex(HugeVertex vertex) {
-        // serialize vertex to entry
-        this.addEntry(this.serializer.writeVertex(vertex));
+    protected void indexUpdate(HugeVertex vertex, boolean removed) {
+        for (String indexName : vertex.vertexLabel().indexNames()) {
+            IndexLabel indexLabel = this.graph.schemaTransaction().getIndexLabel(indexName);
 
-        // 得到当前顶点对应的索引元数据信息
-        // fetch index names of current vertex label.
-        VertexLabel vertexLabel = graph.schemaTransaction().getVertexLabel(vertex.label());
-        Set<String> indexNames = vertexLabel.indexNames();
-        for (String indexName : indexNames) {
-            IndexLabel indexLabel = graph.schemaTransaction().getIndexLabel(indexName);
-
-            String indexLabelId = indexLabel.name();
-            Set<String> indexFields = indexLabel.indexFields();
-
-            IndexType baseType = indexLabel.indexType();
             List<String> propertyValues = new LinkedList<>();
+            indexLabel.indexFields().forEach(field ->
+                    propertyValues.add(vertex.property(field).value().toString()));
 
-            indexFields.forEach(field -> propertyValues.add(vertex.property(field).value().toString()));
-
-            Set<String> elemenetIds = new LinkedHashSet<>();
-            elemenetIds.add(vertex.id().asString());
-
-            HugeIndex index = new HugeIndex(baseType);
+            HugeIndex index = new HugeIndex(indexLabel);
             // TODO: I feel not confortable by use static import
-            index.setPropertyValues(StringUtils.join(propertyValues, ID_SPLITOR));
-            index.setIndexLabelId(indexLabelId);
-            index.setElementIds(elemenetIds);
+            index.propertyValues(StringUtils.join(propertyValues, ID_SPLITOR));
+            index.elementIds(vertex.id().asString());
             this.addEntry(this.serializer.writeIndex(index));
         }
+    }
 
-        return this.vertexes.add(vertex) ? vertex : null;
+    public Vertex addVertex(HugeVertex vertex) {
+        this.beforeWrite();
+        vertex = this.vertexes.add(vertex) ? vertex : null;
+        this.afterWrite();
+        return vertex;
     }
 
     public Vertex addVertex(Object... keyValues) {
@@ -114,7 +101,7 @@ public class GraphTransaction extends AbstractTransaction {
             // Preconditions.checkArgument(label != null, "Vertex label must be not null");
             throw Element.Exceptions.labelCanNotBeNull();
         } else if (label instanceof String) {
-            SchemaManager schema = this.graph.openSchemaManager();
+            SchemaManager schema = this.graph.schema();
             label = schema.vertexLabel((String) label);
         }
 
@@ -122,10 +109,10 @@ public class GraphTransaction extends AbstractTransaction {
         assert (label instanceof VertexLabel);
 
         // check keyValues whether contain primaryKey in definition of vertexLabel.
-        Preconditions.checkArgument(
-                CollectionUtil.containsAll(ElementHelper.getKeys(keyValues), ((VertexLabel) label)
-                        .primaryKeys()), "the primary key must "
-                        + "set in 'addVertex' method, you can refer to the definition of vertexLabel.");
+        Set<String> primaryKeys = ((VertexLabel) label).primaryKeys();
+        Preconditions.checkArgument(CollectionUtil.containsAll(
+                ElementHelper.getKeys(keyValues), primaryKeys),
+                "The primary key(s) must be setted: " + primaryKeys);
 
         HugeVertex vertex = new HugeVertex(this.graph, id, (VertexLabel) label);
         // set properties
@@ -144,7 +131,7 @@ public class GraphTransaction extends AbstractTransaction {
 
         for (Object vertexId : vertexIds) {
             Id id = HugeElement.getIdValue(T.id, vertexId);
-            BackendEntry entry = this.get(HugeTypes.VERTEX, id);
+            BackendEntry entry = super.get(HugeTypes.VERTEX, id);
             Vertex vertex = this.serializer.readVertex(entry);
             assert vertex != null;
             list.add(vertex);
@@ -171,7 +158,7 @@ public class GraphTransaction extends AbstractTransaction {
 
         for (Object edgeId : edgeIds) {
             Id id = HugeElement.getIdValue(T.id, edgeId);
-            BackendEntry entry = this.get(HugeTypes.EDGE, id);
+            BackendEntry entry = super.get(HugeTypes.EDGE, id);
             Vertex vertex = this.serializer.readVertex(entry);
             assert vertex != null;
             list.addAll(ImmutableList.copyOf(vertex.edges(Direction.BOTH)));
@@ -190,49 +177,5 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         return list.iterator();
-    }
-
-    public org.apache.tinkerpop.gremlin.structure.Transaction tx() {
-        return new AbstractThreadedTransaction(this.graph) {
-            @Override
-            public void doOpen() {
-                // NOTE: we assume that a Transaction is opened as long as
-                // the object exists
-            }
-
-            @Override
-            public void doCommit() {
-                GraphTransaction.this.commit();
-            }
-
-            @Override
-            public void doRollback() {
-                GraphTransaction.this.rollback();
-            }
-
-            @Override
-            public <R> Workload<R> submit(Function<Graph, R> graphRFunction) {
-                throw new UnsupportedOperationException(
-                        "HugeGraph does not support nested transactions. "
-                                + "Call submit on a HugeGraph not an individual transaction.");
-            }
-
-            @Override
-            public <G extends Graph> G createThreadedTx() {
-                throw new UnsupportedOperationException(
-                        "HugeGraph does not support nested transactions.");
-            }
-
-            @Override
-            public boolean isOpen() {
-                return true;
-            }
-
-            @Override
-            public void doClose() {
-                // calling super will clear listeners
-                super.doClose();
-            }
-        };
     }
 }

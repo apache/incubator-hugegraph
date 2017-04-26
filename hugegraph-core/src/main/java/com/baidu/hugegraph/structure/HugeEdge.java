@@ -83,7 +83,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public <V> Property<V> property(String key, V value) {
-        PropertyKey pkey = this.graph.openSchemaManager().propertyKey(key);
+        PropertyKey pkey = this.graph.schema().propertyKey(key);
         switch (pkey.cardinality()) {
             case SINGLE:
                 HugeProperty<V> prop = new HugeProperty<V>(this, pkey, value);

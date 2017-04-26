@@ -163,7 +163,6 @@ public class HugeEdgeLabel extends EdgeLabel {
         verifySortKeys();
 
         this.transaction.addEdgeLabel(this);
-        this.commit();
     }
 
     @Override

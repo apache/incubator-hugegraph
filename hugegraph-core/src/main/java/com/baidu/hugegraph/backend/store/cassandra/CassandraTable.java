@@ -725,14 +725,21 @@ public abstract class CassandraTable {
 
             for (BackendEntry i : entries) {
                 CassandraBackendEntry entry = (CassandraBackendEntry) i;
-                Id srcVertex = IdGeneratorFactory.generator().generate(
+                Id srcVertexId = IdGeneratorFactory.generator().generate(
                         entry.column(HugeKeys.SOURCE_VERTEX));
-                if (!vertices.containsKey(srcVertex)) {
-                    vertices.put(srcVertex, new CassandraBackendEntry(
-                            HugeTypes.VERTEX, srcVertex));
+                if (!vertices.containsKey(srcVertexId)) {
+                    CassandraBackendEntry vertex = new CassandraBackendEntry(
+                            HugeTypes.VERTEX, srcVertexId);
+                    // set vertex label and pv(assume vertex id with a label)
+                    // TODO: improve Id split()
+                    String[] idParts = SplicingIdGenerator.parse(srcVertexId);
+                    vertex.column(HugeKeys.LABEL, idParts[0]);
+                    vertex.column(HugeKeys.PRIMARY_VALUES, idParts[1]);
+
+                    vertices.put(srcVertexId, vertex);
                 }
                 // add edge into vertex as a sub row
-                vertices.get(srcVertex).subRow(entry.row());
+                vertices.get(srcVertexId).subRow(entry.row());
             }
 
             // merge edge properties into edge
