@@ -6,13 +6,16 @@ import com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer;
 public class SerializerFactory {
 
     public static AbstractSerializer serializer(String name, HugeGraph graph) {
-//        if (name.equalsIgnoreCase("binary")) {
-//            return new BinarySerializer(graph);
-//        }
-//        else if (name.equalsIgnoreCase("text")) {
-//            return new TextSerializer(graph);
-//        }
+        if (name.equalsIgnoreCase("binary")) {
+            return new BinarySerializer(graph);
+        }
+        else if (name.equalsIgnoreCase("text")) {
+            return new TextSerializer(graph);
+        }
         // TODO return registered serializer
-        return new CassandraSerializer(graph);
+        else if (name.equalsIgnoreCase("cassandra")) {
+            return new CassandraSerializer(graph);
+        }
+        return null;
     }
 }
