@@ -1,6 +1,7 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -166,7 +167,7 @@ public abstract class CassandraTable {
     }
 
     protected static Clause condition2Cql(Condition condition) {
-        switch(condition.type()) {
+        switch (condition.type()) {
             case AND:
                 Condition.And and = (Condition.And) condition;
                 // TODO: return QueryBuilder.and(and.left(), and.right());
@@ -205,7 +206,7 @@ public abstract class CassandraTable {
     }
 
     protected List<BackendEntry> results2Entries(HugeTypes resultType,
-            ResultSet results) {
+                                                 ResultSet results) {
         List<BackendEntry> entries = new LinkedList<>();
 
         Iterator<Row> iterator = results.iterator();
@@ -352,8 +353,25 @@ public abstract class CassandraTable {
     }
 
     protected void createTable(Session session,
-            HugeKeys[] columns,
-            HugeKeys[] primaryKeys) {
+                               HugeKeys[] columns,
+                               HugeKeys[] primaryKeys) {
+        // TODO: to make it more clear.
+        assert (primaryKeys.length > 0);
+        HugeKeys[] partitionKeys = new HugeKeys[] {primaryKeys[0]};
+        HugeKeys[] clusterKeys = null;
+        if (primaryKeys.length > 1) {
+            clusterKeys = Arrays.copyOfRange(
+                    primaryKeys, 1, primaryKeys.length);
+        } else {
+            clusterKeys = new HugeKeys[] {};
+        }
+        this.createTable(session, columns, partitionKeys, clusterKeys);
+    }
+
+    protected void createTable(Session session,
+                               HugeKeys[] columns,
+                               HugeKeys[] pKeys,
+                               HugeKeys[] cKeys) {
 
         StringBuilder sb = new StringBuilder(128 + columns.length * 64);
 
@@ -370,12 +388,24 @@ public abstract class CassandraTable {
 
         // primary keys
         sb.append("PRIMARY KEY (");
-        for (HugeKeys i : primaryKeys) {
-            if (i != primaryKeys[0]) {
+
+        // partition keys
+        sb.append("(");
+        for (HugeKeys i : pKeys) {
+            if (i != pKeys[0]) {
                 sb.append(", ");
             }
-            sb.append(i.name()); // primary key name
+            sb.append(i.name());
         }
+        sb.append(")");
+
+        // clustering keys
+        for (HugeKeys i : cKeys) {
+            sb.append(", ");
+            sb.append(i.name());
+        }
+
+        // end of primary keys
         sb.append(")");
 
         // end of table declare
@@ -390,6 +420,24 @@ public abstract class CassandraTable {
         session.execute(SchemaBuilder.dropTable(this.table).ifExists());
     }
 
+    protected void createIndex(Session session,
+                               Map<String, HugeKeys> indexColumns) {
+
+        StringBuilder sb = new StringBuilder();
+        indexColumns.forEach((indexName, column) -> {
+            sb.append("CREATE INDEX ");
+            sb.append(indexName);
+            sb.append(" ON ");
+            sb.append(this.table);
+            sb.append("(");
+            sb.append(column.name());
+            sb.append(");");
+        });
+
+        logger.info("create index: {}", sb);
+        session.execute(sb.toString());
+    }
+
     /*************************** abstract methods ***************************/
 
     public abstract void init(Session session);
@@ -397,7 +445,6 @@ public abstract class CassandraTable {
     public void clear(Session session) {
         this.dropTable(session);
     }
-
 
     /***************************** table defines *****************************/
 
@@ -414,9 +461,11 @@ public abstract class CassandraTable {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.NAME,
                     HugeKeys.PROPERTIES,
-                    HugeKeys.PRIMARY_KEYS };
+                    HugeKeys.PRIMARY_KEYS,
+                    HugeKeys.INDEX_NAMES
+            };
 
-            HugeKeys[] primaryKeys = new HugeKeys[] { HugeKeys.NAME };
+            HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
 
             super.createTable(session, columns, primaryKeys);
         }
@@ -437,9 +486,11 @@ public abstract class CassandraTable {
                     HugeKeys.MULTIPLICITY,
                     HugeKeys.PROPERTIES,
                     HugeKeys.SORT_KEYS,
-                    HugeKeys.FREQUENCY };
+                    HugeKeys.FREQUENCY,
+//                    HugeKeys.INDEX_NAMES
+            };
 
-            HugeKeys[] primaryKeys = new HugeKeys[] { HugeKeys.NAME };
+            HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
 
             super.createTable(session, columns, primaryKeys);
         }
@@ -459,9 +510,9 @@ public abstract class CassandraTable {
                     HugeKeys.NAME,
                     HugeKeys.DATA_TYPE,
                     HugeKeys.CARDINALITY,
-                    HugeKeys.PROPERTIES };
+                    HugeKeys.PROPERTIES};
 
-            HugeKeys[] primaryKeys = new HugeKeys[] { HugeKeys.NAME };
+            HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
 
             super.createTable(session, columns, primaryKeys);
         }
@@ -485,11 +536,11 @@ public abstract class CassandraTable {
                     HugeKeys.FIELDS
             };
 
-            // base-type as clustering key
+            // base-type and base-value as clustering key
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.NAME,
                     HugeKeys.BASE_TYPE,
-                    HugeKeys.BASE_VALUE
+                    HugeKeys.BASE_VALUE,
             };
 
             super.createTable(session, columns, primaryKeys);
@@ -503,23 +554,42 @@ public abstract class CassandraTable {
         public Vertex() {
             super(TABLE);
         }
+
         @Override
         public void init(Session session) {
-             HugeKeys[] columns = new HugeKeys[] {
-                     HugeKeys.ID,
-                     HugeKeys.PROPERTY_KEY,
-                     HugeKeys.PROPERTY_VALUE };
+            HugeKeys[] columns = new HugeKeys[] {
+                    HugeKeys.LABEL,
+                    HugeKeys.PRIMARY_VALUES,
+                    HugeKeys.PROPERTY_KEY,
+                    HugeKeys.PROPERTY_VALUE
+            };
 
-             HugeKeys[] primaryKeys = new HugeKeys[] {
-                     HugeKeys.ID,
-                     HugeKeys.PROPERTY_KEY };
+            HugeKeys[] partitionKeys = new HugeKeys[] {
+                    HugeKeys.LABEL,
+                    HugeKeys.PRIMARY_VALUES
+            };
 
-            super.createTable(session, columns, primaryKeys);
+            HugeKeys[] clusterKeys = new HugeKeys[] {
+                    HugeKeys.PROPERTY_KEY
+            };
+
+            Map<String, HugeKeys> indexColumns = new HashMap<>();
+            indexColumns.put("vertices_label_index", HugeKeys.LABEL);
+
+            super.createTable(session, columns, partitionKeys, clusterKeys);
+            super.createIndex(session, indexColumns);
         }
 
         @Override
         protected List<String> idColumnName() {
-            return ImmutableList.of(HugeKeys.ID.name());
+            return ImmutableList.of(
+                    HugeKeys.LABEL.name(),
+                    HugeKeys.PRIMARY_VALUES.name());
+        }
+
+        @Override
+        protected List<String> idColumnValue(Id id) {
+            return ImmutableList.copyOf(SplicingIdGenerator.parse(id));
         }
 
         @Override
@@ -546,13 +616,16 @@ public abstract class CassandraTable {
         @Override
         protected List<BackendEntry> mergeEntries(List<BackendEntry> entries) {
             // merge properties with same id into a vertex
-            Map<String, CassandraBackendEntry> vertices = new HashMap<>();
+            Map<Id, CassandraBackendEntry> vertices = new HashMap<>();
 
             for (BackendEntry i : entries) {
                 CassandraBackendEntry entry = (CassandraBackendEntry) i;
-                String id = entry.column(HugeKeys.ID);
+                String idStr = SplicingIdGenerator.splicing(
+                        entry.column(HugeKeys.LABEL),
+                        entry.column(HugeKeys.PRIMARY_VALUES));
+                Id id = IdGeneratorFactory.generator().generate(idStr);
                 if (!vertices.containsKey(id)) {
-                    entry.id(IdGeneratorFactory.generator().generate(id));
+                    entry.id(id);
                     vertices.put(id, entry);
                 } else {
                     assert entry.cells().size() == 1;
@@ -572,13 +645,14 @@ public abstract class CassandraTable {
                 HugeKeys.DIRECTION,
                 HugeKeys.LABEL,
                 HugeKeys.SORT_VALUES,
-                HugeKeys.TARGET_VERTEX };
+                HugeKeys.TARGET_VERTEX};
 
         private static List<String> KEYS_STRING = null;
 
         public Edge() {
             super(TABLE);
         }
+
         @Override
         public void init(Session session) {
             HugeKeys[] columns = new HugeKeys[] {
@@ -588,7 +662,7 @@ public abstract class CassandraTable {
                     HugeKeys.SORT_VALUES,
                     HugeKeys.TARGET_VERTEX,
                     HugeKeys.PROPERTY_KEY,
-                    HugeKeys.PROPERTY_VALUE };
+                    HugeKeys.PROPERTY_VALUE};
 
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.SOURCE_VERTEX,
@@ -596,9 +670,13 @@ public abstract class CassandraTable {
                     HugeKeys.LABEL,
                     HugeKeys.SORT_VALUES,
                     HugeKeys.TARGET_VERTEX,
-                    HugeKeys.PROPERTY_KEY };
+                    HugeKeys.PROPERTY_KEY};
 
-           super.createTable(session, columns, primaryKeys);
+            Map<String, HugeKeys> indexColumns = new HashMap<>();
+            indexColumns.put("edges_label_index", HugeKeys.LABEL);
+
+            super.createTable(session, columns, primaryKeys);
+            super.createIndex(session, indexColumns);
         }
 
         @Override
@@ -681,6 +759,65 @@ public abstract class CassandraTable {
                 values[i] = row.key(KEYS[i]);
             }
             return SplicingIdGenerator.concat(values);
+        }
+    }
+
+    public static class SecondaryIndex extends CassandraTable {
+
+        public static final String TABLE = "secondary_indexes";
+
+        public SecondaryIndex() {
+            super(TABLE);
+        }
+
+        @Override
+        public void init(Session session) {
+            HugeKeys[] columns = new HugeKeys[] {
+                    HugeKeys.PROPERTY_VALUES,
+                    HugeKeys.INDEX_LABEL_NAME,
+                    HugeKeys.ELEMENT_IDS
+            };
+
+            HugeKeys[] primaryKeys = new HugeKeys[] {
+                    HugeKeys.PROPERTY_VALUES,
+                    HugeKeys.INDEX_LABEL_NAME
+            };
+
+            super.createTable(session, columns, primaryKeys);
+        }
+
+        @Override
+        protected List<String> idColumnName() {
+            return ImmutableList.of(HugeKeys.PROPERTY_VALUES.name());
+        }
+    }
+
+    public static class SearchIndex extends CassandraTable {
+
+        public static final String TABLE = "search_indexes";
+
+        public SearchIndex() {
+            super(TABLE);
+        }
+
+        @Override
+        public void init(Session session) {
+            HugeKeys[] columns = new HugeKeys[] {
+                    HugeKeys.INDEX_LABEL_NAME,
+                    HugeKeys.PROPERTY_VALUES,
+                    HugeKeys.ELEMENT_IDS};
+
+            HugeKeys[] primaryKeys = new HugeKeys[] {
+                    HugeKeys.INDEX_LABEL_NAME,
+                    HugeKeys.PROPERTY_VALUES
+            };
+
+            super.createTable(session, columns, primaryKeys);
+        }
+
+        @Override
+        protected List<String> idColumnName() {
+            return ImmutableList.of(HugeKeys.INDEX_LABEL_NAME.name());
         }
     }
 }
