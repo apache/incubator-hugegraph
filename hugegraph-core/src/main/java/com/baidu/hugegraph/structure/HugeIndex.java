@@ -1,57 +1,59 @@
 package com.baidu.hugegraph.structure;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 
 /**
  * Created by liningrui on 2017/4/25.
  */
 public class HugeIndex {
 
-    private IndexType indexType;
+    private IndexLabel indexLabel;
     private String propertyValues;
-    private String indexLabelId;
     private Set<String> elementIds;
 
-    public HugeIndex(IndexType indexType) {
-        this.indexType = indexType;
+    public HugeIndex(IndexLabel indexLabel) {
+        this.indexLabel = indexLabel;
+        this.elementIds = new LinkedHashSet<>();
     }
 
-    public IndexType getIndexType() {
-        return indexType;
+    public String id() {
+        if (indexType() == IndexType.SECONDARY) {
+            return propertyValues() + indexLabelName() + elementIds;
+        } else {
+            return indexLabelName() + propertyValues() + elementIds;
+        }
     }
 
-    public void setIndexType(IndexType indexType) {
-        this.indexType = indexType;
+    public IndexType indexType() {
+        return this.indexLabel.indexType();
     }
 
-    public String getPropertyValues() {
-        return propertyValues;
+    public String propertyValues() {
+        return this.propertyValues;
     }
 
-    public void setPropertyValues(String propertyValues) {
+    public void propertyValues(String propertyValues) {
         this.propertyValues = propertyValues;
     }
 
-    public String getIndexLabelId() {
-        return indexLabelId;
+    public String indexLabelName() {
+        return this.indexLabel.name();
     }
 
-    public void setIndexLabelId(String indexLabelId) {
-        this.indexLabelId = indexLabelId;
-    }
-
-    public Set<String> getElementIds() {
+    public Set<String> elementIds() {
         return elementIds;
     }
 
-    public void setElementIds(Set<String> elementIds) {
+    public void elementIds(Set<String> elementIds) {
         this.elementIds = elementIds;
     }
 
-    public void setElementIds(String... elementIds) {
+    public void elementIds(String... elementIds) {
         this.elementIds.addAll(Arrays.asList(elementIds));
     }
 

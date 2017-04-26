@@ -10,7 +10,10 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.define.HugeKeys;
 
 /**
  * Created by jishilei on 2017/4/2.
@@ -61,11 +64,13 @@ public class Example2 {
         schema.vertexLabel("software").properties("name", "lang").primaryKeys("name").create();
 
         schema.vertexLabel("person").index("personByName").by("name").secondary().create();
-        schema.vertexLabel("software").index("softwareByName").by("name", "lang").search().create();
+        schema.vertexLabel("software").index("softwareByName").by("name").search().create();
+        schema.vertexLabel("software").index("softwareByLang").by("lang").search().create();
 
         schema.edgeLabel("knows").properties("weight").link("person", "person").create();
         schema.edgeLabel("created").properties("weight").link("person", "software").create();
 
+        graph.tx().open();
         Vertex marko = graph.addVertex(T.label, "person", "name", "marko", "age", 29);
         Vertex vadas = graph.addVertex(T.label, "person", "name", "vadas", "age", 27);
         Vertex lop = graph.addVertex(T.label, "software", "name", "lop", "lang", "java");
@@ -73,7 +78,6 @@ public class Example2 {
         Vertex ripple = graph.addVertex(T.label, "software", "name", "ripple", "lang", "java");
         Vertex peter = graph.addVertex(T.label, "person", "name", "peter", "age", 35);
 
-        graph.tx().open();
 
         marko.addEdge("knows", vadas, "weight", 5);
         marko.addEdge("knows", josh, "weight", 10);
@@ -83,6 +87,11 @@ public class Example2 {
         peter.addEdge("created", lop, "weight", 2);
 
         graph.tx().commit();
+
+        ConditionQuery q = new ConditionQuery(HugeTypes.SEARCH_INDEX);
+        q.eq(HugeKeys.PROPERTY_VALUES, "java");
+        q.eq(HugeKeys.INDEX_LABEL_NAME, "softwareByLang");
+        System.out.print(graph.graphTransaction().query(q));
     }
 
 }
