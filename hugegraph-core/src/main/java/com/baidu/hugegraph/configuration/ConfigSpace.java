@@ -39,6 +39,14 @@ public class ConfigSpace {
             disallowEmpty(String.class)
     );
 
+    public static final ConfigOption<String> SERIALIZER = new ConfigOption<>(
+            "serializer",
+            "cassandra",
+            true,
+            "the serializer for backend store, like: text/binary/cassandra",
+            disallowEmpty(String.class)
+    );
+
     public static final ConfigOption<String> CASSANDRA_HOST = new ConfigOption<>(
             "cassandra.host",
             "localhost",

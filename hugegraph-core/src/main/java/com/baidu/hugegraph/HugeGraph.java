@@ -1,9 +1,5 @@
 package com.baidu.hugegraph;
 
-import static com.baidu.hugegraph.configuration.ConfigSpace.BACKEND;
-import static com.baidu.hugegraph.configuration.ConfigSpace.TABLE_GRAPH;
-import static com.baidu.hugegraph.configuration.ConfigSpace.TABLE_SCHEMA;
-
 import java.util.Iterator;
 import java.util.function.Function;
 
@@ -27,6 +23,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.configuration.ConfigSpace;
 import com.baidu.hugegraph.configuration.HugeConfiguration;
 import com.baidu.hugegraph.schema.HugeSchemaManager;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -87,7 +84,8 @@ public class HugeGraph implements Graph {
     }
 
     private void initTransaction() throws BackendException {
-        this.storeProvider = BackendProviderFactory.open(this.configuration.get(BACKEND));
+        this.storeProvider = BackendProviderFactory.open(
+                this.configuration.get(ConfigSpace.BACKEND));
 
         this.schemaTransaction = this.openSchemaTransaction();
         this.graphTransaction = this.openGraphTransaction();
@@ -106,7 +104,7 @@ public class HugeGraph implements Graph {
 
     private SchemaTransaction openSchemaTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(this.configuration.get(TABLE_SCHEMA));
+            BackendStore store = this.storeProvider.open(this.configuration.get(ConfigSpace.TABLE_SCHEMA));
             store.open(this.configuration);
             return new SchemaTransaction(this, store);
         } catch (BackendException e) {
@@ -118,7 +116,7 @@ public class HugeGraph implements Graph {
 
     private GraphTransaction openGraphTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(this.configuration.get(TABLE_GRAPH));
+            BackendStore store = this.storeProvider.open(this.configuration.get(ConfigSpace.TABLE_SCHEMA));
             store.open(this.configuration);
             return new GraphTransaction(this, store);
         } catch (BackendException e) {
@@ -146,7 +144,7 @@ public class HugeGraph implements Graph {
 
     public AbstractSerializer serializer() {
         // TODO: read from conf
-        String name = "text";
+        String name = this.configuration.get(ConfigSpace.SERIALIZER);
         AbstractSerializer serializer = SerializerFactory.serializer(name, this);
         if (serializer == null) {
             throw new HugeException("Can't load serializer with name " + name);
