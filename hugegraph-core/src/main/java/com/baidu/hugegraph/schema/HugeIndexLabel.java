@@ -44,7 +44,7 @@ public class HugeIndexLabel extends IndexLabel {
 
     @Override
     public String baseValue() {
-        return baseValue;
+        return this.baseValue;
     }
 
     @Override
@@ -101,7 +101,6 @@ public class HugeIndexLabel extends IndexLabel {
 
         // TODO: need to check param.
         this.transaction.addIndexLabel(this);
-        this.commit();
     }
 
     @Override

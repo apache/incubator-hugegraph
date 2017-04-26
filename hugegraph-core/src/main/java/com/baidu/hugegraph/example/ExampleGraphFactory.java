@@ -17,7 +17,6 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.structure.GraphManager;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
@@ -48,7 +47,7 @@ public class ExampleGraphFactory {
     public static void load(final HugeGraph graph) {
 
         /************************* schemaManager operating *************************/
-        SchemaManager schemaManager = graph.openSchemaManager();
+        SchemaManager schemaManager = graph.schema();
         logger.info("===============  propertyKey  ================");
         schemaManager.propertyKey("id").asInt().create();
         schemaManager.propertyKey("name").asText().create();
@@ -104,14 +103,12 @@ public class ExampleGraphFactory {
 
         /************************* data operating *************************/
 
-        GraphManager graphManager = graph.openGraphManager();
-
         // Directly into the back-end
-        graphManager.addVertex(T.label, "book", "name", "java-3");
-        graphManager.addVertex(T.label, "person", "name", "zhangsan");
+        graph.addVertex(T.label, "book", "name", "java-3");
+        graph.addVertex(T.label, "person", "name", "zhangsan");
 
         // Must commit manually
-        GraphTransaction tx = graph.openGraphTransaction();
+        GraphTransaction tx = graph.openTransaction();
 
         logger.info("===============  addVertex  ================");
         Vertex person = tx.addVertex(T.label, "author",
@@ -144,6 +141,11 @@ public class ExampleGraphFactory {
 
         // use the default Transaction to commit
         graph.addVertex(T.label, "book", "name", "java-3");
+
+        // tinkerpop tx
+        graph.tx().open();
+        graph.addVertex(T.label, "book", "name", "java-4");
+        graph.addVertex(T.label, "book", "name", "java-5");
         graph.tx().commit();
 
         // query all

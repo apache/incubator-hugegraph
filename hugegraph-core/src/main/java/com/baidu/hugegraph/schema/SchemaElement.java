@@ -8,7 +8,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.HugeTypes;
@@ -69,21 +68,6 @@ public abstract class SchemaElement implements Namifiable, HugeType {
     }
 
     public abstract SchemaElement indexNames(String... names);
-
-    protected boolean commit() {
-        try {
-            this.transaction.commit();
-            return true;
-        } catch (BackendException e) {
-            logger.error("Failed to commit schema changes: {}", e.getMessage());
-            try {
-                this.transaction.rollback();
-            } catch (BackendException e2) {
-                logger.error("Failed to rollback schema changes: {}", e2.getMessage());
-            }
-        }
-        return false;
-    }
 
     @Override
     public String name() {

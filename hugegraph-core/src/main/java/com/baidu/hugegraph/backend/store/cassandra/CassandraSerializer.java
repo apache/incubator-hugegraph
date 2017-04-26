@@ -9,7 +9,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -93,7 +92,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
     protected void parseProperty(String colName, String colValue, HugeElement owner) {
         // get PropertyKey by PropertyKey name
-        PropertyKey pkey = this.graph.openSchemaManager().propertyKey(colName);
+        PropertyKey pkey = this.graph.schema().propertyKey(colName);
 
         // parse value
         Object value = fromJson(colValue, pkey.clazz());
@@ -144,7 +143,7 @@ public class CassandraSerializer extends AbstractSerializer {
         String targetVertexId = row.key(HugeKeys.TARGET_VERTEX);
 
         boolean isOutEdge = (direction == Direction.OUT);
-        EdgeLabel label = this.graph.openSchemaManager().edgeLabel(labelName);
+        EdgeLabel label = this.graph.schema().edgeLabel(labelName);
 
         // TODO: how to construct targetVertex with id
         Id otherVertexId = IdGeneratorFactory.generator().generate(targetVertexId);
@@ -203,11 +202,8 @@ public class CassandraSerializer extends AbstractSerializer {
         assert bytesEntry instanceof CassandraBackendEntry;
         CassandraBackendEntry entry = (CassandraBackendEntry) bytesEntry;
 
-        // assume id with a label
-        // String labelName = entry.column(HugeKeys.LABEL);
-        // TODO: improve Id split()
-        String labelName = SplicingIdGenerator.parse(entry.id())[0];
-        VertexLabel label = this.graph.openSchemaManager().vertexLabel(labelName);
+        String labelName = entry.column(HugeKeys.LABEL);
+        VertexLabel label = this.graph.schema().vertexLabel(labelName);
 
         // id
         HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);

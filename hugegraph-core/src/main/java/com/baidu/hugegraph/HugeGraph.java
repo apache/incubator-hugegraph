@@ -5,6 +5,7 @@ import static com.baidu.hugegraph.configuration.ConfigSpace.TABLE_GRAPH;
 import static com.baidu.hugegraph.configuration.ConfigSpace.TABLE_SCHEMA;
 
 import java.util.Iterator;
+import java.util.function.Function;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -13,6 +14,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,9 +30,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.configuration.HugeConfiguration;
 import com.baidu.hugegraph.schema.HugeSchemaManager;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.structure.GraphManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
-import com.baidu.hugegraph.structure.HugeGraphManager;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 
@@ -86,11 +86,14 @@ public class HugeGraph implements Graph {
         }
     }
 
-    public void initTransaction() throws BackendException {
+    private void initTransaction() throws BackendException {
         this.storeProvider = BackendProviderFactory.open(this.configuration.get(BACKEND));
 
         this.schemaTransaction = this.openSchemaTransaction();
         this.graphTransaction = this.openGraphTransaction();
+
+        this.schemaTransaction.autoCommit(true);
+        this.graphTransaction.autoCommit(true);
     }
 
     public void initBackend() {
@@ -101,7 +104,7 @@ public class HugeGraph implements Graph {
         this.storeProvider.clear();
     }
 
-    public SchemaTransaction openSchemaTransaction() {
+    private SchemaTransaction openSchemaTransaction() {
         try {
             BackendStore store = this.storeProvider.open(this.configuration.get(TABLE_SCHEMA));
             store.open(this.configuration);
@@ -113,7 +116,7 @@ public class HugeGraph implements Graph {
         }
     }
 
-    public GraphTransaction openGraphTransaction() {
+    private GraphTransaction openGraphTransaction() {
         try {
             BackendStore store = this.storeProvider.open(this.configuration.get(TABLE_GRAPH));
             store.open(this.configuration);
@@ -133,12 +136,12 @@ public class HugeGraph implements Graph {
         return this.graphTransaction;
     }
 
-    public SchemaManager openSchemaManager() {
-        return new HugeSchemaManager(this.schemaTransaction);
+    public SchemaManager schema() {
+        return new HugeSchemaManager(this.schemaTransaction());
     }
 
-    public GraphManager openGraphManager() {
-        return new HugeGraphManager(this.graphTransaction);
+    public GraphTransaction openTransaction() {
+        return this.openGraphTransaction();
     }
 
     public AbstractSerializer serializer() {
@@ -153,7 +156,7 @@ public class HugeGraph implements Graph {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
-        return this.graphTransaction.addVertex(keyValues);
+        return this.graphTransaction().addVertex(keyValues);
     }
 
     @Override
@@ -168,30 +171,30 @@ public class HugeGraph implements Graph {
 
     @Override
     public Iterator<Vertex> vertices(Object... objects) {
-        return this.graphTransaction.queryVertices(objects);
+        return this.graphTransaction().queryVertices(objects);
     }
 
     public Iterator<Vertex> vertices(Query query) {
-        return this.graphTransaction.queryVertices(query);
+        return this.graphTransaction().queryVertices(query);
     }
 
     @Override
     public Iterator<Edge> edges(Object... objects) {
-        return this.graphTransaction.queryEdges(objects);
+        return this.graphTransaction().queryEdges(objects);
     }
 
     public Iterator<Edge> edges(Query query) {
-        return this.graphTransaction.queryEdges(query);
+        return this.graphTransaction().queryEdges(query);
     }
 
     @Override
     public Transaction tx() {
-        return this.graphTransaction.tx();
+        return this.tx;
     }
 
     @Override
     public void close() throws Exception {
-
+        // this.storeProvider.close();
     }
 
     @Override
@@ -208,4 +211,52 @@ public class HugeGraph implements Graph {
     public Configuration configuration() {
         return null;
     }
+
+    private Transaction tx = new AbstractThreadedTransaction(this) {
+
+        private GraphTransaction backendTx = null;
+
+        @Override
+        public void doOpen() {
+            this.backendTx = graphTransaction();
+            this.backendTx.autoCommit(false);
+        }
+
+        @Override
+        public void doCommit() {
+            this.backendTx.commit();
+        }
+
+        @Override
+        public void doRollback() {
+            this.backendTx.rollback();
+        }
+
+        @Override
+        public <R> Workload<R> submit(Function<Graph, R> graphRFunction) {
+            throw new UnsupportedOperationException(
+                    "HugeGraph does not support nested transactions. "
+                            + "Call submit on a HugeGraph not an individual transaction.");
+        }
+
+        @Override
+        public <G extends Graph> G createThreadedTx() {
+            throw new UnsupportedOperationException(
+                    "HugeGraph does not support nested transactions.");
+        }
+
+        @Override
+        public boolean isOpen() {
+            return this.backendTx != null;
+        }
+
+        @Override
+        public void doClose() {
+            // calling super will clear listeners
+            super.doClose();
+
+            this.backendTx.autoCommit(true);
+            this.backendTx = null;
+        }
+    };
 }

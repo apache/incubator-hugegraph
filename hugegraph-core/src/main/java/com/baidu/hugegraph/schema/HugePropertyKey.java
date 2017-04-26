@@ -115,7 +115,6 @@ public class HugePropertyKey extends PropertyKey {
         // check name is valid
         StringUtil.verifyName(this.name);
         this.transaction.addPropertyKey(this);
-        this.commit();
     }
 
     @Override

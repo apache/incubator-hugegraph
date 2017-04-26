@@ -62,7 +62,6 @@ public class HugeVertexLabel extends VertexLabel {
         verifyPrimaryKeys();
 
         this.transaction.addVertexLabel(this);
-        this.commit();
     }
 
     @Override

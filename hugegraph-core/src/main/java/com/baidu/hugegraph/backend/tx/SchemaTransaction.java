@@ -67,7 +67,7 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "dataType: " + propertyKey.dataType() + ", "
                 + "cardinality: " + propertyKey.cardinality());
 
-        this.addEntry(this.serializer.writePropertyKey(propertyKey));
+        this.addSchema(this.serializer.writePropertyKey(propertyKey));
     }
 
     public PropertyKey getPropertyKey(String name) {
@@ -85,7 +85,7 @@ public class SchemaTransaction extends AbstractTransaction {
         logger.debug("SchemaTransaction add vertex label, "
                 + "name: " + vertexLabel.name());
 
-        this.addEntry(this.serializer.writeVertexLabel(vertexLabel));
+        this.addSchema(this.serializer.writeVertexLabel(vertexLabel));
     }
 
     public VertexLabel getVertexLabel(String name) {
@@ -105,7 +105,7 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "multiplicity: " + edgeLabel.multiplicity() + ", "
                 + "frequency: " + edgeLabel.frequency());
 
-        this.addEntry(this.serializer.writeEdgeLabel(edgeLabel));
+        this.addSchema(this.serializer.writeEdgeLabel(edgeLabel));
     }
 
     public EdgeLabel getEdgeLabel(String name) {
@@ -127,7 +127,7 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "indexType: " + indexLabel.indexType() + ", "
                 + "fields: " + indexLabel.indexFields());
 
-        this.addEntry(this.serializer.writeIndexLabel(indexLabel));
+        this.addSchema(this.serializer.writeIndexLabel(indexLabel));
     }
 
     public IndexLabel getIndexLabel(String name) {
@@ -141,14 +141,25 @@ public class SchemaTransaction extends AbstractTransaction {
         this.removeSchema(new HugeIndexLabel(name));
     }
 
-    private BackendEntry querySchema(SchemaElement schemaElement) {
-        Id id = this.idGenerator.generate(schemaElement);
-        return this.query(schemaElement.type(), id);
+    private void addSchema(BackendEntry entry) {
+        this.beforeWrite();
+        this.addEntry(entry);
+        this.afterWrite();
     }
 
-    private void removeSchema(SchemaElement schema) {
-        Id id = this.idGenerator.generate(schema);
-        this.removeEntry(schema.type(), id);
+    private BackendEntry querySchema(SchemaElement schemaElement) {
+        Id id = this.idGenerator.generate(schemaElement);
+        this.beforeRead();
+        BackendEntry entry = this.query(schemaElement.type(), id);
+        this.afterRead();
+        return entry;
+    }
+
+    private void removeSchema(SchemaElement schemaElement) {
+        Id id = this.idGenerator.generate(schemaElement);
+        this.beforeWrite();
+        this.removeEntry(schemaElement.type(), id);
+        this.afterWrite();
     }
 
 

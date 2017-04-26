@@ -78,7 +78,7 @@ public class HugeVertex extends HugeElement implements Vertex {
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... properties) {
         HugeVertex targetVertex = (HugeVertex) vertex;
-        EdgeLabel edgeLabel = this.graph.openSchemaManager().edgeLabel(label);
+        EdgeLabel edgeLabel = this.graph.schema().edgeLabel(label);
 
         Preconditions.checkArgument(
                 CollectionUtil.containsAll(ElementHelper.getKeys(properties), ((HugeEdgeLabel) edgeLabel)
@@ -165,7 +165,7 @@ public class HugeVertex extends HugeElement implements Vertex {
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality,
                                           String key, V value, Object... objects) {
         // TODO: extra props
-        PropertyKey pkey = this.graph.openSchemaManager().propertyKey(key);
+        PropertyKey pkey = this.graph.schema().propertyKey(key);
         switch (Cardinality.convert(cardinality)) {
             case SINGLE:
                 HugeVertexProperty<V> prop = new HugeVertexProperty<V>(this, pkey, value);
