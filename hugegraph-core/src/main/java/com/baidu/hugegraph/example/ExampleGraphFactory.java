@@ -185,10 +185,14 @@ public class ExampleGraphFactory {
             System.out.println(">>>> " + vertices.next().toString());
         }
 
+        // query all edges
+        GraphTraversal<Edge, Edge> edges = graph.traversal().E();
+        System.out.println(">>>> query all edges: size=" + edges.toList().size());
+
         // query edge by id
         String id = "author\u00021\u0001OUT\u0001authored\u0001\u0001book\u0002java-2";
-        GraphTraversal<Edge, Edge> edges = graph.traversal().E(id);
-        System.out.println(">>>> query edge: " + edges.toList());
+        edges = graph.traversal().E(id);
+        System.out.println(">>>> query edge by id: " + edges.toList());
 
         // query edge by condition
         q = new ConditionQuery(HugeTypes.EDGE);
