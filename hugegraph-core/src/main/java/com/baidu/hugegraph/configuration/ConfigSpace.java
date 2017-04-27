@@ -23,16 +23,16 @@ public class ConfigSpace {
             disallowEmpty(String.class)
     );
 
-    public static final ConfigOption<String> TABLE_SCHEMA = new ConfigOption<>(
-            "table.schema",
+    public static final ConfigOption<String> STORE_SCHEMA = new ConfigOption<>(
+            "store.schema",
             "huge_schema",
             true,
             "the table store graph schema info.",
             disallowEmpty(String.class)
     );
 
-    public static final ConfigOption<String> TABLE_GRAPH = new ConfigOption<>(
-            "table.graph",
+    public static final ConfigOption<String> STORE_GRAPH = new ConfigOption<>(
+            "store.graph",
             "huge_graph",
             true,
             "the table store graph vertex, edge and property info.",

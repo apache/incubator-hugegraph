@@ -20,7 +20,7 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import com.google.common.base.Preconditions;
 
-public class CassandraStore implements BackendStore {
+public abstract class CassandraStore implements BackendStore {
 
     private static final Logger logger = LoggerFactory.getLogger(CassandraStore.class);
 
@@ -41,16 +41,36 @@ public class CassandraStore implements BackendStore {
         logger.debug("Store loaded: {}", name);
     }
 
-    private void initTableManagers() {
-        this.tables.put(HugeTypes.VERTEX_LABEL, new CassandraTable.VertexLabel());
-        this.tables.put(HugeTypes.EDGE_LABEL, new CassandraTable.EdgeLabel());
-        this.tables.put(HugeTypes.PROPERTY_KEY, new CassandraTable.PropertyKey());
-        this.tables.put(HugeTypes.INDEX_LABEL, new CassandraTable.IndexLabel());
+    protected abstract void initTableManagers();
 
-        this.tables.put(HugeTypes.VERTEX, new CassandraTable.Vertex());
-        this.tables.put(HugeTypes.EDGE, new CassandraTable.Edge());
-        this.tables.put(HugeTypes.SECONDARY_INDEX, new CassandraTable.SecondaryIndex());
-        this.tables.put(HugeTypes.SEARCH_INDEX, new CassandraTable.SearchIndex());
+    public static class CassandraSchemaStore extends CassandraStore {
+
+        public CassandraSchemaStore(String name) {
+            super(name);
+        }
+
+        @Override
+        protected void initTableManagers() {
+            super.tables.put(HugeTypes.VERTEX_LABEL, new CassandraTables.VertexLabel());
+            super.tables.put(HugeTypes.EDGE_LABEL, new CassandraTables.EdgeLabel());
+            super.tables.put(HugeTypes.PROPERTY_KEY, new CassandraTables.PropertyKey());
+            super.tables.put(HugeTypes.INDEX_LABEL, new CassandraTables.IndexLabel());
+        }
+    }
+
+    public static class CassandraGraphStore extends CassandraStore {
+
+        public CassandraGraphStore(String name) {
+            super(name);
+        }
+
+        @Override
+        protected void initTableManagers() {
+            super.tables.put(HugeTypes.VERTEX, new CassandraTables.Vertex());
+            super.tables.put(HugeTypes.EDGE, new CassandraTables.Edge());
+            super.tables.put(HugeTypes.SECONDARY_INDEX, new CassandraTables.SecondaryIndex());
+            super.tables.put(HugeTypes.SEARCH_INDEX, new CassandraTables.SearchIndex());
+        }
     }
 
     @Override
