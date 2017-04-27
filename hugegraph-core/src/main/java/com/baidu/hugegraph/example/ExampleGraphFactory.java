@@ -2,6 +2,7 @@ package com.baidu.hugegraph.example;
 
 import java.util.Iterator;
 
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -47,42 +48,44 @@ public class ExampleGraphFactory {
     public static void load(final HugeGraph graph) {
 
         /************************* schemaManager operating *************************/
-        SchemaManager schemaManager = graph.schema();
+        SchemaManager schema = graph.schema();
         logger.info("===============  propertyKey  ================");
-        schemaManager.propertyKey("id").asInt().create();
-        schemaManager.propertyKey("name").asText().create();
-        schemaManager.propertyKey("gender").asText().create();
-        schemaManager.propertyKey("instructions").asText().create();
-        schemaManager.propertyKey("category").asText().create();
-        schemaManager.propertyKey("year").asInt().create();
-        schemaManager.propertyKey("timestamp").asTimestamp().create();
-        schemaManager.propertyKey("ISBN").asText().create();
-        schemaManager.propertyKey("calories").asInt().create();
-        schemaManager.propertyKey("amount").asText().create();
-        schemaManager.propertyKey("stars").asInt().create();
-        schemaManager.propertyKey("age").asText().valueSingle().create();
-        schemaManager.propertyKey("comment").asText().valueSet().create();
-        schemaManager.propertyKey("nickname").asText().valueList().create();
-        schemaManager.propertyKey("lived").asText().create();
-        schemaManager.propertyKey("country").asText().valueSet().properties("livedIn").create();
-        schemaManager.propertyKey("city_id").asInt().create();
-        schemaManager.propertyKey("sensor_id").asUuid().create();
+        schema.propertyKey("id").asInt().create();
+        schema.propertyKey("name").asText().create();
+        schema.propertyKey("gender").asText().create();
+        schema.propertyKey("instructions").asText().create();
+        schema.propertyKey("category").asText().create();
+        schema.propertyKey("year").asInt().create();
+        schema.propertyKey("timestamp").asTimestamp().create();
+        schema.propertyKey("ISBN").asText().create();
+        schema.propertyKey("calories").asInt().create();
+        schema.propertyKey("amount").asText().create();
+        schema.propertyKey("stars").asInt().create();
+        schema.propertyKey("age").asText().valueSingle().create();
+        schema.propertyKey("comment").asText().valueSet().create();
+        schema.propertyKey("nickname").asText().valueList().create();
+        schema.propertyKey("lived").asText().create();
+        schema.propertyKey("country").asText().valueSet().properties("livedIn").create();
+        schema.propertyKey("city_id").asInt().create();
+        schema.propertyKey("sensor_id").asUuid().create();
 
         logger.info("===============  vertexLabel  ================");
 
-        schemaManager.vertexLabel("person").properties("name").primaryKeys("name").create();
-        schemaManager.vertexLabel("author").properties("id", "name").primaryKeys("id").create();
-        schemaManager.vertexLabel("language").properties("name").primaryKeys("name").create();
-        schemaManager.vertexLabel("recipe").properties("name", "instructions").create();
-        schemaManager.vertexLabel("ingredient").create();
-        schemaManager.vertexLabel("book").properties("name").primaryKeys("name").create();
-        schemaManager.vertexLabel("meal").create();
-        schemaManager.vertexLabel("reviewer").create();
+        schema.vertexLabel("person").properties("name", "age", "city").primaryKeys("name").create();
+        schema.vertexLabel("author").properties("id", "name").primaryKeys("id").create();
+        schema.vertexLabel("language").properties("name").primaryKeys("name").create();
+        schema.vertexLabel("recipe").properties("name", "instructions").create();
+        schema.vertexLabel("ingredient").create();
+        schema.vertexLabel("book").properties("name").primaryKeys("name").create();
+        schema.vertexLabel("meal").create();
+        schema.vertexLabel("reviewer").create();
         // vertex label must have the properties that specified in primary key
-        schemaManager.vertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
+        schema.vertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
 
         logger.info("===============  vertexLabel & index  ================");
         // TODO: implement index feature.
+        schema.vertexLabel("person").index("personByCity").secondary().by("city").create();
+        schema.vertexLabel("person").index("personByAge").search().by("age").create();
         // schemaManager.vertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schemaManager.vertexLabel("meal").index("byMeal").materialized().by("name").add();
@@ -91,11 +94,11 @@ public class ExampleGraphFactory {
 
         logger.info("===============  edgeLabel  ================");
 
-        schemaManager.edgeLabel("authored").singleTime().linkOne2One().properties("contribution").create();
-        schemaManager.edgeLabel("created").singleTime().linkMany2Many().create();
-        schemaManager.edgeLabel("includes").singleTime().linkOne2Many().create();
-        schemaManager.edgeLabel("includedIn").linkMany2One().create();
-        schemaManager.edgeLabel("rated").linkMany2Many().link("reviewer", "recipe").create();
+        schema.edgeLabel("authored").singleTime().linkOne2One().properties("contribution").create();
+        schema.edgeLabel("created").singleTime().linkMany2Many().create();
+        schema.edgeLabel("includes").singleTime().linkOne2Many().create();
+        schema.edgeLabel("includedIn").linkMany2One().create();
+        schema.edgeLabel("rated").linkMany2Many().link("reviewer", "recipe").create();
 
 
         logger.info("===============  schemaManager desc  ================");
@@ -105,7 +108,17 @@ public class ExampleGraphFactory {
 
         // Directly into the back-end
         graph.addVertex(T.label, "book", "name", "java-3");
-        graph.addVertex(T.label, "person", "name", "zhangsan");
+
+        graph.addVertex(T.label, "person", "name", "Tom",
+                "city", "Beijing", "age", "18");
+        graph.addVertex(T.label, "person", "name", "James",
+                "city", "Beijing", "age", "19");
+        graph.addVertex(T.label, "person", "name", "Cat",
+                "city", "Beijing", "age", "20");
+        graph.addVertex(T.label, "person", "name", "Lisa",
+                "city", "Beijing", "age", "20");
+        graph.addVertex(T.label, "person", "name", "Hebe",
+                "city", "Taipei", "age", "21");
 
         // Must commit manually
         GraphTransaction tx = graph.openTransaction();
@@ -194,7 +207,17 @@ public class ExampleGraphFactory {
 
         // query by vertex label
         vertex = graph.traversal().V().hasLabel("book");
-        //System.out.println(">>>> query all books: size=" + vertex.toList().size());
+        System.out.println(">>>> query all books: size=" + vertex.toList().size());
+
+        // query by vertex props
+        vertex = graph.traversal().V().hasLabel("person").has("city", "Taipei");
+        System.out.println(">>>> query all persons in Taipei: " + vertex.toList());
+
+        vertex = graph.traversal().V().hasLabel("person").has("age", "19");
+        System.out.println(">>>> query all persons age==19: " + vertex.toList());
+
+        vertex = graph.traversal().V().hasLabel("person").has("age", P.lt("19"));
+        System.out.println(">>>> query all persons age<19: " + vertex.toList());
     }
 
 }

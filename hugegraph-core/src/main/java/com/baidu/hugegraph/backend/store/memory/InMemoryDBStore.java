@@ -55,7 +55,7 @@ public class InMemoryDBStore implements BackendStore {
                 if (c instanceof Condition.Relation) {
                     Condition.Relation r = (Condition.Relation) c;
                     // TODO: deal with others Relation like: <, >=, ...
-                    if (entry.contains(r.key().string(), r.value().toString())) {
+                    if (entry.contains(r.key().toString(), r.value().toString())) {
                         entries.add(entry);
                     }
                 }

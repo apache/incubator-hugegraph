@@ -189,21 +189,23 @@ public abstract class CassandraTable {
     }
 
     protected static Clause relation2Cql(Relation relation) {
-        Relation r = relation;
+        String key = relation.key().toString();
+        Object value = relation.value();
+
         switch (relation.relation()) {
             case EQ:
-                return QueryBuilder.eq(r.key().name(), r.value());
+                return QueryBuilder.eq(key, value);
             case GT:
-                return QueryBuilder.gt(r.key().name(), r.value());
+                return QueryBuilder.gt(key, value);
             case GTE:
-                return QueryBuilder.gte(r.key().name(), r.value());
+                return QueryBuilder.gte(key, value);
             case LT:
-                return QueryBuilder.lt(r.key().name(), r.value());
+                return QueryBuilder.lt(key, value);
             case LTE:
-                return QueryBuilder.lte(r.key().name(), r.value());
+                return QueryBuilder.lte(key, value);
             case NEQ:
             default:
-                throw new AssertionError("Not supported relation: " + r);
+                throw new AssertionError("Not supported relation: " + relation);
         }
     }
 
@@ -840,6 +842,7 @@ public abstract class CassandraTable {
             super.batch.add(update);
         }
 
+        @Override
         protected CassandraBackendEntry result2Entry(HugeTypes type, Row row) {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
 
@@ -902,6 +905,7 @@ public abstract class CassandraTable {
             super.batch.add(update);
         }
 
+        @Override
         protected CassandraBackendEntry result2Entry(HugeTypes type, Row row) {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
 

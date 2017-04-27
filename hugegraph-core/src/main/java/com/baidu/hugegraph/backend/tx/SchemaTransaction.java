@@ -30,13 +30,26 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public SchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
+        // TODO Auto-generated constructor stub
     }
 
-    // these three method need to be checked!
-    public List<HugePropertyKey> getPropertyKeys() {
-        List<HugePropertyKey> propertyKeys = new ArrayList<>();
+    public List<HugePropertyKey> getPropertyKeys(String... names) {
+        // TODO:to be checked
+
+        List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
+
+        Condition c = null;
+        for (String name : names) {
+            if (c == null) {
+                c = Condition.eq(HugeKeys.NAME, name);
+            } else {
+                c = c.or(Condition.eq(HugeKeys.NAME, name));
+            }
+        }
 
         ConditionQuery q = new ConditionQuery(HugeTypes.PROPERTY_KEY);
+        q.query(c);
+
         Iterable<BackendEntry> entries = query(q);
         entries.forEach(item -> {
             propertyKeys.add((HugePropertyKey) this.serializer.readPropertyKey(item));
@@ -44,26 +57,12 @@ public class SchemaTransaction extends AbstractTransaction {
         return propertyKeys;
     }
 
-    public List<HugeVertexLabel> getVertexLabels() {
-        List<HugeVertexLabel> vertexLabels = new ArrayList<>();
-
-        ConditionQuery q = new ConditionQuery(HugeTypes.VERTEX_LABEL);
-        Iterable<BackendEntry> entries = query(q);
-        entries.forEach(item -> {
-            vertexLabels.add((HugeVertexLabel) this.serializer.readVertexLabel(item));
-        });
-        return vertexLabels;
+    public void getVertexLabels() {
+        // todo:to be implemented
     }
 
-    public List<HugeEdgeLabel> getEdgeLabels() {
-        List<HugeEdgeLabel> edgeLabels = new ArrayList<>();
-
-        ConditionQuery q = new ConditionQuery(HugeTypes.EDGE_LABEL);
-        Iterable<BackendEntry> entries = query(q);
-        entries.forEach(item -> {
-            edgeLabels.add((HugeEdgeLabel) this.serializer.readEdgeLabel(item));
-        });
-        return edgeLabels;
+    public void getEdgeLabels() {
+        // todo:to be implemented
     }
 
     public void addPropertyKey(PropertyKey propertyKey) {
@@ -167,25 +166,4 @@ public class SchemaTransaction extends AbstractTransaction {
         this.afterWrite();
     }
 
-
-    //****************************   update operation *************************** //
-    public void updateSchemaElement(HugeTypes baseType, String baseValue, String indexName) {
-        switch (baseType) {
-            case VERTEX_LABEL:
-                VertexLabel vertexLabel = getVertexLabel(baseValue);
-                vertexLabel.indexNames(indexName);
-                addVertexLabel(vertexLabel);
-                break;
-            case EDGE_LABEL:
-                EdgeLabel edgeLabel = getEdgeLabel(baseValue);
-                edgeLabel.indexNames(indexName);
-                addEdgeLabel(edgeLabel);
-                break;
-            case PROPERTY_KEY:
-                PropertyKey propertyKey = getPropertyKey(baseValue);
-                propertyKey.indexNames(indexName);
-                addPropertyKey(propertyKey);
-                break;
-        }
-    }
 }

@@ -115,24 +115,46 @@ public final class HugeGraphStep<S, E extends Element>
 
     public static Condition convHasContainer2Condition(HasContainer has) {
         // TODO: deal with has.getPredicate();
-        HugeKeys key = string2HugeKey(has.getKey());
-        Object value = has.getValue();
+        try {
+            HugeKeys key = string2HugeKey(has.getKey());
+            Object value = has.getValue();
 
-        BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
-        if (bp.equals(Compare.eq)) {
-            return Condition.eq(key, value);
-        } else if (bp.equals(Compare.gt)) {
-            return Condition.gt(key, value);
-        } else if (bp.equals(Compare.gte)) {
-            return Condition.gte(key, value);
-        } else if (bp.equals(Compare.lt)) {
-            return Condition.lt(key, value);
-        } else if (bp.equals(Compare.lte)) {
-            return Condition.lte(key, value);
-        } else if (bp.equals(Compare.neq)) {
-            return Condition.neq(key, value);
-        } else {
-            throw new BackendException("Not supported condition: " + bp);
+            BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+            if (bp.equals(Compare.eq)) {
+                return Condition.eq(key, value);
+            } else if (bp.equals(Compare.gt)) {
+                return Condition.gt(key, value);
+            } else if (bp.equals(Compare.gte)) {
+                return Condition.gte(key, value);
+            } else if (bp.equals(Compare.lt)) {
+                return Condition.lt(key, value);
+            } else if (bp.equals(Compare.lte)) {
+                return Condition.lte(key, value);
+            } else if (bp.equals(Compare.neq)) {
+                return Condition.neq(key, value);
+            } else {
+                throw new BackendException("Not supported condition: " + bp);
+            }
+        } catch (IllegalArgumentException e) {
+            String key = has.getKey();
+            Object value = has.getValue();
+
+            BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+            if (bp.equals(Compare.eq)) {
+                return Condition.eq(key, value);
+            } else if (bp.equals(Compare.gt)) {
+                return Condition.gt(key, value);
+            } else if (bp.equals(Compare.gte)) {
+                return Condition.gte(key, value);
+            } else if (bp.equals(Compare.lt)) {
+                return Condition.lt(key, value);
+            } else if (bp.equals(Compare.lte)) {
+                return Condition.lte(key, value);
+            } else if (bp.equals(Compare.neq)) {
+                return Condition.neq(key, value);
+            } else {
+                throw new BackendException("Not supported condition: " + bp);
+            }
         }
     }
 

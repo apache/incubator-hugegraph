@@ -1,6 +1,7 @@
 package com.baidu.hugegraph.backend.query;
 
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.google.common.base.Preconditions;
 
 public abstract class Condition {
 
@@ -32,6 +33,8 @@ public abstract class Condition {
 
     public abstract ConditionType type();
 
+    public abstract boolean isSysprop();
+
     public Condition and(Condition other) {
         return new And(this, other);
     }
@@ -49,31 +52,51 @@ public abstract class Condition {
     }
 
     public static Relation eq(HugeKeys key, Object value) {
-        return new Relation(key, RelationType.EQ, value);
+        return new SyspropRelation(key, RelationType.EQ, value);
     }
 
     public static Relation gt(HugeKeys key, Object value) {
-        return new Relation(key, RelationType.GT, value);
+        return new SyspropRelation(key, RelationType.GT, value);
     }
 
     public static Relation gte(HugeKeys key, Object value) {
-        return new Relation(key, RelationType.GTE, value);
+        return new SyspropRelation(key, RelationType.GTE, value);
     }
 
     public static Relation lt(HugeKeys key, Object value) {
-        return new Relation(key, RelationType.LT, value);
+        return new SyspropRelation(key, RelationType.LT, value);
     }
 
     public static Relation lte(HugeKeys key, Object value) {
-        return new Relation(key, RelationType.LTE, value);
+        return new SyspropRelation(key, RelationType.LTE, value);
     }
 
     public static Relation neq(HugeKeys key, Object value) {
-        return new Relation(key, RelationType.NEQ, value);
+        return new SyspropRelation(key, RelationType.NEQ, value);
     }
 
-    public static Condition none() {
-        return NONE;
+    public static Relation eq(String key, Object value) {
+        return new UserpropRelation(key, RelationType.EQ, value);
+    }
+
+    public static Relation gt(String key, Object value) {
+        return new UserpropRelation(key, RelationType.GT, value);
+    }
+
+    public static Relation gte(String key, Object value) {
+        return new UserpropRelation(key, RelationType.GTE, value);
+    }
+
+    public static Relation lt(String key, Object value) {
+        return new UserpropRelation(key, RelationType.LT, value);
+    }
+
+    public static Relation lte(String key, Object value) {
+        return new UserpropRelation(key, RelationType.LTE, value);
+    }
+
+    public static Relation neq(String key, Object value) {
+        return new UserpropRelation(key, RelationType.NEQ, value);
     }
 
     // Condition defines
@@ -82,6 +105,8 @@ public abstract class Condition {
         private Condition right;
 
         public BinCondition(Condition left, Condition right) {
+            Preconditions.checkNotNull(left, "Condition can't be null");
+            Preconditions.checkNotNull(right, "Condition can't be null");
             this.left = left;
             this.right = right;
         }
@@ -92,6 +117,11 @@ public abstract class Condition {
 
         public Condition right() {
             return this.right;
+        }
+
+        @Override
+        public boolean isSysprop() {
+            return this.left.isSysprop() && this.right.isSysprop();
         }
 
         @Override
@@ -123,35 +153,15 @@ public abstract class Condition {
         }
     }
 
-    public static class Relation extends Condition {
-        // column name
-        private HugeKeys key;
+    public abstract static class Relation extends Condition {
         // relational operator (like: =, >, <, in, ...)
-        private RelationType relation;
+        protected RelationType relation;
         // single-type value or a list of single-type value
-        private Object value;
-
-        public Relation(HugeKeys key) {
-            this(key, null, null);
-        }
-
-        public Relation(HugeKeys key, Object value) {
-            this(key, RelationType.EQ, value);
-        }
-
-        public Relation(HugeKeys key, RelationType op, Object value) {
-            this.key =key;
-            this.relation = op;
-            this.value = value;
-        }
+        protected Object value;
 
         @Override
         public ConditionType type() {
             return ConditionType.RELATION;
-        }
-
-        public HugeKeys key() {
-            return this.key;
         }
 
         public RelationType relation() {
@@ -165,19 +175,70 @@ public abstract class Condition {
         @Override
         public String toString() {
             return String.format("%s%s%s",
-                    this.key, this.relation.string(), this.value);
+                    this.key(), this.relation.string(), this.value);
+        }
+
+        @Override
+        public abstract boolean isSysprop();
+
+        public abstract Object key();
+    }
+
+    public static class SyspropRelation extends Relation {
+        // column name
+        private HugeKeys key;
+
+        public SyspropRelation(HugeKeys key) {
+            this(key, null, null);
+        }
+
+        public SyspropRelation(HugeKeys key, Object value) {
+            this(key, RelationType.EQ, value);
+        }
+
+        public SyspropRelation(HugeKeys key, RelationType op, Object value) {
+            this.key = key;
+            this.relation = op;
+            this.value = value;
+        }
+
+        @Override
+        public HugeKeys key() {
+            return this.key;
+        }
+
+        @Override
+        public boolean isSysprop() {
+            return true;
         }
     }
 
-    private static final Condition NONE = new Condition() {
-        @Override
-        public ConditionType type() {
-            return ConditionType.NONE;
+    public static class UserpropRelation extends Relation {
+        // column name
+        private String key;
+
+        public UserpropRelation(String key) {
+            this(key, null, null);
+        }
+
+        public UserpropRelation(String key, Object value) {
+            this(key, RelationType.EQ, value);
+        }
+
+        public UserpropRelation(String key, RelationType op, Object value) {
+            this.key = key;
+            this.relation = op;
+            this.value = value;
         }
 
         @Override
-        public String toString() {
-            return "<NONE>";
+        public String key() {
+            return this.key;
         }
-    };
+
+        @Override
+        public boolean isSysprop() {
+            return false;
+        }
+    }
 }

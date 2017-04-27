@@ -411,7 +411,11 @@ public class CassandraSerializer extends AbstractSerializer {
 
         HugeIndex index = new HugeIndex(indexLabel);
         index.propertyValues(indexValues);
-        index.elementIds(fromJson(elementIds, Id[].class));
+
+        String[] ids = fromJson(elementIds, String[].class);
+        for (String id : ids) {
+            index.elementIds(IdGeneratorFactory.generator().generate(id));
+        }
 
         return index;
     }

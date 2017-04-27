@@ -24,9 +24,9 @@ public class HugeIndex {
 
     public String id() {
         if (indexType() == IndexType.SECONDARY) {
-            return propertyValues() + indexLabelName() + elementIds;
+            return propertyValues() + indexLabelName() + this.elementIds;
         } else {
-            return indexLabelName() + propertyValues() + elementIds;
+            return indexLabelName() + propertyValues() + this.elementIds;
         }
     }
 
@@ -47,7 +47,7 @@ public class HugeIndex {
     }
 
     public Set<Id> elementIds() {
-        return elementIds;
+        return this.elementIds;
     }
 
     public void elementIds(Set<Id> elementIds) {
