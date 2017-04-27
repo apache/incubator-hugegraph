@@ -237,7 +237,7 @@ public abstract class CassandraTable {
                 HugeKeys cellValueType = this.cellValueType(cellKeyType);
                 String cellValue = row.getString(cellValueType.name());
 
-                entry.column(new CassandraBackendEntry.Cell(
+                entry.column(new CassandraBackendEntry.Property(
                         cellKeyType, cellKeyValue,
                         cellValueType, cellValue));
             } else {
@@ -291,7 +291,7 @@ public abstract class CassandraTable {
         }
         // insert keys + values
         else {
-            for (CassandraBackendEntry.Cell i : entry.cells()) {
+            for (CassandraBackendEntry.Property i : entry.cells()) {
                 Insert insert = QueryBuilder.insertInto(this.table);
 
                 for (Entry<HugeKeys, String> k : entry.keys().entrySet()) {
@@ -319,7 +319,7 @@ public abstract class CassandraTable {
         }
         // delete by key + value-key (such as vertex property)
         else {
-            for (CassandraBackendEntry.Cell i : entry.cells()) {
+            for (CassandraBackendEntry.Property i : entry.cells()) {
 
                 for (Entry<HugeKeys, String> k : entry.keys().entrySet()) {
                     where.and(QueryBuilder.eq(k.getKey().name(), k.getValue()));
