@@ -30,22 +30,13 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public SchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
-        // TODO Auto-generated constructor stub
     }
 
-    public List<HugePropertyKey> getPropertyKeys(String... names) {
-        // TODO:to be checked
-
-        List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
-
-        Condition c = Condition.none();
-        for (String name : names) {
-            c = c.or(Condition.eq(HugeKeys.NAME, name));
-        }
+    // these three method need to be checked!
+    public List<HugePropertyKey> getPropertyKeys() {
+        List<HugePropertyKey> propertyKeys = new ArrayList<>();
 
         ConditionQuery q = new ConditionQuery(HugeTypes.PROPERTY_KEY);
-        q.query(c);
-
         Iterable<BackendEntry> entries = query(q);
         entries.forEach(item -> {
             propertyKeys.add((HugePropertyKey) this.serializer.readPropertyKey(item));
@@ -53,12 +44,26 @@ public class SchemaTransaction extends AbstractTransaction {
         return propertyKeys;
     }
 
-    public void getVertexLabels() {
-        // todo:to be implemented
+    public List<HugeVertexLabel> getVertexLabels() {
+        List<HugeVertexLabel> vertexLabels = new ArrayList<>();
+
+        ConditionQuery q = new ConditionQuery(HugeTypes.VERTEX_LABEL);
+        Iterable<BackendEntry> entries = query(q);
+        entries.forEach(item -> {
+            vertexLabels.add((HugeVertexLabel) this.serializer.readVertexLabel(item));
+        });
+        return vertexLabels;
     }
 
-    public void getEdgeLabels() {
-        // todo:to be implemented
+    public List<HugeEdgeLabel> getEdgeLabels() {
+        List<HugeEdgeLabel> edgeLabels = new ArrayList<>();
+
+        ConditionQuery q = new ConditionQuery(HugeTypes.EDGE_LABEL);
+        Iterable<BackendEntry> entries = query(q);
+        entries.forEach(item -> {
+            edgeLabels.add((HugeEdgeLabel) this.serializer.readEdgeLabel(item));
+        });
+        return edgeLabels;
     }
 
     public void addPropertyKey(PropertyKey propertyKey) {
