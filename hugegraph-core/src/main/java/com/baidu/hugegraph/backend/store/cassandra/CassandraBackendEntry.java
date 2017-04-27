@@ -14,13 +14,13 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class CassandraBackendEntry implements BackendEntry {
 
-    public static class Cell {
+    public static class Property {
         private HugeKeys nameType;
         private HugeKeys valueType;
         private String name;
         private String value;
 
-        public Cell(HugeKeys nameType, String name,
+        public Property(HugeKeys nameType, String name,
                 HugeKeys valueType, String value) {
             assert nameType != null && name != null;
             this.nameType = nameType;
@@ -75,7 +75,7 @@ public class CassandraBackendEntry implements BackendEntry {
         private HugeTypes type;
         private Id id;
         private Map<HugeKeys, String> keys;
-        private List<Cell> cells;
+        private List<Property> cells;
 
         public Row(HugeTypes type) {
             this(type, null);
@@ -112,11 +112,11 @@ public class CassandraBackendEntry implements BackendEntry {
             return this.keys;
         }
 
-        public void cell(Cell value) {
+        public void cell(Property value) {
             this.cells.add(value);
         }
 
-        public List<Cell> cells() {
+        public List<Property> cells() {
             return this.cells;
         }
 
@@ -172,7 +172,7 @@ public class CassandraBackendEntry implements BackendEntry {
         return this.row.keys();
     }
 
-    public List<Cell> cells() {
+    public List<Property> cells() {
         return this.row.cells();
     }
 
@@ -180,7 +180,7 @@ public class CassandraBackendEntry implements BackendEntry {
         this.row.key(key, value);
     }
 
-    public void column(Cell cell) {
+    public void column(Property cell) {
         this.row.cell(cell);
     }
 

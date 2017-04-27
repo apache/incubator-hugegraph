@@ -12,8 +12,6 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.store.cassandra.CassandraBackendEntry.Cell;
-import com.baidu.hugegraph.backend.store.cassandra.CassandraBackendEntry.Row;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
@@ -85,8 +83,9 @@ public class CassandraSerializer extends AbstractSerializer {
         }
     }
 
-    protected Cell formatProperty(HugeProperty<?> prop) {
-        return new Cell(HugeKeys.PROPERTY_KEY, prop.key(),
+    protected CassandraBackendEntry.Property formatProperty(HugeProperty<?> prop) {
+        return new CassandraBackendEntry.Property(
+                HugeKeys.PROPERTY_KEY, prop.key(),
                 HugeKeys.PROPERTY_VALUE, toJson(prop.value()));
     }
 
@@ -111,8 +110,9 @@ public class CassandraSerializer extends AbstractSerializer {
         }
     }
 
-    protected Row formatEdge(HugeEdge edge) {
-        Row row = new Row(HugeTypes.EDGE, edge.sourceVertex().id());
+    protected CassandraBackendEntry.Row formatEdge(HugeEdge edge) {
+        CassandraBackendEntry.Row row = new CassandraBackendEntry.Row(
+                HugeTypes.EDGE, edge.sourceVertex().id());
 
         // sourceVertex + direction + edge-label-name + sortValues + targetVertex
         row.key(HugeKeys.SOURCE_VERTEX, edge.owner().id().asString());
@@ -128,7 +128,8 @@ public class CassandraSerializer extends AbstractSerializer {
 
         // TODO: fill a default property if non, it should be improved!
         if (edge.getProperties().isEmpty()) {
-            row.cell(new Cell(HugeKeys.PROPERTY_KEY, "$",
+            row.cell(new CassandraBackendEntry.Property(
+                    HugeKeys.PROPERTY_KEY, "~exist",
                     HugeKeys.PROPERTY_VALUE, "1"));
         }
 
@@ -136,7 +137,7 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     // parse an edge from a sub row
-    protected void parseEdge(Row row, HugeVertex vertex) {
+    protected void parseEdge(CassandraBackendEntry.Row row, HugeVertex vertex) {
         @SuppressWarnings("unused")
         String sourceVertexId = row.key(HugeKeys.SOURCE_VERTEX);
         Direction direction = Direction.valueOf(row.key(HugeKeys.DIRECTION));
@@ -161,7 +162,7 @@ public class CassandraSerializer extends AbstractSerializer {
         }
 
         // edge properties
-        for (Cell cell : row.cells()) {
+        for (CassandraBackendEntry.Property cell : row.cells()) {
             this.parseProperty(cell.name(), cell.value(), edge);
         }
 
@@ -204,12 +205,12 @@ public class CassandraSerializer extends AbstractSerializer {
         HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
 
         // parse all properties of a Vertex
-        for (Cell cell : entry.cells()) {
+        for (CassandraBackendEntry.Property cell : entry.cells()) {
             this.parseProperty(cell.name(), cell.value(), vertex);
         }
 
         // parse all edges of a Vertex
-        for (Row edge : entry.subRows()) {
+        for (CassandraBackendEntry.Row edge : entry.subRows()) {
             this.parseEdge(edge, vertex);
         }
         return vertex;
