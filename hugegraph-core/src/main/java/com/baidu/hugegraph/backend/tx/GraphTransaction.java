@@ -1,10 +1,12 @@
 package com.baidu.hugegraph.backend.tx;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -297,12 +299,19 @@ public class GraphTransaction extends AbstractTransaction {
     public Iterator<Edge> queryEdges(Query q) {
         Iterator<Vertex> vertices = this.queryVertices(q);
 
-        List<Edge> list = new ArrayList<Edge>();
+        Map<Id, Edge> results = new HashMap<>();
         while (vertices.hasNext()) {
-            Vertex vertex = vertices.next();
-            list.addAll(ImmutableList.copyOf(vertex.edges(Direction.BOTH)));
+            HugeVertex vertex = (HugeVertex) vertices.next();
+            for (HugeEdge edge : vertex.getEdges()) {
+                if (!results.containsKey(edge.id())) {
+                    // NOTE: ensure all edges in results are OUT
+                    results.put(edge.id(), edge.switchOutDirection());
+                } else {
+                    logger.debug("results contains edge: {}", edge);
+                }
+            }
         }
 
-        return list.iterator();
+        return results.values().iterator();
     }
 }

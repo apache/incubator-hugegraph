@@ -137,6 +137,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
     // parse an edge from a sub row
     protected void parseEdge(Row row, HugeVertex vertex) {
+        @SuppressWarnings("unused")
         String sourceVertexId = row.key(HugeKeys.SOURCE_VERTEX);
         Direction direction = Direction.valueOf(row.key(HugeKeys.DIRECTION));
         String labelName = row.key(HugeKeys.LABEL);
@@ -149,9 +150,7 @@ public class CassandraSerializer extends AbstractSerializer {
         Id otherVertexId = IdGeneratorFactory.generator().generate(targetVertexId);
         HugeVertex otherVertex = new HugeVertex(this.graph, otherVertexId, null);
 
-        Id id = IdGeneratorFactory.generator().generate(sourceVertexId);
-
-        HugeEdge edge = new HugeEdge(this.graph, id, label);
+        HugeEdge edge = new HugeEdge(this.graph, null, label);
 
         if (isOutEdge) {
             edge.targetVertex(otherVertex);
@@ -165,6 +164,8 @@ public class CassandraSerializer extends AbstractSerializer {
         for (Cell cell : row.cells()) {
             this.parseProperty(cell.name(), cell.value(), edge);
         }
+
+        edge.assignId();
     }
 
     @Override
