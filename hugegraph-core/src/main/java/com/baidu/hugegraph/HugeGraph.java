@@ -104,7 +104,8 @@ public class HugeGraph implements Graph {
 
     private SchemaTransaction openSchemaTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(this.configuration.get(ConfigSpace.TABLE_SCHEMA));
+            String name = this.configuration.get(ConfigSpace.STORE_SCHEMA);
+            BackendStore store = this.storeProvider.loadSchemaStore(name);
             store.open(this.configuration);
             return new SchemaTransaction(this, store);
         } catch (BackendException e) {
@@ -116,7 +117,8 @@ public class HugeGraph implements Graph {
 
     private GraphTransaction openGraphTransaction() {
         try {
-            BackendStore store = this.storeProvider.open(this.configuration.get(ConfigSpace.TABLE_SCHEMA));
+            String name = this.configuration.get(ConfigSpace.STORE_GRAPH);
+            BackendStore store = this.storeProvider.loadGraphStore(name);
             store.open(this.configuration);
             return new GraphTransaction(this, store);
         } catch (BackendException e) {

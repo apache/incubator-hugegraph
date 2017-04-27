@@ -20,11 +20,25 @@ public class CassandraStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public BackendStore open(final String name) throws BackendException {
-        logger.info("BackendStore open [ " + name + " ] ");
+    public BackendStore loadSchemaStore(final String name) {
+        logger.info("BackendStore load [ " + name + " ] ");
 
         if (!this.stores.containsKey(name)) {
-            this.stores.putIfAbsent(name, new CassandraStore(name));
+            this.stores.putIfAbsent(name,
+                    new CassandraStore.CassandraSchemaStore(name));
+        }
+        BackendStore store = this.stores.get(name);
+        Preconditions.checkNotNull(store);
+        return store;
+    }
+
+    @Override
+    public BackendStore loadGraphStore(String name) {
+        logger.info("BackendStore load [ " + name + " ] ");
+
+        if (!this.stores.containsKey(name)) {
+            this.stores.putIfAbsent(name,
+                    new CassandraStore.CassandraGraphStore(name));
         }
         BackendStore store = this.stores.get(name);
         Preconditions.checkNotNull(store);

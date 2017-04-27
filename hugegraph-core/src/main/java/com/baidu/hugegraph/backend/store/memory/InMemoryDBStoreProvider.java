@@ -23,9 +23,20 @@ public class InMemoryDBStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public BackendStore open(final String name) throws BackendException {
+    public BackendStore loadSchemaStore(final String name) {
+        logger.info("BackendStore load [ " + name + " ] ");
 
-        logger.info("BackendStore open [ " + name + " ] ");
+        if (!this.stores.containsKey(name)) {
+            this.stores.putIfAbsent(name, new InMemoryDBStore(name));
+        }
+        BackendStore store = this.stores.get(name);
+        Preconditions.checkNotNull(store);
+        return store;
+    }
+
+    @Override
+    public BackendStore loadGraphStore(String name) {
+        logger.info("BackendStore load [ " + name + " ] ");
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name, new InMemoryDBStore(name));
