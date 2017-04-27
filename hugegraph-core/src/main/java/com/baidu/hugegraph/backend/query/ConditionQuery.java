@@ -1,7 +1,9 @@
 package com.baidu.hugegraph.backend.query;
 
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -18,7 +20,7 @@ public class ConditionQuery extends IdQuery {
 
     public ConditionQuery query(HugeKeys key) {
         // query value by key (such as: get property value bye key)
-        this.conditions.add(new Condition.Relation(key));
+        this.conditions.add(new Condition.SyspropRelation(key));
         return this;
     }
 
@@ -68,5 +70,89 @@ public class ConditionQuery extends IdQuery {
         return String.format("%s and %s",
                 super.toString(),
                 this.conditions.toString());
+    }
+
+    public boolean allSysprop() {
+        for (Condition c : this.conditions) {
+            if (!c.isSysprop()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public Object condition(Object key) {
+        for (Condition c : this.conditions) {
+            if (c.type() == Condition.ConditionType.RELATION) {
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.key().equals(key)) {
+                    return r.value();
+                }
+            }
+            // TODO: deal with other Condition
+        }
+        return null;
+    }
+
+    public List<Condition> userpropConditions() {
+        List<Condition> conds = new LinkedList<>();
+        for (Condition c : this.conditions) {
+            if (c.type() == Condition.ConditionType.RELATION
+                    && !((Condition.Relation) c).isSysprop()) {
+                Condition.UserpropRelation r = (Condition.UserpropRelation) c;
+                conds.add(r);
+            }
+            // TODO: deal with other Condition
+        }
+        return conds;
+    }
+
+    public Set<String> userpropKeys() {
+        Set<String> keys = new LinkedHashSet<>();
+        for (Condition c : this.conditions) {
+            if (c.type() == Condition.ConditionType.RELATION
+                    && !((Condition.Relation) c).isSysprop()) {
+                Condition.UserpropRelation r = (Condition.UserpropRelation) c;
+                keys.add(r.key());
+            }
+            // TODO: deal with other Condition
+        }
+        return keys;
+    }
+
+    public Set<Object> userpropValues() {
+        Set<Object> keys = new LinkedHashSet<>();
+        for (Condition c : this.conditions) {
+            if (c.type() == Condition.ConditionType.RELATION
+                    && !((Condition.Relation) c).isSysprop()) {
+                Condition.Relation r = (Condition.Relation) c;
+                keys.add(r.value());
+            }
+            // TODO: deal with other Condition
+        }
+        return keys;
+    }
+
+    public boolean hasSearchCondition() {
+        for (Condition c : this.conditions) {
+            if (c.type() == Condition.ConditionType.RELATION) {
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.relation() != Condition.RelationType.EQ) {
+                    return true;
+                }
+            }
+            // TODO: deal with other Condition
+        }
+        return false;
+    }
+
+    public boolean matchUserpropKeys(Set<String> keys) {
+        Set<String> conditionKeys = userpropKeys();
+        if (keys.size() == conditionKeys.size()
+                && keys.containsAll(conditionKeys)) {
+            return true;
+        }
+
+        return false;
     }
 }
