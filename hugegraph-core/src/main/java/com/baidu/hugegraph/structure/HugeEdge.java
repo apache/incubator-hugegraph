@@ -196,6 +196,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return edge;
     }
 
+    public Edge switchOutDirection() {
+        if (this.type() == HugeTypes.EDGE_IN) {
+            return this.switchOwner();
+        }
+        return this;
+    }
+
     public HugeVertex owner() {
         return this.owner;
     }
