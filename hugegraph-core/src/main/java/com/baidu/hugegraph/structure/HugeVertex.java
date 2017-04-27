@@ -214,11 +214,19 @@ public class HugeVertex extends HugeElement implements Vertex {
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
         List<VertexProperty<V>> propertyList = new ArrayList<>(propertyKeys.length);
-        for (String pk : propertyKeys) {
-            HugeProperty<? extends Object> prop = this.getProperty(pk);
-            assert prop instanceof VertexProperty;
-            propertyList.add((VertexProperty<V>) prop);
+
+        if (propertyKeys.length == 0) {
+            for (HugeProperty<?> prop : this.getProperties().values()) {
+                propertyList.add((VertexProperty<V>) prop);
+            }
+        } else {
+            for (String pk : propertyKeys) {
+                HugeProperty<? extends Object> prop = this.getProperty(pk);
+                assert prop instanceof VertexProperty;
+                propertyList.add((VertexProperty<V>) prop);
+            }
         }
+
         return propertyList.iterator();
     }
 

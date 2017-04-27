@@ -137,9 +137,17 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public <V> Iterator<Property<V>> properties(String... propertyKeys) {
         List<Property<V>> propertyList = new ArrayList<>(propertyKeys.length);
-        for (String pk : propertyKeys) {
-            HugeProperty<? extends Object> prop = this.getProperty(pk);
-            propertyList.add((Property<V>) prop);
+
+        if (propertyKeys.length == 0) {
+            for (HugeProperty<?> prop : this.getProperties().values()) {
+                propertyList.add((Property<V>) prop);
+            }
+        } else {
+            for (String pk : propertyKeys) {
+                HugeProperty<? extends Object> prop = this.getProperty(pk);
+                assert prop instanceof Property;
+                propertyList.add((Property<V>) prop);
+            }
         }
         return propertyList.iterator();
     }
