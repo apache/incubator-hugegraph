@@ -9,6 +9,12 @@ import com.baidu.hugegraph.type.schema.VertexLabel;
  */
 public interface SchemaManager {
 
+    public PropertyKey makePropertyKey(String name);
+
+    public VertexLabel makeVertexLabel(String name);
+
+    public EdgeLabel makeEdgeLabel(String name);
+
     public PropertyKey propertyKey(String name);
 
     public VertexLabel vertexLabel(String name);

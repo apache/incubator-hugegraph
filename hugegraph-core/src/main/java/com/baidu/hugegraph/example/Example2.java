@@ -1,7 +1,10 @@
 package com.baidu.hugegraph.example;
 
+import java.util.Iterator;
+
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -10,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.HugeTypes;
@@ -29,18 +33,62 @@ public class Example2 {
         graph.clearBackend();
         graph.initBackend();
         Example2.load(graph);
-        //        traversal(graph);
+        traversal(graph);
         System.exit(0);
     }
 
     public static void traversal(final HugeGraph graph) {
 
-        GraphTraversalSource g = graph.traversal();
+        // query all
+        GraphTraversal<Vertex, Vertex> vertexs = graph.traversal().V();
+        System.out.println(">>>> query all vertices: size=" + vertexs.toList().size());
 
-        GraphTraversal<Vertex, Edge> edges = g.V().has("label", "software").has("name", "lop").outE();
-        edges.toList().iterator().forEachRemaining(edge -> {
-            System.out.println(edge.toString());
-        });
+        GraphTraversal<Edge, Edge> edges = graph.traversal().E();
+        System.out.println(">>>> query all edges: size=" + edges.toList().size());
+
+//        // query vertex by id
+//        vertex = graph.traversal().V("author\u00021");
+//        GraphTraversal<Vertex, Edge> edgesOfVertex = vertex.outE("created");
+//        System.out.println(">>>> query edges of vertex: " + edgesOfVertex.toList());
+//
+//        vertex = graph.traversal().V("author\u00021");
+//        GraphTraversal<Vertex, Vertex> verticesOfVertex = vertex.out("created");
+//        System.out.println(">>>> query vertices of vertex: " + verticesOfVertex.toList());
+//
+//        // query edge by condition
+//        ConditionQuery q = new ConditionQuery(HugeTypes.VERTEX);
+//        q.query(IdGeneratorFactory.generator().generate("author\u00021"));
+//        q.eq(HugeKeys.PROPERTY_KEY, "age");
+//
+//        Iterator<Vertex> vertices = graph.vertices(q);
+//        System.out.println(">>>> queryVertices(): " + vertices.hasNext());
+//        while (vertices.hasNext()) {
+//            System.out.println(">>>> " + vertices.next().toString());
+//        }
+//
+//        // query edge by id
+//        String id = "author\u00021\u0001OUT\u0001authored\u0001\u0001book\u0002java-2";
+//        GraphTraversal<Edge, Edge> edges = graph.traversal().E(id);
+//        System.out.println(">>>> query edge: " + edges.toList());
+//
+//        // query edge by condition
+//        q = new ConditionQuery(HugeTypes.EDGE);
+//        q.eq(HugeKeys.SOURCE_VERTEX, "author\u00021");
+//        q.eq(HugeKeys.DIRECTION, Direction.OUT.name());
+//        q.eq(HugeKeys.LABEL, "authored");
+//        q.eq(HugeKeys.SORT_VALUES, "");
+//        q.eq(HugeKeys.TARGET_VERTEX, "book\u0002java-1");
+//        q.eq(HugeKeys.PROPERTY_KEY, "contribution");
+//
+//        Iterator<Edge> edges2 = graph.edges(q);
+//        System.out.println(">>>> queryEdges(): " + edges2.hasNext());
+//        while (edges2.hasNext()) {
+//            System.out.println(">>>> " + edges2.next().toString());
+//        }
+
+        // query by vertex label
+//        vertex = graph.traversal().V().hasLabel("book");
+        //System.out.println(">>>> query all books: size=" + vertex.toList().size());
 
     }
 
@@ -56,20 +104,28 @@ public class Example2 {
     public static void load(final HugeGraph graph) {
         SchemaManager schema = graph.schema();
 
-        schema.propertyKey("name").asText().create();
-        schema.propertyKey("age").asInt().create();
-        schema.propertyKey("lang").asText().create();
-        schema.propertyKey("date").asText().create();
+        /**
+         * Note:
+         * Use schema.makePropertyKey interface to create propertyKey.
+         * Use schema.propertyKey interface to query propertyKey.
+         */
+        schema.makePropertyKey("name").asText().create();
+        schema.makePropertyKey("age").asInt().create();
+        schema.makePropertyKey("lang").asText().create();
+        schema.makePropertyKey("date").asText().create();
 
-        schema.vertexLabel("person").properties("name", "age").primaryKeys("name").create();
-        schema.vertexLabel("software").properties("name", "lang").primaryKeys("name").create();
-        schema.vertexLabel("person").index("personByName").by("name").secondary().create();
+        schema.makeVertexLabel("person").properties("name", "age").primaryKeys("name").create();
+        schema.makeVertexLabel("software").properties("name", "lang").primaryKeys("name").create();
+        schema.makeVertexLabel("person").index("personByName").by("name").secondary().create();
+
         schema.vertexLabel("software").index("softwareByName").by("name").search().create();
         schema.vertexLabel("software").index("softwareByLang").by("lang").search().create();
 
-        schema.edgeLabel("knows").properties("date").link("person", "person").create();
-        schema.edgeLabel("created").properties("date").link("person", "software").create();
+        schema.makeEdgeLabel("knows").properties("date").link("person", "person").create();
+        schema.makeEdgeLabel("created").properties("date").link("person", "software").create();
         schema.edgeLabel("created").index("createdByDate").by("date").secondary().create();
+
+        schema.desc();
 
         graph.tx().open();
         Vertex marko = graph.addVertex(T.label, "person", "name", "marko", "age", 29);
