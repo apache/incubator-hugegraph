@@ -29,6 +29,7 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.google.common.base.Preconditions;
@@ -69,11 +70,13 @@ public class GraphTransaction extends AbstractTransaction {
         this.vertexes.clear();
     }
 
+    @Override
     public void commit() throws BackendException {
         super.commit();
         this.indexTx.commit();
     }
 
+    @Override
     public void rollback() throws BackendException {
         super.rollback();
         this.indexTx.rollback();
@@ -82,7 +85,7 @@ public class GraphTransaction extends AbstractTransaction {
     @Override
     public Iterable<BackendEntry> query(Query query) {
         if (query instanceof ConditionQuery) {
-            query = this.indexTx.query((ConditionQuery) query);
+            query = this.optimizeQuery((ConditionQuery) query);
         }
         return super.query(query);
     }
@@ -193,5 +196,52 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         return results.values().iterator();
+    }
+
+    protected Query optimizeQuery(ConditionQuery query) {
+        // optimize vertex query
+        Object label = query.condition(HugeKeys.LABEL);
+        if (label != null && query.resultType() == HugeTypes.VERTEX) {
+            // query vertex by label + primary-values
+            Set<String> keys = this.graph.schema().vertexLabel(
+                    label.toString()).primaryKeys();
+            if (!keys.isEmpty() && query.matchUserpropKeys(keys)) {
+                query.eq(HugeKeys.PRIMARY_VALUES, query.userpropValuesString());
+                query.resetUserpropConditions();
+                logger.debug("query vertices by primaryKeys: {}", query);
+                return query;
+            }
+        }
+
+        // optimize edge query
+        if (label != null && query.resultType() == HugeTypes.EDGE) {
+            // query edge by sourceVertex + direction + label + sort-values
+            Set<String> keys = this.graph.schema().edgeLabel(
+                    label.toString()).sortKeys();
+            if (query.condition(HugeKeys.SOURCE_VERTEX) != null
+                    && query.condition(HugeKeys.DIRECTION) != null
+                    && !keys.isEmpty() && query.matchUserpropKeys(keys)) {
+                query.eq(HugeKeys.SORT_VALUES, query.userpropValuesString());
+                query.resetUserpropConditions();
+                logger.debug("query edges by sortKeys: {}", query);
+                return query;
+            }
+        }
+
+        // query only by sysprops, like: vertex label, edge label
+        // NOTE: we assume sysprops would be indexed by backend store
+        // but we don't support query edges only by direction
+        if (query.allSysprop()) {
+            if (query.resultType() == HugeTypes.EDGE
+                    && query.condition(HugeKeys.DIRECTION) != null
+                    && query.condition(HugeKeys.SOURCE_VERTEX) == null) {
+                String msg = "Not support query edges only by direction";
+                throw new BackendException(msg);
+            }
+            return query;
+        }
+
+        // optimize by index-query
+        return this.indexTx.query(query);
     }
 }

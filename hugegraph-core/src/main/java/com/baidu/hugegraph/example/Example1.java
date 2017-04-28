@@ -175,6 +175,10 @@ public class Example1 {
         GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V();
         System.out.println(">>>> query all vertices: size=" + vertex.toList().size());
 
+        // query vertex by primary-values
+        vertex = graph.traversal().V().hasLabel("author").has("id", "1");
+        System.out.println(">>>> query vertices by primary-values: " + vertex.toList());
+
         // query vertex by id
         vertex = graph.traversal().V("author\u00021");
         GraphTraversal<Vertex, Edge> edgesOfVertex = vertex.outE("created");
@@ -184,6 +188,7 @@ public class Example1 {
         GraphTraversal<Vertex, Vertex> verticesOfVertex = vertex.out("created");
         System.out.println(">>>> query vertices of vertex: " + verticesOfVertex.toList());
 
+        // query edge by sort-values
         vertex = graph.traversal().V("author\u00021");
         edgesOfVertex = vertex.outE("look").has("time", "2017-4-28");
         System.out.println(">>>> query edges of vertex by sort-values: " + edgesOfVertex.toList());
