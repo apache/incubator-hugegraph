@@ -49,7 +49,7 @@ public class ConfigSpace {
 
     public static final ConfigOption<String> SERIALIZER = new ConfigOption<>(
             "serializer",
-            "cassandra",
+            "text",
             true,
             "the serializer for backend store, like: text/binary/cassandra",
             disallowEmpty(String.class)

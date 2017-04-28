@@ -258,7 +258,8 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.writeId(vertexLabel.type(), id);
         entry.column(HugeKeys.NAME.string(), vertexLabel.name());
-        entry.column(HugeKeys.PRIMARY_KEYS.string(), toJson(vertexLabel.primaryKeys().toArray()));
+        entry.column(HugeKeys.PRIMARY_KEYS.string(),
+                toJson(vertexLabel.primaryKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES.string(),
                 toJson(vertexLabel.indexNames().toArray()));
         writeProperties(vertexLabel, entry);
@@ -271,10 +272,16 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.writeId(edgeLabel.type(), id);
         entry.column(HugeKeys.NAME.string(), edgeLabel.name());
-        entry.column(HugeKeys.FREQUENCY.string(), toJson(edgeLabel.frequency()));
-        entry.column(HugeKeys.MULTIPLICITY.string(), toJson(edgeLabel.multiplicity()));
-        entry.column(HugeKeys.LINKS.string(), toJson(edgeLabel.links().toArray()));
-        entry.column(HugeKeys.SORT_KEYS.string(), toJson(edgeLabel.sortKeys().toArray()));
+        entry.column(HugeKeys.FREQUENCY.string(),
+                toJson(edgeLabel.frequency()));
+        entry.column(HugeKeys.MULTIPLICITY.string(),
+                toJson(edgeLabel.multiplicity()));
+        entry.column(HugeKeys.LINKS.string(),
+                toJson(edgeLabel.links().toArray()));
+        entry.column(HugeKeys.SORT_KEYS.string(),
+                toJson(edgeLabel.sortKeys().toArray()));
+        entry.column(HugeKeys.INDEX_NAMES.string(),
+                toJson(edgeLabel.indexNames().toArray()));
         writeProperties(edgeLabel, entry);
         return entry;
     }
@@ -285,8 +292,10 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.writeId(propertyKey.type(), id);
         entry.column(HugeKeys.NAME.string(), propertyKey.name());
-        entry.column(HugeKeys.DATA_TYPE.string(), toJson(propertyKey.dataType()));
-        entry.column(HugeKeys.CARDINALITY.string(), toJson(propertyKey.cardinality()));
+        entry.column(HugeKeys.DATA_TYPE.string(),
+                toJson(propertyKey.dataType()));
+        entry.column(HugeKeys.CARDINALITY.string(),
+                toJson(propertyKey.cardinality()));
         writeProperties(propertyKey, entry);
         return entry;
     }
