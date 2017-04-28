@@ -1,13 +1,15 @@
 package com.baidu.hugegraph.example;
 
-import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.schema.SchemaManager;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import com.baidu.hugegraph.HugeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.baidu.hugegraph.HugeFactory;
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.schema.SchemaManager;
 
 /**
  * Created by liunanke on 2017/4/21.
@@ -26,7 +28,19 @@ public class GraphOfTheMoviesExample {
         graph.initBackend();
 
         GraphOfTheMoviesExample.load(graph);
+        GraphOfTheMoviesExample.query(graph);
         System.exit(0);
+    }
+
+    public static void query(HugeGraph graph) {
+        // query all vertices
+        System.out.println(">>>> query all vertices");
+        GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V();
+        System.out.println(">>>> query all vertices: size=" + vertex.toList().size());
+
+        // query all edges
+        GraphTraversal<Edge, Edge> edges = graph.traversal().E();
+        System.out.println(">>>> query all edges: size=" + edges.toList().size());
     }
 
     public static void load(final HugeGraph graph) {
@@ -35,7 +49,7 @@ public class GraphOfTheMoviesExample {
 
         schema.makePropertyKey("name").asText().create();
         schema.makePropertyKey("born").asInt().create();
-        schema.makePropertyKey("title").asInt().create();
+        schema.makePropertyKey("title").asText().create();
         schema.makePropertyKey("released").asInt().create();
         schema.makePropertyKey("score").asInt().create();
         schema.makePropertyKey("roles").asText().create();
@@ -47,6 +61,8 @@ public class GraphOfTheMoviesExample {
         schema.makeEdgeLabel("DIRECTED").properties("score").create();
         schema.makeEdgeLabel("PRODUCED").properties("score").create();
         schema.makeEdgeLabel("WROTE").properties("score").create();
+
+        graph.tx().open();
 
         Vertex theMatrix = graph.addVertex(T.label, "movie", "title", "The Matrix", "released", 1999);
         Vertex keanu = graph.addVertex(T.label, "person", "name", "keanu Reeves", "born", 1964);
@@ -589,6 +605,7 @@ public class GraphOfTheMoviesExample {
         billPax.addEdge("ACTED_IN", aLeagueofTheirOwn, "roles", "Bob Hinson");
         pennyM.addEdge("DIRECTED", aLeagueofTheirOwn, "score", 10);
 
+        graph.tx().commit();
     }
 }
 
