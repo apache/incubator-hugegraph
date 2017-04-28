@@ -186,7 +186,7 @@ public class ExampleGraphFactory {
         }
 
         // query all edges
-        GraphTraversal<Edge, Edge> edges = graph.traversal().E();
+        GraphTraversal<Edge, Edge> edges = graph.traversal().E().limit(2);
         System.out.println(">>>> query all edges: size=" + edges.toList().size());
 
         // query edge by id
