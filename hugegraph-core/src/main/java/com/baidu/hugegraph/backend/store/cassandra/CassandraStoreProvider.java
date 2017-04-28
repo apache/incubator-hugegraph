@@ -21,27 +21,49 @@ public class CassandraStoreProvider implements BackendStoreProvider {
 
     @Override
     public BackendStore loadSchemaStore(final String name) {
-        logger.info("BackendStore load [ " + name + " ] ");
+        logger.info("CassandraStoreProvider load SchemaStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name,
                     new CassandraStore.CassandraSchemaStore(name));
         }
+
         BackendStore store = this.stores.get(name);
         Preconditions.checkNotNull(store);
+        Preconditions.checkState(
+                store instanceof CassandraStore.CassandraSchemaStore);
         return store;
     }
 
     @Override
     public BackendStore loadGraphStore(String name) {
-        logger.info("BackendStore load [ " + name + " ] ");
+        logger.info("CassandraStoreProvider load GraphStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name,
                     new CassandraStore.CassandraGraphStore(name));
         }
+
         BackendStore store = this.stores.get(name);
         Preconditions.checkNotNull(store);
+        Preconditions.checkState(
+                store instanceof CassandraStore.CassandraGraphStore);
+        return store;
+    }
+
+    @Override
+    public BackendStore loadIndexStore(String name) {
+        logger.info("CassandraStoreProvider load IndexStore '{}'", name);
+
+        if (!this.stores.containsKey(name)) {
+            this.stores.putIfAbsent(name,
+                    new CassandraStore.CassandraIndexStore(name));
+        }
+
+        BackendStore store = this.stores.get(name);
+        Preconditions.checkNotNull(store);
+        Preconditions.checkState(
+                store instanceof CassandraStore.CassandraIndexStore);
         return store;
     }
 

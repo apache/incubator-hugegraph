@@ -117,10 +117,15 @@ public class HugeGraph implements Graph {
 
     private GraphTransaction openGraphTransaction() {
         try {
-            String name = this.configuration.get(ConfigSpace.STORE_GRAPH);
-            BackendStore store = this.storeProvider.loadGraphStore(name);
+            String graph = this.configuration.get(ConfigSpace.STORE_GRAPH);
+            BackendStore store = this.storeProvider.loadGraphStore(graph);
             store.open(this.configuration);
-            return new GraphTransaction(this, store);
+
+            String index = this.configuration.get(ConfigSpace.STORE_INDEX);
+            BackendStore indexStore = this.storeProvider.loadIndexStore(index);
+            indexStore.open(this.configuration);
+
+            return new GraphTransaction(this, store, indexStore);
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";
             logger.error("{}: {}", message, e.getMessage());

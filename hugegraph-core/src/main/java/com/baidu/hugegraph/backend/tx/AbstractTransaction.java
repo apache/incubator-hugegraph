@@ -39,6 +39,9 @@ public abstract class AbstractTransaction implements Transaction {
     private static final Logger logger = LoggerFactory.getLogger(AbstractTransaction.class);
 
     public AbstractTransaction(HugeGraph graph, BackendStore store) {
+        Preconditions.checkNotNull(graph);
+        Preconditions.checkNotNull(store);
+
         this.autoCommit = false;
 
         this.graph = graph;

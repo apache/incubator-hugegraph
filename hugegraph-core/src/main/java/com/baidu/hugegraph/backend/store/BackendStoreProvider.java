@@ -8,6 +8,8 @@ public interface BackendStoreProvider {
 
     public BackendStore loadGraphStore(String name);
 
+    public BackendStore loadIndexStore(String name);
+
     public void close();
 
     public void init();
