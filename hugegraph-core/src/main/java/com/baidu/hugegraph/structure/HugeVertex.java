@@ -80,10 +80,10 @@ public class HugeVertex extends HugeElement implements Vertex {
         HugeVertex targetVertex = (HugeVertex) vertex;
         EdgeLabel edgeLabel = this.graph.schema().edgeLabel(label);
 
-        Preconditions.checkArgument(
-                CollectionUtil.containsAll(ElementHelper.getKeys(properties), ((HugeEdgeLabel) edgeLabel)
-                        .sortKeys()), "the sort key must "
-                        + "set in 'addEdge' method, you can refer to the definition of edgeLabel.");
+        Preconditions.checkArgument(CollectionUtil.containsAll(
+                ElementHelper.getKeys(properties),
+                ((HugeEdgeLabel) edgeLabel).sortKeys()),
+                "The sort key(s) must be setted for edge " + edgeLabel.name());
 
         Id id = HugeElement.getIdValue(properties);
 

@@ -1,10 +1,14 @@
 package com.baidu.hugegraph.backend.query;
 
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
@@ -65,6 +69,10 @@ public class ConditionQuery extends IdQuery {
         return this.conditions;
     }
 
+    public void resetConditions(List<Condition> conditions) {
+        this.conditions = conditions;
+    }
+
     @Override
     public String toString() {
         return String.format("%s and %s",
@@ -107,6 +115,18 @@ public class ConditionQuery extends IdQuery {
         return conds;
     }
 
+    public void resetUserpropConditions() {
+        Iterator<Condition> iterator = this.conditions.iterator();
+        while (iterator.hasNext()) {
+            Condition c = iterator.next();
+            if (c.type() == Condition.ConditionType.RELATION
+                    && !((Condition.Relation) c).isSysprop()) {
+                iterator.remove();
+            }
+            // TODO: deal with other Condition
+        }
+    }
+
     public Set<String> userpropKeys() {
         Set<String> keys = new LinkedHashSet<>();
         for (Condition c : this.conditions) {
@@ -131,6 +151,12 @@ public class ConditionQuery extends IdQuery {
             // TODO: deal with other Condition
         }
         return keys;
+    }
+
+    public String userpropValuesString() {
+        return StringUtils.join(
+                this.userpropValues(),
+                SplicingIdGenerator.NAME_SPLITOR);
     }
 
     public boolean hasSearchCondition() {
