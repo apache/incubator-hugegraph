@@ -1,10 +1,6 @@
 package com.baidu.hugegraph.example;
 
-import java.util.Iterator;
-
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -13,11 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
-import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.type.HugeTypes;
-import com.baidu.hugegraph.type.define.HugeKeys;
 
 /**
  * Created by jishilei on 2017/4/2.
@@ -28,7 +20,7 @@ public class Example2 {
     public static void main(String[] args) {
 
         logger.info("Example2 start!");
-        String confFile = ExampleGraphFactory.class.getClassLoader().getResource("hugegraph.properties").getPath();
+        String confFile = Example1.class.getClassLoader().getResource("hugegraph.properties").getPath();
         HugeGraph graph = HugeFactory.open(confFile);
         graph.clearBackend();
         graph.initBackend();
@@ -128,6 +120,7 @@ public class Example2 {
         schema.desc();
 
         graph.tx().open();
+
         Vertex marko = graph.addVertex(T.label, "person", "name", "marko", "age", 29);
         Vertex vadas = graph.addVertex(T.label, "person", "name", "vadas", "age", 27);
         Vertex lop = graph.addVertex(T.label, "software", "name", "lop", "lang", "java");
@@ -144,5 +137,4 @@ public class Example2 {
 
         graph.tx().commit();
     }
-
 }

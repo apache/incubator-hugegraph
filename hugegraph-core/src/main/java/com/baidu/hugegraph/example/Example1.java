@@ -24,21 +24,22 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 /**
  * Created by jishilei on 17/3/16.
  */
-public class ExampleGraphFactory {
+public class Example1 {
 
-    private static final Logger logger = LoggerFactory.getLogger(ExampleGraphFactory.class);
+    private static final Logger logger = LoggerFactory.getLogger(Example1.class);
 
     public static void main(String[] args) {
 
-        logger.info("ExampleGraphFactory start!");
+        logger.info("Example1 start!");
 
-        String confFile = ExampleGraphFactory.class.getClassLoader().getResource("hugegraph.properties").getPath();
+        String confFile = Example1.class.getClassLoader().getResource("hugegraph.properties").getPath();
         HugeGraph graph = HugeFactory.open(confFile);
         graph.clearBackend();
         graph.initBackend();
 
-        ExampleGraphFactory.showFeatures(graph);
-        ExampleGraphFactory.load(graph);
+        Example1.showFeatures(graph);
+        Example1.load(graph);
+        System.exit(0);
     }
 
     public static void showFeatures(final HugeGraph graph) {
@@ -50,37 +51,39 @@ public class ExampleGraphFactory {
         /************************* schemaManager operating *************************/
         SchemaManager schema = graph.schema();
         logger.info("===============  propertyKey  ================");
-        schema.propertyKey("id").asInt().create();
-        schema.propertyKey("name").asText().create();
-        schema.propertyKey("gender").asText().create();
-        schema.propertyKey("instructions").asText().create();
-        schema.propertyKey("category").asText().create();
-        schema.propertyKey("year").asInt().create();
-        schema.propertyKey("timestamp").asTimestamp().create();
-        schema.propertyKey("ISBN").asText().create();
-        schema.propertyKey("calories").asInt().create();
-        schema.propertyKey("amount").asText().create();
-        schema.propertyKey("stars").asInt().create();
-        schema.propertyKey("age").asText().valueSingle().create();
-        schema.propertyKey("comment").asText().valueSet().create();
-        schema.propertyKey("nickname").asText().valueList().create();
-        schema.propertyKey("lived").asText().create();
-        schema.propertyKey("country").asText().valueSet().properties("livedIn").create();
-        schema.propertyKey("city_id").asInt().create();
-        schema.propertyKey("sensor_id").asUuid().create();
+        schema.makePropertyKey("id").asInt().create();
+        schema.makePropertyKey("~exist").asText().create();
+        schema.makePropertyKey("name").asText().create();
+        schema.makePropertyKey("gender").asText().create();
+        schema.makePropertyKey("instructions").asText().create();
+        schema.makePropertyKey("category").asText().create();
+        schema.makePropertyKey("year").asInt().create();
+        schema.makePropertyKey("timestamp").asTimestamp().create();
+        schema.makePropertyKey("ISBN").asText().create();
+        schema.makePropertyKey("calories").asInt().create();
+        schema.makePropertyKey("amount").asText().create();
+        schema.makePropertyKey("stars").asInt().create();
+        schema.makePropertyKey("age").asText().valueSingle().create();
+        schema.makePropertyKey("comment").asText().valueSet().create();
+        schema.makePropertyKey("contribution").asText().valueSet().create();
+        schema.makePropertyKey("nickname").asText().valueList().create();
+        schema.makePropertyKey("lived").asText().create();
+        schema.makePropertyKey("country").asText().valueSet().properties("livedIn").create();
+        schema.makePropertyKey("city").asText().create();
+        schema.makePropertyKey("sensor_id").asUuid().create();
 
         logger.info("===============  vertexLabel  ================");
 
-        schema.vertexLabel("person").properties("name", "age", "city").primaryKeys("name").create();
-        schema.vertexLabel("author").properties("id", "name").primaryKeys("id").create();
-        schema.vertexLabel("language").properties("name").primaryKeys("name").create();
-        schema.vertexLabel("recipe").properties("name", "instructions").create();
-        schema.vertexLabel("ingredient").create();
-        schema.vertexLabel("book").properties("name").primaryKeys("name").create();
-        schema.vertexLabel("meal").create();
-        schema.vertexLabel("reviewer").create();
+        schema.makeVertexLabel("person").properties("name", "age", "city").primaryKeys("name").create();
+        schema.makeVertexLabel("author").properties("id", "name").primaryKeys("id").create();
+        schema.makeVertexLabel("language").properties("name").primaryKeys("name").create();
+        schema.makeVertexLabel("recipe").properties("name", "instructions").create();
+        schema.makeVertexLabel("ingredient").create();
+        schema.makeVertexLabel("book").properties("name").primaryKeys("name").create();
+        schema.makeVertexLabel("meal").create();
+        schema.makeVertexLabel("reviewer").create();
         // vertex label must have the properties that specified in primary key
-        schema.vertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
+        schema.makeVertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
 
         logger.info("===============  vertexLabel & index  ================");
         // TODO: implement index feature.
@@ -94,11 +97,11 @@ public class ExampleGraphFactory {
 
         logger.info("===============  edgeLabel  ================");
 
-        schema.edgeLabel("authored").singleTime().linkOne2One().properties("contribution").create();
-        schema.edgeLabel("created").singleTime().linkMany2Many().create();
-        schema.edgeLabel("includes").singleTime().linkOne2Many().create();
-        schema.edgeLabel("includedIn").linkMany2One().create();
-        schema.edgeLabel("rated").linkMany2Many().link("reviewer", "recipe").create();
+        schema.makeEdgeLabel("authored").singleTime().linkOne2One().properties("contribution").create();
+        schema.makeEdgeLabel("created").singleTime().linkMany2Many().create();
+        schema.makeEdgeLabel("includes").singleTime().linkOne2Many().create();
+        schema.makeEdgeLabel("includedIn").linkMany2One().create();
+        schema.makeEdgeLabel("rated").linkMany2Many().link("reviewer", "recipe").create();
 
 
         logger.info("===============  schemaManager desc  ================");
