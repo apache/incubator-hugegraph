@@ -68,6 +68,10 @@ public class Query implements Cloneable {
         return ImmutableList.of();
     }
 
+    public boolean queryAll() {
+        return this.ids().isEmpty() && this.conditions().isEmpty();
+    }
+
     @Override
     public Query clone() {
         try {

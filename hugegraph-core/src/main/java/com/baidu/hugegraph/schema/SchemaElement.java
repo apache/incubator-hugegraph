@@ -83,7 +83,7 @@ public abstract class SchemaElement implements Namifiable, HugeType {
         if (type == HugeTypes.VERTEX_LABEL
                 || type == HugeTypes.EDGE_LABEL
                 || type == HugeTypes.PROPERTY_KEY
-                /* || type == HugeTypes.INDEX_LABEL */) {
+                || type == HugeTypes.INDEX_LABEL) {
             return true;
         }
         return false;
