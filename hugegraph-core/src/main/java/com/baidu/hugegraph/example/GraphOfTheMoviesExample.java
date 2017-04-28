@@ -67,7 +67,7 @@ public class GraphOfTheMoviesExample {
         schema.makeEdgeLabel("PRODUCED").properties("score").create();
         schema.makeEdgeLabel("WROTE").properties("score").create();
 
-        schema.vertexLabel("person").index("personByName").by("name").create();
+        schema.vertexLabel("person").index("personByName").by("name").search().create();
 
         graph.tx().open();
 

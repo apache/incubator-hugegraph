@@ -17,6 +17,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -50,7 +51,7 @@ public class InMemoryDBStore implements BackendStore {
             }
         }
 
-        this.store.forEach((Object key, BackendEntry item) -> {
+        for (BackendEntry item : this.store.values()) {
             // TODO: Compatible with BackendEntry
             TextBackendEntry entry = (TextBackendEntry) item;
 
@@ -60,13 +61,17 @@ public class InMemoryDBStore implements BackendStore {
                 if (c instanceof Condition.Relation) {
                     Condition.Relation r = (Condition.Relation) c;
                     // TODO: deal with others Relation like: <, >=, ...
-                    if (entry.contains(r.key().toString(), r.value().toString())) {
+                    Object key = r.key();
+                    String keyName = r.key().toString();
+                    if (key instanceof HugeKeys) {
+                        keyName = ((HugeKeys) key).string();
+                    }
+                    if (entry.contains(keyName, r.value().toString())) {
                         entries.add(entry);
                     }
                 }
             }
-
-        });
+        }
 
         logger.info("[store {}] return {} for query: {}",
                 this.name, entries, query);
