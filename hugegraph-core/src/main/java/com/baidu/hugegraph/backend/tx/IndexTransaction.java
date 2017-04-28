@@ -55,7 +55,7 @@ public class IndexTransaction extends AbstractTransaction {
     }
 
     protected void updateIndex(String indexName, HugeElement element,
-            boolean removed) {
+                               boolean removed) {
         SchemaTransaction schema = this.graph.schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(indexName);
         Preconditions.checkNotNull(indexLabel,
@@ -71,7 +71,11 @@ public class IndexTransaction extends AbstractTransaction {
                 SplicingIdGenerator.NAME_SPLITOR));
         index.elementIds(element.id());
 
-        this.addEntry(this.serializer.writeIndex(index));
+        if (!removed) {
+            this.addEntry(this.serializer.writeIndex(index));
+        } else {
+            this.removeEntry(this.serializer.writeIndex(index));
+        }
     }
 
     public Query query(ConditionQuery query) {
@@ -88,6 +92,9 @@ public class IndexTransaction extends AbstractTransaction {
         while (entries.hasNext()) {
             HugeIndex index = this.serializer.readIndex(entries.next());
             ids.addAll(index.elementIds());
+        }
+        if (ids.isEmpty()) {
+            throw new BackendException("Not found any result for: " + query);
         }
         return new IdQuery(query.resultType(), ids);
     }

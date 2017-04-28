@@ -20,7 +20,7 @@ public class Example2 {
     public static void main(String[] args) {
 
         logger.info("Example2 start!");
-        String confFile = Example1.class.getClassLoader().getResource("hugegraph.properties").getPath();
+        String confFile = Example2.class.getClassLoader().getResource("hugegraph.properties").getPath();
         HugeGraph graph = HugeFactory.open(confFile);
         graph.clearBackend();
         graph.initBackend();
