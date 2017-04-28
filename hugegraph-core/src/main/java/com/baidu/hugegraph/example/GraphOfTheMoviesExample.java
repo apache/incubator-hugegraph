@@ -11,6 +11,8 @@ import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
 
+import java.util.List;
+
 /**
  * Created by liunanke on 2017/4/21.
  */
@@ -41,6 +43,9 @@ public class GraphOfTheMoviesExample {
         // query all edges
         GraphTraversal<Edge, Edge> edges = graph.traversal().E();
         System.out.println(">>>> query all edges: size=" + edges.toList().size());
+
+        List<Edge> tomhanksMovies = graph.traversal().V().hasLabel("person").has("name", "Tom Hanks").outE("ACTED_IN").toList();
+        System.out.println(">>>> Tom Hanks ACTED_IN: " + tomhanksMovies);
     }
 
     public static void load(final HugeGraph graph) {
@@ -57,10 +62,12 @@ public class GraphOfTheMoviesExample {
         schema.makeVertexLabel("person").properties("name", "born").primaryKeys("name").create();
         schema.makeVertexLabel("movie").properties("title", "released").primaryKeys("title").create();
 
-        schema.makeEdgeLabel("ACTED_IN").properties("roles").create();
+        schema.makeEdgeLabel("ACTED_IN").multiTimes().properties("roles").sortKeys("roles").create();
         schema.makeEdgeLabel("DIRECTED").properties("score").create();
         schema.makeEdgeLabel("PRODUCED").properties("score").create();
         schema.makeEdgeLabel("WROTE").properties("score").create();
+
+        schema.vertexLabel("person").index("personByName").by("name").create();
 
         graph.tx().open();
 
