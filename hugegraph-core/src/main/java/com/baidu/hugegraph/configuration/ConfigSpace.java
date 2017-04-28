@@ -27,7 +27,7 @@ public class ConfigSpace {
             "store.schema",
             "huge_schema",
             true,
-            "the table store graph schema info.",
+            "the DB store graph schema info.",
             disallowEmpty(String.class)
     );
 
@@ -35,7 +35,15 @@ public class ConfigSpace {
             "store.graph",
             "huge_graph",
             true,
-            "the table store graph vertex, edge and property info.",
+            "the DB store graph vertex, edge and property info.",
+            disallowEmpty(String.class)
+    );
+
+    public static final ConfigOption<String> STORE_INDEX = new ConfigOption<>(
+            "store.index",
+            "huge_index",
+            true,
+            "the DB store graph index of vertex, edge and property info.",
             disallowEmpty(String.class)
     );
 

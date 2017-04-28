@@ -22,9 +22,8 @@ public class InMemoryDBStoreProvider implements BackendStoreProvider {
         this.stores = new ConcurrentHashMap<String, BackendStore>();
     }
 
-    @Override
-    public BackendStore loadSchemaStore(final String name) {
-        logger.info("BackendStore load [ " + name + " ] ");
+    private BackendStore load(String name) {
+        logger.info("InMemoryDBStoreProvider load '{}'", name);
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name, new InMemoryDBStore(name));
@@ -35,15 +34,18 @@ public class InMemoryDBStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public BackendStore loadGraphStore(String name) {
-        logger.info("BackendStore load [ " + name + " ] ");
+    public BackendStore loadSchemaStore(String name) {
+        return this.load(name);
+    }
 
-        if (!this.stores.containsKey(name)) {
-            this.stores.putIfAbsent(name, new InMemoryDBStore(name));
-        }
-        BackendStore store = this.stores.get(name);
-        Preconditions.checkNotNull(store);
-        return store;
+    @Override
+    public BackendStore loadGraphStore(String name) {
+        return this.load(name);
+    }
+
+    @Override
+    public BackendStore loadIndexStore(String name) {
+        return this.load(name);
     }
 
     @Override

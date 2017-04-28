@@ -43,36 +43,6 @@ public abstract class CassandraStore implements BackendStore {
 
     protected abstract void initTableManagers();
 
-    public static class CassandraSchemaStore extends CassandraStore {
-
-        public CassandraSchemaStore(String name) {
-            super(name);
-        }
-
-        @Override
-        protected void initTableManagers() {
-            super.tables.put(HugeTypes.VERTEX_LABEL, new CassandraTables.VertexLabel());
-            super.tables.put(HugeTypes.EDGE_LABEL, new CassandraTables.EdgeLabel());
-            super.tables.put(HugeTypes.PROPERTY_KEY, new CassandraTables.PropertyKey());
-            super.tables.put(HugeTypes.INDEX_LABEL, new CassandraTables.IndexLabel());
-        }
-    }
-
-    public static class CassandraGraphStore extends CassandraStore {
-
-        public CassandraGraphStore(String name) {
-            super(name);
-        }
-
-        @Override
-        protected void initTableManagers() {
-            super.tables.put(HugeTypes.VERTEX, new CassandraTables.Vertex());
-            super.tables.put(HugeTypes.EDGE, new CassandraTables.Edge());
-            super.tables.put(HugeTypes.SECONDARY_INDEX, new CassandraTables.SecondaryIndex());
-            super.tables.put(HugeTypes.SEARCH_INDEX, new CassandraTables.SearchIndex());
-        }
-    }
-
     @Override
     public String name() {
         return this.name;
@@ -288,5 +258,48 @@ public abstract class CassandraStore implements BackendStore {
                     "Cassandra store only supports CassandraBackendEntry");
         }
         return (CassandraBackendEntry) entry;
+    }
+
+    /***************************** store defines *****************************/
+
+    public static class CassandraSchemaStore extends CassandraStore {
+
+        public CassandraSchemaStore(String name) {
+            super(name);
+        }
+
+        @Override
+        protected void initTableManagers() {
+            super.tables.put(HugeTypes.VERTEX_LABEL, new CassandraTables.VertexLabel());
+            super.tables.put(HugeTypes.EDGE_LABEL, new CassandraTables.EdgeLabel());
+            super.tables.put(HugeTypes.PROPERTY_KEY, new CassandraTables.PropertyKey());
+            super.tables.put(HugeTypes.INDEX_LABEL, new CassandraTables.IndexLabel());
+        }
+    }
+
+    public static class CassandraGraphStore extends CassandraStore {
+
+        public CassandraGraphStore(String name) {
+            super(name);
+        }
+
+        @Override
+        protected void initTableManagers() {
+            super.tables.put(HugeTypes.VERTEX, new CassandraTables.Vertex());
+            super.tables.put(HugeTypes.EDGE, new CassandraTables.Edge());
+        }
+    }
+
+    public static class CassandraIndexStore extends CassandraStore {
+
+        public CassandraIndexStore(String name) {
+            super(name);
+        }
+
+        @Override
+        protected void initTableManagers() {
+            super.tables.put(HugeTypes.SECONDARY_INDEX, new CassandraTables.SecondaryIndex());
+            super.tables.put(HugeTypes.SEARCH_INDEX, new CassandraTables.SearchIndex());
+        }
     }
 }
