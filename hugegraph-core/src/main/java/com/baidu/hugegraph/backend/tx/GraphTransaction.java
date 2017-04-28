@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -66,6 +67,16 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         this.vertexes.clear();
+    }
+
+    public void commit() throws BackendException {
+        super.commit();
+        this.indexTx.commit();
+    }
+
+    public void rollback() throws BackendException {
+        super.rollback();
+        this.indexTx.rollback();
     }
 
     @Override
