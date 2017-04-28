@@ -32,22 +32,12 @@ import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
-import com.google.gson.Gson;
+import com.baidu.hugegraph.util.JsonUtil;
 
 public class CassandraSerializer extends AbstractSerializer {
 
-    private static Gson gson = new Gson();
-
     public CassandraSerializer(final HugeGraph graph) {
         super(graph);
-    }
-
-    public static String toJson(Object object) {
-        return gson.toJson(object);
-    }
-
-    public static <T> T fromJson(String json, Class<T> clazz) {
-        return gson.fromJson(json, clazz);
     }
 
     @Override
@@ -86,7 +76,7 @@ public class CassandraSerializer extends AbstractSerializer {
     protected CassandraBackendEntry.Property formatProperty(HugeProperty<?> prop) {
         return new CassandraBackendEntry.Property(
                 HugeKeys.PROPERTY_KEY, prop.key(),
-                HugeKeys.PROPERTY_VALUE, toJson(prop.value()));
+                HugeKeys.PROPERTY_VALUE, JsonUtil.toJson(prop.value()));
     }
 
     protected void parseProperty(String colName, String colValue, HugeElement owner) {
@@ -94,7 +84,7 @@ public class CassandraSerializer extends AbstractSerializer {
         PropertyKey pkey = this.graph.schema().propertyKey(colName);
 
         // parse value
-        Object value = fromJson(colValue, pkey.clazz());
+        Object value = JsonUtil.fromJson(colValue, pkey.clazz());
 
         // set properties of vertex/edge
         if (pkey.cardinality() == Cardinality.SINGLE) {
@@ -233,9 +223,9 @@ public class CassandraSerializer extends AbstractSerializer {
         CassandraBackendEntry entry = newBackendEntry(vertexLabel);
         entry.column(HugeKeys.NAME, vertexLabel.name());
         entry.column(HugeKeys.PRIMARY_KEYS,
-                toJson(vertexLabel.primaryKeys().toArray()));
+                JsonUtil.toJson(vertexLabel.primaryKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES,
-                toJson(vertexLabel.indexNames().toArray()));
+                JsonUtil.toJson(vertexLabel.indexNames().toArray()));
         writeProperties(vertexLabel, entry);
         return entry;
     }
@@ -244,12 +234,12 @@ public class CassandraSerializer extends AbstractSerializer {
     public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel) {
         CassandraBackendEntry entry = newBackendEntry(edgeLabel);
         entry.column(HugeKeys.NAME, edgeLabel.name());
-        entry.column(HugeKeys.FREQUENCY, toJson(edgeLabel.frequency()));
-        entry.column(HugeKeys.MULTIPLICITY, toJson(edgeLabel.multiplicity()));
-        // entry.column(HugeKeys.LINKS, toJson(edgeLabel.links().toArray()));
-        entry.column(HugeKeys.SORT_KEYS, toJson(edgeLabel.sortKeys().toArray()));
+        entry.column(HugeKeys.FREQUENCY, JsonUtil.toJson(edgeLabel.frequency()));
+        entry.column(HugeKeys.MULTIPLICITY, JsonUtil.toJson(edgeLabel.multiplicity()));
+        // entry.column(HugeKeys.LINKS, JsonUtil.toJson(edgeLabel.links().toArray()));
+        entry.column(HugeKeys.SORT_KEYS, JsonUtil.toJson(edgeLabel.sortKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES,
-                toJson(edgeLabel.indexNames().toArray()));
+                JsonUtil.toJson(edgeLabel.indexNames().toArray()));
         writeProperties(edgeLabel, entry);
         return entry;
     }
@@ -258,8 +248,8 @@ public class CassandraSerializer extends AbstractSerializer {
     public BackendEntry writePropertyKey(PropertyKey propertyKey) {
         CassandraBackendEntry entry = newBackendEntry(propertyKey);
         entry.column(HugeKeys.NAME, propertyKey.name());
-        entry.column(HugeKeys.DATA_TYPE, toJson(propertyKey.dataType()));
-        entry.column(HugeKeys.CARDINALITY, toJson(propertyKey.cardinality()));
+        entry.column(HugeKeys.DATA_TYPE, JsonUtil.toJson(propertyKey.dataType()));
+        entry.column(HugeKeys.CARDINALITY, JsonUtil.toJson(propertyKey.cardinality()));
         writeProperties(propertyKey, entry);
         return entry;
     }
@@ -270,7 +260,7 @@ public class CassandraSerializer extends AbstractSerializer {
             entry.column(HugeKeys.PROPERTIES, "[]");
         } else {
             entry.column(HugeKeys.PROPERTIES,
-                    toJson(properties.keySet().toArray()));
+                    JsonUtil.toJson(properties.keySet().toArray()));
         }
     }
 
@@ -291,9 +281,9 @@ public class CassandraSerializer extends AbstractSerializer {
 
         HugeVertexLabel vertexLabel = new HugeVertexLabel(name,
                 this.graph.schemaTransaction());
-        vertexLabel.properties(fromJson(properties, String[].class));
-        vertexLabel.primaryKeys(fromJson(primarykeys, String[].class));
-        vertexLabel.indexNames(fromJson(indexNames, String[].class));
+        vertexLabel.properties(JsonUtil.fromJson(properties, String[].class));
+        vertexLabel.primaryKeys(JsonUtil.fromJson(primarykeys, String[].class));
+        vertexLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
 
         return vertexLabel;
     }
@@ -316,10 +306,10 @@ public class CassandraSerializer extends AbstractSerializer {
 
         HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name,
                 this.graph.schemaTransaction());
-        edgeLabel.frequency(fromJson(frequency, Frequency.class));
-        edgeLabel.properties(fromJson(properties, String[].class));
-        edgeLabel.sortKeys(fromJson(sortKeys, String[].class));
-        edgeLabel.indexNames(fromJson(indexNames, String[].class));
+        edgeLabel.frequency(JsonUtil.fromJson(frequency, Frequency.class));
+        edgeLabel.properties(JsonUtil.fromJson(properties, String[].class));
+        edgeLabel.sortKeys(JsonUtil.fromJson(sortKeys, String[].class));
+        edgeLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
         return edgeLabel;
     }
 
@@ -340,9 +330,9 @@ public class CassandraSerializer extends AbstractSerializer {
 
         HugePropertyKey propertyKey = new HugePropertyKey(name,
                 this.graph.schemaTransaction());
-        propertyKey.dataType(fromJson(dataType, DataType.class));
-        propertyKey.cardinality(fromJson(cardinality, Cardinality.class));
-        propertyKey.properties(fromJson(properties, String[].class));
+        propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
+        propertyKey.cardinality(JsonUtil.fromJson(cardinality, Cardinality.class));
+        propertyKey.properties(JsonUtil.fromJson(properties, String[].class));
 
         return propertyKey;
     }
@@ -350,11 +340,11 @@ public class CassandraSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeIndexLabel(IndexLabel indexLabel) {
         CassandraBackendEntry entry = newBackendEntry(indexLabel);
-        entry.column(HugeKeys.BASE_TYPE, toJson(indexLabel.baseType()));
-        entry.column(HugeKeys.BASE_VALUE, toJson(indexLabel.baseValue()));
+        entry.column(HugeKeys.BASE_TYPE, JsonUtil.toJson(indexLabel.baseType()));
+        entry.column(HugeKeys.BASE_VALUE, JsonUtil.toJson(indexLabel.baseValue()));
         entry.column(HugeKeys.NAME, indexLabel.name());
-        entry.column(HugeKeys.INDEX_TYPE, toJson(indexLabel.indexType()));
-        entry.column(HugeKeys.FIELDS, toJson(indexLabel.indexFields().toArray()));
+        entry.column(HugeKeys.INDEX_TYPE, JsonUtil.toJson(indexLabel.indexType()));
+        entry.column(HugeKeys.FIELDS, JsonUtil.toJson(indexLabel.indexFields().toArray()));
         return entry;
     }
 
@@ -369,7 +359,7 @@ public class CassandraSerializer extends AbstractSerializer {
         assert backendEntry instanceof CassandraBackendEntry;
 
         CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
-        HugeTypes baseType = fromJson(entry.column(HugeKeys.BASE_TYPE), HugeTypes.class);
+        HugeTypes baseType = JsonUtil.fromJson(entry.column(HugeKeys.BASE_TYPE), HugeTypes.class);
         String baseValue = entry.column(HugeKeys.BASE_VALUE);
         String indexName = entry.column(HugeKeys.NAME);
         String indexType = entry.column(HugeKeys.INDEX_TYPE);
@@ -377,8 +367,8 @@ public class CassandraSerializer extends AbstractSerializer {
 
         HugeIndexLabel indexLabel = new HugeIndexLabel(indexName, baseType, baseValue,
                 this.graph.schemaTransaction());
-        indexLabel.indexType(fromJson(indexType, IndexType.class));
-        indexLabel.by(fromJson(indexFields, String[].class));
+        indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
+        indexLabel.by(JsonUtil.fromJson(indexFields, String[].class));
 
         return indexLabel;
     }
@@ -414,7 +404,7 @@ public class CassandraSerializer extends AbstractSerializer {
         HugeIndex index = new HugeIndex(indexLabel);
         index.propertyValues(indexValues);
 
-        String[] ids = fromJson(elementIds, String[].class);
+        String[] ids = JsonUtil.fromJson(elementIds, String[].class);
         for (String id : ids) {
             index.elementIds(IdGeneratorFactory.generator().generate(id));
         }

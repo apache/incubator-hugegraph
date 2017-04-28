@@ -11,6 +11,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
@@ -409,7 +410,7 @@ public class CassandraTables {
             entry.column(HugeKeys.INDEX_LABEL_NAME,
                     row.getString(HugeKeys.INDEX_LABEL_NAME.name()));
             entry.column(HugeKeys.ELEMENT_IDS,
-                    row.getSet(HugeKeys.ELEMENT_IDS.name(), String.class).toString());
+                    JsonUtil.toJson(row.getSet(HugeKeys.ELEMENT_IDS.name(), String.class)));
 
             return entry;
         }
@@ -486,7 +487,7 @@ public class CassandraTables {
             entry.column(HugeKeys.PROPERTY_VALUES,
                     row.getString(HugeKeys.PROPERTY_VALUES.name()));
             entry.column(HugeKeys.ELEMENT_IDS,
-                    row.getSet(HugeKeys.ELEMENT_IDS.name(), String.class).toString());
+                    JsonUtil.toJson(row.getSet(HugeKeys.ELEMENT_IDS.name(), String.class)));
 
             return entry;
         }
