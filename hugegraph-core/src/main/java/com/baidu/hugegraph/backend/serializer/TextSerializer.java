@@ -424,7 +424,10 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = new TextBackendEntry(id);
         entry.column(HugeKeys.PROPERTY_VALUES.string(), index.propertyValues());
         entry.column(HugeKeys.INDEX_LABEL_NAME.string(), index.indexLabelName());
-        entry.column(HugeKeys.ELEMENT_IDS.string(), JsonUtil.toJson(index.elementIds().toArray()));
+        // TODO: try to make these code more clear.
+        Id[] ids = index.elementIds().toArray(new Id[0]);
+        assert ids.length == 1;
+        entry.column(HugeKeys.ELEMENT_IDS.string(), ids[0].asString());
         return entry;
     }
 
@@ -446,7 +449,12 @@ public class TextSerializer extends AbstractSerializer {
 
         HugeIndex index = new HugeIndex(indexLabel);
         index.propertyValues(indexValues);
-        index.elementIds(JsonUtil.fromJson(elementIds, Id[].class));
+        // TODO: don forget to remove the [] symbol
+        String[] ids = JsonUtil.fromJson("[\"" + elementIds + "\"]", String[].class);
+        for (String id : ids) {
+            index.elementIds(IdGeneratorFactory.generator().generate(id));
+        }
+
 
         return index;
     }
