@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
@@ -26,7 +25,6 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.google.common.collect.ImmutableList;
 
 public final class HugeVertexStep<E extends Element>
@@ -84,7 +82,6 @@ public final class HugeVertexStep<E extends Element>
         Vertex vertex = traverser.get();
         Direction direction = this.getDirection();
         String[] edgeLabels = this.getEdgeLabels();
-        Set<String> sortKeys = null;
 
         logger.debug("HugeVertexStep.edges(): "
                 + "vertex={}, direction={}, edgeLabels={}, has={}",
@@ -102,16 +99,12 @@ public final class HugeVertexStep<E extends Element>
         query.eq(HugeKeys.DIRECTION, direction.name());
 
         // edge labels
-        if (edgeLabels.length > 1){
+        if (edgeLabels.length == 1) {
+            query.eq(HugeKeys.LABEL, edgeLabels[0]);
+        } else if (edgeLabels.length > 1){
             // TODO: support query by multi edge labels
             // query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
-            throw new BackendException("Not support query by multi edge labels");
-        } else if (edgeLabels.length == 1) {
-            String labelName = edgeLabels[0];
-            EdgeLabel edgeLabel = graph.schema().edgeLabel(labelName);
-            query.eq(HugeKeys.LABEL, labelName);
-            // edge sort-keys
-            sortKeys = edgeLabel.sortKeys();
+            throw new BackendException("Not support query by multi edge-labels");
         } else {
             assert edgeLabels.length == 0;
         }
@@ -121,13 +114,6 @@ public final class HugeVertexStep<E extends Element>
             for (HasContainer has : this.hasContainers) {
                 query.query(HugeGraphStep.convHasContainer2Condition(has));
             }
-        }
-
-        // edge sort-values
-        if (sortKeys != null && !sortKeys.isEmpty()
-                && query.matchUserpropKeys(sortKeys)) {
-            query.eq(HugeKeys.SORT_VALUES, query.userpropValuesString());
-            query.resetUserpropConditions();
         }
 
         // do query

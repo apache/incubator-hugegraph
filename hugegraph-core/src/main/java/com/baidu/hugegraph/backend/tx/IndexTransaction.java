@@ -79,10 +79,6 @@ public class IndexTransaction extends AbstractTransaction {
     }
 
     public Query query(ConditionQuery query) {
-        if (query.allSysprop()) {
-            return query;
-        }
-
         // Condition => Entry
         ConditionQuery indexQuery = this.constructIndexQuery(query);
         Iterator<BackendEntry> entries = super.query(indexQuery).iterator();
