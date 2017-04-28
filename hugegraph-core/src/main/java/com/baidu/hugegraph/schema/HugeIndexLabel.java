@@ -24,10 +24,12 @@ public class HugeIndexLabel extends IndexLabel {
         this(name, null, null, null);
     }
 
-    public HugeIndexLabel(String name, HugeTypes baseType, String baseValue, SchemaTransaction transaction) {
+    public HugeIndexLabel(String name, HugeTypes baseType,
+            String baseValue, SchemaTransaction transaction) {
         super(name, transaction);
         this.baseType = baseType;
         this.baseValue = baseValue;
+        this.indexType = IndexType.SECONDARY;
         this.indexFields = new HashSet<>();
     }
 

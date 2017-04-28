@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.example;
 
+import java.util.List;
+
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -10,8 +12,6 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
-
-import java.util.List;
 
 /**
  * Created by liunanke on 2017/4/21.
@@ -67,7 +67,8 @@ public class GraphOfTheMoviesExample {
         schema.makeEdgeLabel("PRODUCED").properties("score").create();
         schema.makeEdgeLabel("WROTE").properties("score").create();
 
-        schema.vertexLabel("person").index("personByName").by("name").search().create();
+        schema.vertexLabel("person").index("personByName").by("name").secondary().create();
+        schema.vertexLabel("person").index("personByBorn").by("born").search().create();
 
         graph.tx().open();
 

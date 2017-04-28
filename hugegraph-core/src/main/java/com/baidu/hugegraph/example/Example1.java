@@ -58,6 +58,7 @@ public class Example1 {
         schema.makePropertyKey("instructions").asText().create();
         schema.makePropertyKey("category").asText().create();
         schema.makePropertyKey("year").asInt().create();
+        schema.makePropertyKey("time").asText().create();
         schema.makePropertyKey("timestamp").asTimestamp().create();
         schema.makePropertyKey("ISBN").asText().create();
         schema.makePropertyKey("calories").asInt().create();
@@ -98,6 +99,7 @@ public class Example1 {
         logger.info("===============  edgeLabel  ================");
 
         schema.makeEdgeLabel("authored").singleTime().linkOne2One().properties("contribution").create();
+        schema.makeEdgeLabel("look").multiTimes().properties("time").sortKeys("time").create();
         schema.makeEdgeLabel("created").singleTime().linkMany2Many().create();
         schema.makeEdgeLabel("includes").singleTime().linkOne2Many().create();
         schema.makeEdgeLabel("includedIn").linkMany2One().create();
@@ -133,6 +135,7 @@ public class Example1 {
         Vertex java = tx.addVertex(T.label, "language", "name", "java");
         Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
         Vertex book2 = tx.addVertex(T.label, "book", "name", "java-2");
+        Vertex book3 = tx.addVertex(T.label, "book", "name", "java-3");
 
         person.addEdge("created", java);
         person.addEdge("authored", book1,
@@ -141,6 +144,10 @@ public class Example1 {
                 "comment", "it's a good book",
                 "comment", "it's a good book too");
         person.addEdge("authored", book2, "contribution", "2017-4-28");
+
+        person.addEdge("look", book2, "time", "2017-4-28");
+        person.addEdge("look", book3, "time", "2016-1-1");
+        person.addEdge("look", book3, "time", "2017-4-28");
 
         // commit data changes
         try {
@@ -176,6 +183,10 @@ public class Example1 {
         vertex = graph.traversal().V("author\u00021");
         GraphTraversal<Vertex, Vertex> verticesOfVertex = vertex.out("created");
         System.out.println(">>>> query vertices of vertex: " + verticesOfVertex.toList());
+
+        vertex = graph.traversal().V("author\u00021");
+        edgesOfVertex = vertex.outE("look").has("time", "2017-4-28");
+        System.out.println(">>>> query edges of vertex by sort-values: " + edgesOfVertex.toList());
 
         // query edge by condition
         ConditionQuery q = new ConditionQuery(HugeTypes.VERTEX);
