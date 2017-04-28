@@ -7,6 +7,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy.ProviderOptimizationStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.filter.RangeGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.NoOpBarrierStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
@@ -27,12 +28,14 @@ public final class HugeGraphStepStrategy
 
     @Override
     public void apply(Traversal.Admin<?, ?> traversal) {
+        // extract conditions in GraphStep
         List<GraphStep> steps = TraversalHelper.getStepsOfClass(
                 GraphStep.class, traversal);
         for (GraphStep originalStep : steps) {
             HugeGraphStep<?, ?> newStep = new HugeGraphStep<>(originalStep);
             TraversalHelper.replaceStep(originalStep, newStep, traversal);
             extractHasContainer(newStep, traversal);
+            extractRange(newStep, traversal);
         }
     }
 
@@ -52,6 +55,24 @@ public final class HugeGraphStepStrategy
                 traversal.removeStep(step);
             }
         } while (step instanceof HasStep || step instanceof NoOpBarrierStep);
+    }
+
+    protected static void extractRange(HugeGraphStep<?, ?> newStep,
+            Traversal.Admin<?, ?> traversal) {
+        Step<?, ?> step = null;
+        do {
+            step = newStep.getNextStep();
+            if (step instanceof RangeGlobalStep) {
+                // NOTE: we just deal with the first limit
+                // (maybe should the min one)
+                RangeGlobalStep<?> range = (RangeGlobalStep<?>) step;
+                newStep.setRange(range.getLowRange(), range.getHighRange());
+                // NOTE: keep the step to filter results after query from DB
+                // due to DB may not be implemented correctly
+                // traversal.removeStep(step);
+                break;
+            }
+        } while (step instanceof NoOpBarrierStep);
     }
 
     public static HugeGraphStepStrategy instance() {

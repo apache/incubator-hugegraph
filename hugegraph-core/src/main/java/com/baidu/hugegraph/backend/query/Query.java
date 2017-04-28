@@ -14,12 +14,12 @@ import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
 
-    public static final int NO_LIMIT = Integer.MAX_VALUE;
+    public static final long NO_LIMIT = Long.MAX_VALUE;
 
     private HugeTypes resultType;
     private Map<HugeKeys, Order> orders;
-    private int offset;
-    private int limit;
+    private long offset;
+    private long limit;
 
     public Query(HugeTypes resultType) {
         this.resultType = resultType;
@@ -44,19 +44,19 @@ public class Query implements Cloneable {
         this.orders.put(key, order);
     }
 
-    public int offset() {
+    public long offset() {
         return this.offset;
     }
 
-    public void offset(int offset) {
+    public void offset(long offset) {
         this.offset = offset;
     }
 
-    public int limit() {
+    public long limit() {
         return this.limit;
     }
 
-    public void limit(int limit) {
+    public void limit(long limit) {
         this.limit = limit;
     }
 

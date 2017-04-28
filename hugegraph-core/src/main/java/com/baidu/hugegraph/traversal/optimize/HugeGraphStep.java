@@ -35,6 +35,10 @@ public final class HugeGraphStep<S, E extends Element>
 
     private final List<HasContainer> hasContainers = new LinkedList<>();
 
+    private long offset = 0;
+
+    private long limit = 1000;
+
     public HugeGraphStep(final GraphStep<S, E> originalGraphStep) {
         super(originalGraphStep.getTraversal(),
               originalGraphStep.getReturnClass(),
@@ -59,6 +63,8 @@ public final class HugeGraphStep<S, E extends Element>
                     graph.vertices(this.ids));
         } else {
             ConditionQuery query = new ConditionQuery(HugeTypes.VERTEX);
+            query.offset(this.offset);
+            query.limit(this.limit);
             for (HasContainer condition : this.hasContainers) {
                 query.query(convHasContainer2Condition(condition));
             }
@@ -75,6 +81,8 @@ public final class HugeGraphStep<S, E extends Element>
                     graph.edges(this.ids));
         } else {
             ConditionQuery query = new ConditionQuery(HugeTypes.EDGE);
+            query.offset(this.offset);
+            query.limit(this.limit);
             for (HasContainer has : this.hasContainers) {
                 query.query(convHasContainer2Condition(has));
             }
@@ -106,6 +114,12 @@ public final class HugeGraphStep<S, E extends Element>
     @Override
     public void addHasContainer(final HasContainer hasContainer) {
         this.hasContainers.add(hasContainer);
+    }
+
+    public void setRange(long start, long end) {
+        assert end > start;
+        this.offset = start;
+        this.limit = end - start;
     }
 
     @Override
