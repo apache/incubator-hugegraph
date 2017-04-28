@@ -387,6 +387,20 @@ public class CassandraTables {
         }
 
         @Override
+        public void delete(CassandraBackendEntry.Row entry) {
+            Update update = QueryBuilder.update(super.table);
+
+            update.with(QueryBuilder.remove(HugeKeys.ELEMENT_IDS.name(),
+                    entry.key(HugeKeys.ELEMENT_IDS)));
+            update.where(QueryBuilder.eq(HugeKeys.INDEX_LABEL_NAME.name(),
+                    entry.key(HugeKeys.INDEX_LABEL_NAME)));
+            update.where(QueryBuilder.eq(HugeKeys.PROPERTY_VALUES.name(),
+                    entry.key(HugeKeys.PROPERTY_VALUES)));
+
+            super.batch.add(update);
+        }
+
+        @Override
         protected CassandraBackendEntry result2Entry(HugeTypes type, Row row) {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
 
@@ -442,6 +456,20 @@ public class CassandraTables {
             update.where(QueryBuilder.eq(HugeKeys.INDEX_LABEL_NAME.name(),
                     entry.key(HugeKeys.INDEX_LABEL_NAME)));
             update.with(QueryBuilder.append(HugeKeys.ELEMENT_IDS.name(),
+                    entry.key(HugeKeys.ELEMENT_IDS)));
+            update.where(QueryBuilder.eq(HugeKeys.PROPERTY_VALUES.name(),
+                    entry.key(HugeKeys.PROPERTY_VALUES)));
+
+            super.batch.add(update);
+        }
+
+        @Override
+        public void delete(CassandraBackendEntry.Row entry) {
+            Update update = QueryBuilder.update(super.table);
+
+            update.where(QueryBuilder.eq(HugeKeys.INDEX_LABEL_NAME.name(),
+                    entry.key(HugeKeys.INDEX_LABEL_NAME)));
+            update.with(QueryBuilder.remove(HugeKeys.ELEMENT_IDS.name(),
                     entry.key(HugeKeys.ELEMENT_IDS)));
             update.where(QueryBuilder.eq(HugeKeys.PROPERTY_VALUES.name(),
                     entry.key(HugeKeys.PROPERTY_VALUES)));
