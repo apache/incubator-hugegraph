@@ -38,6 +38,11 @@ public class InMemoryDBStore implements BackendStore {
     public Iterable<BackendEntry> query(Query query) {
         List<BackendEntry> entries = new ArrayList<BackendEntry>();
 
+        if (query.queryAll()) {
+            entries.addAll(store.values());
+            return ImmutableList.copyOf(entries);
+        }
+
         // query by id
         for (Id id : query.ids()) {
             if (this.store.containsKey(id)) {

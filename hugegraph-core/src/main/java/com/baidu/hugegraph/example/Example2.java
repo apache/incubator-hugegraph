@@ -143,11 +143,6 @@ public class Example2 {
         peter.addEdge("created", lop, "date", "20170324");
 
         graph.tx().commit();
-
-        ConditionQuery q = new ConditionQuery(HugeTypes.SEARCH_INDEX);
-        q.eq(HugeKeys.PROPERTY_VALUES, "java");
-        q.eq(HugeKeys.INDEX_LABEL_NAME, "softwareByLang");
-        System.out.print(graph.graphTransaction().query(q));
     }
 
 }
