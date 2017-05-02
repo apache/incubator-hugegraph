@@ -59,18 +59,6 @@ public class HugeGraph implements Graph {
     private GraphTransaction graphTransaction = null;
     private SchemaTransaction schemaTransaction = null;
 
-    /**
-     * Construct a HugeGraph instance
-     * @return
-     */
-    public static HugeGraph open(final Configuration configuration) {
-        return new HugeGraph(configuration);
-    }
-
-    public HugeGraph(Configuration configuration) {
-        this(new HugeConfiguration(configuration));
-    }
-
     public HugeGraph(HugeConfiguration configuration) {
         this.configuration = configuration;
         // TODO : get supportsPersistence from configuration;
