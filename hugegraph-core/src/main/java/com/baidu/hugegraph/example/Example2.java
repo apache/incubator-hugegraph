@@ -113,11 +113,13 @@ public class Example2 {
         schema.vertexLabel("software").index("softwareByName").by("name").search().create();
         schema.vertexLabel("software").index("softwareByLang").by("lang").search().create();
 
-        schema.makeEdgeLabel("knows").properties("date").link("person", "person").create();
-        schema.makeEdgeLabel("created").properties("date").link("person", "software").create();
+//        schema.makeEdgeLabel("knows").properties("date").link("person", "person").create();
+        schema.makeEdgeLabel("knows").properties("date").create();
+//        schema.makeEdgeLabel("created").properties("date").link("person", "software").create();
+        schema.makeEdgeLabel("created").properties("date").create();
         schema.edgeLabel("created").index("createdByDate").by("date").secondary().create();
 
-        schema.desc();
+//        schema.desc();
 
         graph.tx().open();
 

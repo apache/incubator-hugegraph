@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -18,7 +17,6 @@ import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeTypes;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
