@@ -12,6 +12,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.google.common.base.Preconditions;
 
@@ -40,6 +41,8 @@ public abstract class HugeElement implements Element, GraphType {
         return this.graph;
     }
 
+    public abstract GraphTransaction tx();
+
     public Map<String, HugeProperty<? extends Object>> getProperties() {
         return this.properties;
     }
@@ -54,6 +57,10 @@ public abstract class HugeElement implements Element, GraphType {
 
     public <V> HugeProperty<? extends Object> setProperty(HugeProperty<V> prop) {
         return this.properties.put(prop.key(), prop);
+    }
+
+    public void resetProperties() {
+        this.properties = new HashMap<>();
     }
 
     public static Id getIdValue(Object... keyValues) {

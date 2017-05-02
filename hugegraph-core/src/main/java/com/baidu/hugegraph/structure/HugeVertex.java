@@ -13,10 +13,11 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.Cardinality;
@@ -25,14 +26,18 @@ import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
-public class HugeVertex extends HugeElement implements Vertex {
+public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
+    protected GraphTransaction tx;
     protected VertexLabel label;
+    protected String name;
     protected Set<HugeEdge> edges;
 
-    public HugeVertex(final HugeGraph graph, final Id id, final VertexLabel label) {
-        super(graph, id);
+    public HugeVertex(final GraphTransaction tx, Id id, VertexLabel label) {
+        super(tx.graph(), id);
+        this.tx = tx;
         this.label = label;
         this.edges = new LinkedHashSet<>();
     }
@@ -44,13 +49,22 @@ public class HugeVertex extends HugeElement implements Vertex {
 
     @Override
     public String name() {
-        List<String> properties = new LinkedList<>();
-        for (String key : this.vertexLabel().primaryKeys()) {
-            properties.add(this.property(key).value().toString());
+        if (this.name == null) {
+            List<Object> propValues = primaryValues();
+            assert !propValues.isEmpty() : "Primary values must not be empty";
+            this.name = SplicingIdGenerator.concatValues(propValues);
         }
-        assert !properties.isEmpty() : "Primary values must not be empty";
-        // TODO: use a better delimiter
-        return String.join(SplicingIdGenerator.NAME_SPLITOR, properties);
+        return this.name;
+    }
+
+    public void name(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public GraphTransaction tx() {
+        Preconditions.checkNotNull(this.tx);
+        return this.tx;
     }
 
     public void assignId() {
@@ -70,9 +84,35 @@ public class HugeVertex extends HugeElement implements Vertex {
         return this.label;
     }
 
+    public List<Object> primaryValues() {
+        Set<String> primaryKeys = this.vertexLabel().primaryKeys();
+        if (primaryKeys.isEmpty()) {
+            return ImmutableList.of();
+        }
+        Iterator<VertexProperty<Object>> props = this.properties(
+                primaryKeys.toArray(new String[0]));
+
+        List<Object> propValues = new ArrayList<>(primaryKeys.size());
+        while (props.hasNext()) {
+            propValues.add(props.next().value());
+        }
+        return propValues;
+    }
+
+    public void primaryValues(List<Object> propValues) {
+        Set<String> primaryKeys = this.vertexLabel().primaryKeys();
+        int i = 0;
+        for (String k : primaryKeys) {
+            this.property(k, propValues.get(i++));
+        }
+    }
+
     public Set<HugeEdge> getEdges() {
-        // TODO: return a list of HugeEdge
         return this.edges;
+    }
+
+    public void resetEdges() {
+        this.edges = new LinkedHashSet<>();
     }
 
     @Override
@@ -105,7 +145,7 @@ public class HugeVertex extends HugeElement implements Vertex {
             targetVertex.addInEdge(edge.switchOwner());
         }
 
-        return edge;
+        return this.tx().addEdge(edge);
     }
 
     // add edge of direction OUT
@@ -158,7 +198,7 @@ public class HugeVertex extends HugeElement implements Vertex {
 
     @Override
     public void remove() {
-        throw Vertex.Exceptions.vertexRemovalNotSupported();
+        this.tx().removeVertex(this);
     }
 
     @Override
@@ -222,12 +262,30 @@ public class HugeVertex extends HugeElement implements Vertex {
         } else {
             for (String pk : propertyKeys) {
                 HugeProperty<? extends Object> prop = this.getProperty(pk);
-                assert prop instanceof VertexProperty;
+                assert prop == null || prop instanceof VertexProperty;
                 propertyList.add((VertexProperty<V>) prop);
             }
         }
 
         return propertyList.iterator();
+    }
+
+    public HugeVertex prepareRemoved() {
+        // NOTE: clear edges/properties of the vertex(keep primary-values)
+        HugeVertex vertex = this.clone();
+        vertex.resetEdges();
+        vertex.resetProperties();
+        return vertex;
+    }
+
+    @Override
+    protected HugeVertex clone() {
+        try {
+            HugeVertex clone = (HugeVertex) super.clone();
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new HugeException("Failed to clone HugeVertex", e);
+        }
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.backend.id;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -56,6 +58,15 @@ public class SplicingIdGenerator extends IdGenerator {
     public static String[] split(Id id) {
         String[] ids = id.asString().split(IDS_SPLITOR);
         return ids;
+    }
+
+    public static String concatValues(Iterable<?> values) {
+        // TODO: use a better delimiter
+        return StringUtils.join(values, NAME_SPLITOR);
+    }
+
+    public static String[] splitValues(String values) {
+        return values.split(IDS_SPLITOR);
     }
 
     public static String splicing(String... parts) {

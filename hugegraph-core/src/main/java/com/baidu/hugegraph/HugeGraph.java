@@ -245,10 +245,14 @@ public class HugeGraph implements Graph {
 
         @Override
         public void doClose() {
+            this.backendTx.autoCommit(true);
+            // would commit() if there is changes
+            // TODO: maybe we should call commit() directly
+            this.backendTx.afterWrite();
+
             // calling super will clear listeners
             super.doClose();
 
-            this.backendTx.autoCommit(true);
             this.backendTx = null;
         }
     };

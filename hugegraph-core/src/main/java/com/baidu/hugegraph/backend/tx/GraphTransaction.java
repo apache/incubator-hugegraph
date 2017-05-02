@@ -1,6 +1,7 @@
 package com.baidu.hugegraph.backend.tx;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -41,33 +42,116 @@ public class GraphTransaction extends AbstractTransaction {
 
     private IndexTransaction indexTx;
 
-    private Set<HugeVertex> vertexes;
+    private Set<HugeVertex> addedVertexes;
+    private Set<HugeVertex> removedVertexes;
+
+    private Set<HugeEdge> addedEdges;
+    private Set<HugeEdge> removedEdges;
 
     public GraphTransaction(final HugeGraph graph,
             BackendStore store, BackendStore indexStore) {
         super(graph, store);
+
         this.indexTx = new IndexTransaction(graph, indexStore);
-        this.vertexes = new LinkedHashSet<HugeVertex>();
+        assert !this.indexTx.autoCommit();
+
+        this.addedVertexes = new LinkedHashSet<>();
+        this.removedVertexes = new LinkedHashSet<>();
+
+        this.addedEdges = new LinkedHashSet<>();
+        this.removedEdges = new LinkedHashSet<>();
     }
 
     @Override
     protected void prepareCommit() {
-        // ensure all the target vertexes (of out edges) are in this.vertexes
-        for (HugeVertex source : this.vertexes) {
-            Iterator<Vertex> targets = source.vertices(Direction.OUT);
-            while (targets.hasNext()) {
-                HugeVertex target = (HugeVertex) targets.next();
-                this.vertexes.add(target);
+        // serialize and add updates into super.deletions
+        this.prepareDeletions(this.removedVertexes, this.removedEdges);
+        // serialize and add updates into super.additions
+        this.prepareAdditions(this.addedVertexes, this.addedEdges);
+    }
+
+    protected void prepareAdditions(
+            Set<HugeVertex> updatedVertexes,
+            Set<HugeEdge> updatedEdges) {
+
+        Set<HugeVertex> vertexes = new LinkedHashSet<>();
+
+        // copy updatedVertexes to vertexes
+        vertexes.addAll(updatedVertexes);
+
+        // move updated edges to vertexes
+        for (HugeEdge edge : updatedEdges) {
+            if (!vertexes.contains(edge.owner())) {
+                vertexes.add(edge.owner());
             }
         }
 
-        // serialize and add into super.additions
-        for (HugeVertex v : this.vertexes) {
+        // ensure all the target vertexes (of out edges) are in vertexes
+        for (HugeVertex source : vertexes) {
+            Iterator<Vertex> targets = source.vertices(Direction.OUT);
+            while (targets.hasNext()) {
+                HugeVertex target = (HugeVertex) targets.next();
+                vertexes.add(target);
+            }
+        }
+
+        // do update
+        for (HugeVertex v : vertexes) {
             this.addEntry(this.serializer.writeVertex(v));
             this.indexTx.updateVertexIndex(v, false);
         }
 
-        this.vertexes.clear();
+        // clear updates
+        updatedVertexes.clear();
+        updatedEdges.clear();
+    }
+
+    protected void prepareDeletions(
+            Set<HugeVertex> updatedVertexes,
+            Set<HugeEdge> updatedEdges) {
+
+        Set<HugeVertex> vertexes = new LinkedHashSet<>();
+        vertexes.addAll(updatedVertexes);
+
+        Set<HugeEdge> edges = new LinkedHashSet<>();
+        edges.addAll(updatedEdges);
+
+        // clear updates
+        updatedVertexes.clear();
+        updatedEdges.clear();
+
+        // in order to remove edges of vertexes, query all edges first
+        for (HugeVertex v : vertexes) {
+            @SuppressWarnings({ "unchecked", "rawtypes" })
+            Collection<HugeEdge> vedges = (Collection) ImmutableList.copyOf(
+                    this.queryEdgesByVertex(v.id()));
+            edges.addAll(vedges);
+        }
+
+        // remove vertexes
+        for (HugeVertex v : vertexes) {
+            // if the backend stores vertex together with edges,
+            // its edges would be removed after removing vertex
+            // if the backend stores vertex which is separated from edges,
+            // its edges should be removed manually when removing vertex
+            this.removeEntry(this.serializer.writeId(HugeTypes.VERTEX, v.id()));
+            this.indexTx.updateVertexIndex(v, true);
+        }
+
+        // remove edges
+        for (HugeEdge edge : edges) {
+            // OUT
+            HugeVertex vertex = edge.owner().prepareRemoved();
+            vertex.edge(edge.prepareRemoved());
+            this.removeEntry(this.serializer.writeVertex(vertex));
+
+            // IN
+            vertex = edge.otherVertex().prepareRemoved();
+            vertex.edge(edge.switchOwner().prepareRemoved());
+            this.removeEntry(this.serializer.writeVertex(vertex));
+
+            this.indexTx.updateEdgeIndex(edge, true);
+        }
     }
 
     @Override
@@ -92,7 +176,7 @@ public class GraphTransaction extends AbstractTransaction {
 
     public Vertex addVertex(HugeVertex vertex) {
         this.beforeWrite();
-        vertex = this.vertexes.add(vertex) ? vertex : null;
+        this.addedVertexes.add(vertex);
         this.afterWrite();
         return vertex;
     }
@@ -110,7 +194,6 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         if (label == null) {
-            // Preconditions.checkArgument(label != null, "Vertex label must be not null");
             throw Element.Exceptions.labelCanNotBeNull();
         } else if (label instanceof String) {
             SchemaManager schema = this.graph.schema();
@@ -126,7 +209,7 @@ public class GraphTransaction extends AbstractTransaction {
                 ElementHelper.getKeys(keyValues), primaryKeys),
                 "The primary key(s) must be setted: " + primaryKeys);
 
-        HugeVertex vertex = new HugeVertex(this.graph, id, (VertexLabel) label);
+        HugeVertex vertex = new HugeVertex(this, id, (VertexLabel) label);
         // set properties
         ElementHelper.attachProperties(vertex, keyValues);
 
@@ -136,6 +219,12 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         return this.addVertex(vertex);
+    }
+
+    public void removeVertex(HugeVertex vertex) {
+        this.beforeWrite();
+        this.removedVertexes.add(vertex);
+        this.afterWrite();
     }
 
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
@@ -163,6 +252,19 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         return list.iterator();
+    }
+
+    public Edge addEdge(HugeEdge edge) {
+        this.beforeWrite();
+        this.addedEdges.add(edge);
+        this.afterWrite();
+        return edge;
+    }
+
+    public void removeEdge(HugeEdge edge) {
+        this.beforeWrite();
+        this.removedEdges.add(edge);
+        this.afterWrite();
     }
 
     public Iterator<Edge> queryEdges(Object... edgeIds) {
@@ -196,6 +298,13 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         return results.values().iterator();
+    }
+
+    public Iterator<Edge> queryEdgesByVertex(Id id) {
+        ConditionQuery q = new ConditionQuery(HugeTypes.EDGE);
+        // TODO: id should be serialized(bytes/string) by back-end store
+        q.eq(HugeKeys.SOURCE_VERTEX, id.toString());
+        return queryEdges(q);
     }
 
     protected Query optimizeQuery(ConditionQuery query) {

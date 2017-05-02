@@ -1,8 +1,8 @@
 package com.baidu.hugegraph.backend.tx;
 
 import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +33,8 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected BackendStore store;
 
-    protected Map<Id, BackendEntry> additions;
-    protected Map<Id, BackendEntry> deletions;
+    protected Set<BackendEntry> additions;
+    protected Set<BackendEntry> deletions;
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractTransaction.class);
 
@@ -49,8 +49,12 @@ public abstract class AbstractTransaction implements Transaction {
         this.idGenerator = IdGeneratorFactory.generator();
 
         this.store = store;
-        this.additions = new ConcurrentHashMap<Id, BackendEntry>();
-        this.deletions = new ConcurrentHashMap<Id, BackendEntry>();
+        this.additions = new LinkedHashSet<>();
+        this.deletions = new LinkedHashSet<>();
+    }
+
+    public HugeGraph graph() {
+        return this.graph;
     }
 
     public BackendStore store() {
@@ -90,12 +94,15 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Override
     public void commit() throws BackendException {
-        logger.debug("Transaction commit [auto: {}]...", this.autoCommit);
+        logger.debug("Transaction commit() [auto: {}]...", this.autoCommit);
         this.prepareCommit();
 
-        BackendMutation m = new BackendMutation(
-                this.additions.values(),
-                this.deletions.values());
+        BackendMutation m = new BackendMutation(this.additions, this.deletions);
+
+        if (m.isEmpty()) {
+            logger.debug("Transaction has no data to commit({})", this.store());
+            return;
+        }
 
         // if an exception occurred, catch in the upper layer and roll back
         this.store.beginTx();
@@ -108,7 +115,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Override
     public void rollback() throws BackendException {
-        logger.debug("Transaction rollback...");
+        logger.debug("Transaction rollback()...");
         this.store.rollbackTx();
     }
 
@@ -148,10 +155,11 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected void prepareCommit() {
         // for sub-class preparing data, nothing to do here
-        logger.debug("Transaction prepare commit...");
+        logger.debug("Transaction prepareCommit()...");
     }
 
     protected void commitOrRollback() {
+        logger.debug("Transaction commitOrRollback()");
         boolean success = false;
 
         try {
@@ -176,11 +184,7 @@ public abstract class AbstractTransaction implements Transaction {
         Preconditions.checkNotNull(entry);
         Preconditions.checkNotNull(entry.id());
 
-        Id id = entry.id();
-        if (this.additions.containsKey(id)) {
-            this.additions.remove(id);
-        }
-        this.additions.put(id, entry);
+        this.additions.add(entry);
     }
 
     public void removeEntry(BackendEntry entry) {
@@ -188,11 +192,7 @@ public abstract class AbstractTransaction implements Transaction {
         Preconditions.checkNotNull(entry);
         Preconditions.checkNotNull(entry.id());
 
-        Id id = entry.id();
-        if (this.deletions.containsKey(id)) {
-            this.deletions.remove(id);
-        }
-        this.deletions.put(id, entry);
+        this.deletions.add(entry);
     }
 
     public void removeEntry(HugeTypes type, Id id) {

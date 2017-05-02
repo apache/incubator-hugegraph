@@ -9,6 +9,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -40,26 +41,30 @@ public class CassandraSerializer extends AbstractSerializer {
         super(graph);
     }
 
+    public CassandraBackendEntry newBackendEntry(HugeTypes type, Id id) {
+        return new CassandraBackendEntry(type, id);
+    }
+
     @Override
     public BackendEntry newBackendEntry(Id id) {
-        return new CassandraBackendEntry(id);
+        return newBackendEntry(null, id);
     }
 
     protected CassandraBackendEntry newBackendEntry(HugeElement e) {
-        return new CassandraBackendEntry(e.type(), e.id());
+        return newBackendEntry(e.type(), e.id());
     }
 
     protected CassandraBackendEntry newBackendEntry(SchemaElement e) {
         Id id = IdGeneratorFactory.generator().generate(e);
-        return new CassandraBackendEntry(e.type(), id);
+        return newBackendEntry(e.type(), id);
     }
 
     protected CassandraBackendEntry newBackendEntry(HugeIndex index) {
         Id id = IdGeneratorFactory.generator().generate(index.id());
         if (index.indexType() == IndexType.SECONDARY) {
-            return new CassandraBackendEntry(HugeTypes.SECONDARY_INDEX, id);
+            return newBackendEntry(HugeTypes.SECONDARY_INDEX, id);
         } else {
-            return new CassandraBackendEntry(HugeTypes.SEARCH_INDEX, id);
+            return newBackendEntry(HugeTypes.SEARCH_INDEX, id);
         }
     }
 
@@ -118,9 +123,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
         // TODO: fill a default property if non, it should be improved!
         if (edge.getProperties().isEmpty()) {
-            row.cell(new CassandraBackendEntry.Property(
-                    HugeKeys.PROPERTY_KEY, "~exist",
-                    HugeKeys.PROPERTY_VALUE, "1"));
+            row.cell(CassandraBackendEntry.Property.EXIST);
         }
 
         return row;
@@ -132,30 +135,42 @@ public class CassandraSerializer extends AbstractSerializer {
         String sourceVertexId = row.key(HugeKeys.SOURCE_VERTEX);
         Direction direction = Direction.valueOf(row.key(HugeKeys.DIRECTION));
         String labelName = row.key(HugeKeys.LABEL);
+        String sortValues = row.key(HugeKeys.SORT_VALUES);
         String targetVertexId = row.key(HugeKeys.TARGET_VERTEX);
 
         boolean isOutEdge = (direction == Direction.OUT);
         EdgeLabel label = this.graph.schema().edgeLabel(labelName);
 
-        // TODO: how to construct targetVertex with id
-        Id otherVertexId = IdGeneratorFactory.generator().generate(targetVertexId);
-        HugeVertex otherVertex = new HugeVertex(this.graph, otherVertexId, null);
+        Id vertexId = IdGeneratorFactory.generator().generate(targetVertexId);
+        // TODO: improve Id parse()
+        String[] vIdParts = SplicingIdGenerator.parse(vertexId);
+        VertexLabel vertexLabel = this.graph.schema().vertexLabel(vIdParts[0]);
+
+        HugeVertex otherVertex = new HugeVertex(this.graph.graphTransaction(),
+                vertexId, vertexLabel);
+        otherVertex.name(vIdParts[1]);
 
         HugeEdge edge = new HugeEdge(this.graph, null, label);
 
         if (isOutEdge) {
             edge.targetVertex(otherVertex);
             vertex.addOutEdge(edge);
+            otherVertex.addInEdge(edge.switchOwner());
         } else {
             edge.sourceVertex(otherVertex);
             vertex.addInEdge(edge);
+            otherVertex.addOutEdge(edge.switchOwner());
         }
 
         // edge properties
         for (CassandraBackendEntry.Property cell : row.cells()) {
+            if (cell.equals(CassandraBackendEntry.Property.EXIST)) {
+                continue;
+            }
             this.parseProperty(cell.name(), cell.value(), edge);
         }
 
+        edge.name(sortValues);
         edge.assignId();
     }
 
@@ -189,10 +204,14 @@ public class CassandraSerializer extends AbstractSerializer {
         CassandraBackendEntry entry = (CassandraBackendEntry) bytesEntry;
 
         String labelName = entry.column(HugeKeys.LABEL);
+        String name = entry.column(HugeKeys.PRIMARY_VALUES);
+
         VertexLabel label = this.graph.schema().vertexLabel(labelName);
 
         // id
-        HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
+        HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
+                entry.id(), label);
+        vertex.name(name);
 
         // parse all properties of a Vertex
         for (CassandraBackendEntry.Property cell : entry.cells()) {
@@ -209,7 +228,7 @@ public class CassandraSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeId(HugeTypes type, Id id) {
         // NOTE: Cassandra does not need to add type prefix for id
-        return newBackendEntry(id);
+        return newBackendEntry(type, id);
     }
 
     @Override

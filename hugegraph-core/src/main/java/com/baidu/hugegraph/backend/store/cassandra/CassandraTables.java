@@ -161,6 +161,7 @@ public class CassandraTables {
 
         @Override
         protected List<String> idColumnValue(Id id) {
+            // TODO: improve Id parse()
             return ImmutableList.copyOf(SplicingIdGenerator.parse(id));
         }
 
@@ -261,6 +262,7 @@ public class CassandraTables {
 
         @Override
         protected List<String> idColumnValue(Id id) {
+            // TODO: improve Id split()
             return ImmutableList.copyOf(SplicingIdGenerator.split(id));
         }
 
@@ -300,7 +302,7 @@ public class CassandraTables {
                     CassandraBackendEntry vertex = new CassandraBackendEntry(
                             HugeTypes.VERTEX, srcVertexId);
                     // set vertex label and pv(assume vertex id with a label)
-                    // TODO: improve Id split()
+                    // TODO: improve Id parse()
                     String[] idParts = SplicingIdGenerator.parse(srcVertexId);
                     vertex.column(HugeKeys.LABEL, idParts[0]);
                     vertex.column(HugeKeys.PRIMARY_VALUES, idParts[1]);
@@ -334,6 +336,7 @@ public class CassandraTables {
             for (int i = 0; i < KEYS.length; i++) {
                 values[i] = row.key(KEYS[i]);
             }
+            // TODO: improve Id concat()
             return SplicingIdGenerator.concat(values);
         }
     }
