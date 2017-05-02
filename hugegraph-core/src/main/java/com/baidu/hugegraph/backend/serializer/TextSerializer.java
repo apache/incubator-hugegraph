@@ -10,7 +10,6 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.store.cassandra.CassandraBackendEntry;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
@@ -141,7 +140,8 @@ public class TextSerializer extends AbstractSerializer {
 
         // TODO: how to construct targetVertex with id
         Id otherVertexId = IdGeneratorFactory.generator().generate(colParts[3]);
-        HugeVertex otherVertex = new HugeVertex(this.graph, otherVertexId, null);
+        HugeVertex otherVertex = new HugeVertex(this.graph.graphTransaction(),
+                otherVertexId, null);
 
         Id id = IdGeneratorFactory.generator().generate(valParts[0]);
 
@@ -212,7 +212,8 @@ public class TextSerializer extends AbstractSerializer {
         VertexLabel label = this.graph.schema().vertexLabel(labelName);
 
         // id
-        HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
+        HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
+                entry.id(), label);
 
         // parse all properties or edges of a Vertex
         for (String name : entry.columnNames()) {
@@ -400,7 +401,7 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         entry = convertEntry(entry);
-        assert entry instanceof CassandraBackendEntry;
+        assert entry instanceof TextBackendEntry;
 
         TextBackendEntry textEntry = (TextBackendEntry) entry;
         HugeTypes baseType = JsonUtil.fromJson(textEntry.column(HugeKeys.BASE_TYPE.string()), HugeTypes.class);

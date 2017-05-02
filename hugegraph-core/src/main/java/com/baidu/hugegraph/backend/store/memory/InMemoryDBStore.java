@@ -40,7 +40,7 @@ public class InMemoryDBStore implements BackendStore {
         List<BackendEntry> entries = new ArrayList<BackendEntry>();
 
         if (query.queryAll()) {
-            entries.addAll(store.values());
+            entries.addAll(this.store.values());
             return ImmutableList.copyOf(entries);
         }
 
@@ -134,5 +134,10 @@ public class InMemoryDBStore implements BackendStore {
     public void rollbackTx() {
         // TODO Auto-generated method stub
 
+    }
+
+    @Override
+    public String toString() {
+        return this.name;
     }
 }

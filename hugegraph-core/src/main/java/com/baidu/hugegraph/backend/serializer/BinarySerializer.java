@@ -128,7 +128,8 @@ public class BinarySerializer extends AbstractSerializer {
         VertexLabel label = this.parseLabel(entry.column(labelCol));
 
         // id
-        HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
+        HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
+                entry.id(), label);
 
         // parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {

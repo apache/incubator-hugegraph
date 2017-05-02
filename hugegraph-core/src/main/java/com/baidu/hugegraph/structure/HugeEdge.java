@@ -17,14 +17,17 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     protected EdgeLabel label;
+    protected String name;
 
     protected HugeVertex owner; // the Vertex who owned me
     protected HugeVertex sourceVertex;
@@ -42,13 +45,23 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     @Override
-    public String name() {
-        List<String> properties = new LinkedList<>();
-        for (String key : this.edgeLabel().sortKeys()) {
-            properties.add(this.property(key).value().toString());
+    public GraphTransaction tx() {
+        if (this.owner() == null) {
+            return null;
         }
-        // TODO: use a better delimiter
-        return String.join(SplicingIdGenerator.NAME_SPLITOR, properties);
+        return this.owner().tx();
+    }
+
+    @Override
+    public String name() {
+        if (this.name == null) {
+            this.name = SplicingIdGenerator.concatValues(sortValues());
+        }
+        return this.name;
+    }
+
+    public void name(String name) {
+        this.name = name;
     }
 
     @Override
@@ -78,6 +91,29 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         // generate an id and assign
         if (this.id == null) {
             this.id = IdGeneratorFactory.generator().generate(this);
+        }
+    }
+
+    public List<Object> sortValues() {
+        Set<String> sortKeys = this.edgeLabel().sortKeys();
+        if (sortKeys.isEmpty()) {
+            return ImmutableList.of();
+        }
+        Iterator<Property<Object>> props = this.properties(
+                sortKeys.toArray(new String[0]));
+
+        List<Object> propValues = new ArrayList<>(sortKeys.size());
+        while (props.hasNext()) {
+            propValues.add(props.next().value());
+        }
+        return propValues;
+    }
+
+    public void sortValues(List<Object> propValues) {
+        Set<String> sortKeys = this.edgeLabel().sortKeys();
+        int i = 0;
+        for (String k : sortKeys) {
+            this.property(k, propValues.get(i++));
         }
     }
 
@@ -131,7 +167,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public void remove() {
-        // TODO Auto-generated method stub
+        this.tx().removeEdge(this);
     }
 
     @Override
@@ -145,7 +181,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         } else {
             for (String pk : propertyKeys) {
                 HugeProperty<? extends Object> prop = this.getProperty(pk);
-                assert prop instanceof Property;
+                assert prop == null || prop instanceof Property;
                 propertyList.add((Property<V>) prop);
             }
         }
@@ -179,12 +215,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeEdge switchOwner() {
-        HugeEdge edge = null;
-        try {
-            edge = (HugeEdge) this.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new HugeException("Failed to clone HugeEdge", e);
-        }
+        HugeEdge edge = this.clone();
 
         if (edge.owner == edge.sourceVertex) {
             edge.owner = edge.targetVertex;
@@ -196,7 +227,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return edge;
     }
 
-    public Edge switchOutDirection() {
+    public HugeEdge switchOutDirection() {
         if (this.type() == HugeTypes.EDGE_IN) {
             return this.switchOwner();
         }
@@ -252,6 +283,23 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     public HugeVertex otherVertex() {
         return this.otherVertex(this.owner);
+    }
+
+    public HugeEdge prepareRemoved() {
+        // NOTE: clear properties of the edge(keep sort-values)
+        HugeEdge edge = this.clone();
+        edge.resetProperties();
+        return edge;
+    }
+
+
+    @Override
+    protected HugeEdge clone() {
+        try {
+            return (HugeEdge) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new HugeException("Failed to clone HugeEdge", e);
+        }
     }
 
     @Override

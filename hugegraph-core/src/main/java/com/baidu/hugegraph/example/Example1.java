@@ -170,27 +170,28 @@ public class Example1 {
         graph.addVertex(T.label, "book", "name", "java-4");
         graph.addVertex(T.label, "book", "name", "java-5");
         graph.tx().commit();
+        graph.tx().close();
 
         // query all
-        GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V();
-        System.out.println(">>>> query all vertices: size=" + vertex.toList().size());
+        GraphTraversal<Vertex, Vertex> vertexes = graph.traversal().V();
+        System.out.println(">>>> query all vertices: size=" + vertexes.toList().size());
 
         // query vertex by primary-values
-        vertex = graph.traversal().V().hasLabel("author").has("id", "1");
-        System.out.println(">>>> query vertices by primary-values: " + vertex.toList());
+        vertexes = graph.traversal().V().hasLabel("author").has("id", "1");
+        System.out.println(">>>> query vertices by primary-values: " + vertexes.toList());
 
         // query vertex by id
-        vertex = graph.traversal().V("author\u00021");
-        GraphTraversal<Vertex, Edge> edgesOfVertex = vertex.outE("created");
+        vertexes = graph.traversal().V("author\u00021");
+        GraphTraversal<Vertex, Edge> edgesOfVertex = vertexes.outE("created");
         System.out.println(">>>> query edges of vertex: " + edgesOfVertex.toList());
 
-        vertex = graph.traversal().V("author\u00021");
-        GraphTraversal<Vertex, Vertex> verticesOfVertex = vertex.out("created");
+        vertexes = graph.traversal().V("author\u00021");
+        GraphTraversal<Vertex, Vertex> verticesOfVertex = vertexes.out("created");
         System.out.println(">>>> query vertices of vertex: " + verticesOfVertex.toList());
 
         // query edge by sort-values
-        vertex = graph.traversal().V("author\u00021");
-        edgesOfVertex = vertex.outE("look").has("time", "2017-4-28");
+        vertexes = graph.traversal().V("author\u00021");
+        edgesOfVertex = vertexes.outE("look").has("time", "2017-4-28");
         System.out.println(">>>> query edges of vertex by sort-values: " + edgesOfVertex.toList());
 
         // query edge by condition
@@ -229,18 +230,32 @@ public class Example1 {
         }
 
         // query by vertex label
-        vertex = graph.traversal().V().hasLabel("book");
-        System.out.println(">>>> query all books: size=" + vertex.toList().size());
+        vertexes = graph.traversal().V().hasLabel("book");
+        System.out.println(">>>> query all books: size=" + vertexes.toList().size());
 
         // query by vertex props
-        vertex = graph.traversal().V().hasLabel("person").has("city", "Taipei");
-        System.out.println(">>>> query all persons in Taipei: " + vertex.toList());
+        vertexes = graph.traversal().V().hasLabel("person").has("city", "Taipei");
+        System.out.println(">>>> query all persons in Taipei: " + vertexes.toList());
 
-        vertex = graph.traversal().V().hasLabel("person").has("age", "19");
-        System.out.println(">>>> query all persons age==19: " + vertex.toList());
+        vertexes = graph.traversal().V().hasLabel("person").has("age", "19");
+        System.out.println(">>>> query all persons age==19: " + vertexes.toList());
 
-        vertex = graph.traversal().V().hasLabel("person").has("age", P.lt("19"));
-        System.out.println(">>>> query all persons age<19: " + vertex.toList());
+        vertexes = graph.traversal().V().hasLabel("person").has("age", P.lt("19"));
+        System.out.println(">>>> query all persons age<19: " + vertexes.toList());
+
+        // remove vertex (and its edges)
+        vertexes = graph.traversal().V().hasLabel("person").has("age", P.lt("19"));
+        Vertex vertex = vertexes.toList().get(0);
+        vertex.addEdge("look", book3, "time", "2017-5-3");
+        System.out.println(">>>> remove vertex: " + vertex);
+        vertex.remove();
+
+        // remove edge
+        id = "author\u00021\u0001OUT\u0001authored\u0001\u0001book\u0002java-2";
+        edges = graph.traversal().E(id);
+        Edge edge = edges.toList().get(0);
+        System.out.println(">>>> remove edge: " + edge);
+        edge.remove();
     }
 
 }

@@ -96,7 +96,8 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void mutate(BackendMutation mutation) {
-        logger.debug("Store mutate: additions={}, deletions={}",
+        logger.debug("Store {} mutate: additions={}, deletions={}",
+                this.name,
                 mutation.additions().size(),
                 mutation.deletions().size());
 
@@ -105,11 +106,17 @@ public abstract class CassandraStore implements BackendStore {
         // delete data
         for (BackendEntry i : mutation.deletions()) {
             CassandraBackendEntry entry = castBackendEntry(i);
-            // delete entry
-            this.table(entry.type()).delete(entry.row());
-            // delete sub rows (edges)
-            for (CassandraBackendEntry.Row row : entry.subRows()) {
-                this.table(row.type()).delete(row);
+            // NOTE: we assume that not delete entry if subRows exist
+            if (entry.subRows().isEmpty()) {
+                // delete entry
+                this.table(entry.type()).delete(entry.row());
+            } else {
+                // assert entry.row().keys().isEmpty(); // only contains id
+                assert entry.row().cells().isEmpty();
+                // delete sub rows (edges)
+                for (CassandraBackendEntry.Row row : entry.subRows()) {
+                    this.table(row.type()).delete(row);
+                }
             }
         }
 
@@ -175,6 +182,11 @@ public abstract class CassandraStore implements BackendStore {
     @Override
     public void rollbackTx() {
         // TODO how to implement?
+    }
+
+    @Override
+    public String toString() {
+        return this.name;
     }
 
     protected void initKeyspace() {

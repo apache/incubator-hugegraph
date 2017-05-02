@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tinkerpop.gremlin.structure.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,9 +49,13 @@ public class IndexTransaction extends AbstractTransaction {
 
         // edge index
         for (HugeEdge edge : vertex.getEdges()) {
-            for (String indexName : edge.edgeLabel().indexNames()) {
-                updateIndex(indexName, edge, removed);
-            }
+            updateEdgeIndex(edge, removed);
+        }
+    }
+
+    public void updateEdgeIndex(HugeEdge edge, boolean removed) {
+        for (String indexName : edge.edgeLabel().indexNames()) {
+            updateIndex(indexName, edge, removed);
         }
     }
 
@@ -63,12 +68,14 @@ public class IndexTransaction extends AbstractTransaction {
 
         List<Object> propertyValues = new LinkedList<>();
         for (String field : indexLabel.indexFields()) {
-            propertyValues.add(element.property(field).value());
+            Property<Object> property = element.property(field);
+            Preconditions.checkNotNull(property,
+                    "Not existed property: " + field);
+            propertyValues.add(property.value());
         }
 
         HugeIndex index = new HugeIndex(indexLabel);
-        index.propertyValues(StringUtils.join(propertyValues,
-                SplicingIdGenerator.NAME_SPLITOR));
+        index.propertyValues(SplicingIdGenerator.concatValues(propertyValues));
         index.elementIds(element.id());
 
         if (!removed) {

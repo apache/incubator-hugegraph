@@ -29,6 +29,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Delete;
+import com.datastax.driver.core.querybuilder.Delete.Where;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -310,13 +311,25 @@ public abstract class CassandraTable {
     }
 
     public void delete(CassandraBackendEntry.Row entry) {
-        Delete delete = QueryBuilder.delete().from(this.table);
-        Delete.Where where = delete.where();
+        // delete by id
+        if (entry.keys().isEmpty()) {
+            List<String> idNames = this.idColumnName();
+            List<String> idValues = this.idColumnValue(entry.id());
+            assert idNames.size() == idValues.size();
 
-        // delete just by keys
-        if (entry.cells().isEmpty()) {
+            Delete delete = QueryBuilder.delete().from(this.table);
+            for (int i = 0; i < idNames.size(); i++) {
+                delete.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
+            }
+
+            this.batch.add(delete);
+        }
+        // delete just by keys (TODO: improve EXIST)
+        else if (entry.cells().isEmpty() || entry.cells().contains(
+                CassandraBackendEntry.Property.EXIST)) {
+            Delete delete = QueryBuilder.delete().from(this.table);
             for (Entry<HugeKeys, String> k : entry.keys().entrySet()) {
-                where.and(QueryBuilder.eq(k.getKey().name(), k.getValue()));
+                delete.where(QueryBuilder.eq(k.getKey().name(), k.getValue()));
             }
 
             this.batch.add(delete);
@@ -324,12 +337,15 @@ public abstract class CassandraTable {
         // delete by key + value-key (such as vertex property)
         else {
             for (CassandraBackendEntry.Property i : entry.cells()) {
+                Delete delete = QueryBuilder.delete().from(this.table);
+                Where where = delete.where();
 
                 for (Entry<HugeKeys, String> k : entry.keys().entrySet()) {
                     where.and(QueryBuilder.eq(k.getKey().name(), k.getValue()));
                 }
 
                 where.and(QueryBuilder.eq(i.nameType().name(), i.name()));
+
                 this.batch.add(delete);
             }
         }

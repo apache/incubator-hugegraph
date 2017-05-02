@@ -6,8 +6,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -154,9 +152,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public String userpropValuesString() {
-        return StringUtils.join(
-                this.userpropValues(),
-                SplicingIdGenerator.NAME_SPLITOR);
+        return SplicingIdGenerator.concatValues(this.userpropValues());
     }
 
     public boolean hasSearchCondition() {

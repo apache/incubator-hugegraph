@@ -15,6 +15,10 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 public class CassandraBackendEntry implements BackendEntry {
 
     public static class Property {
+        public static final Property EXIST = new Property(
+                    HugeKeys.PROPERTY_KEY, "~exist",
+                    HugeKeys.PROPERTY_VALUE, "1");
+
         private HugeKeys nameType;
         private HugeKeys valueType;
         private String name;
@@ -59,6 +63,19 @@ public class CassandraBackendEntry implements BackendEntry {
 
         public void value(String value) {
             this.value = value;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof Property)) {
+                return false;
+            }
+
+            Property other = (Property) o;
+            return (this.name.equals(other.name)
+                    && this.nameType.equals(other.nameType)
+                    && this.value.equals(other.value)
+                    && this.valueType.equals(other.valueType));
         }
 
         @Override
