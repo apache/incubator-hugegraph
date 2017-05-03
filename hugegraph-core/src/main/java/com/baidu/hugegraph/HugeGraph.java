@@ -191,7 +191,7 @@ public class HugeGraph implements Graph {
     }
 
     @Override
-    public Features features() {
+    public HugeFeatures features() {
         return this.features;
     }
 

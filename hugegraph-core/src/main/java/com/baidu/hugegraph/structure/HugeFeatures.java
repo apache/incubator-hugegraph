@@ -13,9 +13,9 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 public class HugeFeatures implements Graph.Features {
 
     protected final boolean supportsPersistence;
-    protected final GraphFeatures graphFeatures = new HugeGraphFeatures();
-    protected final VertexFeatures vertexFeatures = new HugeVertexFeatures();
-    protected final EdgeFeatures edgeFeatures = new HugeEdgeFeatures();
+    protected final HugeGraphFeatures graphFeatures = new HugeGraphFeatures();
+    protected final HugeVertexFeatures vertexFeatures = new HugeVertexFeatures();
+    protected final HugeEdgeFeatures edgeFeatures = new HugeEdgeFeatures();
     protected final DataTypeFeatures dataTypeFeatures = new HugeDataTypeFeatures();
 
     public HugeFeatures(boolean supportsPersistence) {
@@ -23,18 +23,18 @@ public class HugeFeatures implements Graph.Features {
     }
 
     @Override
-    public GraphFeatures graph() {
-        return graphFeatures;
+    public HugeGraphFeatures graph() {
+        return this.graphFeatures;
     }
 
     @Override
-    public VertexFeatures vertex() {
-        return vertexFeatures;
+    public HugeVertexFeatures vertex() {
+        return this.vertexFeatures;
     }
 
     @Override
-    public EdgeFeatures edge() {
-        return edgeFeatures;
+    public HugeEdgeFeatures edge() {
+        return this.edgeFeatures;
     }
 
     @Override
@@ -57,12 +57,12 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean supportsPersistence() {
-            return supportsPersistence;
+            return HugeFeatures.this.supportsPersistence;
         }
 
         @Override
         public VariableFeatures variables() {
-            return variableFeatures;
+            return this.variableFeatures;
         }
 
         @Override
@@ -277,7 +277,7 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public VertexPropertyFeatures properties() {
-            return vertexPropertyFeatures;
+            return this.vertexPropertyFeatures;
         }
 
         @Override
@@ -294,6 +294,14 @@ public class HugeFeatures implements Graph.Features {
         public VertexProperty.Cardinality getCardinality(final String key) {
             return VertexProperty.Cardinality.single;
         }
+
+        public boolean supportsDefaultLabel() {
+            return true;
+        }
+
+        public String defaultLabel() {
+            return "";
+        }
     }
 
     public class HugeEdgeFeatures extends HugeElementFeatures implements EdgeFeatures {
@@ -302,98 +310,116 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public EdgePropertyFeatures properties() {
-            return edgePropertyFeatures;
+            return this.edgePropertyFeatures;
         }
 
     }
-    
+
     public class HugeDataTypeFeatures implements DataTypeFeatures {
 
+        @Override
         @FeatureDescriptor(name = FEATURE_BOOLEAN_VALUES)
         public boolean supportsBooleanValues() {
             return true;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_BYTE_VALUES)
         public boolean supportsByteValues() {
             return true;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_DOUBLE_VALUES)
         public boolean supportsDoubleValues() {
             return true;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_FLOAT_VALUES)
         public boolean supportsFloatValues() {
             return true;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_INTEGER_VALUES)
         public boolean supportsIntegerValues() {
             return true;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_LONG_VALUES)
         public boolean supportsLongValues() {
             return true;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_MAP_VALUES)
         public boolean supportsMapValues() {
             return false;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_MIXED_LIST_VALUES)
         public boolean supportsMixedListValues() {
             return false;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_BOOLEAN_ARRAY_VALUES)
         public boolean supportsBooleanArrayValues() {
             return false;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_BYTE_ARRAY_VALUES)
         public boolean supportsByteArrayValues() {
             return true;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_DOUBLE_ARRAY_VALUES)
         public boolean supportsDoubleArrayValues() {
             return false;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_FLOAT_ARRAY_VALUES)
         public boolean supportsFloatArrayValues() {
             return false;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_INTEGER_ARRAY_VALUES)
         public boolean supportsIntegerArrayValues() {
             return false;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_STRING_ARRAY_VALUES)
         public boolean supportsStringArrayValues() {
             return false;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_LONG_ARRAY_VALUES)
         public boolean supportsLongArrayValues() {
             return false;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_SERIALIZABLE_VALUES)
         public boolean supportsSerializableValues() {
             return false;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_STRING_VALUES)
         public boolean supportsStringValues() {
             return true;
         }
 
+        @Override
         @FeatureDescriptor(name = FEATURE_UNIFORM_LIST_VALUES)
         public boolean supportsUniformListValues() {
             return false;
