@@ -106,6 +106,13 @@ public class Example2 {
         schema.makePropertyKey("lang").asText().create();
         schema.makePropertyKey("date").asText().create();
 
+        schema.makePropertyKey("boolean").asBoolean().create();
+        schema.makePropertyKey("byte").asByte().create();
+        schema.makePropertyKey("blob").asBlob().create();
+        schema.makePropertyKey("double").asDouble().create();
+        schema.makePropertyKey("float").asFloat().create();
+        schema.makePropertyKey("long").asLong().create();
+
         schema.makeVertexLabel("person").properties("name", "age").primaryKeys("name").create();
         schema.makeVertexLabel("software").properties("name", "lang").primaryKeys("name").create();
         schema.makeVertexLabel("person").index("personByName").by("name").secondary().create();
@@ -113,13 +120,11 @@ public class Example2 {
         schema.vertexLabel("software").index("softwareByName").by("name").search().create();
         schema.vertexLabel("software").index("softwareByLang").by("lang").search().create();
 
-//        schema.makeEdgeLabel("knows").properties("date").link("person", "person").create();
         schema.makeEdgeLabel("knows").properties("date").create();
-//        schema.makeEdgeLabel("created").properties("date").link("person", "software").create();
         schema.makeEdgeLabel("created").properties("date").create();
         schema.edgeLabel("created").index("createdByDate").by("date").secondary().create();
 
-//        schema.desc();
+        schema.desc();
 
         graph.tx().open();
 

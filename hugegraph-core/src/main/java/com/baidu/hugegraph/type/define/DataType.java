@@ -13,12 +13,19 @@ import com.baidu.hugegraph.structure.HugeProperty;
  * Created by jishilei on 17/3/18.
  */
 public enum DataType {
-    OBJECT(1, "object", HugeProperty.class), // this property has sub properties
-    TEXT(2, "text", String.class),
-    INT(3, "int", Integer.class),
-    LONG(4, "long", Long.class),
-    UUID(5, "uuid", UUID.class),
-    TIMESTAMP(6, "timestamp", Timestamp.class);
+
+    // this property has sub properties
+    OBJECT(1, "object", HugeProperty.class),
+    BOOLEAN(2, "boolean", Boolean.class),
+    BYTE(3, "byte", Byte.class),
+    BLOB(4, "blob", byte[].class),
+    DOUBLE(5, "double", Double.class),
+    FLOAT(6, "float", Float.class),
+    INT(7, "int", Integer.class),
+    LONG(8, "long", Long.class),
+    TEXT(9, "text", String.class),
+    TIMESTAMP(10, "timestamp", Timestamp.class),
+    UUID(11, "uuid", UUID.class);
 
     private byte code = 0;
     private String name = null;
