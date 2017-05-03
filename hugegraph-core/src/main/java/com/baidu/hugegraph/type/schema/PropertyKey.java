@@ -113,6 +113,18 @@ public abstract class PropertyKey extends SchemaElement {
 
     public abstract PropertyKey asUuid();
 
+    public abstract PropertyKey asBoolean();
+
+    public abstract PropertyKey asByte();
+
+    public abstract PropertyKey asBlob();
+
+    public abstract PropertyKey asDouble();
+
+    public abstract PropertyKey asFloat();
+
+    public abstract PropertyKey asLong();
+
     public abstract PropertyKey valueSingle();
 
     public abstract PropertyKey valueList();

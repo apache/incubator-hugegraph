@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.util.FeatureDescriptor;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 /**
@@ -15,6 +16,7 @@ public class HugeFeatures implements Graph.Features {
     protected final GraphFeatures graphFeatures = new HugeGraphFeatures();
     protected final VertexFeatures vertexFeatures = new HugeVertexFeatures();
     protected final EdgeFeatures edgeFeatures = new HugeEdgeFeatures();
+    protected final DataTypeFeatures dataTypeFeatures = new HugeDataTypeFeatures();
 
     public HugeFeatures(boolean supportsPersistence) {
         this.supportsPersistence = supportsPersistence;
@@ -303,5 +305,98 @@ public class HugeFeatures implements Graph.Features {
             return edgePropertyFeatures;
         }
 
+    }
+    
+    public class HugeDataTypeFeatures implements DataTypeFeatures {
+
+        @FeatureDescriptor(name = FEATURE_BOOLEAN_VALUES)
+        public boolean supportsBooleanValues() {
+            return true;
+        }
+
+        @FeatureDescriptor(name = FEATURE_BYTE_VALUES)
+        public boolean supportsByteValues() {
+            return true;
+        }
+
+        @FeatureDescriptor(name = FEATURE_DOUBLE_VALUES)
+        public boolean supportsDoubleValues() {
+            return true;
+        }
+
+        @FeatureDescriptor(name = FEATURE_FLOAT_VALUES)
+        public boolean supportsFloatValues() {
+            return true;
+        }
+
+        @FeatureDescriptor(name = FEATURE_INTEGER_VALUES)
+        public boolean supportsIntegerValues() {
+            return true;
+        }
+
+        @FeatureDescriptor(name = FEATURE_LONG_VALUES)
+        public boolean supportsLongValues() {
+            return true;
+        }
+
+        @FeatureDescriptor(name = FEATURE_MAP_VALUES)
+        public boolean supportsMapValues() {
+            return false;
+        }
+
+        @FeatureDescriptor(name = FEATURE_MIXED_LIST_VALUES)
+        public boolean supportsMixedListValues() {
+            return false;
+        }
+
+        @FeatureDescriptor(name = FEATURE_BOOLEAN_ARRAY_VALUES)
+        public boolean supportsBooleanArrayValues() {
+            return false;
+        }
+
+        @FeatureDescriptor(name = FEATURE_BYTE_ARRAY_VALUES)
+        public boolean supportsByteArrayValues() {
+            return true;
+        }
+
+        @FeatureDescriptor(name = FEATURE_DOUBLE_ARRAY_VALUES)
+        public boolean supportsDoubleArrayValues() {
+            return false;
+        }
+
+        @FeatureDescriptor(name = FEATURE_FLOAT_ARRAY_VALUES)
+        public boolean supportsFloatArrayValues() {
+            return false;
+        }
+
+        @FeatureDescriptor(name = FEATURE_INTEGER_ARRAY_VALUES)
+        public boolean supportsIntegerArrayValues() {
+            return false;
+        }
+
+        @FeatureDescriptor(name = FEATURE_STRING_ARRAY_VALUES)
+        public boolean supportsStringArrayValues() {
+            return false;
+        }
+
+        @FeatureDescriptor(name = FEATURE_LONG_ARRAY_VALUES)
+        public boolean supportsLongArrayValues() {
+            return false;
+        }
+
+        @FeatureDescriptor(name = FEATURE_SERIALIZABLE_VALUES)
+        public boolean supportsSerializableValues() {
+            return false;
+        }
+
+        @FeatureDescriptor(name = FEATURE_STRING_VALUES)
+        public boolean supportsStringValues() {
+            return true;
+        }
+
+        @FeatureDescriptor(name = FEATURE_UNIFORM_LIST_VALUES)
+        public boolean supportsUniformListValues() {
+            return false;
+        }
     }
 }

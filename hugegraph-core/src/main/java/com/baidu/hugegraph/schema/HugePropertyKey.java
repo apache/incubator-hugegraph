@@ -78,6 +78,42 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     @Override
+    public PropertyKey asBoolean() {
+        this.dataType(DataType.BOOLEAN);
+        return this;
+    }
+
+    @Override
+    public PropertyKey asByte() {
+        this.dataType(DataType.BYTE);
+        return this;
+    }
+
+    @Override
+    public PropertyKey asBlob() {
+        this.dataType(DataType.BLOB);
+        return this;
+    }
+
+    @Override
+    public PropertyKey asDouble() {
+        this.dataType(DataType.DOUBLE);
+        return this;
+    }
+
+    @Override
+    public PropertyKey asFloat() {
+        this.dataType(DataType.FLOAT);
+        return this;
+    }
+
+    @Override
+    public PropertyKey asLong() {
+        this.dataType(DataType.LONG);
+        return this;
+    }
+
+    @Override
     public PropertyKey valueSingle() {
         this.cardinality(Cardinality.SINGLE);
         return this;
