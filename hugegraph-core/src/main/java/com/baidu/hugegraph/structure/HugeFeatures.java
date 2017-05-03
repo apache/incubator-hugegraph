@@ -2,23 +2,30 @@ package com.baidu.hugegraph.structure;
 
 import java.io.Serializable;
 
+import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.FeatureDescriptor;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
+
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.configuration.ConfigSpace;
+import com.baidu.hugegraph.configuration.HugeConfiguration;
 
 /**
  * Created by jishilei on 17/3/20.
  */
 public class HugeFeatures implements Graph.Features {
 
+    protected final HugeGraph graph;
     protected final boolean supportsPersistence;
     protected final HugeGraphFeatures graphFeatures = new HugeGraphFeatures();
     protected final HugeVertexFeatures vertexFeatures = new HugeVertexFeatures();
     protected final HugeEdgeFeatures edgeFeatures = new HugeEdgeFeatures();
     protected final DataTypeFeatures dataTypeFeatures = new HugeDataTypeFeatures();
 
-    public HugeFeatures(boolean supportsPersistence) {
+    public HugeFeatures(HugeGraph graph, boolean supportsPersistence) {
+        this.graph = graph;
         this.supportsPersistence = supportsPersistence;
     }
 
@@ -300,7 +307,8 @@ public class HugeFeatures implements Graph.Features {
         }
 
         public String defaultLabel() {
-            return "";
+            Configuration conf = HugeFeatures.this.graph.configuration();
+            return ((HugeConfiguration) conf).get(ConfigSpace.DEFAULT_VERTEX_LABEL);
         }
     }
 

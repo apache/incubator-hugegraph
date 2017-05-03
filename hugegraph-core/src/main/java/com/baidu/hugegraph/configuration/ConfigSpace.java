@@ -63,6 +63,14 @@ public class ConfigSpace {
             disallowEmpty(String.class)
     );
 
+    public static final ConfigOption<String> DEFAULT_VERTEX_LABEL = new ConfigOption<>(
+            "vertex.default_label",
+            "v",
+            true,
+            "The default vertex label.",
+            disallowEmpty(String.class)
+    );
+
     public static final ConfigOption<String> CASSANDRA_HOST = new ConfigOption<>(
             "cassandra.host",
             "localhost",
