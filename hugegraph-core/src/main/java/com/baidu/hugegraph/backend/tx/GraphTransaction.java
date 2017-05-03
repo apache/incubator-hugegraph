@@ -28,6 +28,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeFeatures.HugeVertexFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -187,10 +188,17 @@ public class GraphTransaction extends AbstractTransaction {
         Id id = HugeVertex.getIdValue(keyValues);
         Object label = HugeVertex.getLabelValue(keyValues);
 
+        HugeVertexFeatures features = this.graph.features().vertex();
+
         // Vertex id must be null now
-        if (id != null) {
+        if (!features.supportsCustomIds() && id != null) {
             String msg = "User defined id of Vertex is not supported";
             throw new IllegalArgumentException(msg);
+        }
+
+        // check Vertex label
+        if (label == null && features.supportsDefaultLabel()) {
+            label = features.defaultLabel();
         }
 
         if (label == null) {
@@ -200,15 +208,15 @@ public class GraphTransaction extends AbstractTransaction {
             label = schema.vertexLabel((String) label);
         }
 
-        // create HugeVertex
         assert (label instanceof VertexLabel);
 
-        // check keyValues whether contain primaryKey in definition of vertexLabel.
+        // check whether primaryKey exists
         Set<String> primaryKeys = ((VertexLabel) label).primaryKeys();
         Preconditions.checkArgument(CollectionUtil.containsAll(
                 ElementHelper.getKeys(keyValues), primaryKeys),
-                "The primary key(s) must be setted: " + primaryKeys);
+                "The primary key(s) must be setted: %s", primaryKeys);
 
+        // create HugeVertex
         HugeVertex vertex = new HugeVertex(this, id, (VertexLabel) label);
         // set properties
         ElementHelper.attachProperties(vertex, keyValues);

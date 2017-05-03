@@ -69,7 +69,8 @@ public abstract class HugeElement implements Element, GraphType {
             Object idValue = id.get();
             // number id
             if (idValue instanceof Number) {
-                return IdGeneratorFactory.generator().generate(((Number) idValue).longValue());
+                return IdGeneratorFactory.generator().generate(
+                        ((Number) idValue).longValue());
             }
             // string id
             else if (idValue instanceof String) {
@@ -92,10 +93,10 @@ public abstract class HugeElement implements Element, GraphType {
         for (int i = 0; i < keyValues.length; i = i + 2) {
             if (keyValues[i].equals(T.label)) {
                 labelValue = keyValues[i + 1];
-                Preconditions.checkArgument(
-                        labelValue instanceof VertexLabel || labelValue instanceof String,
-                        "Expected a string or VertexLabel as the vertex label argument,"
-                                + "but got: %s", labelValue);
+                Preconditions.checkArgument(labelValue instanceof VertexLabel
+                        || labelValue instanceof String,
+                        "Expected a string or VertexLabel as the vertex label"
+                        + " argument, but got: %s", labelValue);
                 if (labelValue instanceof String) {
                     ElementHelper.validateLabel((String) labelValue);
                 }
