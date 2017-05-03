@@ -65,7 +65,7 @@ public class HugeGraph implements Graph {
         this.configuration = configuration;
         this.name = configuration.get(ConfigSpace.STORE);
 
-        this.features = new HugeFeatures(true);
+        this.features = new HugeFeatures(this, true);
 
         try {
             this.initTransaction();
@@ -206,7 +206,7 @@ public class HugeGraph implements Graph {
 
     @Override
     public Configuration configuration() {
-        return null;
+        return this.configuration;
     }
 
     private Transaction tx = new AbstractThreadedTransaction(this) {
