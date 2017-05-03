@@ -13,7 +13,7 @@ import com.google.common.collect.Maps;
  */
 public class ConfigSpace {
 
-    private static final Map<String, ConfigOption> configOptions = Maps.newHashMap();
+    private static final Map<String, ConfigOption<?>> configOptions = Maps.newHashMap();
 
     public static final ConfigOption<String> BACKEND = new ConfigOption<>(
             "backend",
@@ -23,11 +23,19 @@ public class ConfigSpace {
             disallowEmpty(String.class)
     );
 
+    public static final ConfigOption<String> STORE = new ConfigOption<>(
+            "store",
+            "hugegraph",
+            true,
+            "The database name like Cassandra Keyspace.",
+            disallowEmpty(String.class)
+    );
+
     public static final ConfigOption<String> STORE_SCHEMA = new ConfigOption<>(
             "store.schema",
             "huge_schema",
             true,
-            "the DB store graph schema info.",
+            "The schema table name, which store meta data.",
             disallowEmpty(String.class)
     );
 
@@ -35,7 +43,7 @@ public class ConfigSpace {
             "store.graph",
             "huge_graph",
             true,
-            "the DB store graph vertex, edge and property info.",
+            "The graph table name, which store vertex, edge and property.",
             disallowEmpty(String.class)
     );
 
@@ -43,7 +51,7 @@ public class ConfigSpace {
             "store.index",
             "huge_index",
             true,
-            "the DB store graph index of vertex, edge and property info.",
+            "The index table name, which store index data of vertex, edge.",
             disallowEmpty(String.class)
     );
 
@@ -51,7 +59,7 @@ public class ConfigSpace {
             "serializer",
             "text",
             true,
-            "the serializer for backend store, like: text/binary/cassandra",
+            "The serializer for backend store, like: text/binary/cassandra",
             disallowEmpty(String.class)
     );
 
@@ -71,35 +79,23 @@ public class ConfigSpace {
             rangeInt(1024, 10000)
     );
 
-    public static final ConfigOption<String> CASSANDRA_KEYSPACE = new ConfigOption<String>(
-            "cassandra.keyspace",
-            "hugegraph",
-            true,
-            "keyspace name",
-            disallowEmpty(String.class)
-    );
-
     public static final ConfigOption<String> CASSANDRA_STRATEGY = new ConfigOption<String>(
-            "cassandra.strategy",
+            "cassandra.keyspace.strategy",
             "SimpleStrategy",
             true,
-            "keyspace strategy",
+            "The keyspace strategy",
             disallowEmpty(String.class)
     );
 
     public static final ConfigOption<Integer> CASSANDRA_REPLICATION = new ConfigOption<Integer>(
-            "cassandra.replication",
-            1,
+            "cassandra.keyspace.replication",
+            3,
             true,
-            "replication factor",
+            "The keyspace replication factor",
             rangeInt(1, 100)
     );
 
-    /**
-     * 每个option只会被注册一次
-     * @param element
-     */
-    public static void register(ConfigOption element) {
+    public static void register(ConfigOption<?> element) {
         Preconditions.checkNotNull(element);
         Preconditions.checkArgument(!configOptions.containsKey(element.name()),
                 "A configuration element with the same name has already been added to this namespace: %s",
@@ -112,7 +108,7 @@ public class ConfigSpace {
         return configOptions.containsKey(key);
     }
 
-    public static ConfigOption get(String key) {
+    public static ConfigOption<?> get(String key) {
         Preconditions.checkNotNull(key);
         return configOptions.get(key);
     }

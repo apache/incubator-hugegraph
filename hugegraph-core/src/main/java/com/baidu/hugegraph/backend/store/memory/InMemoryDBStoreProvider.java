@@ -14,11 +14,14 @@ import com.google.common.base.Preconditions;
  * Created by jishilei on 17/3/19.
  */
 public class InMemoryDBStoreProvider implements BackendStoreProvider {
+
     private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStoreProvider.class);
 
+    private String name;
     private final ConcurrentHashMap<String, BackendStore> stores;
 
-    public InMemoryDBStoreProvider() {
+    public InMemoryDBStoreProvider(String name) {
+        this.name = name;
         this.stores = new ConcurrentHashMap<String, BackendStore>();
     }
 
@@ -64,7 +67,12 @@ public class InMemoryDBStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public String name() {
+    public String type() {
         return "memory";
+    }
+
+    @Override
+    public String name() {
+        return this.name;
     }
 }

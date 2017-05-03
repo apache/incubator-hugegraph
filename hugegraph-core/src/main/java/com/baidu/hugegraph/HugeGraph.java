@@ -49,8 +49,10 @@ public class HugeGraph implements Graph {
                 HugeGraph.class, strategies);
     }
 
-    protected HugeConfiguration configuration = null;
-    protected HugeFeatures features = null;
+    private String name = null;
+
+    private HugeConfiguration configuration = null;
+    private HugeFeatures features = null;
 
     // store provider like Cassandra
     private BackendStoreProvider storeProvider = null;
@@ -61,7 +63,8 @@ public class HugeGraph implements Graph {
 
     public HugeGraph(HugeConfiguration configuration) {
         this.configuration = configuration;
-        // TODO : get supportsPersistence from configuration;
+        this.name = configuration.get(ConfigSpace.STORE);
+
         this.features = new HugeFeatures(true);
 
         try {
@@ -73,7 +76,8 @@ public class HugeGraph implements Graph {
 
     private void initTransaction() throws BackendException {
         this.storeProvider = BackendProviderFactory.open(
-                this.configuration.get(ConfigSpace.BACKEND));
+                this.configuration.get(ConfigSpace.BACKEND),
+                this.name);
 
         this.schemaTransaction = this.openSchemaTransaction();
         this.graphTransaction = this.openGraphTransaction();

@@ -11,11 +11,16 @@ import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.google.common.base.Preconditions;
 
 public class CassandraStoreProvider implements BackendStoreProvider {
+
     private static final Logger logger = LoggerFactory.getLogger(CassandraStoreProvider.class);
 
+    private String keyspace;
     private final ConcurrentHashMap<String, BackendStore> stores;
 
-    public CassandraStoreProvider() {
+    public CassandraStoreProvider(String name) {
+        Preconditions.checkNotNull(name);
+
+        this.keyspace = name;
         this.stores = new ConcurrentHashMap<String, BackendStore>();
     }
 
@@ -25,7 +30,7 @@ public class CassandraStoreProvider implements BackendStoreProvider {
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name,
-                    new CassandraStore.CassandraSchemaStore(name));
+                    new CassandraStore.CassandraSchemaStore(this.keyspace, name));
         }
 
         BackendStore store = this.stores.get(name);
@@ -41,7 +46,7 @@ public class CassandraStoreProvider implements BackendStoreProvider {
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name,
-                    new CassandraStore.CassandraGraphStore(name));
+                    new CassandraStore.CassandraGraphStore(this.keyspace, name));
         }
 
         BackendStore store = this.stores.get(name);
@@ -57,7 +62,7 @@ public class CassandraStoreProvider implements BackendStoreProvider {
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name,
-                    new CassandraStore.CassandraIndexStore(name));
+                    new CassandraStore.CassandraIndexStore(this.keyspace, name));
         }
 
         BackendStore store = this.stores.get(name);
@@ -87,9 +92,13 @@ public class CassandraStoreProvider implements BackendStoreProvider {
             store.clear();
         }
     }
+    @Override
+    public String type() {
+        return "cassandra";
+    }
 
     @Override
     public String name() {
-        return "memory";
+        return this.keyspace;
     }
 }
