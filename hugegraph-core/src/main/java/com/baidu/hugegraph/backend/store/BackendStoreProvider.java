@@ -2,6 +2,8 @@ package com.baidu.hugegraph.backend.store;
 
 public interface BackendStoreProvider {
 
+    public String type();
+
     public String name();
 
     public BackendStore loadSchemaStore(String name);

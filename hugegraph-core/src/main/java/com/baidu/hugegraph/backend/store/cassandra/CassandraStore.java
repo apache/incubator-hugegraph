@@ -24,6 +24,7 @@ public abstract class CassandraStore implements BackendStore {
 
     private static final Logger logger = LoggerFactory.getLogger(CassandraStore.class);
 
+    private final String keyspace;
     private final String name;
     private Cluster cluster;
     private Session session;
@@ -32,7 +33,11 @@ public abstract class CassandraStore implements BackendStore {
 
     private HugeConfiguration config = null;
 
-    public CassandraStore(final String name) {
+    public CassandraStore(final String keyspace, final String name) {
+        Preconditions.checkNotNull(keyspace);
+        Preconditions.checkNotNull(name);
+
+        this.keyspace = keyspace;
         this.name = name;
         this.tables = new ConcurrentHashMap<>();
 
@@ -55,7 +60,6 @@ public abstract class CassandraStore implements BackendStore {
 
         String hosts = config.get(ConfigSpace.CASSANDRA_HOST);
         int port = config.get(ConfigSpace.CASSANDRA_PORT);
-        String keyspace = config.get(ConfigSpace.CASSANDRA_KEYSPACE);
 
         // init cluster
         this.cluster = Cluster.builder().addContactPoints(
@@ -64,16 +68,16 @@ public abstract class CassandraStore implements BackendStore {
         // init session
         try {
             try {
-                logger.debug("Store connect with keyspace: {}", keyspace);
-                this.session = this.cluster.connect(keyspace);
+                logger.debug("Store connect with keyspace: {}", this.keyspace);
+                this.session = this.cluster.connect(this.keyspace);
             } catch (InvalidQueryException e) {
                 // TODO: the error message may be changed in different versions
                 if (!e.getMessage().contains(String.format(
-                        "Keyspace '%s' does not exist", keyspace))) {
+                        "Keyspace '%s' does not exist", this.keyspace))) {
                     throw e;
                 }
                 logger.info("Failed to connect keyspace: {},"
-                        + " try connect without keyspace", keyspace);
+                        + " try connect without keyspace", this.keyspace);
                 this.session = this.cluster.connect();
             }
         } catch (Exception e) {
@@ -190,9 +194,6 @@ public abstract class CassandraStore implements BackendStore {
     }
 
     protected void initKeyspace() {
-        // keyspace
-        String keyspace = this.config.get(ConfigSpace.CASSANDRA_KEYSPACE);
-
         // replication strategy: SimpleStrategy or NetworkTopologyStrategy
         String strategy = this.config.get(ConfigSpace.CASSANDRA_STRATEGY);
 
@@ -201,7 +202,7 @@ public abstract class CassandraStore implements BackendStore {
 
         String cql = String.format("CREATE KEYSPACE IF NOT EXISTS %s "
                 + "WITH replication={'class':'%s', 'replication_factor':%d}",
-                keyspace,
+                this.keyspace,
                 strategy, replication);
 
         logger.info("Create keyspace : {}", cql);
@@ -210,23 +211,21 @@ public abstract class CassandraStore implements BackendStore {
         if (!this.session.isClosed()) {
             this.session.close();
         }
-        this.session = this.cluster.connect(keyspace);
+        this.session = this.cluster.connect(this.keyspace);
     }
 
     protected void clearKeyspace() {
-        String keyspace = this.config.get(ConfigSpace.CASSANDRA_KEYSPACE);
-        logger.info("Drop keyspace : {}", keyspace);
+        logger.info("Drop keyspace : {}", this.keyspace);
 
         if (!this.session.isClosed()) {
             this.session.close();
         }
         this.session = this.cluster.connect();
-        this.session.execute(SchemaBuilder.dropKeyspace(keyspace).ifExists());
+        this.session.execute(SchemaBuilder.dropKeyspace(this.keyspace).ifExists());
     }
 
     protected boolean existsKeyspace() {
-        String keyspace = this.config.get(ConfigSpace.CASSANDRA_KEYSPACE);
-        return this.cluster.getMetadata().getKeyspace(keyspace) != null;
+        return this.cluster.getMetadata().getKeyspace(this.keyspace) != null;
     }
 
     protected void initTables() {
@@ -276,8 +275,8 @@ public abstract class CassandraStore implements BackendStore {
 
     public static class CassandraSchemaStore extends CassandraStore {
 
-        public CassandraSchemaStore(String name) {
-            super(name);
+        public CassandraSchemaStore(String keyspace, String name) {
+            super(keyspace, name);
         }
 
         @Override
@@ -291,8 +290,8 @@ public abstract class CassandraStore implements BackendStore {
 
     public static class CassandraGraphStore extends CassandraStore {
 
-        public CassandraGraphStore(String name) {
-            super(name);
+        public CassandraGraphStore(String keyspace, String name) {
+            super(keyspace, name);
         }
 
         @Override
@@ -304,8 +303,8 @@ public abstract class CassandraStore implements BackendStore {
 
     public static class CassandraIndexStore extends CassandraStore {
 
-        public CassandraIndexStore(String name) {
-            super(name);
+        public CassandraIndexStore(String keyspace, String name) {
+            super(keyspace, name);
         }
 
         @Override
