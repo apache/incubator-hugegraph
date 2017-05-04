@@ -74,7 +74,7 @@ public class HugeGraph implements Graph {
         }
     }
 
-    private void initTransaction() throws BackendException {
+    private void initTransaction() {
         this.storeProvider = BackendProviderFactory.open(
                 this.configuration.get(ConfigSpace.BACKEND),
                 this.name);
@@ -221,25 +221,29 @@ public class HugeGraph implements Graph {
 
         @Override
         public void doOpen() {
+            if (this.isOpen()) {
+                return;
+            }
             this.backendTx = graphTransaction();
             this.backendTx.autoCommit(false);
         }
 
         @Override
         public void doCommit() {
+            this.verifyOpened();
             this.backendTx.commit();
         }
 
         @Override
         public void doRollback() {
+            this.verifyOpened();
             this.backendTx.rollback();
         }
 
         @Override
         public <R> Workload<R> submit(Function<Graph, R> graphRFunction) {
             throw new UnsupportedOperationException(
-                    "HugeGraph does not support nested transactions. "
-                            + "Call submit on a HugeGraph not an individual transaction.");
+                    "HugeGraph transaction does not support submit.");
         }
 
         @Override
@@ -255,6 +259,8 @@ public class HugeGraph implements Graph {
 
         @Override
         public void doClose() {
+            this.verifyOpened();
+
             this.backendTx.autoCommit(true);
             // would commit() if there is changes
             // TODO: maybe we should call commit() directly
@@ -264,6 +270,12 @@ public class HugeGraph implements Graph {
             super.doClose();
 
             this.backendTx = null;
+        }
+
+        private void verifyOpened() {
+            if (!this.isOpen()) {
+                throw new HugeException("Transaction has not been opened");
+            }
         }
     };
 }
