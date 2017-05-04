@@ -6,12 +6,14 @@ package com.baidu.hugegraph.configuration;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.Iterator;
 
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +26,31 @@ public class HugeConfiguration extends AbstractConfiguration {
 
     private PropertiesConfiguration configuration;
 
+    // TODO: try to remove the hard code.
+    private static final String DEFAULT_CONFIG_FILE = "hugegraph.properties";
+
+    public HugeConfiguration() {
+        //TODO : check the path
+        String configurationFile = "";
+        URL resourceUrl = Thread.currentThread().getContextClassLoader().getResource(DEFAULT_CONFIG_FILE);
+        if (resourceUrl != null) {
+            File file = new File(resourceUrl.getPath());
+            if (file != null && file.exists() && file.canRead()) {
+                configurationFile = resourceUrl.getPath();
+            }
+        }
+        loadConfiguration(configurationFile);
+    }
+
     public HugeConfiguration(String configurationFile) {
+        loadConfiguration(configurationFile);
+    }
+
+    private void loadConfiguration(String configurationFile) {
+        Preconditions.checkNotNull(configurationFile);
+        Preconditions.checkArgument(StringUtils.isNotEmpty(configurationFile), "can not load configuration file: "
+                + "%s", DEFAULT_CONFIG_FILE);
+
         File file = new File(configurationFile);
         Preconditions.checkArgument(file != null && file.exists() && file.isFile() && file.canRead(),
                 "Need to specify a readable configuration file, but was given: %s", file.toString());
@@ -34,6 +60,7 @@ public class HugeConfiguration extends AbstractConfiguration {
             logger.error(e.getMessage());
             throw new HugeException(e.getMessage());
         }
+        updateDefaultConfiguration();
     }
 
     public HugeConfiguration(Configuration config) {

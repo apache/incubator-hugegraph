@@ -10,6 +10,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.configuration.ConfigSpace;
 import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.schema.HugeSchemaManager;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
@@ -164,6 +166,12 @@ public class HugeGraph implements Graph {
     @Override
     public GraphComputer compute() throws IllegalArgumentException {
         return null;
+    }
+
+    @Override
+    public <I extends Io> I io(final Io.Builder<I> builder) {
+        return (I) builder.graph(this).onMapper(mapper ->
+                mapper.addRegistry(HugeGraphIoRegistry.getInstance())).create();
     }
 
     @Override

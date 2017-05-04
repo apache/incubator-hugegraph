@@ -14,6 +14,10 @@ import com.google.common.base.Preconditions;
  */
 public class HugeFactory {
 
+    public static HugeGraph open() {
+        return new HugeGraph(new HugeConfiguration());
+    }
+
     public static HugeGraph open(String shortcutOrFile) {
         return open(getLocalConfiguration(shortcutOrFile));
     }
