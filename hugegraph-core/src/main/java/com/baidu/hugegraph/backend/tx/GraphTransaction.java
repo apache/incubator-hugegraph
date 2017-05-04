@@ -249,6 +249,11 @@ public class GraphTransaction extends AbstractTransaction {
         return list.iterator();
     }
 
+    public Iterator<Vertex> queryVertices() {
+        Query q = new Query(HugeTypes.VERTEX);
+        return this.queryVertices(q);
+    }
+
     public Iterator<Vertex> queryVertices(Query q) {
         List<Vertex> list = new ArrayList<Vertex>();
 
@@ -287,6 +292,11 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         return list.iterator();
+    }
+
+    public Iterator<Edge> queryEdges() {
+        Query q = new Query(HugeTypes.EDGE);
+        return this.queryEdges(q);
     }
 
     public Iterator<Edge> queryEdges(Query q) {

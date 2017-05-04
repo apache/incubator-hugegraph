@@ -168,6 +168,9 @@ public class HugeGraph implements Graph {
 
     @Override
     public Iterator<Vertex> vertices(Object... objects) {
+        if (objects.length == 0) {
+            return this.graphTransaction().queryVertices();
+        }
         return this.graphTransaction().queryVertices(objects);
     }
 
@@ -177,6 +180,9 @@ public class HugeGraph implements Graph {
 
     @Override
     public Iterator<Edge> edges(Object... objects) {
+        if (objects.length == 0) {
+            return this.graphTransaction().queryEdges();
+        }
         return this.graphTransaction().queryEdges(objects);
     }
 
