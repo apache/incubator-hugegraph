@@ -1,0 +1,42 @@
+<assembly>
+    <id>distribution</id>
+    <baseDirectory>/</baseDirectory>
+
+    <formats>
+        <format>dir</format>
+        <format>zip</format>
+    </formats>
+
+    <fileSets>
+        <fileSet>
+            <directory>${assembly.static.dir}/bin</directory>
+            <outputDirectory>bin</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+            <fileMode>777</fileMode>
+        </fileSet>
+        <fileSet>
+            <directory>${assembly.static.dir}</directory>
+            <outputDirectory>/</outputDirectory>
+            <filtered>false</filtered>
+            <excludes>
+                <exclude>README.txt</exclude>
+            </excludes>
+        </fileSet>
+    </fileSets>
+
+    <dependencySets>
+        <!-- Code jars -->
+        <dependencySet>
+            <outputDirectory>/lib</outputDirectory>
+            <unpack>false</unpack>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <includes>
+                <include>*:*:jar:*</include>
+            </includes>
+        </dependencySet>
+    </dependencySets>
+
+</assembly>
