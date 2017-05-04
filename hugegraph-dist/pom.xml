@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>hugegraph</artifactId>
+        <groupId>com.baidu.hugegraph</groupId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <name>hugegraph-dist: Tar and Distribute Archives</name>
+    <artifactId>hugegraph-dist</artifactId>
+
+    <properties>
+        <top.level.basedir>${project.basedir}/..</top.level.basedir>
+        <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
+        <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
+        <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
+        <assembly.data.dir>${assembly.dir}/data</assembly.data.dir>
+        <assembly.cfilter.dir>${assembly.dir}/cfilter</assembly.cfilter.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-notebook</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>airline</artifactId>
+            <version>0.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.cassandra</groupId>
+            <artifactId>cassandra-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-server</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.jeremyh</groupId>
+                    <artifactId>jBCrypt</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-console</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.jeremyh</groupId>
+                    <artifactId>jBCrypt</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>install-igraph</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <attach>false</attach>
+                            <outputDirectory>${top.level.basedir}</outputDirectory>
+                            <finalName>hugegraph-release</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptor>${assembly.descriptor.dir}/assembly.xml</descriptor>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${top.level.basedir}</directory>
+                            <includes>
+                                <include>*.tar.bz2</include>
+                                <include>*.zip</include>
+                                <include>hugegraph-release/**</include>
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                        <fileset>
+                            <directory>hugegraph-release</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

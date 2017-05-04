@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+# Returns the absolute path of this script regardless of symlinks
+abs_path() {
+    # From: http://stackoverflow.com/a/246128
+    #   - To resolve finding the directory after symlinks
+    SOURCE="${BASH_SOURCE[0]}"
+    while [ -h "$SOURCE" ]; do
+        DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+        SOURCE="$(readlink "$SOURCE")"
+        [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+    done
+    echo "$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+}
+
+CASSANDRA_HOME=$(cd `abs_path`/.. && pwd)
+
+# The directory where Cassandra's configs live (required)
+CASSANDRA_CONF=$CASSANDRA_HOME/conf/cassandra
+
+# This can be the path to a jar file, or a directory containing the 
+# compiled classes. NOTE: This isn't needed by the startup script,
+# it's just used here in constructing the classpath.
+cassandra_bin="$CASSANDRA_HOME/build/classes/main"
+cassandra_bin="$cassandra_bin:$CASSANDRA_HOME/build/classes/thrift"
+#cassandra_bin="$CASSANDRA_HOME/build/cassandra.jar"
+
+# the default location for commitlogs, sstables, and saved caches
+# if not set in cassandra.yaml
+cassandra_storagedir="$CASSANDRA_HOME/"
+
+# JAVA_HOME can optionally be set here
+#JAVA_HOME=/usr/local/jdk6
+
+# The java classpath (required)
+CLASSPATH="$CASSANDRA_CONF:$cassandra_bin"
+
+for jar in "$CASSANDRA_HOME"/lib/*.jar; do
+    CLASSPATH="$CLASSPATH:$jar"
+done
+
+# This system property is referenced in log4j-server.properties
+logdir="$CASSANDRA_HOME/logs"
+
+# Special-case path variables.
+case "`uname`" in
+    CYGWIN*) logdir="`echo $logdir | cygpath --windows --path -f -`" ;;
+esac
+
+export JVM_OPTS="$JVM_OPTS -Dhugegraph.logdir=$logdir"
+
+# Change to $CASSANDRA_HOME
+# (typically the directory containing bin/)
+cd "$CASSANDRA_HOME"
+
+
+## JSR223 - collect all JSR223 engines' jars
+#for jsr223jar in "$CASSANDRA_HOME"/lib/jsr223/*/*.jar; do
+#    CLASSPATH="$CLASSPATH:$jsr223jar"
+#done
+## JSR223/JRuby - set ruby lib directory
+#if [ -d "$CASSANDRA_HOME"/lib/jsr223/jruby/ruby ] ; then
+#    export JVM_OPTS="$JVM_OPTS -Djruby.lib=$CASSANDRA_HOME/lib/jsr223/jruby"
+#fi
+## JSR223/JRuby - set ruby JNI libraries root directory
+#if [ -d "$CASSANDRA_HOME"/lib/jsr223/jruby/jni ] ; then
+#    export JVM_OPTS="$JVM_OPTS -Djffi.boot.library.path=$CASSANDRA_HOME/lib/jsr223/jruby/jni"
+#fi
+## JSR223/Jython - set python.home system property
+#if [ -f "$CASSANDRA_HOME"/lib/jsr223/jython/jython.jar ] ; then
+#    export JVM_OPTS="$JVM_OPTS -Dpython.home=$CASSANDRA_HOME/lib/jsr223/jython"
+#fi
+## JSR223/Scala - necessary system property
+#if [ -f "$CASSANDRA_HOME"/lib/jsr223/scala/scala-compiler.jar ] ; then
+#    export JVM_OPTS="$JVM_OPTS -Dscala.usejavacp=true"
+#fi
+#
+## set JVM javaagent opts to avoid warnings/errors
+#if [ "$JVM_VENDOR" != "OpenJDK" -o "$JVM_VERSION" \> "1.6.0" ] \
+#      || [ "$JVM_VERSION" = "1.6.0" -a "$JVM_PATCH_VERSION" -ge 23 ]
+#then
+#    JAVA_AGENT="$JAVA_AGENT -javaagent:$CASSANDRA_HOME/lib/jamm-0.3.0.jar"
+#fi
+#
+## Added sigar-bin to the java.library.path CASSANDRA-7838
+#JAVA_OPTS="$JAVA_OPTS:-Djava.library.path=$CASSANDRA_HOME/lib/sigar-bin"
