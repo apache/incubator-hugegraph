@@ -50,11 +50,12 @@ public class HugeFeatures implements Graph.Features {
     }
 
     public class HugeGraphFeatures implements GraphFeatures {
+
         private final VariableFeatures variableFeatures = new HugeVariableFeatures();
 
         @Override
         public boolean supportsConcurrentAccess() {
-            return true;
+            return false;
         }
 
         @Override
@@ -74,7 +75,7 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean supportsTransactions() {
-            return false;
+            return true;
         }
 
         @Override
@@ -84,9 +85,10 @@ public class HugeFeatures implements Graph.Features {
     }
 
     public class HugeElementFeatures implements ElementFeatures {
+
         @Override
         public boolean supportsUserSuppliedIds() {
-            return true;
+            return false;
         }
 
         @Override
@@ -96,7 +98,7 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean supportsStringIds() {
-            return true;
+            return false;
         }
 
         @Override
@@ -121,6 +123,7 @@ public class HugeFeatures implements Graph.Features {
     }
 
     public class HugeVariableFeatures implements VariableFeatures {
+
         @Override
         public boolean supportsVariables() {
             return false;
@@ -218,6 +221,16 @@ public class HugeFeatures implements Graph.Features {
     }
 
     public class HugeVertexPropertyFeatures implements VertexPropertyFeatures {
+
+        @Override
+        public boolean supportsAddProperty() {
+            return true;
+        }
+
+        @Override
+        public boolean supportsRemoveProperty() {
+            return false;
+        }
 
         @Override
         public boolean supportsMapValues() {
@@ -320,7 +333,6 @@ public class HugeFeatures implements Graph.Features {
         public EdgePropertyFeatures properties() {
             return this.edgePropertyFeatures;
         }
-
     }
 
     public class HugeDataTypeFeatures implements DataTypeFeatures {
