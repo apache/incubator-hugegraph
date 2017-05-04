@@ -186,6 +186,10 @@ public class HugeGraph implements Graph {
         return this.graphTransaction().queryVertices(query);
     }
 
+    public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
+        return this.graphTransaction().queryAdjacentVertices(edges);
+    }
+
     @Override
     public Iterator<Edge> edges(Object... objects) {
         if (objects.length == 0) {

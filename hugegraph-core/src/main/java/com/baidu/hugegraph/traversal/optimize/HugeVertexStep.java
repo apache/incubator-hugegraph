@@ -19,12 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.query.IdQuery;
-import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.type.HugeTypes;
-import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.google.common.collect.ImmutableList;
 
 public final class HugeVertexStep<E extends Element>
@@ -44,26 +41,25 @@ public final class HugeVertexStep<E extends Element>
         originalVertexStep.getLabels().forEach(this::addLabel);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected Iterator<E> flatMap(final Traverser.Admin<Vertex> traverser) {
         boolean queryVertex = Vertex.class.isAssignableFrom(getReturnClass());
         boolean queryEdge = Edge.class.isAssignableFrom(getReturnClass());
         assert queryVertex || queryEdge;
-        return queryVertex ? vertices(traverser) : edges(traverser);
+        if (queryVertex) {
+            return (Iterator<E>) this.vertices(traverser);
+        } else {
+            return (Iterator<E>) this.edges(traverser);
+        }
     }
 
-    private Iterator<E> vertices(final Traverser.Admin<Vertex> traverser) {
+    private Iterator<Vertex> vertices(final Traverser.Admin<Vertex> traverser) {
         HugeGraph graph = (HugeGraph) traverser.get().graph();
         Vertex vertex = traverser.get();
 
-        IdQuery query = new IdQuery(HugeTypes.VERTEX);
-        Iterator<E> edges = this.edges(traverser);
-        while (edges.hasNext()) {
-            HugeEdge edge = (HugeEdge) edges.next();
-            query.query(edge.otherVertex().id());
-        }
-
-        Iterator<Vertex> vertices = graph.vertices(query);
+        Iterator<Edge> edges = this.edges(traverser);
+        Iterator<Vertex> vertices = graph.adjacentVertices(edges);
         if (logger.isDebugEnabled()) {
             logger.debug("HugeVertexStep.vertices(): "
                     + "adjacent vertices of {}={}, has={}",
@@ -76,7 +72,7 @@ public final class HugeVertexStep<E extends Element>
         return HugeGraphStep.filterResult(this.hasContainers, vertices);
     }
 
-    private Iterator<E> edges(final Traverser.Admin<Vertex> traverser) {
+    private Iterator<Edge> edges(final Traverser.Admin<Vertex> traverser) {
         HugeGraph graph = (HugeGraph) traverser.get().graph();
 
         Vertex vertex = traverser.get();
@@ -87,27 +83,8 @@ public final class HugeVertexStep<E extends Element>
                 + "vertex={}, direction={}, edgeLabels={}, has={}",
                 vertex.id(), direction, edgeLabels, this.hasContainers);
 
-        ConditionQuery query = new ConditionQuery(HugeTypes.EDGE);
-
-        // edge source vertex
-        // TODO: id should be serialized(bytes/string) by back-end store
-        query.eq(HugeKeys.SOURCE_VERTEX, vertex.id().toString());
-
-        // edge direction
-        // TODO: direction should be serialized(code/string) by back-end store
-        // TODO: deal with direction is BOTH
-        query.eq(HugeKeys.DIRECTION, direction.name());
-
-        // edge labels
-        if (edgeLabels.length == 1) {
-            query.eq(HugeKeys.LABEL, edgeLabels[0]);
-        } else if (edgeLabels.length > 1){
-            // TODO: support query by multi edge labels
-            // query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
-            throw new BackendException("Not support query by multi edge-labels");
-        } else {
-            assert edgeLabels.length == 0;
-        }
+        ConditionQuery query = GraphTransaction.constructEdgesQuery(
+                (Id) vertex.id(), direction, edgeLabels);
 
         // conditions (enable if query for edge else conditions for vertex)
         if (Edge.class.isAssignableFrom(getReturnClass())) {
@@ -117,7 +94,7 @@ public final class HugeVertexStep<E extends Element>
         }
 
         // do query
-        return (Iterator<E>) graph.edges(query);
+        return graph.edges(query);
     }
 
     @Override

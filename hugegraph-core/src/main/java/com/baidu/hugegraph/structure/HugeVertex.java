@@ -17,6 +17,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.type.HugeTypes;
@@ -107,12 +108,20 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
     }
 
+    public boolean hasEdges() {
+        return this.edges.size() > 0;
+    }
+
     public Set<HugeEdge> getEdges() {
         return this.edges;
     }
 
     public void resetEdges() {
         this.edges = new LinkedHashSet<>();
+    }
+
+    public boolean addEdge(HugeEdge edge) {
+        return this.edges.add(edge);
     }
 
     @Override
@@ -168,12 +177,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return this.edges.add(edge);
     }
 
-    public boolean edge(HugeEdge edge) {
-        return this.edges.add(edge);
-    }
-
-    @Override
-    public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
+    public Iterator<Edge> getEdges(Direction direction, String... edgeLabels) {
         List<Edge> list = new LinkedList<>();
         for (HugeEdge edge : this.edges) {
             if ((edge.direction() == direction
@@ -185,15 +189,33 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return list.iterator();
     }
 
-    @Override
-    public Iterator<Vertex> vertices(Direction direction, String... edgeLabels) {
+    public Iterator<Vertex> getVertices(Direction direction,
+            String... edgeLabels) {
         List<Vertex> list = new LinkedList<>();
-        Iterator<Edge> edges = this.edges(direction, edgeLabels);
+        Iterator<Edge> edges = this.getEdges(direction, edgeLabels);
         while (edges.hasNext()) {
             HugeEdge edge = (HugeEdge) edges.next();
             list.add(edge.otherVertex(this));
         }
         return list.iterator();
+    }
+
+    @Override
+    public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
+        // NOTE: get edges from memory if load all edges when loading vertex
+        if (this.hasEdges()) {
+            return this.getEdges(direction, edgeLabels);
+        }
+
+        Query query = GraphTransaction.constructEdgesQuery(
+                this.id, direction, edgeLabels);
+        return this.tx().queryEdges(query);
+    }
+
+    @Override
+    public Iterator<Vertex> vertices(Direction direction, String... edgeLabels) {
+        Iterator<Edge> edges = this.edges(direction, edgeLabels);
+        return this.tx().queryAdjacentVertices(edges);
     }
 
     @Override

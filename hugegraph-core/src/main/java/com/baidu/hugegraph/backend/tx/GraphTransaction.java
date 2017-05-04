@@ -22,6 +22,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -83,14 +84,14 @@ public class GraphTransaction extends AbstractTransaction {
 
         // move updated edges to vertexes
         for (HugeEdge edge : updatedEdges) {
-            if (!vertexes.contains(edge.owner())) {
-                vertexes.add(edge.owner());
+            if (!vertexes.contains(edge.sourceVertex())) {
+                vertexes.add(edge.sourceVertex());
             }
         }
 
         // ensure all the target vertexes (of out edges) are in vertexes
         for (HugeVertex source : vertexes) {
-            Iterator<Vertex> targets = source.vertices(Direction.OUT);
+            Iterator<Vertex> targets = source.getVertices(Direction.OUT);
             while (targets.hasNext()) {
                 HugeVertex target = (HugeVertex) targets.next();
                 adjacentVertexes.add(target);
@@ -145,12 +146,12 @@ public class GraphTransaction extends AbstractTransaction {
         for (HugeEdge edge : edges) {
             // OUT
             HugeVertex vertex = edge.owner().prepareRemoved();
-            vertex.edge(edge.prepareRemoved());
+            vertex.addEdge(edge.prepareRemoved());
             this.removeEntry(this.serializer.writeVertex(vertex));
 
             // IN
             vertex = edge.otherVertex().prepareRemoved();
-            vertex.edge(edge.switchOwner().prepareRemoved());
+            vertex.addEdge(edge.switchOwner().prepareRemoved());
             this.removeEntry(this.serializer.writeVertex(vertex));
 
             this.indexTx.updateEdgeIndex(edge, true);
@@ -256,10 +257,10 @@ public class GraphTransaction extends AbstractTransaction {
         return this.queryVertices(q);
     }
 
-    public Iterator<Vertex> queryVertices(Query q) {
+    public Iterator<Vertex> queryVertices(Query query) {
         List<Vertex> list = new ArrayList<Vertex>();
 
-        Iterator<BackendEntry> entries = this.query(q).iterator();
+        Iterator<BackendEntry> entries = this.query(query).iterator();
         while (entries.hasNext()) {
             Vertex vertex = this.serializer.readVertex(entries.next());
             assert vertex != null;
@@ -267,6 +268,16 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         return list.iterator();
+    }
+
+    public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
+        IdQuery query = new IdQuery(HugeTypes.VERTEX);
+        while (edges.hasNext()) {
+            HugeEdge edge = (HugeEdge) edges.next();
+            query.query(edge.otherVertex().id());
+        }
+
+        return this.queryVertices(query);
     }
 
     public Edge addEdge(HugeEdge edge) {
@@ -288,9 +299,9 @@ public class GraphTransaction extends AbstractTransaction {
         for (Object edgeId : edgeIds) {
             Id id = HugeElement.getIdValue(T.id, edgeId);
             BackendEntry entry = this.get(HugeTypes.EDGE, id);
-            Vertex vertex = this.serializer.readVertex(entry);
+            HugeVertex vertex = this.serializer.readVertex(entry);
             assert vertex != null;
-            list.addAll(ImmutableList.copyOf(vertex.edges(Direction.BOTH)));
+            list.addAll(ImmutableList.copyOf(vertex.getEdges()));
         }
 
         return list.iterator();
@@ -301,8 +312,8 @@ public class GraphTransaction extends AbstractTransaction {
         return this.queryEdges(q);
     }
 
-    public Iterator<Edge> queryEdges(Query q) {
-        Iterator<Vertex> vertices = this.queryVertices(q);
+    public Iterator<Edge> queryEdges(Query query) {
+        Iterator<Vertex> vertices = this.queryVertices(query);
 
         Map<Id, Edge> results = new HashMap<>();
         while (vertices.hasNext()) {
@@ -321,10 +332,45 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Iterator<Edge> queryEdgesByVertex(Id id) {
-        ConditionQuery q = new ConditionQuery(HugeTypes.EDGE);
+        return queryEdges(constructEdgesQuery(id, null));
+    }
+
+    public static ConditionQuery constructEdgesQuery(
+            Id sourceVertex,
+            Direction direction,
+            String... edgeLabels) {
+
+        Preconditions.checkNotNull(sourceVertex);
+        Preconditions.checkArgument(
+                (direction == null && edgeLabels.length == 0)
+                || (direction != null && edgeLabels.length == 0)
+                || (direction != null && edgeLabels.length != 0));
+
+        ConditionQuery query = new ConditionQuery(HugeTypes.EDGE);
+
+        // edge source vertex
         // TODO: id should be serialized(bytes/string) by back-end store
-        q.eq(HugeKeys.SOURCE_VERTEX, id.toString());
-        return queryEdges(q);
+        query.eq(HugeKeys.SOURCE_VERTEX, sourceVertex.toString());
+
+        // edge direction
+        // TODO: direction should be serialized(code/string) by back-end store
+        // TODO: deal with direction is BOTH
+        if (direction != null) {
+            query.eq(HugeKeys.DIRECTION, direction.name());
+        }
+
+        // edge labels
+        if (edgeLabels.length == 1) {
+            query.eq(HugeKeys.LABEL, edgeLabels[0]);
+        } else if (edgeLabels.length > 1) {
+            // TODO: support query by multi edge labels
+            // query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
+            throw new BackendException("Not support query by multi edge-labels");
+        } else {
+            assert edgeLabels.length == 0;
+        }
+
+        return query;
     }
 
     protected Query optimizeQuery(ConditionQuery query) {
