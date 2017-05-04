@@ -76,6 +76,7 @@ public class GraphTransaction extends AbstractTransaction {
             Set<HugeEdge> updatedEdges) {
 
         Set<HugeVertex> vertexes = new LinkedHashSet<>();
+        Set<HugeVertex> adjacentVertexes = new LinkedHashSet<>();
 
         // copy updatedVertexes to vertexes
         vertexes.addAll(updatedVertexes);
@@ -92,9 +93,10 @@ public class GraphTransaction extends AbstractTransaction {
             Iterator<Vertex> targets = source.vertices(Direction.OUT);
             while (targets.hasNext()) {
                 HugeVertex target = (HugeVertex) targets.next();
-                vertexes.add(target);
+                adjacentVertexes.add(target);
             }
         }
+        vertexes.addAll(adjacentVertexes);
 
         // do update
         for (HugeVertex v : vertexes) {
