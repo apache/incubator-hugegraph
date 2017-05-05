@@ -6,6 +6,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 
@@ -22,14 +23,12 @@ public class HugeVertexProperty<V> extends HugeProperty<V> implements VertexProp
 
     @Override
     public Object id() {
-        // TODO Auto-generated method stub
-        return null;
+        return this.key();
     }
 
     @Override
     public <V> Property<V> property(String key, V value) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new HugeException("Not support nested property");
     }
 
     @Override
@@ -39,6 +38,6 @@ public class HugeVertexProperty<V> extends HugeProperty<V> implements VertexProp
 
     @Override
     public <U> Iterator<Property<U>> properties(String... propertyKeys) {
-        return null;
+        throw new HugeException("Not support nested property");
     }
 }

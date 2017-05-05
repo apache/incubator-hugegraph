@@ -106,52 +106,52 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         @Override
         public Vertex addVertex(Object... keyValues) {
             if (keyValues.length == 0) {
-                return graph.addVertex("oid", oid++);
+                return this.graph.addVertex("oid", oid++);
             }
-            return graph.addVertex(keyValues);
+            return this.graph.addVertex(keyValues);
         }
 
         @Override
         public <C extends GraphComputer> C compute(Class<C> graphComputerClass) throws IllegalArgumentException {
-            return graph.compute(graphComputerClass);
+            return this.graph.compute(graphComputerClass);
         }
 
         @Override
         public GraphComputer compute() throws IllegalArgumentException {
-            return graph.compute();
+            return this.graph.compute();
         }
 
         @Override
         public Iterator<Vertex> vertices(Object... vertexIds) {
-            return graph.vertices(vertexIds);
+            return this.graph.vertices(vertexIds);
         }
 
         @Override
         public Iterator<Edge> edges(Object... edgeIds) {
-            if (graph.tx().isOpen()) {
-                graph.tx().commit();
+            if (this.graph.tx().isOpen()) {
+                this.graph.tx().commit();
             }
-            return graph.edges(edgeIds);
+            return this.graph.edges(edgeIds);
         }
 
         @Override
         public Transaction tx() {
-            return graph.tx();
+            return this.graph.tx();
         }
 
         @Override
         public void close() throws Exception {
-            graph.close();
+            this.graph.close();
         }
 
         @Override
         public Variables variables() {
-            return graph.variables();
+            return this.graph.variables();
         }
 
         @Override
         public Configuration configuration() {
-            return graph.configuration();
+            return this.graph.configuration();
         }
     }
 }

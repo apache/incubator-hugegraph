@@ -108,7 +108,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
     }
 
-    public boolean hasEdges() {
+    public boolean existsEdges() {
         return this.edges.size() > 0;
     }
 
@@ -118,6 +118,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public void resetEdges() {
         this.edges = new LinkedHashSet<>();
+    }
+
+    public void removeEdge(HugeEdge edge) {
+        this.edges.remove(edge);
     }
 
     public boolean addEdge(HugeEdge edge) {
@@ -203,7 +207,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
         // NOTE: get edges from memory if load all edges when loading vertex
-        if (this.hasEdges()) {
+        if (this.existsEdges()) {
             return this.getEdges(direction, edgeLabels);
         }
 
@@ -220,18 +224,21 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public void remove() {
+        this.removed = true;
         this.tx().removeVertex(this);
     }
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality,
                                           String key, V value, Object... objects) {
+        HugeVertexProperty<V> prop = null;
         // TODO: extra props
         PropertyKey pkey = this.graph.schema().propertyKey(key);
         switch (Cardinality.convert(cardinality)) {
             case SINGLE:
-                HugeVertexProperty<V> prop = new HugeVertexProperty<V>(this, pkey, value);
-                return super.setProperty(prop) != null ? prop : null;
+                prop = new HugeVertexProperty<V>(this, pkey, value);
+                super.setProperty(prop);
+                break;
             case SET:
                 Preconditions.checkArgument(pkey.checkDataType(value), String.format(
                         "Invalid property value '%s' for key '%s'", value, key));
@@ -240,15 +247,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 if (!super.existsProperty(key)) {
                     propSet = new HugeVertexProperty<>(this, pkey, new LinkedHashSet<V>());
                     super.setProperty(propSet);
-                }
-                else {
+                } else {
                     propSet = (HugeVertexProperty<Set<V>>) super.getProperty(key);
                 }
 
                 propSet.value().add(value);
 
                 // any better ways?
-                return (VertexProperty<V>) propSet;
+                prop = (HugeVertexProperty) propSet;
+                break;
             case LIST:
                 Preconditions.checkArgument(pkey.checkDataType(value), String.format(
                         "Invalid property value '%s' for key '%s'", value, key));
@@ -257,20 +264,25 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 if (!super.existsProperty(key)) {
                     propList = new HugeVertexProperty<>(this, pkey, new LinkedList<V>());
                     super.setProperty(propList);
-                }
-                else {
+                } else {
                     propList = (HugeVertexProperty<List<V>>) super.getProperty(key);
                 }
 
                 propList.value().add(value);
 
                 // any better ways?
-                return (VertexProperty<V>) propList;
+                prop = (HugeVertexProperty) propList;
+                break;
             default:
                 assert false;
                 break;
         }
-        return null;
+
+        if (prop != null) {
+            // update self(TODO: add tx.addProperty() method)
+            this.tx().addVertex(this);
+        }
+        return prop;
     }
 
     @Override
@@ -284,16 +296,25 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         } else {
             for (String pk : propertyKeys) {
                 HugeProperty<? extends Object> prop = this.getProperty(pk);
-                assert prop == null || prop instanceof VertexProperty;
-                propertyList.add((VertexProperty<V>) prop);
+                if (prop != null) {
+                    assert prop instanceof VertexProperty;
+                    propertyList.add((VertexProperty<V>) prop);
+                }
             }
         }
 
         return propertyList.iterator();
     }
 
+    public HugeVertex prepareAdded() {
+        // NOTE: keep properties(without edges) of the clone vertex and return
+        HugeVertex vertex = this.clone();
+        vertex.resetEdges();
+        return vertex;
+    }
+
     public HugeVertex prepareRemoved() {
-        // NOTE: clear edges/properties of the vertex(keep primary-values)
+        // NOTE: clear edges/properties of the clone vertex and return
         HugeVertex vertex = this.clone();
         vertex.resetEdges();
         vertex.resetProperties();

@@ -149,6 +149,7 @@ public class CassandraBackendEntry implements BackendEntry {
 
     private Row row = null;
     private List<Row> subRows = null;
+    private boolean selfChanged = true;
 
     public CassandraBackendEntry(Id id) {
         this(null, id);
@@ -161,6 +162,7 @@ public class CassandraBackendEntry implements BackendEntry {
     public CassandraBackendEntry(HugeTypes type, Id id) {
         this.row = new Row(type, id);
         this.subRows = new ArrayList<>();
+        this.selfChanged = true;
     }
 
     public HugeTypes type() {
@@ -179,6 +181,14 @@ public class CassandraBackendEntry implements BackendEntry {
     @Override
     public void id(Id id) {
         this.row.id = id;
+    }
+
+    public void selfChanged(boolean changed) {
+        this.selfChanged = changed;
+    }
+
+    public boolean selfChanged() {
+        return this.selfChanged;
     }
 
     public Row row() {

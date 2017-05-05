@@ -20,6 +20,7 @@ import com.baidu.hugegraph.backend.query.Query.Order;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.CopyUtil;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
@@ -139,14 +140,9 @@ public abstract class CassandraTable {
             List<Select> selections = new ArrayList<Select>(ids.size());
             for (List<String> id : ids) {
                 assert names.size() == id.size();
-                // TODO: implement select.clone() to support query by multi-id
-                // Select idSelection = select.clone();
-                if (ids.size() > 1) {
-                    throw new BackendException(
-                            "Currently not support query by multi ids with ck");
-                }
-                // Currently just assign selection instead of clone it
-                Select idSelection = select;
+                // NOTE: there is no Select.clone(), just use copy instead
+                Select idSelection = CopyUtil.copy(select,
+                        QueryBuilder.select().from(this.table));
                 // NOTE: concat with AND relation
                 // like: pk = id and ck1 = v1 and ck2 = v2
                 for (int i = 0; i < names.size(); i++) {

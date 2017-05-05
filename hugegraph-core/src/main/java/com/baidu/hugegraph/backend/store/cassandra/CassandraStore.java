@@ -110,17 +110,15 @@ public abstract class CassandraStore implements BackendStore {
         // delete data
         for (BackendEntry i : mutation.deletions()) {
             CassandraBackendEntry entry = castBackendEntry(i);
-            // NOTE: we assume that not delete entry if subRows exist
-            if (entry.subRows().isEmpty()) {
+            if (entry.selfChanged()) {
                 // delete entry
                 this.table(entry.type()).delete(entry.row());
             } else {
-                // assert entry.row().keys().isEmpty(); // only contains id
                 assert entry.row().cells().isEmpty();
-                // delete sub rows (edges)
-                for (CassandraBackendEntry.Row row : entry.subRows()) {
-                    this.table(row.type()).delete(row);
-                }
+            }
+            // delete sub rows (edges)
+            for (CassandraBackendEntry.Row row : entry.subRows()) {
+                this.table(row.type()).delete(row);
             }
         }
 
@@ -128,7 +126,9 @@ public abstract class CassandraStore implements BackendStore {
         for (BackendEntry i : mutation.additions()) {
             CassandraBackendEntry entry = castBackendEntry(i);
             // insert entry
-            this.table(entry.type()).insert(entry.row());
+            if (entry.selfChanged()) {
+                this.table(entry.type()).insert(entry.row());
+            }
             // insert sub rows (edges)
             for (CassandraBackendEntry.Row row : entry.subRows()) {
                 this.table(row.type()).insert(row);

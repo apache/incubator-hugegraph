@@ -65,6 +65,15 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     @Override
+    public boolean hasUpdates() {
+        boolean empty = (this.addedVertexes.isEmpty()
+                && this.removedVertexes.isEmpty()
+                && this.addedEdges.isEmpty()
+                && this.removedEdges.isEmpty());
+        return !empty || super.hasUpdates();
+    }
+
+    @Override
     protected void prepareCommit() {
         // serialize and add updates into super.deletions
         this.prepareDeletions(this.removedVertexes, this.removedEdges);
@@ -76,33 +85,51 @@ public class GraphTransaction extends AbstractTransaction {
             Set<HugeVertex> updatedVertexes,
             Set<HugeEdge> updatedEdges) {
 
-        Set<HugeVertex> vertexes = new LinkedHashSet<>();
-        Set<HugeVertex> adjacentVertexes = new LinkedHashSet<>();
+        Map<Id, HugeVertex> vertexes = new HashMap<>();
 
-        // copy updatedVertexes to vertexes
-        vertexes.addAll(updatedVertexes);
+        // copy updated vertexes(only with props, without edges)
+        for (HugeVertex v : updatedVertexes) {
+            vertexes.put(v.id(), v.prepareAdded());
+        }
 
-        // move updated edges to vertexes
+        // copy updated edges and merge into owner vertex
         for (HugeEdge edge : updatedEdges) {
-            if (!vertexes.contains(edge.sourceVertex())) {
-                vertexes.add(edge.sourceVertex());
+            assert edge.type() == HugeTypes.EDGE_OUT;
+            Id sourceId = edge.sourceVertex().id();
+
+            if (!vertexes.containsKey(sourceId)) {
+                vertexes.put(sourceId, edge.prepareAddedOut());
+            } else {
+                HugeVertex sourceVertex = vertexes.get(sourceId);
+                sourceVertex.addOutEdge(edge.prepareAddedOut(sourceVertex));
             }
         }
 
         // ensure all the target vertexes (of out edges) are in vertexes
-        for (HugeVertex source : vertexes) {
-            Iterator<Vertex> targets = source.getVertices(Direction.OUT);
-            while (targets.hasNext()) {
-                HugeVertex target = (HugeVertex) targets.next();
-                adjacentVertexes.add(target);
+        for (HugeEdge edge : updatedEdges) {
+            assert edge.type() == HugeTypes.EDGE_OUT;
+            Id targetId = edge.targetVertex().id();
+
+            if (!vertexes.containsKey(targetId)) {
+                vertexes.put(targetId, edge.prepareAddedIn());
+            } else {
+                HugeVertex targetVertex = vertexes.get(targetId);
+                targetVertex.addInEdge(edge.prepareAddedIn(targetVertex));
             }
         }
-        vertexes.addAll(adjacentVertexes);
 
         // do update
-        for (HugeVertex v : vertexes) {
+        for (HugeVertex v : vertexes.values()) {
+            // add vertex entry
             this.addEntry(this.serializer.writeVertex(v));
-            this.indexTx.updateVertexIndex(v, false);
+
+            if (v.existsProperties()) {
+                // update index of vertex(include props and edges)
+                this.indexTx.updateVertexIndex(v, false);
+            } else {
+                // update index of vertex edges
+                this.indexTx.updateEdgesIndex(v, false);
+            }
         }
 
         // clear updates
@@ -142,18 +169,19 @@ public class GraphTransaction extends AbstractTransaction {
             this.indexTx.updateVertexIndex(v, true);
         }
 
-        // remove edges
+        // remove edges independently
         for (HugeEdge edge : edges) {
-            // OUT
-            HugeVertex vertex = edge.owner().prepareRemoved();
-            vertex.addEdge(edge.prepareRemoved());
+            // remove OUT
+            HugeVertex vertex = edge.sourceVertex().prepareRemoved();
+            vertex.addEdge(edge.prepareRemoved()); // only with edge id
             this.removeEntry(this.serializer.writeVertex(vertex));
 
-            // IN
-            vertex = edge.otherVertex().prepareRemoved();
+            // remove IN
+            vertex = edge.targetVertex().prepareRemoved();
             vertex.addEdge(edge.switchOwner().prepareRemoved());
             this.removeEntry(this.serializer.writeVertex(vertex));
 
+            // update edge index
             this.indexTx.updateEdgeIndex(edge, true);
         }
     }
