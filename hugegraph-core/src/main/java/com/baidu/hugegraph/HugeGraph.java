@@ -36,6 +36,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 /**
  * Created by jishilei on 17/3/17.
  */
+@Graph.OptIn("com.baidu.hugegraph.base.HugeStructureBasicSuite")
 public class HugeGraph implements Graph {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeGraph.class);

@@ -80,6 +80,7 @@
     </properties>
     <modules>
         <module>hugegraph-core</module>
+        <module>hugegraph-dist</module>
     </modules>
     <repositories>
         <repository>
