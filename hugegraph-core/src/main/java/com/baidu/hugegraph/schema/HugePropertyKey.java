@@ -10,7 +10,6 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.StringUtil;
 
 /**

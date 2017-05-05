@@ -7,7 +7,10 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
+import com.baidu.hugegraph.type.schema.PropertyKey;
+import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.StringUtil;
 
 /**
@@ -33,10 +36,9 @@ public class HugeIndexLabel extends IndexLabel {
         this.indexFields = new HashSet<>();
     }
 
-    // TODO: index label weather contain it's indexes?
     @Override
     public HugeIndexLabel indexNames(String... names) {
-        return null;
+        throw new HugeException("can not build index for index label object.");
     }
 
     @Override
@@ -98,11 +100,35 @@ public class HugeIndexLabel extends IndexLabel {
             throw new HugeException("The indexLabel:" + this.name + " has exised.");
         }
 
-        // TODO: should implement update operation
-        this.transaction.updateSchemaElement(this.baseType, this.baseValue, this.name);
+        // TODO: should wrap update and add operation in one transaction.
+        this.updateSchemaIndexName(this.baseType, this.baseValue, this.name);
 
         // TODO: need to check param.
         this.transaction.addIndexLabel(this);
+    }
+
+    protected void updateSchemaIndexName(HugeTypes baseType, String baseValue, String indexName) {
+        switch (baseType) {
+            case VERTEX_LABEL:
+                VertexLabel vertexLabel = this.transaction.getVertexLabel(baseValue);
+                vertexLabel.indexNames(indexName);
+                this.transaction.addVertexLabel(vertexLabel);
+                break;
+            case EDGE_LABEL:
+                EdgeLabel edgeLabel = this.transaction.getEdgeLabel(baseValue);
+                edgeLabel.indexNames(indexName);
+                this.transaction.addEdgeLabel(edgeLabel);
+                break;
+            case PROPERTY_KEY:
+                PropertyKey propertyKey = this.transaction.getPropertyKey(baseValue);
+                propertyKey.indexNames(indexName);
+                this.transaction.addPropertyKey(propertyKey);
+                break;
+            default:
+                String msg = String.format("can not update index name of schema type: %s",
+                        baseType.toString());
+                throw new HugeException(msg);
+        }
     }
 
     @Override

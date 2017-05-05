@@ -13,7 +13,6 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 
 /**
  * Created by liningrui on 2017/3/27.

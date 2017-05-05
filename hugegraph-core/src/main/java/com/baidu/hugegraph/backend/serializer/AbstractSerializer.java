@@ -11,7 +11,7 @@ public abstract class AbstractSerializer implements VertexSerializer, SchemaSeri
     protected HugeGraph graph = null;
 
     public AbstractSerializer(HugeGraph graph) {
-        this.graph=graph;
+        this.graph = graph;
     }
 
     protected BackendEntry convertEntry(BackendEntry entry) {

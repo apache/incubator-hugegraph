@@ -6,6 +6,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.structure.HugeIndex;
@@ -13,7 +14,6 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
@@ -32,12 +32,17 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public BackendEntry writeId(Id id) {
+    public BackendEntry writeId(HugeTypes type, Id id) {
+        return null;
+    }
+
+    @Override
+    public Query writeQuery(Query query) {
         return null;
     }
 
     protected byte[] formatSystemPropertyName(HugeKeys col) {
-        return new byte[]{ HugeTypes.SYS_PROPERTY.code(), col.code() };
+        return new byte[] {HugeTypes.SYS_PROPERTY.code(), col.code()};
     }
 
     private BackendColumn formatLabel(VertexLabel vertexLabel) {
@@ -140,11 +145,6 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public BackendEntry writeId(Id id) {
-        return newBackendEntry(id);
-    }
-
-    @Override
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
         // TODO Auto-generated method stub
         return null;
@@ -220,7 +220,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeIndex readIndex(BackendEntry entry, IndexType indexType) {
+    public HugeIndex readIndex(BackendEntry entry) {
         return null;
     }
 }

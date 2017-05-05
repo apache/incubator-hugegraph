@@ -21,8 +21,6 @@ public abstract class IndexLabel extends SchemaElement {
         return HugeTypes.INDEX_LABEL;
     }
 
-    public abstract String indexName();
-
     public abstract IndexLabel by(String... indexFields);
 
     public abstract IndexLabel secondary();
@@ -31,7 +29,9 @@ public abstract class IndexLabel extends SchemaElement {
 
     public abstract void create();
 
-    public abstract String baseType();
+    public abstract HugeTypes baseType();
+
+    public abstract String baseValue();
 
     public abstract IndexType indexType();
 

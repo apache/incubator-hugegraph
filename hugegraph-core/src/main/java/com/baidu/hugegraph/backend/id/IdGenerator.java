@@ -22,7 +22,9 @@ public abstract class IdGenerator {
     /****************************** id generate ******************************/
 
     public abstract Id generate(SchemaElement entry);
+
     public abstract Id generate(HugeVertex entry);
+
     public abstract Id generate(HugeEdge entry);
 
     // generate a string id

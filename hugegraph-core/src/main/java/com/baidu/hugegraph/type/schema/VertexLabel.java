@@ -25,11 +25,11 @@ public abstract class VertexLabel extends SchemaElement {
 
     @Override
     public VertexLabel properties(String... propertyNames) {
-        if (this.properties == null) {
-            this.properties = new HashMap<>();
+        if (properties == null) {
+            properties = new HashMap<>();
         }
         for (String propertyName : propertyNames) {
-            this.properties.put(propertyName, new HugePropertyKey(propertyName, this.transaction));
+            properties.put(propertyName, new HugePropertyKey(propertyName, transaction));
         }
         return this;
     }
@@ -40,6 +40,6 @@ public abstract class VertexLabel extends SchemaElement {
 
     public IndexLabel index(String indexName) {
         // name reference the base-type column
-        return new HugeIndexLabel(indexName, name, transaction);
+        return new HugeIndexLabel(indexName, HugeTypes.VERTEX_LABEL, name, transaction);
     }
 }
