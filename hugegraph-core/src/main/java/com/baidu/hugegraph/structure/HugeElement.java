@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 public abstract class HugeElement implements Element, GraphType {
 
     protected final HugeGraph graph;
+    protected boolean removed;
     protected Id id;
     protected Map<String, HugeProperty<? extends Object>> properties;
 
@@ -29,6 +30,7 @@ public abstract class HugeElement implements Element, GraphType {
         this.graph = graph;
         this.id = id;
         this.properties = new HashMap<>();
+        this.removed = false;
     }
 
     @Override
@@ -39,6 +41,10 @@ public abstract class HugeElement implements Element, GraphType {
     @Override
     public Graph graph() {
         return this.graph;
+    }
+
+    public boolean removed() {
+        return this.removed;
     }
 
     public abstract GraphTransaction tx();
@@ -55,8 +61,12 @@ public abstract class HugeElement implements Element, GraphType {
         return this.properties.containsKey(key);
     }
 
-    public <V> HugeProperty<? extends Object> setProperty(HugeProperty<V> prop) {
-        return this.properties.put(prop.key(), prop);
+    public boolean existsProperties() {
+        return this.properties.size() > 0;
+    }
+
+    public <V> void setProperty(HugeProperty<V> prop) {
+        this.properties.put(prop.key(), prop);
     }
 
     public void resetProperties() {

@@ -143,7 +143,7 @@ public abstract class AbstractTransaction implements Transaction {
     @Override
     public void beforeRead() {
         // TODO: auto open()
-        if (!this.additions.isEmpty() || !this.deletions.isEmpty()) {
+        if (this.hasUpdates()) {
             this.commitOrRollback();
         }
     }
@@ -199,4 +199,7 @@ public abstract class AbstractTransaction implements Transaction {
         this.removeEntry(this.serializer.writeId(type, id));
     }
 
+    public boolean hasUpdates() {
+        return !this.additions.isEmpty() || !this.deletions.isEmpty();
+    }
 }

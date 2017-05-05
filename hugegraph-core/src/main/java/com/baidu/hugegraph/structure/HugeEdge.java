@@ -119,11 +119,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public <V> Property<V> property(String key, V value) {
+        HugeProperty<V> prop = null;
         PropertyKey pkey = this.graph.schema().propertyKey(key);
         switch (pkey.cardinality()) {
             case SINGLE:
-                HugeProperty<V> prop = new HugeProperty<V>(this, pkey, value);
-                return super.setProperty(prop) != null ? prop : null;
+                prop = new HugeProperty<V>(this, pkey, value);
+                super.setProperty(prop);
+                break;
             case SET:
                 Preconditions.checkArgument(pkey.checkDataType(value), String.format(
                         "Invalid property value '%s' for key '%s'", value, key));
@@ -132,15 +134,15 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                 if (!super.existsProperty(key)) {
                     propSet = new HugeProperty<>(this, pkey, new LinkedHashSet<V>());
                     super.setProperty(propSet);
-                }
-                else {
+                } else {
                     propSet = (HugeProperty<Set<V>>) super.getProperty(key);
                 }
 
                 propSet.value().add(value);
 
                 // any better ways?
-                return (Property<V>) propSet;
+                prop = (HugeProperty) propSet;
+                break;
             case LIST:
                 Preconditions.checkArgument(pkey.checkDataType(value), String.format(
                         "Invalid property value '%s' for key '%s'", value, key));
@@ -149,24 +151,27 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                 if (!super.existsProperty(key)) {
                     propList = new HugeProperty<>(this, pkey, new LinkedList<V>());
                     super.setProperty(propList);
-                }
-                else {
+                } else {
                     propList = (HugeProperty<List<V>>) super.getProperty(key);
                 }
 
                 propList.value().add(value);
 
                 // any better ways?
-                return (Property<V>) propList;
+                prop = (HugeProperty) propList;
+                break;
             default:
                 assert false;
                 break;
         }
-        return null;
+        return prop;
     }
 
     @Override
     public void remove() {
+        this.removed = true;
+        this.sourceVertex.removeEdge(this);
+        this.targetVertex.removeEdge(this);
         this.tx().removeEdge(this);
     }
 
@@ -181,8 +186,10 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         } else {
             for (String pk : propertyKeys) {
                 HugeProperty<? extends Object> prop = this.getProperty(pk);
-                assert prop == null || prop instanceof Property;
-                propertyList.add((Property<V>) prop);
+                if (prop != null) {
+                    assert prop instanceof Property;
+                    propertyList.add((Property<V>) prop);
+                }
             }
         }
         return propertyList.iterator();
@@ -219,8 +226,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
         if (edge.owner == edge.sourceVertex) {
             edge.owner = edge.targetVertex;
-        }
-        else {
+        } else {
             edge.owner = edge.sourceVertex;
         }
 
@@ -283,6 +289,42 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     public HugeVertex otherVertex() {
         return this.otherVertex(this.owner);
+    }
+
+    public HugeVertex prepareAddedOut() {
+        // return a vertex just with this edge(OUT)
+        HugeVertex sourceVertex = this.sourceVertex.prepareRemoved();
+        HugeEdge edge = this.clone();
+        edge.vertices(sourceVertex, this.targetVertex);
+        edge.owner(sourceVertex);
+        sourceVertex.addOutEdge(edge);
+        return sourceVertex;
+    }
+
+    public HugeEdge prepareAddedOut(HugeVertex sourceVertex) {
+        // return a new edge, and add it to sourceVertex as OUT edge
+        HugeEdge edge = this.clone();
+        edge.vertices(sourceVertex, this.targetVertex);
+        edge.owner(sourceVertex);
+        return edge;
+    }
+
+    public HugeVertex prepareAddedIn() {
+        // return a vertex just with this edge(IN)
+        HugeVertex targetVertex = this.targetVertex.prepareRemoved();
+        HugeEdge edge = this.clone();
+        edge.vertices(this.sourceVertex, targetVertex);
+        edge.owner(targetVertex);
+        targetVertex.addInEdge(edge);
+        return targetVertex;
+    }
+
+    public HugeEdge prepareAddedIn(HugeVertex targetVertex) {
+        // return a new edge, and add it to targetVertex as IN edge
+        HugeEdge edge = this.clone();
+        edge.vertices(this.sourceVertex, targetVertex);
+        edge.owner(targetVertex);
+        return edge;
     }
 
     public HugeEdge prepareRemoved() {

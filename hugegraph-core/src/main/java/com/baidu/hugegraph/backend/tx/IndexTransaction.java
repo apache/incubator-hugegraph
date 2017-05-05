@@ -47,13 +47,19 @@ public class IndexTransaction extends AbstractTransaction {
             updateIndex(indexName, vertex, removed);
         }
 
-        // edge index
+        // edges index
+        this.updateEdgesIndex(vertex, removed);
+    }
+
+    public void updateEdgesIndex(HugeVertex vertex, boolean removed) {
+        // edges index
         for (HugeEdge edge : vertex.getEdges()) {
             updateEdgeIndex(edge, removed);
         }
     }
 
     public void updateEdgeIndex(HugeEdge edge, boolean removed) {
+        // edge index
         for (String indexName : edge.edgeLabel().indexNames()) {
             updateIndex(indexName, edge, removed);
         }
