@@ -189,22 +189,22 @@ start() {
     disown
     echo "You can run hugegraph-console.sh to connect." >&2
 
-    echo "Forking HugeGraph-NoteBook..."
-    if [ -n "$VERBOSE" ]; then
-        "$BIN"/hugegraph-notebook.sh start
-    else
-        "$BIN"/hugegraph-notebook.sh start >/dev/null 2>&1
-    fi
-    # wait notebook thread started.
-    wait_for_notebook 'HugeGraph-NoteBook' $NOTEBOOK_IP $NOTEBOOK_PORT $NOTEBOOK_STARTUP_TIMEOUT_S || {
-        echo "See $BIN/../logs/hugegraph-notebook.log for HugeGraph-Notebook log output."  >&2
-        return 1
-    }
-    echo "You can visit $NOTEBOOK_IP:$NOTEBOOK_PORT to use hugrgraph." >&2
+#    echo "Forking HugeGraph-NoteBook..."
+#    if [ -n "$VERBOSE" ]; then
+#        "$BIN"/hugegraph-notebook.sh start
+#    else
+#        "$BIN"/hugegraph-notebook.sh start >/dev/null 2>&1
+#    fi
+#    # wait notebook thread started.
+#    wait_for_notebook 'HugeGraph-NoteBook' $NOTEBOOK_IP $NOTEBOOK_PORT $NOTEBOOK_STARTUP_TIMEOUT_S || {
+#        echo "See $BIN/../logs/hugegraph-notebook.log for HugeGraph-Notebook log output."  >&2
+#        return 1
+#    }
+#    echo "You can visit $NOTEBOOK_IP:$NOTEBOOK_PORT to use hugrgraph." >&2
 }
 
 stop() {
-    "$BIN"/hugegraph-notebook.sh stop
+#    "$BIN"/hugegraph-notebook.sh stop
 
     kill_class        'Gremlin-Server' org.apache.tinkerpop.gremlin.server.GremlinServer 
     wait_for_shutdown 'Gremlin-Server' org.apache.tinkerpop.gremlin.server.GremlinServer $GSRV_SHUTDOWN_TIMEOUT_S
