@@ -93,7 +93,7 @@ public class BinarySerializer extends AbstractSerializer {
         if (type == HugeTypes.VERTEX_PROPERTY.code()) {
             String name = readStringFromRemaining(buffer);
             Object value = parsePropertyValue(col.value);
-            vertex.property(name, value);
+            vertex.addProperty(name, value);
         }
         // edge
         else if (type == HugeTypes.EDGE_IN.code() ||

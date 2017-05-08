@@ -21,7 +21,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.type.HugeTypes;
-import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -104,7 +103,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         Set<String> primaryKeys = this.vertexLabel().primaryKeys();
         int i = 0;
         for (String k : primaryKeys) {
-            this.property(k, propValues.get(i++));
+            this.addProperty(k, propValues.get(i++));
         }
     }
 
@@ -230,59 +229,24 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality,
-                                          String key, V value, Object... objects) {
-        HugeVertexProperty<V> prop = null;
-        // TODO: extra props
-        PropertyKey pkey = this.graph.schema().propertyKey(key);
-        switch (Cardinality.convert(cardinality)) {
-            case SINGLE:
-                prop = new HugeVertexProperty<V>(this, pkey, value);
-                super.setProperty(prop);
-                break;
-            case SET:
-                Preconditions.checkArgument(pkey.checkDataType(value), String.format(
-                        "Invalid property value '%s' for key '%s'", value, key));
+            String key, V value, Object... objects) {
+        // TODO: extra props: objects
+        HugeProperty<V> prop = this.addProperty(key, value);
 
-                HugeVertexProperty<Set<V>> propSet;
-                if (!super.existsProperty(key)) {
-                    propSet = new HugeVertexProperty<>(this, pkey, new LinkedHashSet<V>());
-                    super.setProperty(propSet);
-                } else {
-                    propSet = (HugeVertexProperty<Set<V>>) super.getProperty(key);
-                }
-
-                propSet.value().add(value);
-
-                // any better ways?
-                prop = (HugeVertexProperty) propSet;
-                break;
-            case LIST:
-                Preconditions.checkArgument(pkey.checkDataType(value), String.format(
-                        "Invalid property value '%s' for key '%s'", value, key));
-
-                HugeVertexProperty<List<V>> propList;
-                if (!super.existsProperty(key)) {
-                    propList = new HugeVertexProperty<>(this, pkey, new LinkedList<V>());
-                    super.setProperty(propList);
-                } else {
-                    propList = (HugeVertexProperty<List<V>>) super.getProperty(key);
-                }
-
-                propList.value().add(value);
-
-                // any better ways?
-                prop = (HugeVertexProperty) propList;
-                break;
-            default:
-                assert false;
-                break;
-        }
-
-        if (prop != null) {
-            // update self(TODO: add tx.addProperty() method)
+        // NOTE: currently we don't support custom id, if id is null
+        // maybe the Vertex.attachProperties() has not been called.
+        // if we support custom id, this should be improved!
+        if (prop != null && this.id() != null) {
+            assert prop instanceof VertexProperty;
+            // update self (TODO: add tx.addProperty() method)
             this.tx().addVertex(this);
         }
-        return prop;
+        return (VertexProperty<V>) prop;
+    }
+
+    @Override
+    protected <V> HugeProperty<V> newProperty(PropertyKey pkey, V value) {
+        return new HugeVertexProperty<>(this, pkey, value);
     }
 
     @Override
