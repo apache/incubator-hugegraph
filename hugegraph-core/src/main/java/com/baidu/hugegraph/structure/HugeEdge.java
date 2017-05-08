@@ -2,8 +2,6 @@ package com.baidu.hugegraph.structure;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -20,8 +18,6 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 public class HugeEdge extends HugeElement implements Edge, Cloneable {
@@ -113,58 +109,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         Set<String> sortKeys = this.edgeLabel().sortKeys();
         int i = 0;
         for (String k : sortKeys) {
-            this.property(k, propValues.get(i++));
+            this.addProperty(k, propValues.get(i++));
         }
     }
 
     @Override
     public <V> Property<V> property(String key, V value) {
-        HugeProperty<V> prop = null;
-        PropertyKey pkey = this.graph.schema().propertyKey(key);
-        switch (pkey.cardinality()) {
-            case SINGLE:
-                prop = new HugeProperty<V>(this, pkey, value);
-                super.setProperty(prop);
-                break;
-            case SET:
-                Preconditions.checkArgument(pkey.checkDataType(value), String.format(
-                        "Invalid property value '%s' for key '%s'", value, key));
-
-                HugeProperty<Set<V>> propSet;
-                if (!super.existsProperty(key)) {
-                    propSet = new HugeProperty<>(this, pkey, new LinkedHashSet<V>());
-                    super.setProperty(propSet);
-                } else {
-                    propSet = (HugeProperty<Set<V>>) super.getProperty(key);
-                }
-
-                propSet.value().add(value);
-
-                // any better ways?
-                prop = (HugeProperty) propSet;
-                break;
-            case LIST:
-                Preconditions.checkArgument(pkey.checkDataType(value), String.format(
-                        "Invalid property value '%s' for key '%s'", value, key));
-
-                HugeProperty<List<V>> propList;
-                if (!super.existsProperty(key)) {
-                    propList = new HugeProperty<>(this, pkey, new LinkedList<V>());
-                    super.setProperty(propList);
-                } else {
-                    propList = (HugeProperty<List<V>>) super.getProperty(key);
-                }
-
-                propList.value().add(value);
-
-                // any better ways?
-                prop = (HugeProperty) propList;
-                break;
-            default:
-                assert false;
-                break;
-        }
-        return prop;
+        return this.addProperty(key, value);
     }
 
     @Override

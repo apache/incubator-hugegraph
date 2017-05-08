@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tinkerpop.gremlin.structure.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +25,7 @@ import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
+import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -74,7 +74,7 @@ public class IndexTransaction extends AbstractTransaction {
 
         List<Object> propertyValues = new LinkedList<>();
         for (String field : indexLabel.indexFields()) {
-            Property<Object> property = element.property(field);
+            HugeProperty<Object> property = element.getProperty(field);
             Preconditions.checkNotNull(property,
                     "Not existed property: " + field);
             propertyValues.add(property.value());

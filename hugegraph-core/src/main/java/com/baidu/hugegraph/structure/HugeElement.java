@@ -1,8 +1,12 @@
 package com.baidu.hugegraph.structure;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -13,6 +17,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.google.common.base.Preconditions;
 
@@ -53,8 +58,8 @@ public abstract class HugeElement implements Element, GraphType {
         return this.properties;
     }
 
-    public <V> HugeProperty<? extends Object> getProperty(String key) {
-        return this.properties.get(key);
+    public <V> HugeProperty<V> getProperty(String key) {
+        return (HugeProperty<V>) this.properties.get(key);
     }
 
     public boolean existsProperty(String key) {
@@ -67,6 +72,59 @@ public abstract class HugeElement implements Element, GraphType {
 
     public <V> void setProperty(HugeProperty<V> prop) {
         this.properties.put(prop.key(), prop);
+    }
+
+    public <V> HugeProperty<V> addProperty(String key, V value) {
+        HugeProperty<V> prop = null;
+        PropertyKey pkey = this.graph.schema().propertyKey(key);
+        switch (pkey.cardinality()) {
+            case SINGLE:
+                prop = this.newProperty(pkey, value);
+                this.setProperty(prop);
+                break;
+            case SET:
+                Preconditions.checkArgument(pkey.checkDataType(value), String.format(
+                        "Invalid property value '%s' for key '%s'", value, key));
+
+                HugeProperty<Set<V>> propSet;
+                if (!this.existsProperty(key)) {
+                    propSet = this.newProperty(pkey, new LinkedHashSet<V>());
+                    this.setProperty(propSet);
+                } else {
+                    propSet = this.<Set<V>>getProperty(key);
+                }
+
+                propSet.value().add(value);
+
+                // any better ways?
+                prop = (HugeProperty) propSet;
+                break;
+            case LIST:
+                Preconditions.checkArgument(pkey.checkDataType(value), String.format(
+                        "Invalid property value '%s' for key '%s'", value, key));
+
+                HugeProperty<List<V>> propList;
+                if (!this.existsProperty(key)) {
+                    propList = this.newProperty(pkey, new LinkedList<V>());
+                    this.setProperty(propList);
+                } else {
+                    propList = this.<List<V>>getProperty(key);
+                }
+
+                propList.value().add(value);
+
+                // any better ways?
+                prop = (HugeProperty) propList;
+                break;
+            default:
+                assert false;
+                break;
+        }
+        return prop;
+    }
+
+    protected <V> HugeProperty<V> newProperty(PropertyKey pkey, V value) {
+        return new HugeProperty<>(this, pkey, value);
     }
 
     public void resetProperties() {

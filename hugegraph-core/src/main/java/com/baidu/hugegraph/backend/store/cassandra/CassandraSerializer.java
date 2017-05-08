@@ -93,11 +93,11 @@ public class CassandraSerializer extends AbstractSerializer {
 
         // set properties of vertex/edge
         if (pkey.cardinality() == Cardinality.SINGLE) {
-            owner.property(pkey.name(), value);
+            owner.addProperty(pkey.name(), value);
         } else {
             if (value instanceof Collection) {
                 for (Object v : (Collection<?>) value) {
-                    owner.property(pkey.name(), v);
+                    owner.addProperty(pkey.name(), v);
                 }
             } else {
                 assert false : "invalid value of non-sigle property";
