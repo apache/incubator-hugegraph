@@ -81,7 +81,10 @@ public abstract class CassandraStore implements BackendStore {
                 this.session = this.cluster.connect();
             }
         } catch (Exception e) {
-            this.cluster.close();
+            if (!this.cluster.isClosed()) {
+                this.cluster.close();
+            }
+            throw e;
         }
 
         logger.debug("Store opened: {}", this.name);
