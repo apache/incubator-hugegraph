@@ -23,6 +23,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.configuration.ConfigSpace;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
@@ -152,6 +153,11 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         @Override
         public Configuration configuration() {
             return this.graph.configuration();
+        }
+
+        @Override
+        public HugeFeatures features() {
+            return this.graph.features();
         }
     }
 }
