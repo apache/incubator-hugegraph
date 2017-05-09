@@ -5,7 +5,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
@@ -18,7 +18,7 @@ import com.baidu.hugegraph.util.StringUtil;
  */
 public class HugeIndexLabel extends IndexLabel {
 
-    private HugeTypes baseType;
+    private HugeType baseType;
     private String baseValue;
     private IndexType indexType;
     private Set<String> indexFields;
@@ -27,7 +27,7 @@ public class HugeIndexLabel extends IndexLabel {
         this(name, null, null, null);
     }
 
-    public HugeIndexLabel(String name, HugeTypes baseType,
+    public HugeIndexLabel(String name, HugeType baseType,
             String baseValue, SchemaTransaction transaction) {
         super(name, transaction);
         this.baseType = baseType;
@@ -42,7 +42,7 @@ public class HugeIndexLabel extends IndexLabel {
     }
 
     @Override
-    public HugeTypes baseType() {
+    public HugeType baseType() {
         return this.baseType;
     }
 
@@ -107,7 +107,7 @@ public class HugeIndexLabel extends IndexLabel {
         this.transaction.addIndexLabel(this);
     }
 
-    protected void updateSchemaIndexName(HugeTypes baseType, String baseValue, String indexName) {
+    protected void updateSchemaIndexName(HugeType baseType, String baseValue, String indexName) {
         switch (baseType) {
             case VERTEX_LABEL:
                 VertexLabel vertexLabel = this.transaction.getVertexLabel(baseValue);

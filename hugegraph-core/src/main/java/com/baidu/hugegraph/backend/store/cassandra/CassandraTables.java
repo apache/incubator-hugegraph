@@ -9,7 +9,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.datastax.driver.core.DataType;
@@ -300,7 +300,7 @@ public class CassandraTables {
                         entry.column(HugeKeys.SOURCE_VERTEX));
                 if (!vertices.containsKey(srcVertexId)) {
                     CassandraBackendEntry vertex = new CassandraBackendEntry(
-                            HugeTypes.VERTEX, srcVertexId);
+                            HugeType.VERTEX, srcVertexId);
                     // set vertex label and pv(assume vertex id with a label)
                     // TODO: improve Id parse()
                     String[] idParts = SplicingIdGenerator.parse(srcVertexId);
@@ -405,7 +405,7 @@ public class CassandraTables {
         }
 
         @Override
-        protected CassandraBackendEntry result2Entry(HugeTypes type, Row row) {
+        protected CassandraBackendEntry result2Entry(HugeType type, Row row) {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
 
             entry.column(HugeKeys.PROPERTY_VALUES,
@@ -482,7 +482,7 @@ public class CassandraTables {
         }
 
         @Override
-        protected CassandraBackendEntry result2Entry(HugeTypes type, Row row) {
+        protected CassandraBackendEntry result2Entry(HugeType type, Row row) {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
 
             entry.column(HugeKeys.INDEX_LABEL_NAME,

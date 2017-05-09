@@ -1,10 +1,10 @@
 package com.baidu.hugegraph.backend.id;
 
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 
 public interface Id extends Comparable<Id> {
 
-    public abstract Id prefixWith(HugeTypes type);
+    public abstract Id prefixWith(HugeType type);
 
     public abstract String asString();
 

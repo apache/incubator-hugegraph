@@ -20,7 +20,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -43,8 +43,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Override
-    public HugeTypes type() {
-        return HugeTypes.VERTEX;
+    public HugeType type() {
+        return HugeType.VERTEX;
     }
 
     @Override
@@ -166,7 +166,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             edge.owner(this);
             edge.sourceVertex(this);
         }
-        assert edge.type() == HugeTypes.EDGE_OUT;
+        assert edge.type() == HugeType.EDGE_OUT;
         return this.edges.add(edge);
     }
 
@@ -176,7 +176,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             edge.owner(this);
             edge.targetVertex(this);
         }
-        assert edge.type() == HugeTypes.EDGE_IN;
+        assert edge.type() == HugeType.EDGE_IN;
         return this.edges.add(edge);
     }
 

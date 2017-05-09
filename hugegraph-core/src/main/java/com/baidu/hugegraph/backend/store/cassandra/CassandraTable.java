@@ -19,7 +19,7 @@ import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.Query.Order;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
 import com.datastax.driver.core.BatchStatement;
@@ -213,7 +213,7 @@ public abstract class CassandraTable {
         }
     }
 
-    protected List<BackendEntry> results2Entries(HugeTypes resultType,
+    protected List<BackendEntry> results2Entries(HugeType resultType,
                                                  ResultSet results) {
         List<BackendEntry> entries = new LinkedList<>();
 
@@ -226,7 +226,7 @@ public abstract class CassandraTable {
         return this.mergeEntries(entries);
     }
 
-    protected CassandraBackendEntry result2Entry(HugeTypes type, Row row) {
+    protected CassandraBackendEntry result2Entry(HugeType type, Row row) {
         CassandraBackendEntry entry = new CassandraBackendEntry(type);
 
         List<Definition> cols = row.getColumnDefinitions().asList();

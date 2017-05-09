@@ -7,7 +7,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 
 /**
  * Created by jishilei on 17/3/18.
@@ -19,8 +19,8 @@ public abstract class VertexLabel extends SchemaElement {
     }
 
     @Override
-    public HugeTypes type() {
-        return HugeTypes.VERTEX_LABEL;
+    public HugeType type() {
+        return HugeType.VERTEX_LABEL;
     }
 
     @Override
@@ -40,6 +40,6 @@ public abstract class VertexLabel extends SchemaElement {
 
     public IndexLabel index(String indexName) {
         // name reference the base-type column
-        return new HugeIndexLabel(indexName, HugeTypes.VERTEX_LABEL, name, transaction);
+        return new HugeIndexLabel(indexName, HugeType.VERTEX_LABEL, name, transaction);
     }
 }

@@ -27,7 +27,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
@@ -150,7 +150,7 @@ public class IndexTransaction extends AbstractTransaction {
                 if (indexLabel.indexType() == IndexType.SECONDARY) {
                     String valueStr = StringUtils.join(query.userpropValues(),
                             SplicingIdGenerator.NAME_SPLITOR);
-                    indexQuery = new ConditionQuery(HugeTypes.SECONDARY_INDEX);
+                    indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
                     indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, name);
                     indexQuery.eq(HugeKeys.PROPERTY_VALUES, valueStr);
                 } else {
@@ -162,7 +162,7 @@ public class IndexTransaction extends AbstractTransaction {
                     Condition condition = query.userpropConditions().get(0);
                     assert condition instanceof Condition.Relation;
                     Condition.Relation r = (Relation) condition;
-                    indexQuery = new ConditionQuery(HugeTypes.SEARCH_INDEX);
+                    indexQuery = new ConditionQuery(HugeType.SEARCH_INDEX);
                     indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, name);
                     indexQuery.query(new Condition.SyspropRelation(
                             HugeKeys.PROPERTY_VALUES,

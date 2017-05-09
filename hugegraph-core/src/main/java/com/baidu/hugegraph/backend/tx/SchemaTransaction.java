@@ -16,7 +16,7 @@ import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
@@ -32,7 +32,7 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public List<HugePropertyKey> getPropertyKeys() {
         List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
-        ConditionQuery q = new ConditionQuery(HugeTypes.PROPERTY_KEY);
+        ConditionQuery q = new ConditionQuery(HugeType.PROPERTY_KEY);
         Iterable<BackendEntry> entries = query(q);
         entries.forEach(item -> {
             propertyKeys.add((HugePropertyKey) this.serializer.readPropertyKey(item));
@@ -42,7 +42,7 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public List<HugeVertexLabel> getVertexLabels() {
         List<HugeVertexLabel> vertexLabels = new ArrayList<>();
-        ConditionQuery q = new ConditionQuery(HugeTypes.VERTEX_LABEL);
+        ConditionQuery q = new ConditionQuery(HugeType.VERTEX_LABEL);
         Iterable<BackendEntry> entries = query(q);
         entries.forEach(item -> {
             vertexLabels.add((HugeVertexLabel) this.serializer.readVertexLabel(item));
@@ -52,7 +52,7 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public List<HugeEdgeLabel> getEdgeLabels() {
         List<HugeEdgeLabel> edgeLabels = new ArrayList<>();
-        ConditionQuery q = new ConditionQuery(HugeTypes.EDGE_LABEL);
+        ConditionQuery q = new ConditionQuery(HugeType.EDGE_LABEL);
         Iterable<BackendEntry> entries = query(q);
         entries.forEach(item -> {
             edgeLabels.add((HugeEdgeLabel) this.serializer.readEdgeLabel(item));

@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -16,23 +16,23 @@ public class Query implements Cloneable {
 
     public static final long NO_LIMIT = Long.MAX_VALUE;
 
-    private HugeTypes resultType;
+    private HugeType resultType;
     private Map<HugeKeys, Order> orders;
     private long offset;
     private long limit;
 
-    public Query(HugeTypes resultType) {
+    public Query(HugeType resultType) {
         this.resultType = resultType;
         this.orders = new ConcurrentHashMap<>();
         this.offset = 0;
         this.limit = NO_LIMIT;
     }
 
-    public HugeTypes resultType() {
+    public HugeType resultType() {
         return this.resultType;
     }
 
-    public void resultType(HugeTypes resultType) {
+    public void resultType(HugeType resultType) {
         this.resultType = resultType;
     }
 

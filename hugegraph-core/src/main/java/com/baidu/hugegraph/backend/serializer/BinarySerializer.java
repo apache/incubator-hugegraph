@@ -12,7 +12,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
@@ -32,7 +32,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public BackendEntry writeId(HugeTypes type, Id id) {
+    public BackendEntry writeId(HugeType type, Id id) {
         return null;
     }
 
@@ -42,7 +42,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected byte[] formatSystemPropertyName(HugeKeys col) {
-        return new byte[] {HugeTypes.SYS_PROPERTY.code(), col.code()};
+        return new byte[] {HugeType.SYS_PROPERTY.code(), col.code()};
     }
 
     private BackendColumn formatLabel(VertexLabel vertexLabel) {
@@ -90,14 +90,14 @@ public class BinarySerializer extends AbstractSerializer {
         ByteBuffer buffer = ByteBuffer.wrap(col.name);
         byte type = buffer.get();
         // property
-        if (type == HugeTypes.VERTEX_PROPERTY.code()) {
+        if (type == HugeType.VERTEX_PROPERTY.code()) {
             String name = readStringFromRemaining(buffer);
             Object value = parsePropertyValue(col.value);
             vertex.addProperty(name, value);
         }
         // edge
-        else if (type == HugeTypes.EDGE_IN.code() ||
-                type == HugeTypes.EDGE_OUT.code()) {
+        else if (type == HugeType.EDGE_IN.code() ||
+                type == HugeType.EDGE_OUT.code()) {
             // TODO: parse edge
             ;
         }

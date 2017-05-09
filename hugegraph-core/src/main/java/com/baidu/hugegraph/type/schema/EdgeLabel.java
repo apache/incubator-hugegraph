@@ -10,7 +10,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.Multiplicity;
@@ -25,8 +25,8 @@ public abstract class EdgeLabel extends SchemaElement {
     }
 
     @Override
-    public HugeTypes type() {
-        return HugeTypes.EDGE_LABEL;
+    public HugeType type() {
+        return HugeType.EDGE_LABEL;
     }
 
     @Override
@@ -42,7 +42,7 @@ public abstract class EdgeLabel extends SchemaElement {
 
     public IndexLabel index(String indexName) {
         // name reference the base-type column
-        return new HugeIndexLabel(indexName, HugeTypes.EDGE_LABEL, name, transaction);
+        return new HugeIndexLabel(indexName, HugeType.EDGE_LABEL, name, transaction);
     }
 
     public abstract boolean isDirected();
