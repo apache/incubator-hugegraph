@@ -48,6 +48,20 @@ public abstract class HugeElement implements Element, GraphType {
         return this.graph;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof HugeElement) {
+            return false;
+        }
+
+        HugeElement other = (HugeElement) obj;
+        if (this.id() == null) {
+            return false;
+        }
+
+        return this.id().equals(other.id());
+    }
+
     public boolean removed() {
         return this.removed;
     }
