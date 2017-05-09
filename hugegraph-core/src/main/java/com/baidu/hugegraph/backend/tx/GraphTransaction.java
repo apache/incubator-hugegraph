@@ -377,14 +377,12 @@ public class GraphTransaction extends AbstractTransaction {
         ConditionQuery query = new ConditionQuery(HugeTypes.EDGE);
 
         // edge source vertex
-        // TODO: id should be serialized(bytes/string) by back-end store
-        query.eq(HugeKeys.SOURCE_VERTEX, sourceVertex.toString());
+        query.eq(HugeKeys.SOURCE_VERTEX, sourceVertex);
 
         // edge direction
-        // TODO: direction should be serialized(code/string) by back-end store
         // TODO: deal with direction is BOTH
         if (direction != null) {
-            query.eq(HugeKeys.DIRECTION, direction.name());
+            query.eq(HugeKeys.DIRECTION, direction);
         }
 
         // edge labels

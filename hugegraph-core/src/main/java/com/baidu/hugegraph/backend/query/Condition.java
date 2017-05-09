@@ -186,6 +186,7 @@ public abstract class Condition {
 
     public static class SyspropRelation extends Relation {
         // column name
+        // TODO: the key should be serialized(code/string) by back-end store
         private HugeKeys key;
 
         public SyspropRelation(HugeKeys key) {
