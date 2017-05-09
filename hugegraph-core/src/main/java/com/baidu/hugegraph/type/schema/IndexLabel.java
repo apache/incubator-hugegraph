@@ -12,8 +12,8 @@ import com.baidu.hugegraph.type.define.IndexType;
  */
 public abstract class IndexLabel extends SchemaElement {
 
-    public IndexLabel(String name, SchemaTransaction transaction) {
-        super(name, transaction);
+    public IndexLabel(String name) {
+        super(name);
     }
 
     @Override
@@ -21,13 +21,15 @@ public abstract class IndexLabel extends SchemaElement {
         return HugeType.INDEX_LABEL;
     }
 
+    public abstract IndexLabel on(SchemaElement element);
+
     public abstract IndexLabel by(String... indexFields);
 
     public abstract IndexLabel secondary();
 
     public abstract IndexLabel search();
 
-    public abstract void create();
+    public abstract IndexLabel create();
 
     public abstract HugeType baseType();
 
@@ -36,5 +38,4 @@ public abstract class IndexLabel extends SchemaElement {
     public abstract IndexType indexType();
 
     public abstract Set<String> indexFields();
-
 }

@@ -20,6 +20,7 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.schema.VertexLabel;
 
 /**
  * Created by jishilei on 17/3/16.
@@ -75,7 +76,10 @@ public class Example1 {
 
         logger.info("===============  vertexLabel  ================");
 
-        schema.makeVertexLabel("person").properties("name", "age", "city").primaryKeys("name").create();
+        VertexLabel person = schema.makeVertexLabel("person")
+                .properties("name", "age", "city")
+                .primaryKeys("name")
+                .create();
         schema.makeVertexLabel("author").properties("id", "name").primaryKeys("id").create();
         schema.makeVertexLabel("language").properties("name").primaryKeys("name").create();
         schema.makeVertexLabel("recipe").properties("name", "instructions").create();
@@ -87,8 +91,8 @@ public class Example1 {
         schema.makeVertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
 
         logger.info("===============  vertexLabel & index  ================");
-        schema.vertexLabel("person").index("personByCity").secondary().by("city").create();
-        schema.vertexLabel("person").index("personByAge").search().by("age").create();
+        schema.makeIndex("personByCity").on(person).secondary().by("city").create();
+        schema.makeIndex("personByAge").on(person).search().by("age").create();
         // schemaManager.vertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schemaManager.vertexLabel("meal").index("byMeal").materialized().by("name").add();
@@ -128,7 +132,7 @@ public class Example1 {
         GraphTransaction tx = graph.openTransaction();
 
         logger.info("===============  addVertex  ================");
-        Vertex person = tx.addVertex(T.label, "author",
+        Vertex james = tx.addVertex(T.label, "author",
                 "id", 1, "name", "James Gosling", "age", "60", "lived", "");
 
         Vertex java = tx.addVertex(T.label, "language", "name", "java");
@@ -136,17 +140,17 @@ public class Example1 {
         Vertex book2 = tx.addVertex(T.label, "book", "name", "java-2");
         Vertex book3 = tx.addVertex(T.label, "book", "name", "java-3");
 
-        person.addEdge("created", java);
-        person.addEdge("authored", book1,
+        james.addEdge("created", java);
+        james.addEdge("authored", book1,
                 "contribution", "1990-1-1",
                 "comment", "it's a good book",
                 "comment", "it's a good book",
                 "comment", "it's a good book too");
-        person.addEdge("authored", book2, "contribution", "2017-4-28");
+        james.addEdge("authored", book2, "contribution", "2017-4-28");
 
-        person.addEdge("look", book2, "time", "2017-4-28");
-        person.addEdge("look", book3, "time", "2016-1-1");
-        person.addEdge("look", book3, "time", "2017-4-28");
+        james.addEdge("look", book2, "time", "2017-4-28");
+        james.addEdge("look", book3, "time", "2016-1-1");
+        james.addEdge("look", book3, "time", "2017-4-28");
 
         // commit data changes
         try {

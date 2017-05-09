@@ -19,8 +19,8 @@ import com.baidu.hugegraph.type.define.DataType;
  */
 public abstract class PropertyKey extends SchemaElement {
 
-    public PropertyKey(String name, SchemaTransaction transaction) {
-        super(name, transaction);
+    public PropertyKey(String name) {
+        super(name);
     }
 
     @Override
@@ -35,7 +35,7 @@ public abstract class PropertyKey extends SchemaElement {
         }
         for (String propertyName : propertyNames) {
             this.properties.put(propertyName,
-                    new HugePropertyKey(propertyName, this.transaction));
+                    new HugePropertyKey(propertyName));
         }
         return this;
     }
@@ -130,4 +130,7 @@ public abstract class PropertyKey extends SchemaElement {
     public abstract PropertyKey valueList();
 
     public abstract PropertyKey valueSet();
+
+    @Override
+    public abstract PropertyKey create();
 }

@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.Multiplicity;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
@@ -30,8 +29,8 @@ public class HugeEdgeLabel extends EdgeLabel {
     private List<Pair<String, String>> links;
     private Set<String> sortKeys;
 
-    public HugeEdgeLabel(String name, SchemaTransaction transaction) {
-        super(name, transaction);
+    public HugeEdgeLabel(String name) {
+        super(name);
         this.multiplicity = Multiplicity.ONE2ONE;
         this.frequency = Frequency.SINGLE;
         this.links = new ArrayList<>();
@@ -153,20 +152,21 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     @Override
-    public void create() {
-        if (this.transaction.getEdgeLabel(this.name) != null) {
+    public EdgeLabel create() {
+        if (this.transaction().getEdgeLabel(this.name) != null) {
             throw new HugeException("The edgeLabel:" + this.name + " has exised.");
         }
 
         StringUtil.verifyName(this.name);
         verifySortKeys();
 
-        this.transaction.addEdgeLabel(this);
+        this.transaction().addEdgeLabel(this);
+        return this;
     }
 
     @Override
     public void remove() {
-        this.transaction.removeEdgeLabel(this.name);
+        this.transaction().removeEdgeLabel(this.name);
     }
 
     private void verifySortKeys() {

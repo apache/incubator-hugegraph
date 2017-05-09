@@ -6,12 +6,9 @@ import java.util.Set;
 
 import org.javatuples.Pair;
 
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.Multiplicity;
 
@@ -20,8 +17,8 @@ import com.baidu.hugegraph.type.define.Multiplicity;
  */
 public abstract class EdgeLabel extends SchemaElement {
 
-    public EdgeLabel(String name, SchemaTransaction transaction) {
-        super(name, transaction);
+    public EdgeLabel(String name) {
+        super(name);
     }
 
     @Override
@@ -35,14 +32,9 @@ public abstract class EdgeLabel extends SchemaElement {
             this.properties = new HashMap<>();
         }
         for (String propertyName : propertyNames) {
-            this.properties.put(propertyName, new HugePropertyKey(propertyName, this.transaction));
+            this.properties.put(propertyName, new HugePropertyKey(propertyName));
         }
         return this;
-    }
-
-    public IndexLabel index(String indexName) {
-        // name reference the base-type column
-        return new HugeIndexLabel(indexName, HugeType.EDGE_LABEL, name, transaction);
     }
 
     public abstract boolean isDirected();
@@ -70,4 +62,7 @@ public abstract class EdgeLabel extends SchemaElement {
     public abstract EdgeLabel sortKeys(String... keys);
 
     public abstract Set<String> sortKeys();
+
+    @Override
+    public abstract EdgeLabel create();
 }

@@ -3,8 +3,6 @@ package com.baidu.hugegraph.type.schema;
 import java.util.HashMap;
 import java.util.Set;
 
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
@@ -14,8 +12,8 @@ import com.baidu.hugegraph.type.HugeType;
  */
 public abstract class VertexLabel extends SchemaElement {
 
-    public VertexLabel(String name, SchemaTransaction transaction) {
-        super(name, transaction);
+    public VertexLabel(String name) {
+        super(name);
     }
 
     @Override
@@ -29,7 +27,7 @@ public abstract class VertexLabel extends SchemaElement {
             properties = new HashMap<>();
         }
         for (String propertyName : propertyNames) {
-            properties.put(propertyName, new HugePropertyKey(propertyName, transaction));
+            properties.put(propertyName, new HugePropertyKey(propertyName));
         }
         return this;
     }
@@ -38,8 +36,6 @@ public abstract class VertexLabel extends SchemaElement {
 
     public abstract VertexLabel primaryKeys(String... keys);
 
-    public IndexLabel index(String indexName) {
-        // name reference the base-type column
-        return new HugeIndexLabel(indexName, HugeType.VERTEX_LABEL, name, transaction);
-    }
+    @Override
+    public abstract VertexLabel create();
 }
