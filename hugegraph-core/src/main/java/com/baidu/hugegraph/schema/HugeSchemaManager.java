@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.schema;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -61,23 +62,12 @@ public class HugeSchemaManager implements SchemaManager {
     }
 
     @Override
-    public void desc() {
-        // get all schema info
-        // not recommend use lamda statement.
-        List<HugePropertyKey> propertyKeys = this.transaction.getPropertyKeys();
-        for (HugePropertyKey propertyKey : propertyKeys) {
-            logger.info(propertyKey.schema());
-        }
-
-        List<HugeVertexLabel> vertexLabels = this.transaction.getVertexLabels();
-        for (HugeVertexLabel vertexLabel : vertexLabels) {
-            logger.info(vertexLabel.schema());
-        }
-
-        List<HugeEdgeLabel> edgeLabels = this.transaction.getEdgeLabels();
-        for (HugeEdgeLabel edgeLabel : edgeLabels) {
-            logger.info(edgeLabel.schema());
-        }
+    public List<SchemaElement> desc() {
+        List<SchemaElement> elements = new LinkedList<>();
+        elements.addAll(this.transaction.getPropertyKeys());
+        elements.addAll(this.transaction.getVertexLabels());
+        elements.addAll(this.transaction.getEdgeLabels());
+        return elements;
     }
 
 }
