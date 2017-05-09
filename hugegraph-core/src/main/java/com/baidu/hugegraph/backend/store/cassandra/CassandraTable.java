@@ -475,7 +475,7 @@ public abstract class CassandraTable {
     protected void createIndex(Session session, String indexName, HugeKeys column) {
 
         StringBuilder sb = new StringBuilder();
-        sb.append("CREATE INDEX ");
+        sb.append("CREATE INDEX IF NOT EXISTS ");
         sb.append(indexName);
         sb.append(" ON ");
         sb.append(this.table);
