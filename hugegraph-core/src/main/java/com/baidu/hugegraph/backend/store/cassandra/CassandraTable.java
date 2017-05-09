@@ -116,20 +116,27 @@ public abstract class CassandraTable {
             return ImmutableList.of(select);
         }
 
+        List<String> nameParts = this.idColumnName();
+
         List<List<String>> ids = new ArrayList<>(query.ids().size());
         for (Id id : query.ids()) {
-            ids.add(this.idColumnValue(id));
+            List<String> idParts = this.idColumnValue(id);
+            if (nameParts.size() != idParts.size()) {
+                throw new BackendException(String.format(
+                        "Unsupported ID format: %s (should contain %d)",
+                        id, nameParts));
+            }
+            ids.add(idParts);
         }
 
-        List<String> names = this.idColumnName();
         // query only by partition-key
-        if (names.size() == 1) {
+        if (nameParts.size() == 1) {
             List<String> idList = new ArrayList<>(ids.size());
             for (List<String> id : ids) {
                 assert id.size() == 1;
                 idList.add(id.get(0));
             }
-            select.where(QueryBuilder.in(names.get(0), idList));
+            select.where(QueryBuilder.in(nameParts.get(0), idList));
             return ImmutableList.of(select);
         }
         // query by partition-key + cluster-key
@@ -140,14 +147,14 @@ public abstract class CassandraTable {
             // so we use multi-query instead
             List<Select> selections = new ArrayList<Select>(ids.size());
             for (List<String> id : ids) {
-                assert names.size() == id.size();
+                assert nameParts.size() == id.size();
                 // NOTE: there is no Select.clone(), just use copy instead
                 Select idSelection = CopyUtil.copy(select,
                         QueryBuilder.select().from(this.table));
                 // NOTE: concat with AND relation
                 // like: pk = id and ck1 = v1 and ck2 = v2
-                for (int i = 0; i < names.size(); i++) {
-                    idSelection.where(QueryBuilder.eq(names.get(i), id.get(i)));
+                for (int i = 0; i < nameParts.size(); i++) {
+                    idSelection.where(QueryBuilder.eq(nameParts.get(i), id.get(i)));
                 }
                 selections.add(idSelection);
             }
