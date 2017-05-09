@@ -209,8 +209,11 @@ public class HugeGraph implements Graph {
 
     @Override
     public void close() throws Exception {
-        this.tx.close();
-        // this.storeProvider.close();
+        try {
+            this.tx.close();
+        } finally {
+            this.storeProvider.close();
+        }
     }
 
     @Override
