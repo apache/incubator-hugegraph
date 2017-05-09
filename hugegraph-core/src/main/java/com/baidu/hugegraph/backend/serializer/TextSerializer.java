@@ -20,7 +20,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Frequency;
@@ -59,7 +59,7 @@ public class TextSerializer extends AbstractSerializer {
 
     protected String formatSystemPropertyName(String name) {
         return String.format("%s%s%s",
-                HugeTypes.SYS_PROPERTY.name(),
+                HugeType.SYS_PROPERTY.name(),
                 COLUME_SPLITOR,
                 name);
     }
@@ -135,7 +135,7 @@ public class TextSerializer extends AbstractSerializer {
         String[] colParts = colName.split(COLUME_SPLITOR);
         String[] valParts = colValue.split(VALUE_SPLITOR);
 
-        boolean isOutEdge = colParts[0].equals(HugeTypes.EDGE_OUT.name());
+        boolean isOutEdge = colParts[0].equals(HugeType.EDGE_OUT.name());
         EdgeLabel label = this.graph.schema().edgeLabel(colParts[1]);
 
         // TODO: how to construct targetVertex with id
@@ -165,12 +165,12 @@ public class TextSerializer extends AbstractSerializer {
         // column name
         String type = colName.split(COLUME_SPLITOR, 2)[0];
         // property
-        if (type.equals(HugeTypes.VERTEX_PROPERTY.name())) {
+        if (type.equals(HugeType.VERTEX_PROPERTY.name())) {
             this.parseProperty(colName, colValue, vertex);
         }
         // edge
-        else if (type.equals(HugeTypes.EDGE_OUT.name())
-                || type.equals(HugeTypes.EDGE_IN.name())) {
+        else if (type.equals(HugeType.EDGE_OUT.name())
+                || type.equals(HugeType.EDGE_IN.name())) {
             this.parseEdge(colName, colValue, vertex);
         }
     }
@@ -224,7 +224,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public TextBackendEntry writeId(HugeTypes type, Id id) {
+    public TextBackendEntry writeId(HugeType type, Id id) {
         return new TextBackendEntry(id.prefixWith(type));
     }
 
@@ -404,7 +404,7 @@ public class TextSerializer extends AbstractSerializer {
         assert entry instanceof TextBackendEntry;
 
         TextBackendEntry textEntry = (TextBackendEntry) entry;
-        HugeTypes baseType = JsonUtil.fromJson(textEntry.column(HugeKeys.BASE_TYPE.string()), HugeTypes.class);
+        HugeType baseType = JsonUtil.fromJson(textEntry.column(HugeKeys.BASE_TYPE.string()), HugeType.class);
         String baseValue = textEntry.column(HugeKeys.BASE_VALUE.string());
         String indexName = textEntry.column(HugeKeys.NAME.string());
         String indexType = textEntry.column(HugeKeys.INDEX_TYPE.string());

@@ -23,7 +23,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public final class HugeGraphStep<S, E extends Element>
@@ -62,7 +62,7 @@ public final class HugeGraphStep<S, E extends Element>
             return filterResult(this.hasContainers,
                     graph.vertices(this.ids));
         } else {
-            ConditionQuery query = new ConditionQuery(HugeTypes.VERTEX);
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             query.offset(this.offset);
             query.limit(this.limit);
             for (HasContainer condition : this.hasContainers) {
@@ -80,7 +80,7 @@ public final class HugeGraphStep<S, E extends Element>
             return filterResult(this.hasContainers,
                     graph.edges(this.ids));
         } else {
-            ConditionQuery query = new ConditionQuery(HugeTypes.EDGE);
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
             query.offset(this.offset);
             query.limit(this.limit);
             for (HasContainer has : this.hasContainers) {

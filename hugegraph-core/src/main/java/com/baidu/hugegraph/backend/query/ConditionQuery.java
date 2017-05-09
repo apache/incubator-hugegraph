@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class ConditionQuery extends IdQuery {
@@ -15,7 +15,7 @@ public class ConditionQuery extends IdQuery {
     // conditions will be concated with `and` by default
     private List<Condition> conditions;
 
-    public ConditionQuery(HugeTypes resultType) {
+    public ConditionQuery(HugeType resultType) {
         super(resultType);
         this.conditions = new LinkedList<>();
     }

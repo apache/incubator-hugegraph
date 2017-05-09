@@ -7,7 +7,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 
 public class HugeVertexProperty<V> extends HugeProperty<V> implements VertexProperty<V> {
@@ -17,8 +17,8 @@ public class HugeVertexProperty<V> extends HugeProperty<V> implements VertexProp
     }
 
     @Override
-    public HugeTypes type() {
-        return HugeTypes.VERTEX_PROPERTY;
+    public HugeType type() {
+        return HugeType.VERTEX_PROPERTY;
     }
 
     @Override

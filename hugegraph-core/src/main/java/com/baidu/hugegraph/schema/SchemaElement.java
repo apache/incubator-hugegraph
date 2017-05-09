@@ -6,15 +6,15 @@ import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.type.Typifiable;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 
 /**
  * Created by liningrui on 2017/3/27.
  */
-public abstract class SchemaElement implements Namifiable, HugeType {
+public abstract class SchemaElement implements Namifiable, Typifiable {
 
     protected String name;
     protected Map<String, PropertyKey> properties;
@@ -73,11 +73,11 @@ public abstract class SchemaElement implements Namifiable, HugeType {
         return schema();
     }
 
-    public static boolean isSchema(HugeTypes type) {
-        if (type == HugeTypes.VERTEX_LABEL
-                || type == HugeTypes.EDGE_LABEL
-                || type == HugeTypes.PROPERTY_KEY
-                || type == HugeTypes.INDEX_LABEL) {
+    public static boolean isSchema(HugeType type) {
+        if (type == HugeType.VERTEX_LABEL
+                || type == HugeType.EDGE_LABEL
+                || type == HugeType.PROPERTY_KEY
+                || type == HugeType.INDEX_LABEL) {
             return true;
         }
         return false;

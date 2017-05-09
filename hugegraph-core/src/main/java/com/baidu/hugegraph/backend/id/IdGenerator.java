@@ -3,7 +3,7 @@ package com.baidu.hugegraph.backend.id;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -81,7 +81,7 @@ public abstract class IdGenerator {
         }
 
         @Override
-        public Id prefixWith(HugeTypes type) {
+        public Id prefixWith(HugeType type) {
             return new StringId(String.format("%x%s", type.code(), this.id));
         }
 
@@ -137,7 +137,7 @@ public abstract class IdGenerator {
         }
 
         @Override
-        public Id prefixWith(HugeTypes type) {
+        public Id prefixWith(HugeType type) {
             long t = type.code();
             this.id = (this.id & 0x00ffffffffffffffL) & (t << 56);
             return this;

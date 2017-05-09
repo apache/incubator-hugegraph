@@ -5,7 +5,7 @@ import java.util.NoSuchElementException;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.google.common.base.Preconditions;
 
@@ -35,8 +35,8 @@ public class HugeProperty<V> implements Property<V>, GraphType {
     }
 
     @Override
-    public HugeTypes type() {
-        return HugeTypes.PROPERTY;
+    public HugeType type() {
+        return HugeType.PROPERTY;
     }
 
     @Override

@@ -19,7 +19,7 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.google.common.base.Preconditions;
 
 public abstract class AbstractTransaction implements Transaction {
@@ -72,7 +72,7 @@ public abstract class AbstractTransaction implements Transaction {
         return result;
     }
 
-    public BackendEntry query(HugeTypes type, Id id) {
+    public BackendEntry query(HugeType type, Id id) {
         IdQuery q = new IdQuery(type, id);
         Iterator<BackendEntry> results = this.query(q).iterator();
         if (results.hasNext()) {
@@ -83,7 +83,7 @@ public abstract class AbstractTransaction implements Transaction {
         return null;
     }
 
-    public BackendEntry get(HugeTypes type, Id id) {
+    public BackendEntry get(HugeType type, Id id) {
         BackendEntry entry = query(type, id);
         if (entry == null) {
             throw new BackendException(String.format(
@@ -195,7 +195,7 @@ public abstract class AbstractTransaction implements Transaction {
         this.deletions.add(entry);
     }
 
-    public void removeEntry(HugeTypes type, Id id) {
+    public void removeEntry(HugeType type, Id id) {
         this.removeEntry(this.serializer.writeId(type, id));
     }
 

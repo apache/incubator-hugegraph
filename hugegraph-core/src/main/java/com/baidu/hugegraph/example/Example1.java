@@ -18,7 +18,7 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 /**
@@ -194,7 +194,7 @@ public class Example1 {
         System.out.println(">>>> query edges of vertex by sort-values: " + edgesOfVertex.toList());
 
         // query edge by condition
-        ConditionQuery q = new ConditionQuery(HugeTypes.VERTEX);
+        ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
         q.query(IdGeneratorFactory.generator().generate("author\u00021"));
         q.eq(HugeKeys.PROPERTY_KEY, "age");
 
@@ -214,7 +214,7 @@ public class Example1 {
         System.out.println(">>>> query edge by id: " + edges.toList());
 
         // query edge by condition
-        q = new ConditionQuery(HugeTypes.EDGE);
+        q = new ConditionQuery(HugeType.EDGE);
         q.eq(HugeKeys.SOURCE_VERTEX, "author\u00021");
         q.eq(HugeKeys.DIRECTION, Direction.OUT.name());
         q.eq(HugeKeys.LABEL, "authored");

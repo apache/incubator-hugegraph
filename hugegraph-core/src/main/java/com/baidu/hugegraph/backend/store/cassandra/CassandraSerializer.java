@@ -23,7 +23,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Frequency;
@@ -41,7 +41,7 @@ public class CassandraSerializer extends AbstractSerializer {
         super(graph);
     }
 
-    public CassandraBackendEntry newBackendEntry(HugeTypes type, Id id) {
+    public CassandraBackendEntry newBackendEntry(HugeType type, Id id) {
         return new CassandraBackendEntry(type, id);
     }
 
@@ -62,9 +62,9 @@ public class CassandraSerializer extends AbstractSerializer {
     protected CassandraBackendEntry newBackendEntry(HugeIndex index) {
         Id id = IdGeneratorFactory.generator().generate(index.id());
         if (index.indexType() == IndexType.SECONDARY) {
-            return newBackendEntry(HugeTypes.SECONDARY_INDEX, id);
+            return newBackendEntry(HugeType.SECONDARY_INDEX, id);
         } else {
-            return newBackendEntry(HugeTypes.SEARCH_INDEX, id);
+            return newBackendEntry(HugeType.SEARCH_INDEX, id);
         }
     }
 
@@ -107,7 +107,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
     protected CassandraBackendEntry.Row formatEdge(HugeEdge edge) {
         CassandraBackendEntry.Row row = new CassandraBackendEntry.Row(
-                HugeTypes.EDGE, edge.sourceVertex().id());
+                HugeType.EDGE, edge.sourceVertex().id());
 
         // sourceVertex + direction + edge-label-name + sortValues + targetVertex
         row.key(HugeKeys.SOURCE_VERTEX, edge.owner().id().asString());
@@ -229,7 +229,7 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public BackendEntry writeId(HugeTypes type, Id id) {
+    public BackendEntry writeId(HugeType type, Id id) {
         // NOTE: Cassandra does not need to add type prefix for id
         return newBackendEntry(type, id);
     }
@@ -381,7 +381,7 @@ public class CassandraSerializer extends AbstractSerializer {
         assert backendEntry instanceof CassandraBackendEntry;
 
         CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
-        HugeTypes baseType = JsonUtil.fromJson(entry.column(HugeKeys.BASE_TYPE), HugeTypes.class);
+        HugeType baseType = JsonUtil.fromJson(entry.column(HugeKeys.BASE_TYPE), HugeType.class);
         String baseValue = entry.column(HugeKeys.BASE_VALUE);
         String indexName = entry.column(HugeKeys.NAME);
         String indexType = entry.column(HugeKeys.INDEX_TYPE);

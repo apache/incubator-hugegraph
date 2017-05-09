@@ -10,7 +10,7 @@ import java.util.Set;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 
@@ -24,8 +24,8 @@ public abstract class PropertyKey extends SchemaElement {
     }
 
     @Override
-    public HugeTypes type() {
-        return HugeTypes.PROPERTY_KEY;
+    public HugeType type() {
+        return HugeType.PROPERTY_KEY;
     }
 
     @Override

@@ -13,7 +13,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.configuration.ConfigSpace;
 import com.baidu.hugegraph.configuration.HugeConfiguration;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
@@ -29,7 +29,7 @@ public abstract class CassandraStore implements BackendStore {
     private Cluster cluster;
     private Session session;
 
-    private Map<HugeTypes, CassandraTable> tables = null;
+    private Map<HugeType, CassandraTable> tables = null;
 
     private HugeConfiguration config = null;
 
@@ -243,7 +243,7 @@ public abstract class CassandraStore implements BackendStore {
         }
     }
 
-    protected CassandraTable table(HugeTypes type) {
+    protected CassandraTable table(HugeType type) {
         assert type != null;
         CassandraTable t = this.tables.get(type);
         if (t == null) {
@@ -284,10 +284,10 @@ public abstract class CassandraStore implements BackendStore {
 
         @Override
         protected void initTableManagers() {
-            super.tables.put(HugeTypes.VERTEX_LABEL, new CassandraTables.VertexLabel());
-            super.tables.put(HugeTypes.EDGE_LABEL, new CassandraTables.EdgeLabel());
-            super.tables.put(HugeTypes.PROPERTY_KEY, new CassandraTables.PropertyKey());
-            super.tables.put(HugeTypes.INDEX_LABEL, new CassandraTables.IndexLabel());
+            super.tables.put(HugeType.VERTEX_LABEL, new CassandraTables.VertexLabel());
+            super.tables.put(HugeType.EDGE_LABEL, new CassandraTables.EdgeLabel());
+            super.tables.put(HugeType.PROPERTY_KEY, new CassandraTables.PropertyKey());
+            super.tables.put(HugeType.INDEX_LABEL, new CassandraTables.IndexLabel());
         }
     }
 
@@ -299,8 +299,8 @@ public abstract class CassandraStore implements BackendStore {
 
         @Override
         protected void initTableManagers() {
-            super.tables.put(HugeTypes.VERTEX, new CassandraTables.Vertex());
-            super.tables.put(HugeTypes.EDGE, new CassandraTables.Edge());
+            super.tables.put(HugeType.VERTEX, new CassandraTables.Vertex());
+            super.tables.put(HugeType.EDGE, new CassandraTables.Edge());
         }
     }
 
@@ -312,8 +312,8 @@ public abstract class CassandraStore implements BackendStore {
 
         @Override
         protected void initTableManagers() {
-            super.tables.put(HugeTypes.SECONDARY_INDEX, new CassandraTables.SecondaryIndex());
-            super.tables.put(HugeTypes.SEARCH_INDEX, new CassandraTables.SearchIndex());
+            super.tables.put(HugeType.SECONDARY_INDEX, new CassandraTables.SecondaryIndex());
+            super.tables.put(HugeType.SEARCH_INDEX, new CassandraTables.SearchIndex());
         }
     }
 }

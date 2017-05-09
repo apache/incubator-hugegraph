@@ -16,7 +16,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.google.common.collect.ImmutableList;
 
@@ -35,9 +35,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     @Override
-    public HugeTypes type() {
+    public HugeType type() {
         // NOTE: we optimize the edge type that let it include direction
-        return this.owner == this.sourceVertex ? HugeTypes.EDGE_OUT : HugeTypes.EDGE_IN;
+        return this.owner == this.sourceVertex ? HugeType.EDGE_OUT : HugeType.EDGE_IN;
     }
 
     @Override
@@ -74,7 +74,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             return Direction.BOTH;
         }
 
-        if (this.type() == HugeTypes.EDGE_OUT) {
+        if (this.type() == HugeType.EDGE_OUT) {
             return Direction.OUT;
         }
         else {
@@ -185,7 +185,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeEdge switchOutDirection() {
-        if (this.type() == HugeTypes.EDGE_IN) {
+        if (this.type() == HugeType.EDGE_IN) {
             return this.switchOwner();
         }
         return this;

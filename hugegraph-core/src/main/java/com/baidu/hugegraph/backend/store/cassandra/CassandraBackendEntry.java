@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.type.HugeTypes;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class CassandraBackendEntry implements BackendEntry {
@@ -89,23 +89,23 @@ public class CassandraBackendEntry implements BackendEntry {
     }
 
     public static class Row {
-        private HugeTypes type;
+        private HugeType type;
         private Id id;
         private Map<HugeKeys, String> keys;
         private List<Property> cells;
 
-        public Row(HugeTypes type) {
+        public Row(HugeType type) {
             this(type, null);
         }
 
-        public Row(HugeTypes type, Id id) {
+        public Row(HugeType type, Id id) {
             this.type = type;
             this.id = id;
             this.keys = new ConcurrentHashMap<>();
             this.cells = new LinkedList<>();
         }
 
-        public HugeTypes type() {
+        public HugeType type() {
             return this.type;
         }
 
@@ -155,21 +155,21 @@ public class CassandraBackendEntry implements BackendEntry {
         this(null, id);
     }
 
-    public CassandraBackendEntry(HugeTypes type) {
+    public CassandraBackendEntry(HugeType type) {
         this(type, null);
     }
 
-    public CassandraBackendEntry(HugeTypes type, Id id) {
+    public CassandraBackendEntry(HugeType type, Id id) {
         this.row = new Row(type, id);
         this.subRows = new ArrayList<>();
         this.selfChanged = true;
     }
 
-    public HugeTypes type() {
+    public HugeType type() {
         return this.row.type;
     }
 
-    public void type(HugeTypes type) {
+    public void type(HugeType type) {
         this.row.type = type;
     }
 
