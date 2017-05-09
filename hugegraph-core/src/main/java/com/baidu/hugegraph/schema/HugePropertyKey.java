@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
@@ -22,8 +21,8 @@ public class HugePropertyKey extends PropertyKey {
     private DataType dataType;
     private Cardinality cardinality;
 
-    public HugePropertyKey(String name, SchemaTransaction transaction) {
-        super(name, transaction);
+    public HugePropertyKey(String name) {
+        super(name);
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
     }
@@ -141,20 +140,21 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     @Override
-    public void create() {
+    public HugePropertyKey create() {
         // Try to read, if exist throw an error
-        if (this.transaction.getPropertyKey(this.name) != null) {
+        if (this.transaction().getPropertyKey(this.name) != null) {
             throw new HugeException("The propertyKey:" + this.name + " has existed.");
         }
 
         // check name is valid
         StringUtil.verifyName(this.name);
-        this.transaction.addPropertyKey(this);
+        this.transaction().addPropertyKey(this);
+        return this;
     }
 
     @Override
     public void remove() {
-        this.transaction.removePropertyKey(this.name);
+        this.transaction().removePropertyKey(this.name);
     }
 
 }

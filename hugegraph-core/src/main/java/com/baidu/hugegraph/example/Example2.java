@@ -13,6 +13,8 @@ import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.VertexLabel;
 
 /**
  * Created by jishilei on 2017/4/2.
@@ -114,16 +116,30 @@ public class Example2 {
         schema.makePropertyKey("lang").asText().create();
         schema.makePropertyKey("date").asText().create();
 
-        schema.makeVertexLabel("person").properties("name", "age").primaryKeys("name").create();
-        schema.makeVertexLabel("software").properties("name", "lang").primaryKeys("name").create();
-        schema.makeVertexLabel("person").index("personByName").by("name").secondary().create();
+        VertexLabel person = schema.makeVertexLabel("person")
+                .properties("name", "age")
+                .primaryKeys("name")
+                .create();
 
-        schema.vertexLabel("software").index("softwareByName").by("name").search().create();
-        schema.vertexLabel("software").index("softwareByLang").by("lang").search().create();
+        VertexLabel software = schema.makeVertexLabel("software")
+                .properties("name", "lang")
+                .primaryKeys("name")
+                .create();
 
-        schema.makeEdgeLabel("knows").properties("date").create();
-        schema.makeEdgeLabel("created").properties("date").create();
-        schema.edgeLabel("created").index("createdByDate").by("date").secondary().create();
+        schema.makeIndex("personByName").on(person).by("name").secondary().create();
+
+        schema.makeIndex("softwareByName").on(software).by("name").search().create();
+        schema.makeIndex("softwareByLang").on(software).by("lang").search().create();
+
+        schema.makeEdgeLabel("knows").link("person", "person").properties("date").create();
+
+        EdgeLabel created = schema.makeEdgeLabel("created")
+                .link("person", "software")
+                .properties("date")
+                .create();
+
+        schema.makeIndex("createdByDate").on(created).by("date").secondary()
+                .create();
 
         schema.desc();
 

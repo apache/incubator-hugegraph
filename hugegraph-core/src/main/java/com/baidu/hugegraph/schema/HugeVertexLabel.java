@@ -22,8 +22,8 @@ public class HugeVertexLabel extends VertexLabel {
 
     private Set<String> primaryKeys;
 
-    public HugeVertexLabel(String name, SchemaTransaction transaction) {
-        super(name, transaction);
+    public HugeVertexLabel(String name) {
+        super(name);
         this.primaryKeys = new LinkedHashSet<>();
     }
 
@@ -53,20 +53,20 @@ public class HugeVertexLabel extends VertexLabel {
     }
 
     @Override
-    public void create() {
-        if (this.transaction.getVertexLabel(this.name) != null) {
+    public VertexLabel create() {
+        if (this.transaction().getVertexLabel(this.name) != null) {
             throw new HugeException("The vertexlabel:" + this.name + " has exised.");
         }
 
         StringUtil.verifyName(this.name);
         verifyPrimaryKeys();
-
-        this.transaction.addVertexLabel(this);
+        this.transaction().addVertexLabel(this);
+        return this;
     }
 
     @Override
     public void remove() {
-        this.transaction.removeVertexLabel(this.name);
+        this.transaction().removeVertexLabel(this.name);
     }
 
     private void verifyPrimaryKeys() {

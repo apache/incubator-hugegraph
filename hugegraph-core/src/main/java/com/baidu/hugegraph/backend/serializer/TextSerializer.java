@@ -316,8 +316,7 @@ public class TextSerializer extends AbstractSerializer {
         String primarykeys = textEntry.column(HugeKeys.PRIMARY_KEYS.string());
         String indexNames = textEntry.column(HugeKeys.INDEX_NAMES.string());
 
-        HugeVertexLabel vertexLabel = new HugeVertexLabel(name,
-                this.graph.schemaTransaction());
+        HugeVertexLabel vertexLabel = new HugeVertexLabel(name);
         vertexLabel.properties(JsonUtil.fromJson(properties, String[].class));
         vertexLabel.primaryKeys(JsonUtil.fromJson(primarykeys, String[].class));
         vertexLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
@@ -342,8 +341,7 @@ public class TextSerializer extends AbstractSerializer {
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
         String indexNames = textEntry.column(HugeKeys.INDEX_NAMES.string());
 
-        HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name,
-                this.graph.schemaTransaction());
+        HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name);
         edgeLabel.frequency(JsonUtil.fromJson(frequency, Frequency.class));
         edgeLabel.properties(JsonUtil.fromJson(properties, String[].class));
         edgeLabel.sortKeys(JsonUtil.fromJson(sortKeys, String[].class));
@@ -371,8 +369,7 @@ public class TextSerializer extends AbstractSerializer {
         String cardinality = textEntry.column(HugeKeys.CARDINALITY.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
 
-        HugePropertyKey propertyKey = new HugePropertyKey(name,
-                this.graph.schemaTransaction());
+        HugePropertyKey propertyKey = new HugePropertyKey(name);
         propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
         propertyKey.cardinality(JsonUtil.fromJson(cardinality, Cardinality.class));
         propertyKey.properties(JsonUtil.fromJson(properties, String[].class));
@@ -410,8 +407,7 @@ public class TextSerializer extends AbstractSerializer {
         String indexType = textEntry.column(HugeKeys.INDEX_TYPE.string());
         String indexFields = textEntry.column(HugeKeys.FIELDS.string());
 
-        HugeIndexLabel indexLabel = new HugeIndexLabel(indexName, baseType, baseValue,
-                this.graph.schemaTransaction());
+        HugeIndexLabel indexLabel = new HugeIndexLabel(indexName, baseType, baseValue);
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
         indexLabel.by(JsonUtil.fromJson(indexFields, String[].class));
 

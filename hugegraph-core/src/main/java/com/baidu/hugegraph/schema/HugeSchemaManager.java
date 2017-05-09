@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.google.common.base.Preconditions;
@@ -27,17 +28,30 @@ public class HugeSchemaManager implements SchemaManager {
 
     @Override
     public PropertyKey makePropertyKey(String name) {
-        return new HugePropertyKey(name, this.transaction);
+        PropertyKey propertyKey = new HugePropertyKey(name);
+        propertyKey.transaction(this.transaction);
+        return propertyKey;
     }
 
     @Override
     public VertexLabel makeVertexLabel(String name) {
-        return new HugeVertexLabel(name, this.transaction);
+        VertexLabel vertexLabel = new HugeVertexLabel(name);
+        vertexLabel.transaction(this.transaction);
+        return vertexLabel;
     }
 
     @Override
     public EdgeLabel makeEdgeLabel(String name) {
-        return new HugeEdgeLabel(name, this.transaction);
+        EdgeLabel edgeLabel = new HugeEdgeLabel(name);
+        edgeLabel.transaction(this.transaction);
+        return edgeLabel;
+    }
+
+    @Override
+    public IndexLabel makeIndex(String name) {
+        IndexLabel indexLabel = new HugeIndexLabel(name);
+        indexLabel.transaction(this.transaction);
+        return indexLabel;
     }
 
     @Override

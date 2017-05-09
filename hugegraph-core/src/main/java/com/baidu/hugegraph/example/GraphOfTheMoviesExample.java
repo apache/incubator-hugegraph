@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.type.schema.VertexLabel;
 
 /**
  * Created by liunanke on 2017/4/21.
@@ -59,7 +60,10 @@ public class GraphOfTheMoviesExample {
         schema.makePropertyKey("score").asInt().create();
         schema.makePropertyKey("roles").asText().create();
 
-        schema.makeVertexLabel("person").properties("name", "born").primaryKeys("name").create();
+        VertexLabel person = schema.makeVertexLabel("person")
+                .properties("name", "born")
+                .primaryKeys("name")
+                .create();
         schema.makeVertexLabel("movie").properties("title", "released").primaryKeys("title").create();
 
         schema.makeEdgeLabel("ACTED_IN").multiTimes().properties("roles").sortKeys("roles").create();
@@ -67,8 +71,8 @@ public class GraphOfTheMoviesExample {
         schema.makeEdgeLabel("PRODUCED").properties("score").create();
         schema.makeEdgeLabel("WROTE").properties("score").create();
 
-        schema.vertexLabel("person").index("personByName").by("name").secondary().create();
-        schema.vertexLabel("person").index("personByBorn").by("born").search().create();
+        schema.makeIndex("personByName").on(person).by("name").secondary().create();
+        schema.makeIndex("personByBorn").on(person).by("born").search().create();
 
         graph.tx().open();
 

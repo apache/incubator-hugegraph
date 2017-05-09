@@ -3,6 +3,7 @@ package com.baidu.hugegraph.schema;
 import java.util.List;
 
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
@@ -23,6 +24,7 @@ public interface SchemaManager {
 
     public EdgeLabel edgeLabel(String name);
 
-    public List<SchemaElement> desc();
+    public IndexLabel makeIndex(String name);
 
+    public List<SchemaElement> desc();
 }

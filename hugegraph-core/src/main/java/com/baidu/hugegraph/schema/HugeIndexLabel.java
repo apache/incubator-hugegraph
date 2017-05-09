@@ -24,16 +24,22 @@ public class HugeIndexLabel extends IndexLabel {
     private Set<String> indexFields;
 
     public HugeIndexLabel(String name) {
-        this(name, null, null, null);
+        this(name, null, null);
     }
 
-    public HugeIndexLabel(String name, HugeType baseType,
-            String baseValue, SchemaTransaction transaction) {
-        super(name, transaction);
+    public HugeIndexLabel(String name, HugeType baseType, String baseValue) {
+        super(name);
         this.baseType = baseType;
         this.baseValue = baseValue;
         this.indexType = IndexType.SECONDARY;
         this.indexFields = new HashSet<>();
+    }
+
+    @Override
+    public IndexLabel on(SchemaElement element) {
+        this.baseType = element.type();
+        this.baseValue = element.name();
+        return this;
     }
 
     @Override
@@ -95,44 +101,46 @@ public class HugeIndexLabel extends IndexLabel {
     }
 
     @Override
-    public void create() {
-        if (this.transaction.getIndexLabel(this.name) != null) {
+    public IndexLabel create() {
+        if (this.transaction().getIndexLabel(this.name) != null) {
             throw new HugeException("The indexLabel:" + this.name + " has exised.");
         }
 
         // TODO: should wrap update and add operation in one transaction.
-        this.updateSchemaIndexName(this.baseType, this.baseValue, this.name);
+        this.updateSchemaIndexName(this.baseType, this.baseValue);
 
         // TODO: need to check param.
-        this.transaction.addIndexLabel(this);
+        this.transaction().addIndexLabel(this);
+
+        return this;
     }
 
-    protected void updateSchemaIndexName(HugeType baseType, String baseValue, String indexName) {
+    protected void updateSchemaIndexName(HugeType baseType, String baseValue) {
         switch (baseType) {
             case VERTEX_LABEL:
-                VertexLabel vertexLabel = this.transaction.getVertexLabel(baseValue);
-                vertexLabel.indexNames(indexName);
-                this.transaction.addVertexLabel(vertexLabel);
+                VertexLabel vertexLabel = this.transaction().getVertexLabel(baseValue);
+                vertexLabel.indexNames(this.name);
+                this.transaction().addVertexLabel(vertexLabel);
                 break;
             case EDGE_LABEL:
-                EdgeLabel edgeLabel = this.transaction.getEdgeLabel(baseValue);
-                edgeLabel.indexNames(indexName);
-                this.transaction.addEdgeLabel(edgeLabel);
+                EdgeLabel edgeLabel = this.transaction().getEdgeLabel(baseValue);
+                edgeLabel.indexNames(this.name);
+                this.transaction().addEdgeLabel(edgeLabel);
                 break;
             case PROPERTY_KEY:
-                PropertyKey propertyKey = this.transaction.getPropertyKey(baseValue);
-                propertyKey.indexNames(indexName);
-                this.transaction.addPropertyKey(propertyKey);
+                PropertyKey propertyKey = this.transaction().getPropertyKey(baseValue);
+                propertyKey.indexNames(this.name);
+                this.transaction().addPropertyKey(propertyKey);
                 break;
             default:
-                String msg = String.format("can not update index name of schema type: %s",
-                        baseType.toString());
-                throw new HugeException(msg);
+                throw new HugeException(String.format(
+                        "Can not update index name of schema type: %s",
+                        baseType));
         }
     }
 
     @Override
     public void remove() {
-        this.transaction.removeIndexLabel(this.name);
+        this.transaction().removeIndexLabel(this.name);
     }
 }

@@ -10,6 +10,7 @@ import com.baidu.hugegraph.type.Typifiable;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.schema.PropertyKey;
+import com.google.common.base.Preconditions;
 
 /**
  * Created by liningrui on 2017/3/27.
@@ -21,13 +22,23 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
     protected Set<String> indexNames;
 
     // TODO: Don't reference SchemaTransaction here(to avoid mutual reference)
-    protected SchemaTransaction transaction;
+    private SchemaTransaction transaction;
 
-    public SchemaElement(String name, SchemaTransaction transaction) {
+    public SchemaElement(String name) {
         this.name = name;
-        this.transaction = transaction;
         this.properties = new HashMap<>();
         this.indexNames = new LinkedHashSet<>();
+        this.transaction = null;
+    }
+
+    protected void transaction(SchemaTransaction transaction) {
+        this.transaction = transaction;
+    }
+
+    protected SchemaTransaction transaction() {
+        Preconditions.checkNotNull(this.transaction,
+                "Transaction must not be null when creating");
+        return this.transaction;
     }
 
     public Map<String, PropertyKey> properties() {
@@ -39,7 +50,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
             this.properties = new HashMap<>();
         }
         for (String propertyName : propertyNames) {
-            this.properties.put(propertyName, new HugePropertyKey(propertyName, this.transaction));
+            this.properties.put(propertyName, new HugePropertyKey(propertyName));
         }
         return this;
     }
@@ -70,7 +81,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
 
     @Override
     public String toString() {
-        return schema();
+        return name();
     }
 
     public static boolean isSchema(HugeType type) {
@@ -85,7 +96,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
 
     public abstract String schema();
 
-    public abstract void create();
+    public abstract SchemaElement create();
 
     public abstract void remove();
 }

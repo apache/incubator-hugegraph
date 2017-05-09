@@ -70,14 +70,14 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public PropertyKey getPropertyKey(String name) {
-        BackendEntry entry = querySchema(new HugePropertyKey(name, null));
+        BackendEntry entry = querySchema(new HugePropertyKey(name));
         return this.serializer.readPropertyKey(entry);
     }
 
     public void removePropertyKey(String name) {
         logger.debug("SchemaTransaction remove property key " + name);
 
-        this.removeSchema(new HugePropertyKey(name, null));
+        this.removeSchema(new HugePropertyKey(name));
     }
 
     public void addVertexLabel(VertexLabel vertexLabel) {
@@ -88,14 +88,14 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public VertexLabel getVertexLabel(String name) {
-        BackendEntry entry = querySchema(new HugeVertexLabel(name, null));
+        BackendEntry entry = querySchema(new HugeVertexLabel(name));
         return this.serializer.readVertexLabel(entry);
     }
 
     public void removeVertexLabel(String name) {
         logger.info("SchemaTransaction remove vertex label " + name);
 
-        this.removeSchema(new HugeVertexLabel(name, null));
+        this.removeSchema(new HugeVertexLabel(name));
     }
 
     public void addEdgeLabel(EdgeLabel edgeLabel) {
@@ -108,14 +108,14 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public EdgeLabel getEdgeLabel(String name) {
-        BackendEntry entry = querySchema(new HugeEdgeLabel(name, null));
+        BackendEntry entry = querySchema(new HugeEdgeLabel(name));
         return this.serializer.readEdgeLabel(entry);
     }
 
     public void removeEdgeLabel(String name) {
         logger.info("SchemaTransaction remove edge label " + name);
 
-        this.removeSchema(new HugeEdgeLabel(name, null));
+        this.removeSchema(new HugeEdgeLabel(name));
     }
 
     public void addIndexLabel(IndexLabel indexLabel) {
