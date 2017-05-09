@@ -2,8 +2,11 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
@@ -263,7 +266,18 @@ public class CassandraTables {
         @Override
         protected List<String> idColumnValue(Id id) {
             // TODO: improve Id split()
-            return ImmutableList.copyOf(SplicingIdGenerator.split(id));
+            List<String> idParts = ImmutableList.copyOf(
+                    SplicingIdGenerator.split(id));
+
+            // ensure edge id with Direction
+            // NOTE: we assume the id without Direction if it contains 4 parts
+            // TODO: should move to Serializer
+            if (idParts.size() == 4) {
+                idParts = new LinkedList<>(idParts);
+                idParts.add(1, Direction.OUT.name());
+            }
+
+            return idParts;
         }
 
         @Override

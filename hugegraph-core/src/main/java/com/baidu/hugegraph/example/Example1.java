@@ -217,6 +217,10 @@ public class Example1 {
         edges = graph.traversal().E(id);
         System.out.println(">>>> query edge by id: " + edges.toList());
 
+        Edge edge = graph.traversal().E(id).toList().get(0);
+        edges = graph.traversal().E(edge.id());
+        System.out.println(">>>> query edge by id: " + edges.toList());
+
         // query edge by condition
         q = new ConditionQuery(HugeType.EDGE);
         q.eq(HugeKeys.SOURCE_VERTEX, "author\u00021");
@@ -256,7 +260,7 @@ public class Example1 {
         // remove edge
         id = "author\u00021\u0001OUT\u0001authored\u0001\u0001book\u0002java-2";
         edges = graph.traversal().E(id);
-        Edge edge = edges.toList().get(0);
+        edge = edges.toList().get(0);
         System.out.println(">>>> remove edge: " + edge);
         edge.remove();
     }
