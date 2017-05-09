@@ -5,9 +5,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.HugeTypes;
@@ -19,14 +16,12 @@ import com.baidu.hugegraph.type.schema.PropertyKey;
  */
 public abstract class SchemaElement implements Namifiable, HugeType {
 
-    private static final Logger logger = LoggerFactory.getLogger(SchemaElement.class);
-
     protected String name;
-
-    // TODO:This is a questionable place，mutual reference
-    protected SchemaTransaction transaction;
     protected Map<String, PropertyKey> properties;
     protected Set<String> indexNames;
+
+    // TODO: Don't reference SchemaTransaction here(to avoid mutual reference)
+    protected SchemaTransaction transaction;
 
     public SchemaElement(String name, SchemaTransaction transaction) {
         this.name = name;

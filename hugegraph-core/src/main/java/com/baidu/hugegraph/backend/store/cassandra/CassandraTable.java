@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,6 +188,13 @@ public abstract class CassandraTable {
     protected static Clause relation2Cql(Relation relation) {
         String key = relation.key().toString();
         Object value = relation.value();
+
+        // serialize value (TODO: should move to Serializer)
+        if (value instanceof Id) {
+            value = ((Id) value).asString();
+        } else if (value instanceof Direction) {
+            value = ((Direction) value).name();
+        }
 
         switch (relation.relation()) {
             case EQ:

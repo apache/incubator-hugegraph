@@ -64,7 +64,7 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     @Override
     public boolean isDirected() {
-        // TODO: please implement
+        // TODO: implement (do we need this method?)
         return true;
     }
 

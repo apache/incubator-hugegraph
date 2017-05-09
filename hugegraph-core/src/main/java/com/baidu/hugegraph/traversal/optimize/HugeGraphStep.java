@@ -128,7 +128,6 @@ public final class HugeGraphStep<S, E extends Element>
     }
 
     public static Condition convHasContainer2Condition(HasContainer has) {
-        // TODO: deal with has.getPredicate();
         try {
             HugeKeys key = string2HugeKey(has.getKey());
             Object value = has.getValue();
@@ -147,6 +146,7 @@ public final class HugeGraphStep<S, E extends Element>
             } else if (bp.equals(Compare.neq)) {
                 return Condition.neq(key, value);
             } else {
+                // TODO: deal with other Predicate
                 throw new BackendException("Not supported condition: " + bp);
             }
         } catch (IllegalArgumentException e) {
@@ -167,14 +167,21 @@ public final class HugeGraphStep<S, E extends Element>
             } else if (bp.equals(Compare.neq)) {
                 return Condition.neq(key, value);
             } else {
+                // TODO: deal with other Predicate
                 throw new BackendException("Not supported condition: " + bp);
             }
         }
     }
 
     public static HugeKeys string2HugeKey(String key) {
-        if (key.equals("~" + T.label)) {
+        if (key.equals(T.label.getAccessor())) {
             return HugeKeys.LABEL;
+        } else if (key.equals(T.id.getAccessor())) {
+            return HugeKeys.ID;
+        } else if (key.equals(T.key.getAccessor())) {
+            return HugeKeys.PROPERTY_KEY;
+        } else if (key.equals(T.value.getAccessor())) {
+            return HugeKeys.PROPERTY_VALUE;
         }
         return HugeKeys.valueOf(key);
     }

@@ -87,7 +87,6 @@ public class Example1 {
         schema.makeVertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
 
         logger.info("===============  vertexLabel & index  ================");
-        // TODO: implement index feature.
         schema.vertexLabel("person").index("personByCity").secondary().by("city").create();
         schema.vertexLabel("person").index("personByAge").search().by("age").create();
         // schemaManager.vertexLabel("author").index("byName").secondary().by("name").add();

@@ -145,7 +145,6 @@ public class HugeGraph implements Graph {
     }
 
     public AbstractSerializer serializer() {
-        // TODO: read from conf
         String name = this.configuration.get(ConfigSpace.SERIALIZER);
         AbstractSerializer serializer = SerializerFactory.serializer(name, this);
         if (serializer == null) {
