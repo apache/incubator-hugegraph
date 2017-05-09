@@ -50,7 +50,7 @@ public abstract class HugeElement implements Element, GraphType {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof HugeElement) {
+        if (!(obj instanceof HugeElement)) {
             return false;
         }
 
