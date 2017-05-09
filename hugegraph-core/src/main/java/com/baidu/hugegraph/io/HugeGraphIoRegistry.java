@@ -1,7 +1,7 @@
 package com.baidu.hugegraph.io;
 
-import java.util.Iterator;
-import java.util.List;
+import java.util.Collection;
+import java.util.LinkedList;
 
 import org.apache.tinkerpop.gremlin.structure.io.AbstractIoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
@@ -13,12 +13,15 @@ import org.apache.tinkerpop.shaded.kryo.io.Output;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
+import com.baidu.hugegraph.backend.serializer.TextSerializer;
+import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
-import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.type.schema.VertexLabel;
 
 public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
@@ -28,11 +31,13 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         return INSTANCE;
     }
 
+    private static TextSerializer textSerializer = new TextSerializer(null);
+
     public HugeGraphIoRegistry() {
         register(GryoIo.class, IdGenerator.StringId.class, new IdSerializer());
-//        register(GryoIo.class, HugePropertyKey.class, new HugePropertyKeySerializer());
-//        register(GryoIo.class, HugeVertexLabel.class, new HugeVertexLabelSerializer());
-//        register(GryoIo.class, HugeEdgeLabel.class, new HugeEdgeLabelSerializer());
+        register(GryoIo.class, HugePropertyKey.class, new PropertyKeySerializer());
+        register(GryoIo.class, HugeVertexLabel.class, new VertexLabelSerializer());
+        register(GryoIo.class, HugeEdgeLabel.class, new EdgeLabelSerializer());
     }
 
     public static class IdSerializer extends Serializer<Id> {
@@ -47,40 +52,77 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         }
     }
 
-//    private class HugePropertyKeySerializer extends Serializer<HugePropertyKey> {
-//        @Override
-//        public void write(Kryo kryo, Output output, HugePropertyKey propertyKey) {
-//            kryo.writeObject(output, propertyKey);
-//        }
-//
-//        @Override
-//        public HugePropertyKey read(Kryo kryo, Input input, Class<HugePropertyKey> aClass) {
-//            return kryo.readObject(input, HugePropertyKey.class);
-//        }
-//    }
-//
-//    private class HugeVertexLabelSerializer extends Serializer<HugeVertexLabel> {
-//        @Override
-//        public void write(Kryo kryo, Output output, HugeVertexLabel vertexLabel) {
-//            kryo.writeObject(output, vertexLabel);
-//        }
-//
-//        @Override
-//        public HugeVertexLabel read(Kryo kryo, Input input, Class<HugeVertexLabel> aClass) {
-//            return kryo.readObject(input, HugeVertexLabel.class);
-//        }
-//    }
-//
-//    private class HugeEdgeLabelSerializer extends Serializer<HugeEdgeLabel> {
-//
-//        @Override
-//        public void write(Kryo kryo, Output output, HugeEdgeLabel edgeLabel) {
-//            kryo.writeObject(output, edgeLabel);
-//        }
-//
-//        @Override
-//        public HugeEdgeLabel read(Kryo kryo, Input input, Class<HugeEdgeLabel> aClass) {
-//            return kryo.readObject(input, HugeEdgeLabel.class);
-//        }
-//    }
+    private static void writeEntry(Output output, BackendEntry entry) {
+        // write id
+        output.writeInt(entry.id().asBytes().length);
+        output.writeBytes(entry.id().asBytes());
+
+        // write columns size and data
+        output.writeInt(entry.columns().size());
+        for (BackendEntry.BackendColumn c : entry.columns()) {
+            output.writeInt(c.name.length);
+            output.writeBytes(c.name);
+            output.writeInt(c.value.length);
+            output.writeBytes(c.value);
+        }
+    }
+
+    private static BackendEntry readEntry(Input input) {
+        // read id
+        int idLen = input.readInt();
+        Id id = IdGeneratorFactory.generator().parse(input.readBytes(idLen));
+
+        // read columns size and data
+        Collection<BackendEntry.BackendColumn> columns = new LinkedList<>();
+        int columnSize = input.readInt();
+        for (int i = 0; i < columnSize; i++) {
+            BackendEntry.BackendColumn backendColumn = new BackendEntry.BackendColumn();
+            backendColumn.name = input.readBytes(input.readInt());
+            backendColumn.value = input.readBytes(input.readInt());
+            columns.add(backendColumn);
+        }
+        BackendEntry backendEntry = new TextBackendEntry(id);
+        backendEntry.columns(columns);
+        return backendEntry;
+    }
+
+    private class PropertyKeySerializer extends Serializer<PropertyKey> {
+        @Override
+        public void write(Kryo kryo, Output output, PropertyKey propertyKey) {
+            BackendEntry entry = textSerializer.writePropertyKey(propertyKey);
+            writeEntry(output, entry);
+        }
+
+        @Override
+        public PropertyKey read(Kryo kryo, Input input, Class<PropertyKey> aClass) {
+            return textSerializer.readPropertyKey(readEntry(input));
+        }
+    }
+
+    private class VertexLabelSerializer extends Serializer<VertexLabel> {
+        @Override
+        public void write(Kryo kryo, Output output, VertexLabel vertexLabel) {
+            BackendEntry entry = textSerializer.writeVertexLabel(vertexLabel);
+            writeEntry(output, entry);
+        }
+
+        @Override
+        public VertexLabel read(Kryo kryo, Input input, Class<VertexLabel> aClass) {
+            return textSerializer.readVertexLabel(readEntry(input));
+        }
+    }
+
+    private class EdgeLabelSerializer extends Serializer<EdgeLabel> {
+
+        @Override
+        public void write(Kryo kryo, Output output, EdgeLabel edgeLabel) {
+            BackendEntry entry = textSerializer.writeEdgeLabel(edgeLabel);
+            writeEntry(output, entry);
+        }
+
+        @Override
+        public EdgeLabel read(Kryo kryo, Input input, Class<EdgeLabel> aClass) {
+            return textSerializer.readEdgeLabel(readEntry(input));
+        }
+    }
 }
