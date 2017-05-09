@@ -123,7 +123,7 @@ public abstract class CassandraTable {
             List<String> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
                 throw new BackendException(String.format(
-                        "Unsupported ID format: %s (should contain %d)",
+                        "Unsupported ID format: '%s' (should contain %s)",
                         id, nameParts));
             }
             ids.add(idParts);
