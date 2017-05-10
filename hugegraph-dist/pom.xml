@@ -27,6 +27,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-cassandra</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>airline</artifactId>
             <version>0.6</version>
@@ -65,7 +70,7 @@
                 <version>2.4</version>
                 <executions>
                     <execution>
-                        <id>install-igraph</id>
+                        <id>package-hugegraph</id>
                         <phase>package</phase>
                         <goals>
                             <goal>single</goal>
@@ -102,6 +107,7 @@
                 </configuration>
             </plugin>
         </plugins>
+
     </build>
 
 </project>

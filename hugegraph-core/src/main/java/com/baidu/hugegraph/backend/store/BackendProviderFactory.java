@@ -12,8 +12,6 @@ public class BackendProviderFactory {
 
     static {
         storeProviders = new ConcurrentHashMap<>();
-        // TODO: move to hugegraph-dist
-        register("cassandra", "com.baidu.hugegraph.backend.store.cassandra.CassandraStoreProvider");
     }
 
     public static BackendStoreProvider open(String backend, String name) {

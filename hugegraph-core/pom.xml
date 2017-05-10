@@ -106,12 +106,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.datastax.cassandra</groupId>
-            <artifactId>cassandra-driver-core</artifactId>
-            <version>3.2.0</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
         </dependency>
@@ -131,54 +125,7 @@
             </testResource>
         </testResources>
         <plugins>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.3</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>
-                                shade
-                            </goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <minimizeJar>false</minimizeJar>
-                    <shadedArtifactAttached>true</shadedArtifactAttached>
-                    <shadedClassifierName>fat</shadedClassifierName>
-                    <relocations>
-                        <relocation>
-                            <pattern>com.google</pattern>
-                            <shadedPattern>shaded.guava</shadedPattern>
-                            <includes>
-                                <include>com.google.**</include>
-                            </includes>
-                            <excludes>
-                                <exclude>com.google.common.base.Optional</exclude>
-                                <exclude>com.google.common.base.Absent</exclude>
-                                <exclude>com.google.common.base.Present</exclude>
-                            </excludes>
-                        </relocation>
-                    </relocations>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 </project>

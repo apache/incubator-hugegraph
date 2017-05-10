@@ -12,8 +12,6 @@ public class SerializerFactory {
 
     static {
         serializers = new ConcurrentHashMap<>();
-        // TODO: move to hugegraph-dist
-        register("cassandra", "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
     }
 
     public static AbstractSerializer serializer(String name, HugeGraph graph) {
