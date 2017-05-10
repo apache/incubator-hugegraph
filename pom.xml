@@ -81,6 +81,7 @@
     <modules>
         <module>hugegraph-core</module>
         <module>hugegraph-dist</module>
+        <module>hugegraph-cassandra</module>
     </modules>
     <repositories>
         <repository>
