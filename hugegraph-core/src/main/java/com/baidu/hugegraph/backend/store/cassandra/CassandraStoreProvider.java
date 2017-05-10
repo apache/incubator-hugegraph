@@ -15,14 +15,7 @@ public class CassandraStoreProvider implements BackendStoreProvider {
     private static final Logger logger = LoggerFactory.getLogger(CassandraStoreProvider.class);
 
     private String keyspace;
-    private final ConcurrentHashMap<String, BackendStore> stores;
-
-    public CassandraStoreProvider(String name) {
-        Preconditions.checkNotNull(name);
-
-        this.keyspace = name;
-        this.stores = new ConcurrentHashMap<String, BackendStore>();
-    }
+    private ConcurrentHashMap<String, BackendStore> stores;
 
     @Override
     public BackendStore loadSchemaStore(final String name) {
@@ -70,6 +63,14 @@ public class CassandraStoreProvider implements BackendStoreProvider {
         Preconditions.checkState(
                 store instanceof CassandraStore.CassandraIndexStore);
         return store;
+    }
+
+    @Override
+    public void open(String name) {
+        Preconditions.checkNotNull(name);
+
+        this.keyspace = name;
+        this.stores = new ConcurrentHashMap<String, BackendStore>();
     }
 
     @Override
