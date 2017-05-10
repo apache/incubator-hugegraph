@@ -18,11 +18,10 @@ public class InMemoryDBStoreProvider implements BackendStoreProvider {
     private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStoreProvider.class);
 
     private String name;
-    private final ConcurrentHashMap<String, BackendStore> stores;
+    private ConcurrentHashMap<String, BackendStore> stores;
 
     public InMemoryDBStoreProvider(String name) {
-        this.name = name;
-        this.stores = new ConcurrentHashMap<String, BackendStore>();
+        this.open(name);
     }
 
     private BackendStore load(String name) {
@@ -49,6 +48,12 @@ public class InMemoryDBStoreProvider implements BackendStoreProvider {
     @Override
     public BackendStore loadIndexStore(String name) {
         return this.load(name);
+    }
+
+    @Override
+    public void open(String name) {
+        this.name = name;
+        this.stores = new ConcurrentHashMap<String, BackendStore>();
     }
 
     @Override

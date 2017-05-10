@@ -12,6 +12,8 @@ public interface BackendStoreProvider {
 
     public BackendStore loadIndexStore(String name);
 
+    public void open(String name);
+
     public void close();
 
     public void init();
