@@ -57,11 +57,12 @@ fi
 set -x
 if [ "$1" = "-i" ]; then
   shift
-  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/gremlin-server/log4j-server.properties $JAVA_OPTIONS -cp $CP:$CLASSPATH org.apache.tinkerpop.gremlin.server.util.GremlinServerInstall "$@"
+  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/hugegraph-server/log4j-server.properties
+  $JAVA_OPTIONS -cp $CP:$CLASSPATH org.apache.tinkerpop.gremlin.server.util.GremlinServerInstall "$@"
 else
   ARGS="$@"
   if [ $# = 0 ] ; then
     ARGS="conf/gremlin-server/hugegraph-server.yaml"
   fi
-  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/gremlin-server/log4j-server.properties $JAVA_OPTIONS -cp $CP:$CLASSPATH org.apache.tinkerpop.gremlin.server.GremlinServer $ARGS
+  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/hugegraph-server/log4j-server.properties $JAVA_OPTIONS -cp $CP:$CLASSPATH org.apache.tinkerpop.gremlin.server.GremlinServer $ARGS
 fi
