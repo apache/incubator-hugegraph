@@ -25,6 +25,8 @@ public class Example2 {
     public static void main(String[] args) {
 
         logger.info("Example2 start!");
+        RegisterUtil.registerCassandra();
+
         String confFile = Example2.class.getClassLoader().getResource("hugegraph.properties").getPath();
         HugeGraph graph = HugeFactory.open(confFile);
         graph.clearBackend();
