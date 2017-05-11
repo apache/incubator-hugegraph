@@ -73,7 +73,9 @@ public class HugeGraph implements Graph {
         try {
             this.initTransaction();
         } catch (BackendException e) {
-            logger.error("Failed to init backend: {}", e.getMessage());
+            String message = "Failed to init backend store";
+            logger.error("{}: {}", message, e.getMessage());
+            throw new HugeException(message);
         }
     }
 
