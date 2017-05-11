@@ -111,34 +111,38 @@ public class Example2 {
          * Use schema.makePropertyKey interface to create propertyKey.
          * Use schema.propertyKey interface to query propertyKey.
          */
-        schema.makePropertyKey("name").asText().create();
-        schema.makePropertyKey("age").asInt().create();
-        schema.makePropertyKey("lang").asText().create();
-        schema.makePropertyKey("date").asText().create();
+        schema.makePropertyKey("name").asText().ifNotExist().create();
+        schema.makePropertyKey("age").asInt().ifNotExist().create();
+        schema.makePropertyKey("lang").asText().ifNotExist().create();
+        schema.makePropertyKey("date").asText().ifNotExist().create();
 
         VertexLabel person = schema.makeVertexLabel("person")
                 .properties("name", "age")
                 .primaryKeys("name")
+                .ifNotExist()
                 .create();
 
         VertexLabel software = schema.makeVertexLabel("software")
                 .properties("name", "lang")
                 .primaryKeys("name")
+                .ifNotExist()
                 .create();
 
-        schema.makeIndex("personByName").on(person).by("name").secondary().create();
+        schema.makeIndex("personByName").on(person).by("name").secondary().ifNotExist().create();
 
-        schema.makeIndex("softwareByName").on(software).by("name").search().create();
-        schema.makeIndex("softwareByLang").on(software).by("lang").search().create();
+        schema.makeIndex("softwareByName").on(software).by("name").search().ifNotExist().create();
+        schema.makeIndex("softwareByLang").on(software).by("lang").search().ifNotExist().create();
 
         schema.makeEdgeLabel("knows").link("person", "person").properties("date").create();
 
         EdgeLabel created = schema.makeEdgeLabel("created")
                 .link("person", "software")
                 .properties("date")
+                .ifNotExist()
                 .create();
 
         schema.makeIndex("createdByDate").on(created).by("date").secondary()
+                .ifNotExist()
                 .create();
 
         schema.desc();

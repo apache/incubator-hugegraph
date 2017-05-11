@@ -22,18 +22,16 @@ globals << [hook: [
 //            schema.makePropertyKey("lang").asText().create()
 //            schema.makePropertyKey("date").asText().create()
 //
-//            person = schema.makeVertexLabel("person").properties("name", "age").primaryKeys("name").create()
-//
-//            software = schema.makeVertexLabel("software").properties("name", "lang").primaryKeys("name").create()
+//            def person = schema.makeVertexLabel("person").properties("name", "age").primaryKeys("name").create()
+//            def software = schema.makeVertexLabel("software").properties("name", "lang").primaryKeys("name").create()
 //
 //            schema.makeIndex("personByName").on(person).by("name").secondary().create()
-//
 //            schema.makeIndex("softwareByName").on(software).by("name").search().create()
 //            schema.makeIndex("softwareByLang").on(software).by("lang").search().create()
 //
 //            schema.makeEdgeLabel("knows").link("person", "person").properties("date").create()
 //
-//            EdgeLabel created = schema.makeEdgeLabel("created").link("person", "software").properties("date").create()
+//            def created = schema.makeEdgeLabel("created").link("person", "software").properties("date").create()
 //
 //            schema.makeIndex("createdByDate").on(created).by("date").secondary().create()
 //

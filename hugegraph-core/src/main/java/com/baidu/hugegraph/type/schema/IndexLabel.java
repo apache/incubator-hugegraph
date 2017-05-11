@@ -29,6 +29,12 @@ public abstract class IndexLabel extends SchemaElement {
 
     public abstract IndexLabel search();
 
+    @Override
+    public IndexLabel ifNotExist() {
+        this.checkExits = false;
+        return this;
+    }
+
     public abstract IndexLabel create();
 
     public abstract HugeType baseType();

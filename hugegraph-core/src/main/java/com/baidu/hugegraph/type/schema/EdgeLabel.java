@@ -64,5 +64,11 @@ public abstract class EdgeLabel extends SchemaElement {
     public abstract Set<String> sortKeys();
 
     @Override
+    public EdgeLabel ifNotExist() {
+        this.checkExits = false;
+        return this;
+    }
+
+    @Override
     public abstract EdgeLabel create();
 }
