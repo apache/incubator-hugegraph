@@ -165,17 +165,6 @@ start() {
         return 1
     }
 
-#    echo "Forking Elasticsearch..."
-#    if [ -n "$VERBOSE" ]; then
-#        "$BIN"/elasticsearch -d
-#    else
-#        "$BIN"/elasticsearch -d >/dev/null 2>&1
-#    fi
-#    wait_for_startup Elasticsearch $ELASTICSEARCH_IP $ELASTICSEARCH_PORT $ELASTICSEARCH_STARTUP_TIMEOUT_S || {
-#        echo "See $BIN/../logs/elasticsearch.log for Elasticsearch log output."  >&2
-#        return 1
-#    }
-
     echo "Forking HugeGraph-Server..."
     if [ -n "$VERBOSE" ]; then
         "$BIN"/hugegraph-server.sh conf/hugegraph-server/hugegraph-server.yaml &

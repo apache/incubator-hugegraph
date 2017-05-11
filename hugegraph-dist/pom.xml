@@ -11,13 +11,27 @@
     <name>hugegraph-dist: Tar and Distribute Archives</name>
     <artifactId>hugegraph-dist</artifactId>
 
+    <profiles>
+        <profile>
+            <id>cassandra</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.baidu.hugegraph</groupId>
+                    <artifactId>hugegraph-cassandra</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
     <properties>
-        <top.level.basedir>${project.basedir}/..</top.level.basedir>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
         <assembly.data.dir>${assembly.dir}/data</assembly.data.dir>
-        <assembly.cfilter.dir>${assembly.dir}/cfilter</assembly.cfilter.dir>
     </properties>
 
     <dependencies>
@@ -26,19 +40,11 @@
             <artifactId>hugegraph-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
-            <artifactId>hugegraph-cassandra</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>airline</artifactId>
             <version>0.6</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.cassandra</groupId>
-            <artifactId>cassandra-all</artifactId>
         </dependency>
 
         <dependency>
@@ -77,10 +83,10 @@
                         </goals>
                         <configuration>
                             <attach>false</attach>
-                            <outputDirectory>${top.level.basedir}</outputDirectory>
-                            <finalName>hugegraph-release</finalName>
                             <appendAssemblyId>false</appendAssemblyId>
+                            <outputDirectory>${top.level.basedir}</outputDirectory>
                             <descriptor>${assembly.descriptor.dir}/assembly.xml</descriptor>
+                            <finalName>hugegraph-release</finalName>
                         </configuration>
                     </execution>
                 </executions>
@@ -107,7 +113,6 @@
                 </configuration>
             </plugin>
         </plugins>
-
     </build>
 
 </project>
