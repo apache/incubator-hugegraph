@@ -153,13 +153,16 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     @Override
     public EdgeLabel create() {
-        if (this.transaction().getEdgeLabel(this.name) != null) {
+
+        StringUtil.verifyName(this.name);
+        // Try to read
+        EdgeLabel edgeLabel = this.transaction().getEdgeLabel(this.name);
+        // if edgeLabel exist and checkExits
+        if (edgeLabel != null && checkExits) {
             throw new HugeException("The edgeLabel:" + this.name + " has exised.");
         }
 
-        StringUtil.verifyName(this.name);
         verifySortKeys();
-
         this.transaction().addEdgeLabel(this);
         return this;
     }

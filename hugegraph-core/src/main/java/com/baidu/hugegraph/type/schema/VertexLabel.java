@@ -37,5 +37,11 @@ public abstract class VertexLabel extends SchemaElement {
     public abstract VertexLabel primaryKeys(String... keys);
 
     @Override
+    public VertexLabel ifNotExist() {
+        this.checkExits = false;
+        return this;
+    }
+
+    @Override
     public abstract VertexLabel create();
 }

@@ -141,12 +141,15 @@ public class HugePropertyKey extends PropertyKey {
 
     @Override
     public HugePropertyKey create() {
-        // Try to read, if exist throw an error
-        if (this.transaction().getPropertyKey(this.name) != null) {
-            throw new HugeException("The propertyKey:" + this.name + " has existed.");
+
+        StringUtil.verifyName(this.name);
+        // Try to read
+        PropertyKey propertyKey = this.transaction().getPropertyKey(this.name);
+        // if propertyKey exist and checkExits
+        if (propertyKey != null && checkExits) {
+            throw new HugeException("The property key: " + this.name + " has exist");
         }
 
-        // check name is valid
         StringUtil.verifyName(this.name);
         this.transaction().addPropertyKey(this);
         return this;

@@ -132,5 +132,11 @@ public abstract class PropertyKey extends SchemaElement {
     public abstract PropertyKey valueSet();
 
     @Override
+    public PropertyKey ifNotExist() {
+        this.checkExits = false;
+        return this;
+    }
+
+    @Override
     public abstract PropertyKey create();
 }

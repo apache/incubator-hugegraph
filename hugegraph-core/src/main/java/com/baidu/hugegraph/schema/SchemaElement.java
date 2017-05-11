@@ -18,6 +18,7 @@ import com.google.common.base.Preconditions;
 public abstract class SchemaElement implements Namifiable, Typifiable {
 
     protected String name;
+    protected boolean checkExits;
     protected Map<String, PropertyKey> properties;
     protected Set<String> indexNames;
 
@@ -26,6 +27,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
 
     public SchemaElement(String name) {
         this.name = name;
+        this.checkExits = true;
         this.properties = new HashMap<>();
         this.indexNames = new LinkedHashSet<>();
         this.transaction = null;
@@ -95,6 +97,8 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
     }
 
     public abstract String schema();
+
+    public abstract SchemaElement ifNotExist();
 
     public abstract SchemaElement create();
 

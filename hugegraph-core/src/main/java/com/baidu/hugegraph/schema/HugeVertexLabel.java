@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.StringUtil;
 import com.google.common.base.Preconditions;
@@ -54,11 +53,15 @@ public class HugeVertexLabel extends VertexLabel {
 
     @Override
     public VertexLabel create() {
-        if (this.transaction().getVertexLabel(this.name) != null) {
+
+        StringUtil.verifyName(this.name);
+        // Try to read
+        VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
+        // if vertexLabel exist and checkExits
+        if (vertexLabel != null && checkExits) {
             throw new HugeException("The vertexlabel:" + this.name + " has exised.");
         }
 
-        StringUtil.verifyName(this.name);
         verifyPrimaryKeys();
         this.transaction().addVertexLabel(this);
         return this;
