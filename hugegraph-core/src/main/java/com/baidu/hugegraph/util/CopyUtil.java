@@ -7,22 +7,38 @@ import com.baidu.hugegraph.HugeException;
 
 public class CopyUtil {
 
+    public static boolean isSimpleType(Class<?> type) {
+        if (type.isPrimitive()
+                || type.equals(String.class)
+                || type.equals(Boolean.class)) {
+            return true;
+        }
+
+        if (type.getSuperclass() != null
+                && type.getSuperclass().equals(Number.class)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
     public static <T> T cloneObject(T o, T clone) throws Exception {
         if (clone == null) {
             clone = (T) o.getClass().newInstance();
         }
         for (Field field : o.getClass().getDeclaredFields()) {
             field.setAccessible(true);
-            if (field.get(o) == null || Modifier.isFinal(field.getModifiers())) {
+            Object childObj = field.get(o);
+            if (childObj == null || Modifier.isFinal(field.getModifiers())) {
                 continue;
             }
-            if (field.getType().isPrimitive()
-                    || field.getType().equals(String.class)
-                    || field.getType().getSuperclass().equals(Number.class)
-                    || field.getType().equals(Boolean.class)) {
+
+            Class<?> declareType = field.getType();
+            Class<?> valueType = childObj.getClass();
+            if (isSimpleType(declareType) || isSimpleType(valueType)) {
                 field.set(clone, field.get(o));
             } else {
-                Object childObj = field.get(o);
                 if (childObj == o) {
                     field.set(clone, clone);
                 } else {

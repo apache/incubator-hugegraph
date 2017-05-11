@@ -21,6 +21,8 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -29,6 +31,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeFeatures.HugeVertexFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
@@ -400,16 +403,33 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     protected Query optimizeQuery(ConditionQuery query) {
+        HugeFeatures features = this.graph().features();
+
         // optimize vertex query
         Object label = query.condition(HugeKeys.LABEL);
-        if (label != null && query.resultType() == HugeType.VERTEX) {
+        if (label != null && query.resultType() == HugeType.VERTEX
+                && !features.vertex().supportsUserSuppliedIds()) {
             // query vertex by label + primary-values
             Set<String> keys = this.graph.schema().vertexLabel(
                     label.toString()).primaryKeys();
             if (!keys.isEmpty() && query.matchUserpropKeys(keys)) {
-                query.eq(HugeKeys.PRIMARY_VALUES, query.userpropValuesString());
+                String primaryValues = query.userpropValuesString();
+                query.eq(HugeKeys.PRIMARY_VALUES, primaryValues);
                 query.resetUserpropConditions();
                 logger.debug("query vertices by primaryKeys: {}", query);
+
+                // convert vertex-label + primary-key to vertex-id
+                if (IdGeneratorFactory.supportSplicing()) {
+                    Id id = SplicingIdGenerator.splicing(
+                            label.toString(),
+                            primaryValues);
+                    query.query(id);
+                    query.resetConditions();
+                } else {
+                    // assert this.store().supportsSysIndex();
+                    logger.warn("Please ensure the backend supports"
+                            + " query by primary-key: {}", query);
+                }
                 return query;
             }
         }

@@ -14,6 +14,10 @@ public class IdGeneratorFactory {
         return initedGenerator;
     }
 
+    public static boolean supportSplicing() {
+        return (initedGenerator instanceof SplicingIdGenerator);
+    }
+
     private static IdGenerator createGenerator(String generatorType) {
         if (generatorType.equalsIgnoreCase("splicing")) {
             return new SplicingIdGenerator();
@@ -23,10 +27,6 @@ public class IdGeneratorFactory {
             long workerId = 0;
             long datacenterId = 0;
             return new SnowflakeIdGenerator(workerId, datacenterId);
-        }
-        else if (generatorType.equalsIgnoreCase("bytes-splicing")) {
-            // return new BytesSplicingIdGenerator();
-            return null;
         }
 
         // add others IdGenerator here

@@ -6,7 +6,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,8 +147,7 @@ public class IndexTransaction extends AbstractTransaction {
                 }
 
                 if (indexLabel.indexType() == IndexType.SECONDARY) {
-                    String valueStr = StringUtils.join(query.userpropValues(),
-                            SplicingIdGenerator.NAME_SPLITOR);
+                    String valueStr = query.userpropValuesString();
                     indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
                     indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, name);
                     indexQuery.eq(HugeKeys.PROPERTY_VALUES, valueStr);

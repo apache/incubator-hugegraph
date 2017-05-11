@@ -1,7 +1,12 @@
 package com.baidu.hugegraph.backend.serializer;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+
+import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -33,6 +38,7 @@ import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableList;
 
 public class TextSerializer extends AbstractSerializer {
 
@@ -59,13 +65,6 @@ public class TextSerializer extends AbstractSerializer {
         }
     }
 
-    protected Object formatPropertyKey(Object key) {
-        return String.format("%s%s%s",
-                HugeType.PROPERTY.name(),
-                COLUME_SPLITOR,
-                key);
-    }
-
     protected String formatSyspropName(String name) {
         return String.format("%s%s%s",
                 HugeType.SYS_PROPERTY.name(),
@@ -75,6 +74,13 @@ public class TextSerializer extends AbstractSerializer {
 
     protected String formatSyspropName(HugeKeys col) {
         return this.formatSyspropName(col.string());
+    }
+
+    protected Object formatPropertyName(Object key) {
+        return String.format("%s%s%s",
+                HugeType.PROPERTY.name(),
+                COLUME_SPLITOR,
+                key);
     }
 
     protected String formatPropertyName(HugeProperty<?> prop) {
@@ -249,6 +255,14 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public Query writeQuery(Query query) {
+        // serialize edge query by id/conditions to
+        // query by src-vertex + edge-name
+        if (query.resultType() == HugeType.EDGE
+                && query instanceof IdQuery) {
+            return this.writeEdgeQuery((IdQuery) query);
+        }
+
+        // prefix schema-id with type
         if (SchemaElement.isSchema(query.resultType())
                 && query instanceof IdQuery) {
             // serialize query id of schema
@@ -260,6 +274,7 @@ public class TextSerializer extends AbstractSerializer {
             return result;
         }
 
+        // serialize query key
         if (!query.conditions().isEmpty()
                 && query instanceof ConditionQuery) {
             ConditionQuery result = (ConditionQuery) query;
@@ -267,7 +282,7 @@ public class TextSerializer extends AbstractSerializer {
             for (Condition.Relation r : result.relations()) {
                 // has key
                 if (r.relation() == Condition.RelationType.HAS_KEY) {
-                    r.key(formatPropertyKey(r.key()));
+                    r.key(formatPropertyName(r.key()));
                 } else {
                     // serialize and reset key
                     r.key(formatSyspropName((HugeKeys) r.key()));
@@ -276,6 +291,65 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         return query;
+    }
+
+    protected IdQuery writeEdgeQuery(IdQuery query) {
+        IdQuery result = (IdQuery) query.clone();
+        result.resetIds();
+
+        // condition
+        List<String> condParts = new ArrayList<>(query.conditions().size());
+        if (!query.conditions().isEmpty()) {
+            ((ConditionQuery) result).resetConditions();
+
+            HugeKeys[] keys = new HugeKeys[] {
+                    HugeKeys.SOURCE_VERTEX,
+                    HugeKeys.DIRECTION,
+                    HugeKeys.LABEL,
+                    HugeKeys.SORT_VALUES,
+                    HugeKeys.TARGET_VERTEX
+            };
+
+            for (HugeKeys key : keys) {
+                Object value = ((ConditionQuery) query).condition(key);
+                if (value == null) {
+                    break;
+                }
+                // serialize value
+                if (value instanceof Direction) {
+                    value = ((Direction) value) == Direction.OUT
+                            ? HugeType.EDGE_OUT.name()
+                            : HugeType.EDGE_IN.name();
+                }
+                condParts.add(value.toString());
+            }
+        }
+
+        // id
+        for (Id id : query.ids()) {
+            // TODO: improve edge id split
+            List<String> idParts = new LinkedList<>(ImmutableList.copyOf(
+                    SplicingIdGenerator.split(id)));
+            // NOTE: we assume the id without Direction if
+            // it contains 4 parts
+            if (idParts.size() == 4) {
+                // ensure edge id with Direction
+                idParts.add(1, HugeType.EDGE_OUT.name());
+            } else {
+                idParts.addAll(condParts);
+            }
+
+            result.query(SplicingIdGenerator.concat(
+                    idParts.toArray(new String[0])));
+        }
+
+        // only with conditions
+        if (query.ids().isEmpty() && condParts.size() > 0) {
+            result.query(SplicingIdGenerator.concat(
+                    condParts.toArray(new String[0])));
+        }
+
+        return result;
     }
 
     @Override
