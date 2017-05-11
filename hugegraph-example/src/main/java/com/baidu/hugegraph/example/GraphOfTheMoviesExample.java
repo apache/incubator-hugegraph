@@ -24,6 +24,7 @@ public class GraphOfTheMoviesExample {
     public static void main(String[] args) {
 
         logger.info("ExampleGraphFactory start!");
+        RegisterUtil.registerCassandra();
 
         String confFile = GraphOfTheMoviesExample.class.getClassLoader().getResource("hugegraph.properties").getPath();
         HugeGraph graph = HugeFactory.open(confFile);
