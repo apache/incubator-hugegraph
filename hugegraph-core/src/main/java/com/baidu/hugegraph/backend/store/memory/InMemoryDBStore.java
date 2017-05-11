@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.backend.store.memory;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +25,15 @@ import com.baidu.hugegraph.configuration.HugeConfiguration;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 
-/**
- * Created by jishilei on 17/3/19.
- */
+// NOTE:
+// InMemoryDBStore support:
+//  1.query by id (include query edges by id)
+//  2.query by condition (include query edges by condition)
+//  3.remove by id
+//  4.range query
+// InMemoryDBStore not support currently:
+//  1.remove by id + condition
+//  2.append/subtract index data(element-id)
 public class InMemoryDBStore implements BackendStore {
 
     private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStore.class);
@@ -40,7 +47,7 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     @Override
-    public Iterable<BackendEntry> query(Query query) {
+    public Iterable<BackendEntry> query(final Query query) {
         Map<Id, BackendEntry> rs = null;
 
         // filter by type (TODO: maybe we should let all id prefix with type)
@@ -53,8 +60,8 @@ public class InMemoryDBStore implements BackendStore {
         // query by id(s)
         if (!query.ids().isEmpty()) {
             if (query.resultType() == HugeType.EDGE) {
-                // query edge(in a vertex) by id
-                // TODO: should covert to query by id + column when serialize
+                // query edge(in a vertex) by id (or v-id + column-name prefix)
+                // TODO: separate this method into a class
                 rs = queryEdgeById(query.ids(), rs);
             } else {
                 rs = queryById(query.ids(), rs);
@@ -63,7 +70,7 @@ public class InMemoryDBStore implements BackendStore {
 
         // query by condition(s)
         if (!query.conditions().isEmpty()) {
-            rs = queryFilterBy(query.conditions(), rs);
+            rs = queryByFilter(query.conditions(), rs);
         }
 
         logger.info("[store {}] return {} for query: {}",
@@ -107,20 +114,30 @@ public class InMemoryDBStore implements BackendStore {
         Map<Id, BackendEntry> rs = new HashMap<>();
 
         for (Id id : ids) {
+            // TODO: improve id split
             String[] parts = SplicingIdGenerator.split(id);
             Id entryId = IdGeneratorFactory.generator().generate(parts[0]);
 
-            // TODO: don't assume this is edge
-            parts[0] = HugeType.EDGE_OUT.name();
-            String column = SplicingIdGenerator.concat(parts);
+            String column = null;
+            if (parts.length > 1) {
+                parts = Arrays.copyOfRange(parts, 1, parts.length);
+                column = SplicingIdGenerator.concat(parts).asString();
+            } else {
+                // all edges
+                assert parts.length == 1;
+            }
 
             if (entries.containsKey(entryId)) {
                 BackendEntry entry = entries.get(entryId);
                 // TODO: Compatible with BackendEntry
                 TextBackendEntry textEntry = (TextBackendEntry) entry;
-                if (textEntry.contains(column)) {
+                if (column == null) {
+                    // all edges in the vertex
+                    rs.put(entryId, entry);
+                } else if (textEntry.containsPrefix(column)) {
+                    // an edge in the vertex
                     TextBackendEntry result = new TextBackendEntry(entryId);
-                    result.column(column, textEntry.column(column));
+                    result.columns(textEntry.columnsWithPrefix(column));
                     rs.put(entryId, result);
                 }
             }
@@ -129,8 +146,7 @@ public class InMemoryDBStore implements BackendStore {
         return rs;
     }
 
-
-    protected Map<Id, BackendEntry> queryFilterBy(
+    protected Map<Id, BackendEntry> queryByFilter(
             List<Condition> conditions,
             Map<Id, BackendEntry> entries) {
         assert conditions.size() > 0;
@@ -209,7 +225,6 @@ public class InMemoryDBStore implements BackendStore {
     @Override
     public void init() {
         // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -221,19 +236,16 @@ public class InMemoryDBStore implements BackendStore {
     @Override
     public void beginTx() {
         // TODO Auto-generated method stub
-
     }
 
     @Override
     public void commitTx() {
         // TODO Auto-generated method stub
-
     }
 
     @Override
     public void rollbackTx() {
         // TODO Auto-generated method stub
-
     }
 
     @Override

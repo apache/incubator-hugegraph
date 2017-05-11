@@ -186,27 +186,27 @@ public class Example1 {
         // query vertex by primary-values
         vertexes = graph.traversal().V().hasLabel("author").has("id", "1");
         List<Vertex> vertexList = vertexes.toList();
-        // assert vertexList.size() == 1;
+        assert vertexList.size() == 1;
         System.out.println(">>>> query vertices by primary-values: " + vertexList);
 
         // query vertex by id and query out edges
         vertexes = graph.traversal().V("author\u00021");
         GraphTraversal<Vertex, Edge> edgesOfVertex = vertexes.outE("created");
         List<Edge> edgeList = edgesOfVertex.toList();
-        // assert edgeList.size() == 1;
+        assert edgeList.size() == 1;
         System.out.println(">>>> query edges of vertex: " + edgeList);
 
         vertexes = graph.traversal().V("author\u00021");
         GraphTraversal<Vertex, Vertex> verticesOfVertex = vertexes.out("created");
         vertexList = verticesOfVertex.toList();
-        // assert vertexList.size() == 1;
+        assert vertexList.size() == 1;
         System.out.println(">>>> query vertices of vertex: " + vertexList);
 
         // query edge by sort-values
         vertexes = graph.traversal().V("author\u00021");
         edgesOfVertex = vertexes.outE("look").has("time", "2017-4-28");
         edgeList = edgesOfVertex.toList();
-        // assert edgeList.size() == 2;
+        assert edgeList.size() == 2;
         System.out.println(">>>> query edges of vertex by sort-values: " + edgeList);
 
         // query vertex by condition (property only)
@@ -247,7 +247,7 @@ public class Example1 {
         q.eq(HugeKeys.LABEL, "authored");
         q.eq(HugeKeys.SORT_VALUES, "");
         q.eq(HugeKeys.TARGET_VERTEX, "book\u0002java-1");
-        q.eq(HugeKeys.PROPERTY_KEY, "contribution");
+        q.eq(HugeKeys.PROPERTY_KEY, "contribution"); // TODO: use hasKey() instead
 
         Iterator<Edge> edges2 = graph.edges(q);
         // assert edges2.hasNext();

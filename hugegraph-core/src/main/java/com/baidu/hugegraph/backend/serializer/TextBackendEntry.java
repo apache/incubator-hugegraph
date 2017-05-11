@@ -3,6 +3,7 @@ package com.baidu.hugegraph.backend.serializer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -51,6 +52,29 @@ public class TextBackendEntry implements BackendEntry {
     public boolean contains(String colume, String value) {
         return this.columns.containsKey(colume)
                 && this.columns.get(colume).equals(value);
+    }
+
+    public boolean containsPrefix(String column) {
+        for (String c : this.columns.keySet()) {
+            if (c.startsWith(column)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Collection<BackendColumn> columnsWithPrefix(String column) {
+        List<BackendColumn> list = new LinkedList<>();
+        for (String c : this.columns.keySet()) {
+            if (c.startsWith(column)) {
+                String v = this.columns.get(c);
+                BackendColumn bytesColumn = new BackendColumn();
+                bytesColumn.name = StringEncoding.encodeString(c);
+                bytesColumn.value = StringEncoding.encodeString(v);
+                list.add(bytesColumn);
+            }
+        }
+        return list;
     }
 
     @Override

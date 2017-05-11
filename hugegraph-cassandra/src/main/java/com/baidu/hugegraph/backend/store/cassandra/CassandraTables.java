@@ -196,10 +196,9 @@ public class CassandraTables {
 
             for (BackendEntry i : entries) {
                 CassandraBackendEntry entry = (CassandraBackendEntry) i;
-                String idStr = SplicingIdGenerator.splicing(
+                Id id = SplicingIdGenerator.splicing(
                         entry.column(HugeKeys.LABEL),
                         entry.column(HugeKeys.PRIMARY_VALUES));
-                Id id = IdGeneratorFactory.generator().generate(idStr);
                 if (!vertices.containsKey(id)) {
                     entry.id(id);
                     vertices.put(id, entry);
@@ -351,7 +350,7 @@ public class CassandraTables {
                 values[i] = row.key(KEYS[i]);
             }
             // TODO: improve Id concat()
-            return SplicingIdGenerator.concat(values);
+            return SplicingIdGenerator.concat(values).asString();
         }
     }
 

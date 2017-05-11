@@ -51,8 +51,10 @@ public class SplicingIdGenerator extends IdGenerator {
         return generate(id);
     }
 
-    public static String concat(String... ids) {
-        return String.join(IDS_SPLITOR, ids);
+    public static Id concat(String... ids) {
+        // NOTE: must support string id when using this method
+        String id = String.join(IDS_SPLITOR, ids);
+        return IdGeneratorFactory.generator().generate(id);
     }
 
     public static String[] split(Id id) {
@@ -69,8 +71,9 @@ public class SplicingIdGenerator extends IdGenerator {
         return values.split(IDS_SPLITOR);
     }
 
-    public static String splicing(String... parts) {
-        return String.join(ID_SPLITOR, parts);
+    public static Id splicing(String... parts) {
+        String id = String.join(ID_SPLITOR, parts);
+        return IdGeneratorFactory.generator().generate(id);
     }
 
     public static String[] parse(Id id) {
