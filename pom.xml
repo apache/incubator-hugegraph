@@ -57,6 +57,7 @@
     </profiles>
 
     <properties>
+        <top.level.basedir>${project.basedir}/..</top.level.basedir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <tinkerpop.version>3.2.4</tinkerpop.version>
         <junit.version>4.12</junit.version>
