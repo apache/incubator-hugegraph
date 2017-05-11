@@ -20,12 +20,6 @@ public class ConditionQuery extends IdQuery {
         this.conditions = new LinkedList<>();
     }
 
-    public ConditionQuery query(HugeKeys key) {
-        // query value by key (such as: get property value bye key)
-        this.conditions.add(new Condition.SyspropRelation(key));
-        return this;
-    }
-
     public ConditionQuery query(Condition condition) {
         this.conditions.add(condition);
         return this;
@@ -62,6 +56,11 @@ public class ConditionQuery extends IdQuery {
         return this;
     }
 
+    public ConditionQuery hasKey(String key) {
+        this.conditions.add(Condition.hasKey(key));
+        return this;
+    }
+
     @Override
     public List<Condition> conditions() {
         return this.conditions;
@@ -69,6 +68,10 @@ public class ConditionQuery extends IdQuery {
 
     public void resetConditions(List<Condition> conditions) {
         this.conditions = conditions;
+    }
+
+    public void resetConditions() {
+        this.conditions = new LinkedList<>();
     }
 
     @Override
@@ -85,6 +88,14 @@ public class ConditionQuery extends IdQuery {
             }
         }
         return true;
+    }
+
+    public List<Condition.Relation> relations() {
+        List<Condition.Relation> relations = new LinkedList<>();
+        for (Condition c : this.conditions) {
+            relations.addAll(c.relations());
+        }
+        return relations;
     }
 
     public Object condition(Object key) {

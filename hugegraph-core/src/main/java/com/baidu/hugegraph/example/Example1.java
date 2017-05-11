@@ -1,6 +1,7 @@
 package com.baidu.hugegraph.example;
 
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -177,49 +178,66 @@ public class Example1 {
 
         // query all
         GraphTraversal<Vertex, Vertex> vertexes = graph.traversal().V();
-        System.out.println(">>>> query all vertices: size=" + vertexes.toList().size());
+        int size = vertexes.toList().size();
+        assert size == 12;
+        System.out.println(">>>> query all vertices: size=" + size);
 
         // query vertex by primary-values
         vertexes = graph.traversal().V().hasLabel("author").has("id", "1");
-        System.out.println(">>>> query vertices by primary-values: " + vertexes.toList());
+        List<Vertex> vertexList = vertexes.toList();
+        // assert vertexList.size() == 1;
+        System.out.println(">>>> query vertices by primary-values: " + vertexList);
 
-        // query vertex by id
+        // query vertex by id and query out edges
         vertexes = graph.traversal().V("author\u00021");
         GraphTraversal<Vertex, Edge> edgesOfVertex = vertexes.outE("created");
-        System.out.println(">>>> query edges of vertex: " + edgesOfVertex.toList());
+        List<Edge> edgeList = edgesOfVertex.toList();
+        // assert edgeList.size() == 1;
+        System.out.println(">>>> query edges of vertex: " + edgeList);
 
         vertexes = graph.traversal().V("author\u00021");
         GraphTraversal<Vertex, Vertex> verticesOfVertex = vertexes.out("created");
-        System.out.println(">>>> query vertices of vertex: " + verticesOfVertex.toList());
+        vertexList = verticesOfVertex.toList();
+        // assert vertexList.size() == 1;
+        System.out.println(">>>> query vertices of vertex: " + vertexList);
 
         // query edge by sort-values
         vertexes = graph.traversal().V("author\u00021");
         edgesOfVertex = vertexes.outE("look").has("time", "2017-4-28");
-        System.out.println(">>>> query edges of vertex by sort-values: " + edgesOfVertex.toList());
+        edgeList = edgesOfVertex.toList();
+        // assert edgeList.size() == 2;
+        System.out.println(">>>> query edges of vertex by sort-values: " + edgeList);
 
-        // query edge by condition
+        // query vertex by condition (property only)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
         q.query(IdGeneratorFactory.generator().generate("author\u00021"));
-        q.eq(HugeKeys.PROPERTY_KEY, "age");
+        q.eq(HugeKeys.PROPERTY_KEY, "age"); // TODO: use hasKey() instead
 
         Iterator<Vertex> vertices = graph.vertices(q);
-        System.out.println(">>>> queryVertices(): " + vertices.hasNext());
+        // assert vertices.hasNext();
+        System.out.println(">>>> queryVertices(age): " + vertices.hasNext());
         while (vertices.hasNext()) {
-            System.out.println(">>>> " + vertices.next().toString());
+            System.out.println(">>>> queryVertices(age): " + vertices.next());
         }
 
         // query all edges
         GraphTraversal<Edge, Edge> edges = graph.traversal().E().limit(2);
-        System.out.println(">>>> query all edges: size=" + edges.toList().size());
+        size = edges.toList().size();
+        assert size == 2;
+        System.out.println(">>>> query all edges with limit 2: size=" + size);
 
         // query edge by id
-        String id = "author\u00021\u0001OUT\u0001authored\u0001\u0001book\u0002java-2";
+        String id = "author\u00021\u0001authored\u0001\u0001book\u0002java-2";
         edges = graph.traversal().E(id);
-        System.out.println(">>>> query edge by id: " + edges.toList());
+        edgeList = edges.toList();
+        assert edgeList.size() == 1;
+        System.out.println(">>>> query edge by id: " + edgeList);
 
         Edge edge = graph.traversal().E(id).toList().get(0);
         edges = graph.traversal().E(edge.id());
-        System.out.println(">>>> query edge by id: " + edges.toList());
+        edgeList = edges.toList();
+        assert edgeList.size() == 1;
+        System.out.println(">>>> query edge by id: " + edgeList);
 
         // query edge by condition
         q = new ConditionQuery(HugeType.EDGE);
@@ -231,24 +249,40 @@ public class Example1 {
         q.eq(HugeKeys.PROPERTY_KEY, "contribution");
 
         Iterator<Edge> edges2 = graph.edges(q);
-        System.out.println(">>>> queryEdges(): " + edges2.hasNext());
+        // assert edges2.hasNext();
+        System.out.println(">>>> queryEdges(contribution): " + edges2.hasNext());
         while (edges2.hasNext()) {
-            System.out.println(">>>> " + edges2.next().toString());
+            System.out.println(">>>> queryEdges(contribution): " + edges2.next());
         }
 
         // query by vertex label
         vertexes = graph.traversal().V().hasLabel("book");
-        System.out.println(">>>> query all books: size=" + vertexes.toList().size());
+        size = vertexes.toList().size();
+        assert size == 5;
+        System.out.println(">>>> query all books: size=" + size);
+
+        // query by vertex label and key-name
+        vertexes = graph.traversal().V().hasLabel("person").has("age");
+        size = vertexes.toList().size();
+        assert size == 5;
+        System.out.println(">>>> query all persons with age: size=" + vertexes);
 
         // query by vertex props
         vertexes = graph.traversal().V().hasLabel("person").has("city", "Taipei");
-        System.out.println(">>>> query all persons in Taipei: " + vertexes.toList());
+        vertexList = vertexes.toList();
+        assert vertexList.size() == 1;
+        System.out.println(">>>> query all persons in Taipei: " + vertexList);
 
         vertexes = graph.traversal().V().hasLabel("person").has("age", "19");
-        System.out.println(">>>> query all persons age==19: " + vertexes.toList());
+        vertexList = vertexes.toList();
+        assert vertexList.size() == 1;
+        System.out.println(">>>> query all persons age==19: " + vertexList);
 
         vertexes = graph.traversal().V().hasLabel("person").has("age", P.lt("19"));
-        System.out.println(">>>> query all persons age<19: " + vertexes.toList());
+        vertexList = vertexes.toList();
+        assert vertexList.size() == 1;
+        assert vertexList.get(0).property("age").value().equals("18");
+        System.out.println(">>>> query all persons age<19: " + vertexList);
 
         // remove vertex (and its edges)
         vertexes = graph.traversal().V().hasLabel("person").has("age", P.lt("19"));
@@ -256,13 +290,25 @@ public class Example1 {
         vertex.addEdge("look", book3, "time", "2017-5-3");
         System.out.println(">>>> remove vertex: " + vertex);
         vertex.remove();
+        try {
+            graph.traversal().V(vertex.id()).toList();
+            assert false;
+        } catch (BackendException e) {
+            assert e.getMessage().contains("Not found id");
+        }
 
         // remove edge
-        id = "author\u00021\u0001OUT\u0001authored\u0001\u0001book\u0002java-2";
+        id = "author\u00021\u0001authored\u0001\u0001book\u0002java-2";
         edges = graph.traversal().E(id);
         edge = edges.toList().get(0);
         System.out.println(">>>> remove edge: " + edge);
         edge.remove();
+        try {
+            graph.traversal().E(id).toList();
+            assert false;
+        } catch (BackendException e) {
+            assert e.getMessage().contains("Not found id");
+        }
     }
 
 }

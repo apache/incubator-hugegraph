@@ -90,7 +90,7 @@ public class BinarySerializer extends AbstractSerializer {
         ByteBuffer buffer = ByteBuffer.wrap(col.name);
         byte type = buffer.get();
         // property
-        if (type == HugeType.VERTEX_PROPERTY.code()) {
+        if (type == HugeType.PROPERTY.code()) {
             String name = readStringFromRemaining(buffer);
             Object value = parsePropertyValue(col.value);
             vertex.addProperty(name, value);

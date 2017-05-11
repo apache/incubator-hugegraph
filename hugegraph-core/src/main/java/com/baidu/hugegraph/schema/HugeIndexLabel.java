@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
@@ -119,19 +118,20 @@ public class HugeIndexLabel extends IndexLabel {
     }
 
     protected void updateSchemaIndexName(HugeType baseType, String baseValue) {
+        SchemaManager schema = this.transaction().graph().schema();
         switch (baseType) {
             case VERTEX_LABEL:
-                VertexLabel vertexLabel = this.transaction().getVertexLabel(baseValue);
+                VertexLabel vertexLabel = schema.vertexLabel(baseValue);
                 vertexLabel.indexNames(this.name);
                 this.transaction().addVertexLabel(vertexLabel);
                 break;
             case EDGE_LABEL:
-                EdgeLabel edgeLabel = this.transaction().getEdgeLabel(baseValue);
+                EdgeLabel edgeLabel = schema.edgeLabel(baseValue);
                 edgeLabel.indexNames(this.name);
                 this.transaction().addEdgeLabel(edgeLabel);
                 break;
             case PROPERTY_KEY:
-                PropertyKey propertyKey = this.transaction().getPropertyKey(baseValue);
+                PropertyKey propertyKey = schema.propertyKey(baseValue);
                 propertyKey.indexNames(this.name);
                 this.transaction().addPropertyKey(propertyKey);
                 break;
