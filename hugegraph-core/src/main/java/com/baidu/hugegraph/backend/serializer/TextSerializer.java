@@ -7,6 +7,8 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -34,7 +36,7 @@ import com.baidu.hugegraph.util.JsonUtil;
 
 public class TextSerializer extends AbstractSerializer {
 
-    private static final String COLUME_SPLITOR = SplicingIdGenerator.NAME_SPLITOR;
+    private static final String COLUME_SPLITOR = SplicingIdGenerator.IDS_SPLITOR;
     private static final String VALUE_SPLITOR = "\u0004";
 
     public TextSerializer(final HugeGraph graph) {
@@ -57,15 +59,22 @@ public class TextSerializer extends AbstractSerializer {
         }
     }
 
-    protected String formatSystemPropertyName(String name) {
+    protected Object formatPropertyKey(Object key) {
+        return String.format("%s%s%s",
+                HugeType.PROPERTY.name(),
+                COLUME_SPLITOR,
+                key);
+    }
+
+    protected String formatSyspropName(String name) {
         return String.format("%s%s%s",
                 HugeType.SYS_PROPERTY.name(),
                 COLUME_SPLITOR,
                 name);
     }
 
-    protected String formatSystemPropertyName(HugeKeys col) {
-        return this.formatSystemPropertyName(col.string());
+    protected String formatSyspropName(HugeKeys col) {
+        return this.formatSyspropName(col.string());
     }
 
     protected String formatPropertyName(HugeProperty<?> prop) {
@@ -82,6 +91,7 @@ public class TextSerializer extends AbstractSerializer {
 
     protected void parseProperty(String colName, String colValue, HugeElement owner) {
         String[] colParts = colName.split(COLUME_SPLITOR);
+        assert colParts.length == 2 : colName;
 
         // get PropertyKey by PropertyKey name
         PropertyKey pkey = this.graph.schema().propertyKey(colParts[1]);
@@ -165,7 +175,7 @@ public class TextSerializer extends AbstractSerializer {
         // column name
         String type = colName.split(COLUME_SPLITOR, 2)[0];
         // property
-        if (type.equals(HugeType.VERTEX_PROPERTY.name())) {
+        if (type.equals(HugeType.PROPERTY.name())) {
             this.parseProperty(colName, colValue, vertex);
         }
         // edge
@@ -179,9 +189,11 @@ public class TextSerializer extends AbstractSerializer {
     public BackendEntry writeVertex(HugeVertex vertex) {
         TextBackendEntry entry = new TextBackendEntry(vertex.id());
 
-        // label
-        entry.column(this.formatSystemPropertyName(HugeKeys.LABEL),
-                vertex.label());
+        // label (NOTE: maybe just with edges if label is null)
+        if (vertex.vertexLabel() != null) {
+            entry.column(this.formatSyspropName(HugeKeys.LABEL),
+                    vertex.label());
+        }
 
         // add all properties of a Vertex
         for (HugeProperty<?> prop : vertex.getProperties().values()) {
@@ -208,8 +220,12 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = (TextBackendEntry) bytesEntry;
 
         // label
-        String labelName = entry.column(this.formatSystemPropertyName(HugeKeys.LABEL));
-        VertexLabel label = this.graph.schema().vertexLabel(labelName);
+        String labelName = entry.column(
+                this.formatSyspropName(HugeKeys.LABEL));
+        VertexLabel label = null;
+        if (labelName != null) {
+            label = this.graph.schema().vertexLabel(labelName);
+        }
 
         // id
         HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
@@ -225,7 +241,10 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public TextBackendEntry writeId(HugeType type, Id id) {
-        return new TextBackendEntry(id.prefixWith(type));
+        if (SchemaElement.isSchema(type)) {
+            id = id.prefixWith(type);
+        }
+        return new TextBackendEntry(id);
     }
 
     @Override
@@ -240,6 +259,22 @@ public class TextSerializer extends AbstractSerializer {
             }
             return result;
         }
+
+        if (!query.conditions().isEmpty()
+                && query instanceof ConditionQuery) {
+            ConditionQuery result = (ConditionQuery) query;
+            assert result.allSysprop(); // no user-prop when serialize
+            for (Condition.Relation r : result.relations()) {
+                // has key
+                if (r.relation() == Condition.RelationType.HAS_KEY) {
+                    r.key(formatPropertyKey(r.key()));
+                } else {
+                    // serialize and reset key
+                    r.key(formatSyspropName((HugeKeys) r.key()));
+                }
+            }
+        }
+
         return query;
     }
 
@@ -419,12 +454,15 @@ public class TextSerializer extends AbstractSerializer {
 
         Id id = IdGeneratorFactory.generator().generate(index.id());
         TextBackendEntry entry = new TextBackendEntry(id);
-        entry.column(HugeKeys.PROPERTY_VALUES.string(), index.propertyValues());
-        entry.column(HugeKeys.INDEX_LABEL_NAME.string(), index.indexLabelName());
+        entry.column(formatSyspropName(HugeKeys.PROPERTY_VALUES),
+                index.propertyValues());
+        entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
+                index.indexLabelName());
         // TODO: try to make these code more clear.
         Id[] ids = index.elementIds().toArray(new Id[0]);
         assert ids.length == 1;
-        entry.column(HugeKeys.ELEMENT_IDS.string(), ids[0].asString());
+        entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
+                ids[0].asString());
         return entry;
     }
 
@@ -438,9 +476,12 @@ public class TextSerializer extends AbstractSerializer {
         assert backendEntry instanceof TextBackendEntry;
         TextBackendEntry entry = (TextBackendEntry) backendEntry;
 
-        String indexValues = entry.column(HugeKeys.PROPERTY_VALUES.string());
-        String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME.string());
-        String elementIds = entry.column(HugeKeys.ELEMENT_IDS.string());
+        String indexValues = entry.column(
+                formatSyspropName(HugeKeys.PROPERTY_VALUES));
+        String indexLabelName = entry.column(
+                formatSyspropName(HugeKeys.INDEX_LABEL_NAME));
+        String elementIds = entry.column(
+                formatSyspropName(HugeKeys.ELEMENT_IDS));
 
         IndexLabel indexLabel = this.graph.schemaTransaction().getIndexLabel(indexLabelName);
 
