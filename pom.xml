@@ -84,6 +84,7 @@
         <module>hugegraph-dist</module>
         <module>hugegraph-cassandra</module>
         <module>hugegraph-example</module>
+        <module>hugegraph-test</module>
     </modules>
     <repositories>
         <repository>

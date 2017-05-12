@@ -19,11 +19,14 @@
 
 package com.baidu.hugegraph.base;
 
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.tinkerpop.gremlin.AbstractGremlinSuite;
 import org.apache.tinkerpop.gremlin.algorithm.generator.CommunityGeneratorTest;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalEngine;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
+
+import com.baidu.hugegraph.server.RegisterUtil;
 
 /**
  * Standard test suite for tinkerpop graph
@@ -32,7 +35,8 @@ import org.junit.runners.model.RunnerBuilder;
  */
 public class HugeStructureBasicSuite extends AbstractGremlinSuite {
     /**
-     * This list of tests in the suite that will be executed.  Gremlin developers should add to this list
+     * This list of tests in the suite that will be executed.
+     * Gremlin developers should add to this list
      * as needed to enforce tests upon implementations.
      */
     private static final Class<?>[] allTests = new Class<?>[] {
@@ -67,7 +71,13 @@ public class HugeStructureBasicSuite extends AbstractGremlinSuite {
     };
 
     @SuppressWarnings("deprecation")
-    public HugeStructureBasicSuite(final Class<?> klass, final RunnerBuilder builder) throws InitializationError {
-        super(klass, builder, allTests, null, false, TraversalEngine.Type.STANDARD);
+    public HugeStructureBasicSuite(final Class<?> klass, final RunnerBuilder builder)
+            throws InitializationError, ConfigurationException {
+        super(klass, builder, allTests, null, false,
+                TraversalEngine.Type.STANDARD);
+
+        String confFile = "conf/hugegraph-test.yaml";
+        RegisterUtil.registerComponent(confFile);
+
     }
 }

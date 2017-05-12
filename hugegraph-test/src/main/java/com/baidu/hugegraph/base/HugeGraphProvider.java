@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.LoadGraphWith;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -21,6 +22,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.configuration.ConfigSpace;
+import com.baidu.hugegraph.server.RegisterUtil;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeFeatures;
@@ -61,6 +63,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
     @Override
     public Graph openTestGraph(final Configuration config) {
+
         HugeGraph graph = (HugeGraph) super.openTestGraph(config);
 
         graph.clearBackend();

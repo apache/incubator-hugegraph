@@ -19,6 +19,7 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.server.RegisterUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -109,7 +110,6 @@ public class Example1 {
         schema.makeEdgeLabel("includes").singleTime().linkOne2Many().create();
         schema.makeEdgeLabel("includedIn").linkMany2One().create();
         schema.makeEdgeLabel("rated").linkMany2Many().link("reviewer", "recipe").create();
-
 
         logger.info("===============  schemaManager desc  ================");
         //schemaManager.desc();
