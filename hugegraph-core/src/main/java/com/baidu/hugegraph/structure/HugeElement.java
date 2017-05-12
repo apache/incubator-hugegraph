@@ -163,7 +163,7 @@ public abstract class HugeElement implements Element, GraphType {
                 return (Id) idValue;
             }
             // error
-            String msg = "Not supported id type(must be a number or string): ";
+            String msg = "Unsupported id type(must be a number or string): ";
             msg += idValue.getClass().getSimpleName();
             throw new UnsupportedOperationException(msg);
         }

@@ -135,7 +135,7 @@ public class Example1 {
 
         logger.info("===============  addVertex  ================");
         Vertex james = tx.addVertex(T.label, "author",
-                "id", 1, "name", "James Gosling", "age", "60", "lived", "");
+                "id", 1, "name", "James Gosling", "age", "62", "lived", "Canadian");
 
         Vertex java = tx.addVertex(T.label, "language", "name", "java");
         Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
@@ -209,13 +209,14 @@ public class Example1 {
         assert edgeList.size() == 2;
         System.out.println(">>>> query edges of vertex by sort-values: " + edgeList);
 
-        // query vertex by condition (property only)
+        // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
         q.query(IdGeneratorFactory.generator().generate("author\u00021"));
-        q.eq(HugeKeys.PROPERTY_KEY, "age"); // TODO: use hasKey() instead
+        // TODO: remove the PROPERTIES which may just be used by Cassandra
+        // q.hasKey(HugeKeys.PROPERTIES, "age");
 
         Iterator<Vertex> vertices = graph.vertices(q);
-        // assert vertices.hasNext();
+        assert vertices.hasNext();
         System.out.println(">>>> queryVertices(age): " + vertices.hasNext());
         while (vertices.hasNext()) {
             System.out.println(">>>> queryVertices(age): " + vertices.next());
@@ -243,14 +244,15 @@ public class Example1 {
         // query edge by condition
         q = new ConditionQuery(HugeType.EDGE);
         q.eq(HugeKeys.SOURCE_VERTEX, "author\u00021");
-        q.eq(HugeKeys.DIRECTION, Direction.OUT.name());
+        q.eq(HugeKeys.DIRECTION, Direction.OUT);
         q.eq(HugeKeys.LABEL, "authored");
         q.eq(HugeKeys.SORT_VALUES, "");
         q.eq(HugeKeys.TARGET_VERTEX, "book\u0002java-1");
-        q.eq(HugeKeys.PROPERTY_KEY, "contribution"); // TODO: use hasKey() instead
+        // NOTE: query edge by has-key just supported by Cassandra
+        // q.hasKey(HugeKeys.PROPERTIES, "contribution");
 
         Iterator<Edge> edges2 = graph.edges(q);
-        // assert edges2.hasNext();
+        assert edges2.hasNext();
         System.out.println(">>>> queryEdges(contribution): " + edges2.hasNext());
         while (edges2.hasNext()) {
             System.out.println(">>>> queryEdges(contribution): " + edges2.next());
@@ -266,7 +268,7 @@ public class Example1 {
         vertexes = graph.traversal().V().hasLabel("person").has("age");
         size = vertexes.toList().size();
         assert size == 5;
-        System.out.println(">>>> query all persons with age: size=" + vertexes);
+        System.out.println(">>>> query all persons with age: size=" + size);
 
         // query by vertex props
         vertexes = graph.traversal().V().hasLabel("person").has("city", "Taipei");

@@ -22,7 +22,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.google.common.collect.ImmutableList;
 
 public final class HugeVertexStep<E extends Element>
         extends VertexStep<E> implements HasContainerHolder {
@@ -62,9 +61,9 @@ public final class HugeVertexStep<E extends Element>
         Iterator<Vertex> vertices = graph.adjacentVertices(edges);
         if (logger.isDebugEnabled()) {
             logger.debug("HugeVertexStep.vertices(): "
-                    + "adjacent vertices of {}={}, has={}",
+                    + "is there adjacent vertices of {}: {}, has={}",
                     vertex.id(),
-                    ImmutableList.copyOf(vertices),
+                    vertices.hasNext(),
                     this.hasContainers);
         }
 

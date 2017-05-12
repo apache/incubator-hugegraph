@@ -280,12 +280,11 @@ public class TextSerializer extends AbstractSerializer {
             ConditionQuery result = (ConditionQuery) query;
             assert result.allSysprop(); // no user-prop when serialize
             for (Condition.Relation r : result.relations()) {
-                // has key
+                // serialize and reset key
+                r.key(formatSyspropName((HugeKeys) r.key()));
+                // serialize has-key
                 if (r.relation() == Condition.RelationType.HAS_KEY) {
-                    r.key(formatPropertyName(r.key()));
-                } else {
-                    // serialize and reset key
-                    r.key(formatSyspropName((HugeKeys) r.key()));
+                    r.value(formatPropertyName(r.value()));
                 }
             }
         }
@@ -300,8 +299,6 @@ public class TextSerializer extends AbstractSerializer {
         // condition
         List<String> condParts = new ArrayList<>(query.conditions().size());
         if (!query.conditions().isEmpty()) {
-            ((ConditionQuery) result).resetConditions();
-
             HugeKeys[] keys = new HugeKeys[] {
                     HugeKeys.SOURCE_VERTEX,
                     HugeKeys.DIRECTION,
@@ -322,6 +319,8 @@ public class TextSerializer extends AbstractSerializer {
                             : HugeType.EDGE_IN.name();
                 }
                 condParts.add(value.toString());
+
+                ((ConditionQuery) result).unsetCondition(key);
             }
         }
 

@@ -24,6 +24,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.configuration.HugeConfiguration;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.google.common.base.Preconditions;
 
 // NOTE:
 // InMemoryDBStore support:
@@ -63,6 +64,8 @@ public class InMemoryDBStore implements BackendStore {
                 // query edge(in a vertex) by id (or v-id + column-name prefix)
                 // TODO: separate this method into a class
                 rs = queryEdgeById(query.ids(), rs);
+                Preconditions.checkState(query.conditions().isEmpty(),
+                        "Not support querying edge by %s", query.conditions());
             } else {
                 rs = queryById(query.ids(), rs);
             }
@@ -184,7 +187,7 @@ public class InMemoryDBStore implements BackendStore {
 
         // TODO: deal with others Relation like: <, >=, ...
         if (r.relation() == Condition.RelationType.HAS_KEY) {
-            return entry.contains(key);
+            return entry.contains(r.value().toString());
         } else if (r.relation() == Condition.RelationType.EQ) {
             return entry.contains(key, r.value().toString());
         } else if (entry.contains(key)) {

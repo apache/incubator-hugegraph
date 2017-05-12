@@ -71,6 +71,6 @@ public class HugeProperty<V> implements Property<V>, GraphType {
 
     @Override
     public String toString() {
-        return String.format("{type=%s, value=%s}", this.key, this.value);
+        return String.format("%s=%s", this.key(), this.value);
     }
 }
