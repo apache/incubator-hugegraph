@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.server.RegisterUtil;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
 /**
@@ -46,7 +47,8 @@ public class GraphOfTheMoviesExample {
         GraphTraversal<Edge, Edge> edges = graph.traversal().E();
         System.out.println(">>>> query all edges: size=" + edges.toList().size());
 
-        List<Edge> tomhanksMovies = graph.traversal().V().hasLabel("person").has("name", "Tom Hanks").outE("ACTED_IN").toList();
+        List<Edge> tomhanksMovies =
+                graph.traversal().V().hasLabel("person").has("name", "Tom Hanks").outE("ACTED_IN").toList();
         System.out.println(">>>> Tom Hanks ACTED_IN: " + tomhanksMovies);
     }
 
