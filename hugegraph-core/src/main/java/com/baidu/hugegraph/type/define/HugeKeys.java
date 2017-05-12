@@ -11,28 +11,32 @@ public enum HugeKeys {
 
     // column names of schema type (VertexLabel)
     PROPERTIES(50, "properties"),
-    PARTITION_KEYS(51, "partitionKeys"),
-    CLUSTERING_KEYS(52, "clusteringKeys"),
-    PRIMARY_KEYS(56, "primaryKeys"),
-    INDEX_NAMES(57, "indexNames"),
+    PRIMARY_KEYS(51, "primaryKeys"),
+    INDEX_NAMES(52, "indexNames"),
 
     // column names of schema type (EdgeLabel)
-    MULTIPLICITY(101, "multiplicity"),
-    CARDINALITY(102, "cardinality"),
-    SRC_VERTEX_LABEL(103, "srcVertexLabel"),
-    TGT_VERTEX_LABEL(104, "tgtVertexLabel"),
-    SORT_KEYS(105, "sortKeys"),
-    LINKS(106, "links"),
-    FREQUENCY(107, "frequency"),
+    MULTIPLICITY(81, "multiplicity"),
+    CARDINALITY(82, "cardinality"),
+    SRC_VERTEX_LABEL(83, "srcVertexLabel"),
+    TGT_VERTEX_LABEL(84, "tgtVertexLabel"),
+    SORT_KEYS(85, "sortKeys"),
+    LINKS(86, "links"),
+    FREQUENCY(87, "frequency"),
 
     // column names of schema type (PropertyKey)
-    DATA_TYPE(150, "dataType"),
+    DATA_TYPE(120, "dataType"),
 
     // column names of schema type (IndexLabel)
-    BASE_TYPE(175, "baseType"),
-    BASE_VALUE(176, "baseValue"),
-    INDEX_TYPE(177, "indexType"),
-    FIELDS(178, "fields"),
+    BASE_TYPE(150, "baseType"),
+    BASE_VALUE(151, "baseValue"),
+    INDEX_TYPE(152, "indexType"),
+    FIELDS(153, "fields"),
+
+    // column names of index data
+    INDEX_NAME(180, "indexName"),
+    PROPERTY_VALUES(181, "propertyValues"),
+    INDEX_LABEL_NAME(182, "indexLabelName"),
+    ELEMENT_IDS(183, "elementIds"),
 
     // column names of data type (Vertex/Edge)
     LABEL(200, "label"),
@@ -42,14 +46,7 @@ public enum HugeKeys {
     PROPERTY_VALUE(204, "propertyValue"),
     DIRECTION(205, "direction"),
     SORT_VALUES(206, "sortValues"),
-    PRIMARY_VALUES(207, "primaryValues"),
-
-    // column names of index type
-    INDEX_NAME(220, "indexName"),
-    PROPERTY_VALUES(221, "propertyValues"),
-    INDEX_LABEL_NAME(222, "indexLabelName"),
-    ELEMENT_IDS(223, "elementIds");
-
+    PRIMARY_VALUES(207, "primaryValues");
 
     // HugeKeys define
     private byte code = 0;
