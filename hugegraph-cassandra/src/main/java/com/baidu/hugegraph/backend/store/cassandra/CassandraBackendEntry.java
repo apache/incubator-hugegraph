@@ -2,97 +2,25 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class CassandraBackendEntry implements BackendEntry {
 
-    public static class Property {
-        public static final Property EXIST = new Property(
-                    HugeKeys.PROPERTY_KEY, "~exist",
-                    HugeKeys.PROPERTY_VALUE, "1");
-
-        private HugeKeys nameType;
-        private HugeKeys valueType;
-        private String name;
-        private String value;
-
-        public Property(HugeKeys nameType, String name,
-                HugeKeys valueType, String value) {
-            assert nameType != null && name != null;
-            this.nameType = nameType;
-            this.name = name;
-            this.valueType = valueType;
-            this.value = value;
-        }
-
-        public HugeKeys nameType() {
-            return this.nameType;
-        }
-
-        public void nameType(HugeKeys nameType) {
-            this.nameType = nameType;
-        }
-
-        public HugeKeys valueType() {
-            return this.valueType;
-        }
-
-        public void valueType(HugeKeys valueType) {
-            this.valueType = valueType;
-        }
-
-        public String name() {
-            return this.name;
-        }
-
-        public void name(String name) {
-            this.name = name;
-        }
-
-        public String value() {
-            return this.value;
-        }
-
-        public void value(String value) {
-            this.value = value;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof Property)) {
-                return false;
-            }
-
-            Property other = (Property) o;
-            return (this.name.equals(other.name)
-                    && this.nameType.equals(other.nameType)
-                    && this.value.equals(other.value)
-                    && this.valueType.equals(other.valueType));
-        }
-
-        @Override
-        public String toString() {
-            return String.format("Cell{%s(%s): %s(%s)}",
-                    this.name,
-                    this.nameType,
-                    this.value,
-                    this.valueType);
-        }
-    }
-
     public static class Row {
         private HugeType type;
         private Id id;
-        private Map<HugeKeys, String> keys;
-        private List<Property> cells;
+        private Map<HugeKeys, Object> columns;
 
         public Row(HugeType type) {
             this(type, null);
@@ -101,8 +29,7 @@ public class CassandraBackendEntry implements BackendEntry {
         public Row(HugeType type, Id id) {
             this.type = type;
             this.id = id;
-            this.keys = new ConcurrentHashMap<>();
-            this.cells = new LinkedList<>();
+            this.columns = new ConcurrentHashMap<>();
         }
 
         public HugeType type() {
@@ -113,37 +40,49 @@ public class CassandraBackendEntry implements BackendEntry {
             return this.id;
         }
 
-        public void key(HugeKeys key, String value) {
-            this.keys.put(key, value);
+        public Map<HugeKeys, Object> columns() {
+            return this.columns;
         }
 
-        public void key(HugeKeys key, int value) {
-            this.keys.put(key, String.valueOf(value));
+        @SuppressWarnings("unchecked")
+        public <T> T column(HugeKeys key) {
+            // the T must be primitive type, or list/set/map of primitive type
+            return (T) this.columns.get(key);
         }
 
-        public String key(HugeKeys key) {
-            return this.keys.get(key);
+        public <T> void column(HugeKeys key, T value) {
+            this.columns.put(key, value);
         }
 
-        public Map<HugeKeys, String> keys() {
-            return this.keys;
+        public <T> void column(HugeKeys key, T value, Cardinality c) {
+            switch (c) {
+                case SINGLE:
+                    this.column(key, value);
+                    break;
+                case SET:
+                    this.columns.putIfAbsent(key,  new LinkedHashSet<>());
+                    this.<Set<T>>column(key).add(value);
+                    break;
+                case LIST:
+                    this.columns.putIfAbsent(key,  new LinkedList<>());
+                    this.<List<T>>column(key).add(value);
+                    break;
+                default:
+                    throw new AssertionError("Unsupported cardinality: " + c);
+            }
         }
 
-        public void cell(Property value) {
-            this.cells.add(value);
-        }
-
-        public List<Property> cells() {
-            return this.cells;
+        public <T> void column(HugeKeys key, String name, T value) {
+            this.columns.putIfAbsent(key, new ConcurrentHashMap<>());
+            this.<Map<String, T>>column(key).put(name, value);
         }
 
         @Override
         public String toString() {
-            return String.format("Row{type=%s, id=%s, keys=%s, cells=%s}",
+            return String.format("Row{type=%s, id=%s, columns=%s}",
                     this.type,
                     this.id,
-                    this.keys,
-                    this.cells);
+                    this.columns);
         }
     }
 
@@ -195,24 +134,24 @@ public class CassandraBackendEntry implements BackendEntry {
         return this.row;
     }
 
-    public Map<HugeKeys, String> keys() {
-        return this.row.keys();
+    public Map<HugeKeys, Object> columnsMap() {
+        return this.row.columns();
     }
 
-    public List<Property> cells() {
-        return this.row.cells();
+    public <T> void column(HugeKeys key, T value) {
+        this.row.column(key, value);
     }
 
-    public void column(HugeKeys key, String value) {
-        this.row.key(key, value);
+    public <T> void column(HugeKeys key, String name, T value) {
+        this.row.column(key, name, value);
     }
 
-    public void column(Property cell) {
-        this.row.cell(cell);
+    public <T> void column(HugeKeys key, T value, Cardinality c) {
+        this.row.column(key, value, c);
     }
 
-    public String column(HugeKeys key) {
-        return this.row.key(key);
+    public <T> T column(HugeKeys key) {
+        return this.row.column(key);
     }
 
     public void subRow(Row row) {
