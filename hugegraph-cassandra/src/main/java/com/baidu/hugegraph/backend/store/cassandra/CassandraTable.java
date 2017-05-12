@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
@@ -31,7 +31,6 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Delete;
-import com.datastax.driver.core.querybuilder.Delete.Where;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -84,12 +83,12 @@ public abstract class CassandraTable {
         }
 
         // order-by
-        for (Entry<HugeKeys, Order> order : query.orders().entrySet()) {
+        for (Map.Entry<HugeKeys, Order> order : query.orders().entrySet()) {
             if (order.getValue() == Order.ASC) {
-                select.orderBy(QueryBuilder.asc(order.getKey().name()));
+                select.orderBy(QueryBuilder.asc(formatKey(order.getKey())));
             } else {
                 assert order.getValue() == Order.DESC;
-                select.orderBy(QueryBuilder.desc(order.getKey().name()));
+                select.orderBy(QueryBuilder.desc(formatKey(order.getKey())));
             }
         }
 
@@ -187,7 +186,7 @@ public abstract class CassandraTable {
                 Condition.Relation r = (Condition.Relation) condition;
                 return relation2Cql(r);
             default:
-                String msg = "Not supported condition: " + condition;
+                String msg = "Unsupported condition: " + condition;
                 throw new AssertionError(msg);
         }
     }
@@ -214,9 +213,11 @@ public abstract class CassandraTable {
                 return QueryBuilder.lt(key, value);
             case LTE:
                 return QueryBuilder.lte(key, value);
+            case HAS_KEY:
+                return QueryBuilder.containsKey(key, value);
             case NEQ:
             default:
-                throw new AssertionError("Not supported relation: " + relation);
+                throw new AssertionError("Unsupported relation: " + relation);
         }
     }
 
@@ -239,26 +240,9 @@ public abstract class CassandraTable {
         List<Definition> cols = row.getColumnDefinitions().asList();
         for (Definition col : cols) {
             String name = col.getName();
-            String value = row.getString(name);
-            HugeKeys key = HugeKeys.valueOf(name.toUpperCase());
+            Object value = row.getObject(name);
 
-            if (this.isColumnKey(key)) {
-                entry.column(key, value);
-            } else if (this.isCellKey(key)) {
-                // about key: such as prop-key, now let's get prop-value by it
-                // TODO: we should improve this code,
-                // let Vertex and Edge implement results2Entries()
-                HugeKeys cellKeyType = key;
-                String cellKeyValue = value;
-                HugeKeys cellValueType = this.cellValueType(cellKeyType);
-                String cellValue = row.getString(cellValueType.name());
-
-                entry.column(new CassandraBackendEntry.Property(
-                        cellKeyType, cellKeyValue,
-                        cellValueType, cellValue));
-            } else {
-                assert isCellValue(key);
-            }
+            entry.column(parseKey(name), value);
         }
 
         return entry;
@@ -276,54 +260,28 @@ public abstract class CassandraTable {
         return entries;
     }
 
-    protected boolean isColumnKey(HugeKeys key) {
-        return true;
+    protected String formatKey(HugeKeys key) {
+        return key.name();
     }
 
-    protected boolean isCellKey(HugeKeys key) {
-        return false;
-    }
-
-    protected boolean isCellValue(HugeKeys key) {
-        return false;
-    }
-
-    protected HugeKeys cellValueType(HugeKeys key) {
-        return null;
+    protected HugeKeys parseKey(String name) {
+        return HugeKeys.valueOf(name.toUpperCase());
     }
 
     public void insert(CassandraBackendEntry.Row entry) {
-        assert entry.keys().size() + entry.cells().size() > 0;
+        assert entry.columns().size() > 0;
+        Insert insert = QueryBuilder.insertInto(this.table);
 
-        // insert keys
-        if (entry.cells().isEmpty()) {
-            Insert insert = QueryBuilder.insertInto(this.table);
-
-            for (Entry<HugeKeys, String> k : entry.keys().entrySet()) {
-                insert.value(k.getKey().name(), k.getValue());
-            }
-
-            this.batch.add(insert);
+        for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
+            insert.value(this.formatKey(c.getKey()), c.getValue());
         }
-        // insert keys + values
-        else {
-            for (CassandraBackendEntry.Property i : entry.cells()) {
-                Insert insert = QueryBuilder.insertInto(this.table);
 
-                for (Entry<HugeKeys, String> k : entry.keys().entrySet()) {
-                    insert.value(k.getKey().name(), k.getValue());
-                }
-
-                insert.value(i.nameType().name(), i.name());
-                insert.value(i.valueType().name(), i.value());
-                this.batch.add(insert);
-            }
-        }
+        this.batch.add(insert);
     }
 
     public void delete(CassandraBackendEntry.Row entry) {
-        // delete by id
-        if (entry.keys().isEmpty()) {
+        // delete just by id
+        if (entry.columns().isEmpty()) {
             List<String> idNames = this.idColumnName();
             List<String> idValues = this.idColumnValue(entry.id());
             assert idNames.size() == idValues.size();
@@ -335,30 +293,17 @@ public abstract class CassandraTable {
 
             this.batch.add(delete);
         }
-        // delete just by keys (TODO: improve EXIST)
-        else if (entry.cells().isEmpty() || entry.cells().contains(
-                CassandraBackendEntry.Property.EXIST)) {
+        // delete just by column keys (TODO: delete by id + keys)
+        else {
             Delete delete = QueryBuilder.delete().from(this.table);
-            for (Entry<HugeKeys, String> k : entry.keys().entrySet()) {
-                delete.where(QueryBuilder.eq(k.getKey().name(), k.getValue()));
+            for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
+                // TODO: should support other filters (like containsKey)
+                delete.where(QueryBuilder.eq(
+                        formatKey(c.getKey()),
+                        c.getValue()));
             }
 
             this.batch.add(delete);
-        }
-        // delete by key + value-key (such as vertex property)
-        else {
-            for (CassandraBackendEntry.Property i : entry.cells()) {
-                Delete delete = QueryBuilder.delete().from(this.table);
-                Where where = delete.where();
-
-                for (Entry<HugeKeys, String> k : entry.keys().entrySet()) {
-                    where.and(QueryBuilder.eq(k.getKey().name(), k.getValue()));
-                }
-
-                where.and(QueryBuilder.eq(i.nameType().name(), i.name()));
-
-                this.batch.add(delete);
-            }
         }
     }
 
@@ -438,7 +383,7 @@ public abstract class CassandraTable {
         // columns
         for (int i = 0; i < columns.length; i++) {
             // column name
-            sb.append(columns[i].name());
+            sb.append(formatKey(columns[i]));
             sb.append(" ");
             // column type
             sb.append(columnTypes[i].asFunctionParameterString());
@@ -454,14 +399,14 @@ public abstract class CassandraTable {
             if (i != pKeys[0]) {
                 sb.append(", ");
             }
-            sb.append(i.name());
+            sb.append(formatKey(i));
         }
         sb.append(")");
 
         // clustering keys
         for (HugeKeys i : cKeys) {
             sb.append(", ");
-            sb.append(i.name());
+            sb.append(formatKey(i));
         }
 
         // end of primary keys
@@ -487,7 +432,7 @@ public abstract class CassandraTable {
         sb.append(" ON ");
         sb.append(this.table);
         sb.append("(");
-        sb.append(column.name());
+        sb.append(formatKey(column));
         sb.append(");");
 
         logger.info("create index: {}", sb);

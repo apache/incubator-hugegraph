@@ -78,12 +78,6 @@ public class CassandraSerializer extends AbstractSerializer {
         }
     }
 
-    protected CassandraBackendEntry.Property formatProperty(HugeProperty<?> prop) {
-        return new CassandraBackendEntry.Property(
-                HugeKeys.PROPERTY_KEY, prop.key(),
-                HugeKeys.PROPERTY_VALUE, JsonUtil.toJson(prop.value()));
-    }
-
     protected void parseProperty(String colName, String colValue, HugeElement owner) {
         // get PropertyKey by PropertyKey name
         PropertyKey pkey = this.graph.schema().propertyKey(colName);
@@ -110,20 +104,16 @@ public class CassandraSerializer extends AbstractSerializer {
                 HugeType.EDGE, edge.sourceVertex().id());
 
         // sourceVertex + direction + edge-label-name + sortValues + targetVertex
-        row.key(HugeKeys.SOURCE_VERTEX, edge.owner().id().asString());
-        row.key(HugeKeys.DIRECTION, edge.direction().name());
-        row.key(HugeKeys.LABEL, edge.label());
-        row.key(HugeKeys.SORT_VALUES, edge.name());
-        row.key(HugeKeys.TARGET_VERTEX, edge.otherVertex().id().asString());
+        row.column(HugeKeys.SOURCE_VERTEX, edge.owner().id().asString());
+        row.column(HugeKeys.DIRECTION, edge.direction().name());
+        row.column(HugeKeys.LABEL, edge.label());
+        row.column(HugeKeys.SORT_VALUES, edge.name());
+        row.column(HugeKeys.TARGET_VERTEX, edge.otherVertex().id().asString());
 
         // edge properties
-        for (HugeProperty<?> property : edge.getProperties().values()) {
-            row.cell(this.formatProperty(property));
-        }
-
-        // TODO: fill a default property if non, it should be improved!
-        if (edge.getProperties().isEmpty()) {
-            row.cell(CassandraBackendEntry.Property.EXIST);
+        for (HugeProperty<?> prop : edge.getProperties().values()) {
+            row.column(HugeKeys.PROPERTIES, prop.key(),
+                    JsonUtil.toJson(prop.value()));
         }
 
         return row;
@@ -132,11 +122,11 @@ public class CassandraSerializer extends AbstractSerializer {
     // parse an edge from a sub row
     protected void parseEdge(CassandraBackendEntry.Row row, HugeVertex vertex) {
         @SuppressWarnings("unused")
-        String sourceVertexId = row.key(HugeKeys.SOURCE_VERTEX);
-        Direction direction = Direction.valueOf(row.key(HugeKeys.DIRECTION));
-        String labelName = row.key(HugeKeys.LABEL);
-        String sortValues = row.key(HugeKeys.SORT_VALUES);
-        String targetVertexId = row.key(HugeKeys.TARGET_VERTEX);
+        String sourceVertexId = row.column(HugeKeys.SOURCE_VERTEX);
+        Direction direction = Direction.valueOf(row.column(HugeKeys.DIRECTION));
+        String labelName = row.column(HugeKeys.LABEL);
+        String sortValues = row.column(HugeKeys.SORT_VALUES);
+        String targetVertexId = row.column(HugeKeys.TARGET_VERTEX);
 
         boolean isOutEdge = (direction == Direction.OUT);
         EdgeLabel label = this.graph.schema().edgeLabel(labelName);
@@ -163,11 +153,9 @@ public class CassandraSerializer extends AbstractSerializer {
         }
 
         // edge properties
-        for (CassandraBackendEntry.Property cell : row.cells()) {
-            if (cell.equals(CassandraBackendEntry.Property.EXIST)) {
-                continue;
-            }
-            this.parseProperty(cell.name(), cell.value(), edge);
+        Map<String, String> props = row.column(HugeKeys.PROPERTIES);
+        for (Map.Entry<String, String> prop : props.entrySet()) {
+            this.parseProperty(prop.getKey(), prop.getValue(), edge);
         }
 
         edge.name(sortValues);
@@ -186,7 +174,8 @@ public class CassandraSerializer extends AbstractSerializer {
 
         // add all properties of a Vertex
         for (HugeProperty<?> prop : vertex.getProperties().values()) {
-            entry.column(this.formatProperty(prop));
+            entry.column(HugeKeys.PROPERTIES, prop.key(),
+                    JsonUtil.toJson(prop.value()));
         }
 
         // add all edges of a Vertex
@@ -217,8 +206,9 @@ public class CassandraSerializer extends AbstractSerializer {
         vertex.name(name);
 
         // parse all properties of a Vertex
-        for (CassandraBackendEntry.Property cell : entry.cells()) {
-            this.parseProperty(cell.name(), cell.value(), vertex);
+        Map<String, String> props = entry.column(HugeKeys.PROPERTIES);
+        for (Map.Entry<String, String> prop : props.entrySet()) {
+            this.parseProperty(prop.getKey(), prop.getValue(), vertex);
         }
 
         // parse all edges of a Vertex

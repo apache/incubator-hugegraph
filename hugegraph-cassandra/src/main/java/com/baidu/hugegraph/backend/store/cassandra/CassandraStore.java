@@ -116,8 +116,6 @@ public abstract class CassandraStore implements BackendStore {
             if (entry.selfChanged()) {
                 // delete entry
                 this.table(entry.type()).delete(entry.row());
-            } else {
-                assert entry.row().cells().isEmpty();
             }
             // delete sub rows (edges)
             for (CassandraBackendEntry.Row row : entry.subRows()) {
@@ -247,7 +245,7 @@ public abstract class CassandraStore implements BackendStore {
         assert type != null;
         CassandraTable t = this.tables.get(type);
         if (t == null) {
-            throw new BackendException("Not supported type:" + type.name());
+            throw new BackendException("Unsupported type:" + type.name());
         }
         return t;
     }
