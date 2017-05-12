@@ -29,7 +29,7 @@ public abstract class Condition {
         LT("<", (v1, v2) -> { return compare(v1, v2) < 0; }),
         LTE("<=", (v1, v2) -> { return compare(v1, v2) <= 0; }),
         NEQ("!=", (v1, v2) -> { return compare(v1, v2) != 0; }),
-        HAS_KEY("haskey", null);
+        HAS_KEY(" haskey ", null);
 
         private final String operator;
         private final BiFunction<Object, Object, Boolean> tester;
@@ -139,6 +139,10 @@ public abstract class Condition {
         return new SyspropRelation(key, RelationType.NEQ, value);
     }
 
+    public static Condition hasKey(HugeKeys key, Object value) {
+        return new SyspropRelation(key, RelationType.HAS_KEY, value);
+    }
+
     public static Relation eq(String key, Object value) {
         return new UserpropRelation(key, RelationType.EQ, value);
     }
@@ -161,10 +165,6 @@ public abstract class Condition {
 
     public static Relation neq(String key, Object value) {
         return new UserpropRelation(key, RelationType.NEQ, value);
-    }
-
-    public static Condition hasKey(String key) {
-        return new UserpropRelation(key, RelationType.HAS_KEY, null);
     }
 
     /*************************************************************************/

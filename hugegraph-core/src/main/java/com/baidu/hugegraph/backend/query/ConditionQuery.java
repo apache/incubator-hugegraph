@@ -56,8 +56,8 @@ public class ConditionQuery extends IdQuery {
         return this;
     }
 
-    public ConditionQuery hasKey(String key) {
-        this.conditions.add(Condition.hasKey(key));
+    public ConditionQuery hasKey(HugeKeys key, String value) {
+        this.conditions.add(Condition.hasKey(key, value));
         return this;
     }
 
@@ -109,6 +109,18 @@ public class ConditionQuery extends IdQuery {
             // TODO: deal with other Condition
         }
         return null;
+    }
+
+    public void unsetCondition(Object key) {
+        Iterator<Condition> iterator = this.conditions.iterator();
+        while (iterator.hasNext()) {
+            Condition c = iterator.next();
+            if (c.type() == Condition.ConditionType.RELATION
+                    && ((Condition.Relation) c).key().equals(key)) {
+                iterator.remove();
+            }
+            // TODO: deal with other Condition
+        }
     }
 
     public List<Condition> userpropConditions() {
@@ -167,14 +179,10 @@ public class ConditionQuery extends IdQuery {
     }
 
     public boolean hasSearchCondition() {
-        for (Condition c : this.conditions) {
-            if (c.type() == Condition.ConditionType.RELATION) {
-                Condition.Relation r = (Condition.Relation) c;
-                if (r.relation() != Condition.RelationType.EQ) {
-                    return true;
-                }
+        for (Condition.Relation r : this.relations()) {
+            if (r.relation() != Condition.RelationType.EQ) {
+                return true;
             }
-            // TODO: deal with other Condition
         }
         return false;
     }

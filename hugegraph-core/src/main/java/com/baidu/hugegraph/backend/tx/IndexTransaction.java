@@ -127,7 +127,7 @@ public class IndexTransaction extends AbstractTransaction {
                 break;
             default:
                 throw new BackendException(
-                        "Not supported index query: " + query.resultType());
+                        "Unsupported index query: " + query.resultType());
         }
 
         Preconditions.checkNotNull(schemaElement, "Invalid label: " + label);

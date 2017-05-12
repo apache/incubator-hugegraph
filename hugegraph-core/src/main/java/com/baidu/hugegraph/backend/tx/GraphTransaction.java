@@ -394,7 +394,8 @@ public class GraphTransaction extends AbstractTransaction {
         } else if (edgeLabels.length > 1) {
             // TODO: support query by multi edge labels
             // query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
-            throw new BackendException("Not support query by multi edge-labels");
+            throw new BackendException(
+                    "Not support querying by multi edge-labels");
         } else {
             assert edgeLabels.length == 0;
         }
@@ -456,7 +457,7 @@ public class GraphTransaction extends AbstractTransaction {
             if (query.resultType() == HugeType.EDGE
                     && query.condition(HugeKeys.DIRECTION) != null
                     && query.condition(HugeKeys.SOURCE_VERTEX) == null) {
-                String msg = "Not support query edges only by direction";
+                String msg = "Not support querying edges only by direction";
                 throw new BackendException(msg);
             }
             return query;

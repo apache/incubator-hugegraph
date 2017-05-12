@@ -147,7 +147,7 @@ public final class HugeGraphStep<S, E extends Element>
                 return Condition.neq(key, value);
             } else {
                 // TODO: deal with other Predicate
-                throw new BackendException("Not supported condition: " + bp);
+                throw new BackendException("Unsupported condition: " + bp);
             }
         } catch (IllegalArgumentException e) {
             String key = has.getKey();
@@ -168,7 +168,7 @@ public final class HugeGraphStep<S, E extends Element>
                 return Condition.neq(key, value);
             } else {
                 // TODO: deal with other Predicate
-                throw new BackendException("Not supported condition: " + bp);
+                throw new BackendException("Unsupported condition: " + bp);
             }
         }
     }
