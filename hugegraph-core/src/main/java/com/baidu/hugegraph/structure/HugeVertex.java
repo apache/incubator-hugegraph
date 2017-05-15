@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -129,13 +130,22 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... properties) {
+        Preconditions.checkNotNull(label,
+                "The edge label can not be null.");
+        Preconditions.checkNotNull(vertex,
+                "The target vertex can not be null.");
+
         HugeVertex targetVertex = (HugeVertex) vertex;
-        EdgeLabel edgeLabel = this.graph.schema().edgeLabel(label);
+        HugeEdgeLabel edgeLabel = (HugeEdgeLabel) this.graph.schema().edgeLabel(label);
 
         Preconditions.checkArgument(CollectionUtil.containsAll(
                 ElementHelper.getKeys(properties),
                 ((HugeEdgeLabel) edgeLabel).sortKeys()),
                 "The sort key(s) must be setted for edge " + edgeLabel.name());
+
+        Preconditions.checkArgument(edgeLabel.checkLink(this.label(), vertex.label()),
+                String.format("Undefined link of edge label '%s': '%s' -> '%s'",
+                        label, this.label(), vertex.label()));
 
         Id id = HugeElement.getIdValue(properties);
 

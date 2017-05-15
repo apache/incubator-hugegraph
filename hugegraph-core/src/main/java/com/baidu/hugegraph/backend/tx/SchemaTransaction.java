@@ -101,7 +101,6 @@ public class SchemaTransaction extends AbstractTransaction {
     public void addEdgeLabel(EdgeLabel edgeLabel) {
         logger.debug("SchemaTransaction add edge label, "
                 + "name: " + edgeLabel.name() + ", "
-                + "multiplicity: " + edgeLabel.multiplicity() + ", "
                 + "frequency: " + edgeLabel.frequency());
 
         this.addSchema(this.serializer.writeEdgeLabel(edgeLabel));

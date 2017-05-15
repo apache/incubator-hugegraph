@@ -15,16 +15,15 @@ public enum HugeKeys {
     INDEX_NAMES(52, "indexNames"),
 
     // column names of schema type (EdgeLabel)
-    MULTIPLICITY(81, "multiplicity"),
-    CARDINALITY(82, "cardinality"),
-    SRC_VERTEX_LABEL(83, "srcVertexLabel"),
-    TGT_VERTEX_LABEL(84, "tgtVertexLabel"),
-    SORT_KEYS(85, "sortKeys"),
-    LINKS(86, "links"),
-    FREQUENCY(87, "frequency"),
+    LINKS(80, "links"),
+    FREQUENCY(81, "frequency"),
+    SRC_VERTEX_LABEL(82, "srcVertexLabel"),
+    TGT_VERTEX_LABEL(83, "tgtVertexLabel"),
+    SORT_KEYS(84, "sortKeys"),
 
     // column names of schema type (PropertyKey)
     DATA_TYPE(120, "dataType"),
+    CARDINALITY(121, "cardinality"),
 
     // column names of schema type (IndexLabel)
     BASE_TYPE(150, "baseType"),
