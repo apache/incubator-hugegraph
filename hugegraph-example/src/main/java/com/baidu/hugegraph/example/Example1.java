@@ -104,15 +104,27 @@ public class Example1 {
 
         logger.info("===============  edgeLabel  ================");
 
-        schema.makeEdgeLabel("authored").singleTime().linkOne2One().properties("contribution").create();
-        schema.makeEdgeLabel("look").multiTimes().properties("time").sortKeys("time").create();
-        schema.makeEdgeLabel("created").singleTime().linkMany2Many().create();
-        schema.makeEdgeLabel("includes").singleTime().linkOne2Many().create();
-        schema.makeEdgeLabel("includedIn").linkMany2One().create();
-        schema.makeEdgeLabel("rated").linkMany2Many().link("reviewer", "recipe").create();
+        schema.makeEdgeLabel("authored").singleTime()
+                .link("author", "book")
+                .properties("contribution")
+                .create();
+
+        schema.makeEdgeLabel("look").multiTimes().properties("time")
+                .link("author", "book")
+                .link("person", "book")
+                .sortKeys("time")
+                .create();
+
+        schema.makeEdgeLabel("created").singleTime()
+                .link("author", "language")
+                .create();
+
+        schema.makeEdgeLabel("includes").singleTime().create();
+        schema.makeEdgeLabel("includedIn").create();
+        schema.makeEdgeLabel("rated").link("reviewer", "recipe").create();
 
         logger.info("===============  schemaManager desc  ================");
-        //schemaManager.desc();
+        schema.desc().forEach(element -> System.out.println(element.schema()));
 
         /************************* data operating *************************/
 

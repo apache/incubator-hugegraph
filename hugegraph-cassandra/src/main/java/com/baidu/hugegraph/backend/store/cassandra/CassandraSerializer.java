@@ -1,8 +1,12 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -34,6 +38,7 @@ import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.gson.reflect.TypeToken;
 
 public class CassandraSerializer extends AbstractSerializer {
 
@@ -247,8 +252,7 @@ public class CassandraSerializer extends AbstractSerializer {
         CassandraBackendEntry entry = newBackendEntry(edgeLabel);
         entry.column(HugeKeys.NAME, edgeLabel.name());
         entry.column(HugeKeys.FREQUENCY, JsonUtil.toJson(edgeLabel.frequency()));
-        entry.column(HugeKeys.MULTIPLICITY, JsonUtil.toJson(edgeLabel.multiplicity()));
-        // entry.column(HugeKeys.LINKS, JsonUtil.toJson(edgeLabel.links().toArray()));
+        entry.column(HugeKeys.LINKS, JsonUtil.toJson(edgeLabel.links()));
         entry.column(HugeKeys.SORT_KEYS, JsonUtil.toJson(edgeLabel.sortKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES,
                 JsonUtil.toJson(edgeLabel.indexNames().toArray()));
@@ -311,12 +315,15 @@ public class CassandraSerializer extends AbstractSerializer {
         CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
         String name = entry.column(HugeKeys.NAME);
         String frequency = entry.column(HugeKeys.FREQUENCY);
+        String links = entry.column(HugeKeys.LINKS);
         String sortKeys = entry.column(HugeKeys.SORT_KEYS);
         String properties = entry.column(HugeKeys.PROPERTIES);
         String indexNames = entry.column(HugeKeys.INDEX_NAMES);
 
         HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name);
         edgeLabel.frequency(JsonUtil.fromJson(frequency, Frequency.class));
+        edgeLabel.links(JsonUtil.fromJson(links,
+                new TypeToken<Set<ImmutablePair<String, String>>>(){}.getType()));
         edgeLabel.properties(JsonUtil.fromJson(properties, String[].class));
         edgeLabel.sortKeys(JsonUtil.fromJson(sortKeys, String[].class));
         edgeLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));

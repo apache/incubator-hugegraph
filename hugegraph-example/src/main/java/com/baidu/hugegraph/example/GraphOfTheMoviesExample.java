@@ -67,12 +67,24 @@ public class GraphOfTheMoviesExample {
                 .properties("name", "born")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("movie").properties("title", "released").primaryKeys("title").create();
+        schema.makeVertexLabel("movie")
+                .properties("title", "released")
+                .primaryKeys("title")
+                .create();
 
-        schema.makeEdgeLabel("ACTED_IN").multiTimes().properties("roles").sortKeys("roles").create();
-        schema.makeEdgeLabel("DIRECTED").properties("score").create();
-        schema.makeEdgeLabel("PRODUCED").properties("score").create();
-        schema.makeEdgeLabel("WROTE").properties("score").create();
+        schema.makeEdgeLabel("ACTED_IN").multiTimes().properties("roles")
+                .link("person", "movie")
+                .sortKeys("roles")
+                .create();
+        schema.makeEdgeLabel("DIRECTED").properties("score")
+                .link("person", "movie")
+                .create();
+        schema.makeEdgeLabel("PRODUCED").properties("score")
+                .link("person", "movie")
+                .create();
+        schema.makeEdgeLabel("WROTE").properties("score")
+                .link("person", "movie")
+                .create();
 
         schema.makeIndex("personByName").on(person).by("name").secondary().create();
         schema.makeIndex("personByBorn").on(person).by("born").search().create();

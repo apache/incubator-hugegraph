@@ -62,7 +62,7 @@ public class CassandraTables {
         public void init(Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.NAME,
-                    HugeKeys.MULTIPLICITY,
+                    HugeKeys.LINKS,
                     HugeKeys.PROPERTIES,
                     HugeKeys.SORT_KEYS,
                     HugeKeys.FREQUENCY,

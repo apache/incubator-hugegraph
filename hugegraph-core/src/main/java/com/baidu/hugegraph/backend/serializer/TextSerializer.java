@@ -5,7 +5,9 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -39,6 +41,7 @@ import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
+import com.google.gson.reflect.TypeToken;
 
 public class TextSerializer extends AbstractSerializer {
 
@@ -373,10 +376,8 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.NAME.string(), edgeLabel.name());
         entry.column(HugeKeys.FREQUENCY.string(),
                 JsonUtil.toJson(edgeLabel.frequency()));
-        entry.column(HugeKeys.MULTIPLICITY.string(),
-                JsonUtil.toJson(edgeLabel.multiplicity()));
-//        entry.column(HugeKeys.LINKS.string(),
-//                JsonUtil.toJson(edgeLabel.links().toArray()));
+        entry.column(HugeKeys.LINKS.string(),
+                JsonUtil.toJson(edgeLabel.links()));
         entry.column(HugeKeys.SORT_KEYS.string(),
                 JsonUtil.toJson(edgeLabel.sortKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES.string(),
@@ -445,20 +446,17 @@ public class TextSerializer extends AbstractSerializer {
         String name = textEntry.column(HugeKeys.NAME.string());
         String frequency = textEntry.column(HugeKeys.FREQUENCY.string());
         String sortKeys = textEntry.column(HugeKeys.SORT_KEYS.string());
-//        String links = textEntry.column(HugeKeys.LINKS.string());
+        String links = textEntry.column(HugeKeys.LINKS.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
         String indexNames = textEntry.column(HugeKeys.INDEX_NAMES.string());
 
         HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name);
         edgeLabel.frequency(JsonUtil.fromJson(frequency, Frequency.class));
+        edgeLabel.links(JsonUtil.fromJson(links,
+                new TypeToken<Set<ImmutablePair<String, String>>>(){}.getType()));
         edgeLabel.properties(JsonUtil.fromJson(properties, String[].class));
         edgeLabel.sortKeys(JsonUtil.fromJson(sortKeys, String[].class));
         edgeLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
-//        String[] linksArray = JsonUtil.fromJson(links, String[].class);
-//        for (int i = 0; i < linksArray.length - 1; i += 2) {
-//            edgeLabel.link(linksArray[i], linksArray[i + 1]);
-//        }
-
         return edgeLabel;
     }
 

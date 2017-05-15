@@ -1,18 +1,16 @@
 package com.baidu.hugegraph.schema;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
-import org.javatuples.Pair;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.define.Frequency;
-import com.baidu.hugegraph.type.define.Multiplicity;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.util.StringUtil;
 import com.google.common.base.Preconditions;
@@ -24,16 +22,14 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeEdgeLabel.class);
 
-    private Multiplicity multiplicity;
     private Frequency frequency;
-    private List<Pair<String, String>> links;
+    private Set<Pair<String, String>> links;
     private Set<String> sortKeys;
 
     public HugeEdgeLabel(String name) {
         super(name);
-        this.multiplicity = Multiplicity.ONE2ONE;
         this.frequency = Frequency.SINGLE;
-        this.links = new ArrayList<>();
+        this.links = new LinkedHashSet<>();
         this.sortKeys = new LinkedHashSet<>();
     }
 
@@ -41,15 +37,6 @@ public class HugeEdgeLabel extends EdgeLabel {
     public HugeEdgeLabel indexNames(String... names) {
         this.indexNames.addAll(Arrays.asList(names));
         return this;
-    }
-
-    @Override
-    public Multiplicity multiplicity() {
-        return this.multiplicity;
-    }
-
-    public void multiplicity(Multiplicity multiplicity) {
-        this.multiplicity = multiplicity;
     }
 
     @Override
@@ -68,30 +55,6 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     @Override
-    public EdgeLabel linkOne2One() {
-        this.multiplicity(Multiplicity.ONE2ONE);
-        return this;
-    }
-
-    @Override
-    public EdgeLabel linkOne2Many() {
-        this.multiplicity(Multiplicity.ONE2MANY);
-        return this;
-    }
-
-    @Override
-    public EdgeLabel linkMany2Many() {
-        this.multiplicity(Multiplicity.MANY2MANY);
-        return this;
-    }
-
-    @Override
-    public EdgeLabel linkMany2One() {
-        this.multiplicity(Multiplicity.MANY2ONE);
-        return this;
-    }
-
-    @Override
     public EdgeLabel singleTime() {
         this.frequency(Frequency.SINGLE);
         return this;
@@ -104,15 +67,24 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     @Override
-    public List<Pair<String, String>> links() {
+    public Set<Pair<String, String>> links() {
         return this.links;
     }
 
     @Override
     public EdgeLabel link(String src, String tgt) {
-        Pair<String, String> pair = new Pair<>(src, tgt);
+        Pair<String, String> pair = ImmutablePair.of(src, tgt);
         this.links.add(pair);
         return this;
+    }
+
+    @Override
+    public void links(Set<Pair<String, String>> links) {
+        this.links = links;
+    }
+
+    public boolean checkLink(String src, String tgt) {
+        return this.links().contains(ImmutablePair.of(src, tgt));
     }
 
     @Override
@@ -131,9 +103,9 @@ public class HugeEdgeLabel extends EdgeLabel {
         if (this.links != null) {
             for (Pair<String, String> link : this.links) {
                 linkSchema += ".link(\"";
-                linkSchema += link.getValue0();
+                linkSchema += link.getLeft();
                 linkSchema += "\",\"";
-                linkSchema += link.getValue1();
+                linkSchema += link.getRight();
                 linkSchema += "\")";
             }
         }
@@ -144,7 +116,6 @@ public class HugeEdgeLabel extends EdgeLabel {
     public String schema() {
         return "schema.edgeLabel(\"" + this.name + "\")"
                 + "." + this.frequency.string() + "()"
-                + "." + this.multiplicity.string() + "()"
                 + "." + propertiesSchema()
                 + linkSchema()
                 + StringUtil.descSchema("sortKeys", this.sortKeys)
