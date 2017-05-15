@@ -525,8 +525,9 @@ public class TextSerializer extends AbstractSerializer {
 
         Id id = IdGeneratorFactory.generator().generate(index.id());
         TextBackendEntry entry = new TextBackendEntry(id);
+        // TODO: propertyValues may be a number (SEARCH index)
         entry.column(formatSyspropName(HugeKeys.PROPERTY_VALUES),
-                index.propertyValues());
+                index.propertyValues().toString());
         entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
                 index.indexLabelName());
         // TODO: try to make these code more clear.

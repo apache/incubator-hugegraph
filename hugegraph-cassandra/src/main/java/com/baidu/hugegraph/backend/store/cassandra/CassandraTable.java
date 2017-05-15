@@ -69,11 +69,7 @@ public abstract class CassandraTable {
 
         // limit
         if (query.limit() != Query.NO_LIMIT) {
-            // TODO: improve the factor
-            // a vertex/edge is stored as multiple lines
-            // we assume there is 100 number of props in a vertex/edge
-            final int PROPS_PER_ELEMENT = 100;
-            select.limit((int) query.limit() * PROPS_PER_ELEMENT);
+            select.limit((int) query.limit());
         }
 
         // NOTE: Cassandra does not support query.offset()

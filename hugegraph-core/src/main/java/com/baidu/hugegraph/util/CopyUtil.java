@@ -10,12 +10,8 @@ public class CopyUtil {
     public static boolean isSimpleType(Class<?> type) {
         if (type.isPrimitive()
                 || type.equals(String.class)
-                || type.equals(Boolean.class)) {
-            return true;
-        }
-
-        if (type.getSuperclass() != null
-                && type.getSuperclass().equals(Number.class)) {
+                || type.equals(Boolean.class)
+                || NumericUtil.isNumber(type)) {
             return true;
         }
 
