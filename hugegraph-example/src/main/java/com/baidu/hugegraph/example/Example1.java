@@ -68,7 +68,7 @@ public class Example1 {
         schema.makePropertyKey("calories").asInt().create();
         schema.makePropertyKey("amount").asText().create();
         schema.makePropertyKey("stars").asInt().create();
-        schema.makePropertyKey("age").asText().valueSingle().create();
+        schema.makePropertyKey("age").asInt().valueSingle().create();
         schema.makePropertyKey("comment").asText().valueSet().create();
         schema.makePropertyKey("contribution").asText().valueSet().create();
         schema.makePropertyKey("nickname").asText().valueList().create();
@@ -131,23 +131,23 @@ public class Example1 {
         // Directly into the back-end
         graph.addVertex(T.label, "book", "name", "java-3");
 
-        graph.addVertex(T.label, "person", "name", "Tom",
-                "city", "Beijing", "age", "18");
+        graph.addVertex(T.label, "person", "name", "Baby",
+                "city", "Hongkong", "age", 3);
         graph.addVertex(T.label, "person", "name", "James",
-                "city", "Beijing", "age", "19");
-        graph.addVertex(T.label, "person", "name", "Cat",
-                "city", "Beijing", "age", "20");
+                "city", "Beijing", "age", 19);
+        graph.addVertex(T.label, "person", "name", "Tom Cat",
+                "city", "Beijing", "age", 20);
         graph.addVertex(T.label, "person", "name", "Lisa",
-                "city", "Beijing", "age", "20");
+                "city", "Beijing", "age", 20);
         graph.addVertex(T.label, "person", "name", "Hebe",
-                "city", "Taipei", "age", "21");
+                "city", "Taipei", "age", 21);
 
         // Must commit manually
         GraphTransaction tx = graph.openTransaction();
 
         logger.info("===============  addVertex  ================");
         Vertex james = tx.addVertex(T.label, "author",
-                "id", 1, "name", "James Gosling", "age", "62", "lived", "Canadian");
+                "id", 1, "name", "James Gosling", "age", 62, "lived", "Canadian");
 
         Vertex java = tx.addVertex(T.label, "language", "name", "java");
         Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
@@ -288,19 +288,19 @@ public class Example1 {
         assert vertexList.size() == 1;
         System.out.println(">>>> query all persons in Taipei: " + vertexList);
 
-        vertexes = graph.traversal().V().hasLabel("person").has("age", "19");
+        vertexes = graph.traversal().V().hasLabel("person").has("age", 19);
         vertexList = vertexes.toList();
         assert vertexList.size() == 1;
         System.out.println(">>>> query all persons age==19: " + vertexList);
 
-        vertexes = graph.traversal().V().hasLabel("person").has("age", P.lt("19"));
+        vertexes = graph.traversal().V().hasLabel("person").has("age", P.lt(19));
         vertexList = vertexes.toList();
         assert vertexList.size() == 1;
-        assert vertexList.get(0).property("age").value().equals("18");
+        assert vertexList.get(0).property("age").value().equals(3);
         System.out.println(">>>> query all persons age<19: " + vertexList);
 
         // remove vertex (and its edges)
-        vertexes = graph.traversal().V().hasLabel("person").has("age", P.lt("19"));
+        vertexes = graph.traversal().V().hasLabel("person").has("age", 19);
         Vertex vertex = vertexes.toList().get(0);
         vertex.addEdge("look", book3, "time", "2017-5-3");
         System.out.println(">>>> remove vertex: " + vertex);

@@ -30,6 +30,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
+import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.base.Preconditions;
 
 public class IndexTransaction extends AbstractTransaction {
@@ -79,8 +80,18 @@ public class IndexTransaction extends AbstractTransaction {
             propertyValues.add(property.value());
         }
 
+        Object propValue = null;
+        if (indexLabel.indexType() == IndexType.SECONDARY) {
+            propValue = SplicingIdGenerator.concatValues(propertyValues);
+        } else {
+            assert indexLabel.indexType() == IndexType.SEARCH;
+            Preconditions.checkState(propertyValues.size() == 1,
+                    "Expect searching by only one property");
+            propValue = NumericUtil.convert2Number(propertyValues.get(0));
+        }
+
         HugeIndex index = new HugeIndex(indexLabel);
-        index.propertyValues(SplicingIdGenerator.concatValues(propertyValues));
+        index.propertyValues(propValue);
         index.elementIds(element.id());
 
         if (!removed) {
@@ -155,7 +166,7 @@ public class IndexTransaction extends AbstractTransaction {
                     assert indexLabel.indexType() == IndexType.SEARCH;
                     if (query.userpropConditions().size() != 1) {
                         throw new BackendException(
-                                "Only support search by one field");
+                                "Only support searching by one field");
                     }
                     Condition condition = query.userpropConditions().get(0);
                     assert condition instanceof Condition.Relation;
@@ -165,7 +176,7 @@ public class IndexTransaction extends AbstractTransaction {
                     indexQuery.query(new Condition.SyspropRelation(
                             HugeKeys.PROPERTY_VALUES,
                             r.relation(),
-                            r.value()));
+                            NumericUtil.convert2Number(r.value())));
                 }
                 break;
             }

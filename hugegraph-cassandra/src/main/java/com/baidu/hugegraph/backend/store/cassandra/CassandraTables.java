@@ -393,7 +393,7 @@ public class CassandraTables {
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
-                    DataType.text(),
+                    DataType.decimal(),
                     DataType.set(DataType.text())
             };
 
@@ -440,7 +440,7 @@ public class CassandraTables {
             entry.column(HugeKeys.INDEX_LABEL_NAME,
                     row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
             entry.column(HugeKeys.PROPERTY_VALUES,
-                    row.getString(formatKey(HugeKeys.PROPERTY_VALUES)));
+                    row.getDecimal(formatKey(HugeKeys.PROPERTY_VALUES)));
             entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(
                     row.getSet(formatKey(HugeKeys.ELEMENT_IDS), String.class)));
 

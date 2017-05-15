@@ -14,7 +14,7 @@ import com.baidu.hugegraph.type.schema.IndexLabel;
 public class HugeIndex {
 
     private IndexLabel indexLabel;
-    private String propertyValues;
+    private Object propertyValues;
     private Set<Id> elementIds;
 
     public HugeIndex(IndexLabel indexLabel) {
@@ -34,11 +34,11 @@ public class HugeIndex {
         return this.indexLabel.indexType();
     }
 
-    public String propertyValues() {
+    public Object propertyValues() {
         return this.propertyValues;
     }
 
-    public void propertyValues(String propertyValues) {
+    public void propertyValues(Object propertyValues) {
         this.propertyValues = propertyValues;
     }
 

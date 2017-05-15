@@ -410,7 +410,7 @@ public class CassandraSerializer extends AbstractSerializer {
         assert backendEntry instanceof CassandraBackendEntry;
         CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
 
-        String indexValues = entry.column(HugeKeys.PROPERTY_VALUES);
+        Object indexValues = entry.column(HugeKeys.PROPERTY_VALUES);
         String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
         String elementIds = entry.column(HugeKeys.ELEMENT_IDS);
 
