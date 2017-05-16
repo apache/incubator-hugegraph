@@ -83,7 +83,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
 
     @Override
     public String toString() {
-        return name();
+        return schema();
     }
 
     public static boolean isSchema(HugeType type) {
