@@ -12,6 +12,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +92,10 @@ public class HugeGraph implements Graph {
         this.graphTransaction.autoCommit(true);
     }
 
+    public String name() {
+        return this.name;
+    }
+
     public void initBackend() {
         this.storeProvider.init();
     }
@@ -161,19 +166,22 @@ public class HugeGraph implements Graph {
     }
 
     @Override
-    public <C extends GraphComputer> C compute(Class<C> aClass) throws IllegalArgumentException {
-        return null;
+    public <C extends GraphComputer> C compute(Class<C> aClass)
+            throws IllegalArgumentException {
+        throw new HugeException("Unsupported method compute()");
     }
 
     @Override
     public GraphComputer compute() throws IllegalArgumentException {
-        return null;
+        throw new HugeException("Unsupported method compute()");
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         return (I) builder.graph(this).onMapper(mapper ->
-                mapper.addRegistry(HugeGraphIoRegistry.getInstance())).create();
+                mapper.addRegistry(HugeGraphIoRegistry.getInstance()))
+                .create();
     }
 
     @Override
@@ -231,6 +239,11 @@ public class HugeGraph implements Graph {
     @Override
     public Configuration configuration() {
         return this.configuration;
+    }
+
+    @Override
+    public String toString() {
+        return StringFactory.graphString(this, this.name());
     }
 
     private Transaction tx = new AbstractThreadedTransaction(this) {
