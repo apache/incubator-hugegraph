@@ -78,8 +78,7 @@
         <jsr305.version>3.0.1</jsr305.version>
         <jetty.version>9.4.1.v20170120</jetty.version>
         <jamon.version>2.4.1</jamon.version>
-        <jersey.server.version>2.25</jersey.server.version>
-        <jersey.grizzly2.version>1.19</jersey.grizzly2.version>
+        <jersey.version>2.25.1</jersey.version>
     </properties>
     <modules>
         <module>hugegraph-core</module>
@@ -291,12 +290,17 @@
             <dependency>
                 <groupId>org.glassfish.jersey.core</groupId>
                 <artifactId>jersey-server</artifactId>
-                <version>${jersey.server.version}</version>
+                <version>${jersey.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.glassfish.jersey.core</groupId>
-                <artifactId>jersey-grizzly2</artifactId>
-                <version>${jersey.grizzly2.version}</version>
+                <groupId>org.glassfish.jersey.containers</groupId>
+                <artifactId>jersey-container-grizzly2-http</artifactId>
+                <version>${jersey.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.jersey.containers</groupId>
+                <artifactId>jersey-container-grizzly2-servlet</artifactId>
+                <version>${jersey.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
