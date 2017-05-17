@@ -118,6 +118,7 @@ public class Example2 {
         schema.makePropertyKey("age").asInt().ifNotExist().create();
         schema.makePropertyKey("lang").asText().ifNotExist().create();
         schema.makePropertyKey("date").asText().ifNotExist().create();
+        schema.makePropertyKey("price").asInt().ifNotExist().create();
 
         VertexLabel person = schema.makeVertexLabel("person")
                 .properties("name", "age")
@@ -126,15 +127,15 @@ public class Example2 {
                 .create();
 
         VertexLabel software = schema.makeVertexLabel("software")
-                .properties("name", "lang")
+                .properties("name", "lang", "price")
                 .primaryKeys("name")
                 .ifNotExist()
                 .create();
 
         schema.makeIndex("personByName").on(person).by("name").secondary().ifNotExist().create();
 
-        schema.makeIndex("softwareByName").on(software).by("name").search().ifNotExist().create();
-        schema.makeIndex("softwareByLang").on(software).by("lang").search().ifNotExist().create();
+        schema.makeIndex("softwareByPrice").on(software).by("price").search().ifNotExist().create();
+//        schema.makeIndex("softwareByLang").on(software).by("lang").search().ifNotExist().create();
 
         schema.makeEdgeLabel("knows").link("person", "person").properties("date").create();
 
@@ -154,9 +155,11 @@ public class Example2 {
 
         Vertex marko = graph.addVertex(T.label, "person", "name", "marko", "age", 29);
         Vertex vadas = graph.addVertex(T.label, "person", "name", "vadas", "age", 27);
-        Vertex lop = graph.addVertex(T.label, "software", "name", "lop", "lang", "java");
+        Vertex lop = graph.addVertex(T.label, "software", "name", "lop",
+                "lang", "java", "price", 328);
         Vertex josh = graph.addVertex(T.label, "person", "name", "josh", "age", 32);
-        Vertex ripple = graph.addVertex(T.label, "software", "name", "ripple", "lang", "java");
+        Vertex ripple = graph.addVertex(T.label, "software", "name", "ripple",
+                "lang", "java", "price", 199);
         Vertex peter = graph.addVertex(T.label, "person", "name", "peter", "age", 35);
 
         marko.addEdge("knows", vadas, "date", "20160110");
