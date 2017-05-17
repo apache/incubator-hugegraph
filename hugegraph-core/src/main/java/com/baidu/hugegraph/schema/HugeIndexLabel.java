@@ -10,7 +10,9 @@ import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringUtil;
+import com.google.common.base.Preconditions;
 
 /**
  * Created by liningrui on 2017/4/21.
@@ -108,6 +110,9 @@ public class HugeIndexLabel extends IndexLabel {
             throw new HugeException("The indexLabel:" + this.name + " has exised.");
         }
 
+        // check field
+        this.checkFields();
+
         // TODO: should wrap update and add operation in one transaction.
         this.updateSchemaIndexName(this.baseType, this.baseValue);
 
@@ -115,6 +120,20 @@ public class HugeIndexLabel extends IndexLabel {
         this.transaction().addIndexLabel(this);
 
         return this;
+    }
+
+    private void checkFields() {
+        // search index must build on single numeric column
+        if (this.indexType == IndexType.SEARCH) {
+            Preconditions.checkArgument(this.indexFields.size() == 1,
+                    "Search index can only build on one property, "
+                            + "but properties: " + this.indexFields + " is multiple.");
+            String propertyName = this.indexFields.iterator().next();
+            PropertyKey propertyKey = this.transaction().getPropertyKey(propertyName);
+            Preconditions.checkArgument(NumericUtil.isNumber(propertyKey.dataType().clazz()),
+                    "Search index can only build on numeric property, "
+                            + "but property: " + propertyName + " is not.");
+        }
     }
 
     protected void updateSchemaIndexName(HugeType baseType, String baseValue) {
