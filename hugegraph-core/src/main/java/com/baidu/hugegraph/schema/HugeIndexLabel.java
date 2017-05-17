@@ -104,7 +104,7 @@ public class HugeIndexLabel extends IndexLabel {
     @Override
     public IndexLabel create() {
 
-        StringUtil.verifyName(this.name);
+        StringUtil.checkName(this.name);
         IndexLabel indexLabel = this.transaction().getIndexLabel(this.name);
         if (indexLabel != null && checkExits) {
             throw new HugeException("The indexLabel:" + this.name + " has exised.");

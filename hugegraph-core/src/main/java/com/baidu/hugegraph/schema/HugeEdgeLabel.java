@@ -125,7 +125,7 @@ public class HugeEdgeLabel extends EdgeLabel {
     @Override
     public EdgeLabel create() {
 
-        StringUtil.verifyName(this.name);
+        StringUtil.checkName(this.name);
         // Try to read
         EdgeLabel edgeLabel = this.transaction().getEdgeLabel(this.name);
         // if edgeLabel exist and checkExits
@@ -133,7 +133,7 @@ public class HugeEdgeLabel extends EdgeLabel {
             throw new HugeException("The edgeLabel:" + this.name + " has exised.");
         }
 
-        verifySortKeys();
+        this.checkSortKeys();
         this.transaction().addEdgeLabel(this);
         return this;
     }
@@ -143,7 +143,7 @@ public class HugeEdgeLabel extends EdgeLabel {
         this.transaction().removeEdgeLabel(this.name);
     }
 
-    private void verifySortKeys() {
+    private void checkSortKeys() {
         if (this.frequency == Frequency.SINGLE) {
             Preconditions
                     .checkArgument(this.sortKeys.isEmpty(), "edgeLabel can not contain sortKeys when the cardinality"
