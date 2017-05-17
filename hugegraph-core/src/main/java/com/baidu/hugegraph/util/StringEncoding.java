@@ -46,13 +46,11 @@ public class StringEncoding {
 
     public static String readAsciiString(byte[] array, int startPos) {
         StringBuilder sb = new StringBuilder();
-        while (true) {
+        do {
             int c = 0xFF & array[startPos++];
             if (c != 0x80)
                 sb.append((char) (c & 0x7F));
-            if ((c & 0x80) > 0)
-                break;
-        }
+        } while ((c & 0x80) <= 0);
         return sb.toString();
     }
 
@@ -76,5 +74,4 @@ public class StringEncoding {
             throw new HugeException("Failed to decode string", e);
         }
     }
-
 }
