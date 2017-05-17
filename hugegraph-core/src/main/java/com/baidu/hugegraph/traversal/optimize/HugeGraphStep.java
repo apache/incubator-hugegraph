@@ -23,6 +23,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
@@ -37,7 +38,7 @@ public final class HugeGraphStep<S, E extends Element>
 
     private long offset = 0;
 
-    private long limit = 1000;
+    private long limit = Query.NO_LIMIT;
 
     public HugeGraphStep(final GraphStep<S, E> originalGraphStep) {
         super(originalGraphStep.getTraversal(),
@@ -117,9 +118,13 @@ public final class HugeGraphStep<S, E extends Element>
     }
 
     public void setRange(long start, long end) {
-        assert end > start;
-        this.offset = start;
-        this.limit = end - start;
+        if (end >= start) {
+            this.offset = start;
+            this.limit = end - start;
+        } else {
+            this.offset = 0;
+            this.limit = Query.NO_LIMIT;
+        }
     }
 
     @Override

@@ -52,13 +52,14 @@ public abstract class CassandraTable {
     public Iterable<BackendEntry> query(Session session, Query query) {
         List<BackendEntry> rs = new LinkedList<>();
 
-        List<Select> selections = query2Select(query);
+        if (query.limit() > 0 || query.limit() == Query.NO_LIMIT) {
+            List<Select> selections = query2Select(query);
 
-        for (Select selection : selections) {
-            ResultSet results = session.execute(selection);
-            rs.addAll(this.results2Entries(query.resultType(), results));
+            for (Select selection : selections) {
+                ResultSet results = session.execute(selection);
+                rs.addAll(this.results2Entries(query.resultType(), results));
+            }
         }
-
         logger.debug("return {} for query {}", rs, query);
         return rs;
     }
