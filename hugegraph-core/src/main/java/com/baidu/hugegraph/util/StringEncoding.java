@@ -18,26 +18,17 @@ import java.io.UnsupportedEncodingException;
 
 import com.baidu.hugegraph.HugeException;
 import com.google.common.base.Preconditions;
+import com.google.common.base.CharMatcher;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
  */
 public class StringEncoding {
 
-    public static boolean isAsciiString(String input) {
-        Preconditions.checkNotNull(input);
-        for (int i = 0; i < input.length(); i++) {
-            int c = input.charAt(i);
-            if (c > 127 || c <= 0)
-                return false;
-        }
-        return true;
-    }
-
     // Similar to {@link StringSerializer}
-
     public static int writeAsciiString(byte[] array, int startPos, String attribute) {
-        Preconditions.checkArgument(isAsciiString(attribute));
+        Preconditions.checkArgument(CharMatcher.ascii(attribute));
+
         if (attribute.length() == 0) {
             array[startPos++] = (byte) 0x80;
         } else {
@@ -66,7 +57,7 @@ public class StringEncoding {
     }
 
     public static final int getAsciiByteLength(String attribute) {
-        Preconditions.checkArgument(isAsciiString(attribute));
+        Preconditions.checkArgument(CharMatcher.ascii(attribute));
         return attribute.isEmpty() ? 1 : attribute.length();
     }
 
