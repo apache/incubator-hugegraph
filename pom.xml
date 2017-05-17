@@ -78,6 +78,7 @@
         <jsr305.version>3.0.1</jsr305.version>
         <jetty.version>9.4.1.v20170120</jetty.version>
         <jamon.version>2.4.1</jamon.version>
+        <jersey.version>1.19</jersey.version>
     </properties>
     <modules>
         <module>hugegraph-core</module>
@@ -85,6 +86,7 @@
         <module>hugegraph-cassandra</module>
         <module>hugegraph-example</module>
         <module>hugegraph-test</module>
+        <module>hugegraph-api</module>
     </modules>
     <repositories>
         <repository>
@@ -283,6 +285,18 @@
                 <artifactId>jetty-webapp</artifactId>
                 <version>${jetty.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.sun.jersey</groupId>
+                <artifactId>jersey-server</artifactId>
+                <version>${jersey.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.jersey</groupId>
+                <artifactId>jersey-grizzly2</artifactId>
+                <version>${jersey.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
