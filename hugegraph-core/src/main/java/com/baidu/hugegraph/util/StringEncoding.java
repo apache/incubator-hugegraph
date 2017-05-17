@@ -27,7 +27,7 @@ public class StringEncoding {
 
     // Similar to {@link StringSerializer}
     public static int writeAsciiString(byte[] array, int startPos, String attribute) {
-        Preconditions.checkArgument(CharMatcher.ascii(attribute));
+        Preconditions.checkArgument(CharMatcher.ascii().matchesAllOf(attribute));
         int len = attribute.length();
         if (len == 0) {
             array[startPos++] = (byte) 0x80;
@@ -46,8 +46,9 @@ public class StringEncoding {
 
     public static String readAsciiString(byte[] array, int startPos) {
         StringBuilder sb = new StringBuilder();
+        int c = 0;
         do {
-            int c = 0xFF & array[startPos++];
+            c = 0xFF & array[startPos++];
             if (c != 0x80)
                 sb.append((char) (c & 0x7F));
         } while ((c & 0x80) <= 0);
@@ -55,7 +56,7 @@ public class StringEncoding {
     }
 
     public static final int getAsciiByteLength(String attribute) {
-        Preconditions.checkArgument(CharMatcher.ascii(attribute));
+        Preconditions.checkArgument(CharMatcher.ascii().matchesAllOf(attribute));
         return attribute.isEmpty() ? 1 : attribute.length();
     }
 
