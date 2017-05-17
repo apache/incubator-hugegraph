@@ -78,7 +78,8 @@
         <jsr305.version>3.0.1</jsr305.version>
         <jetty.version>9.4.1.v20170120</jetty.version>
         <jamon.version>2.4.1</jamon.version>
-        <jersey.version>1.19</jersey.version>
+        <jersey.server.version>2.25</jersey.server.version>
+        <jersey.grizzly2.version>1.19</jersey.grizzly2.version>
     </properties>
     <modules>
         <module>hugegraph-core</module>
@@ -286,17 +287,17 @@
                 <version>${jetty.version}</version>
             </dependency>
 
+            <!-- jersey -->
             <dependency>
-                <groupId>com.sun.jersey</groupId>
+                <groupId>org.glassfish.jersey.core</groupId>
                 <artifactId>jersey-server</artifactId>
-                <version>${jersey.version}</version>
+                <version>${jersey.server.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.sun.jersey</groupId>
+                <groupId>org.glassfish.jersey.core</groupId>
                 <artifactId>jersey-grizzly2</artifactId>
-                <version>${jersey.version}</version>
+                <version>${jersey.grizzly2.version}</version>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
 
