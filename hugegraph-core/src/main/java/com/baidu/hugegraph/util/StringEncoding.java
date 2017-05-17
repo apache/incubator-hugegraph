@@ -28,18 +28,18 @@ public class StringEncoding {
     // Similar to {@link StringSerializer}
     public static int writeAsciiString(byte[] array, int startPos, String attribute) {
         Preconditions.checkArgument(CharMatcher.ascii(attribute));
-
-        if (attribute.length() == 0) {
+        int len = attribute.length();
+        if (len == 0) {
             array[startPos++] = (byte) 0x80;
-        } else {
-            for (int i = 0; i < attribute.length(); i++) {
-                int c = attribute.charAt(i);
-                assert c <= 127;
-                byte b = (byte) c;
-                if (i + 1 == attribute.length())
-                    b |= 0x80; // End marker
-                array[startPos++] = b;
-            }
+            return startPos;
+        }
+        for (int i = 0; i < len;) {
+            int c = attribute.charAt(i);
+            assert c <= 127;
+            byte b = (byte) c;
+            if (++i == len)
+                b |= 0x80; // End marker
+            array[startPos++] = b;
         }
         return startPos;
     }
