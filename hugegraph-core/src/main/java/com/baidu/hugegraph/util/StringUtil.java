@@ -26,7 +26,7 @@ public class StringUtil {
         return desc;
     }
 
-    public static void verifyName(String name) {
+    public static void checkName(String name) {
         Preconditions.checkNotNull(name, "name can not be null.");
         Preconditions.checkNotNull(!name.isEmpty(), "name can not be empty.");
         Preconditions.checkArgument(name.length() < 256, "the length of name must less than 256.");

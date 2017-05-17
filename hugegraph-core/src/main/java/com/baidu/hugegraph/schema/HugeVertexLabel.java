@@ -54,7 +54,7 @@ public class HugeVertexLabel extends VertexLabel {
     @Override
     public VertexLabel create() {
 
-        StringUtil.verifyName(this.name);
+        StringUtil.checkName(this.name);
         // Try to read
         VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
         // if vertexLabel exist and checkExits
@@ -62,7 +62,7 @@ public class HugeVertexLabel extends VertexLabel {
             throw new HugeException("The vertexlabel:" + this.name + " has exised.");
         }
 
-        verifyPrimaryKeys();
+        this.checkPrimaryKeys();
         this.transaction().addVertexLabel(this);
         return this;
     }
@@ -72,7 +72,7 @@ public class HugeVertexLabel extends VertexLabel {
         this.transaction().removeVertexLabel(this.name);
     }
 
-    private void verifyPrimaryKeys() {
+    private void checkPrimaryKeys() {
         if (this.primaryKeys != null && !this.primaryKeys.isEmpty()) {
             // Check whether the properties contains the specified keys
             Preconditions.checkNotNull(this.properties, "properties can not be null");
