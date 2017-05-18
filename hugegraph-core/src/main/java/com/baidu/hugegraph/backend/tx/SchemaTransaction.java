@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
@@ -32,7 +32,7 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public List<HugePropertyKey> getPropertyKeys() {
         List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
-        ConditionQuery q = new ConditionQuery(HugeType.PROPERTY_KEY);
+        Query q = new Query(HugeType.PROPERTY_KEY);
         Iterable<BackendEntry> entries = query(q);
         entries.forEach(item -> {
             propertyKeys.add((HugePropertyKey) this.serializer.readPropertyKey(item));
@@ -42,7 +42,7 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public List<HugeVertexLabel> getVertexLabels() {
         List<HugeVertexLabel> vertexLabels = new ArrayList<>();
-        ConditionQuery q = new ConditionQuery(HugeType.VERTEX_LABEL);
+        Query q = new Query(HugeType.VERTEX_LABEL);
         Iterable<BackendEntry> entries = query(q);
         entries.forEach(item -> {
             vertexLabels.add((HugeVertexLabel) this.serializer.readVertexLabel(item));
@@ -52,7 +52,7 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public List<HugeEdgeLabel> getEdgeLabels() {
         List<HugeEdgeLabel> edgeLabels = new ArrayList<>();
-        ConditionQuery q = new ConditionQuery(HugeType.EDGE_LABEL);
+        Query q = new Query(HugeType.EDGE_LABEL);
         Iterable<BackendEntry> entries = query(q);
         entries.forEach(item -> {
             edgeLabels.add((HugeEdgeLabel) this.serializer.readEdgeLabel(item));

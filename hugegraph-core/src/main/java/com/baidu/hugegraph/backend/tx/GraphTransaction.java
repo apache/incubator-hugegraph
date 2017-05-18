@@ -302,6 +302,10 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
+        if (!edges.hasNext()) {
+            return ImmutableList.<Vertex>of().iterator();
+        }
+
         IdQuery query = new IdQuery(HugeType.VERTEX);
         while (edges.hasNext()) {
             HugeEdge edge = (HugeEdge) edges.next();
