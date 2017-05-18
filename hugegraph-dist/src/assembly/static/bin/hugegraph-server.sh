@@ -62,7 +62,8 @@ if [ "$1" = "-i" ]; then
 else
   ARGS="$@"
   if [ $# = 0 ] ; then
-    ARGS="conf/hugegraph-server/hugegraph-server.yaml"
+    ARGS="conf/hugegraph-server.yaml"
   fi
-  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/hugegraph-server/log4j-server.properties $JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.server.HugeGraphServer $ARGS
+  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/log4j.properties $JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.server.HugeGraphServer $ARGS &
+  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/log4j.properties $JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.server.HugeGremlinServer $ARGS
 fi
