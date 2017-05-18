@@ -51,13 +51,6 @@ public abstract class Condition {
                         first, second));
             }
 
-            if (!first.getClass().equals(second.getClass())) {
-                throw new BackendException(String.format(
-                        "Can't compare class %s with class %s",
-                        first.getClass().getSimpleName(),
-                        second.getClass().getSimpleName()));
-            }
-
             Function<Object, Number> toBig = (number) -> {
                 try {
                     return new BigDecimal(number.toString());
@@ -74,9 +67,23 @@ public abstract class Condition {
             Number n2 = (second instanceof Number)
                     ? (Number) second : toBig.apply(second);
 
-            assert n1.getClass().equals(n2.getClass());
+            // the `first` may be serialized to String,
+            // so convert the `second` to String too, and then to Big
+            if (!n1.getClass().equals(n2.getClass())
+                    && first.getClass().equals(String.class)) {
+                n2 = toBig.apply(second);
+            }
+            // check they are the same type
+            if (!n1.getClass().equals(n2.getClass())) {
+                throw new BackendException(String.format(
+                        "Can't compare class %s with class %s",
+                        first.getClass().getSimpleName(),
+                        second.getClass().getSimpleName()));
+            }
+
             @SuppressWarnings("unchecked")
             Comparable<Number> n1cmp = (Comparable<Number>) n1;
+            assert n1.getClass().equals(n2.getClass());
             return n1cmp.compareTo(n2);
         }
 
