@@ -18,10 +18,13 @@ public class Application extends ResourceConfig {
     public Application() {
         packages("com.baidu.hugegraph.api");
 
+        // json support
+        register(org.glassfish.jersey.jackson.JacksonFeature.class);
+
         // TODO: read from conf
         Map<String, String> graphConfs = new HashMap<>();
         graphConfs.put("hugegraph",
-                "../hugegraph-dist/src/assembly/static/conf/hugegraph.properties");
+                "/etc/hugegraph/hugegraph.properties");
         register(new GraphManagerFactory(graphConfs));
     }
 

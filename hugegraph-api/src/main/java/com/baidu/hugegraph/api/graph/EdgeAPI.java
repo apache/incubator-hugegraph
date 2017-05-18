@@ -1,7 +1,5 @@
 package com.baidu.hugegraph.api.graph;
 
-import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -18,8 +16,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +27,9 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.HugeServer;
 
-@Path("graphs/{graph}/graph/vertices")
+@Path("graphs/{graph}/graph/edges")
 @Singleton
-public class VertexAPI extends API {
+public class EdgeAPI extends API {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
 
@@ -41,12 +39,16 @@ public class VertexAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         CreateVertex vertex) {
-        logger.debug("Graph [{}] create vertex: {}", graph, vertex);
+                         CreateEdge edge) {
+        logger.debug("Graph [{}] create edge: {}", graph, edge);
 
         Graph g = graph(manager, graph);
-        Vertex v = g.addVertex(vertex.properties());
-        return manager.serializer(g).writeVertex(v);
+
+        Vertex srcVertex = g.traversal().V(edge.source).next();
+        Vertex tgtVertex = g.traversal().V(edge.target).next();
+        Edge e = srcVertex.addEdge(edge.label, tgtVertex, edge.properties());
+
+        return manager.serializer(g).writeEdge(e);
     }
 
     @GET
@@ -57,8 +59,8 @@ public class VertexAPI extends API {
         logger.debug("Graph [{}] get vertices", graph);
 
         Graph g = graph(manager, graph);
-        List<Vertex> rs = g.traversal().V().limit(limit).toList();
-        return manager.serializer(g).writeVertices(rs);
+        List<Edge> rs = g.traversal().E().limit(limit).toList();
+        return manager.serializer(g).writeEdges(rs);
     }
 
     @GET
@@ -70,7 +72,7 @@ public class VertexAPI extends API {
         logger.debug("Graph [{}] get vertex by id '{}'", graph, id);
 
         Graph g = graph(manager, graph);
-        return manager.serializer(g).writeVertex(g.vertices(id).next());
+        return manager.serializer(g).writeEdge(g.edges(id).next());
     }
 
     @DELETE
@@ -82,28 +84,26 @@ public class VertexAPI extends API {
         logger.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
         Graph g = graph(manager, graph);
-        // TODO: add removeVertex(id) to improve
-        g.vertices(id).next().remove();
+        // TODO: add removeEdge(id) to improve
+        g.edges(id).next().remove();
     }
 
-    static class CreateVertex {
-
+    static class CreateEdge {
+        public String source;
         public String label;
+        public String target;
         public Map<String, String> properties;
 
         public Object[] properties() {
-            Object[] props = API.properties(this.properties);
-            List<Object> list = new LinkedList<>(Arrays.asList(props));
-            list.add(0, T.label);
-            list.add(1, this.label);
-            return list.toArray();
+            return API.properties(this.properties);
         }
 
         @Override
         public String toString() {
-            return String.format("{label=%s, properties=%s}",
-                    this.label,
-                    this.properties);
+            return String.format("{label=%s, source-vertex=%s, "
+                    + "target-vertex=%s, properties=%s}",
+                    this.label, this.source,
+                    this.target, this.properties);
         }
     }
 }

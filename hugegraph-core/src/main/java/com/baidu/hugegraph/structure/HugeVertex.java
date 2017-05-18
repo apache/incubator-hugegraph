@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -22,7 +21,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -140,8 +138,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         Preconditions.checkArgument(CollectionUtil.containsAll(
                 ElementHelper.getKeys(properties),
-                ((HugeEdgeLabel) edgeLabel).sortKeys()),
-                "The sort key(s) must be setted for edge " + edgeLabel.name());
+                edgeLabel.sortKeys()),
+                "The sort key(s) must be setted for edge: " + edgeLabel.name());
 
         Preconditions.checkArgument(edgeLabel.checkLink(this.label(), vertex.label()),
                 String.format("Undefined link of edge label '%s': '%s' -> '%s'",

@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.api;
 
+import java.util.Map;
+
 import javax.ws.rs.NotFoundException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -15,5 +17,15 @@ public class API {
             throw new NotFoundException(msg);
         }
         return g;
+    }
+
+    public static Object[] properties(Map<String, String> properties) {
+        Object[] list = new Object[properties.size() * 2];
+        int i = 0;
+        for (Map.Entry<String, String> prop : properties.entrySet()) {
+            list[i++] = prop.getKey();
+            list[i++] = prop.getValue();
+        }
+        return list;
     }
 }
