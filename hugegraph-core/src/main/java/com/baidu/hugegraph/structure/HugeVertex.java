@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -240,7 +241,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality,
             String key, V value, Object... objects) {
+        if (objects.length != 0 && objects[0].equals(T.id)) {
+            throw VertexProperty.Exceptions.userSuppliedIdsNotSupported();
+        }
         // TODO: extra props: objects
+        if (objects.length != 0) {
+            throw VertexProperty.Exceptions.metaPropertiesNotSupported();
+        }
+
         HugeProperty<V> prop = this.addProperty(key, value);
 
         // NOTE: currently we don't support custom id, if id is null
