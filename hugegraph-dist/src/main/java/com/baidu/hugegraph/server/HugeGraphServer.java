@@ -30,8 +30,8 @@ public class HugeGraphServer {
 
         RegisterUtil.registerComponent(args[0]);
 
-        // start GremlinServer
-        GremlinServer.main(args);
+        // start HugeGraphServer
+        HugeServer.main(args);
     }
 
 }

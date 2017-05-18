@@ -1,7 +1,6 @@
 package com.baidu.hugegraph.server;
 
 import static com.baidu.hugegraph.configuration.ConfigSpace.BACKEND;
-import static com.baidu.hugegraph.configuration.ConfigSpace.SERIALIZER;
 
 import java.util.HashSet;
 import java.util.List;
@@ -20,52 +19,43 @@ import com.baidu.hugegraph.configuration.HugeConfiguration;
  */
 public class RegisterUtil {
 
+    private static Set<String> backends = new HashSet<>();
+
     public static void registerComponent(String confFile) throws ConfigurationException {
+
+        loadConfiguration(confFile);
+
+        registerBackend();
+    }
+
+    private static void loadConfiguration(String confFile) throws ConfigurationException {
         YamlConfiguration yamlConfig = new YamlConfiguration();
         yamlConfig.load(confFile);
 
         List<ConfigurationNode> graphs = yamlConfig.getRootNode()
                 .getChildren("graphs").get(0).getChildren();
 
-        Set<String> backends = new HashSet<>();
-        Set<String> serializers = new HashSet<>();
-
         for (int i = 0; i < graphs.size(); i++) {
-            System.out.println(graphs.get(i).getValue());
             String propConfFile = graphs.get(i).getValue().toString();
 
             // get graph property file path
             HugeConfiguration configuration = new HugeConfiguration(propConfFile);
             backends.add(configuration.get(BACKEND).toLowerCase());
-            serializers.add(configuration.get(SERIALIZER).toLowerCase());
         }
-
-        backends.forEach(backend -> registerBackendProvider(backend));
-        serializers.forEach(serializer -> registerSerializer(serializer));
     }
 
-    private static void registerSerializer(String serializer) {
-        switch (serializer) {
-            case "cassandra":
-                // register serializer
-                SerializerFactory.register("cassandra",
-                        "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
-                break;
-            default:
-                break;
-        }
-
-    }
-
-    private static void registerBackendProvider(String backend) {
-        switch (backend) {
-            case "cassandra":
-                // register backend provider
-                BackendProviderFactory.register("cassandra",
-                        "com.baidu.hugegraph.backend.store.cassandra.CassandraStoreProvider");
-                break;
-            default:
-                break;
+    private static void registerBackend() {
+        for (String backend : backends) {
+            switch (backend) {
+                case "cassandra":
+                    registerCassandra();
+                    break;
+                case "hbase":
+                    registerHBase();
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -74,5 +64,9 @@ public class RegisterUtil {
                 "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
         BackendProviderFactory.register("cassandra",
                 "com.baidu.hugegraph.backend.store.cassandra.CassandraStoreProvider");
+    }
+
+    public static void registerHBase() {
+
     }
 }

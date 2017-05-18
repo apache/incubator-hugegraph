@@ -165,18 +165,19 @@ start() {
         return 1
     }
 
-    echo "Forking HugeGraph-Server..."
+    echo "Forking HugeGremlinServer and HugeGraphServer..."
     if [ -n "$VERBOSE" ]; then
-        "$BIN"/hugegraph-server.sh conf/hugegraph-server/hugegraph-server.yaml &
+        "$BIN"/hugegraph-server.sh conf/hugegraph-server.yaml &
     else
-        "$BIN"/hugegraph-server.sh conf/hugegraph-server/hugegraph-server.yaml >/dev/null 2>&1 &
+        "$BIN"/hugegraph-server.sh conf/hugegraph-server.yaml >/dev/null 2>&1 &
     fi
-    wait_for_startup 'HugeGraph-Server' $GSRV_IP $GSRV_PORT $GSRV_STARTUP_TIMEOUT_S || {
-        echo "See $BIN/../logs/hugegraph-server.log for HugeGraph-Server log output."  >&2
+    wait_for_startup 'HugeGremlinServer' $GSRV_IP $GSRV_PORT $GSRV_STARTUP_TIMEOUT_S || {
+        echo "See $BIN/../logs/hugegraph-server.log for HugeGremlinServer log output."  >&2
         return 1
     }
     disown
     echo "You can run hugegraph-console.sh to connect." >&2
+
 
 #    echo "Forking HugeGraph-NoteBook..."
 #    if [ -n "$VERBOSE" ]; then

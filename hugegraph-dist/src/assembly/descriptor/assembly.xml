@@ -19,7 +19,9 @@
         <fileSet>
             <directory>${assembly.static.dir}</directory>
             <outputDirectory>/</outputDirectory>
-            <filtered>false</filtered>
+            <filtered>true</filtered>
+            <includes>
+            </includes>
             <excludes>
                 <exclude>README.txt</exclude>
             </excludes>
