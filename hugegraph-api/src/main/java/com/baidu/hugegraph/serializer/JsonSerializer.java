@@ -33,14 +33,12 @@ public class JsonSerializer implements Serializer {
     public String writeVertices(List<Vertex> vertices) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            out.write("{\"vertices\":[".getBytes());
             this.writer.writeVertices(out, vertices.iterator());
-            out.write("]}".getBytes());
         } catch (IOException e) {
             throw new HugeException("Failed to serialize vertices", e);
         }
-        // TODO: improve
-        return out.toString().replaceAll("\\}\n\\{", "},{");
+        // NOTE: please ensure the writer wrapAdjacencyList(true)
+        return out.toString();
     }
 
     @Override
@@ -65,7 +63,7 @@ public class JsonSerializer implements Serializer {
             }
             out.write("]}".getBytes());
         } catch (IOException e) {
-            throw new HugeException("Failed to serialize edge", e);
+            throw new HugeException("Failed to serialize edges", e);
         }
         return out.toString();
     }
