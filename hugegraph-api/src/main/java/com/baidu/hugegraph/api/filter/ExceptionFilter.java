@@ -1,7 +1,8 @@
 package com.baidu.hugegraph.api.filter;
 
 import javax.json.Json;
-import javax.json.JsonObject;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonObjectBuilder;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -59,18 +60,34 @@ public class ExceptionFilter {
         public Response toResponse(Exception exception) {
             return Response.status(500)
                     .type(MediaType.APPLICATION_JSON)
-                    .entity(formatException(exception))
+                    .entity(formatException(exception, true))
                     .build();
         }
     }
 
     public static String formatException(Exception exception) {
-        JsonObject json = Json.createObjectBuilder()
+        return formatException(exception, false);
+    }
+
+    public static String formatException(Exception exception, boolean trace) {
+        String msg = (exception.getMessage() != null
+                ? exception.getMessage() : "");
+        String cause = (exception.getCause() != null
+                ? exception.getCause().toString() : "");
+
+        JsonObjectBuilder json = Json.createObjectBuilder()
                 .add("exception", exception.getClass().toString())
-                .add("message", exception.getMessage())
-                .add("cause", (exception.getCause() != null
-                        ? exception.getCause().toString() : ""))
-                .build();
-        return json.toString();
+                .add("message", msg)
+                .add("cause", cause);
+
+        if (trace) {
+            JsonArrayBuilder traces = Json.createArrayBuilder();
+            for (StackTraceElement i : exception.getStackTrace()) {
+                traces.add(i.toString());
+            }
+            json.add("trace", traces);
+        }
+
+        return json.build().toString();
     }
 }
