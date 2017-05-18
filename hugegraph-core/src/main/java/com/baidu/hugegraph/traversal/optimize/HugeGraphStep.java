@@ -59,36 +59,58 @@ public final class HugeGraphStep<S, E extends Element>
         logger.debug("HugeGraphStep.vertices(): {}", this);
 
         HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
+
         if (this.ids != null && this.ids.length > 0) {
             return filterResult(this.hasContainers,
                     graph.vertices(this.ids));
-        } else {
-            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-            query.offset(this.offset);
-            query.limit(this.limit);
-            for (HasContainer condition : this.hasContainers) {
-                query.query(convHasContainer2Condition(condition));
-            }
-            return (Iterator<E>) graph.vertices(query);
         }
+
+        Query query = null;
+
+        if (this.hasContainers.isEmpty()) {
+            // query all
+            query = new Query(HugeType.VERTEX);
+        } else {
+            ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
+            for (HasContainer condition : this.hasContainers) {
+                q.query(convHasContainer2Condition(condition));
+            }
+            query = q;
+        }
+
+        query.offset(this.offset);
+        query.limit(this.limit);
+
+        return (Iterator<E>) graph.vertices(query);
     }
 
     private Iterator<E> edges() {
         logger.debug("HugeGraphStep.edges(): {}", this);
 
         HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
+
         if (this.ids != null && this.ids.length > 0) {
             return filterResult(this.hasContainers,
                     graph.edges(this.ids));
-        } else {
-            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-            query.offset(this.offset);
-            query.limit(this.limit);
-            for (HasContainer has : this.hasContainers) {
-                query.query(convHasContainer2Condition(has));
-            }
-            return (Iterator<E>) graph.edges(query);
         }
+
+        Query query = null;
+
+        if (this.hasContainers.isEmpty()) {
+            // query all
+            query = new Query(HugeType.EDGE);
+        } else {
+            ConditionQuery q = new ConditionQuery(HugeType.EDGE);
+            for (HasContainer has : this.hasContainers) {
+                q.query(convHasContainer2Condition(has));
+            }
+            query = q;
+        }
+
+        query.offset(this.offset);
+        query.limit(this.limit);
+
+        return (Iterator<E>) graph.edges(query);
     }
 
     @Override

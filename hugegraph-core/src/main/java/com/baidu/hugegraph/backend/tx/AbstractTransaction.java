@@ -63,6 +63,12 @@ public abstract class AbstractTransaction implements Transaction {
 
     public Iterable<BackendEntry> query(Query query) {
         logger.debug("Transaction query: {}", query);
+        // NOTE: it's dangerous if an IdQuery/ConditionQuery is empty
+        // check if the query is empty and its class is not the Query itself
+        if (query.queryAll() && !query.getClass().equals(Query.class)) {
+            throw new BackendException("Query without any id or condition");
+        }
+
         query = this.serializer.writeQuery(query);
 
         this.beforeRead();
