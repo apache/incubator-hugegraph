@@ -28,4 +28,11 @@ public class API {
         }
         return list;
     }
+
+    public static void checkExists(Object object, String name) {
+        if (object == null) {
+            String msg = String.format("Not found '%s'", name);
+            throw new NotFoundException(msg);
+        }
+    }
 }
