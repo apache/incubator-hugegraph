@@ -55,7 +55,8 @@ public final class GraphManager {
 
     public Serializer serializer(Graph g) {
         // TODO: cache Serializer
-        return new JsonSerializer(g.io(IoCore.graphson()).writer().create());
+        return new JsonSerializer(g.io(
+                IoCore.graphson()).writer().wrapAdjacencyList(true).create());
     }
 
     public Map<String, TraversalSource> traversalSources() {
