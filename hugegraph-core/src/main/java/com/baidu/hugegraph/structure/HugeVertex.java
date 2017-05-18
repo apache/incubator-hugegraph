@@ -134,14 +134,16 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 "The target vertex can not be null.");
 
         HugeVertex targetVertex = (HugeVertex) vertex;
-        HugeEdgeLabel edgeLabel = (HugeEdgeLabel) this.graph.schema().edgeLabel(label);
+        HugeEdgeLabel edgeLabel =
+                (HugeEdgeLabel) this.graph.schema().edgeLabel(label);
 
         Preconditions.checkArgument(CollectionUtil.containsAll(
-                ElementHelper.getKeys(properties),
-                edgeLabel.sortKeys()),
-                "The sort key(s) must be setted for edge: " + edgeLabel.name());
+                ElementHelper.getKeys(properties), edgeLabel.sortKeys()),
+                "The sort key(s) must be setted for the edge with label: '%s'",
+                edgeLabel.name());
 
-        Preconditions.checkArgument(edgeLabel.checkLink(this.label(), vertex.label()),
+        Preconditions.checkArgument(
+                edgeLabel.checkLink(this.label(), vertex.label()),
                 String.format("Undefined link of edge label '%s': '%s' -> '%s'",
                         label, this.label(), vertex.label()));
 
