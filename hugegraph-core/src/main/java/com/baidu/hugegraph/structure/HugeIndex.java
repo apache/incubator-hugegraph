@@ -26,6 +26,7 @@ public class HugeIndex {
         if (indexType() == IndexType.SECONDARY) {
             return propertyValues() + indexLabelName();
         } else {
+            assert indexType() == IndexType.SEARCH;
             return indexLabelName() + propertyValues();
         }
     }

@@ -105,16 +105,16 @@ public class BackendMutation {
     public void merge(BackendMutation m) {
         Preconditions.checkNotNull(m);
 
-        if (null != m.additions) {
-            if (null == this.additions) {
+        if (m.additions != null) {
+            if (this.additions == null) {
                 this.additions = m.additions;
             } else {
                 this.additions.addAll(m.additions);
             }
         }
 
-        if (null != m.deletions) {
-            if (null == this.deletions) {
+        if (m.deletions != null) {
+            if (this.deletions == null) {
                 this.deletions = m.deletions;
             } else {
                 this.deletions.addAll(m.deletions);

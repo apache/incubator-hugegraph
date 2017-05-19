@@ -52,14 +52,17 @@ public abstract class CassandraTable {
     public Iterable<BackendEntry> query(Session session, Query query) {
         List<BackendEntry> rs = new LinkedList<>();
 
-        if (query.limit() > 0 || query.limit() == Query.NO_LIMIT) {
-            List<Select> selections = query2Select(query);
-
-            for (Select selection : selections) {
-                ResultSet results = session.execute(selection);
-                rs.addAll(this.results2Entries(query.resultType(), results));
-            }
+        if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
+            logger.debug("return empty result(limit=0) for query {}", query);
+            return rs;
         }
+
+        List<Select> selections = query2Select(query);
+        for (Select selection : selections) {
+            ResultSet results = session.execute(selection);
+            rs.addAll(this.results2Entries(query.resultType(), results));
+        }
+
         logger.debug("return {} for query {}", rs, query);
         return rs;
     }
@@ -75,17 +78,18 @@ public abstract class CassandraTable {
 
         // NOTE: Cassandra does not support query.offset()
         if (query.offset() != 0) {
-            logger.warn("Query offset are not currently supported"
+            logger.warn("Query offset is not supported currently"
                     + " on Cassandra strore, it will be ignored");
         }
 
         // order-by
         for (Map.Entry<HugeKeys, Order> order : query.orders().entrySet()) {
+            String name = formatKey(order.getKey());
             if (order.getValue() == Order.ASC) {
-                select.orderBy(QueryBuilder.asc(formatKey(order.getKey())));
+                select.orderBy(QueryBuilder.asc(name));
             } else {
                 assert order.getValue() == Order.DESC;
-                select.orderBy(QueryBuilder.desc(formatKey(order.getKey())));
+                select.orderBy(QueryBuilder.desc(name));
             }
         }
 
@@ -135,27 +139,26 @@ public abstract class CassandraTable {
             select.where(QueryBuilder.in(nameParts.get(0), idList));
             return ImmutableList.of(select);
         }
-        // query by partition-key + cluster-key
-        else {
-            // NOTE: Error of multi-column IN when including partition key:
-            // error: multi-column relations can only be applied to cluster columns
-            // when using: select.where(QueryBuilder.in(names, idList));
-            // so we use multi-query instead
-            List<Select> selections = new ArrayList<Select>(ids.size());
-            for (List<String> id : ids) {
-                assert nameParts.size() == id.size();
-                // NOTE: there is no Select.clone(), just use copy instead
-                Select idSelection = CopyUtil.copy(select,
-                        QueryBuilder.select().from(this.table));
-                // NOTE: concat with AND relation
-                // like: pk = id and ck1 = v1 and ck2 = v2
-                for (int i = 0; i < nameParts.size(); i++) {
-                    idSelection.where(QueryBuilder.eq(nameParts.get(i), id.get(i)));
-                }
-                selections.add(idSelection);
+
+        // query by partition-key + clustering-key
+        // NOTE: Error if multi-column IN clause include partition key:
+        // error: multi-column relations can only be applied to clustering
+        // columns when using: select.where(QueryBuilder.in(names, idList));
+        // so we use multi-query instead of IN
+        List<Select> selections = new ArrayList<Select>(ids.size());
+        for (List<String> id : ids) {
+            assert nameParts.size() == id.size();
+            // NOTE: there is no Select.clone(), just use copy instead
+            Select idSelection = CopyUtil.copy(select,
+                    QueryBuilder.select().from(this.table));
+            // NOTE: concat with AND relation
+            // like: pk = id and ck1 = v1 and ck2 = v2
+            for (int i = 0; i < nameParts.size(); i++) {
+                idSelection.where(QueryBuilder.eq(nameParts.get(i), id.get(i)));
             }
-            return selections;
+            selections.add(idSelection);
         }
+        return selections;
     }
 
     protected Collection<Select> queryCondition2Select(
@@ -290,8 +293,10 @@ public abstract class CassandraTable {
 
             this.batch.add(delete);
         }
-        // delete just by column keys (TODO: delete by id + keys)
+        // delete just by column keys
+        // TODO: delete by id + keys(like index element-ids))
         else {
+            // NOTE: there are multi deletions if delete by id + keys
             Delete delete = QueryBuilder.delete().from(this.table);
             for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
                 // TODO: should support other filters (like containsKey)

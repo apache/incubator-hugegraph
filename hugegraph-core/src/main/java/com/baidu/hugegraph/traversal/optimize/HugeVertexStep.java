@@ -49,6 +49,7 @@ public final class HugeVertexStep<E extends Element>
         if (queryVertex) {
             return (Iterator<E>) this.vertices(traverser);
         } else {
+            assert queryEdge;
             return (Iterator<E>) this.edges(traverser);
         }
     }
@@ -100,14 +101,14 @@ public final class HugeVertexStep<E extends Element>
     public String toString() {
         if (this.hasContainers.isEmpty()) {
             return super.toString();
-        } else {
-            return StringFactory.stepString(
-                    this,
-                    getDirection(),
-                    Arrays.asList(getEdgeLabels()),
-                    getReturnClass().getSimpleName(),
-                    this.hasContainers);
         }
+
+        return StringFactory.stepString(
+                this,
+                getDirection(),
+                Arrays.asList(getEdgeLabels()),
+                getReturnClass().getSimpleName(),
+                this.hasContainers);
     }
 
     @Override

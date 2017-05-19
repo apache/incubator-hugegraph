@@ -101,11 +101,11 @@ public abstract class HugeElement implements Element, GraphType {
                         "Invalid property value '%s' for key '%s'", value, key));
 
                 HugeProperty<Set<V>> propSet;
-                if (!this.existsProperty(key)) {
+                if (this.existsProperty(key)) {
+                    propSet = this.<Set<V>>getProperty(key);
+                } else {
                     propSet = this.newProperty(pkey, new LinkedHashSet<V>());
                     this.setProperty(propSet);
-                } else {
-                    propSet = this.<Set<V>>getProperty(key);
                 }
 
                 propSet.value().add(value);
@@ -147,27 +147,28 @@ public abstract class HugeElement implements Element, GraphType {
 
     public static Id getIdValue(Object... keyValues) {
         Optional<Object> id = ElementHelper.getIdValue(keyValues);
-        if (id.isPresent()) {
-            Object idValue = id.get();
-            // number id
-            if (idValue instanceof Number) {
-                return IdGeneratorFactory.generator().generate(
-                        ((Number) idValue).longValue());
-            }
-            // string id
-            else if (idValue instanceof String) {
-                return IdGeneratorFactory.generator().generate((String) idValue);
-            }
-            // id itself
-            else if (idValue instanceof Id) {
-                return (Id) idValue;
-            }
-            // error
-            String msg = "Unsupported id type(must be a number or string): ";
-            msg += idValue.getClass().getSimpleName();
-            throw new UnsupportedOperationException(msg);
+        if (!id.isPresent()) {
+            return null;
         }
-        return null;
+
+        Object idValue = id.get();
+        // number id
+        if (idValue instanceof Number) {
+            return IdGeneratorFactory.generator().generate(
+                    ((Number) idValue).longValue());
+        }
+        // string id
+        else if (idValue instanceof String) {
+            return IdGeneratorFactory.generator().generate((String) idValue);
+        }
+        // id itself
+        else if (idValue instanceof Id) {
+            return (Id) idValue;
+        }
+        // error type
+        String msg = "Unsupported id type(must be a number or string): ";
+        msg += idValue.getClass().getSimpleName();
+        throw new UnsupportedOperationException(msg);
     }
 
     public static Object getLabelValue(Object... keyValues) {

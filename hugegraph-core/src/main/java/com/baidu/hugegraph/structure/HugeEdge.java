@@ -76,8 +76,8 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
         if (this.type() == HugeType.EDGE_OUT) {
             return Direction.OUT;
-        }
-        else {
+        } else {
+            assert this.type() == HugeType.EDGE_IN;
             return Direction.IN;
         }
     }
@@ -140,7 +140,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                 if (prop != null) {
                     assert prop instanceof Property;
                     propertyList.add((Property<V>) prop);
-                }
+                } // else not found
             }
         }
         return propertyList.iterator();
@@ -232,8 +232,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     public HugeVertex otherVertex(HugeVertex vertex) {
         if (vertex == this.sourceVertex) {
             return this.targetVertex;
-        }
-        else {
+        } else {
             return this.sourceVertex;
         }
     }
