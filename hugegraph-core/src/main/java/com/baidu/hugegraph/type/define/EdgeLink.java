@@ -1,16 +1,19 @@
 package com.baidu.hugegraph.type.define;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tinkerpop.shaded.jackson.annotation.JsonGetter;
+import org.apache.tinkerpop.shaded.jackson.annotation.JsonValue;
 
 /**
  * Created by liningrui on 2017/5/19.
  */
-public class EdgeLink extends Pair<String, String> {
+public class EdgeLink {
 
     private static final long serialVersionUID = 4954918890077093841L;
 
-    private String source;
-    private String target;
+    // use public for json serialize
+    public String source;
+    public String target;
 
     public static EdgeLink of(String source, String target) {
         return new EdgeLink(source, target);
@@ -30,22 +33,29 @@ public class EdgeLink extends Pair<String, String> {
         return source;
     }
 
+    @JsonGetter
     public String target() {
         return target;
     }
 
     @Override
-    public String getLeft() {
-        return source;
+    public boolean equals(Object obj) {
+        if (!(obj instanceof EdgeLink)) {
+            return false;
+        }
+
+        EdgeLink other = (EdgeLink) obj;
+        if (this.source().equals(other.source())
+                && this.target().equals(other.target())) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
-    public String getRight() {
-        return target;
+    public int hashCode() {
+        return this.source().hashCode() ^ this.target().hashCode();
     }
 
-    @Override
-    public String setValue(String value) {
-        throw new UnsupportedOperationException();
-    }
 }
