@@ -2,9 +2,7 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -28,6 +26,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.EdgeLink;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
@@ -36,7 +35,6 @@ import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.JsonUtil;
-import com.google.gson.reflect.TypeToken;
 
 public class CassandraSerializer extends AbstractSerializer {
 
@@ -321,8 +319,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
         HugeEdgeLabel edgeLabel = new HugeEdgeLabel(name);
         edgeLabel.frequency(JsonUtil.fromJson(frequency, Frequency.class));
-        edgeLabel.links(JsonUtil.fromJson(links,
-                new TypeToken<Set<ImmutablePair<String, String>>>(){}.getType()));
+        edgeLabel.links(JsonUtil.fromJson(links, EdgeLink[].class));
         edgeLabel.properties(JsonUtil.fromJson(properties, String[].class));
         edgeLabel.sortKeys(JsonUtil.fromJson(sortKeys, String[].class));
         edgeLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
