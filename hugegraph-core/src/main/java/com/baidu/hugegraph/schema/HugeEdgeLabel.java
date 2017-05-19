@@ -4,13 +4,12 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.type.define.EdgeLink;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.util.StringUtil;
 import com.google.common.base.Preconditions;
@@ -23,7 +22,7 @@ public class HugeEdgeLabel extends EdgeLabel {
     private static final Logger logger = LoggerFactory.getLogger(HugeEdgeLabel.class);
 
     private Frequency frequency;
-    private Set<Pair<String, String>> links;
+    private Set<EdgeLink> links;
     private Set<String> sortKeys;
 
     public HugeEdgeLabel(String name) {
@@ -67,24 +66,28 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     @Override
-    public Set<Pair<String, String>> links() {
+    public Set<EdgeLink> links() {
         return this.links;
     }
 
     @Override
     public EdgeLabel link(String src, String tgt) {
-        Pair<String, String> pair = ImmutablePair.of(src, tgt);
+        EdgeLink pair = EdgeLink.of(src, tgt);
         this.links.add(pair);
         return this;
     }
 
     @Override
-    public void links(Set<Pair<String, String>> links) {
+    public void links(Set<EdgeLink> links) {
         this.links = links;
     }
 
+    public void links(EdgeLink... links) {
+        this.links.addAll(Arrays.asList(links));
+    }
+
     public boolean checkLink(String src, String tgt) {
-        return this.links().contains(ImmutablePair.of(src, tgt));
+        return this.links().contains(EdgeLink.of(src, tgt));
     }
 
     @Override
@@ -101,11 +104,11 @@ public class HugeEdgeLabel extends EdgeLabel {
     public String linkSchema() {
         String linkSchema = "";
         if (this.links != null) {
-            for (Pair<String, String> link : this.links) {
+            for (EdgeLink link : this.links) {
                 linkSchema += ".link(\"";
-                linkSchema += link.getLeft();
+                linkSchema += link.source();
                 linkSchema += "\",\"";
-                linkSchema += link.getRight();
+                linkSchema += link.target();
                 linkSchema += "\")";
             }
         }

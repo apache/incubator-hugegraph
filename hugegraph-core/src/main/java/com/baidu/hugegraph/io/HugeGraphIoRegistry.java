@@ -1,10 +1,16 @@
 package com.baidu.hugegraph.io;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
 
 import org.apache.tinkerpop.gremlin.structure.io.AbstractIoRegistry;
+import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
+import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
+import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
+import org.apache.tinkerpop.shaded.jackson.databind.JsonSerializer;
+import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.kryo.Kryo;
 import org.apache.tinkerpop.shaded.kryo.Serializer;
 import org.apache.tinkerpop.shaded.kryo.io.Input;
@@ -35,9 +41,11 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
     public HugeGraphIoRegistry() {
         register(GryoIo.class, IdGenerator.StringId.class, new IdSerializer());
-        register(GryoIo.class, HugePropertyKey.class, new PropertyKeySerializer());
-        register(GryoIo.class, HugeVertexLabel.class, new VertexLabelSerializer());
-        register(GryoIo.class, HugeEdgeLabel.class, new EdgeLabelSerializer());
+        register(GryoIo.class, HugePropertyKey.class, new PropertyKeyKryoSerializer());
+        register(GryoIo.class, HugeVertexLabel.class, new VertexLabelKryoSerializer());
+        register(GryoIo.class, HugeEdgeLabel.class, new EdgeLabelKryoSerializer());
+
+        register(GraphSONIo.class, null, HugeGraphSONModule.getInstance());
     }
 
     public static class IdSerializer extends Serializer<Id> {
@@ -86,7 +94,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         return backendEntry;
     }
 
-    private class PropertyKeySerializer extends Serializer<PropertyKey> {
+    private class PropertyKeyKryoSerializer extends Serializer<PropertyKey> {
         @Override
         public void write(Kryo kryo, Output output, PropertyKey propertyKey) {
             BackendEntry entry = textSerializer.writePropertyKey(propertyKey);
@@ -99,7 +107,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         }
     }
 
-    private class VertexLabelSerializer extends Serializer<VertexLabel> {
+    private class VertexLabelKryoSerializer extends Serializer<VertexLabel> {
         @Override
         public void write(Kryo kryo, Output output, VertexLabel vertexLabel) {
             BackendEntry entry = textSerializer.writeVertexLabel(vertexLabel);
@@ -112,7 +120,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         }
     }
 
-    private class EdgeLabelSerializer extends Serializer<EdgeLabel> {
+    private class EdgeLabelKryoSerializer extends Serializer<EdgeLabel> {
 
         @Override
         public void write(Kryo kryo, Output output, EdgeLabel edgeLabel) {
@@ -125,4 +133,6 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
             return textSerializer.readEdgeLabel(readEntry(input));
         }
     }
+
+
 }

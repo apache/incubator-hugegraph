@@ -3,12 +3,11 @@ package com.baidu.hugegraph.type.schema;
 import java.util.HashMap;
 import java.util.Set;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.type.define.EdgeLink;
 
 /**
  * Created by jishilei on 17/3/18.
@@ -45,9 +44,9 @@ public abstract class EdgeLabel extends SchemaElement {
 
     public abstract EdgeLabel link(String src, String tgt);
 
-    public abstract Set<Pair<String, String>> links();
+    public abstract Set<EdgeLink> links();
 
-    public abstract void links(Set<Pair<String, String>> links);
+    public abstract void links(Set<EdgeLink> links);
 
     public abstract EdgeLabel sortKeys(String... keys);
 
