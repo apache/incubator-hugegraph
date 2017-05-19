@@ -19,10 +19,10 @@ public class API {
         return g;
     }
 
-    public static Object[] properties(Map<String, String> properties) {
+    public static Object[] properties(Map<String, Object> properties) {
         Object[] list = new Object[properties.size() * 2];
         int i = 0;
-        for (Map.Entry<String, String> prop : properties.entrySet()) {
+        for (Map.Entry<String, Object> prop : properties.entrySet()) {
             list[i++] = prop.getKey();
             list[i++] = prop.getValue();
         }

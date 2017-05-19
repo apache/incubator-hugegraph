@@ -92,7 +92,7 @@ public class EdgeAPI extends API {
         public String source;
         public String label;
         public String target;
-        public Map<String, String> properties;
+        public Map<String, Object> properties;
 
         public Object[] properties() {
             return API.properties(this.properties);
