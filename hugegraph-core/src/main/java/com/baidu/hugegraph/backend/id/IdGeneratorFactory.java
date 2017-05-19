@@ -21,8 +21,7 @@ public class IdGeneratorFactory {
     private static IdGenerator createGenerator(String generatorType) {
         if (generatorType.equalsIgnoreCase("splicing")) {
             return new SplicingIdGenerator();
-        }
-        else if (generatorType.equalsIgnoreCase("snowflake")) {
+        } else if (generatorType.equalsIgnoreCase("snowflake")) {
             // TODO: read from conf
             long workerId = 0;
             long datacenterId = 0;

@@ -1,12 +1,10 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -69,18 +67,18 @@ public class CassandraSerializer extends AbstractSerializer {
         if (index.indexType() == IndexType.SECONDARY) {
             return newBackendEntry(HugeType.SECONDARY_INDEX, id);
         } else {
+            assert index.indexType() == IndexType.SEARCH;
             return newBackendEntry(HugeType.SEARCH_INDEX, id);
         }
     }
 
     @Override
     protected BackendEntry convertEntry(BackendEntry backendEntry) {
-        if (backendEntry instanceof CassandraBackendEntry) {
-            return backendEntry;
-        } else {
+        if (!(backendEntry instanceof CassandraBackendEntry)) {
             throw new BackendException(
                     "CassandraSerializer just supports CassandraBackendEntry");
         }
+        return backendEntry;
     }
 
     protected void parseProperty(String colName, String colValue, HugeElement owner) {
@@ -94,12 +92,13 @@ public class CassandraSerializer extends AbstractSerializer {
         if (pkey.cardinality() == Cardinality.SINGLE) {
             owner.addProperty(pkey.name(), value);
         } else {
-            if (value instanceof Collection) {
-                for (Object v : (Collection<?>) value) {
-                    owner.addProperty(pkey.name(), v);
-                }
-            } else {
-                assert false : "invalid value of non-sigle property";
+            if (!(value instanceof Collection)) {
+                throw new BackendException(String.format(
+                        "Invalid value of non-sigle property: %s",
+                        colValue));
+            }
+            for (Object v : (Collection<?>) value) {
+                owner.addProperty(pkey.name(), v);
             }
         }
     }

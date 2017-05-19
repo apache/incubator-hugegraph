@@ -117,16 +117,16 @@ public final class HugeGraphStep<S, E extends Element>
     public String toString() {
         if (this.hasContainers.isEmpty()) {
             return super.toString();
-        } else {
-            return this.ids.length == 0 ?
-                    StringFactory.stepString(this,
-                            this.returnClass.getSimpleName(),
-                            this.hasContainers) :
-                    StringFactory.stepString(this,
-                            this.returnClass.getSimpleName(),
-                            Arrays.toString(this.ids),
-                            this.hasContainers);
         }
+
+        return this.ids.length == 0 ?
+                StringFactory.stepString(this,
+                        this.returnClass.getSimpleName(),
+                        this.hasContainers) :
+                StringFactory.stepString(this,
+                        this.returnClass.getSimpleName(),
+                        Arrays.toString(this.ids),
+                        this.hasContainers);
     }
 
     @Override

@@ -281,7 +281,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 if (prop != null) {
                     assert prop instanceof VertexProperty;
                     propertyList.add((VertexProperty<V>) prop);
-                }
+                } // else not found
             }
         }
 

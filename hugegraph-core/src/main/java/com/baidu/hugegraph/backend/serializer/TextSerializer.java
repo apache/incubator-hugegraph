@@ -11,6 +11,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
@@ -61,11 +62,11 @@ public class TextSerializer extends AbstractSerializer {
     protected BackendEntry convertEntry(BackendEntry entry) {
         if (entry instanceof TextBackendEntry) {
             return entry;
-        } else {
-            TextBackendEntry text = new TextBackendEntry(entry.id());
-            text.columns(entry.columns());
-            return text;
         }
+
+        TextBackendEntry text = new TextBackendEntry(entry.id());
+        text.columns(entry.columns());
+        return text;
     }
 
     protected String formatSyspropName(String name) {
@@ -112,12 +113,13 @@ public class TextSerializer extends AbstractSerializer {
         if (pkey.cardinality() == Cardinality.SINGLE) {
             owner.addProperty(pkey.name(), value);
         } else {
-            if (value instanceof Collection) {
-                for (Object v : (Collection<?>) value) {
-                    owner.addProperty(pkey.name(), v);
-                }
-            } else {
-                assert false : "invalid value of non-sigle property";
+            if (!(value instanceof Collection)) {
+                throw new BackendException(String.format(
+                        "Invalid value of non-sigle property: %s",
+                        colValue));
+            }
+            for (Object v : (Collection<?>) value) {
+                owner.addProperty(pkey.name(), v);
             }
         }
     }
