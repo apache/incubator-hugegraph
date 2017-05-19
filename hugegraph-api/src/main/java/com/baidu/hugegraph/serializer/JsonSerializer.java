@@ -47,6 +47,7 @@ public class JsonSerializer implements Serializer {
         return out.toString();
     }
 
+    @Override
     public String writeVertexLabel(VertexLabel vertexLabel) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
@@ -107,9 +108,7 @@ public class JsonSerializer implements Serializer {
     public String writeVertices(List<Vertex> vertices) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            out.write("{\"vertices\":[".getBytes());
             this.writer.writeVertices(out, vertices.iterator());
-            out.write("]}".getBytes());
         } catch (IOException e) {
             throw new HugeException("Failed to serialize vertices", e);
         }

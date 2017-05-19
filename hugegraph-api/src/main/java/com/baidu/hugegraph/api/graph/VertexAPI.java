@@ -89,7 +89,7 @@ public class VertexAPI extends API {
     static class CreateVertex {
 
         public String label;
-        public Map<String, String> properties;
+        public Map<String, Object> properties;
 
         public Object[] properties() {
             Object[] props = API.properties(this.properties);
