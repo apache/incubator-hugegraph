@@ -26,145 +26,90 @@ public class JsonSerializer implements Serializer {
         this.writer = writer;
     }
 
-    @Override
-    public String writePropertyKey(PropertyKey propertyKey) {
+    private String writeObject(Object object) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            this.writer.writeObject(out, propertyKey);
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize property key", e);
+            this.writer.writeObject(out, object);
+        } catch (Exception e) {
+            throw new HugeException(String.format(
+                    "Failed to serialize %s",
+                    object.getClass().getSimpleName()), e);
         }
 
         return out.toString();
+    }
+
+    private String writeList(String label, Object object) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            out.write(String.format("{\"%s\": ", label).getBytes());
+            this.writer.writeObject(out, object);
+            out.write("}".getBytes());
+        } catch (Exception e) {
+            throw new HugeException(String.format(
+                    "Failed to serialize %s", label), e);
+        }
+
+        return out.toString();
+    }
+
+    @Override
+    public String writePropertyKey(PropertyKey propertyKey) {
+        return writeObject(propertyKey);
     }
 
     @Override
     public String writePropertyKeys(List<HugePropertyKey> propertyKeys) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeObject(out, propertyKeys.iterator());
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize property keys", e);
-        }
-        return out.toString();
+        return writeList("propertykeys", propertyKeys);
     }
 
     @Override
     public String writeVertexLabel(VertexLabel vertexLabel) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeObject(out, vertexLabel);
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize vertex label", e);
-        }
-
-        return out.toString();
+        return writeObject(vertexLabel);
     }
 
     @Override
     public String writeVertexLabels(List<HugeVertexLabel> vertexLabels) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeObject(out, vertexLabels.iterator());
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize vertex labels", e);
-        }
-        return out.toString();
+        return writeList("vertexlabels", vertexLabels);
     }
 
     @Override
     public String writeEdgeLabel(EdgeLabel edgeLabel) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeObject(out, edgeLabel);
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize edge label", e);
-        }
-
-        return out.toString();
+        return writeObject(edgeLabel);
     }
 
     @Override
     public String writeEdgeLabels(List<HugeEdgeLabel> edgeLabels) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeObject(out, edgeLabels.iterator());
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize edge labels", e);
-        }
-        return out.toString();
+        return writeList("edgelabels", edgeLabels);
     }
 
     @Override
     public String writeIndexlabel(IndexLabel indexLabel) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeObject(out, indexLabel);
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize index label", e);
-        }
-
-        return out.toString();
+        return writeObject(indexLabel);
     }
 
     @Override
     public String writeIndexlabels(List<HugeIndexLabel> indexLabels) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeObject(out, indexLabels.iterator());
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize index labels", e);
-        }
-        return out.toString();
+        return writeList("indexlabels", indexLabels);
     }
 
     @Override
-    public String writeVertex(Vertex v) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeVertex(out, v);
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize vertex", e);
-        }
-        return out.toString();
+    public String writeVertex(Vertex vertex) {
+        return writeObject(vertex);
     }
 
     @Override
     public String writeVertices(List<Vertex> vertices) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeVertices(out, vertices.iterator());
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize vertices", e);
-        }
-        // NOTE: please ensure the writer wrapAdjacencyList(true)
-        return out.toString();
+        return writeList("vertices", vertices);
     }
 
     @Override
     public String writeEdge(Edge edge) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            this.writer.writeEdge(out, edge);
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize edge", e);
-        }
-        return out.toString();
+        return writeObject(edge);
     }
 
     @Override
     public String writeEdges(List<Edge> edges) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            out.write("{\"edges\": [".getBytes());
-            for (Edge edge : edges) {
-                this.writer.writeEdge(out, edge);
-                out.write(",".getBytes());
-            }
-            out.write("]}".getBytes());
-        } catch (IOException e) {
-            throw new HugeException("Failed to serialize edges", e);
-        }
-        return out.toString();
+        return writeList("edges", edges);
     }
 }
