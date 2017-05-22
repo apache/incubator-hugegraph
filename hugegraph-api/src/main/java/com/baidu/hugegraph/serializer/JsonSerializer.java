@@ -10,9 +10,11 @@ import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONWriter;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
+import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
@@ -89,6 +91,29 @@ public class JsonSerializer implements Serializer {
             this.writer.writeObject(out, edgeLabels.iterator());
         } catch (IOException e) {
             throw new HugeException("Failed to serialize edge labels", e);
+        }
+        return out.toString();
+    }
+
+    @Override
+    public String writeIndexlabel(IndexLabel indexLabel) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            this.writer.writeObject(out, indexLabel);
+        } catch (IOException e) {
+            throw new HugeException("Failed to serialize index label", e);
+        }
+
+        return out.toString();
+    }
+
+    @Override
+    public String writeIndexlabels(List<HugeIndexLabel> indexLabels) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            this.writer.writeObject(out, indexLabels.iterator());
+        } catch (IOException e) {
+            throw new HugeException("Failed to serialize index labels", e);
         }
         return out.toString();
     }
