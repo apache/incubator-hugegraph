@@ -6,9 +6,11 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
+import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
@@ -25,6 +27,10 @@ public interface Serializer {
     public String writeEdgeLabel(EdgeLabel edgeLabel);
 
     public String writeEdgeLabels(List<HugeEdgeLabel> edgeLabels);
+
+    public String writeIndexlabel(IndexLabel indexLabel);
+
+    public String writeIndexlabels(List<HugeIndexLabel> indexLabels);
 
     public String writeVertex(Vertex v);
 
