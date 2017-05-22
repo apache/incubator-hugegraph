@@ -1,4 +1,4 @@
-package com.baidu.hugegraph.api;
+package com.baidu.hugegraph.server;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,22 +10,53 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ResourceConfig;
 
+import com.baidu.hugegraph.configuration.HugeConfiguration;
 import com.baidu.hugegraph.core.GraphManager;
+import com.google.common.base.Preconditions;
 
 @ApplicationPath("/")
-public class Application extends ResourceConfig {
+public class ApplicationConfig extends ResourceConfig {
 
-    public Application() {
+    public ApplicationConfig(HugeConfiguration conf) {
         packages("com.baidu.hugegraph.api");
 
         // json support
         register(org.glassfish.jersey.jackson.JacksonFeature.class);
+
+        // register Configuration to context
+        register(new ConfFactory(conf));
 
         // TODO: read from conf
         Map<String, String> graphConfs = new HashMap<>();
         graphConfs.put("hugegraph",
                 "/etc/hugegraph/hugegraph.properties");
         register(new GraphManagerFactory(graphConfs));
+    }
+
+    static class ConfFactory extends AbstractBinder
+            implements Factory<HugeConfiguration> {
+
+        private HugeConfiguration conf = null;
+
+        public ConfFactory(HugeConfiguration conf) {
+            Preconditions.checkNotNull(conf, "Configuration is null");
+            this.conf = conf;
+        }
+
+        @Override
+        protected void configure() {
+            bindFactory(this).to(HugeConfiguration.class).in(RequestScoped.class);
+        }
+
+        @Override
+        public HugeConfiguration provide() {
+            return this.conf;
+        }
+
+        @Override
+        public void dispose(HugeConfiguration conf) {
+            // pass
+        }
     }
 
     static class GraphManagerFactory extends AbstractBinder
