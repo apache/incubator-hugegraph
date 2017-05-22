@@ -123,8 +123,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this.edges.remove(edge);
     }
 
-    public boolean addEdge(HugeEdge edge) {
-        return this.edges.add(edge);
+    public void addEdge(HugeEdge edge) {
+        this.edges.add(edge);
     }
 
     @Override
@@ -153,7 +153,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         HugeEdge edge = new HugeEdge(this.graph, id, edgeLabel);
 
         edge.vertices(this, targetVertex);
-        edge = this.addOutEdge(edge) ? edge : null;
+        this.addOutEdge(edge);
 
         // set properties
         ElementHelper.attachProperties(edge, properties);
@@ -171,31 +171,34 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return this.tx().addEdge(edge);
     }
 
-    // add edge of direction OUT
-    public boolean addOutEdge(HugeEdge edge) {
+    // add edge with direction OUT
+    public void addOutEdge(HugeEdge edge) {
         if (edge.owner() == null) {
             edge.owner(this);
             edge.sourceVertex(this);
         }
-        assert edge.type() == HugeType.EDGE_OUT;
-        return this.edges.add(edge);
+        Preconditions.checkState(edge.type() == HugeType.EDGE_OUT,
+                "The owner vertex('%s') of OUT edge '%s' should be '%s'",
+                edge.owner().id, edge, this.id());
+        this.edges.add(edge);
     }
 
-    // add edge of direction IN
-    public boolean addInEdge(HugeEdge edge) {
+    // add edge with direction IN
+    public void addInEdge(HugeEdge edge) {
         if (edge.owner() == null) {
             edge.owner(this);
             edge.targetVertex(this);
         }
-        assert edge.type() == HugeType.EDGE_IN;
-        return this.edges.add(edge);
+        Preconditions.checkState(edge.type() == HugeType.EDGE_IN,
+                "The owner vertex('%s') of IN edge '%s' should be '%s'",
+                edge.owner().id(), edge, this.id());
+        this.edges.add(edge);
     }
 
     public Iterator<Edge> getEdges(Direction direction, String... edgeLabels) {
         List<Edge> list = new LinkedList<>();
         for (HugeEdge edge : this.edges) {
-            if ((edge.direction() == direction
-                    || direction == Direction.BOTH)
+            if ((edge.direction() == direction || direction == Direction.BOTH)
                     && edge.belongToLabels(edgeLabels)) {
                 list.add(edge);
             }

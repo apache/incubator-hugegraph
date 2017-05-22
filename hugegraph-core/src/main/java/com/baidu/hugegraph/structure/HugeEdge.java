@@ -18,6 +18,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 public class HugeEdge extends HugeElement implements Edge, Cloneable {
@@ -170,11 +171,20 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.owner = source; // The default owner is the source vertex
         this.sourceVertex = source;
         this.targetVertex = target;
+
+        // TODO: it should be improved that currently we just clone the
+        // target to support self-to-self edge.
+        // edge from V to V(the vertex itself)
+        if (source == target) {
+            this.targetVertex = target.clone();
+        }
     }
 
     public HugeEdge switchOwner() {
         HugeEdge edge = this.clone();
 
+        Preconditions.checkState(edge.sourceVertex != edge.targetVertex,
+                "Can't switch owner of self-to-self edge");
         if (edge.owner == edge.sourceVertex) {
             edge.owner = edge.targetVertex;
         } else {
