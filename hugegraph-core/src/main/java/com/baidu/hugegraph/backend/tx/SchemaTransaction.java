@@ -60,6 +60,16 @@ public class SchemaTransaction extends AbstractTransaction {
         return edgeLabels;
     }
 
+    public List<HugeIndexLabel> getIndexLabels() {
+        List<HugeIndexLabel> indexLabels = new ArrayList<>();
+        Query q = new Query(HugeType.INDEX_LABEL);
+        Iterable<BackendEntry> entries = query(q);
+        entries.forEach(item -> {
+            indexLabels.add((HugeIndexLabel) this.serializer.readIndexLabel(item));
+        });
+        return indexLabels;
+    }
+
     public void addPropertyKey(PropertyKey propertyKey) {
         logger.debug("SchemaTransaction add property key, "
                 + "name: " + propertyKey.name() + ", "
@@ -159,5 +169,4 @@ public class SchemaTransaction extends AbstractTransaction {
         this.removeEntry(schemaElement.type(), id);
         this.afterWrite();
     }
-
 }

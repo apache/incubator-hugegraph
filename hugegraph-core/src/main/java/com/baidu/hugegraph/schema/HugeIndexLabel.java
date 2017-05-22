@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.schema;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -53,9 +54,17 @@ public class HugeIndexLabel extends IndexLabel {
         return this.baseType;
     }
 
+    public void baseType(HugeType baseType) {
+        this.baseType = baseType;
+    }
+
     @Override
     public String baseValue() {
         return this.baseValue;
+    }
+
+    public void baseValue(String baseValue) {
+        this.baseValue = baseValue;
     }
 
     @Override
@@ -70,6 +79,10 @@ public class HugeIndexLabel extends IndexLabel {
     @Override
     public Set<String> indexFields() {
         return this.indexFields;
+    }
+
+    public void indexFields(String... indexFields) {
+        this.indexFields.addAll(Arrays.asList(indexFields));
     }
 
     @Override

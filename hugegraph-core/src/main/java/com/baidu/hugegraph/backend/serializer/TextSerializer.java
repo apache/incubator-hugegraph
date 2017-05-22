@@ -496,11 +496,12 @@ public class TextSerializer extends AbstractSerializer {
         Id id = IdGeneratorFactory.generator().generate(indexLabel);
         TextBackendEntry entry = this.writeId(indexLabel.type(), id);
 
+        entry.column(HugeKeys.NAME.string(),
+                JsonUtil.toJson(indexLabel.name()));
         entry.column(HugeKeys.BASE_TYPE.string(),
                 JsonUtil.toJson(indexLabel.baseType()));
         entry.column(HugeKeys.BASE_VALUE.string(),
                 JsonUtil.toJson(indexLabel.baseValue()));
-        entry.column(HugeKeys.NAME.string(), indexLabel.name());
         entry.column(HugeKeys.INDEX_TYPE.string(),
                 JsonUtil.toJson(indexLabel.indexType()));
         entry.column(HugeKeys.FIELDS.string(),
@@ -519,15 +520,16 @@ public class TextSerializer extends AbstractSerializer {
         assert entry instanceof TextBackendEntry;
 
         TextBackendEntry textEntry = (TextBackendEntry) entry;
+        String name = JsonUtil.fromJson(
+                textEntry.column(HugeKeys.NAME.string()), String.class);
         HugeType baseType = JsonUtil.fromJson(
                 textEntry.column(HugeKeys.BASE_TYPE.string()), HugeType.class);
-        String baseValue = textEntry.column(HugeKeys.BASE_VALUE.string());
-        String name = textEntry.column(HugeKeys.NAME.string());
+        String baseValue = JsonUtil.fromJson(
+                textEntry.column(HugeKeys.BASE_VALUE.string()), String.class);
         String indexType = textEntry.column(HugeKeys.INDEX_TYPE.string());
         String indexFields = textEntry.column(HugeKeys.FIELDS.string());
 
-        HugeIndexLabel indexLabel = new HugeIndexLabel(
-                JsonUtil.fromJson(name, String.class), baseType, baseValue);
+        HugeIndexLabel indexLabel = new HugeIndexLabel(name, baseType, baseValue);
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
         indexLabel.by(JsonUtil.fromJson(indexFields, String[].class));
 
