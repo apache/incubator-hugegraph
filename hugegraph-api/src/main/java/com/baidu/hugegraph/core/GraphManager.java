@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
@@ -22,11 +21,9 @@ public final class GraphManager {
     private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
 
     private final Map<String, Graph> graphs;
-    private final Map<String, TraversalSource> traversalSources;
 
     public GraphManager(final Map<String, String> graphConfs) {
         this.graphs = new ConcurrentHashMap<>();
-        this.traversalSources = new ConcurrentHashMap<>();
 
         loadGraphs(graphConfs);
     }
@@ -57,10 +54,6 @@ public final class GraphManager {
         // TODO: cache Serializer
         return new JsonSerializer(g.io(
                 IoCore.graphson()).writer().wrapAdjacencyList(true).create());
-    }
-
-    public Map<String, TraversalSource> traversalSources() {
-        return this.traversalSources;
     }
 
     public void rollbackAll() {
@@ -98,8 +91,6 @@ public final class GraphManager {
         graphSourceNamesToCloseTxOn.forEach(r -> {
             if (this.graphs.containsKey(r))
                 graphsToCloseTxOn.add(this.graphs.get(r));
-            else
-                graphsToCloseTxOn.add(this.traversalSources.get(r).getGraph());
         });
 
         graphsToCloseTxOn.forEach(graph -> {

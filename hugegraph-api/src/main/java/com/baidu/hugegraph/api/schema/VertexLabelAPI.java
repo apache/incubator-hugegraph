@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.api.filter.StatusFilter;
+import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -33,7 +33,7 @@ public class VertexLabelAPI extends API {
     private static final Logger logger = LoggerFactory.getLogger(VertexLabelAPI.class);
 
     @POST
-    @StatusFilter.Status(StatusFilter.Status.CREATED)
+    @Status(Status.CREATED)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public String create(@Context GraphManager manager,

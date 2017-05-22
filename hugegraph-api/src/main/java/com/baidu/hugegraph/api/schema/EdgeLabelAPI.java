@@ -1,8 +1,6 @@
 package com.baidu.hugegraph.api.schema;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -15,17 +13,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.api.filter.StatusFilter;
+import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
-import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.EdgeLink;
+import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 
 /**
@@ -38,7 +35,7 @@ public class EdgeLabelAPI extends API {
     private static final Logger logger = LoggerFactory.getLogger(EdgeLabelAPI.class);
 
     @POST
-    @StatusFilter.Status(StatusFilter.Status.CREATED)
+    @Status(Status.CREATED)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public String create(@Context GraphManager manager,
@@ -112,7 +109,7 @@ public class EdgeLabelAPI extends API {
             HugeEdgeLabel edgeLabel = new HugeEdgeLabel(this.name);
 
             edgeLabel.frequency(this.frequency);
-            edgeLabel.links(links);
+            edgeLabel.links(this.links);
             edgeLabel.sortKeys(this.sortKeys);
             edgeLabel.indexNames(this.indexNames);
             edgeLabel.properties(this.properties);
