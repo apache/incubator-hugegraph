@@ -19,6 +19,7 @@ import com.baidu.hugegraph.backend.serializer.TextSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
@@ -36,6 +37,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                 put(PropertyKey.class, "PropertyKey");
                 put(VertexLabel.class, "VertexLabel");
                 put(EdgeLabel.class, "EdgeLabel");
+                put(IndexLabel.class, "IndexLabel");
             }});
 
     private static final HugeGraphSONModule INSTANCE = new HugeGraphSONModule();
@@ -53,6 +55,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         addDeserializer(VertexLabel.class, new VertexLabelDeserializer());
         addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
         addDeserializer(EdgeLabel.class, new EdgeLabelDeserializer());
+        addSerializer(IndexLabel.class, new IndexLabelSerializer());
+        addDeserializer(IndexLabel.class, new IndexLabelDeserializer());
     }
 
     @Override
@@ -159,6 +163,33 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
         @Override
         public EdgeLabel deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
+                throws IOException, JsonProcessingException {
+            return null;
+        }
+    }
+
+    private class IndexLabelSerializer extends StdSerializer<IndexLabel> {
+
+        public IndexLabelSerializer() {
+            super(IndexLabel.class);
+        }
+
+        @Override
+        public void serialize(IndexLabel indexLabel, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
+                throws IOException {
+            BackendEntry entry = textSerializer.writeIndexLabel(indexLabel);
+            writeEntry(jsonGenerator, (TextBackendEntry) entry);
+        }
+    }
+
+    private class IndexLabelDeserializer extends StdDeserializer<IndexLabel> {
+
+        public IndexLabelDeserializer() {
+            super(IndexLabel.class);
+        }
+
+        @Override
+        public IndexLabel deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
                 throws IOException, JsonProcessingException {
             return null;
         }

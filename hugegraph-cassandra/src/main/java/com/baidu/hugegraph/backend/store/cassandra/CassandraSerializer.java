@@ -352,9 +352,9 @@ public class CassandraSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeIndexLabel(IndexLabel indexLabel) {
         CassandraBackendEntry entry = newBackendEntry(indexLabel);
-        entry.column(HugeKeys.BASE_TYPE, JsonUtil.toJson(indexLabel.baseType()));
-        entry.column(HugeKeys.BASE_VALUE, JsonUtil.toJson(indexLabel.baseValue()));
         entry.column(HugeKeys.NAME, indexLabel.name());
+        entry.column(HugeKeys.BASE_TYPE, JsonUtil.toJson(indexLabel.baseType()));
+        entry.column(HugeKeys.BASE_VALUE, indexLabel.baseValue());
         entry.column(HugeKeys.INDEX_TYPE, JsonUtil.toJson(indexLabel.indexType()));
         entry.column(HugeKeys.FIELDS, JsonUtil.toJson(indexLabel.indexFields().toArray()));
         return entry;
@@ -371,9 +371,10 @@ public class CassandraSerializer extends AbstractSerializer {
         assert backendEntry instanceof CassandraBackendEntry;
 
         CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
-        HugeType baseType = JsonUtil.fromJson(entry.column(HugeKeys.BASE_TYPE), HugeType.class);
-        String baseValue = entry.column(HugeKeys.BASE_VALUE);
         String indexName = entry.column(HugeKeys.NAME);
+        HugeType baseType = JsonUtil.fromJson(
+                entry.column(HugeKeys.BASE_TYPE), HugeType.class);
+        String baseValue = entry.column(HugeKeys.BASE_VALUE);
         String indexType = entry.column(HugeKeys.INDEX_TYPE);
         String indexFields = entry.column(HugeKeys.FIELDS);
 
