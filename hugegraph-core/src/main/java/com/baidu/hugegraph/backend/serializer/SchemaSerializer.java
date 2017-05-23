@@ -1,7 +1,6 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;

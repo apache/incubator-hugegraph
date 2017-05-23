@@ -1,16 +1,11 @@
 package com.baidu.hugegraph.io;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
 
 import org.apache.tinkerpop.gremlin.structure.io.AbstractIoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
-import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
-import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
-import org.apache.tinkerpop.shaded.jackson.databind.JsonSerializer;
-import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.kryo.Kryo;
 import org.apache.tinkerpop.shaded.kryo.Serializer;
 import org.apache.tinkerpop.shaded.kryo.io.Input;

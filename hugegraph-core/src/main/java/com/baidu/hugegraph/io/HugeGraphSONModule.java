@@ -1,8 +1,6 @@
 package com.baidu.hugegraph.io;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.io.graphson.TinkerPopJacksonModule;
@@ -22,23 +20,25 @@ import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Created by liningrui on 2017/5/18.
  */
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
+    private static final long serialVersionUID = 6480426922914059122L;
+
     private static final String TYPE_NAMESPACE = "hugegraph";
 
     private static TextSerializer textSerializer = new TextSerializer(null);
 
-    private static final Map<Class, String> TYPE_DEFINITIONS = Collections.unmodifiableMap(
-            new LinkedHashMap<Class, String>() {{
-                put(PropertyKey.class, "PropertyKey");
-                put(VertexLabel.class, "VertexLabel");
-                put(EdgeLabel.class, "EdgeLabel");
-                put(IndexLabel.class, "IndexLabel");
-            }});
+    @SuppressWarnings("rawtypes")
+    private static final Map<Class, String> TYPE_DEFINITIONS = ImmutableMap.of(
+            PropertyKey.class, "PropertyKey",
+            VertexLabel.class, "VertexLabel",
+            EdgeLabel.class, "EdgeLabel",
+            IndexLabel.class, "IndexLabel");
 
     private static final HugeGraphSONModule INSTANCE = new HugeGraphSONModule();
 
@@ -60,6 +60,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public Map<Class, String> getTypeDefinitions() {
         return TYPE_DEFINITIONS;
     }
@@ -82,6 +83,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         jsonGenerator.writeEndObject();
     }
 
+    @SuppressWarnings("serial")
     private class PropertyKeySerializer extends StdSerializer<PropertyKey> {
 
         public PropertyKeySerializer() {
@@ -97,6 +99,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
+    @SuppressWarnings("serial")
     private class PropertyKeyDeserializer extends StdDeserializer<PropertyKey> {
 
         public PropertyKeyDeserializer() {
@@ -110,6 +113,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
+    @SuppressWarnings("serial")
     private class VertexLabelSerializer extends StdSerializer<VertexLabel> {
 
         public VertexLabelSerializer() {
@@ -126,6 +130,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     }
 
+    @SuppressWarnings("serial")
     private class VertexLabelDeserializer extends StdDeserializer<VertexLabel> {
 
         public VertexLabelDeserializer() {
@@ -141,6 +146,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     }
 
+    @SuppressWarnings("serial")
     private class EdgeLabelSerializer extends StdSerializer<EdgeLabel> {
 
         public EdgeLabelSerializer() {
@@ -155,6 +161,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
+    @SuppressWarnings("serial")
     private class EdgeLabelDeserializer extends StdDeserializer<EdgeLabel> {
 
         public EdgeLabelDeserializer() {
@@ -168,6 +175,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
+    @SuppressWarnings("serial")
     private class IndexLabelSerializer extends StdSerializer<IndexLabel> {
 
         public IndexLabelSerializer() {
@@ -182,6 +190,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
+    @SuppressWarnings("serial")
     private class IndexLabelDeserializer extends StdDeserializer<IndexLabel> {
 
         public IndexLabelDeserializer() {

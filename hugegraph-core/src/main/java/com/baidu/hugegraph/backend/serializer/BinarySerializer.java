@@ -116,7 +116,7 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         // add all edges of a Vertex
-        for (Edge edge : vertex.getEdges()) {
+        for (@SuppressWarnings("unused") Edge edge : vertex.getEdges()) {
             // TODO: format edge
         }
 

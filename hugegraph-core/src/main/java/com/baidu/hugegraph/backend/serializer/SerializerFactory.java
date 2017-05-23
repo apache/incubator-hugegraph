@@ -35,12 +35,13 @@ public class SerializerFactory {
         }
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public static void register(String name, String classPath) {
         ClassLoader classLoader = SerializerFactory.class.getClassLoader();
         Class<?> clazz = null;
         try {
             clazz = classLoader.loadClass(classPath);
-        } catch (ClassNotFoundException e) {
+        } catch (Exception e) {
             throw new BackendException(e);
         }
 

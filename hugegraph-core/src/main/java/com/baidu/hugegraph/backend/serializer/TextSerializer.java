@@ -5,9 +5,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -43,7 +41,6 @@ import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
-import com.google.gson.reflect.TypeToken;
 
 public class TextSerializer extends AbstractSerializer {
 

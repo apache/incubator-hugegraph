@@ -36,12 +36,13 @@ public class BackendProviderFactory {
         return instance;
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public static void register(String name, String classPath) {
         ClassLoader classLoader = BackendProviderFactory.class.getClassLoader();
         Class<?> clazz = null;
         try {
             clazz = classLoader.loadClass(classPath);
-        } catch (ClassNotFoundException e) {
+        } catch (Exception e) {
             throw new BackendException(e);
         }
 

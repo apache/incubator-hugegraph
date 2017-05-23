@@ -242,6 +242,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Override
+    @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality,
             String key, V value, Object... objects) {
         if (objects.length != 0 && objects[0].equals(T.id)) {
@@ -271,6 +272,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Override
+    @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
         List<VertexProperty<V>> propertyList = new ArrayList<>(propertyKeys.length);
 
