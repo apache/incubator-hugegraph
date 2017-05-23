@@ -168,7 +168,7 @@ public class CassandraSerializer extends AbstractSerializer {
     public BackendEntry writeVertex(HugeVertex vertex) {
         CassandraBackendEntry entry = newBackendEntry(vertex);
 
-        boolean changed = vertex.existsProperties() || vertex.removed();
+        boolean changed = vertex.hasProperties() || vertex.removed();
         entry.selfChanged(changed);
 
         entry.column(HugeKeys.LABEL, vertex.label());
