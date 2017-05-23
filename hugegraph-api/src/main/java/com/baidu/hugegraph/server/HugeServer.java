@@ -36,6 +36,7 @@ public class HugeServer {
         this.httpServer.start();
     }
 
+    @SuppressWarnings("deprecation") // TODO: use shutdown instead
     public void stop() {
         Preconditions.checkNotNull(this.httpServer);
         this.httpServer.stop();

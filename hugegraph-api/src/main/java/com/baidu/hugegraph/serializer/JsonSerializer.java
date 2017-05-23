@@ -1,7 +1,6 @@
 package com.baidu.hugegraph.serializer;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
