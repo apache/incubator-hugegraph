@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.api;
 
+import java.util.Map;
+
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -66,6 +68,14 @@ public class BaseTest {
             return this.target.path(path).path(id)
                     .request()
                     .get();
+        }
+
+        public Response get(String path, Map<String, Object> params) {
+            WebTarget t = this.target.path(path);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                t = t.queryParam(i.getKey(), i.getValue());
+            }
+            return t.request().get();
         }
 
         public Response post(String path, String content) {

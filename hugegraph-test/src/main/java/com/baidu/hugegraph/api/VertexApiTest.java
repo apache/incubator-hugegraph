@@ -9,7 +9,7 @@ import org.junit.Test;
 
 public class VertexApiTest extends BaseTest {
 
-    private static String url = "/graphs/hugegraph/graph/vertices/";
+    private static String path = "/graphs/hugegraph/graph/vertices/";
 
     @BeforeClass
     public static void setup() {
@@ -28,14 +28,18 @@ public class VertexApiTest extends BaseTest {
                 + "\"city\":\"Taipei\","
                 + "\"age\":21"
                 + "}}";
-        Assert.assertEquals(201, newClient().post(url, lisa).getStatus());
-        Assert.assertEquals(201, newClient().post(url, hebe).getStatus());
+
+        Response r = newClient().post(path, lisa);
+        Assert.assertEquals(r.readEntity(String.class), 201, r.getStatus());
+
+        r = newClient().post(path, hebe);
+        Assert.assertEquals(r.readEntity(String.class), 201, r.getStatus());
     }
 
     @AfterClass
     public static void teardown() {
-        newClient().delete(url, "person%02Lisa");
-        newClient().delete(url, "person%02Hebe");
+        newClient().delete(path, "person%02Lisa");
+        newClient().delete(path, "person%02Hebe");
     }
 
     @Test
@@ -45,27 +49,27 @@ public class VertexApiTest extends BaseTest {
                 + "\"name\":\"James\","
                 + "\"city\":\"Beijing\","
                 + "\"age\":19}}";
-        Assert.assertEquals(201, client().post(url, vertex).getStatus());
+        Assert.assertEquals(201, client().post(path, vertex).getStatus());
     }
 
     @Test
     public void testGet() {
         String vertex = "person%02Lisa";
-        Response r = client().get(url, vertex);
+        Response r = client().get(path, vertex);
         Assert.assertEquals(200, r.getStatus());
     }
 
     @Test
     public void testGetNotFound() {
         String vertex = "person%02!not-exists-this-vertex!";
-        Response r = client().get(url, vertex);
+        Response r = client().get(path, vertex);
         // TODO: improve to 404 (currently server returns 400 if not found)
         Assert.assertEquals(400, r.getStatus());
     }
 
     @Test
     public void testList() {
-        Response r = client().get(url);
+        Response r = client().get(path);
         System.out.println("testList(): " + r.readEntity(String.class));
         Assert.assertEquals(200, r.getStatus());
     }
@@ -73,7 +77,7 @@ public class VertexApiTest extends BaseTest {
     @Test
     public void testDelete() {
         String vertex = "person%02Lisa";
-        Response r = client().delete(url, vertex);
+        Response r = client().delete(path, vertex);
         Assert.assertEquals(204, r.getStatus());
     }
 }
