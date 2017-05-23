@@ -165,17 +165,15 @@ public class HugeGraph implements Graph {
         return this.graphTransaction().addVertex(keyValues);
     }
 
-    @SuppressWarnings("static-access")
     @Override
     public <C extends GraphComputer> C compute(Class<C> aClass)
             throws IllegalArgumentException {
-        throw new Graph.Exceptions().graphComputerNotSupported();
+        throw Graph.Exceptions.graphComputerNotSupported();
     }
 
-    @SuppressWarnings("static-access")
     @Override
     public GraphComputer compute() throws IllegalArgumentException {
-        throw new Graph.Exceptions().graphComputerNotSupported();
+        throw Graph.Exceptions.graphComputerNotSupported();
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -235,7 +233,7 @@ public class HugeGraph implements Graph {
 
     @Override
     public Variables variables() {
-        return null;
+        throw Graph.Exceptions.variablesNotSupported();
     }
 
     @Override
