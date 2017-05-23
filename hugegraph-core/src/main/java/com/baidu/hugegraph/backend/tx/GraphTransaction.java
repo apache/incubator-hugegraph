@@ -78,9 +78,9 @@ public class GraphTransaction extends AbstractTransaction {
 
     @Override
     protected void prepareCommit() {
-        // serialize and add updates into super.deletions
+        // Serialize and add updates into super.deletions
         this.prepareDeletions(this.removedVertexes, this.removedEdges);
-        // serialize and add updates into super.additions
+        // Serialize and add updates into super.additions
         this.prepareAdditions(this.addedVertexes, this.addedEdges);
     }
 
@@ -90,12 +90,12 @@ public class GraphTransaction extends AbstractTransaction {
 
         Map<Id, HugeVertex> vertexes = new HashMap<>();
 
-        // copy updated vertexes(only with props, without edges)
+        // Copy updated vertexes(only with props, without edges)
         for (HugeVertex v : updatedVertexes) {
             vertexes.put(v.id(), v.prepareAdded());
         }
 
-        // copy updated edges and merge into owner vertex
+        // Copy updated edges and merge into owner vertex
         for (HugeEdge edge : updatedEdges) {
             assert edge.type() == HugeType.EDGE_OUT;
             Id sourceId = edge.sourceVertex().id();
@@ -108,7 +108,7 @@ public class GraphTransaction extends AbstractTransaction {
             }
         }
 
-        // ensure all the target vertexes (of out edges) are in vertexes
+        // Ensure all the target vertexes (of out edges) are in vertexes
         for (HugeEdge edge : updatedEdges) {
             assert edge.type() == HugeType.EDGE_OUT;
             Id targetId = edge.targetVertex().id();
@@ -121,21 +121,21 @@ public class GraphTransaction extends AbstractTransaction {
             }
         }
 
-        // do update
+        // Do update
         for (HugeVertex v : vertexes.values()) {
-            // add vertex entry
+            // Add vertex entry
             this.addEntry(this.serializer.writeVertex(v));
 
-            if (v.existsProperties()) {
-                // update index of vertex(include props and edges)
+            if (v.hasProperties()) {
+                // Update index of vertex(include props and edges)
                 this.indexTx.updateVertexIndex(v, false);
             } else {
-                // update index of vertex edges
+                // Update index of vertex edges
                 this.indexTx.updateEdgesIndex(v, false);
             }
         }
 
-        // clear updates
+        // Clear updates
         updatedVertexes.clear();
         updatedEdges.clear();
     }
@@ -150,11 +150,11 @@ public class GraphTransaction extends AbstractTransaction {
         Set<HugeEdge> edges = new LinkedHashSet<>();
         edges.addAll(updatedEdges);
 
-        // clear updates
+        // Clear updates
         updatedVertexes.clear();
         updatedEdges.clear();
 
-        // in order to remove edges of vertexes, query all edges first
+        // In order to remove edges of vertexes, query all edges first
         for (HugeVertex v : vertexes) {
             @SuppressWarnings({ "unchecked", "rawtypes" })
             Collection<HugeEdge> vedges = (Collection) ImmutableList.copyOf(
@@ -162,29 +162,32 @@ public class GraphTransaction extends AbstractTransaction {
             edges.addAll(vedges);
         }
 
-        // remove vertexes
+        // Remove vertexes
         for (HugeVertex v : vertexes) {
-            // if the backend stores vertex together with edges,
-            // its edges would be removed after removing vertex
-            // if the backend stores vertex which is separated from edges,
-            // its edges should be removed manually when removing vertex
+            /*
+             * If the backend stores vertex together with edges, it's edges
+             * would be removed after removing vertex.  Otherwise, if the
+             * backend stores vertex which is separated from edges, it's
+             * edges should be removed manually when removing vertex.
+             */
             this.removeEntry(this.serializer.writeId(HugeType.VERTEX, v.id()));
             this.indexTx.updateVertexIndex(v, true);
         }
 
-        // remove edges independently
+        // Remove edges independently
         for (HugeEdge edge : edges) {
-            // remove OUT
+            // Remove OUT
             HugeVertex vertex = edge.sourceVertex().prepareRemoved();
-            vertex.addEdge(edge.prepareRemoved()); // only with edge id
+            // Only with edge id
+            vertex.addEdge(edge.prepareRemoved());
             this.removeEntry(this.serializer.writeVertex(vertex));
 
-            // remove IN
+            // Remove IN
             vertex = edge.targetVertex().prepareRemoved();
             vertex.addEdge(edge.switchOwner().prepareRemoved());
             this.removeEntry(this.serializer.writeVertex(vertex));
 
-            // update edge index
+            // Update edge index
             this.indexTx.updateEdgeIndex(edge, true);
         }
     }
@@ -226,11 +229,10 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Vertex id must be null now
         if (!features.supportsCustomIds() && id != null) {
-            String msg = "User defined id of Vertex is not supported";
-            throw new IllegalArgumentException(msg);
+            throw new IllegalArgumentException("User defined id of Vertex is not supported");
         }
 
-        // check Vertex label
+        // Check Vertex label
         if (label == null && features.supportsDefaultLabel()) {
             label = features.defaultLabel();
         }
@@ -244,18 +246,18 @@ public class GraphTransaction extends AbstractTransaction {
 
         assert (label instanceof VertexLabel);
 
-        // check whether primaryKey exists
+        // Check whether primaryKey exists
         Set<String> primaryKeys = ((VertexLabel) label).primaryKeys();
         Preconditions.checkArgument(CollectionUtil.containsAll(
                 ElementHelper.getKeys(keyValues), primaryKeys),
-                "The primary key(s) must be setted: %s", primaryKeys);
+                "The primary key(s) must be set: %s", primaryKeys);
 
-        // create HugeVertex
+        // Create HugeVertex
         HugeVertex vertex = new HugeVertex(this, id, (VertexLabel) label);
-        // set properties
+        // Set properties
         ElementHelper.attachProperties(vertex, keyValues);
 
-        // generate an id and assign it if not exists
+        // Generate and assign an id if it dost not exists
         if (id == null) {
             vertex.assignId();
         }
@@ -355,10 +357,10 @@ public class GraphTransaction extends AbstractTransaction {
             HugeVertex vertex = (HugeVertex) vertices.next();
             for (HugeEdge edge : vertex.getEdges()) {
                 if (!results.containsKey(edge.id())) {
-                    // NOTE: ensure all edges in results are OUT
+                    // NOTE: Ensure all edges in results are OUT
                     results.put(edge.id(), edge.switchOutDirection());
                 } else {
-                    logger.debug("results contains edge: {}", edge);
+                    logger.debug("Results contains edge: {}", edge);
                 }
             }
         }
@@ -383,16 +385,16 @@ public class GraphTransaction extends AbstractTransaction {
 
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
 
-        // edge source vertex
+        // Edge source vertex
         query.eq(HugeKeys.SOURCE_VERTEX, sourceVertex);
 
-        // edge direction
+        // Edge direction
         // TODO: deal with direction is BOTH
         if (direction != null) {
             query.eq(HugeKeys.DIRECTION, direction);
         }
 
-        // edge labels
+        // Edge labels
         if (edgeLabels.length == 1) {
             query.eq(HugeKeys.LABEL, edgeLabels[0]);
         } else if (edgeLabels.length > 1) {
@@ -410,20 +412,20 @@ public class GraphTransaction extends AbstractTransaction {
     protected Query optimizeQuery(ConditionQuery query) {
         HugeFeatures features = this.graph().features();
 
-        // optimize vertex query
+        // Optimize vertex query
         Object label = query.condition(HugeKeys.LABEL);
-        if (label != null && query.resultType() == HugeType.VERTEX
-                && !features.vertex().supportsUserSuppliedIds()) {
-            // query vertex by label + primary-values
+        if (label != null && query.resultType() == HugeType.VERTEX &&
+            !features.vertex().supportsUserSuppliedIds()) {
+            // Query vertex by label + primary-values
             Set<String> keys = this.graph.schema().vertexLabel(
                     label.toString()).primaryKeys();
             if (!keys.isEmpty() && query.matchUserpropKeys(keys)) {
                 String primaryValues = query.userpropValuesString();
                 query.eq(HugeKeys.PRIMARY_VALUES, primaryValues);
                 query.resetUserpropConditions();
-                logger.debug("query vertices by primaryKeys: {}", query);
+                logger.debug("Query vertices by primaryKeys: {}", query);
 
-                // convert vertex-label + primary-key to vertex-id
+                // Convert vertex-label + primary-key to vertex-id
                 if (IdGeneratorFactory.supportSplicing()) {
                     Id id = SplicingIdGenerator.splicing(
                             label.toString(),
@@ -431,43 +433,45 @@ public class GraphTransaction extends AbstractTransaction {
                     query.query(id);
                     query.resetConditions();
                 } else {
-                    // assert this.store().supportsSysIndex();
-                    logger.warn("Please ensure the backend supports"
-                            + " query by primary-key: {}", query);
+                    // Assert this.store().supportsSysIndex();
+                    logger.warn(
+                        "Please ensure the backend supports query by primary-key: {}",
+                        query);
                 }
                 return query;
             }
         }
 
-        // optimize edge query
+        // Optimize edge query
         if (label != null && query.resultType() == HugeType.EDGE) {
-            // query edge by sourceVertex + direction + label + sort-values
+            // Query edge by sourceVertex + direction + label + sort-values
             Set<String> keys = this.graph.schema().edgeLabel(
                     label.toString()).sortKeys();
-            if (query.condition(HugeKeys.SOURCE_VERTEX) != null
-                    && query.condition(HugeKeys.DIRECTION) != null
-                    && !keys.isEmpty() && query.matchUserpropKeys(keys)) {
+            if (query.condition(HugeKeys.SOURCE_VERTEX) != null &&
+                query.condition(HugeKeys.DIRECTION) != null &&
+                !keys.isEmpty() && query.matchUserpropKeys(keys)) {
                 query.eq(HugeKeys.SORT_VALUES, query.userpropValuesString());
                 query.resetUserpropConditions();
-                logger.debug("query edges by sortKeys: {}", query);
+                logger.debug("Query edges by sortKeys: {}", query);
                 return query;
             }
         }
 
-        // query only by sysprops, like: vertex label, edge label
-        // NOTE: we assume sysprops would be indexed by backend store
-        // but we don't support query edges only by direction
+        /*
+         * Query only by sysprops, like: vertex label, edge label.
+         * NOTE: we assume sysprops would be indexed by backend store
+         * but we don't support query edges only by direction.
+         */
         if (query.allSysprop()) {
-            if (query.resultType() == HugeType.EDGE
-                    && query.condition(HugeKeys.DIRECTION) != null
-                    && query.condition(HugeKeys.SOURCE_VERTEX) == null) {
-                String msg = "Not support querying edges only by direction";
-                throw new BackendException(msg);
+            if (query.resultType() == HugeType.EDGE &&
+                query.condition(HugeKeys.DIRECTION) != null &&
+                query.condition(HugeKeys.SOURCE_VERTEX) == null) {
+                throw new BackendException("Not support querying edges only by difection");
             }
             return query;
         }
 
-        // optimize by index-query
+        // Optimiz by index-query
         return this.indexTx.query(query);
     }
 }

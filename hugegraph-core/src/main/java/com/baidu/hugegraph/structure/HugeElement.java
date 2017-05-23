@@ -62,7 +62,8 @@ public abstract class HugeElement implements Element, GraphType {
         return this.id().equals(other.id());
     }
 
-    public boolean removed() {
+    // The mothod is not yet being used for now.
+    public boolean isRemoved() {
         return this.removed;
     }
 
@@ -77,11 +78,11 @@ public abstract class HugeElement implements Element, GraphType {
         return (HugeProperty<V>) this.properties.get(key);
     }
 
-    public boolean existsProperty(String key) {
+    public boolean hasProperty(String key) {
         return this.properties.containsKey(key);
     }
 
-    public boolean existsProperties() {
+    public boolean hasProperties() {
         return this.properties.size() > 0;
     }
 
@@ -101,11 +102,11 @@ public abstract class HugeElement implements Element, GraphType {
                 break;
             case SET:
                 Preconditions.checkArgument(pkey.checkDataType(value),
-                        String.format("Invalid property value '%s' for"
-                                + " key '%s'", value, key));
+                        String.format("Invalid property value '%s' for " + " key '%s'",
+                                      value, key));
 
                 HugeProperty<Set<V>> propSet;
-                if (this.existsProperty(key)) {
+                if (this.hasProperty(key)) {
                     propSet = this.<Set<V>>getProperty(key);
                 } else {
                     propSet = this.newProperty(pkey, new LinkedHashSet<V>());
@@ -119,11 +120,11 @@ public abstract class HugeElement implements Element, GraphType {
                 break;
             case LIST:
                 Preconditions.checkArgument(pkey.checkDataType(value),
-                        String.format("Invalid property value '%s' for"
-                                + " key '%s'", value, key));
+                        String.format("Invalid property value '%s' for key '%s'",
+                                      value, key));
 
                 HugeProperty<List<V>> propList;
-                if (!this.existsProperty(key)) {
+                if (!this.hasProperty(key)) {
                     propList = this.newProperty(pkey, new LinkedList<V>());
                     this.setProperty(propList);
                 } else {
@@ -157,23 +158,22 @@ public abstract class HugeElement implements Element, GraphType {
         }
 
         Object idValue = id.get();
-        // number id
         if (idValue instanceof Number) {
+            // number id
             return IdGeneratorFactory.generator().generate(
                     ((Number) idValue).longValue());
-        }
-        // string id
-        else if (idValue instanceof String) {
+        } else if (idValue instanceof String) {
+            // string id
             return IdGeneratorFactory.generator().generate((String) idValue);
-        }
-        // id itself
-        else if (idValue instanceof Id) {
+        } else if (idValue instanceof Id) {
+            // id itself
             return (Id) idValue;
         }
+
         // error type
-        String msg = "Unsupported id type(must be a number or string): ";
-        msg += idValue.getClass().getSimpleName();
-        throw new UnsupportedOperationException(msg);
+        throw new UnsupportedOperationException(
+                    "Unsupported id type(must be a number or string): "
+                    + idValue.getClass().getSimpleName();
     }
 
     public static Object getLabelValue(Object... keyValues) {
