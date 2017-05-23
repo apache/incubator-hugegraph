@@ -165,15 +165,17 @@ public class HugeGraph implements Graph {
         return this.graphTransaction().addVertex(keyValues);
     }
 
+    @SuppressWarnings("static-access")
     @Override
     public <C extends GraphComputer> C compute(Class<C> aClass)
             throws IllegalArgumentException {
-        throw new HugeException("Unsupported method compute()");
+        throw new Graph.Exceptions().graphComputerNotSupported();
     }
 
+    @SuppressWarnings("static-access")
     @Override
     public GraphComputer compute() throws IllegalArgumentException {
-        throw new HugeException("Unsupported method compute()");
+        throw new Graph.Exceptions().graphComputerNotSupported();
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
