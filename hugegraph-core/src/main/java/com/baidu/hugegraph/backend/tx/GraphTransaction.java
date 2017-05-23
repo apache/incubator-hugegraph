@@ -414,8 +414,8 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Optimize vertex query
         Object label = query.condition(HugeKeys.LABEL);
-        if (label != null && query.resultType() == HugeType.VERTEX &&
-            !features.vertex().supportsUserSuppliedIds()) {
+        if (label != null && query.resultType() == HugeType.VERTEX
+                && !features.vertex().supportsUserSuppliedIds()) {
             // Query vertex by label + primary-values
             Set<String> keys = this.graph.schema().vertexLabel(
                     label.toString()).primaryKeys();
@@ -434,9 +434,8 @@ public class GraphTransaction extends AbstractTransaction {
                     query.resetConditions();
                 } else {
                     // Assert this.store().supportsSysIndex();
-                    logger.warn(
-                        "Please ensure the backend supports query by primary-key: {}",
-                        query);
+                    logger.warn("Please ensure the backend supports"
+                            + " query by primary-key: {}", query);
                 }
                 return query;
             }
@@ -447,9 +446,9 @@ public class GraphTransaction extends AbstractTransaction {
             // Query edge by sourceVertex + direction + label + sort-values
             Set<String> keys = this.graph.schema().edgeLabel(
                     label.toString()).sortKeys();
-            if (query.condition(HugeKeys.SOURCE_VERTEX) != null &&
-                query.condition(HugeKeys.DIRECTION) != null &&
-                !keys.isEmpty() && query.matchUserpropKeys(keys)) {
+            if (query.condition(HugeKeys.SOURCE_VERTEX) != null
+                    && query.condition(HugeKeys.DIRECTION) != null
+                    && !keys.isEmpty() && query.matchUserpropKeys(keys)) {
                 query.eq(HugeKeys.SORT_VALUES, query.userpropValuesString());
                 query.resetUserpropConditions();
                 logger.debug("Query edges by sortKeys: {}", query);
@@ -463,10 +462,11 @@ public class GraphTransaction extends AbstractTransaction {
          * but we don't support query edges only by direction.
          */
         if (query.allSysprop()) {
-            if (query.resultType() == HugeType.EDGE &&
-                query.condition(HugeKeys.DIRECTION) != null &&
-                query.condition(HugeKeys.SOURCE_VERTEX) == null) {
-                throw new BackendException("Not support querying edges only by difection");
+            if (query.resultType() == HugeType.EDGE
+                    && query.condition(HugeKeys.DIRECTION) != null
+                    && query.condition(HugeKeys.SOURCE_VERTEX) == null) {
+                throw new BackendException(
+                        "Not support querying edges only by direction");
             }
             return query;
         }

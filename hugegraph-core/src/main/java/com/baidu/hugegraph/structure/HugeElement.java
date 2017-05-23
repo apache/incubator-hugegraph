@@ -62,8 +62,7 @@ public abstract class HugeElement implements Element, GraphType {
         return this.id().equals(other.id());
     }
 
-    // The mothod is not yet being used for now.
-    public boolean isRemoved() {
+    public boolean removed() {
         return this.removed;
     }
 
@@ -102,8 +101,8 @@ public abstract class HugeElement implements Element, GraphType {
                 break;
             case SET:
                 Preconditions.checkArgument(pkey.checkDataType(value),
-                        String.format("Invalid property value '%s' for " + " key '%s'",
-                                      value, key));
+                        String.format("Invalid property value '%s' for"
+                                + " key '%s'", value, key));
 
                 HugeProperty<Set<V>> propSet;
                 if (this.hasProperty(key)) {
@@ -173,7 +172,7 @@ public abstract class HugeElement implements Element, GraphType {
         // error type
         throw new UnsupportedOperationException(
                     "Unsupported id type(must be a number or string): "
-                    + idValue.getClass().getSimpleName();
+                    + idValue.getClass().getSimpleName());
     }
 
     public static Object getLabelValue(Object... keyValues) {
