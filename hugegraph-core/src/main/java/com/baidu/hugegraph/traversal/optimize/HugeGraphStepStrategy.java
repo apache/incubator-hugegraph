@@ -27,6 +27,7 @@ public final class HugeGraphStepStrategy
     }
 
     @Override
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public void apply(Traversal.Admin<?, ?> traversal) {
         // extract conditions in GraphStep
         List<GraphStep> steps = TraversalHelper.getStepsOfClass(

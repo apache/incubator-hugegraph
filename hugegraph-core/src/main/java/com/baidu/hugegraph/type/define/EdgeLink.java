@@ -1,14 +1,13 @@
 package com.baidu.hugegraph.type.define;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonGetter;
-import org.apache.tinkerpop.shaded.jackson.annotation.JsonValue;
 
 /**
  * Created by liningrui on 2017/5/19.
  */
 public class EdgeLink {
 
+    @SuppressWarnings("unused")
     private static final long serialVersionUID = 4954918890077093841L;
 
     // use public for json serialize
@@ -30,12 +29,12 @@ public class EdgeLink {
     }
 
     public String source() {
-        return source;
+        return this.source;
     }
 
     @JsonGetter
     public String target() {
-        return target;
+        return this.target;
     }
 
     @Override

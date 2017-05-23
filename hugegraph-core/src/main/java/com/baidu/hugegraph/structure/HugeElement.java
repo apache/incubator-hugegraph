@@ -72,6 +72,7 @@ public abstract class HugeElement implements Element, GraphType {
         return this.properties;
     }
 
+    @SuppressWarnings("unchecked")
     public <V> HugeProperty<V> getProperty(String key) {
         return (HugeProperty<V>) this.properties.get(key);
     }
@@ -88,6 +89,8 @@ public abstract class HugeElement implements Element, GraphType {
         this.properties.put(prop.key(), prop);
     }
 
+    // SuppressWarnings for (HugeProperty) propSet/propList
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public <V> HugeProperty<V> addProperty(String key, V value) {
         HugeProperty<V> prop = null;
         PropertyKey pkey = this.graph.schema().propertyKey(key);
@@ -97,8 +100,9 @@ public abstract class HugeElement implements Element, GraphType {
                 this.setProperty(prop);
                 break;
             case SET:
-                Preconditions.checkArgument(pkey.checkDataType(value), String.format(
-                        "Invalid property value '%s' for key '%s'", value, key));
+                Preconditions.checkArgument(pkey.checkDataType(value),
+                        String.format("Invalid property value '%s' for"
+                                + " key '%s'", value, key));
 
                 HugeProperty<Set<V>> propSet;
                 if (this.existsProperty(key)) {
@@ -114,8 +118,9 @@ public abstract class HugeElement implements Element, GraphType {
                 prop = (HugeProperty) propSet;
                 break;
             case LIST:
-                Preconditions.checkArgument(pkey.checkDataType(value), String.format(
-                        "Invalid property value '%s' for key '%s'", value, key));
+                Preconditions.checkArgument(pkey.checkDataType(value),
+                        String.format("Invalid property value '%s' for"
+                                + " key '%s'", value, key));
 
                 HugeProperty<List<V>> propList;
                 if (!this.existsProperty(key)) {

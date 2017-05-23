@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;

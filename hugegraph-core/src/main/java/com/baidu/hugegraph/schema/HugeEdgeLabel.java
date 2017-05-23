@@ -4,12 +4,9 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.EdgeLink;
+import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.util.StringUtil;
 import com.google.common.base.Preconditions;
@@ -18,8 +15,6 @@ import com.google.common.base.Preconditions;
  * Created by liningrui on 2017/3/20.
  */
 public class HugeEdgeLabel extends EdgeLabel {
-
-    private static final Logger logger = LoggerFactory.getLogger(HugeEdgeLabel.class);
 
     private Frequency frequency;
     private Set<EdgeLink> links;
@@ -132,7 +127,7 @@ public class HugeEdgeLabel extends EdgeLabel {
         // Try to read
         EdgeLabel edgeLabel = this.transaction().getEdgeLabel(this.name);
         // if edgeLabel exist and checkExits
-        if (edgeLabel != null && checkExits) {
+        if (edgeLabel != null && this.checkExits) {
             throw new HugeException("The edgeLabel:" + this.name + " has exised.");
         }
 

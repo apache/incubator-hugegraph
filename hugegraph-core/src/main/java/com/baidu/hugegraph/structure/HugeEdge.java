@@ -128,6 +128,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     @Override
+    @SuppressWarnings("unchecked") // (Property<V>) prop
     public <V> Iterator<Property<V>> properties(String... propertyKeys) {
         List<Property<V>> propertyList = new ArrayList<>(propertyKeys.length);
 

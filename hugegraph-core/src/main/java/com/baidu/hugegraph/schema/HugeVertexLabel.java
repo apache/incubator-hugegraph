@@ -4,9 +4,6 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.StringUtil;
@@ -16,8 +13,6 @@ import com.google.common.base.Preconditions;
  * Created by liningrui on 2017/3/20.
  */
 public class HugeVertexLabel extends VertexLabel {
-
-    private static final Logger logger = LoggerFactory.getLogger(HugeVertexLabel.class);
 
     private Set<String> primaryKeys;
 
@@ -58,7 +53,7 @@ public class HugeVertexLabel extends VertexLabel {
         // Try to read
         VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
         // if vertexLabel exist and checkExits
-        if (vertexLabel != null && checkExits) {
+        if (vertexLabel != null && this.checkExits) {
             throw new HugeException("The vertexlabel:" + this.name + " has exised.");
         }
 

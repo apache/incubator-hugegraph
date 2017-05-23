@@ -81,7 +81,9 @@ public final class HugeGraphStep<S, E extends Element>
         query.offset(this.offset);
         query.limit(this.limit);
 
-        return (Iterator<E>) graph.vertices(query);
+        @SuppressWarnings("unchecked")
+        Iterator<E> r = (Iterator<E>) graph.vertices(query);
+        return  r;
     }
 
     private Iterator<E> edges() {
@@ -110,7 +112,9 @@ public final class HugeGraphStep<S, E extends Element>
         query.offset(this.offset);
         query.limit(this.limit);
 
-        return (Iterator<E>) graph.edges(query);
+        @SuppressWarnings("unchecked")
+        Iterator<E> r = (Iterator<E>) graph.edges(query);
+        return  r;
     }
 
     @Override
@@ -219,9 +223,11 @@ public final class HugeGraphStep<S, E extends Element>
         final List<E> list = new LinkedList<>();
 
         while (iterator.hasNext()) {
-            final Element e = iterator.next();
-            if (HasContainer.testAll(e, hasContainers)) {
-                list.add((E) e);
+            final Element ele = iterator.next();
+            if (HasContainer.testAll(ele, hasContainers)) {
+                @SuppressWarnings("unchecked")
+                E e = (E) ele;
+                list.add(e);
             }
         }
         return list.iterator();

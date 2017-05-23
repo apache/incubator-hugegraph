@@ -21,7 +21,7 @@ public class HugeVertexProperty<V> extends HugeProperty<V> implements VertexProp
     }
 
     @Override
-    public <V> Property<V> property(String key, V value) {
+    public <U> Property<U> property(String key, U value) {
         throw new HugeException("Not support nested property");
     }
 

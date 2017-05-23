@@ -26,6 +26,7 @@ public final class HugeVertexStepStrategy
     }
 
     @Override
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public void apply(final Traversal.Admin<?, ?> traversal) {
         List<VertexStep> steps = TraversalHelper.getStepsOfClass(
                 VertexStep.class, traversal);

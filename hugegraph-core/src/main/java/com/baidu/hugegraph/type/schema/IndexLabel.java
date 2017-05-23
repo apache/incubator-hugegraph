@@ -2,7 +2,6 @@ package com.baidu.hugegraph.type.schema;
 
 import java.util.Set;
 
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
@@ -35,6 +34,7 @@ public abstract class IndexLabel extends SchemaElement {
         return this;
     }
 
+    @Override
     public abstract IndexLabel create();
 
     public abstract HugeType baseType();

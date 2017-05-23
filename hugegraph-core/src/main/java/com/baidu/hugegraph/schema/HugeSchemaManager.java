@@ -3,9 +3,6 @@ package com.baidu.hugegraph.schema;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
@@ -17,8 +14,6 @@ import com.google.common.base.Preconditions;
  * Created by jishilei on 17/3/17.
  */
 public class HugeSchemaManager implements SchemaManager {
-
-    private static final Logger logger = LoggerFactory.getLogger(HugeSchemaManager.class);
 
     private final SchemaTransaction transaction;
 

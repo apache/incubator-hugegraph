@@ -2,9 +2,6 @@ package com.baidu.hugegraph.schema;
 
 import java.util.Arrays;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -15,8 +12,6 @@ import com.baidu.hugegraph.util.StringUtil;
  * Created by jishilei on 17/3/17.
  */
 public class HugePropertyKey extends PropertyKey {
-
-    private static final Logger logger = LoggerFactory.getLogger(HugePropertyKey.class);
 
     private DataType dataType;
     private Cardinality cardinality;
@@ -146,7 +141,7 @@ public class HugePropertyKey extends PropertyKey {
         // Try to read
         PropertyKey propertyKey = this.transaction().getPropertyKey(this.name);
         // if propertyKey exist and checkExits
-        if (propertyKey != null && checkExits) {
+        if (propertyKey != null && this.checkExits) {
             throw new HugeException("The property key: " + this.name + " has exist");
         }
 

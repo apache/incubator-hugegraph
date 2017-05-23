@@ -7,6 +7,7 @@ import java.util.Collection;
  */
 public class CollectionUtil {
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static boolean containsAll(Collection a, Collection b) {
         return a.containsAll(b);
     }
