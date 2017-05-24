@@ -112,9 +112,6 @@ public class IndexTransaction extends AbstractTransaction {
             HugeIndex index = this.serializer.readIndex(entries.next());
             ids.addAll(index.elementIds());
         }
-        if (ids.isEmpty()) {
-            throw new BackendException("Not found any result for: " + query);
-        }
         return new IdQuery(query.resultType(), ids);
     }
 
