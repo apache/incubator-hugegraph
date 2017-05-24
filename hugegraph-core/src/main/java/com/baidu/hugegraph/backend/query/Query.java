@@ -68,7 +68,7 @@ public class Query implements Cloneable {
         return ImmutableList.of();
     }
 
-    public boolean queryAll() {
+    public boolean empty() {
         return this.ids().isEmpty() && this.conditions().isEmpty();
     }
 

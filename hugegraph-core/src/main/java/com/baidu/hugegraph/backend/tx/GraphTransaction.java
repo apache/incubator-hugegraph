@@ -208,6 +208,13 @@ public class GraphTransaction extends AbstractTransaction {
     public Iterable<BackendEntry> query(Query query) {
         if (query instanceof ConditionQuery) {
             query = this.optimizeQuery((ConditionQuery) query);
+            // NOTE: There are two possibilities for this query:
+            // 1.sysprop-query, which would not be empty.
+            // 2.index-query result(ids after optimize), which may be empty.
+            if (query.empty()) {
+                // Return empty if there is no result after index-query
+                return ImmutableList.of();
+            }
         }
         return super.query(query);
     }
