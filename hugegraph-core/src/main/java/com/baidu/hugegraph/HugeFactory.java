@@ -28,16 +28,17 @@ public class HugeFactory {
 
     private static Configuration getLocalConfiguration(String shortcutOrFile) {
         File file = new File(shortcutOrFile);
-        Preconditions.checkArgument(file != null && file.exists() && file.isFile() && file.canRead(),
-                "Need to specify a readable configuration file, but was given: %s", file.toString());
+        Preconditions.checkArgument(
+                file.exists() && file.isFile() && file.canRead(),
+                "Need to specify a readable configuration file rather than: %s",
+                file.toString());
 
         try {
             PropertiesConfiguration configuration = new PropertiesConfiguration(file);
-
             final File tmpParent = file.getParentFile();
             final File configParent;
 
-            if (null == tmpParent) {
+            if (tmpParent == null) {
                 configParent = new File(System.getProperty("user.dir"));
             } else {
                 configParent = tmpParent;
@@ -48,7 +49,8 @@ public class HugeFactory {
 
             return configuration;
         } catch (ConfigurationException e) {
-            throw new IllegalArgumentException("Could not load configuration at: " + file, e);
+            throw new IllegalArgumentException(
+                    "Unable to load configuration file: " + file, e);
         }
     }
 }
