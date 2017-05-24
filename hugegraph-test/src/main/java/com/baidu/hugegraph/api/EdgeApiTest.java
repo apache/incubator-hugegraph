@@ -7,7 +7,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class EdgeApiTest extends BaseTest {
+public class EdgeApiTest extends BaseApiTest {
 
     private static String path = "/graphs/hugegraph/graph/edges/";
 
