@@ -12,7 +12,7 @@ import javax.ws.rs.core.Response;
 import org.junit.After;
 import org.junit.Before;
 
-public class BaseTest {
+public class BaseApiTest {
 
     public static String BASE_URL = "http://127.0.0.1:8080";
 

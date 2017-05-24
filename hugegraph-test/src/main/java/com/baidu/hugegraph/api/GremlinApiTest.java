@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
-public class GremlinApiTest extends BaseTest {
+public class GremlinApiTest extends BaseApiTest {
 
     private static String path = "/gremlin";
 

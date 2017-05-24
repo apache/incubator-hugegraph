@@ -7,7 +7,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class VertexApiTest extends BaseTest {
+public class VertexApiTest extends BaseApiTest {
 
     private static String path = "/graphs/hugegraph/graph/vertices/";
 
