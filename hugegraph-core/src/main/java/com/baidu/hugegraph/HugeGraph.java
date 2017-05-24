@@ -220,7 +220,9 @@ public class HugeGraph implements Graph {
     @Override
     public void close() throws Exception {
         try {
-            this.tx.close();
+            if (this.tx.isOpen()) {
+                this.tx.close();
+            }
         } finally {
             this.storeProvider.close();
         }
