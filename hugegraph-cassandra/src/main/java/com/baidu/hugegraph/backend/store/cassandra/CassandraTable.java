@@ -30,6 +30,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.querybuilder.Clause;
+import com.datastax.driver.core.querybuilder.Clauses;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -166,7 +167,11 @@ public abstract class CassandraTable {
         // query by conditions
         List<Condition> conditions = query.conditions();
         for (Condition condition : conditions) {
-            select.where(condition2Cql(condition));
+            Clause clause = condition2Cql(condition);
+            select.where(clause);
+            if (Clauses.needAllowFiltering(clause)) {
+                select.allowFiltering();
+            }
         }
         return ImmutableList.of(select);
     }
@@ -175,11 +180,9 @@ public abstract class CassandraTable {
         switch (condition.type()) {
             case AND:
                 Condition.And and = (Condition.And) condition;
-                // TODO: return QueryBuilder.and(and.left(), and.right());
                 Clause left = condition2Cql(and.left());
                 Clause right = condition2Cql(and.right());
-                return (Clause) QueryBuilder.raw(String.format("%s AND %s",
-                        left, right));
+                return Clauses.and(left, right);
             case OR:
                 throw new BackendException("Not support OR currently");
             case RELATION:
@@ -215,6 +218,9 @@ public abstract class CassandraTable {
                 return QueryBuilder.lte(key, value);
             case HAS_KEY:
                 return QueryBuilder.containsKey(key, value);
+            // Error: cassandra no viable alternative at input 'like'
+            // case LIKE:
+            //    return QueryBuilder.like(key, value);
             case NEQ:
             default:
                 throw new AssertionError("Unsupported relation: " + relation);
