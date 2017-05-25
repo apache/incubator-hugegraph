@@ -52,21 +52,24 @@ public class HugeSchemaManager implements SchemaManager {
     @Override
     public PropertyKey propertyKey(String name) {
         PropertyKey propertyKey = this.transaction.getPropertyKey(name);
-        Preconditions.checkNotNull(propertyKey, "undefined propertyKey: " + name);
+        Preconditions.checkArgument(propertyKey != null,
+                "Undefined property key: '%s'", name);
         return propertyKey;
     }
 
     @Override
     public VertexLabel vertexLabel(String name) {
         VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
-        Preconditions.checkNotNull(vertexLabel, "undefined vertexLabel: " + name);
+        Preconditions.checkArgument(vertexLabel != null,
+                "Undefined vertex label: '%s'", name);
         return vertexLabel;
     }
 
     @Override
     public EdgeLabel edgeLabel(String name) {
         EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
-        Preconditions.checkNotNull(edgeLabel, "undefined edgeLabel: " + name);
+        Preconditions.checkArgument(edgeLabel != null,
+                "Undefined edge label: '%s'", name);
         return edgeLabel;
     }
 
