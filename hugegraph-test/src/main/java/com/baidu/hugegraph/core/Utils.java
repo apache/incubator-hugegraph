@@ -3,10 +3,12 @@ package com.baidu.hugegraph.core;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Assert;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.core.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.core.FakeObjects.FakeVertex;
 
 public class Utils {
@@ -24,6 +26,15 @@ public class Utils {
             FakeVertex fakeVertex) {
         for (Vertex v : vertexes) {
             if (fakeVertex.equalsVertex(v)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean contains(List<Edge> edges, FakeEdge fakeEdge) {
+        for (Edge e : edges) {
+            if (fakeEdge.equalsEdge(e)) {
                 return true;
             }
         }

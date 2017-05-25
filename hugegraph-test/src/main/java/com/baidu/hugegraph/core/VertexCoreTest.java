@@ -64,21 +64,6 @@ public class VertexCoreTest extends BaseCoreTest {
                 .by("city").create();
         schema.makeIndex("personByAge").on(person).search()
                 .by("age").create();
-
-        logger.info("===============  edgeLabel  ================");
-
-        schema.makeEdgeLabel("authored").singleTime()
-                .properties("contribution")
-                .link("author", "book")
-                .create();
-        schema.makeEdgeLabel("look").multiTimes().properties("time")
-                .sortKeys("time")
-                .link("author", "book")
-                .link("person", "book")
-                .create();
-        schema.makeEdgeLabel("created").singleTime()
-                .link("author", "language")
-                .create();
     }
 
     @Test
