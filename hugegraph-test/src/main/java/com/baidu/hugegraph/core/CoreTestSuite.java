@@ -9,7 +9,8 @@ import com.baidu.hugegraph.server.RegisterUtil;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     VertexCoreTest.class,
-    EdgeCoreTest.class
+    EdgeCoreTest.class,
+    SchemaCoreTest.class
 })
 public class CoreTestSuite {
 
