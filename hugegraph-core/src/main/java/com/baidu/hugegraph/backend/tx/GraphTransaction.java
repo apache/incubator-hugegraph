@@ -235,8 +235,9 @@ public class GraphTransaction extends AbstractTransaction {
         HugeVertexFeatures features = this.graph.features().vertex();
 
         // Vertex id must be null now
-        if (!features.supportsCustomIds() && id != null) {
-            throw new IllegalArgumentException("User defined id of Vertex is not supported");
+        if (!features.supportsUserSuppliedIds() && id != null) {
+            throw new IllegalArgumentException(
+                    "Not support user defined id of Vertex");
         }
 
         // Check Vertex label
