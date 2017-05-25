@@ -490,6 +490,30 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(3, vertexes.size());
     }
 
+    @Test
+    public void testRemoveVertex() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertexes = graph.traversal().V().toList();
+        Assert.assertEquals(10, vertexes.size());
+        Assert.assertTrue(Utils.contains(vertexes, new FakeVertex(
+                T.label, "author", "id", 1, "name", "James Gosling",
+                "age", 62, "lived", "Canadian")));
+
+        vertexes = graph.traversal().V().hasLabel(
+                "author").has("id", 1).toList();
+        Assert.assertEquals(1, vertexes.size());
+        Vertex vertex = vertexes.get(0);
+        vertex.remove();
+
+        vertexes = graph.traversal().V().toList();
+        Assert.assertEquals(9, vertexes.size());
+        Assert.assertFalse(Utils.contains(vertexes, new FakeVertex(
+                T.label, "author", "id", 1, "name", "James Gosling",
+                "age", 62, "lived", "Canadian")));
+    }
+
     private void init10Vertices() {
         HugeGraph graph = graph();
         graph.tx().open();
