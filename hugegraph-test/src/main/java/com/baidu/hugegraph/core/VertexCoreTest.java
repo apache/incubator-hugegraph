@@ -9,6 +9,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
@@ -29,28 +30,14 @@ public class VertexCoreTest extends BaseCoreTest {
         logger.info("===============  propertyKey  ================");
 
         schema.makePropertyKey("id").asInt().create();
-        schema.makePropertyKey("~exist").asText().create();
         schema.makePropertyKey("name").asText().create();
         schema.makePropertyKey("dynamic").asBoolean().create();
-        schema.makePropertyKey("gender").asText().create();
-        schema.makePropertyKey("instructions").asText().create();
-        schema.makePropertyKey("category").asText().create();
-        schema.makePropertyKey("year").asInt().create();
         schema.makePropertyKey("time").asText().create();
-        schema.makePropertyKey("timestamp").asTimestamp().create();
-        schema.makePropertyKey("ISBN").asText().create();
-        schema.makePropertyKey("calories").asInt().create();
-        schema.makePropertyKey("amount").asText().create();
-        schema.makePropertyKey("stars").asInt().create();
         schema.makePropertyKey("age").asInt().valueSingle().create();
         schema.makePropertyKey("comment").asText().valueSet().create();
         schema.makePropertyKey("contribution").asText().valueSet().create();
-        schema.makePropertyKey("nickname").asText().valueList().create();
         schema.makePropertyKey("lived").asText().create();
-        schema.makePropertyKey("country").asText().valueSet()
-                .properties("livedIn").create();
         schema.makePropertyKey("city").asText().create();
-        schema.makePropertyKey("sensor_id").asUuid().create();
 
         logger.info("===============  vertexLabel  ================");
 
@@ -58,19 +45,18 @@ public class VertexCoreTest extends BaseCoreTest {
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name")
-                .primaryKeys("id").create();
-        schema.makeVertexLabel("language").properties("name", "dynamic")
-                .primaryKeys("name").create();
-        schema.makeVertexLabel("recipe")
-                .properties("name", "instructions").create();
-        schema.makeVertexLabel("ingredient").create();
-        schema.makeVertexLabel("book").properties("name")
-                .primaryKeys("name").create();
-        schema.makeVertexLabel("meal").create();
-        schema.makeVertexLabel("reviewer").create();
-        schema.makeVertexLabel("FridgeSensor").properties("city_id")
-                .primaryKeys("city_id").create();
+        schema.makeVertexLabel("author")
+                .properties("id", "name")
+                .primaryKeys("id")
+                .create();
+        schema.makeVertexLabel("language")
+                .properties("name", "dynamic")
+                .primaryKeys("name")
+                .create();
+        schema.makeVertexLabel("book")
+                .properties("name")
+                .primaryKeys("name")
+                .create();
 
         logger.info("===============  vertexLabel index  ================");
 
@@ -82,23 +68,17 @@ public class VertexCoreTest extends BaseCoreTest {
         logger.info("===============  edgeLabel  ================");
 
         schema.makeEdgeLabel("authored").singleTime()
-                .link("author", "book")
                 .properties("contribution")
+                .link("author", "book")
                 .create();
-
         schema.makeEdgeLabel("look").multiTimes().properties("time")
+                .sortKeys("time")
                 .link("author", "book")
                 .link("person", "book")
-                .sortKeys("time")
                 .create();
-
         schema.makeEdgeLabel("created").singleTime()
                 .link("author", "language")
                 .create();
-
-        schema.makeEdgeLabel("includes").singleTime().create();
-        schema.makeEdgeLabel("includedIn").create();
-        schema.makeEdgeLabel("rated").link("reviewer", "recipe").create();
     }
 
     @Test
@@ -121,6 +101,46 @@ public class VertexCoreTest extends BaseCoreTest {
 
         long count = graph.traversal().V().count().next();
         Assert.assertEquals(6, count);
+    }
+
+    @Test
+    public void testAddVertexWithInvalidVertexLabelType() {
+        HugeGraph graph = graph();
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, true);
+        });
+    }
+
+    @Test
+    public void testAddVertexWithNotExistsVertexLabel() {
+        HugeGraph graph = graph();
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "not-exists-label");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithNotExistsVertexProp() {
+        HugeGraph graph = graph();
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "book", "not-exists-porp", "test");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithoutPrimaryValues() {
+        HugeGraph graph = graph();
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "book");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithoutVertexLabel() {
+        HugeGraph graph = graph();
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex("name", "test");
+        });
     }
 
     @Test
@@ -218,6 +238,18 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertexes,
                 T.label, "author", "id", 1, "name", "James Gosling",
                 "age", 62, "lived", "Canadian");
+    }
+
+    @Test()
+    public void testQueryByIdNotFound() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        // query vertex by id which not exists
+        Id id = SplicingIdGenerator.splicing("author", "not-exists-id");
+        Utils.assertThrows(HugeException.class, () -> {
+            graph.traversal().V(id).toList();
+        });
     }
 
     @Test
