@@ -23,20 +23,18 @@ import com.baidu.hugegraph.type.HugeType;
 import com.google.common.base.Preconditions;
 
 public abstract class AbstractTransaction implements Transaction {
-
     private boolean autoCommit;
 
-    // parent graph
-    protected final HugeGraph graph;
+    private final HugeGraph graph; // parent graph
+    private BackendStore store;
+
+    private Set<BackendEntry> additions;
+    private Set<BackendEntry> deletions;
+
+    protected static final Logger logger = LoggerFactory.getLogger(
+            Transaction.class);
     protected AbstractSerializer serializer;
     protected IdGenerator idGenerator;
-
-    protected BackendStore store;
-
-    protected Set<BackendEntry> additions;
-    protected Set<BackendEntry> deletions;
-
-    private static final Logger logger = LoggerFactory.getLogger(AbstractTransaction.class);
 
     public AbstractTransaction(HugeGraph graph, BackendStore store) {
         Preconditions.checkNotNull(graph);
@@ -49,8 +47,7 @@ public abstract class AbstractTransaction implements Transaction {
         this.idGenerator = IdGeneratorFactory.generator();
 
         this.store = store;
-        this.additions = new LinkedHashSet<>();
-        this.deletions = new LinkedHashSet<>();
+        this.reset();
     }
 
     public HugeGraph graph() {
@@ -103,25 +100,23 @@ public abstract class AbstractTransaction implements Transaction {
         logger.debug("Transaction commit() [auto: {}]...", this.autoCommit);
         this.prepareCommit();
 
-        BackendMutation m = new BackendMutation(this.additions, this.deletions);
-
-        if (m.isEmpty()) {
+        BackendMutation mutation = this.mutation();
+        if (mutation.isEmpty()) {
             logger.debug("Transaction has no data to commit({})", this.store());
             return;
         }
 
         // if an exception occurred, catch in the upper layer and roll back
         this.store.beginTx();
-        this.store.mutate(m);
+        this.store.mutate(mutation);
+        this.reset();
         this.store.commitTx();
-
-        this.additions.clear();
-        this.deletions.clear();
     }
 
     @Override
     public void rollback() throws BackendException {
         logger.debug("Transaction rollback()...");
+        this.reset();
         this.store.rollbackTx();
     }
 
@@ -159,6 +154,15 @@ public abstract class AbstractTransaction implements Transaction {
         // pass
     }
 
+    protected void reset() {
+        this.additions = new LinkedHashSet<>();
+        this.deletions = new LinkedHashSet<>();
+    }
+
+    protected BackendMutation mutation() {
+        return new BackendMutation(this.additions, this.deletions);
+    }
+
     protected void prepareCommit() {
         // for sub-class preparing data, nothing to do here
         logger.debug("Transaction prepareCommit()...");
@@ -166,22 +170,22 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected void commitOrRollback() {
         logger.debug("Transaction commitOrRollback()");
-        boolean success = false;
+        BackendMutation mutation = this.mutation();
 
         try {
+            // commit
             this.commit();
-            success = true;
-        } catch (BackendException e1) {
+        } catch (Throwable e1) {
             logger.error("Failed to commit changes:", e1);
+            // rollback
             try {
                 this.rollback();
-            } catch (BackendException e2) {
-                logger.error("Failed to rollback changes:", e2);
+            } catch (Throwable e2) {
+                logger.error("Failed to rollback changes:\n %s", mutation, e2);
             }
-        }
-
-        if (!success) {
-            throw new BackendException("Failed to commit changes");
+            // rethrow
+            throw new BackendException(String.format(
+                    "Failed to commit changes: %s", e1.getMessage()));
         }
     }
 

@@ -6,9 +6,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -34,8 +31,6 @@ import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.base.Preconditions;
 
 public class IndexTransaction extends AbstractTransaction {
-
-    private static final Logger logger = LoggerFactory.getLogger(IndexTransaction.class);
 
     public IndexTransaction(final HugeGraph graph, BackendStore store) {
         super(graph, store);
@@ -67,7 +62,7 @@ public class IndexTransaction extends AbstractTransaction {
 
     protected void updateIndex(String indexName, HugeElement element,
                                boolean removed) {
-        SchemaTransaction schema = this.graph.schemaTransaction();
+        SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(indexName);
         Preconditions.checkNotNull(indexLabel,
                 "Not existed index: " + indexName);
@@ -119,7 +114,7 @@ public class IndexTransaction extends AbstractTransaction {
         ConditionQuery indexQuery = null;
         SchemaElement schemaElement = null;
 
-        SchemaTransaction schema = this.graph.schemaTransaction();
+        SchemaTransaction schema = graph().schemaTransaction();
 
         boolean mustBeSearch = query.hasSearchCondition();
         Object label = query.condition(HugeKeys.LABEL);
