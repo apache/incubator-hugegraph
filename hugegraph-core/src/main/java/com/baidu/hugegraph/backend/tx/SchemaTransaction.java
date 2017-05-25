@@ -3,9 +3,6 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -23,8 +20,6 @@ import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
 public class SchemaTransaction extends AbstractTransaction {
-
-    private static final Logger logger = LoggerFactory.getLogger(SchemaTransaction.class);
 
     public SchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);

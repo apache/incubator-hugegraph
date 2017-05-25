@@ -15,8 +15,6 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -43,8 +41,6 @@ import com.google.common.collect.ImmutableList;
 
 public class GraphTransaction extends AbstractTransaction {
 
-    private static final Logger logger = LoggerFactory.getLogger(GraphTransaction.class);
-
     private IndexTransaction indexTx;
 
     private Set<HugeVertex> addedVertexes;
@@ -60,11 +56,7 @@ public class GraphTransaction extends AbstractTransaction {
         this.indexTx = new IndexTransaction(graph, indexStore);
         assert !this.indexTx.autoCommit();
 
-        this.addedVertexes = new LinkedHashSet<>();
-        this.removedVertexes = new LinkedHashSet<>();
-
-        this.addedEdges = new LinkedHashSet<>();
-        this.removedEdges = new LinkedHashSet<>();
+        this.reset();
     }
 
     @Override
@@ -74,6 +66,17 @@ public class GraphTransaction extends AbstractTransaction {
                 && this.addedEdges.isEmpty()
                 && this.removedEdges.isEmpty());
         return !empty || super.hasUpdates();
+    }
+
+    @Override
+    protected void reset() {
+        super.reset();
+
+        this.addedVertexes = new LinkedHashSet<>();
+        this.removedVertexes = new LinkedHashSet<>();
+
+        this.addedEdges = new LinkedHashSet<>();
+        this.removedEdges = new LinkedHashSet<>();
     }
 
     @Override
@@ -194,14 +197,22 @@ public class GraphTransaction extends AbstractTransaction {
 
     @Override
     public void commit() throws BackendException {
-        super.commit();
+        try {
+            super.commit();
+        } catch (Throwable e) {
+            this.indexTx.reset();
+            throw e;
+        }
         this.indexTx.commit();
     }
 
     @Override
     public void rollback() throws BackendException {
-        super.rollback();
-        this.indexTx.rollback();
+        try {
+            super.rollback();
+        } finally {
+            this.indexTx.rollback();
+        }
     }
 
     @Override
@@ -232,7 +243,7 @@ public class GraphTransaction extends AbstractTransaction {
         Id id = HugeVertex.getIdValue(keyValues);
         Object label = HugeVertex.getLabelValue(keyValues);
 
-        HugeVertexFeatures features = this.graph.features().vertex();
+        HugeVertexFeatures features = graph().features().vertex();
 
         // Vertex id must be null now
         if (!features.supportsUserSuppliedIds() && id != null) {
@@ -248,7 +259,7 @@ public class GraphTransaction extends AbstractTransaction {
         if (label == null) {
             throw Element.Exceptions.labelCanNotBeNull();
         } else if (label instanceof String) {
-            SchemaManager schema = this.graph.schema();
+            SchemaManager schema = graph().schema();
             label = schema.vertexLabel((String) label);
         }
 
@@ -425,7 +436,7 @@ public class GraphTransaction extends AbstractTransaction {
         if (label != null && query.resultType() == HugeType.VERTEX
                 && !features.vertex().supportsUserSuppliedIds()) {
             // Query vertex by label + primary-values
-            Set<String> keys = this.graph.schema().vertexLabel(
+            Set<String> keys = graph().schema().vertexLabel(
                     label.toString()).primaryKeys();
             if (!keys.isEmpty() && query.matchUserpropKeys(keys)) {
                 String primaryValues = query.userpropValuesString();
@@ -452,7 +463,7 @@ public class GraphTransaction extends AbstractTransaction {
         // Optimize edge query
         if (label != null && query.resultType() == HugeType.EDGE) {
             // Query edge by sourceVertex + direction + label + sort-values
-            Set<String> keys = this.graph.schema().edgeLabel(
+            Set<String> keys = graph().schema().edgeLabel(
                     label.toString()).sortKeys();
             if (query.condition(HugeKeys.SOURCE_VERTEX) != null
                     && query.condition(HugeKeys.DIRECTION) != null
