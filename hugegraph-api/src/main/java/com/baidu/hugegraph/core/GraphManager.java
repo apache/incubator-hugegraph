@@ -18,7 +18,8 @@ import com.baidu.hugegraph.server.HugeServer;
 
 public final class GraphManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger logger = LoggerFactory.getLogger(
+            HugeServer.class);
 
     private final Map<String, Graph> graphs;
 
@@ -33,10 +34,10 @@ public final class GraphManager {
             try {
                 final Graph newGraph = GraphFactory.open(conf.getValue());
                 this.graphs.put(conf.getKey(), newGraph);
-                logger.info("Graph '{}' was successfully configured via '{}'.",
+                logger.info("Graph '{}' was successfully configured via '{}'",
                         conf.getKey(), conf.getValue());
             } catch (RuntimeException e) {
-                logger.warn("Graph '{}': '{}' could not be instantiated",
+                logger.error("Graph '{}': '{}' can't be instantiated",
                         conf.getKey(), conf.getValue(), e);
             }
         });
