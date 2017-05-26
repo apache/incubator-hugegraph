@@ -1,7 +1,9 @@
 package com.baidu.hugegraph.core;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +17,7 @@ public class BaseCoreTest {
 
     public static String CONF_PATH = "hugegraph.properties";
 
-    private HugeGraph graph = null;
+    private static HugeGraph graph = null;
 
     protected static HugeGraph open() {
         String confFile = BaseCoreTest.class.getClassLoader().getResource(
@@ -23,20 +25,28 @@ public class BaseCoreTest {
         return HugeFactory.open(confFile);
     }
 
-    @Before
-    public void initTest() {
-        this.graph = open();
-
-        this.graph.clearBackend();
-        this.graph.initBackend();
+    @BeforeClass
+    public static void init() {
+        graph = open();
     }
 
-    @After
-    public void clear() throws Exception {
-        this.graph.close();
+    @AfterClass
+    public static void clear() throws Exception {
+        graph.close();
     }
 
     public HugeGraph graph() {
-        return this.graph;
+        return graph;
+    }
+
+    @Before
+    public void setup() {
+        graph().clearBackend();
+        graph().initBackend();
+    }
+
+    @After
+    public void teardown() throws Exception {
+        // pass
     }
 }
