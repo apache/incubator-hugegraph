@@ -1,0 +1,1 @@
+BUILD_SUBMITTER -x -e CENTOS6U3 -m baidu/xbu-data/hugegraph -c "cd baidu/xbu-data/hugegraph && sh build.sh" -u ./
