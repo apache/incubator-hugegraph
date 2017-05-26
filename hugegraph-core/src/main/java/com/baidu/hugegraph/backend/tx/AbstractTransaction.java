@@ -181,7 +181,7 @@ public abstract class AbstractTransaction implements Transaction {
             try {
                 this.rollback();
             } catch (Throwable e2) {
-                logger.error("Failed to rollback changes:\n %s", mutation, e2);
+                logger.error("Failed to rollback changes:\n {}", mutation, e2);
             }
             // rethrow
             throw new BackendException(String.format(

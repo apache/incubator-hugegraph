@@ -187,6 +187,8 @@ public abstract class CassandraStore implements BackendStore {
     @Override
     public void rollbackTx() {
         // TODO how to implement?
+        throw new UnsupportedOperationException(
+                "Unsupported rollback operation by Cassandra");
     }
 
     @Override

@@ -97,8 +97,9 @@ public class BackendMutation {
     }
 
     /**
-     * Merges another mutation into this mutation. Ensures that all additions and deletions
-     * are added to this mutation. Does not remove duplicates if such exist - this needs to be ensured by the caller.
+     * Merges another mutation into this mutation. Ensures that all additions
+     * and deletions are added to this mutation. Does not remove duplicates
+     * if such exist - this needs to be ensured by the caller.
      *
      * @param m
      */
@@ -122,4 +123,14 @@ public class BackendMutation {
         }
     }
 
+    /**
+     * Returns as a string of this mutation
+     *
+     * @return String
+     */
+    @Override
+    public String toString() {
+        return String.format("BackendMutation{additions=%s, deletions=%s}",
+                this.additions, this.deletions);
+    }
 }
