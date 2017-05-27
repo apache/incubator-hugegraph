@@ -11,7 +11,6 @@
 
     <artifactId>hugegraph-cassandra</artifactId>
 
-
     <dependencies>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
@@ -44,32 +43,11 @@
                             <appendAssemblyId>false</appendAssemblyId>
                             <outputDirectory>${top.level.basedir}</outputDirectory>
                             <descriptor>src/assembly/assembly.xml</descriptor>
-                            <finalName>hugegraph-release</finalName>
+                            <finalName>${final.name}</finalName>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
-            <!--<plugin>-->
-                <!--<artifactId>maven-clean-plugin</artifactId>-->
-                <!--<version>3.0.0</version>-->
-                <!--<configuration>-->
-                    <!--<filesets>-->
-                        <!--<fileset>-->
-                            <!--<directory>${top.level.basedir}</directory>-->
-                            <!--<includes>-->
-                                <!--<include>*.tar.bz2</include>-->
-                                <!--<include>*.zip</include>-->
-                                <!--<include>hugegraph-release/**</include>-->
-                            <!--</includes>-->
-                            <!--<followSymlinks>false</followSymlinks>-->
-                        <!--</fileset>-->
-                        <!--<fileset>-->
-                            <!--<directory>hugegraph-release</directory>-->
-                        <!--</fileset>-->
-                    <!--</filesets>-->
-                <!--</configuration>-->
-            <!--</plugin>-->
         </plugins>
     </build>
 

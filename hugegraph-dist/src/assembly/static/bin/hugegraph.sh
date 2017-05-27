@@ -2,8 +2,6 @@
 
 # Returns the absolute path of this script regardless of symlinks
 abs_path() {
-    # From: http://stackoverflow.com/a/246128
-    #   - To resolve finding the directory after symlinks
     SOURCE="${BASH_SOURCE[0]}"
     while [ -h "$SOURCE" ]; do
         DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
@@ -53,169 +51,17 @@ if [ -z "$JPS" ]; then
     exit 1
 fi
 
-wait_for_cassandra() {
-    local now_s=`date '+%s'`
-    local stop_s=$(( $now_s + $CASSANDRA_STARTUP_TIMEOUT_S ))
-    local statusbinary=
-
-    echo -n 'Running `nodetool statusbinary`'
-    while [ $now_s -le $stop_s ]; do
-        echo -n .
-        # The \r\n deletion bit is necessary for Cygwin compatibility
-        statusbinary="`$BIN/nodetool statusbinary 2>/dev/null | tr -d '\n\r'`"
-        if [ $? -eq 0 -a 'running' = "$statusbinary" ]; then
-            echo ' OK (returned exit status 0 and printed string "running").'
-            return 0
-        fi
-        sleep $SLEEP_INTERVAL_S
-        now_s=`date '+%s'`
-    done
-
-    echo " timeout exceeded ($CASSANDRA_STARTUP_TIMEOUT_S seconds)" >&2
-    return 1
-}
 
 
-# wait_for_startup friendly_name host port timeout_s
-wait_for_startup() {
-    local friendly_name="$1"
-    local host="$2"
-    local port="$3"
-    local timeout_s="$4"
-
-    local now_s=`date '+%s'`
-    local stop_s=$(( $now_s + $timeout_s ))
-    local status=
-
-    echo -n "Connecting to $friendly_name ($host:$port)"
-    while [ $now_s -le $stop_s ]; do
-        echo -n .
-        $BIN/checksocket.sh $host $port >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            echo " OK (connected to $host:$port)."
-            return 0
-        fi
-        sleep $SLEEP_INTERVAL_S
-        now_s=`date '+%s'`
-    done
-
-    echo " timeout exceeded ($timeout_s seconds): could not connect to $host:$port" >&2
-    return 1
-}
-
-wait_for_notebook() {
-
-    local friendly_name="$1"
-    local host="$2"
-    local port="$3"
-    local timeout_s="$4"
-
-    local now_s=`date '+%s'`
-    local stop_s=$(( $now_s + $timeout_s ))
-    local status=
-
-    echo -n "Curling to $friendly_name ($host:$port)"
-    while [ $now_s -le $stop_s ]; do
-        echo -n .
-        `curl $host:$port > /dev/null 2>&1`
-        if [ $? -eq 0 ]; then
-            echo " OK (succeed visit to $host:$port)."
-            return 0
-        fi
-        sleep $SLEEP_INTERVAL_S
-        now_s=`date '+%s'`
-    done
-
-    echo " timeout exceeded ($timeout_s seconds): could not visit to $host:$port" >&2
-    return 1
-}
-
-# wait_for_shutdown friendly_name class_name timeout_s
-wait_for_shutdown() {
-    local friendly_name="$1"
-    local class_name="$2"
-    local timeout_s="$3"
-
-    local now_s=`date '+%s'`
-    local stop_s=$(( $now_s + $timeout_s ))
-
-    while [ $now_s -le $stop_s ]; do
-        status_class "$friendly_name" $class_name >/dev/null
-        if [ $? -eq 1 ]; then
-            # Class not found in the jps output.  Assume that it stopped.
-            return 0
-        fi
-        sleep $SLEEP_INTERVAL_S
-        now_s=`date '+%s'`
-    done
-
-    echo "$friendly_name shutdown timeout exceeded ($timeout_s seconds)" >&2
-    return 1
-}
 
 start() {
-    echo "Forking Cassandra..."
-    if [ -n "$VERBOSE" ]; then
-        CASSANDRA_INCLUDE="$BIN"/cassandra.in.sh "$BIN"/cassandra || exit 1
-    else
-        CASSANDRA_INCLUDE="$BIN"/cassandra.in.sh "$BIN"/cassandra >/dev/null 2>&1 || exit 1
-    fi
-    wait_for_cassandra || {
-        echo "See $BIN/../logs/cassandra.log for Cassandra log output."    >&2
-        return 1
-    }
-
-    echo "Forking HugeGremlinServer and HugeGraphServer..."
-    if [ -n "$VERBOSE" ]; then
-        "$BIN"/hugegraph-server.sh conf/hugegraph-server.yaml &
-    else
-        "$BIN"/hugegraph-server.sh conf/hugegraph-server.yaml >/dev/null 2>&1 &
-    fi
-    wait_for_startup 'HugeGremlinServer' $GSRV_IP $GSRV_PORT $GSRV_STARTUP_TIMEOUT_S || {
-        echo "See $BIN/../logs/hugegraph-server.log for HugeGremlinServer log output."  >&2
-        return 1
-    }
-    disown
-    echo "You can run hugegraph-console.sh to connect." >&2
-
-
-#    echo "Forking HugeGraph-NoteBook..."
-#    if [ -n "$VERBOSE" ]; then
-#        "$BIN"/hugegraph-notebook.sh start
-#    else
-#        "$BIN"/hugegraph-notebook.sh start >/dev/null 2>&1
-#    fi
-#    # wait notebook thread started.
-#    wait_for_notebook 'HugeGraph-NoteBook' $NOTEBOOK_IP $NOTEBOOK_PORT $NOTEBOOK_STARTUP_TIMEOUT_S || {
-#        echo "See $BIN/../logs/hugegraph-notebook.log for HugeGraph-Notebook log output."  >&2
-#        return 1
-#    }
-#    echo "You can visit $NOTEBOOK_IP:$NOTEBOOK_PORT to use hugrgraph." >&2
+    "$BIN"/start-cassandra.sh
+    "$BIN"/start-gremlinserver.sh
+    "$BIN"/start-hugeserver.sh
 }
 
-stop() {
-#    "$BIN"/hugegraph-notebook.sh stop
 
-    kill_class        'Gremlin-Server' org.apache.tinkerpop.gremlin.server.GremlinServer 
-    wait_for_shutdown 'Gremlin-Server' org.apache.tinkerpop.gremlin.server.GremlinServer $GSRV_SHUTDOWN_TIMEOUT_S
-#    kill_class        Elasticsearch org.elasticsearch.bootstrap.Elasticsearch
-#    wait_for_shutdown Elasticsearch org.elasticsearch.bootstrap.Elasticsearch $ELASTICSEARCH_SHUTDOWN_TIMEOUT_S
-    kill_class        Cassandra org.apache.cassandra.service.CassandraDaemon
-    wait_for_shutdown Cassandra org.apache.cassandra.service.CassandraDaemon $CASSANDRA_SHUTDOWN_TIMEOUT_S
-}
 
-kill_class() {
-    local p=`$JPS -l | grep "$2" | awk '{print $1}'`
-    if [ -z "$p" ]; then
-        echo "$1 ($2) not found in the java process table"
-        return
-    fi
-    echo "Killing $1 (pid $p)..." >&2
-    case "`uname`" in
-        CYGWIN*) taskkill /F /PID "$p" ;;
-        *)       kill "$p" ;;
-    esac
-}
 
 status_class() {
     local p=`$JPS -l | grep "$2" | awk '{print $1}'`

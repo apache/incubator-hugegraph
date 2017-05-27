@@ -16,14 +16,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.ServerOptions;
 
 @Path("gremlin")
 @Singleton
 public class GremlinAPI extends API {
-
-    private final static String GREMLIN_SERVER = "gremlin.url";
-    private final static String GREMLIN_SERVER_DFT = "http://127.0.0.1:8182";
 
     private Client client = ClientBuilder.newClient();
 
@@ -48,20 +46,22 @@ public class GremlinAPI extends API {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response post(@Context HugeConfiguration conf,
-            String request) {
+    public Response post(@Context HugeConfig conf,
+                         String request) {
         // context.getRequestDispatcher(location).forward(request, response);
-        // return Response.seeOther(UriBuilder.fromUri(location).build()).build();
-        // Response.temporaryRedirect(UriBuilder.fromUri(location).build()).build();
-        String location = conf.getString(GREMLIN_SERVER, GREMLIN_SERVER_DFT);
+        // return Response.seeOther(UriBuilder.fromUri(location).build())
+        // .build();
+        // Response.temporaryRedirect(UriBuilder.fromUri(location).build())
+        // .build();
+        String location = conf.get(ServerOptions.GREMLIN_SERVER_URL);
         return doPostRequest(location, request);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response get(@Context HugeConfiguration conf,
-            @Context UriInfo uriInfo) {
-        String location = conf.getString(GREMLIN_SERVER, GREMLIN_SERVER_DFT);
+    public Response get(@Context HugeConfig conf,
+                        @Context UriInfo uriInfo) {
+        String location = conf.get(ServerOptions.GREMLIN_SERVER_URL);
         return doGetRequest(location, uriInfo.getRequestUri().getRawQuery());
     }
 

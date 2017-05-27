@@ -42,7 +42,7 @@ public class HugeVertexLabel extends VertexLabel {
     public String schema() {
         return "schema.vertexLabel(\"" + this.name + "\")"
                 + "." + propertiesSchema()
-                + StringUtil.descSchema("primaryKeys", this.primaryKeys)
+                + StringUtil.desc("primaryKeys", this.primaryKeys)
                 + ".create();";
     }
 

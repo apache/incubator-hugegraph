@@ -18,8 +18,8 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.server.RegisterUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -34,6 +34,7 @@ public class Example1 {
     public static void main(String[] args) {
 
         logger.info("Example1 start!");
+        RegisterUtil.registerCore();
         RegisterUtil.registerCassandra();
 
         String confFile = Example1.class.getClassLoader().getResource("hugegraph.properties").getPath();

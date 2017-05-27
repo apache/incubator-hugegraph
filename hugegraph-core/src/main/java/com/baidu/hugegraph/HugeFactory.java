@@ -6,7 +6,7 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
-import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.google.common.base.Preconditions;
 
 /**
@@ -14,16 +14,12 @@ import com.google.common.base.Preconditions;
  */
 public class HugeFactory {
 
-    public static HugeGraph open() {
-        return new HugeGraph(new HugeConfiguration());
-    }
-
     public static HugeGraph open(String shortcutOrFile) {
         return open(getLocalConfiguration(shortcutOrFile));
     }
 
     public static HugeGraph open(Configuration configuration) {
-        return new HugeGraph(new HugeConfiguration(configuration));
+        return new HugeGraph(new HugeConfig(configuration));
     }
 
     private static Configuration getLocalConfiguration(String shortcutOrFile) {

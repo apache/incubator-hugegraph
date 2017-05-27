@@ -1,4 +1,4 @@
-package com.baidu.hugegraph.configuration;
+package com.baidu.hugegraph.config;
 
 import java.util.Set;
 
@@ -21,7 +21,6 @@ public class ConfigOption<T> {
     private static final String ACCEPTED_DATATYPES_STRING;
 
     static {
-        // 可接受的类型
         ACCEPTED_DATATYPES = ImmutableSet.of(
                 Boolean.class,
                 Short.class,
@@ -44,7 +43,6 @@ public class ConfigOption<T> {
         //            }
         //        }
 
-        // 这里是把所有支持的数据类型拼接成字符串
         ACCEPTED_DATATYPES_STRING = Joiner.on(", ").join(ACCEPTED_DATATYPES);
     }
 
@@ -81,9 +79,6 @@ public class ConfigOption<T> {
         if (this.verifyFunc != null) {
             verify(this.value);
         }
-
-        // 注册到CommonConfig中
-        ConfigSpace.register(this);
     }
 
     public String name() {
@@ -95,8 +90,6 @@ public class ConfigOption<T> {
     }
 
     /**
-     * 返回值
-     *
      * @return
      */
     public T value() {
@@ -104,13 +97,10 @@ public class ConfigOption<T> {
     }
 
     /**
-     * 更新值的时候也检查是否合法
-     *
      * @param value
      */
     public void value(T value) {
         verify(value);
-        // 检查该参数是否可以更新
         Preconditions.checkArgument(rewritable);
         this.value = value;
     }

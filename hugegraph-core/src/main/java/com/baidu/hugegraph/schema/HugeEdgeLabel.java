@@ -116,7 +116,7 @@ public class HugeEdgeLabel extends EdgeLabel {
                 + "." + this.frequency.string() + "()"
                 + "." + propertiesSchema()
                 + linkSchema()
-                + StringUtil.descSchema("sortKeys", this.sortKeys)
+                + StringUtil.desc("sortKeys", this.sortKeys)
                 + ".create();";
     }
 

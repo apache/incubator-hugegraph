@@ -109,7 +109,7 @@ public class HugeIndexLabel extends IndexLabel {
     public String schema() {
         String schema = "";
         schema = ".index(\"" + this.name + "\")"
-                + StringUtil.descSchema("by", this.indexFields)
+                + StringUtil.desc("by", this.indexFields)
                 + "." + this.indexType.string() + "()";
         return schema;
     }

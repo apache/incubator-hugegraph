@@ -2,8 +2,6 @@
 
 # Returns the absolute path of this script regardless of symlinks
 abs_path() {
-    # From: http://stackoverflow.com/a/246128
-    #   - To resolve finding the directory after symlinks
     SOURCE="${BASH_SOURCE[0]}"
     while [ -h "$SOURCE" ]; do
         DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
@@ -21,4 +19,4 @@ else
     JAVA=java
 fi
 
-"$JAVA" -cp lib/hugegraph-core-*.jar com.baidu.hugegraph.util.CheckSocket $1 $2
+"$JAVA" -cp lib/hugegraph-common-*.jar com.baidu.hugegraph.util.CheckSocket $1 $2

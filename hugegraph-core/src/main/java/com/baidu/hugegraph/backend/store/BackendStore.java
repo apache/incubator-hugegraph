@@ -1,7 +1,7 @@
 package com.baidu.hugegraph.backend.store;
 
 import com.baidu.hugegraph.backend.query.Query;
-import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.config.HugeConfig;
 
 public interface BackendStore {
 
@@ -9,7 +9,7 @@ public interface BackendStore {
     public String name();
 
     // open/close database
-    public void open(HugeConfiguration config);
+    public void open(HugeConfig config);
     public void close();
 
     // initialize/clear database

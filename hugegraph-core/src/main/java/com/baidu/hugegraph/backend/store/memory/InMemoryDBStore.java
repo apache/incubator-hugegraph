@@ -21,7 +21,7 @@ import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.google.common.base.Preconditions;
@@ -216,7 +216,7 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     @Override
-    public void open(HugeConfiguration config) {
+    public void open(HugeConfig config) {
         logger.info("open()");
     }
 

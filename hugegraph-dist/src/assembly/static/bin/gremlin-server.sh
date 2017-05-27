@@ -9,8 +9,8 @@ while [ -h "$SOURCE" ]; do
     [[ $SOURCE != /* ]] && SOURCE="$BIN/$SOURCE"
 done
 BIN="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-# Set $CFG to $BIN/../conf/gremlin-server
-cd -P $BIN/../conf/gremlin-server
+# Set $CFG to $BIN/../conf/
+cd -P $BIN/../conf
 CFG=$(pwd)
 # Set $LIB to $BIN/../lib
 cd -P $BIN/../lib
@@ -55,15 +55,10 @@ fi
 
 # Execute the application and return its exit code
 set -x
-if [ "$1" = "-i" ]; then
-  shift
-  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/hugegraph-server/log4j-server.properties
-  $JAVA_OPTIONS -cp $CP:$CLASSPATH org.apache.tinkerpop.gremlin.server.util.GremlinServerInstall "$@"
-else
-  ARGS="$@"
-  if [ $# = 0 ] ; then
-    ARGS="conf/hugegraph-server.yaml"
-  fi
-  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/log4j.properties $JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.server.HugeGraphServer $ARGS &
-  exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" -Dlog4j.configuration=conf/log4j.properties $JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.server.HugeGremlinServer $ARGS
+ARGS="$@"
+if [ $# = 0 ] ; then
+    ARGS="conf/gremlin-server.yaml"
 fi
+exec $JAVA -Dhugegraph.logdir="$hugegraph_LOGDIR" \
+-Dlog4j.configuration=conf/log4j.properties \
+$JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.dist.HugeGremlinServer $ARGS
