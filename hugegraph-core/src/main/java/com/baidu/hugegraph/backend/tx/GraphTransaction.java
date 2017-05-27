@@ -376,8 +376,11 @@ public class GraphTransaction extends AbstractTransaction {
             HugeVertex vertex = (HugeVertex) vertices.next();
             for (HugeEdge edge : vertex.getEdges()) {
                 if (!results.containsKey(edge.id())) {
-                    // NOTE: Ensure all edges in results are OUT
-                    results.put(edge.id(), edge.switchOutDirection());
+                    // NOTE: Maybe some edges are IN and others are OUT if
+                    // querying edges both directions, perhaps it would look
+                    // better if we convert all edges in results to OUT, but
+                    // that would break the logic when querying IN edges.
+                    results.put(edge.id(), edge);
                 } else {
                     logger.debug("Results contains edge: {}", edge);
                 }
