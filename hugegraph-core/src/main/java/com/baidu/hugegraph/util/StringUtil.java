@@ -2,6 +2,8 @@ package com.baidu.hugegraph.util;
 
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.common.base.Preconditions;
 
 /**
@@ -9,7 +11,7 @@ import com.google.common.base.Preconditions;
  */
 public class StringUtil {
 
-    public static String descSchema(String prefix, Set<String> elems) {
+    public static String desc(String prefix, Set<String> elems) {
         String desc = "";
         if (elems != null) {
             desc += ".";
@@ -27,12 +29,16 @@ public class StringUtil {
     }
 
     public static void checkName(String name) {
-        Preconditions.checkNotNull(name, "name can not be null.");
-        Preconditions.checkNotNull(!name.isEmpty(), "name can not be empty.");
-        Preconditions.checkArgument(name.length() < 256, "the length of name must less than 256.");
-        Preconditions.checkArgument(name.substring(0, 1) != "_", "The first letter of name can not be '_'.");
-        Preconditions.checkArgument(!name.contains("\u0001"), "name can not contain the character '\u0001'.");
-        Preconditions.checkArgument(!name.contains("\u0002"), "name can not contain the character '\u0002'.");
+        Preconditions.checkNotNull(name, "name can't be null.");
+        Preconditions.checkNotNull(!name.isEmpty(), "name can't be empty.");
+        Preconditions.checkArgument(name.length() < 256,
+                "The length of name must less than 256 bytes.");
+        Preconditions.checkArgument(name.substring(0, 1) != "_",
+                "The first letter of name can't be '_'.");
+        Preconditions.checkArgument(!name.contains("\u0001"),
+                "name can't contain the character '\u0001'.");
+        Preconditions.checkArgument(!name.contains("\u0002"),
+                "name can't contain the character '\u0002'.");
     }
 
 }

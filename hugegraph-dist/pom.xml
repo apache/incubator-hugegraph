@@ -40,6 +40,11 @@
     <dependencies>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -54,16 +59,6 @@
             <version>0.6</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.tinkerpop</groupId>
-            <artifactId>gremlin-server</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.github.jeremyh</groupId>
-                    <artifactId>jBCrypt</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-console</artifactId>
@@ -104,7 +99,7 @@
                             <appendAssemblyId>false</appendAssemblyId>
                             <outputDirectory>${top.level.basedir}</outputDirectory>
                             <descriptor>${assembly.descriptor.dir}/assembly.xml</descriptor>
-                            <finalName>hugegraph-release</finalName>
+                            <finalName>${final.name}</finalName>
                         </configuration>
                     </execution>
                 </executions>
@@ -120,12 +115,12 @@
                             <includes>
                                 <include>*.tar.bz2</include>
                                 <include>*.zip</include>
-                                <include>hugegraph-release/**</include>
+                                <include>${final.name}/**</include>
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>
                         <fileset>
-                            <directory>hugegraph-release</directory>
+                            <directory>${final.name}</directory>
                         </fileset>
                     </filesets>
                 </configuration>

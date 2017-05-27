@@ -25,8 +25,8 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.configuration.ConfigSpace;
-import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.schema.HugeSchemaManager;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -55,7 +55,7 @@ public class HugeGraph implements Graph {
 
     private String name = null;
 
-    private HugeConfiguration configuration = null;
+    private HugeConfig configuration = null;
     private HugeFeatures features = null;
 
     // store provider like Cassandra
@@ -65,9 +65,9 @@ public class HugeGraph implements Graph {
     private GraphTransaction graphTransaction = null;
     private SchemaTransaction schemaTransaction = null;
 
-    public HugeGraph(HugeConfiguration configuration) {
+    public HugeGraph(HugeConfig configuration) {
         this.configuration = configuration;
-        this.name = configuration.get(ConfigSpace.STORE);
+        this.name = configuration.get(CoreOptions.STORE);
 
         this.features = new HugeFeatures(this, true);
 
@@ -82,7 +82,7 @@ public class HugeGraph implements Graph {
 
     private void initTransaction() {
         this.storeProvider = BackendProviderFactory.open(
-                this.configuration.get(ConfigSpace.BACKEND),
+                this.configuration.get(CoreOptions.BACKEND),
                 this.name);
 
         this.schemaTransaction = this.openSchemaTransaction();
@@ -106,7 +106,7 @@ public class HugeGraph implements Graph {
 
     private SchemaTransaction openSchemaTransaction() {
         try {
-            String name = this.configuration.get(ConfigSpace.STORE_SCHEMA);
+            String name = this.configuration.get(CoreOptions.STORE_SCHEMA);
             BackendStore store = this.storeProvider.loadSchemaStore(name);
             store.open(this.configuration);
             return new SchemaTransaction(this, store);
@@ -119,11 +119,11 @@ public class HugeGraph implements Graph {
 
     private GraphTransaction openGraphTransaction() {
         try {
-            String graph = this.configuration.get(ConfigSpace.STORE_GRAPH);
+            String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
             BackendStore store = this.storeProvider.loadGraphStore(graph);
             store.open(this.configuration);
 
-            String index = this.configuration.get(ConfigSpace.STORE_INDEX);
+            String index = this.configuration.get(CoreOptions.STORE_INDEX);
             BackendStore indexStore = this.storeProvider.loadIndexStore(index);
             indexStore.open(this.configuration);
 
@@ -152,7 +152,7 @@ public class HugeGraph implements Graph {
     }
 
     public AbstractSerializer serializer() {
-        String name = this.configuration.get(ConfigSpace.SERIALIZER);
+        String name = this.configuration.get(CoreOptions.SERIALIZER);
         AbstractSerializer serializer = SerializerFactory.serializer(name, this);
         if (serializer == null) {
             throw new HugeException("Can't load serializer with name " + name);

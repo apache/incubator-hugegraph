@@ -11,8 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.server.RegisterUtil;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
 /**
@@ -25,6 +25,7 @@ public class GraphOfTheMoviesExample {
     public static void main(String[] args) {
 
         logger.info("ExampleGraphFactory start!");
+        RegisterUtil.registerCore();
         RegisterUtil.registerCassandra();
 
         String confFile = GraphOfTheMoviesExample.class.getClassLoader().getResource("hugegraph.properties").getPath();

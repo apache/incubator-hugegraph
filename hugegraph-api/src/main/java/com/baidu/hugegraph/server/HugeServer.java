@@ -5,30 +5,33 @@ import java.net.URI;
 
 import javax.ws.rs.core.UriBuilder;
 
+import org.apache.commons.configuration.ConfigurationException;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.util.E;
 import com.google.common.base.Preconditions;
 
 public class HugeServer {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
 
-    private HugeConfiguration conf = null;
+    private HugeConfig conf = null;
 
     private HttpServer httpServer = null;
 
-    public HugeServer(HugeConfiguration conf) {
+    public HugeServer(HugeConfig conf) {
         this.conf = conf;
     }
 
     public void start() throws IllegalArgumentException, IOException {
-        // TODO: read from conf
-        URI uri = UriBuilder.fromUri("http://127.0.0.1").port(8080).build();
+        String url = conf.get(ServerOptions.HUGE_SERVER_URL);
+        URI uri = UriBuilder.fromUri(url).build();
 
         ResourceConfig rc = new ApplicationConfig(this.conf);
 
@@ -44,7 +47,7 @@ public class HugeServer {
 
     public static HugeServer start(String[] args) {
         logger.info("HugeServer starting...");
-        HugeConfiguration conf = HugeServer.loadConf(args);
+        HugeConfig conf = HugeServer.loadConf(args);
 
         HugeServer server = new HugeServer(conf);
         try {
@@ -57,9 +60,17 @@ public class HugeServer {
         return server;
     }
 
-    protected static HugeConfiguration loadConf(String[] args) {
-        HugeConfiguration conf = new HugeConfiguration();
-        // TODO: parse conf
+    protected static HugeConfig loadConf(String[] args) {
+        E.checkArgument(args.length == 1,
+                "HugeServer need accept one config"
+                        + " file, but was given %s", args);
+
+        HugeConfig conf = null;
+        try {
+            conf = new HugeConfig(args[0]);
+        } catch (ConfigurationException e) {
+            logger.error("Failed load config file", e);
+        }
         return conf;
     }
 

@@ -17,18 +17,6 @@ package com.baidu.hugegraph.util;
 import java.net.InetAddress;
 import java.net.Socket;
 
-/*
- *  This doesn't really belong here.  It's only used in the zipfile
- *  distribution to check whether Gremlin Server or ES are listening on
- *  their respective TCP ports.    But it's so tiny that I don't want
- *  to reorganize the repo to accommodate it (yet).
- *
- *  Many widely available *NIX programs do this task better (e.g.
- *  netcat, telnet, nmap, socat, ... we could even use netstat since
- *  we're interested only in the status of local ports).  But we want
- *  to keep the HugeGraph distribution self-contained insofar as is
- *  reasonable.
- */
 public class CheckSocket {
 
     public static final int E_USAGE  = 1;

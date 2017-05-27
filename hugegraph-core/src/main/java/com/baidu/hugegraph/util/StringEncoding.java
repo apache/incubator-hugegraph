@@ -17,8 +17,8 @@ package com.baidu.hugegraph.util;
 import java.io.UnsupportedEncodingException;
 
 import com.baidu.hugegraph.HugeException;
-import com.google.common.base.Preconditions;
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Preconditions;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)

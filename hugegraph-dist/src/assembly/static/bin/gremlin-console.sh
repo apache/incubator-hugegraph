@@ -59,7 +59,7 @@ fi
 
 # Script debugging is disabled by default, but can be enabled with -l
 # TRACE or -l DEBUG or enabled by exporting
-# SCRIPT_DEBUG=nonemptystring to hugegraph-console.sh's environment
+# SCRIPT_DEBUG=nonemptystring to gremlin-console.sh's environment
 if [ -z "${SCRIPT_DEBUG:-}" ]; then
     SCRIPT_DEBUG=
 fi
@@ -72,7 +72,7 @@ MAIN_CLASS=org.apache.tinkerpop.gremlin.console.Console
 while getopts "elpv" opt; do
     case "$opt" in
     e) MAIN_CLASS=org.apache.tinkerpop.gremlin.groovy.jsr223.ScriptExecutor
-       # Stop processing hugegraph-console.sh arguments as soon as the -e switch
+       # Stop processing gremlin-console.sh arguments as soon as the -e switch
        # is seen; everything following -e becomes arguments to the 
        # ScriptExecutor main class. This maintains compatibility with
        # older deployments.

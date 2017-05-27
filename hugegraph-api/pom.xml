@@ -18,6 +18,16 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-server</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.jeremyh</groupId>
+                    <artifactId>jBCrypt</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>org.glassfish.jersey.core</groupId>
             <artifactId>jersey-server</artifactId>
         </dependency>
@@ -34,5 +44,29 @@
             <artifactId>jersey-media-json-jackson</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <attach>false</attach>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <outputDirectory>${top.level.basedir}</outputDirectory>
+                            <descriptor>src/assembly/assembly.xml</descriptor>
+                            <finalName>${final.name}</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

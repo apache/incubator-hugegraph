@@ -9,8 +9,8 @@ import org.apache.tinkerpop.gremlin.structure.util.FeatureDescriptor;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.configuration.ConfigSpace;
-import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 
 /**
  * Created by jishilei on 17/3/20.
@@ -321,7 +321,7 @@ public class HugeFeatures implements Graph.Features {
 
         public String defaultLabel() {
             Configuration conf = HugeFeatures.this.graph.configuration();
-            return ((HugeConfiguration) conf).get(ConfigSpace.DEFAULT_VERTEX_LABEL);
+            return ((HugeConfig) conf).get(CoreOptions.DEFAULT_VERTEX_LABEL);
         }
     }
 

@@ -11,8 +11,8 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.configuration.ConfigSpace;
-import com.baidu.hugegraph.configuration.HugeConfiguration;
+import com.baidu.hugegraph.config.CassandraOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -31,7 +31,7 @@ public abstract class CassandraStore implements BackendStore {
 
     private Map<HugeType, CassandraTable> tables = null;
 
-    private HugeConfiguration config = null;
+    private HugeConfig conf = null;
 
     public CassandraStore(final String keyspace, final String name) {
         Preconditions.checkNotNull(keyspace);
@@ -54,12 +54,12 @@ public abstract class CassandraStore implements BackendStore {
     }
 
     @Override
-    public void open(HugeConfiguration config) {
+    public void open(HugeConfig config) {
         assert config != null;
-        this.config  = config;
+        this.conf = config;
 
-        String hosts = config.get(ConfigSpace.CASSANDRA_HOST);
-        int port = config.get(ConfigSpace.CASSANDRA_PORT);
+        String hosts = config.get(CassandraOptions.CASSANDRA_HOST);
+        int port = config.get(CassandraOptions.CASSANDRA_PORT);
 
         // init cluster
         this.cluster = Cluster.builder().addContactPoints(
@@ -198,17 +198,17 @@ public abstract class CassandraStore implements BackendStore {
 
     protected void initKeyspace() {
         // replication strategy: SimpleStrategy or NetworkTopologyStrategy
-        String strategy = this.config.get(ConfigSpace.CASSANDRA_STRATEGY);
+        String strategy = this.conf.get(CassandraOptions.CASSANDRA_STRATEGY);
 
         // replication factor
-        int replication = this.config.get(ConfigSpace.CASSANDRA_REPLICATION);
+        int replication = this.conf.get(CassandraOptions.CASSANDRA_REPLICATION);
 
         String cql = String.format("CREATE KEYSPACE IF NOT EXISTS %s "
                 + "WITH replication={'class':'%s', 'replication_factor':%d}",
                 this.keyspace,
                 strategy, replication);
 
-        logger.info("Create keyspace : {}", cql);
+        logger.info("Create keyspace: {}", cql);
         this.session.execute(cql);
 
         if (!this.session.isClosed()) {
@@ -218,7 +218,7 @@ public abstract class CassandraStore implements BackendStore {
     }
 
     protected void clearKeyspace() {
-        logger.info("Drop keyspace : {}", this.keyspace);
+        logger.info("Drop keyspace: {}", this.keyspace);
 
         if (!this.session.isClosed()) {
             this.session.close();
