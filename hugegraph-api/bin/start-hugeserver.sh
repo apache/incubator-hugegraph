@@ -18,7 +18,7 @@ HUGESERVER_CONFIG_TAG=huge-server
 : ${HSRV_PORT:=8080}
 
 : ${SLEEP_INTERVAL_S:=2}
-VERBOSE="V"
+VERBOSE=
 
 # wait_for_startup friendly_name host port timeout_s
 wait_for_startup() {
