@@ -200,7 +200,14 @@ public class InMemoryDBStore implements BackendStore {
     public void mutate(BackendMutation mutation) {
         mutation.additions().forEach((entry) -> {
             logger.info("[store {}] add entry: {}", this.name, entry);
-            this.store.put(entry.id(), entry);
+            if (!this.store.containsKey(entry.id())) {
+                this.store.put(entry.id(), entry);
+            } else {
+                // merge columns if the entry exists
+                BackendEntry old =  this.store.get(entry.id());
+                // TODO: Compatible with BackendEntry
+                ((TextBackendEntry) old).merge((TextBackendEntry) entry);
+            }
         });
 
         mutation.deletions().forEach((k) -> {

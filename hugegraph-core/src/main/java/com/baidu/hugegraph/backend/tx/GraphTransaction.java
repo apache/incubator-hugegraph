@@ -431,6 +431,37 @@ public class GraphTransaction extends AbstractTransaction {
         return query;
     }
 
+    public static void verifyEdgesConditionQuery(ConditionQuery query) {
+        final HugeKeys[] keys = new HugeKeys[] {
+                HugeKeys.SOURCE_VERTEX,
+                HugeKeys.DIRECTION,
+                HugeKeys.LABEL,
+                HugeKeys.SORT_VALUES,
+                HugeKeys.TARGET_VERTEX
+        };
+        assert query.resultType() == HugeType.EDGE;
+
+        int total = query.conditions().size();
+        if (total == 1 && query.condition(HugeKeys.LABEL) != null) {
+            // Supported: query just by edge label
+            return;
+        }
+
+        int matched = 0;
+        for (HugeKeys key : keys) {
+            Object value = query.condition(key);
+            if (value == null) {
+                break;
+            }
+            matched++;
+        }
+        if (matched != total) {
+            throw new BackendException(String.format(
+                    "Not supported querying edges by %s, expected %s",
+                    query.conditions(), keys[matched]));
+        }
+    }
+
     protected Query optimizeQuery(ConditionQuery query) {
         HugeFeatures features = this.graph().features();
 
@@ -481,14 +512,11 @@ public class GraphTransaction extends AbstractTransaction {
         /*
          * Query only by sysprops, like: vertex label, edge label.
          * NOTE: we assume sysprops would be indexed by backend store
-         * but we don't support query edges only by direction.
+         * but we don't support query edges only by direction/targetVertex.
          */
         if (query.allSysprop()) {
-            if (query.resultType() == HugeType.EDGE
-                    && query.condition(HugeKeys.DIRECTION) != null
-                    && query.condition(HugeKeys.SOURCE_VERTEX) == null) {
-                throw new BackendException(
-                        "Not support querying edges only by direction");
+            if (query.resultType() == HugeType.EDGE) {
+                verifyEdgesConditionQuery(query);
             }
             return query;
         }
