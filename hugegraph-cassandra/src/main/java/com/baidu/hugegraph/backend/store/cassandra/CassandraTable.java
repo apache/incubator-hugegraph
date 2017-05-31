@@ -22,13 +22,10 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
-import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Clauses;
 import com.datastax.driver.core.querybuilder.Delete;
@@ -40,17 +37,18 @@ import com.google.common.collect.ImmutableList;
 
 public abstract class CassandraTable {
 
-    private static final Logger logger = LoggerFactory.getLogger(CassandraTable.class);
+    private static final Logger logger = LoggerFactory.getLogger(
+            CassandraStore.class);
 
     protected String table;
-    protected BatchStatement batch;
 
     public CassandraTable(String table) {
         this.table = table;
-        this.batch = new BatchStatement();
     }
 
-    public Iterable<BackendEntry> query(Session session, Query query) {
+    public Iterable<BackendEntry> query(
+            CassandraSessionPool.Session session,
+            Query query) {
         List<BackendEntry> rs = new LinkedList<>();
 
         if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
@@ -274,7 +272,8 @@ public abstract class CassandraTable {
         return HugeKeys.valueOf(name.toUpperCase());
     }
 
-    public void insert(CassandraBackendEntry.Row entry) {
+    public void insert(CassandraSessionPool.Session session,
+                       CassandraBackendEntry.Row entry) {
         assert entry.columns().size() > 0;
         Insert insert = QueryBuilder.insertInto(this.table);
 
@@ -282,10 +281,11 @@ public abstract class CassandraTable {
             insert.value(this.formatKey(c.getKey()), c.getValue());
         }
 
-        this.batch.add(insert);
+        session.add(insert);
     }
 
-    public void delete(CassandraBackendEntry.Row entry) {
+    public void delete(CassandraSessionPool.Session session,
+                       CassandraBackendEntry.Row entry) {
         // delete just by id
         if (entry.columns().isEmpty()) {
             List<String> idNames = this.idColumnName();
@@ -297,7 +297,7 @@ public abstract class CassandraTable {
                 delete.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
             }
 
-            this.batch.add(delete);
+            session.add(delete);
         }
         // delete just by column keys
         // TODO: delete by id + keys(like index element-ids))
@@ -311,31 +311,11 @@ public abstract class CassandraTable {
                         c.getValue()));
             }
 
-            this.batch.add(delete);
+            session.add(delete);
         }
     }
 
-    public void commit(Session session) {
-        if (session.isClosed()) {
-            throw new BackendException("Session has been closed");
-        }
-
-        try {
-            logger.debug("commit statements: {}", this.batch.getStatements());
-            session.execute(this.batch);
-            this.batch.clear();
-        } catch (InvalidQueryException e) {
-            logger.error("Failed to commit statements due to:", e);
-            throw new BackendException("Failed to commit statements: "
-                    + this.batch.getStatements());
-        }
-    }
-
-    public boolean hasChanged() {
-        return this.batch.size() > 0;
-    }
-
-    protected void createTable(Session session,
+    protected void createTable(CassandraSessionPool.Session session,
                                HugeKeys[] columns,
                                HugeKeys[] primaryKeys) {
         DataType[] columnTypes = new DataType[columns.length];
@@ -345,7 +325,7 @@ public abstract class CassandraTable {
         this.createTable(session, columns, columnTypes, primaryKeys);
     }
 
-    protected void createTable(Session session,
+    protected void createTable(CassandraSessionPool.Session session,
                                HugeKeys[] columns,
                                DataType[] columnTypes,
                                HugeKeys[] primaryKeys) {
@@ -362,7 +342,7 @@ public abstract class CassandraTable {
         this.createTable(session, columns, columnTypes, partitionKeys, clusterKeys);
     }
 
-    protected void createTable(Session session,
+    protected void createTable(CassandraSessionPool.Session session,
                                HugeKeys[] columns,
                                HugeKeys[] pKeys,
                                HugeKeys[] cKeys) {
@@ -373,7 +353,7 @@ public abstract class CassandraTable {
         this.createTable(session, columns, columnTypes, pKeys, cKeys);
     }
 
-    protected void createTable(Session session,
+    protected void createTable(CassandraSessionPool.Session session,
                                HugeKeys[] columns,
                                DataType[] columnTypes,
                                HugeKeys[] pKeys,
@@ -427,12 +407,14 @@ public abstract class CassandraTable {
         session.execute(sb.toString());
     }
 
-    protected void dropTable(Session session) {
+    protected void dropTable(CassandraSessionPool.Session session) {
         logger.info("Drop table: {}", this.table);
         session.execute(SchemaBuilder.dropTable(this.table).ifExists());
     }
 
-    protected void createIndex(Session session, String indexName, HugeKeys column) {
+    protected void createIndex(CassandraSessionPool.Session session,
+                               String indexName,
+                               HugeKeys column) {
 
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE INDEX IF NOT EXISTS ");
@@ -449,9 +431,9 @@ public abstract class CassandraTable {
 
     /*************************** abstract methods ***************************/
 
-    public abstract void init(Session session);
+    public abstract void init(CassandraSessionPool.Session session);
 
-    public void clear(Session session) {
+    public void clear(CassandraSessionPool.Session session) {
         this.dropTable(session);
     }
 }

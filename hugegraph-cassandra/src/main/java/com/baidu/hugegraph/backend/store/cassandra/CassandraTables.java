@@ -17,7 +17,6 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Update;
 import com.google.common.collect.ImmutableList;
@@ -36,7 +35,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(Session session) {
+        public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.NAME,
                     HugeKeys.PROPERTIES,
@@ -59,7 +58,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(Session session) {
+        public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.NAME,
                     HugeKeys.LINKS,
@@ -84,7 +83,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(Session session) {
+        public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.NAME,
                     HugeKeys.DATA_TYPE,
@@ -106,7 +105,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(Session session) {
+        public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.NAME,
                     HugeKeys.BASE_TYPE,
@@ -135,7 +134,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(Session session) {
+        public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.LABEL,
                     HugeKeys.PRIMARY_VALUES,
@@ -205,7 +204,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(Session session) {
+        public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.SOURCE_VERTEX,
                     HugeKeys.DIRECTION,
@@ -302,7 +301,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(Session session) {
+        public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.PROPERTY_VALUES,
                     HugeKeys.INDEX_LABEL_NAME,
@@ -329,7 +328,8 @@ public class CassandraTables {
         }
 
         @Override
-        public void insert(CassandraBackendEntry.Row entry) {
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(super.table);
 
             update.with(QueryBuilder.append(formatKey(HugeKeys.ELEMENT_IDS),
@@ -339,11 +339,12 @@ public class CassandraTables {
             update.where(QueryBuilder.eq(formatKey(HugeKeys.PROPERTY_VALUES),
                     entry.column(HugeKeys.PROPERTY_VALUES)));
 
-            super.batch.add(update);
+            session.add(update);
         }
 
         @Override
-        public void delete(CassandraBackendEntry.Row entry) {
+        public void delete(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(super.table);
 
             update.with(QueryBuilder.remove(formatKey(HugeKeys.ELEMENT_IDS),
@@ -353,7 +354,7 @@ public class CassandraTables {
             update.where(QueryBuilder.eq(formatKey(HugeKeys.PROPERTY_VALUES),
                     entry.column(HugeKeys.PROPERTY_VALUES)));
 
-            super.batch.add(update);
+            session.add(update);
         }
 
         @Override
@@ -380,7 +381,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(Session session) {
+        public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.INDEX_LABEL_NAME,
                     HugeKeys.PROPERTY_VALUES,
@@ -406,7 +407,8 @@ public class CassandraTables {
         }
 
         @Override
-        public void insert(CassandraBackendEntry.Row entry) {
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(super.table);
 
             update.where(QueryBuilder.eq(formatKey(HugeKeys.INDEX_LABEL_NAME),
@@ -416,11 +418,12 @@ public class CassandraTables {
             update.where(QueryBuilder.eq(formatKey(HugeKeys.PROPERTY_VALUES),
                     entry.column(HugeKeys.PROPERTY_VALUES)));
 
-            super.batch.add(update);
+            session.add(update);
         }
 
         @Override
-        public void delete(CassandraBackendEntry.Row entry) {
+        public void delete(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(super.table);
 
             update.where(QueryBuilder.eq(formatKey(HugeKeys.INDEX_LABEL_NAME),
@@ -430,7 +433,7 @@ public class CassandraTables {
             update.where(QueryBuilder.eq(formatKey(HugeKeys.PROPERTY_VALUES),
                     entry.column(HugeKeys.PROPERTY_VALUES)));
 
-            super.batch.add(update);
+            session.add(update);
         }
 
         @Override

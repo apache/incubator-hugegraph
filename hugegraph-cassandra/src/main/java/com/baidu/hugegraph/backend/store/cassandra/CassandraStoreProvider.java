@@ -12,7 +12,8 @@ import com.google.common.base.Preconditions;
 
 public class CassandraStoreProvider implements BackendStoreProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(CassandraStoreProvider.class);
+    private static final Logger logger = LoggerFactory.getLogger(
+            CassandraStore.class);
 
     private String keyspace;
     private ConcurrentHashMap<String, BackendStore> stores;
