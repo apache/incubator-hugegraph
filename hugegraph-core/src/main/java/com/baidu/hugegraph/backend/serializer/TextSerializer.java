@@ -299,56 +299,66 @@ public class TextSerializer extends AbstractSerializer {
         IdQuery result = (IdQuery) query.clone();
         result.resetIds();
 
-        // condition
+        if (!query.conditions().isEmpty() && !query.ids().isEmpty()) {
+            throw new BackendException("Not supported querying edge by id(s) "
+                    + "and condition(s) at the same time");
+        }
+
+        // by id
+        if (query.ids().size() > 0) {
+            for (Id id : query.ids()) {
+                // TODO: improve edge id split
+                List<String> idParts = new LinkedList<>(ImmutableList.copyOf(
+                        SplicingIdGenerator.split(id)));
+                // NOTE: we assume the id without Direction if
+                // it contains 4 parts
+                if (idParts.size() == 4) {
+                    // ensure edge id with Direction
+                    idParts.add(1, HugeType.EDGE_OUT.name());
+                }
+
+                result.query(SplicingIdGenerator.concat(
+                        idParts.toArray(new String[0])));
+            }
+            return result;
+        }
+
+        // by condition (then convert the query to query by id)
         List<String> condParts = new ArrayList<>(query.conditions().size());
-        if (!query.conditions().isEmpty()) {
-            HugeKeys[] keys = new HugeKeys[] {
-                    HugeKeys.SOURCE_VERTEX,
-                    HugeKeys.DIRECTION,
-                    HugeKeys.LABEL,
-                    HugeKeys.SORT_VALUES,
-                    HugeKeys.TARGET_VERTEX
-            };
 
-            for (HugeKeys key : keys) {
-                Object value = ((ConditionQuery) query).condition(key);
-                if (value == null) {
-                    break;
-                }
-                // serialize value
-                if (value instanceof Direction) {
-                    value = ((Direction) value) == Direction.OUT
-                            ? HugeType.EDGE_OUT.name()
-                            : HugeType.EDGE_IN.name();
-                }
-                condParts.add(value.toString());
+        HugeKeys[] keys = new HugeKeys[] {
+                HugeKeys.SOURCE_VERTEX,
+                HugeKeys.DIRECTION,
+                HugeKeys.LABEL,
+                HugeKeys.SORT_VALUES,
+                HugeKeys.TARGET_VERTEX
+        };
 
-                ((ConditionQuery) result).unsetCondition(key);
+        for (HugeKeys key : keys) {
+            Object value = ((ConditionQuery) query).condition(key);
+            if (value == null) {
+                break;
             }
+            // serialize value
+            if (value instanceof Direction) {
+                value = ((Direction) value) == Direction.OUT
+                        ? HugeType.EDGE_OUT.name()
+                        : HugeType.EDGE_IN.name();
+            }
+            condParts.add(value.toString());
+
+            ((ConditionQuery) result).unsetCondition(key);
         }
 
-        // id
-        for (Id id : query.ids()) {
-            // TODO: improve edge id split
-            List<String> idParts = new LinkedList<>(ImmutableList.copyOf(
-                    SplicingIdGenerator.split(id)));
-            // NOTE: we assume the id without Direction if
-            // it contains 4 parts
-            if (idParts.size() == 4) {
-                // ensure edge id with Direction
-                idParts.add(1, HugeType.EDGE_OUT.name());
-            } else {
-                idParts.addAll(condParts);
-            }
-
-            result.query(SplicingIdGenerator.concat(
-                    idParts.toArray(new String[0])));
-        }
-
-        // only with conditions
-        if (query.ids().isEmpty() && condParts.size() > 0) {
+        if (condParts.size() > 0) {
+            // conditions to id
             result.query(SplicingIdGenerator.concat(
                     condParts.toArray(new String[0])));
+        }
+
+        if (result.conditions().size() > 0) {
+            // like query by edge label
+            assert result.ids().isEmpty();
         }
 
         return result;

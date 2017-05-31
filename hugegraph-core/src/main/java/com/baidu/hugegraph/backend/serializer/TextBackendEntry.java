@@ -77,6 +77,10 @@ public class TextBackendEntry implements BackendEntry {
         return list;
     }
 
+    public void merge(TextBackendEntry other) {
+        this.columns.putAll(other.columns);
+    }
+
     @Override
     public String toString() {
         return String.format("%s: %s", this.id, this.columns.toString());
