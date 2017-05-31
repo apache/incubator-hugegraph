@@ -16,18 +16,19 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import com.google.common.base.Preconditions;
 
 public abstract class CassandraStore implements BackendStore {
 
-    private static final Logger logger = LoggerFactory.getLogger(CassandraStore.class);
+    private static final Logger logger = LoggerFactory.getLogger(
+            CassandraStore.class);
 
-    private final String keyspace;
     private final String name;
-    private Cluster cluster;
-    private Session session;
+    private final String keyspace;
+    private CassandraSessionPool sessions;
 
     private Map<HugeType, CassandraTable> tables = null;
 
@@ -62,14 +63,13 @@ public abstract class CassandraStore implements BackendStore {
         int port = config.get(CassandraOptions.CASSANDRA_PORT);
 
         // init cluster
-        this.cluster = Cluster.builder().addContactPoints(
-                hosts.split(",")).withPort(port).build();
+        this.sessions = new CassandraSessionPool(hosts, port, this.keyspace);
 
-        // init session
+        // init a session for current thread
         try {
+            logger.debug("Store connect with keyspace: {}", this.keyspace);
             try {
-                logger.debug("Store connect with keyspace: {}", this.keyspace);
-                this.session = this.cluster.connect(this.keyspace);
+                this.sessions.session();
             } catch (InvalidQueryException e) {
                 // TODO: the error message may be changed in different versions
                 if (!e.getMessage().contains(String.format(
@@ -77,13 +77,11 @@ public abstract class CassandraStore implements BackendStore {
                     throw e;
                 }
                 logger.info("Failed to connect keyspace: {},"
-                        + " try connect without keyspace", this.keyspace);
-                this.session = this.cluster.connect();
+                        + " try init keyspace later", this.keyspace);
+                this.sessions.closeSession();
             }
         } catch (Exception e) {
-            if (!this.cluster.isClosed()) {
-                this.cluster.close();
-            }
+            this.sessions.close();
             throw e;
         }
 
@@ -92,12 +90,7 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void close() {
-        try {
-            this.session.close();
-        } finally {
-            this.cluster.close();
-        }
-
+        this.sessions.close();
         logger.debug("Store closed: {}", this.name);
     }
 
@@ -108,18 +101,19 @@ public abstract class CassandraStore implements BackendStore {
                 mutation.additions().size(),
                 mutation.deletions().size());
 
-        this.checkConneted();
+        this.checkSessionConneted();
+        CassandraSessionPool.Session session = this.sessions.session();
 
         // delete data
         for (BackendEntry i : mutation.deletions()) {
             CassandraBackendEntry entry = castBackendEntry(i);
             if (entry.selfChanged()) {
                 // delete entry
-                this.table(entry.type()).delete(entry.row());
+                this.table(entry.type()).delete(session, entry.row());
             }
             // delete sub rows (edges)
             for (CassandraBackendEntry.Row row : entry.subRows()) {
-                this.table(row.type()).delete(row);
+                this.table(row.type()).delete(session, row);
             }
         }
 
@@ -128,24 +122,26 @@ public abstract class CassandraStore implements BackendStore {
             CassandraBackendEntry entry = castBackendEntry(i);
             // insert entry
             if (entry.selfChanged()) {
-                this.table(entry.type()).insert(entry.row());
+                this.table(entry.type()).insert(session, entry.row());
             }
             // insert sub rows (edges)
             for (CassandraBackendEntry.Row row : entry.subRows()) {
-                this.table(row.type()).insert(row);
+                this.table(row.type()).insert(session, row);
             }
         }
     }
 
     @Override
     public Iterable<BackendEntry> query(Query query) {
-        this.checkConneted();
-        return this.table(query.resultType()).query(this.session, query);
+        this.checkSessionConneted();
+
+        CassandraTable table = this.table(query.resultType());
+        return table.query(this.sessions.session(), query);
     }
 
     @Override
     public void init() {
-        this.checkConneted();
+        this.checkClusterConneted();
 
         this.initKeyspace();
         this.initTables();
@@ -155,7 +151,7 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void clear() {
-        this.checkConneted();
+        this.checkClusterConneted();
 
         if (this.existsKeyspace()) {
             this.clearTables();
@@ -172,14 +168,24 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void commitTx() {
+        this.checkSessionConneted();
+
         // do update
-        logger.debug("Store commit: {}", this.name);
-        for (CassandraTable i : this.tables.values()) {
-            if (i.hasChanged()) {
-                i.commit(this.session);
-            }
+        CassandraSessionPool.Session session = this.sessions.session();
+        if (!session.hasChanged()) {
+            logger.debug("Store {} has nothing to commit", this.name);
+            return;
         }
-        logger.debug("Store commited: {}", this.name);
+
+        logger.debug("Store {} commit statements: {}",
+                this.name, session.statements());
+        try {
+            session.commit();
+        } catch (InvalidQueryException e) {
+            logger.error("Failed to commit statements due to:", e);
+            throw new BackendException("Failed to commit statements: " +
+                                       session.statements());
+        }
 
         // TODO how to implement tx?
     }
@@ -196,6 +202,10 @@ public abstract class CassandraStore implements BackendStore {
         return this.name;
     }
 
+    protected Cluster cluster() {
+        return this.sessions.cluster();
+    }
+
     protected void initKeyspace() {
         // replication strategy: SimpleStrategy or NetworkTopologyStrategy
         String strategy = this.conf.get(CassandraOptions.CASSANDRA_STRATEGY);
@@ -208,61 +218,70 @@ public abstract class CassandraStore implements BackendStore {
                 this.keyspace,
                 strategy, replication);
 
+        // create keyspace with non-keyspace-session
         logger.info("Create keyspace: {}", cql);
-        this.session.execute(cql);
-
-        if (!this.session.isClosed()) {
-            this.session.close();
+        Session session = this.cluster().connect();
+        try {
+            session.execute(cql);
+        } finally {
+            if (!session.isClosed()) {
+                session.close();
+            }
         }
-        this.session = this.cluster.connect(this.keyspace);
     }
 
     protected void clearKeyspace() {
-        logger.info("Drop keyspace: {}", this.keyspace);
+        // drop keyspace with non-keyspace-session
+        Statement stmt = SchemaBuilder.dropKeyspace(this.keyspace).ifExists();
+        logger.info("Drop keyspace: {}", stmt);
 
-        if (!this.session.isClosed()) {
-            this.session.close();
+        Session session = this.cluster().connect();
+        try {
+            session.execute(stmt);
+        } finally {
+            if (!session.isClosed()) {
+                session.close();
+            }
         }
-        this.session = this.cluster.connect();
-        this.session.execute(SchemaBuilder.dropKeyspace(this.keyspace).ifExists());
     }
 
     protected boolean existsKeyspace() {
-        return this.cluster.getMetadata().getKeyspace(this.keyspace) != null;
+        return this.cluster().getMetadata().getKeyspace(this.keyspace) != null;
     }
 
     protected void initTables() {
-        for (CassandraTable t : this.tables.values()) {
-            t.init(this.session);
+        CassandraSessionPool.Session session = this.sessions.session();
+        for (CassandraTable table : this.tables.values()) {
+            table.init(session);
         }
     }
 
     protected void clearTables() {
-        for (CassandraTable t : this.tables.values()) {
-            t.clear(this.session);
+        CassandraSessionPool.Session session = this.sessions.session();
+        for (CassandraTable table : this.tables.values()) {
+            table.clear(session);
         }
     }
 
     protected CassandraTable table(HugeType type) {
         assert type != null;
-        CassandraTable t = this.tables.get(type);
-        if (t == null) {
+        CassandraTable table = this.tables.get(type);
+        if (table == null) {
             throw new BackendException("Unsupported type:" + type.name());
         }
-        return t;
+        return table;
     }
 
+    protected void checkClusterConneted() {
+        Preconditions.checkNotNull(this.sessions,
+                "Cassandra store has not been initialized");
+        this.sessions.checkClusterConneted();
+    }
 
-    protected void checkConneted() {
-        Preconditions.checkNotNull(this.cluster,
-                "Cassandra cluster has not been initialized");
-        Preconditions.checkState(!this.cluster.isClosed(),
-                "Cassandra cluster has been closed");
-
-        Preconditions.checkNotNull(this.session,
-                "Cassandra session has not been initialized");
-        Preconditions.checkState(!this.session.isClosed(),
-                "Cassandra session has been closed");
+    protected void checkSessionConneted() {
+        Preconditions.checkNotNull(this.sessions,
+                "Cassandra store has not been initialized");
+        this.sessions.checkSessionConneted();
     }
 
     protected static CassandraBackendEntry castBackendEntry(BackendEntry entry) {
