@@ -15,4 +15,6 @@ public interface Transaction {
     public void beforeRead();
 
     public void afterRead();
+
+    public void close();
 }

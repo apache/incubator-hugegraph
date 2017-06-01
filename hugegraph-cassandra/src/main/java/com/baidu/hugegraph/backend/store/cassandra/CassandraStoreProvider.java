@@ -1,22 +1,20 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.google.common.base.Preconditions;
 
-public class CassandraStoreProvider implements BackendStoreProvider {
+public class CassandraStoreProvider extends AbstractBackendStoreProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(
             CassandraStore.class);
 
-    private String keyspace;
-    private ConcurrentHashMap<String, BackendStore> stores;
+    private String keyspace() {
+        return this.name();
+    }
 
     @Override
     public BackendStore loadSchemaStore(final String name) {
@@ -24,7 +22,7 @@ public class CassandraStoreProvider implements BackendStoreProvider {
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name,
-                    new CassandraStore.CassandraSchemaStore(this.keyspace, name));
+                    new CassandraStore.CassandraSchemaStore(keyspace(), name));
         }
 
         BackendStore store = this.stores.get(name);
@@ -40,7 +38,7 @@ public class CassandraStoreProvider implements BackendStoreProvider {
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name,
-                    new CassandraStore.CassandraGraphStore(this.keyspace, name));
+                    new CassandraStore.CassandraGraphStore(keyspace(), name));
         }
 
         BackendStore store = this.stores.get(name);
@@ -56,7 +54,7 @@ public class CassandraStoreProvider implements BackendStoreProvider {
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name,
-                    new CassandraStore.CassandraIndexStore(this.keyspace, name));
+                    new CassandraStore.CassandraIndexStore(keyspace(), name));
         }
 
         BackendStore store = this.stores.get(name);
@@ -67,40 +65,7 @@ public class CassandraStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public void open(String name) {
-        Preconditions.checkNotNull(name);
-
-        this.keyspace = name;
-        this.stores = new ConcurrentHashMap<String, BackendStore>();
-    }
-
-    @Override
-    public void close() throws BackendException {
-        for (BackendStore store : this.stores.values()) {
-            store.close();
-        }
-    }
-
-    @Override
-    public void init() {
-        for (BackendStore store : this.stores.values()) {
-            store.init();
-        }
-    }
-
-    @Override
-    public void clear() throws BackendException {
-        for (BackendStore store : this.stores.values()) {
-            store.clear();
-        }
-    }
-    @Override
     public String type() {
         return "cassandra";
-    }
-
-    @Override
-    public String name() {
-        return this.keyspace;
     }
 }

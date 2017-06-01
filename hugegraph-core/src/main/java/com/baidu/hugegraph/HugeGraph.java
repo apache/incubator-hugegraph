@@ -3,7 +3,6 @@ package com.baidu.hugegraph;
 import java.util.Iterator;
 import java.util.function.Function;
 
-import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -62,14 +61,17 @@ public class HugeGraph implements Graph {
     private BackendStoreProvider storeProvider = null;
 
     // default transactions
-    private GraphTransaction graphTransaction = null;
-    private SchemaTransaction schemaTransaction = null;
+    private ThreadLocal<GraphTransaction> graphTransaction = null;
+    private ThreadLocal<SchemaTransaction> schemaTransaction = null;
 
     public HugeGraph(HugeConfig configuration) {
         this.configuration = configuration;
         this.name = configuration.get(CoreOptions.STORE);
 
         this.features = new HugeFeatures(this, true);
+
+        this.graphTransaction = new ThreadLocal<>();
+        this.schemaTransaction = new ThreadLocal<>();
 
         try {
             this.initTransaction();
@@ -80,16 +82,44 @@ public class HugeGraph implements Graph {
         }
     }
 
-    private void initTransaction() {
-        this.storeProvider = BackendProviderFactory.open(
-                this.configuration.get(CoreOptions.BACKEND),
-                this.name);
+    private synchronized void initTransaction() throws HugeException {
+        if (this.storeProvider == null) {
+            this.storeProvider = BackendProviderFactory.open(
+                    this.configuration.get(CoreOptions.BACKEND),
+                    this.name);
+        }
 
-        this.schemaTransaction = this.openSchemaTransaction();
-        this.graphTransaction = this.openGraphTransaction();
+        SchemaTransaction schemaTx = this.openSchemaTransaction();
+        GraphTransaction graphTx = this.openGraphTransaction();
 
-        this.schemaTransaction.autoCommit(true);
-        this.graphTransaction.autoCommit(true);
+        schemaTx.autoCommit(true);
+        graphTx.autoCommit(true);
+
+        this.schemaTransaction.set(schemaTx);
+        this.graphTransaction.set(graphTx);
+    }
+
+    private void destroyTransaction() {
+        GraphTransaction graphTx = this.graphTransaction.get();
+        if (graphTx != null) {
+            try {
+                graphTx.close();
+            } catch (Exception e) {
+                logger.error("Failed to close GraphTransaction", e);
+            }
+        }
+
+        SchemaTransaction schemaTx = this.schemaTransaction.get();
+        if (schemaTx != null) {
+            try {
+                schemaTx.close();
+            } catch (Exception e) {
+                logger.error("Failed to close SchemaTransaction", e);
+            }
+        }
+
+        this.graphTransaction.remove();
+        this.schemaTransaction.remove();
     }
 
     public String name() {
@@ -104,11 +134,10 @@ public class HugeGraph implements Graph {
         this.storeProvider.clear();
     }
 
-    private SchemaTransaction openSchemaTransaction() {
+    private SchemaTransaction openSchemaTransaction() throws HugeException {
         try {
             String name = this.configuration.get(CoreOptions.STORE_SCHEMA);
             BackendStore store = this.storeProvider.loadSchemaStore(name);
-            store.open(this.configuration);
             return new SchemaTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
@@ -117,15 +146,13 @@ public class HugeGraph implements Graph {
         }
     }
 
-    private GraphTransaction openGraphTransaction() {
+    private GraphTransaction openGraphTransaction() throws HugeException {
         try {
             String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
             BackendStore store = this.storeProvider.loadGraphStore(graph);
-            store.open(this.configuration);
 
             String index = this.configuration.get(CoreOptions.STORE_INDEX);
             BackendStore indexStore = this.storeProvider.loadIndexStore(index);
-            indexStore.open(this.configuration);
 
             return new GraphTransaction(this, store, indexStore);
         } catch (BackendException e) {
@@ -136,11 +163,21 @@ public class HugeGraph implements Graph {
     }
 
     public SchemaTransaction schemaTransaction() {
-        return this.schemaTransaction;
+        SchemaTransaction schemaTx = this.schemaTransaction.get();
+        if (schemaTx == null) {
+            this.initTransaction();
+            schemaTx = this.schemaTransaction.get();
+        }
+        return schemaTx;
     }
 
     public GraphTransaction graphTransaction() {
-        return this.graphTransaction;
+        GraphTransaction graphTx = this.graphTransaction.get();
+        if (graphTx == null) {
+            this.initTransaction();
+            graphTx = this.graphTransaction.get();
+        }
+        return graphTx;
     }
 
     public SchemaManager schema() {
@@ -218,12 +255,13 @@ public class HugeGraph implements Graph {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws HugeException {
         try {
             if (this.tx.isOpen()) {
                 this.tx.close();
             }
         } finally {
+            this.destroyTransaction();
             this.storeProvider.close();
         }
     }
@@ -239,7 +277,7 @@ public class HugeGraph implements Graph {
     }
 
     @Override
-    public Configuration configuration() {
+    public HugeConfig configuration() {
         return this.configuration;
     }
 
@@ -250,27 +288,27 @@ public class HugeGraph implements Graph {
 
     private Transaction tx = new AbstractThreadedTransaction(this) {
 
-        private GraphTransaction backendTx = null;
+        private ThreadLocal<GraphTransaction> backendTx = new ThreadLocal<>();
 
         @Override
         public void doOpen() {
             if (this.isOpen()) {
                 return;
             }
-            this.backendTx = graphTransaction();
-            this.backendTx.autoCommit(false);
+            this.backendTx.set(graphTransaction());
+            this.backendTx().autoCommit(false);
         }
 
         @Override
         public void doCommit() {
             this.verifyOpened();
-            this.backendTx.commit();
+            this.backendTx().commit();
         }
 
         @Override
         public void doRollback() {
             this.verifyOpened();
-            this.backendTx.rollback();
+            this.backendTx().rollback();
         }
 
         @Override
@@ -282,27 +320,31 @@ public class HugeGraph implements Graph {
         @Override
         public <G extends Graph> G createThreadedTx() {
             throw new UnsupportedOperationException(
-                    "HugeGraph does not support nested transactions.");
+                    "HugeGraph does not support threaded transactions.");
         }
 
         @Override
         public boolean isOpen() {
-            return this.backendTx != null;
+            return this.backendTx() != null;
         }
 
         @Override
         public void doClose() {
             this.verifyOpened();
 
-            this.backendTx.autoCommit(true);
+            this.backendTx().autoCommit(true);
             // would commit() if there is changes
             // TODO: maybe we should call commit() directly
-            this.backendTx.afterWrite();
+            this.backendTx().afterWrite();
 
             // calling super will clear listeners
             super.doClose();
 
-            this.backendTx = null;
+            this.backendTx.remove();
+        }
+
+        private GraphTransaction backendTx() {
+            return this.backendTx.get();
         }
 
         private void verifyOpened() {

@@ -48,13 +48,17 @@ public abstract class AbstractTransaction implements Transaction {
 
         this.store = store;
         this.reset();
+
+        store.open(graph.configuration());
     }
 
     public HugeGraph graph() {
+        Preconditions.checkNotNull(this.graph, "graph");
         return this.graph;
     }
 
     public BackendStore store() {
+        Preconditions.checkNotNull(this.graph, "store");
         return this.store;
     }
 
@@ -152,6 +156,11 @@ public abstract class AbstractTransaction implements Transaction {
     @Override
     public void afterRead() {
         // pass
+    }
+
+    @Override
+    public void close() {
+        this.store().close();
     }
 
     protected void reset() {

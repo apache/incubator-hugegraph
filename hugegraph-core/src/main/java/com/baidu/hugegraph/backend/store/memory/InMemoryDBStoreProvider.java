@@ -1,24 +1,16 @@
 package com.baidu.hugegraph.backend.store.memory;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.google.common.base.Preconditions;
 
-/**
- * Created by jishilei on 17/3/19.
- */
-public class InMemoryDBStoreProvider implements BackendStoreProvider {
+public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStoreProvider.class);
-
-    private String name;
-    private ConcurrentHashMap<String, BackendStore> stores;
+    private static final Logger logger = LoggerFactory.getLogger(
+            InMemoryDBStoreProvider.class);
 
     public InMemoryDBStoreProvider(String name) {
         this.open(name);
@@ -51,33 +43,7 @@ public class InMemoryDBStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public void open(String name) {
-        this.name = name;
-        this.stores = new ConcurrentHashMap<String, BackendStore>();
-    }
-
-    @Override
-    public void close() throws BackendException {
-    }
-
-    @Override
-    public void init() {
-    }
-
-    @Override
-    public void clear() throws BackendException {
-        this.stores.forEach((String k, BackendStore store) -> {
-            store.clear();
-        });
-    }
-
-    @Override
     public String type() {
         return "memory";
-    }
-
-    @Override
-    public String name() {
-        return this.name;
     }
 }
