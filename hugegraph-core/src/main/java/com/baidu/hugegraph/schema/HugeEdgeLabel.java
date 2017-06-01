@@ -7,9 +7,12 @@ import java.util.Set;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.define.EdgeLink;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.PropertyKey;
+import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringUtil;
-import com.google.common.base.Preconditions;
 
 /**
  * Created by liningrui on 2017/3/20.
@@ -128,10 +131,14 @@ public class HugeEdgeLabel extends EdgeLabel {
         EdgeLabel edgeLabel = this.transaction().getEdgeLabel(this.name);
         // if edgeLabel exist and checkExits
         if (edgeLabel != null && this.checkExits) {
-            throw new HugeException("The edgeLabel:" + this.name + " has exised.");
+            throw new HugeException(String.format("The edgeLabel: %s has "
+                    + "exised.", this.name));
         }
 
+        this.checkLinks();
+        this.checkProperties();
         this.checkSortKeys();
+
         this.transaction().addEdgeLabel(this);
         return this;
     }
@@ -141,25 +148,75 @@ public class HugeEdgeLabel extends EdgeLabel {
         this.transaction().removeEdgeLabel(this.name);
     }
 
+    @Override
+    protected HugeEdgeLabel copy() throws CloneNotSupportedException {
+        HugeEdgeLabel edgeLabel = new HugeEdgeLabel(this.name);
+        edgeLabel.links = new LinkedHashSet<>();
+        for (EdgeLink link : this.links) {
+            edgeLabel.links.add(EdgeLink.of(link.source(), link.target()));
+        }
+        edgeLabel.frequency(this.frequency);
+        edgeLabel.properties = new LinkedHashSet<>();
+        for (String property : this.properties) {
+            edgeLabel.properties.add(property);
+        }
+        edgeLabel.sortKeys = new LinkedHashSet<>();
+        for (String primaryKey : this.sortKeys) {
+            edgeLabel.sortKeys.add(primaryKey);
+        }
+        edgeLabel.indexNames = new LinkedHashSet<>();
+        for (String indexName : this.indexNames) {
+            edgeLabel.indexNames.add(indexName);
+        }
+        return edgeLabel;
+    }
+
+    private void checkLinks() {
+        E.checkNotNull(this.links, HugeKeys.LINKS.string());
+        E.checkNotEmpty(this.links, HugeKeys.LINKS.string());
+
+        for (EdgeLink link : this.links) {
+            VertexLabel src = this.transaction().getVertexLabel(link.source());
+            E.checkArgumentNotNull(src, "Undefined vertex label: %s",
+                    link.source());
+            VertexLabel tgt = this.transaction().getVertexLabel(link.target());
+            E.checkArgumentNotNull(tgt, "Undefined vertex label: %s",
+                    link.target());
+        }
+    }
+
+    private void checkProperties() {
+        E.checkNotNull(this.properties, "The properties of %s", this);
+        // The properties of edge label allowded be empty.
+        // If properties is not empty, check all property.
+        for (String pkName : this.properties) {
+            PropertyKey propertyKey = this.transaction().getPropertyKey(pkName);
+            E.checkArgumentNotNull(propertyKey, "Undefined property key: %s",
+                    pkName);
+        }
+    }
+
     private void checkSortKeys() {
         if (this.frequency == Frequency.SINGLE) {
-            Preconditions
-                    .checkArgument(this.sortKeys.isEmpty(), "edgeLabel can not contain sortKeys when the cardinality"
-                            + " property is single.");
+            E.checkArgument(this.sortKeys.isEmpty(),
+                    "EdgeLabel can not contain sortKeys when the " +
+                    "cardinality property is single.");
         } else {
-            Preconditions.checkNotNull(this.sortKeys, "the sortKeys can not be null when the cardinality property is "
-                    + "multiple.");
-            Preconditions.checkArgument(!this.sortKeys.isEmpty(), "edgeLabel must contain sortKeys when the cardinality"
-                    + " property is multiple.");
+            E.checkNotNull(this.sortKeys,
+                    "The sortKeys can not be null when the cardinality " +
+                    "property is multiple.");
+            E.checkArgument(!this.sortKeys.isEmpty(),
+                    "EdgeLabel must contain sortKeys when the cardinality " +
+                    "property is multiple.");
         }
 
         if (this.sortKeys != null && !this.sortKeys.isEmpty()) {
             // Check whether the properties contains the specified keys
-            Preconditions.checkNotNull(this.properties, "properties can not be null");
-            Preconditions.checkArgument(!this.properties.isEmpty(), "properties can not be empty");
+            E.checkArgument(!this.properties.isEmpty(),
+                    "Properties can not be empty when exist sort keys.");
             for (String key : this.sortKeys) {
-                Preconditions.checkArgument(this.properties.containsKey(key),
-                        "Properties must contain the specified key : " + key);
+                E.checkArgument(this.properties.contains(key),
+                        "Properties must contain the sort key: %s", key);
             }
         }
     }

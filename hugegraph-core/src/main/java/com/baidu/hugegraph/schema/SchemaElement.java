@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.schema;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -19,7 +20,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
 
     protected String name;
     protected boolean checkExits;
-    protected Map<String, PropertyKey> properties;
+    protected Set<String> properties;
     protected Set<String> indexNames;
 
     // TODO: Don't reference SchemaTransaction here(to avoid mutual reference)
@@ -28,7 +29,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
     public SchemaElement(String name) {
         this.name = name;
         this.checkExits = true;
-        this.properties = new HashMap<>();
+        this.properties = new LinkedHashSet<>();
         this.indexNames = new LinkedHashSet<>();
         this.transaction = null;
     }
@@ -43,28 +44,21 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
         return this.transaction;
     }
 
-    public Map<String, PropertyKey> properties() {
+    public Set<String> properties() {
         return this.properties;
     }
 
     public SchemaElement properties(String... propertyNames) {
-        if (this.properties == null) {
-            this.properties = new HashMap<>();
-        }
-        for (String propertyName : propertyNames) {
-            this.properties.put(propertyName, new HugePropertyKey(propertyName));
-        }
+        this.properties.addAll(Arrays.asList(propertyNames));
         return this;
     }
 
     protected String propertiesSchema() {
         String props = "";
-        if (this.properties != null) {
-            for (String propertyName : this.properties.keySet()) {
-                props += "\"";
-                props += propertyName;
-                props += "\",";
-            }
+        for (String propertyName : this.properties) {
+            props += "\"";
+            props += propertyName;
+            props += "\",";
         }
         int endIdx = props.lastIndexOf(",") > 0 ? props.length() - 1 : props.length();
         return "properties(" + props.substring(0, endIdx) + ")";
@@ -103,4 +97,6 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
     public abstract SchemaElement create();
 
     public abstract void remove();
+
+    protected abstract SchemaElement copy() throws CloneNotSupportedException;
 }

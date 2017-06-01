@@ -51,9 +51,9 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
         Assert.assertEquals(3, person.properties().size());
-        Assert.assertTrue(person.properties().containsKey("name"));
-        Assert.assertTrue(person.properties().containsKey("age"));
-        Assert.assertTrue(person.properties().containsKey("city"));
+        Assert.assertTrue(person.properties().contains("name"));
+        Assert.assertTrue(person.properties().contains("age"));
+        Assert.assertTrue(person.properties().contains("city"));
         Assert.assertEquals(1, person.primaryKeys().size());
         Assert.assertTrue(person.primaryKeys().contains("name"));
     }
@@ -71,9 +71,9 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
         Assert.assertEquals(3, person.properties().size());
-        Assert.assertTrue(person.properties().containsKey("name"));
-        Assert.assertTrue(person.properties().containsKey("age"));
-        Assert.assertTrue(person.properties().containsKey("city"));
+        Assert.assertTrue(person.properties().contains("name"));
+        Assert.assertTrue(person.properties().contains("age"));
+        Assert.assertTrue(person.properties().contains("city"));
         Assert.assertEquals(2, person.primaryKeys().size());
         Assert.assertTrue(person.primaryKeys().contains("name"));
         Assert.assertTrue(person.primaryKeys().contains("age"));
@@ -142,9 +142,9 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
         Assert.assertEquals(3, person.properties().size());
-        Assert.assertTrue(person.properties().containsKey("name"));
-        Assert.assertTrue(person.properties().containsKey("age"));
-        Assert.assertTrue(person.properties().containsKey("city"));
+        Assert.assertTrue(person.properties().contains("name"));
+        Assert.assertTrue(person.properties().contains("age"));
+        Assert.assertTrue(person.properties().contains("city"));
         Assert.assertEquals(1, person.primaryKeys().size());
         Assert.assertTrue(person.primaryKeys().contains("name"));
     }
@@ -177,6 +177,8 @@ public class SchemaCoreTest extends BaseCoreTest{
                 .create();
         schema.makeVertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
+        schema.makeVertexLabel("book").properties("id", "name")
+                .primaryKeys("id").create();
         EdgeLabel look = schema.makeEdgeLabel("look").multiTimes()
                 .properties("time")
                 .link("author", "book")
@@ -192,7 +194,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertTrue(look.links()
                 .contains(new EdgeLink("person", "book")));
         Assert.assertEquals(1, look.properties().size());
-        Assert.assertTrue(look.properties().containsKey("time"));
+        Assert.assertTrue(look.properties().contains("time"));
         Assert.assertEquals(1, look.sortKeys().size());
         Assert.assertTrue(look.sortKeys().contains("time"));
         Assert.assertEquals(Frequency.MULTIPLE, look.frequency());
@@ -208,6 +210,8 @@ public class SchemaCoreTest extends BaseCoreTest{
                 .create();
         schema.makeVertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
+        schema.makeVertexLabel("book").properties("id", "name")
+                .primaryKeys("id").create();
         EdgeLabel look = schema.makeEdgeLabel("look").properties("time")
                 .link("author", "book")
                 .link("person", "book")
@@ -221,7 +225,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertTrue(look.links()
                 .contains(new EdgeLink("person", "book")));
         Assert.assertEquals(1, look.properties().size());
-        Assert.assertTrue(look.properties().containsKey("time"));
+        Assert.assertTrue(look.properties().contains("time"));
         Assert.assertEquals(0, look.sortKeys().size());
         Assert.assertEquals(Frequency.SINGLE, look.frequency());
     }
@@ -235,6 +239,8 @@ public class SchemaCoreTest extends BaseCoreTest{
                 .primaryKeys("name")
                 .create();
         schema.makeVertexLabel("author").properties("id", "name")
+                .primaryKeys("id").create();
+        schema.makeVertexLabel("book").properties("id", "name")
                 .primaryKeys("id").create();
         EdgeLabel look = schema.makeEdgeLabel("look").singleTime()
                 .link("author", "book")
@@ -263,19 +269,13 @@ public class SchemaCoreTest extends BaseCoreTest{
                 .create();
         schema.makeVertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
-        EdgeLabel look = schema.makeEdgeLabel("look").multiTimes()
-                .properties("time")
-                .sortKeys("time")
-                .create();
 
-        Assert.assertNotNull(look);
-        Assert.assertEquals("look", look.name());
-        Assert.assertEquals(0, look.links().size());
-        Assert.assertEquals(1, look.properties().size());
-        Assert.assertTrue(look.properties().containsKey("time"));
-        Assert.assertEquals(1, look.sortKeys().size());
-        Assert.assertTrue(look.sortKeys().contains("time"));
-        Assert.assertEquals(Frequency.MULTIPLE, look.frequency());
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            EdgeLabel look = schema.makeEdgeLabel("look").multiTimes()
+                    .properties("time")
+                    .sortKeys("time")
+                    .create();
+        });
     }
 
     @Test

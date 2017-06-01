@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.type.schema;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -29,13 +30,7 @@ public abstract class PropertyKey extends SchemaElement {
 
     @Override
     public PropertyKey properties(String... propertyNames) {
-        if (this.properties == null) {
-            this.properties = new HashMap<>();
-        }
-        for (String propertyName : propertyNames) {
-            this.properties.put(propertyName,
-                    new HugePropertyKey(propertyName));
-        }
+        this.properties.addAll(Arrays.asList(propertyNames));
         return this;
     }
 

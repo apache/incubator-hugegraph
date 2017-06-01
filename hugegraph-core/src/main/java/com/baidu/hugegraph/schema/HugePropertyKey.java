@@ -142,7 +142,8 @@ public class HugePropertyKey extends PropertyKey {
         PropertyKey propertyKey = this.transaction().getPropertyKey(this.name);
         // if propertyKey exist and checkExits
         if (propertyKey != null && this.checkExits) {
-            throw new HugeException("The property key: " + this.name + " has exist");
+            throw new HugeException(String.format("The propertykey: %s has "
+                    + "exised.", this.name));
         }
 
         this.transaction().addPropertyKey(this);
@@ -154,4 +155,9 @@ public class HugePropertyKey extends PropertyKey {
         this.transaction().removePropertyKey(this.name);
     }
 
+    @Override
+    public SchemaElement copy() throws CloneNotSupportedException {
+        throw new CloneNotSupportedException("PropertyKey object can't "
+                + "support copy.");
+    }
 }

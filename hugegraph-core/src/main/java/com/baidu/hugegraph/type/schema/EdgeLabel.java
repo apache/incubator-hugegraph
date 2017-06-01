@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.type.schema;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -25,12 +26,7 @@ public abstract class EdgeLabel extends SchemaElement {
 
     @Override
     public EdgeLabel properties(String... propertyNames) {
-        if (this.properties == null) {
-            this.properties = new HashMap<>();
-        }
-        for (String propertyName : propertyNames) {
-            this.properties.put(propertyName, new HugePropertyKey(propertyName));
-        }
+        this.properties.addAll(Arrays.asList(propertyNames));
         return this;
     }
 

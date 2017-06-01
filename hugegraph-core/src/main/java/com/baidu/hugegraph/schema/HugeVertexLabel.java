@@ -5,9 +5,11 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringUtil;
-import com.google.common.base.Preconditions;
 
 /**
  * Created by liningrui on 2017/3/20.
@@ -54,10 +56,13 @@ public class HugeVertexLabel extends VertexLabel {
         VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
         // if vertexLabel exist and checkExits
         if (vertexLabel != null && this.checkExits) {
-            throw new HugeException("The vertexlabel:" + this.name + " has exised.");
+            throw new HugeException(String.format("The vertexlabel: %s has "
+                    + "exised.", this.name));
         }
 
+        this.checkProperties();
         this.checkPrimaryKeys();
+
         this.transaction().addVertexLabel(this);
         return this;
     }
@@ -67,15 +72,43 @@ public class HugeVertexLabel extends VertexLabel {
         this.transaction().removeVertexLabel(this.name);
     }
 
+    @Override
+    protected HugeVertexLabel copy() throws CloneNotSupportedException {
+        HugeVertexLabel vertexLabel = new HugeVertexLabel(this.name);
+        vertexLabel.properties = new LinkedHashSet<>();
+        for (String property : this.properties) {
+            vertexLabel.properties.add(property);
+        }
+        vertexLabel.primaryKeys = new LinkedHashSet<>();
+        for (String primaryKey : this.primaryKeys) {
+            vertexLabel.primaryKeys.add(primaryKey);
+        }
+        vertexLabel.indexNames = new LinkedHashSet<>();
+        for (String indexName : this.indexNames) {
+            vertexLabel.indexNames.add(indexName);
+        }
+        return vertexLabel;
+    }
+
+    private void checkProperties() {
+        E.checkNotNull(this.properties, "The properties of %s", this);
+        E.checkNotEmpty(this.properties, "The properties of %s", this);
+        // If properties is not empty, check all property.
+        for (String pkName : this.properties) {
+            PropertyKey propertyKey = this.transaction().getPropertyKey(pkName);
+            E.checkArgumentNotNull(propertyKey, "Undefined property key: %s",
+                    pkName);
+        }
+    }
+
     private void checkPrimaryKeys() {
-        if (this.primaryKeys != null && !this.primaryKeys.isEmpty()) {
-            // Check whether the properties contains the specified keys
-            Preconditions.checkNotNull(this.properties, "properties can not be null");
-            Preconditions.checkArgument(!this.properties.isEmpty(), "properties can not be empty");
-            for (String key : this.primaryKeys) {
-                Preconditions.checkArgument(this.properties.containsKey(key),
-                        "properties must contain the specified key : " + key);
-            }
+        E.checkNotNull(this.primaryKeys, HugeKeys.PRIMARY_KEYS.string());
+        E.checkNotEmpty(this.primaryKeys, HugeKeys.PRIMARY_KEYS.string());
+
+        // Use loop instead containAll for more detailed exception info.
+        for (String key : this.primaryKeys) {
+            E.checkArgument(this.properties.contains(key),
+                    "Properties must contain the primary key: %s", key);
         }
     }
 }
