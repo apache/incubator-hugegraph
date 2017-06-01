@@ -56,8 +56,8 @@ public class HugeVertexLabel extends VertexLabel {
         VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
         // if vertexLabel exist and checkExits
         if (vertexLabel != null && this.checkExits) {
-            throw new HugeException(String.format("The vertexlabel: %s has "
-                    + "exised.", this.name));
+            throw new HugeException(String.format(
+                    "The vertex label '%s' has exised.", this.name));
         }
 
         this.checkProperties();
@@ -91,13 +91,14 @@ public class HugeVertexLabel extends VertexLabel {
     }
 
     private void checkProperties() {
-        E.checkNotNull(this.properties, "The properties of %s", this);
-        E.checkNotEmpty(this.properties, "The properties of %s", this);
+        E.checkNotNull(this.properties, "The properties of '%s'", this.name);
+        E.checkNotEmpty(this.properties, "The properties of '%s'", this.name);
         // If properties is not empty, check all property.
-        for (String pkName : this.properties) {
-            PropertyKey propertyKey = this.transaction().getPropertyKey(pkName);
-            E.checkArgumentNotNull(propertyKey, "Undefined property key: %s",
-                    pkName);
+        for (String pk : this.properties) {
+            PropertyKey propertyKey = this.transaction().getPropertyKey(pk);
+            E.checkArgumentNotNull(propertyKey,
+                    "Undefined property key '%s' in the vertex label '%s'",
+                    pk, this.name);
         }
     }
 
@@ -108,7 +109,8 @@ public class HugeVertexLabel extends VertexLabel {
         // Use loop instead containAll for more detailed exception info.
         for (String key : this.primaryKeys) {
             E.checkArgument(this.properties.contains(key),
-                    "Properties must contain the primary key: %s", key);
+                    "The primary key '%s' of vertex label '%s' must be "
+                    + "contained in %s", key, this.name, this.properties);
         }
     }
 }
