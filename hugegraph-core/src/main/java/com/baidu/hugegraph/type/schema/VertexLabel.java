@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.type.schema;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -23,12 +24,7 @@ public abstract class VertexLabel extends SchemaElement {
 
     @Override
     public VertexLabel properties(String... propertyNames) {
-        if (properties == null) {
-            properties = new HashMap<>();
-        }
-        for (String propertyName : propertyNames) {
-            properties.put(propertyName, new HugePropertyKey(propertyName));
-        }
+        this.properties.addAll(Arrays.asList(propertyNames));
         return this;
     }
 

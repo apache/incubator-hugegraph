@@ -20,6 +20,8 @@ import com.google.common.base.Preconditions;
  */
 public class HugeIndexLabel extends IndexLabel {
 
+    private SchemaElement element;
+
     private HugeType baseType;
     private String baseValue;
     private IndexType indexType;
@@ -39,6 +41,7 @@ public class HugeIndexLabel extends IndexLabel {
 
     @Override
     public IndexLabel on(SchemaElement element) {
+        this.element = element;
         this.baseType = element.type();
         this.baseValue = element.name();
         return this;
@@ -120,18 +123,29 @@ public class HugeIndexLabel extends IndexLabel {
         StringUtil.checkName(this.name);
         IndexLabel indexLabel = this.transaction().getIndexLabel(this.name);
         if (indexLabel != null && checkExits) {
-            throw new HugeException("The indexLabel:" + this.name + " has exised.");
+            throw new HugeException(String.format("The indexLabel: %s has "
+                    + "exised.", this.name));
         }
 
         // check field
         this.checkFields();
 
+        SchemaElement cloneElement = null;
+        try {
+            cloneElement = element.copy();
+        } catch (CloneNotSupportedException e) {
+            throw new HugeException(String.format("Don't allowed to make index on "
+                    + "this schema type: %s ", this.element.type()));
+        }
+
         // TODO: should wrap update and add operation in one transaction.
-        this.updateSchemaIndexName(this.baseType, this.baseValue);
+        this.updateSchemaIndexName(cloneElement);
 
         // TODO: need to check param.
         this.transaction().addIndexLabel(this);
 
+        // If addIndexLabel successed, update schema element indexNames
+        this.element.indexNames(this.name);
         return this;
     }
 
@@ -149,24 +163,16 @@ public class HugeIndexLabel extends IndexLabel {
         }
     }
 
-    protected void updateSchemaIndexName(HugeType baseType, String baseValue) {
-        SchemaManager schema = this.transaction().graph().schema();
-        switch (baseType) {
+    protected void updateSchemaIndexName(SchemaElement cloneElement) {
+        cloneElement.indexNames(this.name);
+        switch (this.baseType) {
             case VERTEX_LABEL:
-                VertexLabel vertexLabel = schema.vertexLabel(baseValue);
-                vertexLabel.indexNames(this.name);
-                this.transaction().addVertexLabel(vertexLabel);
+                this.transaction().addVertexLabel((VertexLabel) cloneElement);
                 break;
             case EDGE_LABEL:
-                EdgeLabel edgeLabel = schema.edgeLabel(baseValue);
-                edgeLabel.indexNames(this.name);
-                this.transaction().addEdgeLabel(edgeLabel);
+                this.transaction().addEdgeLabel((EdgeLabel) cloneElement);
                 break;
             case PROPERTY_KEY:
-                PropertyKey propertyKey = schema.propertyKey(baseValue);
-                propertyKey.indexNames(this.name);
-                this.transaction().addPropertyKey(propertyKey);
-                break;
             default:
                 throw new HugeException(String.format(
                         "Can not update index name of schema type: %s",
@@ -177,5 +183,11 @@ public class HugeIndexLabel extends IndexLabel {
     @Override
     public void remove() {
         this.transaction().removeIndexLabel(this.name);
+    }
+
+    @Override
+    protected SchemaElement copy() throws CloneNotSupportedException {
+        throw new CloneNotSupportedException("IndexLabel object can't "
+                + "support copy.");
     }
 }

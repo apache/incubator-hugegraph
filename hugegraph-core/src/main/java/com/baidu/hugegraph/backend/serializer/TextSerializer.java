@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
@@ -414,12 +415,12 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     public void writeProperties(SchemaElement schemaElement, TextBackendEntry entry) {
-        Map<String, PropertyKey> properties = schemaElement.properties();
+        Set<String> properties = schemaElement.properties();
         if (properties == null) {
             entry.column(HugeKeys.PROPERTIES.string(), "[]");
         } else {
             entry.column(HugeKeys.PROPERTIES.string(),
-                    JsonUtil.toJson(properties.keySet().toArray()));
+                    JsonUtil.toJson(properties.toArray()));
         }
     }
 

@@ -2,6 +2,7 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
@@ -268,12 +269,12 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     public void writeProperties(SchemaElement schemaElement, CassandraBackendEntry entry) {
-        Map<String, PropertyKey> properties = schemaElement.properties();
+        Set<String> properties = schemaElement.properties();
         if (properties == null) {
             entry.column(HugeKeys.PROPERTIES, "[]");
         } else {
             entry.column(HugeKeys.PROPERTIES,
-                    JsonUtil.toJson(properties.keySet().toArray()));
+                    JsonUtil.toJson(properties.toArray()));
         }
     }
 
