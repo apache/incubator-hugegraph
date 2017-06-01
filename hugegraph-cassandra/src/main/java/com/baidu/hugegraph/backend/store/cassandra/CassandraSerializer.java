@@ -36,6 +36,7 @@ import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableMap;
 
 public class CassandraSerializer extends AbstractSerializer {
 
@@ -113,10 +114,14 @@ public class CassandraSerializer extends AbstractSerializer {
         row.column(HugeKeys.SORT_VALUES, edge.name());
         row.column(HugeKeys.TARGET_VERTEX, edge.otherVertex().id().asString());
 
-        // edge properties
-        for (HugeProperty<?> prop : edge.getProperties().values()) {
-            row.column(HugeKeys.PROPERTIES, prop.key(),
-                    JsonUtil.toJson(prop.value()));
+        if (edge.getProperties().isEmpty()) {
+            row.column(HugeKeys.PROPERTIES, ImmutableMap.of());
+        } else {
+            // edge properties
+            for (HugeProperty<?> prop : edge.getProperties().values()) {
+                row.column(HugeKeys.PROPERTIES, prop.key(),
+                        JsonUtil.toJson(prop.value()));
+            }
         }
 
         return row;
