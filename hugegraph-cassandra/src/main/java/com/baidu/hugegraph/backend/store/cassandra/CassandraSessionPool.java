@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
@@ -17,21 +18,32 @@ public class CassandraSessionPool {
     private static final Logger logger = LoggerFactory.getLogger(
             CassandraStore.class);
 
-    private final Cluster cluster;
-    private final String keyspace;
+    private Cluster cluster;
+    private String keyspace;
 
     private ThreadLocal<Session> threadLocalSession;
     private AtomicInteger sessionCount;
 
-    public CassandraSessionPool(String hosts, int port, String keyspace) {
+    public CassandraSessionPool(String keyspace) {
+        this.keyspace = keyspace;
+
+        this.threadLocalSession = new ThreadLocal<>();
+        this.sessionCount = new AtomicInteger(0);
+    }
+
+    public void open(String hosts, int port) {
+        if (isOpened()) {
+            throw new BackendException("Please close the old SessionPool "
+                    + "before open a new one");
+        }
         this.cluster = Cluster.builder()
                 .addContactPoints(hosts.split(","))
                 .withPort(port)
                 .build();
+    }
 
-        this.keyspace = keyspace;
-        this.threadLocalSession = new ThreadLocal<>();
-        this.sessionCount = new AtomicInteger(0);
+    public boolean isOpened() {
+        return (this.cluster != null && !this.cluster.isClosed());
     }
 
     public Cluster cluster() {

@@ -40,6 +40,7 @@ public abstract class CassandraStore implements BackendStore {
 
         this.keyspace = keyspace;
         this.name = name;
+        this.sessions = new CassandraSessionPool(this.keyspace);
         this.tables = new ConcurrentHashMap<>();
 
         this.initTableManagers();
@@ -56,6 +57,11 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void open(HugeConfig config) {
+        if (this.sessions.isOpened()) {
+            // TODO: maybe we should throw an exception here instead of ignore
+            logger.debug("Store {} has been opened before", this.name);
+            return;
+        }
         assert config != null;
         this.conf = config;
 
@@ -63,7 +69,7 @@ public abstract class CassandraStore implements BackendStore {
         int port = config.get(CassandraOptions.CASSANDRA_PORT);
 
         // init cluster
-        this.sessions = new CassandraSessionPool(hosts, port, this.keyspace);
+        this.sessions.open(hosts, port);
 
         // init a session for current thread
         try {

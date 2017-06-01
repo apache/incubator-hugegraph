@@ -31,7 +31,7 @@ public class Example1 {
 
     private static final Logger logger = LoggerFactory.getLogger(Example1.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
         logger.info("Example1 start!");
         RegisterUtil.registerCore();
@@ -44,7 +44,30 @@ public class Example1 {
 
         Example1.showFeatures(graph);
         Example1.load(graph);
+
+        Example1.thread(graph);
+
+        graph.close();
         System.exit(0);
+    }
+
+    private static void thread(HugeGraph graph) throws InterruptedException {
+        Thread t = new Thread(() -> {
+            // TODO: add graph.initTx()
+            graph.addVertex(T.label, "book", "name", "java-11");
+            graph.addVertex(T.label, "book", "name", "java-12");
+            // TODO: add graph.destroyTx()
+            graph.close(); // close current thread tx/store
+
+            GraphTransaction tx = graph.openTransaction();
+            tx.addVertex(T.label, "book", "name", "java-21");
+            tx.addVertex(T.label, "book", "name", "java-22");
+            tx.close(); // this will cause the schema tx not to be closed!
+            graph.close(); // this will close the schema tx
+        });
+
+        t.start();
+        t.join();
     }
 
     public static void showFeatures(final HugeGraph graph) {
@@ -86,13 +109,11 @@ public class Example1 {
                 .create();
         schema.makeVertexLabel("author").properties("id", "name").primaryKeys("id").create();
         schema.makeVertexLabel("language").properties("name").primaryKeys("name").create();
-        schema.makeVertexLabel("recipe").properties("name", "instructions").create();
-        schema.makeVertexLabel("ingredient").create();
+        schema.makeVertexLabel("recipe").properties("name", "instructions").primaryKeys("name").create();
         schema.makeVertexLabel("book").properties("name").primaryKeys("name").create();
-        schema.makeVertexLabel("meal").create();
-        schema.makeVertexLabel("reviewer").create();
+        schema.makeVertexLabel("reviewer").properties("name").primaryKeys("name").create();
         // vertex label must have the properties that specified in primary key
-        schema.makeVertexLabel("FridgeSensor").properties("city_id").primaryKeys("city_id").create();
+        schema.makeVertexLabel("FridgeSensor").properties("city").primaryKeys("city").create();
 
         logger.info("===============  vertexLabel & index  ================");
         schema.makeIndex("personByCity").on(person).secondary().by("city").create();
@@ -120,8 +141,6 @@ public class Example1 {
                 .link("author", "language")
                 .create();
 
-        schema.makeEdgeLabel("includes").singleTime().create();
-        schema.makeEdgeLabel("includedIn").create();
         schema.makeEdgeLabel("rated").link("reviewer", "recipe").create();
 
         logger.info("===============  schemaManager desc  ================");

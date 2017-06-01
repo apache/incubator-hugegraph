@@ -216,6 +216,15 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     @Override
+    public void close() {
+        try {
+            this.indexTx.close();
+        } finally {
+            super.close();
+        }
+    }
+
+    @Override
     public Iterable<BackendEntry> query(Query query) {
         if (query instanceof ConditionQuery) {
             query = this.optimizeQuery((ConditionQuery) query);
