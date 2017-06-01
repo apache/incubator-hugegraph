@@ -114,7 +114,7 @@ public class CassandraSerializer extends AbstractSerializer {
         row.column(HugeKeys.SORT_VALUES, edge.name());
         row.column(HugeKeys.TARGET_VERTEX, edge.otherVertex().id().asString());
 
-        if (edge.hasProperties() && !edge.removed()) {
+        if (!edge.hasProperties() && !edge.removed()) {
             row.column(HugeKeys.PROPERTIES, ImmutableMap.of());
         } else {
             // edge properties
