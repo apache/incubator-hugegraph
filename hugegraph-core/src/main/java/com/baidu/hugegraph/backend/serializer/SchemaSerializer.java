@@ -9,11 +9,12 @@ import com.baidu.hugegraph.type.schema.VertexLabel;
 public interface SchemaSerializer {
 
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel);
-    public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel);
-    public BackendEntry writePropertyKey(PropertyKey propertyKey);
-
     public VertexLabel readVertexLabel(BackendEntry entry);
+
+    public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel);
     public EdgeLabel readEdgeLabel(BackendEntry entry);
+
+    public BackendEntry writePropertyKey(PropertyKey propertyKey);
     public PropertyKey readPropertyKey(BackendEntry entry);
 
     public BackendEntry writeIndexLabel(IndexLabel indexLabel);

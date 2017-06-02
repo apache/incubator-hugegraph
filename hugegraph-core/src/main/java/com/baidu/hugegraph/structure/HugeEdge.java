@@ -252,9 +252,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.otherVertex(this.owner);
     }
 
+    // TODO: after separating edges from vertex,
+    // we will remove these prepareXX() methods
     public HugeVertex prepareAddedOut() {
         // return a vertex just with this edge(OUT)
-        HugeVertex sourceVertex = this.sourceVertex.prepareRemoved();
+        HugeVertex sourceVertex = this.sourceVertex.prepareRemovedChildren();
         HugeEdge edge = this.clone();
         edge.vertices(sourceVertex, this.targetVertex);
         edge.owner(sourceVertex);
@@ -272,7 +274,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     public HugeVertex prepareAddedIn() {
         // return a vertex just with this edge(IN)
-        HugeVertex targetVertex = this.targetVertex.prepareRemoved();
+        HugeVertex targetVertex = this.targetVertex.prepareRemovedChildren();
         HugeEdge edge = this.clone();
         edge.vertices(this.sourceVertex, targetVertex);
         edge.owner(targetVertex);
@@ -291,6 +293,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     public HugeEdge prepareRemoved() {
         // NOTE: clear properties of the edge(keep sort-values)
         HugeEdge edge = this.clone();
+        edge.removed = true;
         edge.resetProperties();
         return edge;
     }
