@@ -143,12 +143,12 @@ public class Example2 {
                 .ifNotExist()
                 .create();
 
-        schema.makeIndex("personByName").on(person).by("name").secondary()
+        schema.makeIndexLabel("personByName").on(person).by("name").secondary()
                 .ifNotExist().create();
 
-        schema.makeIndex("softwareByPrice").on(software).by("price").search()
+        schema.makeIndexLabel("softwareByPrice").on(software).by("price").search()
                 .ifNotExist().create();
-        //        schema.makeIndex("softwareByLang").on(software).by("lang")
+        //        schema.makeIndexLabel("softwareByLang").on(software).by("lang")
         // .search().ifNotExist().create();
 
         schema.makeEdgeLabel("knows").link("person", "person")
@@ -160,7 +160,7 @@ public class Example2 {
                 .ifNotExist()
                 .create();
 
-        schema.makeIndex("createdByDate").on(created).by("date").secondary()
+        schema.makeIndexLabel("createdByDate").on(created).by("date").secondary()
                 .ifNotExist()
                 .create();
 

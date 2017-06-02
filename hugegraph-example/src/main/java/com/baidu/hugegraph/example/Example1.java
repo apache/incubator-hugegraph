@@ -116,8 +116,8 @@ public class Example1 {
         schema.makeVertexLabel("FridgeSensor").properties("city").primaryKeys("city").create();
 
         logger.info("===============  vertexLabel & index  ================");
-        schema.makeIndex("personByCity").on(person).secondary().by("city").create();
-        schema.makeIndex("personByAge").on(person).search().by("age").create();
+        schema.makeIndexLabel("personByCity").on(person).secondary().by("city").create();
+        schema.makeIndexLabel("personByAge").on(person).search().by("age").create();
         // schemaManager.vertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schemaManager.vertexLabel("meal").index("byMeal").materialized().by("name").add();

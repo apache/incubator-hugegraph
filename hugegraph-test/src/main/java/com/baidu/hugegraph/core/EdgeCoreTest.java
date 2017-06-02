@@ -64,9 +64,9 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         logger.info("===============  vertexLabel index  ================");
 
-        schema.makeIndex("personByCity").on(person).secondary()
+        schema.makeIndexLabel("personByCity").on(person).secondary()
                 .by("city").create();
-        schema.makeIndex("personByAge").on(person).search()
+        schema.makeIndexLabel("personByAge").on(person).search()
                 .by("age").create();
 
         logger.info("===============  edgeLabel  ================");
@@ -97,10 +97,10 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         logger.info("===============  edgeLabel index  ================");
 
-        schema.makeIndex("transferByTimestamp").on(transfer).search()
+        schema.makeIndexLabel("transferByTimestamp").on(transfer).search()
                 .by("timestamp").create();
 
-        // schema.makeIndex("authoredByScore").on(authored).secondary()
+        // schema.makeIndexLabel("authoredByScore").on(authored).secondary()
         //        .by("score").create();
     }
 

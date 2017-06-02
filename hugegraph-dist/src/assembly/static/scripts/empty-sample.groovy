@@ -25,15 +25,15 @@ globals << [hook: [
 //            def person = schema.makeVertexLabel("person").properties("name", "age").primaryKeys("name").create()
 //            def software = schema.makeVertexLabel("software").properties("name", "lang").primaryKeys("name").create()
 //
-//            schema.makeIndex("personByName").on(person).by("name").secondary().create()
-//            schema.makeIndex("softwareByName").on(software).by("name").search().create()
-//            schema.makeIndex("softwareByLang").on(software).by("lang").search().create()
+//            schema.makeIndexLabel("personByName").on(person).by("name").secondary().create()
+//            schema.makeIndexLabel("softwareByName").on(software).by("name").search().create()
+//            schema.makeIndexLabel("softwareByLang").on(software).by("lang").search().create()
 //
 //            schema.makeEdgeLabel("knows").link("person", "person").properties("date").create()
 //
 //            def created = schema.makeEdgeLabel("created").link("person", "software").properties("date").create()
 //
-//            schema.makeIndex("createdByDate").on(created).by("date").secondary().create()
+//            schema.makeIndexLabel("createdByDate").on(created).by("date").secondary().create()
 //
 //            graph.tx().open()
 //
