@@ -43,7 +43,7 @@ public class HugeSchemaManager implements SchemaManager {
     }
 
     @Override
-    public IndexLabel makeIndex(String name) {
+    public IndexLabel makeIndexLabel(String name) {
         IndexLabel indexLabel = new HugeIndexLabel(name);
         indexLabel.transaction(this.transaction);
         return indexLabel;

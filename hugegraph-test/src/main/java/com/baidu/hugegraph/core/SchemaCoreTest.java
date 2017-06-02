@@ -365,9 +365,9 @@ public class SchemaCoreTest extends BaseCoreTest{
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        IndexLabel personByCity = schema.makeIndex("personByCity")
+        IndexLabel personByCity = schema.makeIndexLabel("personByCity")
                 .on(person).secondary().by("city").create();
-        IndexLabel personByAge = schema.makeIndex("personByAge")
+        IndexLabel personByAge = schema.makeIndexLabel("personByAge")
                 .on(person).search().by("age").create();
 
         Assert.assertNotNull(personByCity);
@@ -396,7 +396,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                 .properties("contribution")
                 .create();
 
-        IndexLabel authoredByContri = schema.makeIndex("authoredByContri")
+        IndexLabel authoredByContri = schema.makeIndexLabel("authoredByContri")
                 .on(authored).secondary().by("city").create();
 
         Assert.assertNotNull(authoredByContri);

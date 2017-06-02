@@ -60,9 +60,9 @@ public class VertexCoreTest extends BaseCoreTest {
 
         logger.info("===============  vertexLabel index  ================");
 
-        schema.makeIndex("personByCity").on(person).secondary()
+        schema.makeIndexLabel("personByCity").on(person).secondary()
                 .by("city").create();
-        schema.makeIndex("personByAge").on(person).search()
+        schema.makeIndexLabel("personByAge").on(person).search()
                 .by("age").create();
     }
 

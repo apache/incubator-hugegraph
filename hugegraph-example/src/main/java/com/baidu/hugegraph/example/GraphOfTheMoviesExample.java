@@ -87,8 +87,8 @@ public class GraphOfTheMoviesExample {
                 .link("person", "movie")
                 .create();
 
-        schema.makeIndex("personByName").on(person).by("name").secondary().create();
-        schema.makeIndex("personByBorn").on(person).by("born").search().create();
+        schema.makeIndexLabel("personByName").on(person).by("name").secondary().create();
+        schema.makeIndexLabel("personByBorn").on(person).by("born").search().create();
 
         graph.tx().open();
 

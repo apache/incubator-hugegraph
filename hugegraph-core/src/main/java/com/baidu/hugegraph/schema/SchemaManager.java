@@ -24,7 +24,7 @@ public interface SchemaManager {
 
     public EdgeLabel edgeLabel(String name);
 
-    public IndexLabel makeIndex(String name);
+    public IndexLabel makeIndexLabel(String name);
 
     public List<SchemaElement> desc();
 }
