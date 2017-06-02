@@ -293,16 +293,28 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return propertyList.iterator();
     }
 
+    // TODO: after separating edges from vertex,
+    // we will remove these prepareXX() methods
     public HugeVertex prepareAdded() {
-        // NOTE: keep properties(without edges) of the clone vertex and return
+        // NOTE: keep properties(without edges) of the cloned vertex and return
         HugeVertex vertex = this.clone();
         vertex.resetEdges();
         return vertex;
     }
 
     public HugeVertex prepareRemoved() {
-        // NOTE: clear edges/properties of the clone vertex and return
+        // NOTE: clear edges/properties of the cloned vertex and return
         HugeVertex vertex = this.clone();
+        vertex.removed = true; // remove self
+        vertex.resetEdges();
+        vertex.resetProperties();
+        return vertex;
+    }
+
+    public HugeVertex prepareRemovedChildren() {
+        // NOTE: clear edges/properties of the cloned vertex and return
+        HugeVertex vertex = this.clone();
+        vertex.removed = false; // not remove self
         vertex.resetEdges();
         vertex.resetProperties();
         return vertex;

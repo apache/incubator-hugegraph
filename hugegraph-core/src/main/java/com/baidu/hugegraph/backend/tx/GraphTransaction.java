@@ -169,24 +169,25 @@ public class GraphTransaction extends AbstractTransaction {
         for (HugeVertex v : vertexes) {
             /*
              * If the backend stores vertex together with edges, it's edges
-             * would be removed after removing vertex.  Otherwise, if the
+             * would be removed after removing vertex. Otherwise, if the
              * backend stores vertex which is separated from edges, it's
              * edges should be removed manually when removing vertex.
              */
-            this.removeEntry(this.serializer.writeId(HugeType.VERTEX, v.id()));
-            this.indexTx.updateVertexIndex(v, true);
+            this.removeEntry(this.serializer.writeVertex(v.prepareRemoved()));
+            // Calling vertex.prepareAdded() returns a vertex without edges
+            this.indexTx.updateVertexIndex(v.prepareAdded(), true);
         }
 
         // Remove edges independently
         for (HugeEdge edge : edges) {
             // Remove OUT
-            HugeVertex vertex = edge.sourceVertex().prepareRemoved();
-            // Only with edge id
+            HugeVertex vertex = edge.sourceVertex().prepareRemovedChildren();
+            // Calling edge.prepareRemoved() returns an edge only with edge-id
             vertex.addEdge(edge.prepareRemoved());
             this.removeEntry(this.serializer.writeVertex(vertex));
 
             // Remove IN
-            vertex = edge.targetVertex().prepareRemoved();
+            vertex = edge.targetVertex().prepareRemovedChildren();
             vertex.addEdge(edge.switchOwner().prepareRemoved());
             this.removeEntry(this.serializer.writeVertex(vertex));
 
