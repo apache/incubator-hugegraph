@@ -44,8 +44,9 @@ public class EdgeLabelAPI extends API {
         logger.debug("Graph [{}] create edge label: {}", graph, createEdgeLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
+
         EdgeLabel edgeLabel = createEdgeLabel.convert2EdgeLabel();
-        g.schemaTransaction().addEdgeLabel(edgeLabel);
+        g.schema().create(edgeLabel);
 
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }

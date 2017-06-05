@@ -27,4 +27,6 @@ public interface SchemaManager {
     public IndexLabel makeIndexLabel(String name);
 
     public List<SchemaElement> desc();
+
+    public SchemaElement create(SchemaElement element);
 }
