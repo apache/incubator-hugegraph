@@ -108,6 +108,10 @@ public class HugeIndexLabel extends IndexLabel {
         return this;
     }
 
+    public void checkExists(boolean checkExists) {
+        this.checkExits = checkExists;
+    }
+
     @Override
     public String schema() {
         String schema = "";

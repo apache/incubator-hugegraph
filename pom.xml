@@ -82,13 +82,13 @@
         <jersey.version>2.25.1</jersey.version>
     </properties>
     <modules>
+        <module>hugegraph-common</module>
         <module>hugegraph-core</module>
         <module>hugegraph-dist</module>
         <module>hugegraph-cassandra</module>
         <module>hugegraph-example</module>
         <module>hugegraph-test</module>
         <module>hugegraph-api</module>
-        <module>hugegraph-common</module>
     </modules>
     <repositories>
         <repository>

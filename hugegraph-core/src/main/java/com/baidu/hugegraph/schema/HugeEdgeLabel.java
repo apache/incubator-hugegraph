@@ -99,6 +99,10 @@ public class HugeEdgeLabel extends EdgeLabel {
         return this;
     }
 
+    public void checkExists(boolean checkExists) {
+        this.checkExits = checkExists;
+    }
+
     public String linkSchema() {
         String linkSchema = "";
         if (this.links != null) {
