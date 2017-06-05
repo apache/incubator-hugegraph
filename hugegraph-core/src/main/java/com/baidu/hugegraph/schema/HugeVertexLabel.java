@@ -40,6 +40,10 @@ public class HugeVertexLabel extends VertexLabel {
         return this;
     }
 
+    public void checkExists(boolean checkExists) {
+        this.checkExits = checkExists;
+    }
+
     @Override
     public String schema() {
         return "schema.vertexLabel(\"" + this.name + "\")"

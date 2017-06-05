@@ -46,6 +46,10 @@ public class HugePropertyKey extends PropertyKey {
         this.cardinality = cardinality;
     }
 
+    public void checkExists(boolean checkExists) {
+        this.checkExits = checkExists;
+    }
+
     @Override
     public PropertyKey asText() {
         this.dataType(DataType.TEXT);

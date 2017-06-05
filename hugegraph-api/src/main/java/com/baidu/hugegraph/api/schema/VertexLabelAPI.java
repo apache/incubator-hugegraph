@@ -93,6 +93,7 @@ public class VertexLabelAPI extends API {
         public String[] primaryKeys;
         public String[] indexNames;
         public String[] properties;
+        public boolean checkExists;
 
         @Override
         public String toString() {
@@ -110,7 +111,7 @@ public class VertexLabelAPI extends API {
             vertexLabel.primaryKeys(this.primaryKeys);
             vertexLabel.indexNames(this.indexNames);
             vertexLabel.properties(this.properties);
-
+            vertexLabel.checkExists(this.checkExists);
             return vertexLabel;
         }
     }

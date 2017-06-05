@@ -97,6 +97,7 @@ public class EdgeLabelAPI extends API {
         public String[] sortKeys;
         public String[] indexNames;
         public String[] properties;
+        public boolean checkExists;
 
         @Override
         public String toString() {
@@ -114,7 +115,7 @@ public class EdgeLabelAPI extends API {
             edgeLabel.sortKeys(this.sortKeys);
             edgeLabel.indexNames(this.indexNames);
             edgeLabel.properties(this.properties);
-
+            edgeLabel.checkExists(this.checkExists);
             return edgeLabel;
         }
     }
