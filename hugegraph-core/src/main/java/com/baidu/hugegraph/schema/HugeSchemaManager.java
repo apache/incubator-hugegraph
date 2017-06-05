@@ -82,4 +82,10 @@ public class HugeSchemaManager implements SchemaManager {
         return elements;
     }
 
+    @Override
+    public SchemaElement create(SchemaElement element) {
+        element.transaction(this.transaction);
+        return element.create();
+    }
+
 }

@@ -44,8 +44,10 @@ public class PropertyKeyAPI extends API {
         logger.debug("Graph [{}] create property key: {}", graph, createPropertyKey);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
+
         PropertyKey propertyKey = createPropertyKey.convert2PropertyKey();
-        g.schemaTransaction().addPropertyKey(propertyKey);
+        g.schema().create(propertyKey);
+
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
 

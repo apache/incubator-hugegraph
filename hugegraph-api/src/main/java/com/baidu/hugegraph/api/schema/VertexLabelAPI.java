@@ -44,7 +44,7 @@ public class VertexLabelAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         VertexLabel vertexLabel = createVertexLabel.convert2VertexLabel();
-        g.schemaTransaction().addVertexLabel(vertexLabel);
+        g.schema().create(vertexLabel);
 
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
