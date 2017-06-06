@@ -100,7 +100,7 @@ public class IndexLabelAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("{name=%s, baseType=%s, baseValue=%s"
+            return String.format("{name=%s, baseType=%s, baseValue=%s, "
                             + "indexType=%s, fields=%s}",
                     this.name,
                     this.baseType,
