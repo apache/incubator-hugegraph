@@ -89,7 +89,7 @@
                 <version>2.4</version>
                 <executions>
                     <execution>
-                        <id>package-hugegraph</id>
+                        <id>assembly-hugegraph</id>
                         <phase>package</phase>
                         <goals>
                             <goal>single</goal>
@@ -113,7 +113,7 @@
                         <fileset>
                             <directory>${top.level.basedir}</directory>
                             <includes>
-                                <include>*.tar.bz2</include>
+                                <include>*.tar.gz</include>
                                 <include>*.zip</include>
                                 <include>${final.name}/**</include>
                             </includes>
@@ -124,6 +124,24 @@
                         </fileset>
                     </filesets>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <tar destfile="${top.level.basedir}/${final.name}.tar.gz"
+                                     basedir="${top.level.basedir}/${final.name}"/>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
