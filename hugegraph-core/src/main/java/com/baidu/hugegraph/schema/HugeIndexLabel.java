@@ -11,9 +11,9 @@ import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringUtil;
-import com.google.common.base.Preconditions;
 
 /**
  * Created by liningrui on 2017/4/21.
@@ -127,8 +127,8 @@ public class HugeIndexLabel extends IndexLabel {
         StringUtil.checkName(this.name);
         IndexLabel indexLabel = this.transaction().getIndexLabel(this.name);
         if (indexLabel != null && checkExits) {
-            throw new HugeException(String.format("The indexLabel: %s has "
-                    + "exised.", this.name));
+            throw new HugeException(String.format(
+                    "The index label '%s' has exised.", this.name));
         }
 
         // check field
@@ -138,14 +138,13 @@ public class HugeIndexLabel extends IndexLabel {
         try {
             cloneElement = element.copy();
         } catch (CloneNotSupportedException e) {
-            throw new HugeException(String.format("Don't allowed to make index on "
-                    + "this schema type: %s ", this.element.type()));
+            throw new HugeException(String.format("It's not allowed to make "
+                    + "index on this schema type: '%s'.", this.element.type()));
         }
 
         // TODO: should wrap update and add operation in one transaction.
         this.updateSchemaIndexName(cloneElement);
 
-        // TODO: need to check param.
         this.transaction().addIndexLabel(this);
 
         // If addIndexLabel successed, update schema element indexNames
@@ -156,14 +155,15 @@ public class HugeIndexLabel extends IndexLabel {
     private void checkFields() {
         // search index must build on single numeric column
         if (this.indexType == IndexType.SEARCH) {
-            Preconditions.checkArgument(this.indexFields.size() == 1,
-                    "Search index can only build on one property, "
-                            + "but properties: " + this.indexFields + " is multiple.");
-            String propertyName = this.indexFields.iterator().next();
-            PropertyKey propertyKey = this.transaction().getPropertyKey(propertyName);
-            Preconditions.checkArgument(NumericUtil.isNumber(propertyKey.dataType().clazz()),
-                    "Search index can only build on numeric property, "
-                            + "but property: " + propertyName + " is not.");
+            E.checkArgument(this.indexFields.size() == 1,
+                    "Search index can only build on one property, " +
+                    "but got %d properties: '%s'", this.indexFields.size(),
+                    this.indexFields);
+            String field = this.indexFields.iterator().next();
+            PropertyKey propertyKey = this.transaction().getPropertyKey(field);
+            E.checkArgument(NumericUtil.isNumber(propertyKey.dataType().clazz()),
+                    "Search index can only build on numeric property, " +
+                    "but got %s(%s)", propertyKey.dataType(), propertyKey.name());
         }
     }
 

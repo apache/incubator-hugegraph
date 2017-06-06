@@ -146,8 +146,8 @@ public class HugePropertyKey extends PropertyKey {
         PropertyKey propertyKey = this.transaction().getPropertyKey(this.name);
         // if propertyKey exist and checkExits
         if (propertyKey != null && this.checkExits) {
-            throw new HugeException(String.format("The propertykey: %s has "
-                    + "exised.", this.name));
+            throw new HugeException(String.format(
+                    "The property key '%s' has exised.", this.name));
         }
 
         this.transaction().addPropertyKey(this);

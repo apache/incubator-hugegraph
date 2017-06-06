@@ -135,8 +135,8 @@ public class HugeEdgeLabel extends EdgeLabel {
         EdgeLabel edgeLabel = this.transaction().getEdgeLabel(this.name);
         // if edgeLabel exist and checkExits
         if (edgeLabel != null && this.checkExits) {
-            throw new HugeException(String.format("The edgeLabel: %s has "
-                    + "exised.", this.name));
+            throw new HugeException(String.format(
+                    "The edge label '%s' has exised.", this.name));
         }
 
         this.checkLinks();
@@ -181,22 +181,25 @@ public class HugeEdgeLabel extends EdgeLabel {
 
         for (EdgeLink link : this.links) {
             VertexLabel src = this.transaction().getVertexLabel(link.source());
-            E.checkArgumentNotNull(src, "Undefined vertex label: %s",
-                    link.source());
+            E.checkArgumentNotNull(src, "The vertex label '%s' is undefined in "
+                            + "the links of edge label '%s'",
+                    link.source(), this.name);
             VertexLabel tgt = this.transaction().getVertexLabel(link.target());
-            E.checkArgumentNotNull(tgt, "Undefined vertex label: %s",
-                    link.target());
+            E.checkArgumentNotNull(tgt, "The vertex label '%s' is undefined in "
+                            + "the links of edge label '%s'",
+                    link.target(), this.name);
         }
     }
 
     private void checkProperties() {
-        E.checkNotNull(this.properties, "The properties of %s", this);
+        E.checkNotNull(this.properties, "The properties of '%s'", this.name);
         // The properties of edge label allowded be empty.
         // If properties is not empty, check all property.
-        for (String pkName : this.properties) {
-            PropertyKey propertyKey = this.transaction().getPropertyKey(pkName);
-            E.checkArgumentNotNull(propertyKey, "Undefined property key: %s",
-                    pkName);
+        for (String pk : this.properties) {
+            PropertyKey propertyKey = this.transaction().getPropertyKey(pk);
+            E.checkArgumentNotNull(propertyKey, "The property key '%s' is "
+                            + "undefined in the edge label '%s'",
+                    pk, this.name);
         }
     }
 
@@ -220,7 +223,8 @@ public class HugeEdgeLabel extends EdgeLabel {
                     "Properties can not be empty when exist sort keys.");
             for (String key : this.sortKeys) {
                 E.checkArgument(this.properties.contains(key),
-                        "Properties must contain the sort key: %s", key);
+                        "The sort key '%s' of edge label '%s' must be "
+                        + "contained in %s", key, this.name, this.properties);
             }
         }
     }
