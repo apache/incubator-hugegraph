@@ -9,7 +9,8 @@ Required:
 To build without executing tests:
 
 ```
-mvn clean package -DskipTests
+mvn clean 
+mvn package -DskipTests
 ```
 
 ## Building on Eclipse IDE
