@@ -41,7 +41,6 @@ public class HugeIndexLabel extends IndexLabel {
 
     @Override
     public IndexLabel on(SchemaElement element) {
-        this.element = element;
         this.baseType = element.type();
         this.baseValue = element.name();
         return this;
@@ -134,6 +133,10 @@ public class HugeIndexLabel extends IndexLabel {
         // check field
         this.checkFields();
 
+        if (this.element == null) {
+            loadElement();
+        }
+
         SchemaElement cloneElement = null;
         try {
             cloneElement = element.copy();
@@ -150,6 +153,27 @@ public class HugeIndexLabel extends IndexLabel {
         // If addIndexLabel successed, update schema element indexNames
         this.element.indexNames(this.name);
         return this;
+    }
+
+    private void loadElement() {
+        switch (this.baseType) {
+            case VERTEX_LABEL:
+                this.element = this.transaction().getVertexLabel(this
+                        .baseValue);
+                break;
+            case EDGE_LABEL:
+                this.element = this.transaction().getEdgeLabel(this
+                        .baseValue);
+                break;
+            case PROPERTY_KEY:
+                this.element = this.transaction().getPropertyKey(this
+                        .baseValue);
+                break;
+            default:
+                throw new HugeException(String.format(
+                        "Unsupported element type '%s' of index label '%s'",
+                        this.baseType, this.name));
+        }
     }
 
     private void checkFields() {
