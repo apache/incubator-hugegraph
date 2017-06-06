@@ -136,7 +136,7 @@ public class CassandraSerializer extends AbstractSerializer {
         String sortValues = row.column(HugeKeys.SORT_VALUES);
         String targetVertexId = row.column(HugeKeys.TARGET_VERTEX);
 
-        boolean isOutEdge = (direction == Direction.OUT);
+        boolean isOutEdge = direction == Direction.OUT;
         EdgeLabel label = this.graph.schema().edgeLabel(labelName);
 
         Id vertexId = IdGeneratorFactory.generator().generate(targetVertexId);
