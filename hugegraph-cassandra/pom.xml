@@ -34,6 +34,7 @@
                 <version>2.4</version>
                 <executions>
                     <execution>
+                        <id>assembly-hugegraph-cassandra</id>
                         <phase>package</phase>
                         <goals>
                             <goal>single</goal>
