@@ -53,7 +53,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 .primaryKeys("name")
                 .create();
         schema.makeVertexLabel("author")
-                .properties("id", "name")
+                .properties("id", "name", "age", "lived")
                 .primaryKeys("id")
                 .create();
         schema.makeVertexLabel("language")

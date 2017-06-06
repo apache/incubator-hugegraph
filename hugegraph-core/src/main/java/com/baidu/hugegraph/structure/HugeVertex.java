@@ -253,6 +253,11 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             throw VertexProperty.Exceptions.metaPropertiesNotSupported();
         }
 
+        Preconditions.checkArgument(this.label.properties().contains(key),
+                "Invalid property '%s' for Vertex '%s', "
+                + "valid properties are '%s'",
+                key, this.label(), this.label.properties());
+
         HugeProperty<V> prop = this.addProperty(key, value);
 
         // NOTE: currently we don't support custom id, if id is null

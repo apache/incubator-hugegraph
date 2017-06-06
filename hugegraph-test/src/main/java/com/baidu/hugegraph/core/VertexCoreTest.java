@@ -48,7 +48,7 @@ public class VertexCoreTest extends BaseCoreTest {
                 .primaryKeys("name")
                 .create();
         schema.makeVertexLabel("author")
-                .properties("id", "name")
+                .properties("id", "name", "age", "lived")
                 .primaryKeys("id")
                 .create();
         schema.makeVertexLabel("language")
@@ -107,10 +107,18 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithNotExistsVertexProp() {
+    public void testAddVertexWithNotExistsProp() {
         HugeGraph graph = graph();
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "book", "not-exists-porp", "test");
+        });
+    }
+    
+    @Test
+    public void testAddVertexWithNotExistsVertexProp() {
+        HugeGraph graph = graph();
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "book", "age", 12);
         });
     }
 
