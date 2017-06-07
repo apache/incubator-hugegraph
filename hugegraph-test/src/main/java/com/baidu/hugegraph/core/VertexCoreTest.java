@@ -270,6 +270,17 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByLabelNotExists() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        // query by not exists vertex label
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("xx").toList();
+        });
+    }
+
+    @Test
     public void testQueryByLabelAndKeyName() {
         HugeGraph graph = graph();
         init10Vertices();
@@ -496,10 +507,7 @@ public class VertexCoreTest extends BaseCoreTest {
                 T.label, "author", "id", 1, "name", "James Gosling",
                 "age", 62, "lived", "Canadian")));
 
-        vertexes = graph.traversal().V().hasLabel(
-                "author").has("id", 1).toList();
-        Assert.assertEquals(1, vertexes.size());
-        Vertex vertex = vertexes.get(0);
+        Vertex vertex = vertex("author", "id", 1);
         vertex.remove();
 
         vertexes = graph.traversal().V().toList();
@@ -507,6 +515,43 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertFalse(Utils.contains(vertexes, new FakeVertex(
                 T.label, "author", "id", 1, "name", "James Gosling",
                 "age", 62, "lived", "Canadian")));
+    }
+
+    @Test
+    public void testRemoveVertexNotExists() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertexes = graph.traversal().V().toList();
+        Assert.assertEquals(10, vertexes.size());
+        Assert.assertTrue(Utils.contains(vertexes, new FakeVertex(
+                T.label, "author", "id", 1, "name", "James Gosling",
+                "age", 62, "lived", "Canadian")));
+
+        Vertex vertex = vertex("author", "id", 1);
+        vertex.remove();
+
+        vertexes = graph.traversal().V().toList();
+        Assert.assertEquals(9, vertexes.size());
+        Assert.assertFalse(Utils.contains(vertexes, new FakeVertex(
+                T.label, "author", "id", 1, "name", "James Gosling",
+                "age", 62, "lived", "Canadian")));
+
+        vertex.remove(); // remove again
+    }
+
+    @Test
+    public void testRemoveVertexOneByOne() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertexes = graph.traversal().V().toList();
+        Assert.assertEquals(10, vertexes.size());
+
+        for (int i = 0; i < vertexes.size(); i++) {
+            vertexes.get(i).remove();
+            Assert.assertEquals(9 - i, graph.traversal().V().toList().size());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -601,6 +646,13 @@ public class VertexCoreTest extends BaseCoreTest {
                 "city", "Taipei", "age", 21);
 
         graph.tx().close();
+    }
+
+    private Vertex vertex(String label, String pkName, Object pkValue) {
+        List<Vertex> vertexes = graph().traversal().V().hasLabel(
+                label).has(pkName, pkValue).toList();
+        Assert.assertEquals(1, vertexes.size());
+        return vertexes.get(0);
     }
 
     private static void assertContains(
