@@ -332,15 +332,17 @@ public class HugeGraph implements Graph {
         public void doClose() {
             this.verifyOpened();
 
-            this.backendTx().autoCommit(true);
-            // would commit() if there is changes
-            // TODO: maybe we should call commit() directly
-            this.backendTx().afterWrite();
-
             // calling super will clear listeners
             super.doClose();
 
-            this.backendTx.remove();
+            this.backendTx().autoCommit(true);
+            try {
+                // would commit() if there is changes
+                // TODO: maybe we should call commit() directly
+                this.backendTx().afterWrite();
+            } finally {
+                this.backendTx.remove();
+            }
         }
 
         private GraphTransaction backendTx() {

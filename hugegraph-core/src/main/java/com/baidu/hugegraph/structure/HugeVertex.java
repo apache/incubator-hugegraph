@@ -254,9 +254,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         Preconditions.checkArgument(this.label.properties().contains(key),
-                "Invalid property '%s' for Vertex '%s', "
+                "Invalid property '%s' for vertex label '%s', "
                 + "valid properties are '%s'",
-                key, this.label(), this.label.properties());
+                key, this.label(), this.vertexLabel().properties());
 
         HugeProperty<V> prop = this.addProperty(key, value);
 
