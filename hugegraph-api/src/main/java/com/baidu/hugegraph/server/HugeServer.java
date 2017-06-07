@@ -21,6 +21,7 @@ package com.baidu.hugegraph.server;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -31,6 +32,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
@@ -48,8 +50,8 @@ public class HugeServer {
         this.conf = conf;
     }
 
-    public void start() throws IllegalArgumentException, IOException {
-        String url = conf.get(ServerOptions.HUGE_SERVER_URL);
+    public void start() throws IOException {
+        String url = this.conf.get(ServerOptions.HUGE_SERVER_URL);
         URI uri = UriBuilder.fromUri(url).build();
 
         ResourceConfig rc = new ApplicationConfig(this.conf);
@@ -72,8 +74,8 @@ public class HugeServer {
         try {
             server.start();
             logger.info("HugeServer started");
-        } catch (IllegalArgumentException | IOException e) {
-            logger.error("Failed to start HugeServer", e);
+        } catch (Exception e) {
+            throw new HugeException("Failed to start HugeServer", e);
         }
 
         return server;
@@ -81,21 +83,27 @@ public class HugeServer {
 
     protected static HugeConfig loadConf(String[] args) {
         E.checkArgument(args.length == 1,
-                "HugeServer need one config file, but was given %s", args);
+                "HugeServer need one config file, but was given %s",
+                Arrays.asList(args));
 
         HugeConfig conf = null;
         try {
             conf = new HugeConfig(args[0]);
         } catch (ConfigurationException e) {
-            logger.error("Failed to load config file", e);
+            throw new HugeException("Failed to load config file", e);
         }
 
         return conf;
     }
 
     public static void main(String[] args) throws Exception {
-        HugeServer.start(args);
-        Thread.currentThread().join();
+        try {
+            HugeServer.start(args);
+            Thread.currentThread().join();
+        } catch (Exception e) {
+            logger.error("HugeServer error:", e);
+            throw e;
+        }
         logger.info("HugeServer stopped");
     }
 }

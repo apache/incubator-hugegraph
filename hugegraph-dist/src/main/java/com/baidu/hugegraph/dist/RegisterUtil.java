@@ -5,12 +5,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.config.CassandraOptions;
@@ -24,8 +22,6 @@ import com.baidu.hugegraph.exception.ConfigException;
  * Created by liningrui on 2017/5/12.
  */
 public class RegisterUtil {
-
-    private static final Logger logger = LoggerFactory.getLogger(RegisterUtil.class);
 
     public static void registerCore() {
         ConfigSpace.register(CoreOptions.Instance());
@@ -43,8 +39,9 @@ public class RegisterUtil {
             HugeConfig config = new HugeConfig(confFile);
             backends = parseBackends(config);
         } else {
-            throw new ConfigException(String.format("Configuration files in " +
-                    "this format are not supported: %s", confFile));
+            throw new ConfigException(String.format(
+                    "Not support configuration file in this format: %s",
+                    confFile));
         }
         for (String backend : backends) {
             registerBackend(backend);
@@ -53,8 +50,8 @@ public class RegisterUtil {
 
     private static Set<String> parseBackends(YamlConfiguration config)
             throws ConfigurationException {
-        List<ConfigurationNode> graphs = config.getRootNode()
-                .getChildren(CoreOptions.GRAPHS.name()).get(0).getChildren();
+        List<ConfigurationNode> graphs = config.getRootNode().getChildren(
+                CoreOptions.GRAPHS.name()).get(0).getChildren();
 
         Set<String> backends = new HashSet<>();
         for (ConfigurationNode graph : graphs) {
@@ -73,11 +70,15 @@ public class RegisterUtil {
         Set<String> backends = new HashSet<>();
         for (Object graph : graphs) {
             String[] graphPair = graph.toString().split(":");
-            assert graphPair.length == 2;
-            String propConfFile = graphPair[1];
+            if (graphPair.length != 2) {
+                throw new HugeException(String.format(
+                        "Bad option value(expected a ':') in 'graphs': %s",
+                        graph));
+            }
+            String confFile = graphPair[1];
             // get graph property file path
-            HugeConfig configuration = new HugeConfig(propConfFile);
-            backends.add(configuration.get(CoreOptions.BACKEND).toLowerCase());
+            HugeConfig conf = new HugeConfig(confFile);
+            backends.add(conf.get(CoreOptions.BACKEND).toLowerCase());
         }
         return backends;
     }
