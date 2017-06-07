@@ -1,3 +1,22 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package com.baidu.hugegraph.server;
 
 import java.io.IOException;
@@ -53,7 +72,7 @@ public class HugeServer {
         try {
             server.start();
             logger.info("HugeServer started");
-        } catch (IOException e) {
+        } catch (IllegalArgumentException | IOException e) {
             logger.error("Failed to start HugeServer", e);
         }
 
@@ -62,15 +81,15 @@ public class HugeServer {
 
     protected static HugeConfig loadConf(String[] args) {
         E.checkArgument(args.length == 1,
-                "HugeServer need accept one config"
-                        + " file, but was given %s", args);
+                "HugeServer need one config file, but was given %s", args);
 
         HugeConfig conf = null;
         try {
             conf = new HugeConfig(args[0]);
         } catch (ConfigurationException e) {
-            logger.error("Failed load config file", e);
+            logger.error("Failed to load config file", e);
         }
+
         return conf;
     }
 
