@@ -41,6 +41,7 @@ public class HugeIndexLabel extends IndexLabel {
 
     @Override
     public IndexLabel on(SchemaElement element) {
+        this.element = element;
         this.baseType = element.type();
         this.baseValue = element.name();
         return this;
