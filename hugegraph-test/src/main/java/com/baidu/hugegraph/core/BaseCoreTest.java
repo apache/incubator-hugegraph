@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 
 public class BaseCoreTest {
 
@@ -28,6 +29,9 @@ public class BaseCoreTest {
     @BeforeClass
     public static void init() {
         graph = open();
+
+        graph.clearBackend();
+        graph.initBackend();
     }
 
     @AfterClass
@@ -41,12 +45,51 @@ public class BaseCoreTest {
 
     @Before
     public void setup() {
-        graph().clearBackend();
-        graph().initBackend();
+        clearData();
     }
 
     @After
     public void teardown() throws Exception {
         // pass
+    }
+
+    protected void clearData() {
+        HugeGraph graph = graph();
+
+        graph.tx().open();
+        try {
+            // clear vertex
+            graph().traversal().V().toStream().forEach(v -> {
+                v.remove();
+            });
+
+            // clear edge
+            graph().traversal().E().toStream().forEach(e -> {
+                e.remove();
+            });
+
+            // clear schema
+            SchemaTransaction schema = graph.schemaTransaction();
+
+            schema.getVertexLabels().stream().forEach(elem -> {
+                schema.removeVertexLabel(elem.name());
+            });
+
+            schema.getEdgeLabels().stream().forEach(elem -> {
+                schema.removeEdgeLabel(elem.name());
+            });
+
+            schema.getPropertyKeys().stream().forEach(elem -> {
+                schema.removePropertyKey(elem.name());
+            });
+
+            schema.getIndexLabels().stream().forEach(elem -> {
+                schema.removeIndexLabel(elem.name());
+            });
+
+            graph.tx().commit();
+        } finally {
+            graph.tx().close();
+        }
     }
 }

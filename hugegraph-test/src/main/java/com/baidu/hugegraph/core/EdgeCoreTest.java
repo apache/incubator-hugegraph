@@ -103,6 +103,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.makeIndexLabel("transferByTimestamp").on(transfer).search()
                 .by("timestamp").create();
 
+        // TODO: add edge index test
         // schema.makeIndexLabel("authoredByScore").on(authored).secondary()
         //        .by("score").create();
     }
@@ -661,6 +662,132 @@ public class EdgeCoreTest extends BaseCoreTest {
         }
 
         Assert.assertEquals(18 * 2, edges.size());
+    }
+
+    @Test
+    public void testRemoveEdge() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                "name", "James Gosling", "age", 62, "lived", "Canadian");
+        Vertex java = graph.addVertex(T.label, "language", "name", "java");
+
+        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
+        Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
+        Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
+
+        james.addEdge("created", java);
+
+        Edge authored1 = james.addEdge("authored", java1);
+        james.addEdge("authored", java2);
+        james.addEdge("authored", java3);
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(4, edges.size());
+
+        authored1.remove();
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(3, edges.size());
+        Assert.assertFalse(Utils.contains(edges, new FakeEdge(
+                "authored", james, java1)));
+    }
+
+    @Test
+    public void testRemoveEdgeNotExists() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                "name", "James Gosling", "age", 62, "lived", "Canadian");
+        Vertex java = graph.addVertex(T.label, "language", "name", "java");
+
+        Edge created = james.addEdge("created", java);
+
+        created.remove();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(0, edges.size());
+
+        created.remove(); // remove again
+    }
+
+    @Test
+    public void testRemoveEdgeOneByOne() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                "name", "James Gosling", "age", 62, "lived", "Canadian");
+        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
+                "name", "Guido van Rossum", "age", 61, "lived", "California");
+
+        Vertex java = graph.addVertex(T.label, "language", "name", "java");
+        Vertex python = graph.addVertex(T.label, "language", "name", "python",
+                "dynamic", true);
+
+        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
+        Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
+        Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
+
+        james.addEdge("created", java);
+        guido.addEdge("created", python);
+
+        james.addEdge("authored", java1);
+        james.addEdge("authored", java2);
+        james.addEdge("authored", java3);
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(5, edges.size());
+
+        for (int i = 0; i < edges.size(); i++) {
+            edges.get(i).remove();
+            Assert.assertEquals(4 - i, graph.traversal().E().toList().size());
+        }
+    }
+
+    @Test
+    public void testRemoveEdgesOfVertex() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                "name", "James Gosling", "age", 62, "lived", "Canadian");
+        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
+                "name", "Guido van Rossum", "age", 61, "lived", "California");
+
+        Vertex java = graph.addVertex(T.label, "language", "name", "java");
+        Vertex python = graph.addVertex(T.label, "language", "name", "python",
+                "dynamic", true);
+
+        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
+        Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
+        Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
+
+        james.addEdge("created", java);
+        guido.addEdge("created", python);
+
+        james.addEdge("authored", java1);
+        james.addEdge("authored", java2);
+        james.addEdge("authored", java3);
+
+        guido.addEdge("look", java1, "time", "2017-6-7");
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(6, edges.size());
+
+        james.remove(); // will remove all edges of the vertex
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(2, edges.size());
+        assertContains(edges, "created", guido, python);
+        assertContains(edges, "look", guido, java1, "time", "2017-6-7");
+
+        edges = graph.traversal().V(java1.id()).inE().toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(java2.id()).inE().toList();
+        Assert.assertEquals(0, edges.size());
+
+        edges = graph.traversal().V(java3.id()).inE().toList();
+        Assert.assertEquals(0, edges.size());
     }
 
     private void init18Edges() {
