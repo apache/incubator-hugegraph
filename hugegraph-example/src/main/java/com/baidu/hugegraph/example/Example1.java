@@ -107,7 +107,9 @@ public class Example1 {
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name").primaryKeys("id").create();
+        schema.makeVertexLabel("author")
+                .properties("id", "name", "age", "lived").primaryKeys("id")
+                .create();
         schema.makeVertexLabel("language").properties("name").primaryKeys("name").create();
         schema.makeVertexLabel("recipe").properties("name", "instructions").primaryKeys("name").create();
         schema.makeVertexLabel("book").properties("name").primaryKeys("name").create();
@@ -127,8 +129,7 @@ public class Example1 {
         logger.info("===============  edgeLabel  ================");
 
         schema.makeEdgeLabel("authored").singleTime()
-                .link("author", "book")
-                .properties("contribution")
+                .link("author", "book").properties("contribution", "comment")
                 .create();
 
         schema.makeEdgeLabel("look").multiTimes().properties("time")
