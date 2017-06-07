@@ -117,9 +117,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public <V> Property<V> property(String key, V value) {
         Preconditions.checkArgument(this.label.properties().contains(key),
-                "Invalid property '%s' for edge '%s', "
+                "Invalid property '%s' for edge label '%s', "
                 + "valid properties are '%s'",
-                key, this.label(), this.label.properties());
+                key, this.label(), this.edgeLabel().properties());
         return this.addProperty(key, value);
     }
 
