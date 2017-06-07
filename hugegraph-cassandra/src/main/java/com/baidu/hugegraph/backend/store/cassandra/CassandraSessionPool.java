@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.backend.BackendException;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Statement;
 import com.google.common.base.Preconditions;
@@ -101,7 +102,7 @@ public class CassandraSessionPool {
     }
 
     // Expect every thread hold a Session wrapper
-    static class Session {
+    class Session {
 
         private com.datastax.driver.core.Session session;
         private BatchStatement batch;
@@ -129,6 +130,10 @@ public class CassandraSessionPool {
             return this.session.execute(statement);
         }
 
+        public ResultSet execute(String statement, Object... args) {
+            return this.session.execute(statement, args);
+        }
+
         public boolean isClosed() {
             return this.session.isClosed();
         }
@@ -143,6 +148,14 @@ public class CassandraSessionPool {
 
         public Collection<Statement> statements() {
             return this.batch.getStatements();
+        }
+
+        public String keyspace() {
+            return CassandraSessionPool.this.keyspace;
+        }
+
+        public Metadata metadata() {
+            return CassandraSessionPool.this.cluster.getMetadata();
         }
     }
 }

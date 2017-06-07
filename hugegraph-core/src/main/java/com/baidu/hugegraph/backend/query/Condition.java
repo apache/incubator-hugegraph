@@ -10,6 +10,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public abstract class Condition {
 
@@ -29,7 +30,8 @@ public abstract class Condition {
         LT("<", (v1, v2) -> { return compare(v1, v2) < 0; }),
         LTE("<=", (v1, v2) -> { return compare(v1, v2) <= 0; }),
         NEQ("!=", (v1, v2) -> { return compare(v1, v2) != 0; }),
-        HAS_KEY(" haskey ", null);
+        HAS_KEY("haskey", null),
+        SCAN("scan", null);
 
         private final String operator;
         private final BiFunction<Object, Object, Boolean> tester;
@@ -44,7 +46,7 @@ public abstract class Condition {
             return this.operator;
         }
 
-        public static int compare(final Object first, final Object second) {
+        protected static int compare(final Object first, final Object second) {
             if (first == null || second == null) {
                 throw new BackendException(String.format(
                         "Can't compare between %s and %s",
@@ -91,6 +93,10 @@ public abstract class Condition {
             Preconditions.checkNotNull(this.tester,
                     "Can't test " + this.name());
             return this.tester.apply(value1, value2);
+        }
+
+        public boolean isSearchType() {
+            return ImmutableSet.of(GT, GTE, LT, LTE, NEQ).contains(this);
         }
     }
 
@@ -148,6 +154,12 @@ public abstract class Condition {
 
     public static Condition hasKey(HugeKeys key, Object value) {
         return new SyspropRelation(key, RelationType.HAS_KEY, value);
+    }
+
+    public static Condition scan(String start, String end) {
+        SyspropRelation s = new SyspropRelation(null, RelationType.SCAN, end);
+        s.key(start);
+        return s;
     }
 
     public static Relation eq(String key, Object value) {
@@ -275,7 +287,7 @@ public abstract class Condition {
 
         @Override
         public String toString() {
-            return String.format("%s%s%s",
+            return String.format("%s %s %s",
                     this.key(), this.relation.string(), this.value);
         }
 

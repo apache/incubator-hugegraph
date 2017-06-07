@@ -62,6 +62,10 @@ public abstract class AbstractTransaction implements Transaction {
         return this.store;
     }
 
+    public Object metadata(HugeType type, String meta, Object... args) {
+        return this.store().metadata(type, meta, args);
+    }
+
     public Iterable<BackendEntry> query(Query query) {
         logger.debug("Transaction query: {}", query);
         // NOTE: it's dangerous if an IdQuery/ConditionQuery is empty

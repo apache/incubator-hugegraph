@@ -1,6 +1,7 @@
 package com.baidu.hugegraph.backend.tx;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -320,6 +321,8 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query query) {
+        assert Arrays.asList(HugeType.VERTEX, HugeType.EDGE).contains(
+                query.resultType());
         List<Vertex> list = new ArrayList<Vertex>();
 
         Iterator<BackendEntry> entries = this.query(query).iterator();
@@ -379,6 +382,7 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Iterator<Edge> queryEdges(Query query) {
+        assert query.resultType() == HugeType.EDGE;
         Iterator<Vertex> vertices = this.queryVertices(query);
 
         Map<Id, Edge> results = new HashMap<>();
@@ -452,9 +456,12 @@ public class GraphTransaction extends AbstractTransaction {
         assert query.resultType() == HugeType.EDGE;
 
         int total = query.conditions().size();
-        if (total == 1 && query.condition(HugeKeys.LABEL) != null) {
-            // Supported: query just by edge label
-            return;
+        if (total == 1) {
+            // Supported: 1.query just by edge label, 2.query with scan
+            if (query.containsCondition(HugeKeys.LABEL)
+                    || query.containsScanCondition()) {
+                return;
+            }
         }
 
         int matched = 0;

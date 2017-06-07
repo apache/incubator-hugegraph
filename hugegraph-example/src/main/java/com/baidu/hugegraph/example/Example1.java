@@ -245,7 +245,7 @@ public class Example1 {
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
         q.query(IdGeneratorFactory.generator().generate("author\u00021"));
         // TODO: remove the PROPERTIES which may just be used by Cassandra
-        q.hasKey(HugeKeys.PROPERTIES, "age");
+        q.key(HugeKeys.PROPERTIES, "age");
 
         Iterator<Vertex> vertices = graph.vertices(q);
         assert vertices.hasNext();

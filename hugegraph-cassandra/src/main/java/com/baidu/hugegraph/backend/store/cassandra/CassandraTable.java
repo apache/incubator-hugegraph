@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
@@ -22,6 +23,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
+import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
@@ -39,16 +41,47 @@ public abstract class CassandraTable {
 
     private static final Logger logger = LoggerFactory.getLogger(
             CassandraStore.class);
+    private final String table;
 
-    protected String table;
+    interface MetaHandler {
+        public Object handle(CassandraSessionPool.Session session,
+                String meta, Object... args);
+    }
+    private final Map<String, MetaHandler> metaHandlers;
 
     public CassandraTable(String table) {
         this.table = table;
+        this.metaHandlers = new ConcurrentHashMap<>();
+
+        this.registerMetaHandlers();
     }
 
-    public Iterable<BackendEntry> query(
-            CassandraSessionPool.Session session,
-            Query query) {
+    public String table() {
+        return this.table;
+    }
+
+    public Object metadata(CassandraSessionPool.Session session,
+                           String meta, Object... args) {
+        if (!this.metaHandlers.containsKey(meta)) {
+            throw new BackendException(String.format(
+                    "Invalid metadata name '%s'", meta));
+        }
+        return this.metaHandlers.get(meta).handle(session, meta, args);
+    }
+
+    private void registerMetaHandlers() {
+        this.metaHandlers.put("splits", (session, meta, args) -> {
+            E.checkArgument(args.length == 1,
+                    "The args count of %s must be 1", meta);
+            long splitSize = (long) args[0];
+            CassandraSplit spliter = new CassandraSplit(session,
+                    session.keyspace(), table());
+            return spliter.getSplits(0, splitSize);
+        });
+    }
+
+    public Iterable<BackendEntry> query(CassandraSessionPool.Session session,
+                                        Query query) {
         List<BackendEntry> rs = new LinkedList<>();
 
         if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
@@ -96,6 +129,7 @@ public abstract class CassandraTable {
         List<Select> ids = this.queryId2Select(query, select);
 
         if (query.conditions().isEmpty()) {
+            // only by id
             logger.debug("query only by id(s): {}", ids);
             return ids;
         } else {
@@ -174,7 +208,7 @@ public abstract class CassandraTable {
         return ImmutableList.of(select);
     }
 
-    protected static Clause condition2Cql(Condition condition) {
+    protected Clause condition2Cql(Condition condition) {
         switch (condition.type()) {
             case AND:
                 Condition.And and = (Condition.And) condition;
@@ -192,7 +226,7 @@ public abstract class CassandraTable {
         }
     }
 
-    protected static Clause relation2Cql(Relation relation) {
+    protected Clause relation2Cql(Relation relation) {
         String key = relation.key().toString();
         Object value = relation.value();
 
@@ -216,6 +250,13 @@ public abstract class CassandraTable {
                 return QueryBuilder.lte(key, value);
             case HAS_KEY:
                 return QueryBuilder.containsKey(key, value);
+            case SCAN:
+                String[] col = pkColumnName().toArray(new String[0]);
+                Object start = QueryBuilder.raw(key);
+                Object end = QueryBuilder.raw((String) value);
+                return Clauses.and(
+                        QueryBuilder.gte(QueryBuilder.token(col), start),
+                        QueryBuilder.lt(QueryBuilder.token(col), end));
             // Error: cassandra no viable alternative at input 'like'
             // case LIKE:
             //    return QueryBuilder.like(key, value);
@@ -250,6 +291,10 @@ public abstract class CassandraTable {
         }
 
         return entry;
+    }
+
+    protected List<String> pkColumnName() {
+        return idColumnName();
     }
 
     protected List<String> idColumnName() {
