@@ -234,6 +234,11 @@ public class CassandraTables {
         }
 
         @Override
+        protected List<String> pkColumnName() {
+            return ImmutableList.of(formatKey(HugeKeys.SOURCE_VERTEX));
+        }
+
+        @Override
         protected List<String> idColumnName() {
             if (KEYS_STRING == null) {
                 KEYS_STRING = new ArrayList<>(KEYS.length);
@@ -330,7 +335,7 @@ public class CassandraTables {
         @Override
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            Update update = QueryBuilder.update(super.table);
+            Update update = QueryBuilder.update(table());
 
             update.with(QueryBuilder.append(formatKey(HugeKeys.ELEMENT_IDS),
                     entry.column(HugeKeys.ELEMENT_IDS)));
@@ -345,7 +350,7 @@ public class CassandraTables {
         @Override
         public void delete(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            Update update = QueryBuilder.update(super.table);
+            Update update = QueryBuilder.update(table());
 
             update.with(QueryBuilder.remove(formatKey(HugeKeys.ELEMENT_IDS),
                     entry.column(HugeKeys.ELEMENT_IDS)));
@@ -409,7 +414,7 @@ public class CassandraTables {
         @Override
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            Update update = QueryBuilder.update(super.table);
+            Update update = QueryBuilder.update(table());
 
             update.where(QueryBuilder.eq(formatKey(HugeKeys.INDEX_LABEL_NAME),
                     entry.column(HugeKeys.INDEX_LABEL_NAME)));
@@ -424,7 +429,7 @@ public class CassandraTables {
         @Override
         public void delete(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            Update update = QueryBuilder.update(super.table);
+            Update update = QueryBuilder.update(table());
 
             update.where(QueryBuilder.eq(formatKey(HugeKeys.INDEX_LABEL_NAME),
                     entry.column(HugeKeys.INDEX_LABEL_NAME)));

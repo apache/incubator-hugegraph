@@ -2,6 +2,7 @@ package com.baidu.hugegraph.backend.store;
 
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.type.HugeType;
 
 public interface BackendStore {
 
@@ -27,4 +28,6 @@ public interface BackendStore {
     public void commitTx();
     public void rollbackTx();
 
+    // get metadata by key
+    public Object metadata(HugeType type, String meta, Object[] args);
 }

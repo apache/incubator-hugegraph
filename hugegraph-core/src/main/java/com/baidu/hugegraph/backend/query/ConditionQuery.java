@@ -56,8 +56,13 @@ public class ConditionQuery extends IdQuery {
         return this;
     }
 
-    public ConditionQuery hasKey(HugeKeys key, String value) {
+    public ConditionQuery key(HugeKeys key, String value) {
         this.conditions.add(Condition.hasKey(key, value));
+        return this;
+    }
+
+    public ConditionQuery scan(String start, String end) {
+        this.conditions.add(Condition.scan(start, end));
         return this;
     }
 
@@ -123,6 +128,25 @@ public class ConditionQuery extends IdQuery {
         }
     }
 
+    public boolean containsCondition(HugeKeys key) {
+        return this.condition(key) != null;
+    }
+
+    public boolean containsCondition(Condition.RelationType type) {
+        for (Condition c : this.conditions) {
+            if (c.type() == Condition.ConditionType.RELATION
+                    && ((Condition.Relation) c).relation().equals(type)) {
+                return true;
+            }
+            // TODO: deal with other Condition
+        }
+        return false;
+    }
+
+    public boolean containsScanCondition() {
+        return this.containsCondition(Condition.RelationType.SCAN);
+    }
+
     public List<Condition> userpropConditions() {
         List<Condition> conds = new LinkedList<>();
         for (Condition c : this.conditions) {
@@ -179,8 +203,9 @@ public class ConditionQuery extends IdQuery {
     }
 
     public boolean hasSearchCondition() {
+        // NOTE: we need to judge all the conditions, including the nested
         for (Condition.Relation r : this.relations()) {
-            if (r.relation() != Condition.RelationType.EQ) {
+            if (r.relation().isSearchType()) {
                 return true;
             }
         }

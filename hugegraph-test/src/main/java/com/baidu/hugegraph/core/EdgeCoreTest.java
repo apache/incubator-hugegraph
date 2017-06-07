@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.core;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
@@ -15,12 +16,14 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.store.cassandra.CassandraSplit.Split;
 import com.baidu.hugegraph.core.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class EdgeCoreTest extends BaseCoreTest {
@@ -638,6 +641,26 @@ public class EdgeCoreTest extends BaseCoreTest {
         List<Vertex> vertices = graph.traversal().V(java3.id()).in(
                 "look").has("age", P.gt(22)).toList();
         Assert.assertEquals(2, vertices.size());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testScanEdge() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Edge> edges = new LinkedList<>();
+
+        long splitSize = 1 * 1024 * 1024;
+        Object splits = graph.graphTransaction().metadata(
+                HugeType.EDGE, "splits", splitSize);
+        for (Split split : (List<Split>) splits) {
+            ConditionQuery q = new ConditionQuery(HugeType.EDGE);
+            q.scan(split.start, split.end);
+            edges.addAll(ImmutableList.copyOf(graph.edges(q)));
+        }
+
+        Assert.assertEquals(18 * 2, edges.size());
     }
 
     private void init18Edges() {

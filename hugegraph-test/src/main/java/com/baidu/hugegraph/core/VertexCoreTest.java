@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.core;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
@@ -14,6 +15,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.store.cassandra.CassandraSplit.Split;
 import com.baidu.hugegraph.core.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.HugeType;
@@ -295,7 +297,7 @@ public class VertexCoreTest extends BaseCoreTest {
         // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
         q.eq(HugeKeys.LABEL, "language");
-        q.hasKey(HugeKeys.PROPERTIES, "dynamic");
+        q.key(HugeKeys.PROPERTIES, "dynamic");
         List<Vertex> vertexes = ImmutableList.copyOf(graph.vertices(q));
 
         Assert.assertEquals(1, vertexes.size());
@@ -497,6 +499,60 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertFalse(Utils.contains(vertexes, new FakeVertex(
                 T.label, "author", "id", 1, "name", "James Gosling",
                 "age", 62, "lived", "Canadian")));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testScanVertex() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertexes = new LinkedList<>();
+
+        long splitSize = 1 * 1024 * 1024;
+        Object splits = graph.graphTransaction().metadata(
+                HugeType.VERTEX, "splits", splitSize);
+        for (Split split : (List<Split>) splits) {
+            ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
+            q.scan(split.start, split.end);
+            vertexes.addAll(ImmutableList.copyOf(graph.vertices(q)));
+        }
+
+        Assert.assertEquals(10, vertexes.size());
+    }
+
+    @Test
+    public void testScanVertexWithSplitSizeLt1MB() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        long splitSize = 1 * 1024 * 1024 - 1;
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.graphTransaction().metadata(
+                    HugeType.VERTEX, "splits", splitSize);
+        });
+    }
+
+    @Test
+    public void testScanVertexWithSplitSizeTypeError() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        String splitSize = "123456";
+        Utils.assertThrows(ClassCastException.class, () -> {
+            graph.graphTransaction().metadata(
+                    HugeType.VERTEX, "splits", splitSize);
+        });
+    }
+
+    @Test
+    public void testScanVertexWithoutSplitSize() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.graphTransaction().metadata(HugeType.VERTEX, "splits");
+        });
     }
 
     private void init10Vertices() {

@@ -51,13 +51,15 @@ public class Clauses {
         @Override
         void appendTo(StringBuilder sb, List<Object> variables,
                 CodecRegistry codecRegistry) {
-            sb.append("(");
-            Utils.appendValue(this.left, codecRegistry, sb, variables);
+            // NOTE: '(? AND ?)' is not supported by Cassandra:
+            // SyntaxError: line xx missing ')' at 'AND'
+            // sb.append("(");
+            this.left.appendTo(sb, variables, codecRegistry);
             sb.append(" ");
             sb.append(this.op);
             sb.append(" ");
-            Utils.appendValue(this.right, codecRegistry, sb, variables);
-            sb.append(")");
+            this.right.appendTo(sb, variables, codecRegistry);
+            // sb.append(")");
         }
     }
 

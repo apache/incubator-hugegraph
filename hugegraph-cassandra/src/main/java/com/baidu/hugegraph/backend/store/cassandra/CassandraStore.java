@@ -146,6 +146,14 @@ public abstract class CassandraStore implements BackendStore {
     }
 
     @Override
+    public Object metadata(HugeType type, String meta, Object[] args) {
+        this.checkSessionConneted();
+
+        CassandraTable table = this.table(type);
+        return table.metadata(this.sessions.session(), meta, args);
+    }
+
+    @Override
     public void init() {
         this.checkClusterConneted();
 
