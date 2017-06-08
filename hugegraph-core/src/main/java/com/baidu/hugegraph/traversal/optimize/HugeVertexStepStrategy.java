@@ -39,9 +39,8 @@ public final class HugeVertexStepStrategy
 
     protected static void extractHasContainer(HugeVertexStep<?> newStep,
             Traversal.Admin<?, ?> traversal) {
-        Step<?, ?> step = null;
+        Step<?, ?> step = newStep;
         do {
-            step = newStep.getNextStep();
             if (step instanceof HasStep) {
                 HasContainerHolder holder = (HasContainerHolder) step;
                 for (HasContainer has : holder.getHasContainers()) {
@@ -50,6 +49,7 @@ public final class HugeVertexStepStrategy
                 TraversalHelper.copyLabels(step, step.getPreviousStep(), false);
                 traversal.removeStep(step);
             }
+            step = step.getNextStep();
         } while (step instanceof HasStep || step instanceof NoOpBarrierStep);
     }
 

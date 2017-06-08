@@ -16,10 +16,10 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.store.cassandra.CassandraSplit.Split;
 import com.baidu.hugegraph.core.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Split;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -657,7 +657,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 HugeType.EDGE, "splits", splitSize);
         for (Split split : (List<Split>) splits) {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
-            q.scan(split.start, split.end);
+            q.scan(split.start(), split.end());
             edges.addAll(ImmutableList.copyOf(graph.edges(q)));
         }
 
