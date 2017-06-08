@@ -29,7 +29,7 @@ public abstract class HugeElement implements Element, GraphType {
     protected final HugeGraph graph;
     protected boolean removed;
     protected Id id;
-    protected Map<String, HugeProperty<? extends Object>> properties;
+    protected Map<String, HugeProperty<?>> properties;
 
     public HugeElement(final HugeGraph graph, final Id id) {
         this.graph = graph;
@@ -68,8 +68,12 @@ public abstract class HugeElement implements Element, GraphType {
 
     public abstract GraphTransaction tx();
 
-    public Map<String, HugeProperty<? extends Object>> getProperties() {
+    public Map<String, HugeProperty<?>> getProperties() {
         return this.properties;
+    }
+
+    public void setProperties(Map<String, HugeProperty<?>> properties) {
+        this.properties = properties;
     }
 
     @SuppressWarnings("unchecked")

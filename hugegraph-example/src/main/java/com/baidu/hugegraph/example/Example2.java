@@ -43,67 +43,19 @@ public class Example2 {
 
     public static void traversal(final HugeGraph graph) {
 
-        // query all
         GraphTraversal<Vertex, Vertex> vertexs = graph.traversal().V();
-        System.out.println(
-                ">>>> query all vertices: size=" + vertexs.toList().size());
+        System.out.println(">>>> query all vertices: size="
+                + vertexs.toList().size());
 
         GraphTraversal<Edge, Edge> edges = graph.traversal().E();
-        System.out
-                .println(">>>> query all edges: size=" + edges.toList().size());
+        System.out.println(">>>> query all edges: size="
+                + edges.toList().size());
 
-        //        // query vertex by id
-        //        vertex = graph.traversal().V("author\u00021");
-        //        GraphTraversal<Vertex, Edge> edgesOfVertex = vertex.outE
-        // ("created");
-        //        System.out.println(">>>> query edges of vertex: " +
-        // edgesOfVertex.toList());
-        //
-        //        vertex = graph.traversal().V("author\u00021");
-        //        GraphTraversal<Vertex, Vertex> verticesOfVertex = vertex
-        // .out("created");
-        //        System.out.println(">>>> query vertices of vertex: " +
-        // verticesOfVertex.toList());
-        //
-        //        // query edge by condition
-        //        ConditionQuery q = new ConditionQuery(HugeTypes.VERTEX);
-        //        q.query(IdGeneratorFactory.generator().generate
-        // ("author\u00021"));
-        //        q.eq(HugeKeys.PROPERTY_KEY, "age");
-        //
-        //        Iterator<Vertex> vertices = graph.vertices(q);
-        //        System.out.println(">>>> queryVertices(): " + vertices
-        // .hasNext());
-        //        while (vertices.hasNext()) {
-        //            System.out.println(">>>> " + vertices.next().toString());
-        //        }
-        //
-        //        // query edge by id
-        //        String id =
-        // "author\u00021\u0001OUT\u0001authored\u0001\u0001book\u0002java-2";
-        //        GraphTraversal<Edge, Edge> edges = graph.traversal().E(id);
-        //        System.out.println(">>>> query edge: " + edges.toList());
-        //
-        //        // query edge by condition
-        //        q = new ConditionQuery(HugeTypes.EDGE);
-        //        q.eq(HugeKeys.SOURCE_VERTEX, "author\u00021");
-        //        q.eq(HugeKeys.DIRECTION, Direction.OUT.name());
-        //        q.eq(HugeKeys.LABEL, "authored");
-        //        q.eq(HugeKeys.SORT_VALUES, "");
-        //        q.eq(HugeKeys.TARGET_VERTEX, "book\u0002java-1");
-        //        q.eq(HugeKeys.PROPERTY_KEY, "contribution");
-        //
-        //        Iterator<Edge> edges2 = graph.edges(q);
-        //        System.out.println(">>>> queryEdges(): " + edges2.hasNext());
-        //        while (edges2.hasNext()) {
-        //            System.out.println(">>>> " + edges2.next().toString());
-        //        }
-
-        // query by vertex label
-        //        vertex = graph.traversal().V().hasLabel("book");
-        //System.out.println(">>>> query all books: size=" + vertex.toList()
-        // .size());
-
+        List<Object> names = graph.traversal().V().inE(
+                "knows").limit(2).outV().values("name").toList();
+        assert names.size() == 2 : names.size();
+        System.out.println(">>>> query vertex(with props) of edges : "
+                + names);
     }
 
     public static void showSchema(final HugeGraph graph) {
