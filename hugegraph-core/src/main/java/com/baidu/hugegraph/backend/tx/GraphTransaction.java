@@ -284,7 +284,7 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Create HugeVertex
         HugeVertex vertex = new HugeVertex(this, id, (VertexLabel) label);
-        
+
         // Set properties
         ElementHelper.attachProperties(vertex, keyValues);
 

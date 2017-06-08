@@ -19,6 +19,7 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.dist.RegisterUtil;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -329,8 +330,8 @@ public class Example1 {
         try {
             graph.traversal().V(vertex.id()).toList();
             assert false;
-        } catch (BackendException e) {
-            assert e.getMessage().contains("Not found id");
+        } catch (NotFoundException e) {
+            assert e.getMessage().contains("Not found the VERTEX entry");
         }
 
         // remove edge
@@ -342,8 +343,8 @@ public class Example1 {
         try {
             graph.traversal().E(id).toList();
             assert false;
-        } catch (BackendException e) {
-            assert e.getMessage().contains("Not found id");
+        } catch (NotFoundException e) {
+            assert e.getMessage().contains("Not found the EDGE entry");
         }
     }
 

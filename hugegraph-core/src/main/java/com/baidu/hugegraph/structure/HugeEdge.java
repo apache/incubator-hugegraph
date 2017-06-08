@@ -169,7 +169,22 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             default:
                 break;
         }
+
+        for (Vertex vertex : vertices) {
+            this.ensureVertexProperties((HugeVertex) vertex);
+        }
         return vertices.iterator();
+    }
+
+    protected void ensureVertexProperties(HugeVertex vertex) {
+        if (vertex.hasProperties()) {
+            return;
+        }
+
+        Iterator<Vertex> vertices = tx().queryVertices(vertex.id());
+        assert vertices.hasNext();
+        HugeVertex fetched = (HugeVertex) vertices.next();
+        vertex.setProperties(fetched.getProperties());
     }
 
     public void vertices(HugeVertex source, HugeVertex target) {

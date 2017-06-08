@@ -19,6 +19,7 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.type.HugeType;
 import com.google.common.base.Preconditions;
 
@@ -97,8 +98,8 @@ public abstract class AbstractTransaction implements Transaction {
     public BackendEntry get(HugeType type, Id id) {
         BackendEntry entry = query(type, id);
         if (entry == null) {
-            throw new BackendException(String.format(
-                    "Not found id '%s' with type %s", id, type));
+            throw new NotFoundException(
+                    "Not found the %s entry with id '%s'", type, id);
         }
         return entry;
     }
