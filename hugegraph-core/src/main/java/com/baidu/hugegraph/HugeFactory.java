@@ -1,12 +1,15 @@
 package com.baidu.hugegraph;
 
 import java.io.File;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.util.E;
 import com.google.common.base.Preconditions;
 
 /**
@@ -18,19 +21,41 @@ public class HugeFactory {
         return open(getLocalConfiguration(shortcutOrFile));
     }
 
-    public static HugeGraph open(Configuration configuration) {
-        return new HugeGraph(new HugeConfig(configuration));
+    public static HugeGraph open(URL confUrl) {
+        return open(getRemoteConfiguration(confUrl));
     }
 
-    private static Configuration getLocalConfiguration(String shortcutOrFile) {
-        File file = new File(shortcutOrFile);
+    public static HugeGraph open(Configuration config) {
+        E.checkArgument(config instanceof PropertiesConfiguration,
+                "HugeConfig can only accept PropertiesConfiguration object.");
+        return new HugeGraph(new HugeConfig((PropertiesConfiguration) config));
+    }
+
+    private static PropertiesConfiguration getLocalConfiguration(String path) {
+        File file = new File(path);
+
+        return loadConfig(file);
+    }
+
+    private static PropertiesConfiguration getRemoteConfiguration(URL confUrl) {
+        File file = null;
+        try {
+            file = new File(confUrl.toURI());
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(
+                    "Unable to load url config file: " + confUrl, e);
+        }
+
+        return loadConfig(file);
+    }
+
+    private static PropertiesConfiguration loadConfig(File file) {
         Preconditions.checkArgument(
                 file.exists() && file.isFile() && file.canRead(),
                 "Need to specify a readable configuration file rather than: %s",
                 file.toString());
-
         try {
-            PropertiesConfiguration configuration = new PropertiesConfiguration(file);
+            PropertiesConfiguration config = new PropertiesConfiguration(file);
             final File tmpParent = file.getParentFile();
             final File configParent;
 
@@ -43,10 +68,10 @@ public class HugeFactory {
             Preconditions.checkNotNull(configParent);
             Preconditions.checkArgument(configParent.isDirectory());
 
-            return configuration;
+            return config;
         } catch (ConfigurationException e) {
             throw new IllegalArgumentException(
-                    "Unable to load configuration file: " + file, e);
+                    "Unable to load config file: " + file, e);
         }
     }
 }

@@ -23,10 +23,11 @@ public class HugeConfig extends PropertiesConfiguration {
     private static final Logger logger =
             LoggerFactory.getLogger(HugeConfig.class);
 
-    public HugeConfig(Configuration config) {
+    public HugeConfig(PropertiesConfiguration config) {
         if (config == null) {
             throw new ConfigException("Config object is null.");
         }
+        this.setFile(config.getFile());
 
         Iterator<String> keys = config.getKeys();
         while (keys.hasNext()) {

@@ -4,6 +4,7 @@ import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 import javax.ws.rs.NotFoundException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -40,15 +41,23 @@ public class ExceptionFilter {
     }
 
     @Provider
-    public static class NotFoundExceptionExceptionMapper
-            implements ExceptionMapper<NotFoundException> {
+    public static class WebApplicationExceptionMapper
+            implements ExceptionMapper<WebApplicationException> {
+
+        private static final int INTERNAL_SERVER_ERROR = Response.Status
+                .INTERNAL_SERVER_ERROR.getStatusCode();
 
         @Override
-        public Response toResponse(NotFoundException exception) {
-            return Response.status(404)
-                    .type(MediaType.APPLICATION_JSON)
-                    .entity(formatException(exception))
-                    .build();
+        public Response toResponse(WebApplicationException exception) {
+            Response response = exception.getResponse();
+            if (response.getStatus() != INTERNAL_SERVER_ERROR) {
+                return response;
+            } else {
+                return Response.status(INTERNAL_SERVER_ERROR)
+                        .type(MediaType.APPLICATION_JSON)
+                        .entity(formatException(exception))
+                        .build();
+            }
         }
     }
 
