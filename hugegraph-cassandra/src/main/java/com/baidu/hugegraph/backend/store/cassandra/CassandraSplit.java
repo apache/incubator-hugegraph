@@ -44,6 +44,7 @@ import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.dht.Token.TokenFactory;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.type.Split;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
@@ -287,30 +288,17 @@ public class CassandraSplit {
             for (Map.Entry<TokenRange, Long> entry : subSplits.entrySet()) {
                 List<TokenRange> ranges = entry.getKey().unwrap();
                 for (TokenRange subrange : ranges) {
-                    Split split = new Split();
-                    split.start = isPartitionerOpp()
+                    String start = isPartitionerOpp()
                             ? subrange.getStart().toString().substring(2)
                             : subrange.getStart().toString();
-                    split.end = isPartitionerOpp()
+                    String end = isPartitionerOpp()
                             ? subrange.getEnd().toString().substring(2)
                             : subrange.getEnd().toString();
-                    split.length = entry.getValue();
-                    splits.add(split);
+                    long length = entry.getValue();
+                    splits.add(new Split(start, end, length));
                 }
             }
             return splits;
-        }
-    }
-
-    public static class Split {
-        public String start; // token range start
-        public String end; // token range end
-        public long length; // partitions count in this range
-
-        @Override
-        public String toString() {
-            return String.format("Split{start=%s, end=%s, length=%s}",
-                    this.start, this.end, this.length);
         }
     }
 }
