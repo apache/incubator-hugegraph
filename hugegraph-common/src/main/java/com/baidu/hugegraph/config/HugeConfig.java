@@ -27,7 +27,10 @@ public class HugeConfig extends PropertiesConfiguration {
         if (config == null) {
             throw new ConfigException("Config object is null.");
         }
-        this.setFile(config.getFile());
+
+        if (config.getFile() != null) {
+            this.setFile(config.getFile());
+        }
 
         Iterator<String> keys = config.getKeys();
         while (keys.hasNext()) {
