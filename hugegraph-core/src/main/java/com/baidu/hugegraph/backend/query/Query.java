@@ -1,6 +1,5 @@
 package com.baidu.hugegraph.backend.query;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,7 +8,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
@@ -64,8 +62,8 @@ public class Query implements Cloneable {
         return ImmutableSet.of();
     }
 
-    public List<Condition> conditions() {
-        return ImmutableList.of();
+    public Set<Condition> conditions() {
+        return ImmutableSet.of();
     }
 
     public boolean empty() {

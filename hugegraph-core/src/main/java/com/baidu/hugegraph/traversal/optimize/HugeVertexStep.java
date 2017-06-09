@@ -22,6 +22,8 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.type.ExtendableIterator;
+import com.google.common.collect.ImmutableSet;
 
 public final class HugeVertexStep<E extends Element>
         extends VertexStep<E> implements HasContainerHolder {
@@ -83,18 +85,28 @@ public final class HugeVertexStep<E extends Element>
                 + "vertex={}, direction={}, edgeLabels={}, has={}",
                 vertex.id(), direction, edgeLabels, this.hasContainers);
 
-        ConditionQuery query = GraphTransaction.constructEdgesQuery(
-                (Id) vertex.id(), direction, edgeLabels);
-
-        // conditions (enable if query for edge else conditions for vertex)
-        if (Edge.class.isAssignableFrom(getReturnClass())) {
-            for (HasContainer has : this.hasContainers) {
-                query.query(HugeGraphStep.convHasContainer2Condition(has));
-            }
+        ImmutableSet<Direction> directions = ImmutableSet.of(direction);
+        // deal with direction is BOTH
+        if (direction == Direction.BOTH) {
+            directions = ImmutableSet.of(Direction.OUT, Direction.IN);
         }
 
-        // do query
-        return graph.edges(query);
+        ExtendableIterator<Edge> results = new ExtendableIterator<>();
+        for (Direction dir : directions) {
+            ConditionQuery query = GraphTransaction.constructEdgesQuery(
+                    (Id) vertex.id(), dir, edgeLabels);
+
+            // conditions (enable if query for edge else conditions for vertex)
+            if (Edge.class.isAssignableFrom(getReturnClass())) {
+                for (HasContainer has : this.hasContainers) {
+                    query.query(HugeGraphStep.convHasContainer2Condition(has));
+                }
+            }
+
+            // do query
+            results.extend(graph.edges(query));
+        }
+        return results;
     }
 
     @Override

@@ -225,6 +225,17 @@ public abstract class Condition {
             return String.format("%s %s %s",
                     this.left, this.type().name(), this.right);
         }
+
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof BinCondition)) {
+                return false;
+            }
+            BinCondition other = (BinCondition) object;
+            return this.type().equals(other.type())
+                    && this.left().equals(other.left())
+                    && this.right().equals(other.right());
+        }
     }
 
     /*************************************************************************/
@@ -289,6 +300,17 @@ public abstract class Condition {
         public String toString() {
             return String.format("%s %s %s",
                     this.key(), this.relation.string(), this.value);
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof Relation)) {
+                return false;
+            }
+            Relation other = (Relation) object;
+            return this.relation().equals(other.relation())
+                    && this.key().equals(other.key())
+                    && this.value().equals(other.value());
         }
 
         @Override

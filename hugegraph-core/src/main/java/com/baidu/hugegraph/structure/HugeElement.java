@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.structure;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -69,7 +70,7 @@ public abstract class HugeElement implements Element, GraphType {
     public abstract GraphTransaction tx();
 
     public Map<String, HugeProperty<?>> getProperties() {
-        return this.properties;
+        return Collections.unmodifiableMap(this.properties);
     }
 
     public void setProperties(Map<String, HugeProperty<?>> properties) {

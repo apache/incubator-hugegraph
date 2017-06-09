@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -89,10 +90,14 @@ public abstract class CassandraTable {
             return rs;
         }
 
-        List<Select> selections = query2Select(query);
-        for (Select selection : selections) {
-            ResultSet results = session.execute(selection);
-            rs.addAll(this.results2Entries(query.resultType(), results));
+        try {
+            List<Select> selections = query2Select(query);
+            for (Select selection : selections) {
+                ResultSet results = session.execute(selection);
+                rs.addAll(this.results2Entries(query.resultType(), results));
+            }
+        } catch (Exception e) {
+            throw new BackendException("Failed to query [%s]", e, query);
         }
 
         logger.debug("return {} for query {}", rs, query);
@@ -197,7 +202,7 @@ public abstract class CassandraTable {
     protected Collection<Select> queryCondition2Select(
             Query query, Select select) {
         // query by conditions
-        List<Condition> conditions = query.conditions();
+        Set<Condition> conditions = query.conditions();
         for (Condition condition : conditions) {
             Clause clause = condition2Cql(condition);
             select.where(clause);

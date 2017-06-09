@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.backend.query;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -13,11 +14,11 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 public class ConditionQuery extends IdQuery {
 
     // conditions will be concated with `and` by default
-    private List<Condition> conditions;
+    private Set<Condition> conditions;
 
     public ConditionQuery(HugeType resultType) {
         super(resultType);
-        this.conditions = new LinkedList<>();
+        this.conditions = new LinkedHashSet<>();
     }
 
     public ConditionQuery query(Condition condition) {
@@ -67,16 +68,16 @@ public class ConditionQuery extends IdQuery {
     }
 
     @Override
-    public List<Condition> conditions() {
-        return this.conditions;
+    public Set<Condition> conditions() {
+        return Collections.unmodifiableSet(this.conditions);
     }
 
-    public void resetConditions(List<Condition> conditions) {
+    public void resetConditions(Set<Condition> conditions) {
         this.conditions = conditions;
     }
 
     public void resetConditions() {
-        this.conditions = new LinkedList<>();
+        this.conditions = new LinkedHashSet<>();
     }
 
     @Override

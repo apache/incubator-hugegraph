@@ -1,6 +1,7 @@
 package com.baidu.hugegraph.structure;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -112,7 +113,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public Set<HugeEdge> getEdges() {
-        return this.edges;
+        return Collections.unmodifiableSet(this.edges);
     }
 
     public void resetEdges() {
