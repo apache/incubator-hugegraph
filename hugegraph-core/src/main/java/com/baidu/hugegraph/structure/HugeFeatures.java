@@ -120,6 +120,11 @@ public class HugeFeatures implements Graph.Features {
         public boolean willAllowId(final Object id) {
             return id instanceof Serializable;
         }
+
+        @Override
+        public boolean supportsRemoveProperty() {
+            return false;
+        }
     }
 
     public class HugeVariableFeatures implements VariableFeatures {
