@@ -53,9 +53,17 @@ public class Example2 {
 
         List<Object> names = graph.traversal().V().inE(
                 "knows").limit(2).outV().values("name").toList();
-        assert names.size() == 2 : names.size();
-        System.out.println(">>>> query vertex(with props) of edges : "
+        System.out.println(">>>> query vertex(with props) of edges: "
                 + names);
+        assert names.size() == 2 : names.size();
+
+        names = graph.traversal().V().as("a")
+                .out("knows")
+                .and()
+                .out("created").in("created").as("a").values("name")
+                .toList();
+        System.out.println(">>>> query with AND: " + names);
+        assert names.size() == 1 : names.size();
     }
 
     public static void showSchema(final HugeGraph graph) {
