@@ -3,7 +3,6 @@ package com.baidu.hugegraph.api.filter;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -49,15 +48,17 @@ public class ExceptionFilter {
 
         @Override
         public Response toResponse(WebApplicationException exception) {
+
             Response response = exception.getResponse();
-            if (response.getStatus() != INTERNAL_SERVER_ERROR) {
+            if (response.hasEntity()) {
                 return response;
-            } else {
-                return Response.status(INTERNAL_SERVER_ERROR)
-                        .type(MediaType.APPLICATION_JSON)
-                        .entity(formatException(exception))
-                        .build();
             }
+
+            boolean trace = response.getStatus() == INTERNAL_SERVER_ERROR;
+            return Response.status(response.getStatus())
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(formatException(exception, trace))
+                    .build();
         }
     }
 
