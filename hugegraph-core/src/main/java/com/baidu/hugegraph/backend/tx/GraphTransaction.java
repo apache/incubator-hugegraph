@@ -426,8 +426,8 @@ public class GraphTransaction extends AbstractTransaction {
         query.eq(HugeKeys.SOURCE_VERTEX, sourceVertex);
 
         // Edge direction
-        // TODO: deal with direction is BOTH
         if (direction != null) {
+            assert direction == Direction.OUT || direction == Direction.IN;
             query.eq(HugeKeys.DIRECTION, direction);
         }
 

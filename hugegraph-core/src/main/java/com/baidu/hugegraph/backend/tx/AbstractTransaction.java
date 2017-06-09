@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.backend.tx;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -174,7 +175,9 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     protected BackendMutation mutation() {
-        return new BackendMutation(this.additions, this.deletions);
+        return new BackendMutation(
+                Collections.unmodifiableSet(this.additions),
+                Collections.unmodifiableSet(this.deletions));
     }
 
     protected void prepareCommit() {

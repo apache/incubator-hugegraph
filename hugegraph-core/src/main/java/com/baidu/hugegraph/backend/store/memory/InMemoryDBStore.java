@@ -2,7 +2,6 @@ package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -155,7 +154,7 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     protected Map<Id, BackendEntry> queryByFilter(
-            List<Condition> conditions,
+            Set<Condition> conditions,
             Map<Id, BackendEntry> entries) {
         assert conditions.size() > 0;
 

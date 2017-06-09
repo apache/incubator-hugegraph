@@ -35,9 +35,7 @@ public final class HugeGraphStep<S, E extends Element>
     private static final Logger logger = LoggerFactory.getLogger(HugeGraphStep.class);
 
     private final List<HasContainer> hasContainers = new LinkedList<>();
-
     private long offset = 0;
-
     private long limit = Query.NO_LIMIT;
 
     public HugeGraphStep(final GraphStep<S, E> originalGraphStep) {
@@ -82,8 +80,8 @@ public final class HugeGraphStep<S, E extends Element>
         query.limit(this.limit);
 
         @SuppressWarnings("unchecked")
-        Iterator<E> r = (Iterator<E>) graph.vertices(query);
-        return  r;
+        Iterator<E> result = (Iterator<E>) graph.vertices(query);
+        return  result;
     }
 
     private Iterator<E> edges() {
@@ -92,8 +90,7 @@ public final class HugeGraphStep<S, E extends Element>
         HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
 
         if (this.ids != null && this.ids.length > 0) {
-            return filterResult(this.hasContainers,
-                    graph.edges(this.ids));
+            return filterResult(this.hasContainers, graph.edges(this.ids));
         }
 
         Query query = null;
@@ -110,11 +107,14 @@ public final class HugeGraphStep<S, E extends Element>
         }
 
         query.offset(this.offset);
-        query.limit(this.limit);
+        // NOTE: double limit because of duplicate edges(when BOTH Direction)
+        // TODO: the `this.limit * 2` maybe will overflow
+        query.limit(this.limit == Query.NO_LIMIT ?
+                Query.NO_LIMIT : this.limit * 2);
 
         @SuppressWarnings("unchecked")
-        Iterator<E> r = (Iterator<E>) graph.edges(query);
-        return  r;
+        Iterator<E> result = (Iterator<E>) graph.edges(query);
+        return  result;
     }
 
     @Override
@@ -223,10 +223,10 @@ public final class HugeGraphStep<S, E extends Element>
         final List<E> list = new LinkedList<>();
 
         while (iterator.hasNext()) {
-            final Element ele = iterator.next();
-            if (HasContainer.testAll(ele, hasContainers)) {
+            final Element elem = iterator.next();
+            if (HasContainer.testAll(elem, hasContainers)) {
                 @SuppressWarnings("unchecked")
-                E e = (E) ele;
+                E e = (E) elem;
                 list.add(e);
             }
         }

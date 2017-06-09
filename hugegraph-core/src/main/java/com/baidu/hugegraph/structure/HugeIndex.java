@@ -1,6 +1,7 @@
 package com.baidu.hugegraph.structure;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -48,7 +49,7 @@ public class HugeIndex {
     }
 
     public Set<Id> elementIds() {
-        return this.elementIds;
+        return Collections.unmodifiableSet(this.elementIds);
     }
 
     public void elementIds(Set<Id> elementIds) {
