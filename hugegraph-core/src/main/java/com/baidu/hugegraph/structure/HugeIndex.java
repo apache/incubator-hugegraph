@@ -15,23 +15,23 @@ import com.baidu.hugegraph.type.schema.IndexLabel;
  */
 public class HugeIndex implements GraphType {
 
-    private IndexLabel indexLabel;
-    private Object propertyValues;
+    private IndexLabel label;
+    private Object fieldValues;
     private Set<Id> elementIds;
 
     public HugeIndex(IndexLabel indexLabel) {
-        this.indexLabel = indexLabel;
+        this.label = indexLabel;
         this.elementIds = new LinkedHashSet<>();
     }
 
     @Override
     public String name() {
-        return this.indexLabel.name();
+        return this.label.name();
     }
 
     @Override
     public HugeType type() {
-        IndexType indexType = this.indexLabel.indexType();
+        IndexType indexType = this.label.indexType();
         if (indexType == IndexType.SECONDARY) {
             return HugeType.SECONDARY_INDEX;
         } else {
@@ -50,15 +50,15 @@ public class HugeIndex implements GraphType {
     }
 
     public Object propertyValues() {
-        return this.propertyValues;
+        return this.fieldValues;
     }
 
     public void propertyValues(Object propertyValues) {
-        this.propertyValues = propertyValues;
+        this.fieldValues = propertyValues;
     }
 
     public String indexLabelName() {
-        return this.indexLabel.name();
+        return this.label.name();
     }
 
     public Set<Id> elementIds() {
@@ -86,5 +86,12 @@ public class HugeIndex implements GraphType {
     @Override
     public int hashCode() {
         return this.id().hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{label=%s<%s>, fieldValues=%s, elementIds=%s}",
+                this.label.name(), this.label.indexType().string(),
+                this.fieldValues, this.elementIds);
     }
 }
