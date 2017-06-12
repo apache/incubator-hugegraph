@@ -32,8 +32,10 @@
     </profiles>
 
     <properties>
+        <dist.bin.name>hugegraph-bin</dist.bin.name>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
-        <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
+        <assembly.descriptor.dir>${assembly.dir}/descriptor
+        </assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
     </properties>
 
@@ -97,8 +99,11 @@
                         <configuration>
                             <attach>false</attach>
                             <appendAssemblyId>false</appendAssemblyId>
-                            <outputDirectory>${top.level.basedir}</outputDirectory>
-                            <descriptor>${assembly.descriptor.dir}/assembly.xml</descriptor>
+                            <outputDirectory>${top.level.basedir}
+                            </outputDirectory>
+                            <descriptor>
+                                ${assembly.descriptor.dir}/assembly.xml
+                            </descriptor>
                             <finalName>${final.name}</finalName>
                         </configuration>
                     </execution>
@@ -113,6 +118,7 @@
                         <fileset>
                             <directory>${top.level.basedir}</directory>
                             <includes>
+                                <include>*.tar</include>
                                 <include>*.tar.gz</include>
                                 <include>*.zip</include>
                                 <include>${final.name}/**</include>
@@ -136,8 +142,10 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <tar destfile="${top.level.basedir}/${final.name}.tar.gz"
+                                <tar destfile="${top.level.basedir}/${dist.bin.name}.tar"
                                      basedir="${top.level.basedir}/${final.name}"/>
+                                <gzip destfile="${top.level.basedir}/${dist.bin.name}.tar.gz"
+                                      src="${top.level.basedir}/${dist.bin.name}.tar"/>
                             </tasks>
                         </configuration>
                     </execution>
