@@ -98,7 +98,7 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean supportsStringIds() {
-            return false;
+            return true;
         }
 
         @Override
