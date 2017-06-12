@@ -64,12 +64,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
     protected CassandraBackendEntry newBackendEntry(HugeIndex index) {
         Id id = IdGeneratorFactory.generator().generate(index.id());
-        if (index.indexType() == IndexType.SECONDARY) {
-            return newBackendEntry(HugeType.SECONDARY_INDEX, id);
-        } else {
-            assert index.indexType() == IndexType.SEARCH;
-            return newBackendEntry(HugeType.SEARCH_INDEX, id);
-        }
+        return newBackendEntry(index.type(), id);
     }
 
     @Override
