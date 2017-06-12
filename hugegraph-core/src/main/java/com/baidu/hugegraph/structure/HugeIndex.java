@@ -6,13 +6,14 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 
 /**
  * Created by liningrui on 2017/4/25.
  */
-public class HugeIndex {
+public class HugeIndex implements GraphType {
 
     private IndexLabel indexLabel;
     private Object propertyValues;
@@ -23,17 +24,29 @@ public class HugeIndex {
         this.elementIds = new LinkedHashSet<>();
     }
 
-    public String id() {
-        if (indexType() == IndexType.SECONDARY) {
-            return propertyValues() + indexLabelName();
+    @Override
+    public String name() {
+        return this.indexLabel.name();
+    }
+
+    @Override
+    public HugeType type() {
+        IndexType indexType = this.indexLabel.indexType();
+        if (indexType == IndexType.SECONDARY) {
+            return HugeType.SECONDARY_INDEX;
         } else {
-            assert indexType() == IndexType.SEARCH;
-            return indexLabelName() + propertyValues();
+            assert indexType == IndexType.SEARCH;
+            return HugeType.SEARCH_INDEX;
         }
     }
 
-    public IndexType indexType() {
-        return this.indexLabel.indexType();
+    public String id() {
+        if (type() == HugeType.SECONDARY_INDEX) {
+            return propertyValues() + indexLabelName();
+        } else {
+            assert type() == HugeType.SEARCH_INDEX;
+            return indexLabelName() + propertyValues();
+        }
     }
 
     public Object propertyValues() {
@@ -60,4 +73,18 @@ public class HugeIndex {
         this.elementIds.addAll(Arrays.asList(elementIds));
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof HugeIndex)) {
+            return false;
+        }
+
+        HugeIndex other = (HugeIndex) obj;
+        return this.id().equals(other.id());
+    }
+
+    @Override
+    public int hashCode() {
+        return this.id().hashCode();
+    }
 }

@@ -70,6 +70,21 @@ public class HugeProperty<V> implements Property<V>, GraphType {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof HugeProperty)) {
+            return false;
+        }
+
+        HugeProperty<?> other = (HugeProperty<?>) obj;
+        return this.owner.equals(other.owner) && this.key.equals(other.key);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.owner.hashCode() ^ this.key.hashCode();
+    }
+
+    @Override
     public String toString() {
         return String.format("%s=%s", this.key(), this.value);
     }

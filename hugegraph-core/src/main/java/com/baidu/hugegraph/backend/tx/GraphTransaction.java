@@ -288,7 +288,7 @@ public class GraphTransaction extends AbstractTransaction {
         // Set properties
         ElementHelper.attachProperties(vertex, keyValues);
 
-        // Generate and assign an id if it dost not exists
+        // Generate and assign an id if it doesn't exist
         if (id == null) {
             vertex.assignId();
         }
@@ -539,7 +539,7 @@ public class GraphTransaction extends AbstractTransaction {
             return query;
         }
 
-        // Optimiz by index-query
+        // Optimize by index-query
         return this.indexTx.query(query);
     }
 }
