@@ -17,9 +17,7 @@ import com.google.common.base.Preconditions;
 public class HugeFactory {
 
     public static HugeGraph open(Configuration config) {
-        E.checkArgument(config instanceof PropertiesConfiguration,
-                "HugeConfig can only accept PropertiesConfiguration object.");
-        return new HugeGraph(new HugeConfig((PropertiesConfiguration) config));
+        return new HugeGraph(new HugeConfig(config));
     }
 
     public static HugeGraph open(String path) {
