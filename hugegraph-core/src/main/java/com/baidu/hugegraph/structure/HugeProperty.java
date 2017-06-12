@@ -4,6 +4,7 @@ import java.util.NoSuchElementException;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
@@ -86,6 +87,6 @@ public class HugeProperty<V> implements Property<V>, GraphType {
 
     @Override
     public String toString() {
-        return String.format("%s=%s", this.key(), this.value);
+        return StringFactory.propertyString(this);
     }
 }
