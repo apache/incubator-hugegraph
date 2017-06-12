@@ -8,6 +8,7 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
+import org.apache.commons.configuration.AbstractFileConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -23,13 +24,15 @@ public class HugeConfig extends PropertiesConfiguration {
     private static final Logger logger =
             LoggerFactory.getLogger(HugeConfig.class);
 
-    public HugeConfig(PropertiesConfiguration config) {
+    public HugeConfig(Configuration config) {
         if (config == null) {
             throw new ConfigException("Config object is null.");
         }
-
-        if (config.getFile() != null) {
-            this.setFile(config.getFile());
+        if (config instanceof AbstractFileConfiguration) {
+            File file = ((AbstractFileConfiguration) config).getFile();
+            if (file != null) {
+                this.setFile(file);
+            }
         }
 
         Iterator<String> keys = config.getKeys();
