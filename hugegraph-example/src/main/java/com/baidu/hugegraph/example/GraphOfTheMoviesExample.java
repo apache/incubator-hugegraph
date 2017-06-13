@@ -25,7 +25,12 @@ public class GraphOfTheMoviesExample {
 
         HugeGraph graph = ExampleUtil.loadGraph();
 
+        long startTime = System.currentTimeMillis();
         GraphOfTheMoviesExample.load(graph);
+        long endTime = System.currentTimeMillis();
+        System.out.println(">>>> adding all vertices cost time(s): " +
+                (endTime - startTime) / 1000.0);
+
         GraphOfTheMoviesExample.query(graph);
         System.exit(0);
     }
