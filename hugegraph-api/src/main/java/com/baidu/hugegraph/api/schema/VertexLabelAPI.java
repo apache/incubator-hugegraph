@@ -7,6 +7,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -38,13 +39,31 @@ public class VertexLabelAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         CreateVertexLabel createVertexLabel) {
-        logger.debug("Graph [{}] create vertex label: {}", graph, createVertexLabel);
+                         JsonVertexLabel jsonVertexLabel) {
+        logger.debug("Graph [{}] create vertex label: {}", graph,
+                jsonVertexLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
-        VertexLabel vertexLabel = createVertexLabel.convert2VertexLabel();
+        VertexLabel vertexLabel = jsonVertexLabel.convert2VertexLabel();
         g.schema().create(vertexLabel);
+
+        return manager.serializer(g).writeVertexLabel(vertexLabel);
+    }
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public String append(@Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         JsonVertexLabel jsonVertexLabel) {
+        logger.debug("Graph [{}] append vertex label: {}", graph,
+                jsonVertexLabel);
+
+        HugeGraph g = (HugeGraph) graph(manager, graph);
+
+        VertexLabel vertexLabel = jsonVertexLabel.convert2VertexLabel();
+        g.schema().append(vertexLabel);
 
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
@@ -87,7 +106,7 @@ public class VertexLabelAPI extends API {
         g.schemaTransaction().removeVertexLabel(name);
     }
 
-    private static class CreateVertexLabel {
+    private static class JsonVertexLabel {
 
         public String name;
         public String[] primaryKeys;

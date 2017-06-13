@@ -29,4 +29,6 @@ public interface SchemaManager {
     public List<SchemaElement> desc();
 
     public SchemaElement create(SchemaElement element);
+
+    public SchemaElement append(SchemaElement element);
 }
