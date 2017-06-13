@@ -49,7 +49,7 @@ public class HugeIndexLabel extends IndexLabel {
 
     @Override
     public HugeIndexLabel indexNames(String... names) {
-        throw new HugeException("can not build index for index label object.");
+        throw new HugeException("Can't build index for index label.");
     }
 
     @Override
@@ -127,8 +127,7 @@ public class HugeIndexLabel extends IndexLabel {
         StringUtil.checkName(this.name);
         IndexLabel indexLabel = this.transaction().getIndexLabel(this.name);
         if (indexLabel != null && checkExits) {
-            throw new HugeException(String.format(
-                    "The index label '%s' has exised.", this.name));
+            throw new HugeException("The index label '%s' has exised", this.name);
         }
 
         // check field
@@ -142,8 +141,8 @@ public class HugeIndexLabel extends IndexLabel {
         try {
             cloneElement = element.copy();
         } catch (CloneNotSupportedException e) {
-            throw new HugeException(String.format("It's not allowed to make "
-                    + "index on this schema type: '%s'.", this.element.type()));
+            throw new HugeException("Don't allow to build index on this "
+                    + "schema type: '%s'", this.element.type());
         }
 
         // TODO: should wrap update and add operation in one transaction.
@@ -156,19 +155,21 @@ public class HugeIndexLabel extends IndexLabel {
         return this;
     }
 
+    @Override
+    public SchemaElement append() {
+        throw new HugeException("Not support append operation for index label");
+    }
+
     private void loadElement() {
         switch (this.baseType) {
             case VERTEX_LABEL:
-                this.element = this.transaction().getVertexLabel(this
-                        .baseValue);
+                this.element = this.transaction().getVertexLabel(this.baseValue);
                 break;
             case EDGE_LABEL:
-                this.element = this.transaction().getEdgeLabel(this
-                        .baseValue);
+                this.element = this.transaction().getEdgeLabel(this.baseValue);
                 break;
             case PROPERTY_KEY:
-                this.element = this.transaction().getPropertyKey(this
-                        .baseValue);
+                this.element = this.transaction().getPropertyKey(this.baseValue);
                 break;
             default:
                 throw new HugeException(String.format(
@@ -203,9 +204,8 @@ public class HugeIndexLabel extends IndexLabel {
                 break;
             case PROPERTY_KEY:
             default:
-                throw new HugeException(String.format(
-                        "Can not update index name of schema type: %s",
-                        baseType));
+                throw new HugeException("Can't update index name of "
+                        + "schema type: %s", baseType);
         }
     }
 
@@ -216,7 +216,7 @@ public class HugeIndexLabel extends IndexLabel {
 
     @Override
     protected SchemaElement copy() throws CloneNotSupportedException {
-        throw new CloneNotSupportedException("IndexLabel object can't "
-                + "support copy.");
+        throw new CloneNotSupportedException(
+                "Not support copy operation for index label");
     }
 }

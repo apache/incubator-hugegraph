@@ -136,7 +136,7 @@ public class HugeEdgeLabel extends EdgeLabel {
         // if edgeLabel exist and checkExits
         if (edgeLabel != null && this.checkExits) {
             throw new HugeException(String.format(
-                    "The edge label '%s' has exised.", this.name));
+                    "The edge label '%s' has exised", this.name));
         }
 
         this.checkLinks();
@@ -144,6 +144,33 @@ public class HugeEdgeLabel extends EdgeLabel {
         this.checkSortKeys();
 
         this.transaction().addEdgeLabel(this);
+        return this;
+    }
+
+    @Override
+    public EdgeLabel append() {
+
+        StringUtil.checkName(this.name);
+        // Don't allow user to modify some stable properties.
+        this.checkStableVars();
+
+        this.checkLinks();
+        this.checkProperties();
+
+        // Try to read
+        EdgeLabel edgeLabel = this.transaction().getEdgeLabel(this.name);
+        if (edgeLabel == null) {
+            throw new HugeException(
+                    "Can't append the edge label '%s' since it doesn't exist",
+                    this.name);
+        }
+
+        this.checkFrequency(edgeLabel.frequency());
+
+        edgeLabel.links().addAll(this.links);
+        edgeLabel.properties().addAll(this.properties);
+
+        this.transaction().addEdgeLabel(edgeLabel);
         return this;
     }
 
@@ -207,25 +234,45 @@ public class HugeEdgeLabel extends EdgeLabel {
         if (this.frequency == Frequency.SINGLE) {
             E.checkArgument(this.sortKeys.isEmpty(),
                     "EdgeLabel can not contain sortKeys when the " +
-                    "cardinality property is single.");
+                    "cardinality property is single");
         } else {
             E.checkNotNull(this.sortKeys,
                     "The sortKeys can not be null when the cardinality " +
-                    "property is multiple.");
+                    "property is multiple");
             E.checkArgument(!this.sortKeys.isEmpty(),
                     "EdgeLabel must contain sortKeys when the cardinality " +
-                    "property is multiple.");
+                    "property is multiple");
         }
 
         if (this.sortKeys != null && !this.sortKeys.isEmpty()) {
             // Check whether the properties contains the specified keys
             E.checkArgument(!this.properties.isEmpty(),
-                    "Properties can not be empty when exist sort keys.");
+                    "Properties can not be empty when exist sort keys");
             for (String key : this.sortKeys) {
                 E.checkArgument(this.properties.contains(key),
                         "The sort key '%s' of edge label '%s' must be "
                         + "contained in %s", key, this.name, this.properties);
             }
+        }
+    }
+
+    private void checkFrequency(Frequency frequency) {
+        // Don't allow to modify frequency.
+        if (this.frequency != frequency) {
+            throw new HugeException("Don't allow to modify frequency for "
+                    + "existed edge label '%s'", this.name);
+        }
+    }
+
+    private void checkStableVars() {
+        // Don't allow to append sort keys.
+        if (!this.sortKeys.isEmpty()) {
+            throw new HugeException("Don't allow to append sort keys for "
+                    + "existed edge label '%s'", this.name);
+        }
+        if (!this.indexNames.isEmpty()) {
+            throw new HugeException("Don't allow to append indexes for "
+                    + "existed edge label '%s'", this.name);
         }
     }
 

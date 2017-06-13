@@ -96,6 +96,8 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
 
     public abstract SchemaElement create();
 
+    public abstract SchemaElement append();
+
     public abstract void remove();
 
     protected abstract SchemaElement copy() throws CloneNotSupportedException;

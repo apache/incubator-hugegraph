@@ -62,14 +62,35 @@ public class HugeVertexLabel extends VertexLabel {
         VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
         // if vertexLabel exist and checkExits
         if (vertexLabel != null && this.checkExits) {
-            throw new HugeException(String.format(
-                    "The vertex label '%s' has exised.", this.name));
+            throw new HugeException("The vertex label '%s' has exised", this.name);
         }
 
         this.checkProperties();
         this.checkPrimaryKeys();
 
         this.transaction().addVertexLabel(this);
+        return this;
+    }
+
+    @Override
+    public SchemaElement append() {
+
+        StringUtil.checkName(this.name);
+        // Don't allow user to modify some stable properties.
+        this.checkStableVars();
+
+        this.checkProperties();
+
+        // Try to read
+        VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
+        if (vertexLabel == null) {
+            throw new HugeException("Can't append the vertex label '%s' since "
+                    + "it doesn't exist", this.name);
+        }
+
+        vertexLabel.properties().addAll(this.properties);
+
+        this.transaction().addVertexLabel(vertexLabel);
         return this;
     }
 
@@ -117,6 +138,18 @@ public class HugeVertexLabel extends VertexLabel {
             E.checkArgument(this.properties.contains(key),
                     "The primary key '%s' of vertex label '%s' must be "
                     + "contained in %s", key, this.name, this.properties);
+        }
+    }
+
+    private void checkStableVars() {
+        // Don't allow to append sort keys.
+        if (!this.primaryKeys.isEmpty()) {
+            throw new HugeException("Don't allow to append primary keys for "
+                    + "existed vertex label '%s'", this.name);
+        }
+        if (!this.indexNames.isEmpty()) {
+            throw new HugeException("Don't allow to append indexes for "
+                    + "existed vertex label '%s'", this.name);
         }
     }
 }

@@ -7,6 +7,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -40,13 +41,30 @@ public class EdgeLabelAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         CreateEdgeLabel createEdgeLabel) {
-        logger.debug("Graph [{}] create edge label: {}", graph, createEdgeLabel);
+                         JsonEdgeLabel jsonEdgeLabel) {
+        logger.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
-        EdgeLabel edgeLabel = createEdgeLabel.convert2EdgeLabel();
+        EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
         g.schema().create(edgeLabel);
+
+        return manager.serializer(g).writeEdgeLabel(edgeLabel);
+    }
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public String append(@Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         JsonEdgeLabel jsonEdgeLabel) {
+        logger.debug("Graph [{}] append edge label: {}", graph,
+                jsonEdgeLabel);
+
+        HugeGraph g = (HugeGraph) graph(manager, graph);
+
+        EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
+        g.schema().append(edgeLabel);
 
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
@@ -89,7 +107,7 @@ public class EdgeLabelAPI extends API {
         g.schemaTransaction().removeEdgeLabel(name);
     }
 
-    private static class CreateEdgeLabel {
+    private static class JsonEdgeLabel {
 
         public String name;
         public Frequency frequency;
@@ -119,5 +137,4 @@ public class EdgeLabelAPI extends API {
             return edgeLabel;
         }
     }
-
 }

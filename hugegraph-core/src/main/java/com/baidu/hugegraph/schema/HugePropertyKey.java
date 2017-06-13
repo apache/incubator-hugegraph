@@ -146,12 +146,17 @@ public class HugePropertyKey extends PropertyKey {
         PropertyKey propertyKey = this.transaction().getPropertyKey(this.name);
         // if propertyKey exist and checkExits
         if (propertyKey != null && this.checkExits) {
-            throw new HugeException(String.format(
-                    "The property key '%s' has exised.", this.name));
+            throw new HugeException("The property key '%s' has exised", this.name);
         }
 
         this.transaction().addPropertyKey(this);
         return this;
+    }
+
+    @Override
+    public SchemaElement append() {
+        throw new HugeException(
+                "Not support append operation for property key");
     }
 
     @Override
@@ -161,7 +166,7 @@ public class HugePropertyKey extends PropertyKey {
 
     @Override
     public SchemaElement copy() throws CloneNotSupportedException {
-        throw new CloneNotSupportedException("PropertyKey object can't "
-                + "support copy.");
+        throw new CloneNotSupportedException(
+                "Not support copy operation for property key");
     }
 }
