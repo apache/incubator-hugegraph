@@ -87,7 +87,11 @@ public abstract class CassandraStore implements BackendStore {
                 this.sessions.closeSession();
             }
         } catch (Exception e) {
-            this.sessions.close();
+            try {
+                this.sessions.close();
+            } catch (Exception e2) {
+                logger.warn("Failed to close cluster", e2);
+            }
             throw e;
         }
 
