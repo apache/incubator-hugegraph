@@ -1,12 +1,31 @@
 /*
- * Copyright (C) 2017 Baidu, Inc. All Rights Reserved.
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  */
+
 package com.baidu.hugegraph.base;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.configuration.Configuration;
@@ -15,13 +34,16 @@ import org.apache.tinkerpop.gremlin.LoadGraphWith;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeFeatures;
@@ -29,9 +51,6 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 
-/**
- * Created by zhangsuochao on 17/5/3.
- */
 public class HugeGraphProvider extends AbstractGraphProvider {
 
     private static final Set<Class> IMPLEMENTATIONS = new HashSet<Class>() {
@@ -46,8 +65,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     };
 
     @Override
-    public Map<String, Object> getBaseConfiguration(String graphName, Class<?> aClass, String s1,
-                                                    LoadGraphWith.GraphData graphData) {
+    public Map<String, Object> getBaseConfiguration(String graphName,
+            Class<?> aClass, String s1, LoadGraphWith.GraphData graphData) {
         return new HashMap<String, Object>() {
             {
                 put(Graph.GRAPH, HugeFactory.class.getName());
@@ -68,24 +87,164 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         graph.clearBackend();
         graph.initBackend();
 
-        graph.schema().makePropertyKey("oid").asInt().create();
-        graph.schema().makePropertyKey("communityIndex").asInt().create();
-        graph.schema().makePropertyKey("test").create();
-        graph.schema().makePropertyKey("data").create();
-
-        graph.schema().makeVertexLabel("v").properties("oid").primaryKeys("oid").create();
-        graph.schema().makeEdgeLabel("knows").create();
-
         graph.tx().open();
-
         return new TestGraph(graph);
     }
 
     @Override
-    public void clear(Graph graph, Configuration configuration) throws Exception {
-        if (graph != null) {
+    public void clear(Graph graph, Configuration configuration)
+            throws Exception {
+        if (graph != null && graph.tx().isOpen()) {
             ((TestGraph) graph).hugeGraph().clearBackend();
+            ((TestGraph) graph).hugeGraph().close();
         }
+    }
+
+    @Override
+    public void loadGraphData(final Graph graph,
+                              final LoadGraphWith loadGraphWith,
+                              final Class testClass,
+                              final String testName) {
+        if (loadGraphWith != null) {
+            ((TestGraph) graph).loadedGraph(true);
+            switch (loadGraphWith.value()) {
+                case GRATEFUL:
+                    initGratefulSchema(graph);
+                    break;
+                case MODERN:
+                    initModernSchema(graph);
+                    break;
+                case CLASSIC:
+                    initClassicSchema(graph);
+                    break;
+                default:
+                    throw new AssertionError(String.format(
+                            "Only support GRATEFUL, MODERN and CLASSIC for "
+                                    + "@LoadGraphWith(), but '%s' is used ",
+                            loadGraphWith.value()));
+            }
+        } else {
+            initBasicSchema(graph);
+        }
+        super.loadGraphData(graph, loadGraphWith, testClass, testName);
+    }
+
+    public static void initGratefulSchema(final Graph graph) {
+        SchemaManager schema = ((TestGraph) graph).hugeGraph().schema();
+
+        schema.makePropertyKey("id").asInt().ifNotExist().create();
+        schema.makePropertyKey("weight").asInt().ifNotExist().create();
+        schema.makePropertyKey("name").ifNotExist().create();
+        schema.makePropertyKey("songType").asText().ifNotExist()
+                .create();
+        schema.makePropertyKey("performances").asInt().ifNotExist()
+                .create();
+        schema.makeVertexLabel("song")
+                .properties("id", "name", "songType", "performances")
+                .primaryKeys("id").ifNotExist().create();
+        schema.makeVertexLabel("artist").properties("id", "name")
+                .primaryKeys("id").ifNotExist().create();
+        schema.makeEdgeLabel("followedBy")
+                .link("song", "song").properties("weight")
+                .ifNotExist().create();
+        schema.makeEdgeLabel("sungBy").link("song", "artist")
+                .ifNotExist().create();
+        schema.makeEdgeLabel("writtenBy").link("song", "artist")
+                .ifNotExist().create();
+    }
+
+    public static void initModernSchema(final Graph graph) {
+        SchemaManager schema = ((TestGraph) graph).hugeGraph().schema();
+
+        schema.makePropertyKey("id").asInt().ifNotExist().create();
+        schema.makePropertyKey("weight").asDouble().ifNotExist().create();
+        schema.makePropertyKey("name").ifNotExist().create();
+        schema.makePropertyKey("lang").ifNotExist().create();
+        schema.makePropertyKey("age").asInt().ifNotExist().create();
+
+        schema.makeVertexLabel("person").properties("id", "name", "age")
+                .primaryKeys("id").ifNotExist().create();
+        schema.makeVertexLabel("software").properties("id", "name", "lang")
+                .primaryKeys("id").ifNotExist().create();
+        schema.makeEdgeLabel("knows").link("person", "person")
+                .properties("weight").ifNotExist().create();
+        schema.makeEdgeLabel("created").link("person", "software")
+                .properties("weight").ifNotExist().create();
+    }
+
+    public static void initClassicSchema(final Graph graph) {
+        SchemaManager schema = ((TestGraph) graph).hugeGraph().schema();
+
+        schema.makePropertyKey("id").asInt().ifNotExist().create();
+        schema.makePropertyKey("weight").asDouble().ifNotExist().create();
+        schema.makePropertyKey("name").ifNotExist().create();
+        schema.makePropertyKey("lang").ifNotExist().create();
+        schema.makePropertyKey("age").asInt().ifNotExist().create();
+
+        schema.makeVertexLabel("vertex").properties("id", "name", "age")
+                .primaryKeys("id").ifNotExist().create();
+        schema.makeEdgeLabel("knows").link("vertex", "vertex")
+                .properties("weight").ifNotExist().create();
+        schema.makeEdgeLabel("created").link("vertex", "vertex")
+                .properties("weight").ifNotExist().create();
+    }
+
+    public static void initBasicSchema(final Graph graph) {
+        SchemaManager schema = ((TestGraph) graph).hugeGraph().schema();
+
+        schema.makePropertyKey("oid").asInt().ifNotExist().create();
+        schema.makePropertyKey("__id").asText().ifNotExist().create();
+        schema.makePropertyKey("communityIndex").asInt().ifNotExist().create();
+        schema.makePropertyKey("test").ifNotExist().create();
+        schema.makePropertyKey("data").ifNotExist().create();
+        schema.makePropertyKey("name").ifNotExist().create();
+        schema.makePropertyKey("location").ifNotExist().create();
+        schema.makePropertyKey("status").ifNotExist().create();
+        schema.makePropertyKey("boolean").asBoolean().ifNotExist().create();
+        schema.makePropertyKey("float").asFloat().ifNotExist().create();
+        schema.makePropertyKey("since").asInt().ifNotExist().create();
+        schema.makePropertyKey("double").asDouble().ifNotExist().create();
+        schema.makePropertyKey("string").ifNotExist().create();
+        schema.makePropertyKey("integer").asInt().ifNotExist().create();
+        schema.makePropertyKey("long").asLong().ifNotExist().create();
+        schema.makePropertyKey("x").asInt().ifNotExist().create();
+        schema.makePropertyKey("y").asInt().ifNotExist().create();
+        schema.makePropertyKey("aKey").asDouble().ifNotExist().create();
+        schema.makePropertyKey("age").asInt().ifNotExist().create();
+        schema.makePropertyKey("lang").ifNotExist().create();
+        schema.makePropertyKey("weight").asDouble().ifNotExist().create();
+        schema.makePropertyKey("some").ifNotExist().create();
+        schema.makePropertyKey("that").ifNotExist().create();
+        schema.makePropertyKey("any").ifNotExist().create();
+        schema.makePropertyKey("this").ifNotExist().create();
+
+
+
+        schema.makeVertexLabel("v").properties("__id", "oid", "name",
+                "some", "that", "any", "this")
+                .primaryKeys("__id").ifNotExist().create();
+        schema.makeEdgeLabel("self").link("v", "v")
+                .properties("__id", "test", "name", "some")
+                .ifNotExist()
+                .create();
+        schema.makeEdgeLabel("aTOa").link("v", "v")
+                .ifNotExist().create();
+        schema.makeEdgeLabel("connectsTo").link("v", "v")
+                .ifNotExist().create();
+
+        // schema.makeEdgeLabel("collaborator").ifNotExist().create();
+        // schema.makeEdgeLabel("knows").ifNotExist().create();
+        // schema.makeEdgeLabel("friend").ifNotExist().create();
+        // schema.makeEdgeLabel("hate").ifNotExist().create();
+        // schema.makeEdgeLabel("test1").ifNotExist().create();
+        // schema.makeEdgeLabel("link").ifNotExist().create();
+        // schema.makeEdgeLabel("test2").ifNotExist().create();
+        // schema.makeEdgeLabel("test3").ifNotExist().create();
+        // schema.makeEdgeLabel("self").ifNotExist().create();
+        // schema.makeEdgeLabel("~systemLabel").ifNotExist().create();
+        // schema.makeEdgeLabel("friends").ifNotExist().create();
+        // schema.makeEdgeLabel("l").ifNotExist().create();
+        // schema.makeEdgeLabel("created").ifNotExist().create();
     }
 
     @Override
@@ -95,8 +254,9 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
     static class TestGraph implements Graph {
 
-        protected static int oid = 0;
+        protected static int id = 0;
         protected HugeGraph graph;
+        private boolean loadedGraph = false;
 
         public TestGraph(HugeGraph graph) {
             this.graph = graph;
@@ -108,14 +268,27 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
         @Override
         public Vertex addVertex(Object... keyValues) {
-            if (keyValues.length == 0) {
-                return this.graph.addVertex("oid", oid++);
+            List<Object> kvs = new ArrayList<>();
+            Optional<Object> idValue = ElementHelper.getIdValue(keyValues);
+            if (!idValue.isPresent()) {
+                kvs.add(loadedGraph ? "id" : "__id");
+                kvs.add(loadedGraph ? id : String.valueOf(id));
+                id++;
             }
-            return this.graph.addVertex(keyValues);
+
+            for (int i = 0; i < keyValues.length; i += 2) {
+                kvs.add(keyValues[i].equals(T.id)
+                        ? (loadedGraph ? "id" : "__id") : keyValues[i]);
+                kvs.add(keyValues[i + 1]);
+            }
+
+            return this.graph.addVertex(kvs.toArray());
+
         }
 
         @Override
-        public <C extends GraphComputer> C compute(Class<C> graphComputerClass) throws IllegalArgumentException {
+        public <C extends GraphComputer> C compute(Class<C> graphComputerClass)
+                throws IllegalArgumentException {
             return this.graph.compute(graphComputerClass);
         }
 
@@ -160,6 +333,10 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         @Override
         public HugeFeatures features() {
             return this.graph.features();
+        }
+
+        public void loadedGraph(boolean loadedGraph) {
+            this.loadedGraph = loadedGraph;
         }
     }
 }
