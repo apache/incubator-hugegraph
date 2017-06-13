@@ -27,6 +27,7 @@ public class PerfExample1 {
     public static void main(String[] args) throws InterruptedException {
         if (args.length < 3) {
             System.out.println("Usage: times threadno");
+            return;
         }
 
         int times = Integer.parseInt(args[1]);
@@ -40,6 +41,7 @@ public class PerfExample1 {
         initSchema(hugegraph.schema());
         testInsertPerf(graph, times, threadno);
 
+        hugegraph.close();
         System.exit(0);
     }
 
