@@ -16,7 +16,6 @@ public class ExampleUtil {
 
         RegisterUtil.registerCore();
         RegisterUtil.registerCassandra();
-
     }
 
     public static HugeGraph loadGraph() {
