@@ -13,6 +13,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
             <version>${project.version}</version>

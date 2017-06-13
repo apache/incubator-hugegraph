@@ -70,7 +70,8 @@
         <commons.io.version>20030203.000550</commons.io.version>
         <commons.codec.version>20041127.091804</commons.codec.version>
         <guava.version>19.0</guava.version>
-        <datastax.cassandra.driver.version>3.1.4</datastax.cassandra.driver.version>
+        <netty.version>4.0.44.Final</netty.version>
+        <datastax.cassandra.driver.version>3.2.0</datastax.cassandra.driver.version>
         <apache.cassandra.version>3.10</apache.cassandra.version>
         <compiler.source>1.8</compiler.source>
         <compiler.target>1.8</compiler.target>
@@ -232,6 +233,11 @@
                 <version>${guava.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.cassandra</groupId>
                 <artifactId>cassandra-all</artifactId>
