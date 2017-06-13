@@ -25,10 +25,9 @@ import org.junit.runner.RunWith;
 import com.baidu.hugegraph.HugeGraph;
 
 /**
- * Created by zhangsuochao on 17/5/3.
+ * Created by zhangsuochao on 17/5/24.
  */
-@RunWith(HugeStructureBasicSuite.class)
+@RunWith(HugeProcessBasicSuite.class)
 @GraphProviderClass(provider = HugeGraphProvider.class, graph = HugeGraph.class)
-public class HugeGraphStructureStandardTest {
-
+public class HugeGraphProcessStandardTest {
 }

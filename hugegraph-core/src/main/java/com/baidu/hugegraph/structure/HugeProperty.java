@@ -27,8 +27,13 @@ public class HugeProperty<V> implements Property<V>, GraphType {
         this.key = key;
         this.value = value;
 
-        Preconditions.checkArgument(key.checkValue(value), String.format(
-                "Invalid property value '%s' for key '%s'", value, key.name()));
+        Preconditions.checkArgument(key.checkValue(value),
+                "Invalid property value '%s' for key '%s', "
+                        + "expect '%s', actual '%s'",
+                value,
+                key.name(),
+                key.clazz().getSimpleName(),
+                value.getClass().getSimpleName());
     }
 
     public PropertyKey propertyKey() {
