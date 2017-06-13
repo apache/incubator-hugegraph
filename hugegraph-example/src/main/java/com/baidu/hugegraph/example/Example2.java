@@ -9,9 +9,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
@@ -24,16 +22,10 @@ public class Example2 {
     private static final Logger logger = LoggerFactory.getLogger(Example2.class);
 
     public static void main(String[] args) {
-
         logger.info("Example2 start!");
-        RegisterUtil.registerCore();
-        RegisterUtil.registerCassandra();
 
-        String confFile = Example2.class.getClassLoader()
-                .getResource("hugegraph.properties").getPath();
-        HugeGraph graph = HugeFactory.open(confFile);
-        graph.clearBackend();
-        graph.initBackend();
+        HugeGraph graph = ExampleUtil.loadGraph();
+
         Example2.load(graph);
         showSchema(graph);
         traversal(graph);
