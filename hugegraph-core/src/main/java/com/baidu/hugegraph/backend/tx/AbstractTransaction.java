@@ -25,7 +25,8 @@ import com.baidu.hugegraph.type.HugeType;
 import com.google.common.base.Preconditions;
 
 public abstract class AbstractTransaction implements Transaction {
-    private boolean autoCommit;
+    private Thread ownerThread = Thread.currentThread();
+    private boolean autoCommit = false;
 
     private final HugeGraph graph; // parent graph
     private BackendStore store;
@@ -108,6 +109,8 @@ public abstract class AbstractTransaction implements Transaction {
     @Override
     public void commit() throws BackendException {
         logger.debug("Transaction commit() [auto: {}]...", this.autoCommit);
+        this.checkOwnerThread();
+
         this.prepareCommit();
 
         BackendMutation mutation = this.mutation();
@@ -187,6 +190,8 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected void commitOrRollback() {
         logger.debug("Transaction commitOrRollback()");
+        this.checkOwnerThread();
+
         BackendMutation mutation = this.mutation();
 
         try {
@@ -203,6 +208,12 @@ public abstract class AbstractTransaction implements Transaction {
             // rethrow
             throw new BackendException(String.format(
                     "Failed to commit changes: %s", e1.getMessage()));
+        }
+    }
+
+    protected void checkOwnerThread() {
+        if (Thread.currentThread() != this.ownerThread) {
+            throw new BackendException("Can't operate a tx in other threads");
         }
     }
 

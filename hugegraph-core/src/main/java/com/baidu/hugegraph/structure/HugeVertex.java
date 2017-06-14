@@ -326,6 +326,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return vertex;
     }
 
+    public HugeVertex copy() {
+        HugeVertex vertex = clone();
+        vertex.tx = this.tx.graph().graphTransaction();
+        return vertex;
+    }
+
     @Override
     protected HugeVertex clone() {
         try {
