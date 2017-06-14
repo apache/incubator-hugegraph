@@ -56,8 +56,6 @@ public class GraphTransaction extends AbstractTransaction {
 
         this.indexTx = new IndexTransaction(graph, indexStore);
         assert !this.indexTx.autoCommit();
-
-        this.reset();
     }
 
     @Override
@@ -242,6 +240,8 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Vertex addVertex(HugeVertex vertex) {
+        this.checkOwnerThread();
+
         this.beforeWrite();
         this.addedVertexes.add(vertex);
         this.afterWrite();
@@ -351,6 +351,8 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Edge addEdge(HugeEdge edge) {
+        this.checkOwnerThread();
+
         this.beforeWrite();
         this.addedEdges.add(edge);
         this.afterWrite();

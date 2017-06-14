@@ -124,7 +124,7 @@ public abstract class IdGenerator {
         }
     }
 
-    static class LongId implements Id {
+    public static class LongId implements Id {
 
         private long id;
 
