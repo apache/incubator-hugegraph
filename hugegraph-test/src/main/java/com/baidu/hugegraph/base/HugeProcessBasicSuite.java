@@ -105,59 +105,59 @@ public class HugeProcessBasicSuite extends AbstractGremlinSuite {
      * as part of this suite.
      */
     private static final Class<?>[] allTests = new Class<?>[] {
-
+            // 605 test, 137 failed, 33 ignore
             // branch
             BranchTest.Traversals.class,
-            ChooseTest.Traversals.class,
+            ChooseTest.Traversals.class, // 0+1+0
             OptionalTest.Traversals.class,
-            LocalTest.Traversals.class,
-            RepeatTest.Traversals.class,
+            LocalTest.Traversals.class, // 0+5+1
+            RepeatTest.Traversals.class, // 0+1+0
             UnionTest.Traversals.class,
 
             // filter
             AndTest.Traversals.class,
             CoinTest.Traversals.class,
             CyclicPathTest.Traversals.class,
-            DedupTest.Traversals.class,
-            DropTest.Traversals.class,
+            DedupTest.Traversals.class, // 0+10+0
+            DropTest.Traversals.class, // 0+0+1
             FilterTest.Traversals.class,
-            HasTest.Traversals.class,
+            HasTest.Traversals.class, // 0+2+4
             IsTest.Traversals.class,
             OrTest.Traversals.class,
-            RangeTest.Traversals.class,
-            SampleTest.Traversals.class,
-            SimplePathTest.Traversals.class,
-            TailTest.Traversals.class,
-            WhereTest.Traversals.class,
+            RangeTest.Traversals.class, // 0+1+0
+            SampleTest.Traversals.class, // 0+2+0
+            SimplePathTest.Traversals.class, // 0+1+0
+            TailTest.Traversals.class, // 0+1+0
+            WhereTest.Traversals.class, // 0+3+0
 
             // map
-            AddEdgeTest.Traversals.class,
-            AddVertexTest.Traversals.class,
-            CoalesceTest.Traversals.class,
+            AddEdgeTest.Traversals.class, // 9+0+1
+            AddVertexTest.Traversals.class, // 7+4+2
+            CoalesceTest.Traversals.class, // 2+0+0
             ConstantTest.Traversals.class,
-            CountTest.Traversals.class,
+            CountTest.Traversals.class, // 0+3+0
             FlatMapTest.Traversals.class,
             FoldTest.Traversals.class,
-            GraphTest.Traversals.class,
-            LoopsTest.Traversals.class,
+            GraphTest.Traversals.class, // 1+0+0
+            LoopsTest.Traversals.class, // 0+3+0
             MapTest.Traversals.class,
             MapKeysTest.Traversals.class,
             MapValuesTest.Traversals.class,
-            MatchTest.CountMatchTraversals.class,
-            MatchTest.GreedyMatchTraversals.class,
-            MaxTest.Traversals.class,
-            MeanTest.Traversals.class,
-            MinTest.Traversals.class,
-            SumTest.Traversals.class,
-            OrderTest.Traversals.class,
-            PathTest.Traversals.class,
-            ProfileTest.Traversals.class,
+            MatchTest.CountMatchTraversals.class, // 0+3+0
+            MatchTest.GreedyMatchTraversals.class, // 0+3+0
+            MaxTest.Traversals.class, // 0+2+0
+            MeanTest.Traversals.class, // 0+1+0
+            MinTest.Traversals.class, // 0+2+0
+            SumTest.Traversals.class, // 0+1+0
+            OrderTest.Traversals.class, // 0+4+1
+            PathTest.Traversals.class, // 0+1+0
+            ProfileTest.Traversals.class, // 2+8+1
             ProjectTest.Traversals.class,
-            PropertiesTest.Traversals.class,
-            SelectTest.Traversals.class,
-            VertexTest.Traversals.class,
-            UnfoldTest.Traversals.class,
-            ValueMapTest.Traversals.class,
+            PropertiesTest.Traversals.class, // 0+3+0
+            SelectTest.Traversals.class, // 0+1+1
+            VertexTest.Traversals.class, // 3+5+0
+            UnfoldTest.Traversals.class, // 0+2+0
+            ValueMapTest.Traversals.class, // 0+2+0
 
             // sideEffect
             AggregateTest.Traversals.class,
@@ -267,10 +267,8 @@ public class HugeProcessBasicSuite extends AbstractGremlinSuite {
             throws InitializationError, ConfigurationException {
         super(klass, builder, allTests, testsToEnforce, true,
                 TraversalEngine.Type.STANDARD);
-        String confFile = "hugegraph-test.yaml";
         RegisterUtil.registerCore();
-        RegisterUtil.registerBackends(confFile);
-        RegisterUtil.registerServer();
+        RegisterUtil.registerCassandra();
     }
 
     /**
@@ -283,8 +281,7 @@ public class HugeProcessBasicSuite extends AbstractGremlinSuite {
             throws InitializationError, ConfigurationException {
         super(klass, builder, testsToExecute, testsToEnforce,
                 true, TraversalEngine.Type.STANDARD);
-        String confFile = "hugegraph-test.yaml";
         RegisterUtil.registerCore();
-        RegisterUtil.registerBackends(confFile);
+        RegisterUtil.registerCassandra();
     }
 }
