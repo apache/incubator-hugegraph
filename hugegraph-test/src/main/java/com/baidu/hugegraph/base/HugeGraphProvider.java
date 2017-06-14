@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.base;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +30,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.LoadGraphWith;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -39,9 +42,8 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
-import com.baidu.hugegraph.HugeFactory;
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -50,8 +52,11 @@ import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
+import com.google.common.base.Preconditions;
 
 public class HugeGraphProvider extends AbstractGraphProvider {
+
+    public static String CONF_PATH = "hugegraph.properties";
 
     private static final Set<Class> IMPLEMENTATIONS = new HashSet<Class>() {
         {
@@ -67,21 +72,33 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     @Override
     public Map<String, Object> getBaseConfiguration(String graphName,
             Class<?> aClass, String s1, LoadGraphWith.GraphData graphData) {
-        return new HashMap<String, Object>() {
-            {
-                put(Graph.GRAPH, HugeFactory.class.getName());
-                put(CoreOptions.BACKEND.name(), "cassandra");
-                put(CoreOptions.STORE.name(), graphName);
-                put(CoreOptions.SERIALIZER.name(), "cassandra");
-                put(CassandraOptions.CASSANDRA_HOST.name(), "localhost");
-                put(CassandraOptions.CASSANDRA_PORT.name(), 9042);
-            }
-        };
+        HashMap<String, Object> confMap = new HashMap<>();
+        String confFile = HugeGraphProvider.class.getClassLoader()
+                .getResource(CONF_PATH).getPath();
+        File file = new File(confFile);
+        PropertiesConfiguration config;
+        Preconditions.checkArgument(
+                file.exists() && file.isFile() && file.canRead(),
+                "Need to specify a readable configuration file rather than: %s",
+                file.toString());
+        try {
+            config = new PropertiesConfiguration(file);
+        } catch (ConfigurationException e) {
+            throw new HugeException("Unable to load config file: %s", e,
+                    confFile);
+        }
+        Iterator<String> keys = config.getKeys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            confMap.put(key, config.getProperty(key));
+        }
+        confMap.put(CoreOptions.STORE.name(), graphName);
+
+        return confMap;
     }
 
     @Override
     public Graph openTestGraph(final Configuration config) {
-
         HugeGraph graph = (HugeGraph) super.openTestGraph(config);
 
         graph.clearBackend();
@@ -194,13 +211,15 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
         schema.makePropertyKey("oid").asInt().ifNotExist().create();
         schema.makePropertyKey("__id").asText().ifNotExist().create();
-        schema.makePropertyKey("communityIndex").asInt().ifNotExist().create();
+        schema.makePropertyKey("communityIndex").asInt()
+                .ifNotExist().create();
         schema.makePropertyKey("test").ifNotExist().create();
         schema.makePropertyKey("data").ifNotExist().create();
         schema.makePropertyKey("name").ifNotExist().create();
         schema.makePropertyKey("location").ifNotExist().create();
         schema.makePropertyKey("status").ifNotExist().create();
-        schema.makePropertyKey("boolean").asBoolean().ifNotExist().create();
+        schema.makePropertyKey("boolean").asBoolean()
+                .ifNotExist().create();
         schema.makePropertyKey("float").asFloat().ifNotExist().create();
         schema.makePropertyKey("since").asInt().ifNotExist().create();
         schema.makePropertyKey("double").asDouble().ifNotExist().create();
@@ -217,7 +236,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         schema.makePropertyKey("that").ifNotExist().create();
         schema.makePropertyKey("any").ifNotExist().create();
         schema.makePropertyKey("this").ifNotExist().create();
-
+        schema.makePropertyKey("communityIndex").ifNotExist().create();
 
 
         schema.makeVertexLabel("v").properties("__id", "oid", "name",

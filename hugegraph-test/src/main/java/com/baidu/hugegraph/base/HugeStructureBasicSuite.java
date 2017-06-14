@@ -104,8 +104,7 @@ public class HugeStructureBasicSuite extends AbstractGremlinSuite {
         super(klass, builder, allTests, null, false,
                 TraversalEngine.Type.STANDARD);
 
-        String confFile = "hugegraph-test.yaml";
         RegisterUtil.registerCore();
-        RegisterUtil.registerBackends(confFile);
+        RegisterUtil.registerCassandra();
     }
 }
