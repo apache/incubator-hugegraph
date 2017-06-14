@@ -193,12 +193,13 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         SchemaManager schema = ((TestGraph) graph).hugeGraph().schema();
 
         schema.makePropertyKey("id").asInt().ifNotExist().create();
-        schema.makePropertyKey("weight").asDouble().ifNotExist().create();
+        schema.makePropertyKey("weight").asFloat().ifNotExist().create();
         schema.makePropertyKey("name").ifNotExist().create();
         schema.makePropertyKey("lang").ifNotExist().create();
         schema.makePropertyKey("age").asInt().ifNotExist().create();
 
-        schema.makeVertexLabel("vertex").properties("id", "name", "age")
+        schema.makeVertexLabel("vertex")
+                .properties("id", "name", "age", "lang")
                 .primaryKeys("id").ifNotExist().create();
         schema.makeEdgeLabel("knows").link("vertex", "vertex")
                 .properties("weight").ifNotExist().create();

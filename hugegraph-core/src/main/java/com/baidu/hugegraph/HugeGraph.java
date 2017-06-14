@@ -1,6 +1,7 @@
 package com.baidu.hugegraph;
 
 import java.util.Iterator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -343,6 +344,13 @@ public class HugeGraph implements Graph {
             } finally {
                 this.backendTx.remove();
             }
+        }
+
+        @Override
+        public synchronized Transaction onReadWrite(
+                final Consumer<Transaction> consumer) {
+            consumer.accept(this);
+            return this;
         }
 
         private GraphTransaction backendTx() {
