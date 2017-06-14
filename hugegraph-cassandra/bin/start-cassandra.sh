@@ -11,14 +11,14 @@ abs_path() {
 }
 
 BIN=`abs_path`
-CASSANDRA_CONFIG_TAG=cassandra
-: ${CASSANDRA_STARTUP_TIMEOUT_S:=60}
-: ${CASSANDRA_SHUTDOWN_TIMEOUT_S:=60}
-: ${SLEEP_INTERVAL_S:=2}
-VERBOSE=
-COMMAND=
 
-wait_for_cassandra() {
+CASSANDRA_STARTUP_TIMEOUT_S=60
+CASSANDRA_SHUTDOWN_TIMEOUT_S=60
+SLEEP_INTERVAL_S=2
+
+VERBOSE=
+
+function wait_for_cassandra() {
     local now_s=`date '+%s'`
     local stop_s=$(( $now_s + $CASSANDRA_STARTUP_TIMEOUT_S ))
 
@@ -28,7 +28,7 @@ wait_for_cassandra() {
         # The \r\n deletion bit is necessary for Cygwin compatibility
         statusbinary="`$BIN/nodetool statusbinary 2>/dev/null | tr -d '\n\r'`"
         if [ $? -eq 0 -a 'running' = "$statusbinary" ]; then
-            echo ' OK (returned exit status 0 and printed string "running").'
+            echo 'OK'
             return 0
         fi
         sleep $SLEEP_INTERVAL_S
