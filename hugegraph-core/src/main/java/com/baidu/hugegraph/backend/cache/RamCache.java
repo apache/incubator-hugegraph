@@ -1,9 +1,9 @@
 package com.baidu.hugegraph.backend.cache;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -43,17 +43,21 @@ public class RamCache implements Cache {
             cap = MAX_INIT_CAP;
         }
         // NOTE: maybe we can use LinkedHashMap if not support multi-thread
-        this.store = new ConcurrentHashMap<>((int) cap);
-        this.sortedIds = new ConcurrentLinkedQueue<>();
+        // this.store = new ConcurrentHashMap<>((int) cap);
+        // this.sortedIds = new ConcurrentLinkedQueue<>();
+        this.store = new HashMap<>((int) cap);
+        this.sortedIds = new LinkedList<>();
     }
 
-    private void access(Id id) {
+    // TODO: synchronized the id instead of access() and write()
+    private synchronized void access(Id id) {
+        ++this.hits;
         // add to tail
         this.sortedIds.remove(id);
         this.sortedIds.add(id);
     }
 
-    private void write(Id id, Object value) {
+    private synchronized void write(Id id, Object value) {
         assert id != null;
         if (this.sortedIds.size() >= this.size) {
             // remove the oldest
@@ -72,9 +76,9 @@ public class RamCache implements Cache {
     public Object get(Id id) {
         Object value = this.store.get(id);
         if (value != null) {
-            logger.debug("RamCache cached '{}' (hits={}, miss={})",
-                    id, ++this.hits, this.miss);
             this.access(id);
+            logger.debug("RamCache cached '{}' (hits={}, miss={})",
+                    id, this.hits, this.miss);
         } else {
             logger.debug("RamCache missed '{}' (miss={}, hits={})",
                     id, ++this.miss, this.hits);
@@ -86,9 +90,9 @@ public class RamCache implements Cache {
     public Object getOrFetch(Id id, Function<Id, Object> fetcher) {
         Object value = this.store.get(id);
         if (value != null) {
-            logger.debug("RamCache cached '{}' (hits={}, miss={})",
-                    id, ++this.hits, this.miss);
             this.access(id);
+            logger.debug("RamCache cached '{}' (hits={}, miss={})",
+                    id, this.hits, this.miss);
         } else {
             logger.debug("RamCache missed '{}' (miss={}, hits={})",
                     id, ++this.miss, this.hits);
@@ -100,7 +104,7 @@ public class RamCache implements Cache {
 
     @Override
     public void update(Id id, Object value) {
-        if (value == null) {
+        if (id == null || value == null) {
             return;
         }
         this.write(id, value);
@@ -108,7 +112,7 @@ public class RamCache implements Cache {
 
     @Override
     public void updateIfAbsent(Id id, Object value) {
-        if (value == null || this.store.containsKey(id)) {
+        if (id == null || value == null || this.store.containsKey(id)) {
             return;
         }
         this.write(id, value);
