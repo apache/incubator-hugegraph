@@ -83,7 +83,7 @@ public class RegisterUtil {
         return backends;
     }
 
-    private static void registerBackend(String backend) {
+    public static void registerBackend(String backend) {
         switch (backend) {
             case "cassandra":
                 registerCassandra();
