@@ -11,7 +11,7 @@
     <name>hugegraph-core: Core Library for hugegraph</name>
     <url>http://hugegraph.org</url>
     <properties>
-        <top.level.basedir>${basedir}/..</top.level.basedir>
+        <top.level.dir>${basedir}/..</top.level.dir>
     </properties>
 
     <dependencies>

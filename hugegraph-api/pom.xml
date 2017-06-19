@@ -60,7 +60,7 @@
                         <configuration>
                             <attach>false</attach>
                             <appendAssemblyId>false</appendAssemblyId>
-                            <outputDirectory>${top.level.basedir}</outputDirectory>
+                            <outputDirectory>${top.level.dir}</outputDirectory>
                             <descriptor>src/assembly/assembly.xml</descriptor>
                             <finalName>${final.name}</finalName>
                         </configuration>
