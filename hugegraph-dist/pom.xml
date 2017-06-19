@@ -32,7 +32,6 @@
     </profiles>
 
     <properties>
-        <dist.bin.name>hugegraph-bin</dist.bin.name>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor
         </assembly.descriptor.dir>
@@ -99,7 +98,7 @@
                         <configuration>
                             <attach>false</attach>
                             <appendAssemblyId>false</appendAssemblyId>
-                            <outputDirectory>${top.level.basedir}
+                            <outputDirectory>${top.level.dir}
                             </outputDirectory>
                             <descriptor>
                                 ${assembly.descriptor.dir}/assembly.xml
@@ -116,7 +115,7 @@
                 <configuration>
                     <filesets>
                         <fileset>
-                            <directory>${top.level.basedir}</directory>
+                            <directory>${top.level.dir}</directory>
                             <includes>
                                 <include>*.tar</include>
                                 <include>*.tar.gz</include>
@@ -142,10 +141,30 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <tar destfile="${top.level.basedir}/${dist.bin.name}.tar"
-                                     basedir="${top.level.basedir}/${final.name}"/>
-                                <gzip destfile="${top.level.basedir}/${dist.bin.name}.tar.gz"
-                                      src="${top.level.basedir}/${dist.bin.name}.tar"/>
+                                <echo file="${top.level.dir}/dist.sh">
+                                    run() {
+                                    res=$?
+                                    if [ $res != 0 ]; then
+                                    echo
+                                    echo "Failed!"
+                                    echo
+                                    exit $res
+                                    fi
+                                    }
+
+                                    tar -zcvf \
+                                    ${top.level.dir}/${final.name}.tar.gz\
+                                    ${final.name}
+                                    rm -f ${top.level.dir}/dist.sh
+                                    echo
+                                    echo "HugeGraph dist tar.gz available at:
+                                    ${top.level.dir}/${final.name}.tar.gz"
+                                    echo
+                                </echo>
+                                <exec executable="${shell-executable}"
+                                      dir="${top.level.dir}" failonerror="true">
+                                    <arg line="./dist.sh"/>
+                                </exec>
                             </tasks>
                         </configuration>
                     </execution>
