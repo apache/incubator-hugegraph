@@ -497,6 +497,133 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByIntPropUsingInsideWithOneResult() {
+        HugeGraph graph = graph();
+        init5Persons();
+
+        // 3 < age && age < 20 (that's age == 19)
+        List<Vertex> vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.inside(3, 20)).toList();
+
+        Assert.assertEquals(1, vertexes.size());
+        Assert.assertEquals(19, vertexes.get(0).property("age").value());
+    }
+
+    @Test
+    public void testQueryByIntPropUsingInsideWithMultiResults() {
+        HugeGraph graph = graph();
+        init5Persons();
+
+        // 19 < age && age < 21 (that's age == 20)
+        List<Vertex> vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.inside(19, 21)).toList();
+
+        Assert.assertEquals(2, vertexes.size());
+
+        // 3 < age && age < 21 (that's age == 19 or age == 20)
+        vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.inside(3, 21)).toList();
+
+        Assert.assertEquals(3, vertexes.size());
+
+        // 0 < age && age < 22 (that's all)
+        vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.inside(0, 22)).toList();
+
+        Assert.assertEquals(5, vertexes.size());
+    }
+
+    @Test
+    public void testQueryByIntPropUsingInsideWithNonResult() {
+        HugeGraph graph = graph();
+        init5Persons();
+
+        // 3 < age && age < 19
+        List<Vertex> vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.inside(3, 19)).toList();
+
+        Assert.assertEquals(0, vertexes.size());
+
+        // 0 < age && age < 3
+        vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.inside(0, 3)).toList();
+
+        Assert.assertEquals(0, vertexes.size());
+
+        // 20 < age && age < 21
+        vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.inside(20, 21)).toList();
+
+        Assert.assertEquals(0, vertexes.size());
+
+        // 21 < age && age < 25
+        vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.inside(21, 25)).toList();
+
+        Assert.assertEquals(0, vertexes.size());
+
+        // 21 < age && age < 20
+        vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.inside(21, 20)).toList();
+
+        Assert.assertEquals(0, vertexes.size());
+    }
+
+    @Test
+    public void testQueryByIntPropUsingBetweenWithOneResult() {
+        HugeGraph graph = graph();
+        init5Persons();
+
+        // 3 <= age && age < 19 (that's age == 3)
+        List<Vertex> vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.between(3, 19)).toList();
+
+        Assert.assertEquals(1, vertexes.size());
+    }
+
+    @Test
+    public void testQueryByIntPropUsingBetweenWithMultiResults() {
+        HugeGraph graph = graph();
+        init5Persons();
+
+        // 19 <= age && age < 21
+        List<Vertex> vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.between(19, 21)).toList();
+
+        Assert.assertEquals(3, vertexes.size());
+
+        // 3 <= age && age < 21
+        vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.between(3, 21)).toList();
+
+        Assert.assertEquals(4, vertexes.size());
+    }
+
+    @Test
+    public void testQueryByIntPropUsingBetweenWithNonResult() {
+        HugeGraph graph = graph();
+        init5Persons();
+
+        // 4 <= age && age < 19
+        List<Vertex> vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.between(4, 19)).toList();
+
+        Assert.assertEquals(0, vertexes.size());
+
+        // 3 <= age && age < 3
+        vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.between(3, 3)).toList();
+
+        Assert.assertEquals(0, vertexes.size());
+
+        // 21 <= age && age < 20
+        vertexes = graph.traversal().V().hasLabel(
+                "person").has("age", P.between(21, 20)).toList();
+
+        Assert.assertEquals(0, vertexes.size());
+    }
+
+    @Test
     public void testRemoveVertex() {
         HugeGraph graph = graph();
         init10Vertices();
