@@ -30,7 +30,9 @@ public abstract class Condition {
         LT("<", (v1, v2) -> { return compare(v1, v2) < 0; }),
         LTE("<=", (v1, v2) -> { return compare(v1, v2) <= 0; }),
         NEQ("!=", (v1, v2) -> { return compare(v1, v2) != 0; }),
-        HAS_KEY("haskey", null),
+        IN("in", (v1, v2) -> { return ((List<?>) v2).contains(v1); }),
+        NOT_IN("notin", (v1, v2) -> { return !((List<?>) v2).contains(v1); }),
+        CONTAINS_KEY("containskey", null),
         SCAN("scan", null);
 
         private final String operator;
@@ -118,6 +120,15 @@ public abstract class Condition {
         return new Or(this, other);
     }
 
+    public boolean isRelation() {
+        return this.type() == ConditionType.RELATION;
+    }
+
+    public boolean isLogic() {
+        return (this.type() == ConditionType.AND
+                || this.type() == ConditionType.OR);
+    }
+
     /*************************************************************************/
 
     public static Condition and(Condition left, Condition right) {
@@ -152,8 +163,16 @@ public abstract class Condition {
         return new SyspropRelation(key, RelationType.NEQ, value);
     }
 
-    public static Condition hasKey(HugeKeys key, Object value) {
-        return new SyspropRelation(key, RelationType.HAS_KEY, value);
+    public static Condition in(HugeKeys key, List<?> value) {
+        return new SyspropRelation(key, RelationType.IN, value);
+    }
+
+    public static Condition nin(HugeKeys key, List<?> value) {
+        return new SyspropRelation(key, RelationType.NOT_IN, value);
+    }
+
+    public static Condition containsKey(HugeKeys key, Object value) {
+        return new SyspropRelation(key, RelationType.CONTAINS_KEY, value);
     }
 
     public static Condition scan(String start, String end) {
@@ -184,6 +203,14 @@ public abstract class Condition {
 
     public static Relation neq(String key, Object value) {
         return new UserpropRelation(key, RelationType.NEQ, value);
+    }
+
+    public static Condition in(String key, List<?> value) {
+        return new UserpropRelation(key, RelationType.IN, value);
+    }
+
+    public static Condition nin(String key, List<?> value) {
+        return new UserpropRelation(key, RelationType.NOT_IN, value);
     }
 
     /*************************************************************************/

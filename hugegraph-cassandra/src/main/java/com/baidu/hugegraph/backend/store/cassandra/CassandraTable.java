@@ -253,7 +253,9 @@ public abstract class CassandraTable {
                 return QueryBuilder.lt(key, value);
             case LTE:
                 return QueryBuilder.lte(key, value);
-            case HAS_KEY:
+            case IN:
+                return QueryBuilder.in(key, (List<?>) value);
+            case CONTAINS_KEY:
                 return QueryBuilder.containsKey(key, value);
             case SCAN:
                 String[] col = pkColumnName().toArray(new String[0]);

@@ -11,7 +11,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
-import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -116,7 +115,6 @@ public class IndexTransaction extends AbstractTransaction {
 
         SchemaTransaction schema = graph().schemaTransaction();
 
-        boolean mustBeSearch = query.hasSearchCondition();
         Object label = query.condition(HugeKeys.LABEL);
         Preconditions.checkNotNull(label,
                 "Must contain key 'label' in conditions");
@@ -136,46 +134,63 @@ public class IndexTransaction extends AbstractTransaction {
         Preconditions.checkNotNull(schemaElement, "Invalid label: " + label);
 
         Set<String> indexNames = schemaElement.indexNames();
-        logger.debug("label '{}' index names: {}", label, indexNames);
+        logger.debug("The label '{}' with index names: {}", label, indexNames);
         for (String name : indexNames) {
             IndexLabel indexLabel = schema.getIndexLabel(name);
-
-            if (query.matchUserpropKeys(indexLabel.indexFields())) {
-                logger.debug("matched index fields: {} of index '{}'",
-                        indexLabel.indexFields(), name);
-
-                boolean isSearch = indexLabel.indexType() == IndexType.SEARCH;
-                if (mustBeSearch && !isSearch) {
-                    continue;
-                }
-
-                if (indexLabel.indexType() == IndexType.SECONDARY) {
-                    String valueStr = query.userpropValuesString();
-                    indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
-                    indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, name);
-                    indexQuery.eq(HugeKeys.PROPERTY_VALUES, valueStr);
-                } else {
-                    assert indexLabel.indexType() == IndexType.SEARCH;
-                    if (query.userpropConditions().size() != 1) {
-                        throw new BackendException(
-                                "Only support searching by one field");
-                    }
-                    Condition condition = query.userpropConditions().get(0);
-                    assert condition instanceof Condition.Relation;
-                    Condition.Relation r = (Relation) condition;
-                    indexQuery = new ConditionQuery(HugeType.SEARCH_INDEX);
-                    indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, name);
-                    indexQuery.query(new Condition.SyspropRelation(
-                            HugeKeys.PROPERTY_VALUES,
-                            r.relation(),
-                            NumericUtil.convert2Number(r.value())));
-                }
+            indexQuery = matchIndexLabel(indexLabel, query);
+            if (indexQuery != null) {
                 break;
             }
         }
 
         if (indexQuery == null) {
             throw new BackendException("No matched index for query: " + query);
+        }
+        return indexQuery;
+    }
+
+    private static ConditionQuery matchIndexLabel(IndexLabel indexLabel,
+            ConditionQuery query) {
+        ConditionQuery indexQuery = null;
+
+        boolean mustBeSearch = query.hasSearchCondition();
+        Set<String> indexFields = indexLabel.indexFields();
+
+        if (!query.matchUserpropKeys(indexFields)) {
+            return null;
+        }
+        logger.debug("Matched index fields: {} of index '{}'",
+                indexFields, indexLabel.name());
+
+        boolean isSearch = indexLabel.indexType() == IndexType.SEARCH;
+        if (mustBeSearch && !isSearch) {
+            logger.debug("There is search condition in '{}', " +
+                    "but the index label '{}' is not for search",
+                    query, indexLabel.name());
+            return null;
+        }
+
+        if (indexLabel.indexType() == IndexType.SECONDARY) {
+            String valueStr = query.userpropValuesString(indexFields);
+            indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
+            indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
+            indexQuery.eq(HugeKeys.PROPERTY_VALUES, valueStr);
+        } else {
+            assert indexLabel.indexType() == IndexType.SEARCH;
+            if (query.userpropConditions().size() != 1) {
+                throw new BackendException(
+                        "Only support searching by one field");
+            }
+            // replace the query key with PROPERTY_VALUES, and set number value
+            Condition condition = query.userpropConditions().get(0);
+            for (Condition.Relation r : condition.relations()) {
+                r.key(HugeKeys.PROPERTY_VALUES);
+                r.value(NumericUtil.convert2Number(r.value()));
+            }
+
+            indexQuery = new ConditionQuery(HugeType.SEARCH_INDEX);
+            indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
+            indexQuery.query(condition);
         }
         return indexQuery;
     }

@@ -190,7 +190,7 @@ public class InMemoryDBStore implements BackendStore {
         String key = r.key().toString();
 
         // TODO: deal with others Relation like: <, >=, ...
-        if (r.relation() == Condition.RelationType.HAS_KEY) {
+        if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
             return entry.contains(r.value().toString());
         } else if (r.relation() == Condition.RelationType.EQ) {
             return entry.contains(key, r.value().toString());

@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.backend.query;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -7,7 +8,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.tinkerpop.gremlin.structure.T;
+
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.Condition.Relation;
+import com.baidu.hugegraph.backend.query.Condition.RelationType;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
@@ -22,49 +29,51 @@ public class ConditionQuery extends IdQuery {
     }
 
     public ConditionQuery query(Condition condition) {
+        // query by id (HugeGraph-259)
+        if (condition instanceof Relation) {
+            Relation relation = (Relation) condition;
+            if (relation.key().equals(HugeKeys.ID)
+                    && relation.relation() == RelationType.EQ) {
+                super.query(HugeElement.getIdValue(T.id, relation.value()));
+                return this;
+            }
+        }
+
         this.conditions.add(condition);
         return this;
     }
 
     public ConditionQuery eq(HugeKeys key, Object value) {
         // filter value by key
-        this.conditions.add(Condition.eq(key, value));
-        return this;
+        return this.query(Condition.eq(key, value));
     }
 
     public ConditionQuery gt(HugeKeys key, Object value) {
-        this.conditions.add(Condition.gt(key, value));
-        return this;
+        return this.query(Condition.gt(key, value));
     }
 
     public ConditionQuery gte(HugeKeys key, Object value) {
-        this.conditions.add(Condition.gte(key, value));
-        return this;
+        return this.query(Condition.gte(key, value));
     }
 
     public ConditionQuery lt(HugeKeys key, Object value) {
-        this.conditions.add(Condition.lt(key, value));
-        return this;
+        return this.query(Condition.lt(key, value));
     }
 
     public ConditionQuery lte(HugeKeys key, Object value) {
-        this.conditions.add(Condition.lte(key, value));
-        return this;
+        return this.query(Condition.lte(key, value));
     }
 
     public ConditionQuery neq(HugeKeys key, Object value) {
-        this.conditions.add(Condition.neq(key, value));
-        return this;
+        return this.query(Condition.neq(key, value));
     }
 
     public ConditionQuery key(HugeKeys key, String value) {
-        this.conditions.add(Condition.hasKey(key, value));
-        return this;
+        return this.query(Condition.containsKey(key, value));
     }
 
     public ConditionQuery scan(String start, String end) {
-        this.conditions.add(Condition.scan(start, end));
-        return this;
+        return this.query(Condition.scan(start, end));
     }
 
     @Override
@@ -106,7 +115,7 @@ public class ConditionQuery extends IdQuery {
 
     public Object condition(Object key) {
         for (Condition c : this.conditions) {
-            if (c.type() == Condition.ConditionType.RELATION) {
+            if (c.isRelation()) {
                 Condition.Relation r = (Condition.Relation) c;
                 if (r.key().equals(key)) {
                     return r.value();
@@ -121,7 +130,7 @@ public class ConditionQuery extends IdQuery {
         Iterator<Condition> iterator = this.conditions.iterator();
         while (iterator.hasNext()) {
             Condition c = iterator.next();
-            if (c.type() == Condition.ConditionType.RELATION
+            if (c.isRelation()
                     && ((Condition.Relation) c).key().equals(key)) {
                 iterator.remove();
             }
@@ -135,7 +144,7 @@ public class ConditionQuery extends IdQuery {
 
     public boolean containsCondition(Condition.RelationType type) {
         for (Condition c : this.conditions) {
-            if (c.type() == Condition.ConditionType.RELATION
+            if (c.isRelation()
                     && ((Condition.Relation) c).relation().equals(type)) {
                 return true;
             }
@@ -151,12 +160,9 @@ public class ConditionQuery extends IdQuery {
     public List<Condition> userpropConditions() {
         List<Condition> conds = new LinkedList<>();
         for (Condition c : this.conditions) {
-            if (c.type() == Condition.ConditionType.RELATION
-                    && !((Condition.Relation) c).isSysprop()) {
-                Condition.UserpropRelation r = (Condition.UserpropRelation) c;
-                conds.add(r);
+            if (!c.isSysprop()) {
+                conds.add(c);
             }
-            // TODO: deal with other Condition
         }
         return conds;
     }
@@ -165,42 +171,57 @@ public class ConditionQuery extends IdQuery {
         Iterator<Condition> iterator = this.conditions.iterator();
         while (iterator.hasNext()) {
             Condition c = iterator.next();
-            if (c.type() == Condition.ConditionType.RELATION
-                    && !((Condition.Relation) c).isSysprop()) {
+            if (!c.isSysprop()) {
                 iterator.remove();
             }
-            // TODO: deal with other Condition
         }
     }
 
     public Set<String> userpropKeys() {
         Set<String> keys = new LinkedHashSet<>();
-        for (Condition c : this.conditions) {
-            if (c.type() == Condition.ConditionType.RELATION
-                    && !((Condition.Relation) c).isSysprop()) {
-                Condition.UserpropRelation r = (Condition.UserpropRelation) c;
-                keys.add(r.key());
+        for (Relation r : this.relations()) {
+            if (!r.isSysprop()) {
+                Condition.UserpropRelation ur = (Condition.UserpropRelation) r;
+                keys.add(ur.key());
             }
-            // TODO: deal with other Condition
         }
         return keys;
     }
 
-    public Set<Object> userpropValues() {
-        Set<Object> keys = new LinkedHashSet<>();
-        for (Condition c : this.conditions) {
-            if (c.type() == Condition.ConditionType.RELATION
-                    && !((Condition.Relation) c).isSysprop()) {
-                Condition.Relation r = (Condition.Relation) c;
-                keys.add(r.value());
+    public List<Object> userpropValues(List<String> fields) {
+        List<Object> values = new ArrayList<>(fields.size());
+        for (String field : fields) {
+            boolean got = false;
+            for (Condition c : this.conditions) {
+                if (!c.isRelation()) {
+                    // TODO: deal with other Condition like AND/OR
+                    throw new BackendException(
+                            "Not support getting userprop from non relation");
+                }
+                Relation r = ((Relation) c);
+                if (r.key().equals(field) && !c.isSysprop()) {
+                    assert r.relation() == Condition.RelationType.EQ;
+                    values.add(r.value());
+                    got = true;
+                }
             }
-            // TODO: deal with other Condition
+            if (!got) {
+                throw new BackendException(
+                        "No such userprop named '%s' in the query '%s'",
+                        field, this);
+            }
         }
-        return keys;
+        return values;
     }
 
-    public String userpropValuesString() {
-        return SplicingIdGenerator.concatValues(this.userpropValues());
+    public String userpropValuesString(List<String> fields) {
+        return SplicingIdGenerator.concatValues(this.userpropValues(fields));
+    }
+
+    // TODO: remove this method after changing fields type to List<String>
+    // that's when HugeGraph-290 is done
+    public String userpropValuesString(Set<String> fields) {
+        return userpropValuesString(new ArrayList<>(fields));
     }
 
     public boolean hasSearchCondition() {
