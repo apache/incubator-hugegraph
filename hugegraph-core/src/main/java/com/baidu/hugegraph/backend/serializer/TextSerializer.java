@@ -287,7 +287,7 @@ public class TextSerializer extends AbstractSerializer {
                 // serialize and reset key
                 r.key(formatSyspropName((HugeKeys) r.key()));
                 // serialize has-key
-                if (r.relation() == Condition.RelationType.HAS_KEY) {
+                if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
                     r.value(formatPropertyName(r.value()));
                 }
             }

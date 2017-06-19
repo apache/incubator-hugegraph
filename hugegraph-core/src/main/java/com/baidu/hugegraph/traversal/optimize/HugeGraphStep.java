@@ -8,9 +8,13 @@ import java.util.List;
 import java.util.function.BiPredicate;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Compare;
+import org.apache.tinkerpop.gremlin.process.traversal.Contains;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
+import org.apache.tinkerpop.gremlin.process.traversal.util.AndP;
+import org.apache.tinkerpop.gremlin.process.traversal.util.OrP;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -22,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.type.HugeType;
@@ -70,10 +75,7 @@ public final class HugeGraphStep<S, E extends Element>
             query = new Query(HugeType.VERTEX);
         } else {
             ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
-            for (HasContainer condition : this.hasContainers) {
-                q.query(convHasContainer2Condition(condition));
-            }
-            query = q;
+            query = HugeGraphStep.fillConditionQuery(this.hasContainers, q);
         }
 
         query.offset(this.offset);
@@ -100,10 +102,7 @@ public final class HugeGraphStep<S, E extends Element>
             query = new Query(HugeType.EDGE);
         } else {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
-            for (HasContainer has : this.hasContainers) {
-                q.query(convHasContainer2Condition(has));
-            }
-            query = q;
+            query = HugeGraphStep.fillConditionQuery(this.hasContainers, q);
         }
 
         query.offset(this.offset);
@@ -158,50 +157,127 @@ public final class HugeGraphStep<S, E extends Element>
         return super.hashCode() ^ this.hasContainers.hashCode();
     }
 
-    public static Condition convHasContainer2Condition(HasContainer has) {
+    public static ConditionQuery fillConditionQuery(
+            List<HasContainer> hasContainers,
+            ConditionQuery query) {
+        for (HasContainer has : hasContainers) {
+            BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+            if (bp instanceof Compare) {
+                query.query(HugeGraphStep.convCompare2Relation(has));
+            } else if (bp instanceof Contains) {
+                query.query(HugeGraphStep.convContains2Relation(has));
+            } else if (has.getPredicate() instanceof AndP) {
+                query.query(HugeGraphStep.convAnd(has));
+            } else if (has.getPredicate() instanceof OrP) {
+                query.query(HugeGraphStep.convOr(has));
+            } else {
+                // TODO: deal with other Predicate
+                throw newUnsupportedPredicate(has.getPredicate());
+            }
+        }
+
+        return query;
+    }
+
+    public static Condition convAnd(HasContainer has) {
+        P<?> p = has.getPredicate();
+        assert p instanceof AndP;
+        @SuppressWarnings("unchecked")
+        List<P<Object>> predicates = ((AndP<Object>) p).getPredicates();
+        if (predicates.size() != 2) {
+            throw newUnsupportedPredicate(p);
+        }
+
+        // just for supporting P.inside() / P.between()
+        return Condition.and(
+                HugeGraphStep.convCompare2Relation(
+                        new HasContainer(has.getKey(), predicates.get(0))),
+                HugeGraphStep.convCompare2Relation(
+                        new HasContainer(has.getKey(), predicates.get(1))));
+    }
+
+    public static Condition convOr(HasContainer has) {
+        P<?> p = has.getPredicate();
+        assert p instanceof OrP;
+        // TODO: support P.outside() which is implemented by OR
+        throw newUnsupportedPredicate(p);
+    }
+
+    public static Relation convCompare2Relation(HasContainer has) {
+        BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+        assert bp instanceof Compare;
+
         try {
             HugeKeys key = string2HugeKey(has.getKey());
             Object value = has.getValue();
 
-            BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
-            if (bp.equals(Compare.eq)) {
-                return Condition.eq(key, value);
-            } else if (bp.equals(Compare.gt)) {
-                return Condition.gt(key, value);
-            } else if (bp.equals(Compare.gte)) {
-                return Condition.gte(key, value);
-            } else if (bp.equals(Compare.lt)) {
-                return Condition.lt(key, value);
-            } else if (bp.equals(Compare.lte)) {
-                return Condition.lte(key, value);
-            } else if (bp.equals(Compare.neq)) {
-                return Condition.neq(key, value);
-            } else {
-                // TODO: deal with other Predicate
-                throw new BackendException("Unsupported condition: " + bp);
+            switch ((Compare) bp) {
+                case eq:
+                    return Condition.eq(key, value);
+                case gt:
+                    return Condition.gt(key, value);
+                case gte:
+                    return Condition.gte(key, value);
+                case lt:
+                    return Condition.lt(key, value);
+                case lte:
+                    return Condition.lte(key, value);
+                case neq:
+                    return Condition.neq(key, value);
             }
         } catch (IllegalArgumentException e) {
             String key = has.getKey();
             Object value = has.getValue();
 
-            BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
-            if (bp.equals(Compare.eq)) {
-                return Condition.eq(key, value);
-            } else if (bp.equals(Compare.gt)) {
-                return Condition.gt(key, value);
-            } else if (bp.equals(Compare.gte)) {
-                return Condition.gte(key, value);
-            } else if (bp.equals(Compare.lt)) {
-                return Condition.lt(key, value);
-            } else if (bp.equals(Compare.lte)) {
-                return Condition.lte(key, value);
-            } else if (bp.equals(Compare.neq)) {
-                return Condition.neq(key, value);
-            } else {
-                // TODO: deal with other Predicate
-                throw new BackendException("Unsupported condition: " + bp);
+            switch ((Compare) bp) {
+                case eq:
+                    return Condition.eq(key, value);
+                case gt:
+                    return Condition.gt(key, value);
+                case gte:
+                    return Condition.gte(key, value);
+                case lt:
+                    return Condition.lt(key, value);
+                case lte:
+                    return Condition.lte(key, value);
+                case neq:
+                    return Condition.neq(key, value);
             }
         }
+
+        throw newUnsupportedPredicate(has.getPredicate());
+    }
+
+    public static Condition convContains2Relation(HasContainer has) {
+        BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+        assert bp instanceof Contains;
+        List<?> value = (List<?>) has.getValue();
+
+        try {
+            HugeKeys key = string2HugeKey(has.getKey());
+
+            switch ((Contains) bp) {
+                case within:
+                    return Condition.in(key, value);
+                case without:
+                    return Condition.nin(key, value);
+            }
+        } catch (IllegalArgumentException e) {
+            String key = has.getKey();
+
+            switch ((Contains) bp) {
+                case within:
+                    return Condition.in(key, value);
+                case without:
+                    return Condition.nin(key, value);
+            }
+        }
+
+        throw newUnsupportedPredicate(has.getPredicate());
+    }
+
+    private static BackendException newUnsupportedPredicate(P<?> predicate) {
+        return new BackendException("Unsupported predicate: '%s'", predicate);
     }
 
     public static HugeKeys string2HugeKey(String key) {

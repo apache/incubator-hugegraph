@@ -493,7 +493,7 @@ public class GraphTransaction extends AbstractTransaction {
             Set<String> keys = graph().schema().vertexLabel(
                     label.toString()).primaryKeys();
             if (!keys.isEmpty() && query.matchUserpropKeys(keys)) {
-                String primaryValues = query.userpropValuesString();
+                String primaryValues = query.userpropValuesString(keys);
                 query.eq(HugeKeys.PRIMARY_VALUES, primaryValues);
                 query.resetUserpropConditions();
                 logger.debug("Query vertices by primaryKeys: {}", query);
@@ -522,7 +522,8 @@ public class GraphTransaction extends AbstractTransaction {
             if (query.condition(HugeKeys.SOURCE_VERTEX) != null
                     && query.condition(HugeKeys.DIRECTION) != null
                     && !keys.isEmpty() && query.matchUserpropKeys(keys)) {
-                query.eq(HugeKeys.SORT_VALUES, query.userpropValuesString());
+                query.eq(HugeKeys.SORT_VALUES,
+                        query.userpropValuesString(keys));
                 query.resetUserpropConditions();
                 logger.debug("Query edges by sortKeys: {}", query);
                 return query;

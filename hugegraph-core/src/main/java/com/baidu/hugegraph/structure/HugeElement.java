@@ -185,10 +185,10 @@ public abstract class HugeElement implements Element, GraphType {
             return (Id) ((Element) idValue).id();
         }
 
-        // error type
+        // throw if error type
         throw new UnsupportedOperationException(
-                "Unsupported id type(must be a number, a string or "
-                        + "element): " + idValue.getClass().getSimpleName());
+                "Unsupported id type(must be a number or a string): " +
+                idValue.getClass().getSimpleName());
     }
 
     public static Object getLabelValue(Object... keyValues) {

@@ -96,11 +96,16 @@ public final class HugeVertexStep<E extends Element>
             ConditionQuery query = GraphTransaction.constructEdgesQuery(
                     (Id) vertex.id(), dir, edgeLabels);
 
-            // conditions (enable if query for edge else conditions for vertex)
+            // enable conditions if query for edge else conditions for vertex
             if (Edge.class.isAssignableFrom(getReturnClass())) {
-                for (HasContainer has : this.hasContainers) {
-                    query.query(HugeGraphStep.convHasContainer2Condition(has));
-                }
+                HugeGraphStep.fillConditionQuery(this.hasContainers, query);
+            }
+
+            if (!query.ids().isEmpty()) {
+                // TODO: should check the edge id match this vertex
+                // ignore conditions if query by edge id in has-containers
+                query.resetConditions();
+                logger.warn("It's not recommended to query by has(id)");
             }
 
             // do query
