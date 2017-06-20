@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.api.graph;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -24,6 +25,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
@@ -34,6 +36,8 @@ import com.baidu.hugegraph.server.HugeServer;
 public class VertexAPI extends API {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
+
+    private static final int MAX_VERTICES = 100;
 
     @POST
     @Status(Status.CREATED)
@@ -47,6 +51,38 @@ public class VertexAPI extends API {
         Graph g = graph(manager, graph);
         Vertex v = g.addVertex(vertex.properties());
         return manager.serializer(g).writeVertex(v);
+    }
+
+    @POST
+    @Path("batch")
+    @Status(Status.CREATED)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<String> create(@Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         List<CreateVertex> vertices) {
+        if (vertices.size() > MAX_VERTICES) {
+            throw new HugeException("Too many counts of vertices for one time "
+                    + "post, the maximum number is '%s'", MAX_VERTICES);
+        }
+
+        logger.debug("Graph [{}] create vertices: {}", graph, vertices);
+
+        Graph g = graph(manager, graph);
+        List<String> ids = new ArrayList<>(vertices.size());
+        g.tx().open();
+        try {
+            for (CreateVertex vertex : vertices) {
+                ids.add(g.addVertex(vertex.properties()).id().toString());
+            }
+            g.tx().commit();
+        } catch (Exception e) {
+            g.tx().rollback();
+            throw new HugeException("Failed to add vertices", e);
+        } finally {
+            g.tx().close();
+        }
+        return ids;
     }
 
     @GET
