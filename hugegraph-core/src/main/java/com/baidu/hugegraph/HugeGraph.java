@@ -292,10 +292,15 @@ public class HugeGraph implements Graph {
         private ThreadLocal<GraphTransaction> backendTx = new ThreadLocal<>();
 
         @Override
-        public void doOpen() {
-            if (this.isOpen()) {
-                return;
+        public void open() {
+            if (isOpen()) {
+                close();
             }
+            doOpen();
+        }
+
+        @Override
+        protected void doOpen() {
             this.backendTx.set(graphTransaction());
             this.backendTx().autoCommit(false);
         }
