@@ -12,7 +12,6 @@ abs_path() {
 
 BIN=`abs_path`
 
-"$BIN"/start-cassandra.sh
 "$BIN"/start-gremlinserver.sh
 "$BIN"/start-hugeserver.sh
 
