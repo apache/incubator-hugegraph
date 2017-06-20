@@ -23,4 +23,4 @@ else
 fi
 
 exec $JAVA -cp $LIB/hugegraph-dist-*.jar -Djava.ext.dirs=$LIB/ \
-com.baidu.hugegraph.dist.InitStore $CONF/gremlin-server.yaml
+com.baidu.hugegraph.dist.InitStore $CONF/gremlin-server.yaml | grep INFO
