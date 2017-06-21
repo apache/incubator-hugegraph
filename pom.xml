@@ -81,6 +81,7 @@
         <jetty.version>9.4.1.v20170120</jetty.version>
         <jamon.version>2.4.1</jamon.version>
         <jersey.version>2.25.1</jersey.version>
+        <javassist.version>3.21.0-GA</javassist.version>
         <shell-executable>bash</shell-executable>
     </properties>
     <modules>
@@ -325,6 +326,13 @@
                 <groupId>org.glassfish.jersey.test-framework.providers</groupId>
                 <artifactId>jersey-test-framework-provider-grizzly2</artifactId>
                 <version>${jersey.version}</version>
+            </dependency>
+
+            <!-- javassist -->
+            <dependency>
+                <groupId>org.javassist</groupId>
+                <artifactId>javassist</artifactId>
+                <version>${javassist.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
