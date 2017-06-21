@@ -35,6 +35,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
@@ -120,6 +121,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
     }
 
+    @Watched(prefix = "edge")
     public void assignId() {
         assert this.id == null;
         // Generate an id and assign
@@ -128,10 +130,12 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
     }
 
+    @Watched(prefix = "edge")
     public Id idWithDirection() {
         return SplicingIdGenerator.instance().generate(this, true);
     }
 
+    @Watched(prefix = "edge")
     public List<Object> sortValues() {
         List<String> sortKeys = this.edgeLabel().sortKeys();
         if (sortKeys.isEmpty()) {
@@ -145,6 +149,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return propValues;
     }
 
+    @Watched(prefix = "edge")
     @Override
     public void remove() {
         this.removed = true;
@@ -162,11 +167,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.addProperty(key, value, true);
     }
 
+    @Watched(prefix = "edge")
     @Override
     protected <V> HugeEdgeProperty<V> newProperty(PropertyKey pkey, V val) {
         return new HugeEdgeProperty<>(this, pkey, val);
     }
 
+    @Watched(prefix = "edge")
     @Override
     protected <V> void onUpdateProperty(Cardinality cardinality,
                                         HugeProperty<V> prop) {
@@ -177,6 +184,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
     }
 
+    @Watched(prefix = "edge")
     protected void ensureEdgeProperties() {
         if (this.propLoaded) {
             return;
@@ -187,6 +195,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.copyProperties((HugeEdge) edges.next());
     }
 
+    @Watched(prefix = "edge")
     @Override
     @SuppressWarnings("unchecked") // (Property<V>) prop
     public <V> Iterator<Property<V>> properties(String... propertyKeys) {

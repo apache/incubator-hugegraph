@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.Log;
@@ -59,7 +60,7 @@ public class PerfExample1 {
 
         // NOTE: this test with HugeGraph is for local, change it into
         // client if test with restful server from remote
-        HugeGraph hugegraph = ExampleUtil.loadGraph();
+        HugeGraph hugegraph = ExampleUtil.loadGraph(true);
         GraphManager graph = new GraphManager(hugegraph);
 
         initSchema(hugegraph.schema());
@@ -97,6 +98,7 @@ public class PerfExample1 {
                 testInsertPerf(graph, times, multiple);
                 graph.tx().close();
                 graph.close();
+                LOG.info("option = {}", PerfUtil.instance().toECharts());
             });
             threads.add(t);
         }

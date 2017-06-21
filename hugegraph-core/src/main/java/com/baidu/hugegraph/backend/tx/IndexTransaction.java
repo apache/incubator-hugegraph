@@ -39,6 +39,7 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -66,6 +67,7 @@ public class IndexTransaction extends AbstractTransaction {
         super(graph, store);
     }
 
+    @Watched(prefix = "index")
     public void updateVertexIndex(HugeVertex vertex, boolean removed) {
         // Update index(only property, no edge) of a vertex
         for (String indexName : vertex.vertexLabel().indexNames()) {
@@ -73,6 +75,7 @@ public class IndexTransaction extends AbstractTransaction {
         }
     }
 
+    @Watched(prefix = "index")
     public void updateEdgeIndex(HugeEdge edge, boolean removed) {
         // Update index of an edge
         for (String indexName : edge.edgeLabel().indexNames()) {
@@ -145,6 +148,7 @@ public class IndexTransaction extends AbstractTransaction {
         }
     }
 
+    @Watched(prefix = "index")
     public Query query(ConditionQuery query) {
         SchemaTransaction schema = graph().schemaTransaction();
 
@@ -207,9 +211,10 @@ public class IndexTransaction extends AbstractTransaction {
         return labels;
     }
 
+    @Watched(prefix = "index")
     private ConditionQuery makeIndexQuery(ConditionQuery query, String label) {
         ConditionQuery indexQuery = null;
-        SchemaLabel schemaLabel;
+        SchemaLabel schemaLabel = null;
 
         SchemaTransaction schema = graph().schemaTransaction();
         switch (query.resultType()) {

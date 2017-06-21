@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.schema.SchemaManager;
 
 public class GraphOfTheMoviesExample {
@@ -38,7 +39,7 @@ public class GraphOfTheMoviesExample {
     public static void main(String[] args) {
         LOG.info("ExampleGraphFactory start!");
 
-        HugeGraph graph = ExampleUtil.loadGraph();
+        HugeGraph graph = ExampleUtil.loadGraph(true);
 
         long startTime = System.currentTimeMillis();
         GraphOfTheMoviesExample.load(graph);
@@ -47,6 +48,8 @@ public class GraphOfTheMoviesExample {
                            (endTime - startTime) / 1000.0);
 
         GraphOfTheMoviesExample.query(graph);
+
+        System.out.println(">>>> perf: " + PerfUtil.instance().toECharts());
         System.exit(0);
     }
 

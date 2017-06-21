@@ -53,6 +53,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -110,6 +111,7 @@ public class GraphTransaction extends AbstractTransaction {
         this.removedEdges = new LinkedHashSet<>();
     }
 
+    @Watched(prefix = "tx")
     @Override
     protected BackendMutation prepareCommit() {
         // Serialize and add updates into super.deletions
@@ -238,6 +240,7 @@ public class GraphTransaction extends AbstractTransaction {
         return super.query(query);
     }
 
+    @Watched("graph.addVertex-with-instance")
     public Vertex addVertex(HugeVertex vertex) {
         this.checkOwnerThread();
 
@@ -255,6 +258,7 @@ public class GraphTransaction extends AbstractTransaction {
         return vertex;
     }
 
+    @Watched(prefix = "graph")
     public Vertex addVertex(Object... keyValues) {
         HugeElement.ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
 
@@ -300,6 +304,7 @@ public class GraphTransaction extends AbstractTransaction {
         return this.addVertex(vertex);
     }
 
+    @Watched(prefix = "graph")
     public void removeVertex(HugeVertex vertex) {
         this.checkOwnerThread();
 
@@ -377,6 +382,7 @@ public class GraphTransaction extends AbstractTransaction {
         return this.queryVertices(query);
     }
 
+    @Watched(prefix = "graph")
     public Edge addEdge(HugeEdge edge) {
         this.checkOwnerThread();
 
@@ -394,6 +400,7 @@ public class GraphTransaction extends AbstractTransaction {
         return edge;
     }
 
+    @Watched(prefix = "graph")
     public void removeEdge(HugeEdge edge) {
         this.checkOwnerThread();
 

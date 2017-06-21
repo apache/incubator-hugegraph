@@ -32,6 +32,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotAllowException;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -94,6 +95,7 @@ public class SchemaTransaction extends AbstractTransaction {
         this.addSchema(propertyKey, entry);
     }
 
+    @Watched(prefix = "schema")
     public PropertyKey getPropertyKey(String name) {
         BackendEntry entry = this.querySchema(new PropertyKey(name));
         return this.serializer.readPropertyKey(entry);
@@ -136,6 +138,7 @@ public class SchemaTransaction extends AbstractTransaction {
         this.addSchema(vertexLabel, entry);
     }
 
+    @Watched(prefix = "schema")
     public VertexLabel getVertexLabel(String name) {
         BackendEntry entry = this.querySchema(new VertexLabel(name));
         return this.serializer.readVertexLabel(entry);
@@ -186,6 +189,7 @@ public class SchemaTransaction extends AbstractTransaction {
         this.addSchema(edgeLabel, entry);
     }
 
+    @Watched(prefix = "schema")
     public EdgeLabel getEdgeLabel(String name) {
         BackendEntry entry = this.querySchema(new EdgeLabel(name));
         return this.serializer.readEdgeLabel(entry);
@@ -222,6 +226,7 @@ public class SchemaTransaction extends AbstractTransaction {
         this.addSchema(indexLabel, entry);
     }
 
+    @Watched(prefix = "schema")
     public IndexLabel getIndexLabel(String name) {
         BackendEntry entry = this.querySchema(new IndexLabel(name));
         return this.serializer.readIndexLabel(entry);
