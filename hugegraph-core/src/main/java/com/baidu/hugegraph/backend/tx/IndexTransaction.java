@@ -154,7 +154,7 @@ public class IndexTransaction extends AbstractTransaction {
         ConditionQuery indexQuery = null;
 
         boolean mustBeSearch = query.hasSearchCondition();
-        Set<String> indexFields = indexLabel.indexFields();
+        List<String> indexFields = indexLabel.indexFields();
 
         if (!query.matchUserpropKeys(indexFields)) {
             return null;

@@ -1,8 +1,8 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.LinkedList;
+import java.util.List;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.HugeType;
@@ -25,7 +25,7 @@ public class HugeIndexLabel extends IndexLabel {
     private HugeType baseType;
     private String baseValue;
     private IndexType indexType;
-    private Set<String> indexFields;
+    private List<String> indexFields;
 
     public HugeIndexLabel(String name) {
         this(name, null, null);
@@ -36,7 +36,7 @@ public class HugeIndexLabel extends IndexLabel {
         this.baseType = baseType;
         this.baseValue = baseValue;
         this.indexType = IndexType.SECONDARY;
-        this.indexFields = new HashSet<>();
+        this.indexFields = new LinkedList<>();
     }
 
     @Override
@@ -80,18 +80,24 @@ public class HugeIndexLabel extends IndexLabel {
     }
 
     @Override
-    public Set<String> indexFields() {
+    public List<String> indexFields() {
         return this.indexFields;
     }
 
     public void indexFields(String... indexFields) {
-        this.indexFields.addAll(Arrays.asList(indexFields));
+        for (String field : indexFields) {
+            if (!this.indexFields.contains(field)) {
+                this.indexFields.add(field);
+            }
+        }
     }
 
     @Override
     public IndexLabel by(String... indexFields) {
-        for (String indexFiled : indexFields) {
-            this.indexFields.add(indexFiled);
+        for (String field : indexFields) {
+            if (!this.indexFields.contains(field)) {
+                this.indexFields.add(field);
+            }
         }
         return this;
     }
@@ -172,9 +178,8 @@ public class HugeIndexLabel extends IndexLabel {
                 this.element = this.transaction().getPropertyKey(this.baseValue);
                 break;
             default:
-                throw new HugeException(String.format(
-                        "Unsupported element type '%s' of index label '%s'",
-                        this.baseType, this.name));
+                throw new HugeException("Unsupported element type '%s' of " +
+                          "index label '%s'", this.baseType, this.name);
         }
     }
 
@@ -183,13 +188,16 @@ public class HugeIndexLabel extends IndexLabel {
         if (this.indexType == IndexType.SEARCH) {
             E.checkArgument(this.indexFields.size() == 1,
                     "Search index can only build on one property, " +
-                    "but got %d properties: '%s'", this.indexFields.size(),
+                    "but got %d properties: '%s'",
+                    this.indexFields.size(),
                     this.indexFields);
             String field = this.indexFields.iterator().next();
             PropertyKey propertyKey = this.transaction().getPropertyKey(field);
-            E.checkArgument(NumericUtil.isNumber(propertyKey.dataType().clazz()),
+            E.checkArgument(
+                    NumericUtil.isNumber(propertyKey.dataType().clazz()),
                     "Search index can only build on numeric property, " +
-                    "but got %s(%s)", propertyKey.dataType(), propertyKey.name());
+                    "but got %s(%s)", propertyKey.dataType(),
+                    propertyKey.name());
         }
     }
 
@@ -204,8 +212,8 @@ public class HugeIndexLabel extends IndexLabel {
                 break;
             case PROPERTY_KEY:
             default:
-                throw new HugeException("Can't update index name of "
-                        + "schema type: %s", baseType);
+                throw new HugeException("Can't update index name of " +
+                                        "schema type: %s", baseType);
         }
     }
 

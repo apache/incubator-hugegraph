@@ -1,6 +1,6 @@
 package com.baidu.hugegraph.type.schema;
 
-import java.util.Set;
+import java.util.List;
 
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
@@ -43,5 +43,5 @@ public abstract class IndexLabel extends SchemaElement {
 
     public abstract IndexType indexType();
 
-    public abstract Set<String> indexFields();
+    public abstract List<String> indexFields();
 }

@@ -2,6 +2,7 @@ package com.baidu.hugegraph.type.schema;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.schema.HugePropertyKey;
@@ -28,7 +29,7 @@ public abstract class VertexLabel extends SchemaElement {
         return this;
     }
 
-    public abstract Set<String> primaryKeys();
+    public abstract List<String> primaryKeys();
 
     public abstract VertexLabel primaryKeys(String... keys);
 
