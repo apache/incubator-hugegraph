@@ -86,7 +86,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public List<Object> primaryValues() {
-        Set<String> primaryKeys = this.vertexLabel().primaryKeys();
+        List<String> primaryKeys = this.vertexLabel().primaryKeys();
         if (primaryKeys.isEmpty()) {
             return ImmutableList.of();
         }
@@ -101,7 +101,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public void primaryValues(List<Object> propValues) {
-        Set<String> primaryKeys = this.vertexLabel().primaryKeys();
+        List<String> primaryKeys = this.vertexLabel().primaryKeys();
         int i = 0;
         for (String k : primaryKeys) {
             this.addProperty(k, propValues.get(i++));

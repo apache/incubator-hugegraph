@@ -2,6 +2,8 @@ package com.baidu.hugegraph.schema;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
@@ -21,13 +23,13 @@ public class HugeEdgeLabel extends EdgeLabel {
 
     private Frequency frequency;
     private Set<EdgeLink> links;
-    private Set<String> sortKeys;
+    private List<String> sortKeys;
 
     public HugeEdgeLabel(String name) {
         super(name);
         this.frequency = Frequency.SINGLE;
         this.links = new LinkedHashSet<>();
-        this.sortKeys = new LinkedHashSet<>();
+        this.sortKeys = new LinkedList<>();
     }
 
     @Override
@@ -89,13 +91,17 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     @Override
-    public Set<String> sortKeys() {
+    public List<String> sortKeys() {
         return this.sortKeys;
     }
 
     @Override
     public EdgeLabel sortKeys(String... keys) {
-        this.sortKeys.addAll(Arrays.asList(keys));
+        for (String key : keys) {
+            if (!this.sortKeys.contains(key)) {
+                this.sortKeys.add(key);
+            }
+        }
         return this;
     }
 
@@ -191,7 +197,7 @@ public class HugeEdgeLabel extends EdgeLabel {
         for (String property : this.properties) {
             edgeLabel.properties.add(property);
         }
-        edgeLabel.sortKeys = new LinkedHashSet<>();
+        edgeLabel.sortKeys = new LinkedList<>();
         for (String primaryKey : this.sortKeys) {
             edgeLabel.sortKeys.add(primaryKey);
         }

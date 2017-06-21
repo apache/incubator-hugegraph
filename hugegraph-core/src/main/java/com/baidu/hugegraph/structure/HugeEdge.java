@@ -92,7 +92,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public List<Object> sortValues() {
-        Set<String> sortKeys = this.edgeLabel().sortKeys();
+        List<String> sortKeys = this.edgeLabel().sortKeys();
         if (sortKeys.isEmpty()) {
             return ImmutableList.of();
         }
@@ -107,7 +107,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public void sortValues(List<Object> propValues) {
-        Set<String> sortKeys = this.edgeLabel().sortKeys();
+        List<String> sortKeys = this.edgeLabel().sortKeys();
         int i = 0;
         for (String k : sortKeys) {
             this.addProperty(k, propValues.get(i++));

@@ -277,7 +277,7 @@ public class GraphTransaction extends AbstractTransaction {
         assert (label instanceof VertexLabel);
 
         // Check whether primaryKey exists
-        Set<String> primaryKeys = ((VertexLabel) label).primaryKeys();
+        List<String> primaryKeys = ((VertexLabel) label).primaryKeys();
         Preconditions.checkArgument(CollectionUtil.containsAll(
                 ElementHelper.getKeys(keyValues), primaryKeys),
                 "The primary key(s) must be set: %s", primaryKeys);
@@ -490,7 +490,7 @@ public class GraphTransaction extends AbstractTransaction {
         if (label != null && query.resultType() == HugeType.VERTEX
                 && !features.vertex().supportsUserSuppliedIds()) {
             // Query vertex by label + primary-values
-            Set<String> keys = graph().schema().vertexLabel(
+            List<String> keys = graph().schema().vertexLabel(
                     label.toString()).primaryKeys();
             if (!keys.isEmpty() && query.matchUserpropKeys(keys)) {
                 String primaryValues = query.userpropValuesString(keys);
@@ -517,7 +517,7 @@ public class GraphTransaction extends AbstractTransaction {
         // Optimize edge query
         if (label != null && query.resultType() == HugeType.EDGE) {
             // Query edge by sourceVertex + direction + label + sort-values
-            Set<String> keys = graph().schema().edgeLabel(
+            List<String> keys = graph().schema().edgeLabel(
                     label.toString()).sortKeys();
             if (query.condition(HugeKeys.SOURCE_VERTEX) != null
                     && query.condition(HugeKeys.DIRECTION) != null

@@ -218,12 +218,6 @@ public class ConditionQuery extends IdQuery {
         return SplicingIdGenerator.concatValues(this.userpropValues(fields));
     }
 
-    // TODO: remove this method after changing fields type to List<String>
-    // that's when HugeGraph-290 is done
-    public String userpropValuesString(Set<String> fields) {
-        return userpropValuesString(new ArrayList<>(fields));
-    }
-
     public boolean hasSearchCondition() {
         // NOTE: we need to judge all the conditions, including the nested
         for (Condition.Relation r : this.relations()) {
@@ -234,10 +228,10 @@ public class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public boolean matchUserpropKeys(Set<String> keys) {
+    public boolean matchUserpropKeys(List<String> keys) {
         Set<String> conditionKeys = userpropKeys();
         if (keys.size() == conditionKeys.size()
-                && keys.containsAll(conditionKeys)) {
+                && conditionKeys.containsAll(keys)) {
             return true;
         }
 

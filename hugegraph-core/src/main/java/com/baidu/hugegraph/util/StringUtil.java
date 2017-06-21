@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.util;
 
+import java.util.Collection;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -11,7 +12,7 @@ import com.google.common.base.Preconditions;
  */
 public class StringUtil {
 
-    public static String desc(String prefix, Set<String> elems) {
+    public static String desc(String prefix, Collection<String> elems) {
         String desc = "";
         if (elems != null) {
             desc += ".";

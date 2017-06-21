@@ -2,8 +2,8 @@ package com.baidu.hugegraph.schema;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.LinkedList;
+import java.util.List;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -18,21 +18,25 @@ import com.baidu.hugegraph.util.StringUtil;
 public class HugeVertexLabel extends VertexLabel {
 
     // Note: Use TreeSet to ensure vertex label id is always sorted.
-    private TreeSet<String> primaryKeys;
+    private List<String> primaryKeys;
 
     public HugeVertexLabel(String name) {
         super(name);
-        this.primaryKeys = new TreeSet<>();
+        this.primaryKeys = new LinkedList<>();
     }
 
     @Override
-    public Set<String> primaryKeys() {
+    public List<String> primaryKeys() {
         return this.primaryKeys;
     }
 
     @Override
     public VertexLabel primaryKeys(String... keys) {
-        this.primaryKeys.addAll(Arrays.asList(keys));
+        for (String key : keys) {
+            if (!this.primaryKeys.contains(key)) {
+                this.primaryKeys.add(key);
+            }
+        }
         return this;
     }
 
@@ -106,7 +110,7 @@ public class HugeVertexLabel extends VertexLabel {
         for (String property : this.properties) {
             vertexLabel.properties.add(property);
         }
-        vertexLabel.primaryKeys = new TreeSet<>();
+        vertexLabel.primaryKeys = new LinkedList<>();
         for (String primaryKey : this.primaryKeys) {
             vertexLabel.primaryKeys.add(primaryKey);
         }

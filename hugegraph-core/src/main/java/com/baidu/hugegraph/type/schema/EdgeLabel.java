@@ -2,6 +2,7 @@ package com.baidu.hugegraph.type.schema;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.schema.HugePropertyKey;
@@ -46,7 +47,7 @@ public abstract class EdgeLabel extends SchemaElement {
 
     public abstract EdgeLabel sortKeys(String... keys);
 
-    public abstract Set<String> sortKeys();
+    public abstract List<String> sortKeys();
 
     @Override
     public EdgeLabel ifNotExist() {
