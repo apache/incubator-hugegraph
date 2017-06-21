@@ -22,6 +22,7 @@ package com.baidu.hugegraph.example;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.dist.RegisterUtil;
+import com.baidu.hugegraph.perf.PerfUtil;
 
 public class ExampleUtil {
 
@@ -38,6 +39,14 @@ public class ExampleUtil {
     }
 
     public static HugeGraph loadGraph() {
+        return loadGraph(false);
+    }
+
+    public static HugeGraph loadGraph(boolean needProfile) {
+        if (needProfile) {
+            profile();
+        }
+
         registerPlugins();
 
         String conf = "hugegraph.properties";
@@ -53,5 +62,13 @@ public class ExampleUtil {
         graph.initBackend();
 
         return graph;
+    }
+
+    public static void profile() {
+        try {
+            PerfUtil.instance().profilePackage("com.baidu.hugegraph");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

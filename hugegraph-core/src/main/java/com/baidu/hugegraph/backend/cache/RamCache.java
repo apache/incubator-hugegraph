@@ -27,10 +27,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.concurrent.KeyLock;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
+import com.baidu.hugegraph.util.Log;
 
 public class RamCache implements Cache {
 
@@ -75,6 +76,7 @@ public class RamCache implements Cache {
         this.queue = new LinkedQueueNonBigLock<>();
     }
 
+    @Watched(prefix = "ramcache")
     private Object access(Id id) {
         assert id != null;
 
@@ -106,6 +108,7 @@ public class RamCache implements Cache {
         }
     }
 
+    @Watched(prefix = "ramcache")
     private void write(Id id, Object value) {
         assert id != null;
         assert this.capacity > 0;
@@ -158,6 +161,7 @@ public class RamCache implements Cache {
         }
     }
 
+    @Watched(prefix = "ramcache")
     private void remove(Id id) {
         assert id != null;
 
@@ -176,6 +180,7 @@ public class RamCache implements Cache {
         }
     }
 
+    @Watched(prefix = "ramcache")
     @Override
     public Object get(Id id) {
         Object value = null;
@@ -190,6 +195,7 @@ public class RamCache implements Cache {
         return value;
     }
 
+    @Watched(prefix = "ramcache")
     @Override
     public Object getOrFetch(Id id, Function<Id, Object> fetcher) {
         Object value = null;
@@ -207,6 +213,7 @@ public class RamCache implements Cache {
         return value;
     }
 
+    @Watched(prefix = "ramcache")
     @Override
     public void update(Id id, Object value) {
         if (id == null || value == null ||
@@ -216,6 +223,7 @@ public class RamCache implements Cache {
         this.write(id, value);
     }
 
+    @Watched(prefix = "ramcache")
     @Override
     public void updateIfAbsent(Id id, Object value) {
         if (id == null || value == null ||
@@ -226,6 +234,7 @@ public class RamCache implements Cache {
         this.write(id, value);
     }
 
+    @Watched(prefix = "ramcache")
     @Override
     public void invalidate(Id id) {
         if (id == null || !this.map.containsKey(id)) {
@@ -234,6 +243,7 @@ public class RamCache implements Cache {
         this.remove(id);
     }
 
+    @Watched(prefix = "ramcache")
     @Override
     public void clear() {
         // TODO: synchronized

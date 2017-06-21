@@ -35,6 +35,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.MutateAction;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -83,6 +84,7 @@ public abstract class AbstractTransaction implements Transaction {
         return this.store().metadata(type, meta, args);
     }
 
+    @Watched(prefix = "tx")
     public Iterable<BackendEntry> query(Query query) {
         LOG.debug("Transaction query: {}", query);
         /*
@@ -102,6 +104,7 @@ public abstract class AbstractTransaction implements Transaction {
         return result;
     }
 
+    @Watched(prefix = "tx")
     public BackendEntry query(HugeType type, Id id) {
         IdQuery q = new IdQuery(type, id);
         Iterator<BackendEntry> results = this.query(q).iterator();
@@ -122,6 +125,7 @@ public abstract class AbstractTransaction implements Transaction {
         return entry;
     }
 
+    @Watched(prefix = "tx")
     @Override
     public void commit() throws BackendException {
         LOG.debug("Transaction commit() [auto: {}]...", this.autoCommit);
@@ -156,6 +160,7 @@ public abstract class AbstractTransaction implements Transaction {
         this.store.commitTx();
     }
 
+    @Watched(prefix = "tx")
     @Override
     public void rollback() throws BackendException {
         LOG.debug("Transaction rollback()...");
@@ -197,6 +202,7 @@ public abstract class AbstractTransaction implements Transaction {
         // Pass
     }
 
+    @Watched(prefix = "tx")
     @Override
     public void close() {
         this.closed = true;
@@ -218,6 +224,7 @@ public abstract class AbstractTransaction implements Transaction {
         return this.mutation();
     }
 
+    @Watched(prefix = "tx")
     protected void commitOrRollback() {
         LOG.debug("Transaction commitOrRollback()");
         this.checkOwnerThread();
@@ -251,6 +258,7 @@ public abstract class AbstractTransaction implements Transaction {
         }
     }
 
+    @Watched(prefix = "tx")
     public void addEntry(BackendEntry entry) {
         LOG.debug("Transaction add entry {}", entry);
         E.checkNotNull(entry, "entry");
@@ -259,6 +267,7 @@ public abstract class AbstractTransaction implements Transaction {
         this.mutation.add(entry, MutateAction.INSERT);
     }
 
+    @Watched(prefix = "tx")
     public void removeEntry(BackendEntry entry) {
         LOG.debug("Transaction remove entry {}", entry);
         E.checkNotNull(entry, "entry");
@@ -267,10 +276,12 @@ public abstract class AbstractTransaction implements Transaction {
         this.mutation.add(entry, MutateAction.DELETE);
     }
 
+    @Watched(prefix = "tx")
     public void removeEntry(HugeType type, Id id) {
         this.removeEntry(this.serializer.writeId(type, id));
     }
 
+    @Watched(prefix = "tx")
     public void appendEntry(BackendEntry entry) {
         LOG.debug("Transaction append entry {}", entry);
         E.checkNotNull(entry, "entry");
@@ -279,6 +290,7 @@ public abstract class AbstractTransaction implements Transaction {
         this.mutation.add(entry, MutateAction.APPEND);
     }
 
+    @Watched(prefix = "tx")
     public void eliminateEntry(BackendEntry entry) {
         LOG.debug("Transaction eliminate entry {}", entry);
         E.checkNotNull(entry, "entry");

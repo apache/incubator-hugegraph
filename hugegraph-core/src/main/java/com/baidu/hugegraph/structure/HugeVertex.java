@@ -45,6 +45,7 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -118,6 +119,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return this;
     }
 
+    @Watched(prefix = "vertex")
     public void assignId(Id id) {
         IdStrategy strategy = this.label.idStrategy();
         // Generate an id and assign
@@ -142,6 +144,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this.label = label;
     }
 
+    @Watched(prefix = "vertex")
     public List<Object> primaryValues() {
         E.checkArgument(this.label.idStrategy() == IdStrategy.PRIMARY_KEY,
                         "The id strategy '%s' don't have primary keys",
@@ -178,6 +181,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this.edges.add(edge);
     }
 
+    @Watched(prefix = "vertex")
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
         ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
@@ -288,6 +292,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return list.iterator();
     }
 
+    @Watched(prefix = "vertex")
     @Override
     public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
         // NOTE: get edges from memory if load all edges when loading vertex.
@@ -310,6 +315,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return results;
     }
 
+    @Watched(prefix = "vertex")
     @Override
     public Iterator<Vertex> vertices(Direction direction,
                                      String... edgeLabels) {
@@ -317,12 +323,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return this.tx().queryAdjacentVertices(edges).iterator();
     }
 
+    @Watched(prefix = "vertex")
     @Override
     public void remove() {
         this.removed = true;
         this.tx().removeVertex(this);
     }
 
+    @Watched(prefix = "vertex")
     @Override
     @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> VertexProperty<V> property(
@@ -343,11 +351,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return (VertexProperty<V>) this.addProperty(key, value, true);
     }
 
+    @Watched(prefix = "vertex")
     @Override
     protected <V> HugeVertexProperty<V> newProperty(PropertyKey pkey, V val) {
         return new HugeVertexProperty<>(this, pkey, val);
     }
 
+    @Watched(prefix = "vertex")
     @Override
     protected <V> void onUpdateProperty(Cardinality cardinality,
                                         HugeProperty<V> prop) {
@@ -358,6 +368,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
     }
 
+    @Watched(prefix = "vertex")
     protected void ensureVertexProperties() {
         if (this.propLoaded) {
             return;
@@ -368,6 +379,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this.copyProperties((HugeVertex) vertices.next());
     }
 
+    @Watched(prefix = "vertex")
     @Override
     @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {

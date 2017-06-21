@@ -36,6 +36,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.Cardinality;
@@ -120,6 +121,7 @@ public abstract class HugeElement implements Element, GraphType {
         return this.properties.size();
     }
 
+    @Watched(prefix = "element")
     public <V> void setProperty(HugeProperty<V> prop) {
         PropertyKey pkey = prop.propertyKey();
         E.checkArgument(pkey.checkValue(prop.value()),
@@ -139,6 +141,7 @@ public abstract class HugeElement implements Element, GraphType {
         return this.addProperty(key, value, false);
     }
 
+    @Watched(prefix = "element")
     public <V> HugeProperty<V> addProperty(String key, V value,
                                            boolean notify) {
         HugeProperty<V> prop = null;
@@ -174,8 +177,8 @@ public abstract class HugeElement implements Element, GraphType {
         return prop;
     }
 
-    // SuppressWarnings for (HugeProperty) propList
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Watched(prefix = "element")
+    @SuppressWarnings({ "rawtypes", "unchecked" }) // (HugeProperty) propList
     private <V> HugeProperty<V> addPropertyList(PropertyKey pkey, V value) {
         HugeProperty<List<V>> propList;
         if (this.hasProperty(pkey.name())) {
@@ -207,8 +210,8 @@ public abstract class HugeElement implements Element, GraphType {
         return (HugeProperty) propList;
     }
 
-    // SuppressWarnings for (HugeProperty) propSet
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Watched(prefix = "element")
+    @SuppressWarnings({ "rawtypes", "unchecked" }) // (HugeProperty) propSet
     private <V> HugeProperty<V> addPropertySet(PropertyKey pkey, V value) {
         HugeProperty<Set<V>> propSet;
         if (this.hasProperty(pkey.name())) {
@@ -266,6 +269,10 @@ public abstract class HugeElement implements Element, GraphType {
         return ElementHelper.hashCode(this);
     }
 
+    /**
+     * Classify parameter list(pairs) from call request
+     */
+    @Watched(prefix = "element")
     public static ElementKeys classifyKeys(Object... keyValues) {
         ElementKeys elemKeys = new ElementKeys();
 
@@ -295,6 +302,7 @@ public abstract class HugeElement implements Element, GraphType {
         return elemKeys;
     }
 
+    @Watched(prefix = "element")
     public static Id getIdValue(Object idValue) {
         if (idValue == null) {
             return null;
@@ -317,6 +325,7 @@ public abstract class HugeElement implements Element, GraphType {
                   idValue.getClass().getSimpleName()));
     }
 
+    @Watched(prefix = "element")
     public static Object getLabelValue(Object... keyValues) {
         Object labelValue = null;
         for (int i = 0; i < keyValues.length; i = i + 2) {
