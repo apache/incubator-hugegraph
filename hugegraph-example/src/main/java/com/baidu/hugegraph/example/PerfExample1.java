@@ -7,12 +7,17 @@ import java.util.Random;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.cache.Cache;
+import com.baidu.hugegraph.backend.cache.RamCache;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
@@ -185,9 +190,14 @@ public class PerfExample1 {
 
     static class GraphManager {
         private HugeGraph hugegraph;
+        private Cache cache = new RamCache();
 
         public GraphManager(HugeGraph hugegraph) {
             this.hugegraph = hugegraph;
+        }
+
+        public Transaction tx() {
+            return this.hugegraph.tx();
         }
 
         public Vertex addVertex(Object... keyValues) {
@@ -195,7 +205,9 @@ public class PerfExample1 {
         }
 
         public Vertex getVertex(Object id) {
-            return this.hugegraph.vertices(id).next();
+            return ((HugeVertex) this.cache.getOrFetch((Id) id, k -> {
+                return this.hugegraph.vertices(k).next();
+            })).copy();
         }
     }
 }
