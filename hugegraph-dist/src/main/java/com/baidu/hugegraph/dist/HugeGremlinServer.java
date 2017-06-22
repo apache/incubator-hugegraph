@@ -16,8 +16,7 @@ public class HugeGremlinServer {
                     + "configuration file.");
         }
 
-        RegisterUtil.registerCore();
-        RegisterUtil.registerBackends(args[0]);
+        RegisterUtil.registerBackends();
 
         // start GremlinServer
         GremlinServer.main(args);

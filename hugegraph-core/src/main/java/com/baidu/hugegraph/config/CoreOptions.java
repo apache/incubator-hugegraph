@@ -25,6 +25,15 @@ public class CoreOptions extends OptionHolder {
         return instance;
     }
 
+    // TODO: could move to dist package
+    public static final ConfigOption<String> BACKENDS = new ConfigOption<>(
+            "backends",
+            "[]",
+            true,
+            "The all data store type.",
+            disallowEmpty(String.class)
+    );
+
     public static final ConfigOption<String> BACKEND = new ConfigOption<>(
             "backend",
             "memory",
@@ -81,12 +90,11 @@ public class CoreOptions extends OptionHolder {
             disallowEmpty(String.class)
     );
 
-    public static final ConfigOption<String> GRAPHS =
-            new ConfigOption<>(
-                    "graphs",
-                    "hugegraph:conf/hugegraph.properties",
-                    true,
-                    "The map of graphs' name and config file.",
-                    disallowEmpty(String.class)
-            );
+    public static final ConfigOption<String> GRAPHS = new ConfigOption<>(
+            "graphs",
+            "hugegraph:conf/hugegraph.properties",
+            true,
+            "The map of graphs' name and config file.",
+            disallowEmpty(String.class)
+    );
 }

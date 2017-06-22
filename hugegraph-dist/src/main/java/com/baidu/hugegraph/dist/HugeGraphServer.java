@@ -13,8 +13,7 @@ public class HugeGraphServer {
                     + "configuration file.");
         }
 
-        RegisterUtil.registerCore();
-        RegisterUtil.registerBackends(args[0]);
+        RegisterUtil.registerBackends();
         RegisterUtil.registerServer();
 
         // start Huge Server

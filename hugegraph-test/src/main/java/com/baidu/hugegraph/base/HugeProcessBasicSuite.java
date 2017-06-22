@@ -267,8 +267,7 @@ public class HugeProcessBasicSuite extends AbstractGremlinSuite {
             throws InitializationError, ConfigurationException {
         super(klass, builder, allTests, testsToEnforce, true,
                 TraversalEngine.Type.STANDARD);
-        RegisterUtil.registerCore();
-        RegisterUtil.registerCassandra();
+        RegisterUtil.registerBackends();
     }
 
     /**
@@ -281,7 +280,6 @@ public class HugeProcessBasicSuite extends AbstractGremlinSuite {
             throws InitializationError, ConfigurationException {
         super(klass, builder, testsToExecute, testsToEnforce,
                 true, TraversalEngine.Type.STANDARD);
-        RegisterUtil.registerCore();
-        RegisterUtil.registerCassandra();
+        RegisterUtil.registerBackends();
     }
 }

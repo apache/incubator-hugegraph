@@ -5,6 +5,8 @@
 package com.baidu.hugegraph.config;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
@@ -21,8 +23,7 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeConfig extends PropertiesConfiguration {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(HugeConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(HugeConfig.class);
 
     public HugeConfig(Configuration config) {
         if (config == null) {
@@ -38,26 +39,29 @@ public class HugeConfig extends PropertiesConfiguration {
         Iterator<String> keys = config.getKeys();
         while (keys.hasNext()) {
             String key = keys.next();
-            this.setProperty(key.replace("..", "."),
-                    config.getProperty(key));
+            this.setProperty(key.replace("..", "."), config.getProperty(key));
         }
 
         updateDefaultConfiguration();
     }
 
-    public HugeConfig(String configurationFile) throws ConfigurationException {
-        super(loadConfiguration(configurationFile));
+    public HugeConfig(String configFile) throws ConfigurationException {
+        super(loadConfigFile(configFile));
         updateDefaultConfiguration();
     }
 
-    private static File loadConfiguration(String fileName) {
+    public HugeConfig(InputStream is) throws ConfigurationException {
+        this.load(new InputStreamReader(is));
+        updateDefaultConfiguration();
+    }
+
+    private static File loadConfigFile(String fileName) {
         E.checkArgument(StringUtils.isNotEmpty(fileName),
-                "can not load configuration file: "
-                        + "%s", fileName);
+                "Can't load config file: %s", fileName);
         File file = new File(fileName);
         E.checkArgument(file.exists() && file.isFile() && file.canRead(),
-                "Need to specify a readable configuration file, but was "
-                        + "given: %s", file.toString());
+                "Need to specify a readable config file, " +
+                "but was given: %s", file.toString());
         return file;
     }
 
@@ -67,7 +71,7 @@ public class HugeConfig extends PropertiesConfiguration {
             while (keys.hasNext()) {
                 String key = keys.next();
                 if (!ConfigSpace.containKey(key)) {
-                    logger.error("A redundant config option is set：" + key);
+                    logger.warn("A redundant config option is set：" + key);
                     continue;
                 }
                 ConfigOption option = ConfigSpace.get(key);
