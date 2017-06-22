@@ -14,7 +14,6 @@ public class ExampleUtil {
         }
         registered = true;
 
-        RegisterUtil.registerCore();
         RegisterUtil.registerCassandra();
     }
 

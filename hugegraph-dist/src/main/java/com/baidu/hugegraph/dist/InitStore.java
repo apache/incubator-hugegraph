@@ -25,8 +25,7 @@ public class InitStore {
                 "Init store only accept yaml config file.");
 
         String confFile = args[0];
-        RegisterUtil.registerCore();
-        RegisterUtil.registerBackends(confFile);
+        RegisterUtil.registerBackends();
 
         YamlConfiguration config = new YamlConfiguration();
         config.load(confFile);
@@ -42,7 +41,6 @@ public class InitStore {
         for (ConfigurationNode graphName : graphNames) {
             String graphPropFile = graphName.getValue().toString();
             // get graph property file path
-            HugeConfig hugeConfig = new HugeConfig(graphPropFile);
 
             HugeGraph graph = HugeFactory.open(graphPropFile);
             graph.clearBackend();

@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.dist;
 
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -17,73 +18,30 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.ConfigException;
+import com.baidu.hugegraph.util.E;
 
 /**
  * Created by liningrui on 2017/5/12.
  */
 public class RegisterUtil {
 
-    public static void registerCore() {
+    static {
         ConfigSpace.register(CoreOptions.Instance());
     }
 
-    public static void registerBackends(String confFile)
-            throws ConfigurationException {
+    public static void registerBackends() throws ConfigurationException {
+        String confFile = "/backend.properties";
+        InputStream is = RegisterUtil.class.getClass().getResourceAsStream(confFile);
+        E.checkNotNull(is, "Can't read file '%s' as stream", confFile);
 
-        Set<String> backends = null;
-        if (confFile.endsWith(".yaml")) {
-            YamlConfiguration config = new YamlConfiguration();
-            config.load(confFile);
-            backends = parseBackends(config);
-        } else if (confFile.endsWith(".properties")) {
-            HugeConfig config = new HugeConfig(confFile);
-            backends = parseBackends(config);
-        } else {
-            throw new ConfigException(String.format(
-                    "Not support configuration file in this format: %s",
-                    confFile));
-        }
-        for (String backend : backends) {
-            registerBackend(backend);
+        HugeConfig config = new HugeConfig(is);
+        List<Object> backends = config.getList(CoreOptions.BACKENDS.name());
+        for (Object backend : backends) {
+            registerBackend((String) backend);
         }
     }
 
-    private static Set<String> parseBackends(YamlConfiguration config)
-            throws ConfigurationException {
-        List<ConfigurationNode> graphs = config.getRootNode().getChildren(
-                CoreOptions.GRAPHS.name()).get(0).getChildren();
-
-        Set<String> backends = new HashSet<>();
-        for (ConfigurationNode graph : graphs) {
-            String propConfFile = graph.getValue().toString();
-            // get graph property file path
-            HugeConfig configuration = new HugeConfig(propConfFile);
-            backends.add(configuration.get(CoreOptions.BACKEND).toLowerCase());
-        }
-        return backends;
-    }
-
-    private static Set<String> parseBackends(HugeConfig config)
-            throws ConfigurationException {
-        List<Object> graphs = config.getList(CoreOptions.GRAPHS.name());
-
-        Set<String> backends = new HashSet<>();
-        for (Object graph : graphs) {
-            String[] graphPair = graph.toString().split(":");
-            if (graphPair.length != 2) {
-                throw new HugeException(String.format(
-                        "Bad option value(expected a ':') in 'graphs': %s",
-                        graph));
-            }
-            String confFile = graphPair[1];
-            // get graph property file path
-            HugeConfig conf = new HugeConfig(confFile);
-            backends.add(conf.get(CoreOptions.BACKEND).toLowerCase());
-        }
-        return backends;
-    }
-
-    public static void registerBackend(String backend) {
+    private static void registerBackend(String backend) {
         switch (backend) {
             case "cassandra":
                 registerCassandra();
@@ -92,7 +50,7 @@ public class RegisterUtil {
                 registerHBase();
                 break;
             default:
-                break;
+                throw new HugeException("Unknown backend type '%s'", backend);
         }
     }
 
