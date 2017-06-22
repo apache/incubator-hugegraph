@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.api.graph;
 
+import static com.baidu.hugegraph.config.ServerOptions.MAX_VERTICES_PER_BATCH;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -26,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
@@ -36,8 +39,6 @@ import com.baidu.hugegraph.server.HugeServer;
 public class VertexAPI extends API {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
-
-    private static final int MAX_VERTICES = 100;
 
     @POST
     @Status(Status.CREATED)
@@ -61,14 +62,16 @@ public class VertexAPI extends API {
     public List<String> create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          List<CreateVertex> vertices) {
-        if (vertices.size() > MAX_VERTICES) {
+        HugeGraph g = (HugeGraph) graph(manager, graph);
+
+        if (vertices.size() > g.configuration().get(MAX_VERTICES_PER_BATCH)) {
             throw new HugeException("Too many counts of vertices for one time "
-                    + "post, the maximum number is '%s'", MAX_VERTICES);
+                    + "post, the maximum number is '%s'",
+                    g.configuration().get(MAX_VERTICES_PER_BATCH));
         }
 
         logger.debug("Graph [{}] create vertices: {}", graph, vertices);
 
-        Graph g = graph(manager, graph);
         List<String> ids = new ArrayList<>(vertices.size());
         g.tx().open();
         try {
