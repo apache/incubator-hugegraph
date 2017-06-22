@@ -272,7 +272,7 @@ public class PerfUtil {
         sb.append("tooltip: {trigger: 'item', " +
             "formatter: function(params) {" +
             "    return params.data.sname + ' ' + params.percent + '% <br/>'" +
-            "        + 'cost: ' + params.data.value + ' (s) <br/>'" +
+            "        + 'cost: ' + params.data.value + ' (ms) <br/>'" +
             "        + 'min: ' + params.data.min + ' (ns) <br/>'" +
             "        + 'max: ' + params.data.max + ' (ns) <br/>'" +
             "        + 'times: ' + params.data.times + '<br/>'" +
