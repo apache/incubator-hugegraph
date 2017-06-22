@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.api.graph;
 
+import static com.baidu.hugegraph.config.ServerOptions.MAX_EDGES_PER_BATCH;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +44,6 @@ public class EdgeAPI extends API {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
 
-    private static final int MAX_EDGES = 500;
-
     @POST
     @Status(Status.CREATED)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -70,14 +70,16 @@ public class EdgeAPI extends API {
     public List<String> create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          List<CreateEdge> edges) {
-        if (edges.size() > MAX_EDGES) {
+        HugeGraph g = (HugeGraph) graph(manager, graph);
+
+        if (edges.size() > g.configuration().get(MAX_EDGES_PER_BATCH)) {
             throw new HugeException("Too many counts of edges for one time "
-                    + "post, the maximum number is '%s'", MAX_EDGES);
+                    + "post, the maximum number is '%s'",
+                    g.configuration().get(MAX_EDGES_PER_BATCH));
         }
 
         logger.debug("Graph [{}] create edges: {}", graph, edges);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
         List<String> ids = new ArrayList<>(edges.size());
         g.tx().open();
         try {
