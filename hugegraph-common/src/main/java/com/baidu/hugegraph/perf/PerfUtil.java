@@ -197,7 +197,7 @@ public class PerfUtil {
             sb.append(String.format(
                     "label: {normal: {position: 'inner', formatter:"
                     + "function(params) {"
-                    + "  if (params.percent > %s) return params.data.sname;"
+                    + "  if (params.percent > %s) return params.data.name;"
                     + "  else return '';"
                     + "}}},", showFactor));
             sb.append("data: [");
@@ -218,17 +218,16 @@ public class PerfUtil {
                 sb.append(w.maxCost());
                 sb.append(',');
 
-                sb.append("name:'");
+                sb.append("id:'");
                 sb.append(w.id());
                 sb.append("',");
 
-                sb.append("sname:'");
+                sb.append("name:'");
                 sb.append(w.name());
                 sb.append("',");
 
                 sb.append("times:");
                 sb.append(w.times());
-                sb.append(',');
 
                 sb.append('}');
                 sb.append(',');
@@ -271,12 +270,12 @@ public class PerfUtil {
         sb.append("{");
         sb.append("tooltip: {trigger: 'item', " +
             "formatter: function(params) {" +
-            "    return params.data.sname + ' ' + params.percent + '% <br/>'" +
+            "    return params.data.name + ' ' + params.percent + '% <br/>'" +
             "        + 'cost: ' + params.data.value + ' (ms) <br/>'" +
             "        + 'min: ' + params.data.min + ' (ns) <br/>'" +
             "        + 'max: ' + params.data.max + ' (ns) <br/>'" +
             "        + 'times: ' + params.data.times + '<br/>'" +
-            "       + params.data.name + '<br/>';" +
+            "       + params.data.id + '<br/>';" +
             "}");
         sb.append("},");
         sb.append("series: [");
