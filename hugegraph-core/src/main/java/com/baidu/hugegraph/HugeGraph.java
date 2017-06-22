@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
@@ -139,7 +140,7 @@ public class HugeGraph implements Graph {
         try {
             String name = this.configuration.get(CoreOptions.STORE_SCHEMA);
             BackendStore store = this.storeProvider.loadSchemaStore(name);
-            return new SchemaTransaction(this, store);
+            return new CachedSchemaTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
             logger.error("{}: {}", message, e.getMessage());
