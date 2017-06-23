@@ -206,8 +206,8 @@ public abstract class AbstractTransaction implements Transaction {
                 logger.error("Failed to rollback changes:\n {}", mutation, e2);
             }
             // rethrow
-            throw new BackendException(String.format(
-                    "Failed to commit changes: %s", e1.getMessage()));
+            throw new BackendException(
+                    "Failed to commit changes: %s", e1.getMessage());
         }
     }
 
