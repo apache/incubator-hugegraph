@@ -57,9 +57,12 @@
                         <filesets>
                             <fileset>
                                 <directory>${top.level.dir}</directory>
-                                <includes>
-                                    <include>*.tar.gz</include>
-                                </includes>
+                                <excludes>
+                                    <exclude>${final.name}/**</exclude>
+                                    <exclude>*.tar.gz</exclude>
+                                    <exclude>*.zip</exclude>
+                                    <exclude>*.tar</exclude>
+                                </excludes>
                                 <followSymlinks>false</followSymlinks>
                             </fileset>
                             <fileset>
