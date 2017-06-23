@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
@@ -52,12 +53,15 @@ public class PerfExample1 {
 
     public static void testInsertPerf(GraphManager graph,
             int times, int threadno) throws InterruptedException {
-        List<Long> rates = new LinkedList<>();
+        List<Pair<Long, Long>> rates = new LinkedList<>();
 
         List<Thread> threads = new LinkedList<>();
         for (int i = 0; i < threadno; i++) {
             Thread t = new Thread(() -> {
-                long rate = testInsertPerf(graph, times);
+                graph.tx().open();
+                Pair<Long, Long> rate = testInsertPerf(graph, times);
+                graph.tx().commit();
+
                 rates.add(rate);
             });
             t.start();
@@ -68,8 +72,12 @@ public class PerfExample1 {
             t.join();
         }
 
-        logger.info("Rate(virtual) with threads: {}",
-                rates.stream().mapToLong(i -> i).sum());
+        // total edges
+        long edges = rates.stream().mapToLong(i -> i.getLeft()).sum();
+        // total cost (average time of all threads) (ms)
+        long cost = (long) rates.stream().mapToLong(i -> i.getRight())
+                .average().getAsDouble();
+        logger.info("Rate with threads: {} edges/s", edges * 1000 / cost);
     }
 
     public static void initSchema(SchemaManager schema) {
@@ -116,7 +124,9 @@ public class PerfExample1 {
                 .create();
     }
 
-    public static long testInsertPerf(GraphManager graph, int times) {
+    public static Pair<Long, Long> testInsertPerf(
+            GraphManager graph,
+            int times) {
         long total = EDGE_NUM * times;
         long startTime = System.currentTimeMillis();
 
@@ -185,7 +195,7 @@ public class PerfExample1 {
         long rate = total * 1000 / cost;
         logger.info("All tests cost time: {} ms, the rate is: {} edges/s",
                 cost, rate);
-        return rate;
+        return Pair.of(total, cost);
     }
 
     static class GraphManager {
