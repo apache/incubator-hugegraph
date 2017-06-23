@@ -92,9 +92,13 @@ public class EdgeAPI extends API {
                         edge.properties()).id().toString());
             }
             g.tx().commit();
-        } catch (Exception e) {
-            g.tx().rollback();
-            throw new HugeException("Failed to add edges", e);
+        } catch (Exception e1) {
+            try {
+                g.tx().rollback();
+            } catch (Exception e2) {
+                logger.error("Failed to rollback edges", e2);
+                throw new HugeException("Failed to add edges", e1);
+            }
         } finally {
             g.tx().close();
         }
