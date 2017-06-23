@@ -201,8 +201,11 @@ public abstract class CassandraStore implements BackendStore {
             session.commit();
         } catch (InvalidQueryException e) {
             logger.error("Failed to commit statements due to:", e);
-            throw new BackendException("Failed to commit statements: " +
-                                       session.statements());
+            assert session.statements().size() > 0;
+            throw new BackendException(
+                    "Failed to commit %s statements: '%s'...",
+                    session.statements().size(),
+                    session.statements().iterator().next());
         }
 
         // TODO how to implement tx?
