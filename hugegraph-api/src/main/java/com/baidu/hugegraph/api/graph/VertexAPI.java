@@ -79,9 +79,13 @@ public class VertexAPI extends API {
                 ids.add(g.addVertex(vertex.properties()).id().toString());
             }
             g.tx().commit();
-        } catch (Exception e) {
-            g.tx().rollback();
-            throw new HugeException("Failed to add vertices", e);
+        } catch (Exception e1) {
+            try {
+                g.tx().rollback();
+            } catch (Exception e2) {
+                logger.error("Failed to rollback vertices", e2);
+                throw new HugeException("Failed to add vertices", e1);
+            }
         } finally {
             g.tx().close();
         }
