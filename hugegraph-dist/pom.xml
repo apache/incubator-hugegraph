@@ -117,10 +117,8 @@
                         <fileset>
                             <directory>${top.level.dir}</directory>
                             <includes>
-                                <include>*.tar</include>
                                 <include>*.tar.gz</include>
-                                <include>*.zip</include>
-                                <include>${final.name}/**</include>
+                                <!--<include>${final.name}/**</include>-->
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>

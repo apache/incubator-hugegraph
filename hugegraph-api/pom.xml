@@ -67,6 +67,28 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${top.level.dir}</directory>
+                            <includes>
+                                <include>*.tar.gz</include>
+                                <!--<include>${final.name}/bin/huge-server.sh</include>-->
+                                <!--<include>${final.name}/bin/start-hugeserver.sh</include>-->
+                                <!--<include>${final.name}/bin/stop-hugeserver.sh</include>-->
+                                <!--<include>${final.name}/conf/huge-server.properties</include>-->
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                        <fileset>
+                            <directory>${final.name}</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
