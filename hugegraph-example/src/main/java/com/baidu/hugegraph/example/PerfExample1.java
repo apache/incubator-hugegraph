@@ -211,7 +211,9 @@ public class PerfExample1 {
         }
 
         public Vertex addVertex(Object... keyValues) {
-            return this.hugegraph.addVertex(keyValues);
+            Vertex v = this.hugegraph.addVertex(keyValues);
+            this.cache.update((Id) v.id(), v);
+            return v;
         }
 
         public Vertex getVertex(Object id) {
