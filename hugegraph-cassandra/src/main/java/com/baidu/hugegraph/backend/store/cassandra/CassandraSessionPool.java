@@ -116,10 +116,12 @@ public class CassandraSessionPool {
             return this.batch.add(statement);
         }
 
-        public synchronized ResultSet commit() {
-            ResultSet rs = this.session.execute(this.batch);
+        public void clear() {
             this.batch.clear();
-            return rs;
+        }
+
+        public synchronized ResultSet commit() {
+            return this.session.execute(this.batch);
         }
 
         public ResultSet execute(Statement statement) {
