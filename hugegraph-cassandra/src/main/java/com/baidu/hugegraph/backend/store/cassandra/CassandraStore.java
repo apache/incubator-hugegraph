@@ -206,6 +206,8 @@ public abstract class CassandraStore implements BackendStore {
                     "Failed to commit %s statements: '%s'...",
                     session.statements().size(),
                     session.statements().iterator().next());
+        } finally {
+            session.clear();
         }
 
         // TODO how to implement tx?
