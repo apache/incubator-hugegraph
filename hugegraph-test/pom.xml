@@ -41,11 +41,31 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <configuration>
-                        <testSourceDirectory>${basedir}/src/main/java/</testSourceDirectory>
-                        <testClassesDirectory>${basedir}/target/classes/</testClassesDirectory>
+                        <testSourceDirectory>${basedir}/src/main/java/
+                        </testSourceDirectory>
+                        <testClassesDirectory>${basedir}/target/classes/
+                        </testClassesDirectory>
                         <includes>
                             <include>**/CoreTestSuite.java</include>
                         </includes>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.0.0</version>
+                    <configuration>
+                        <filesets>
+                            <fileset>
+                                <directory>${top.level.dir}</directory>
+                                <includes>
+                                    <include>*.tar.gz</include>
+                                </includes>
+                                <followSymlinks>false</followSymlinks>
+                            </fileset>
+                            <fileset>
+                                <directory>${final.name}</directory>
+                            </fileset>
+                        </filesets>
                     </configuration>
                 </plugin>
             </plugins>

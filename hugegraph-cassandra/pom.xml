@@ -53,6 +53,32 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${top.level.dir}</directory>
+                            <includes>
+                                <include>*.tar.gz</include>
+                                <!--<include>${final.name}/bin/cassadra</include>-->
+                                <!--<include>${final.name}/bin/cassadra.in.sh</include>-->
+                                <!--<include>${final.name}/bin/cqlsh</include>-->
+                                <!--<include>${final.name}/bin/nodetool</include>-->
+                                <!--<include>${final.name}/bin/start-cassandra.sh</include>-->
+                                <!--<include>${final.name}/bin/stop-cassandra.sh</include>-->
+                                <!--<include>${final.name}/conf/cassandra/**</include>-->
+                                <!--<include>${final.name}/**</include>-->
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                        <fileset>
+                            <directory>${final.name}</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
