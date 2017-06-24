@@ -10,7 +10,7 @@
         <maven>3.3.9</maven>
     </prerequisites>
     <name>hugegraph: Distributed Graph Database</name>
-    <url>http://hugegraph.org</url>
+    <url>hugegraph.baidu.com</url>
     <description>
         hugegraph is a distributed graph database developed by baidu
     </description>
@@ -37,7 +37,6 @@
             <properties>
                 <cassandra.host>localhost</cassandra.host>
                 <cassandra.port>9042</cassandra.port>
-                <!--<hugegraph.logdir>logs</hugegraph.logdir>-->
             </properties>
         </profile>
         <profile>
@@ -86,25 +85,13 @@
     </properties>
     <modules>
         <module>hugegraph-core</module>
-        <module>hugegraph-dist</module>
         <module>hugegraph-cassandra</module>
+        <module>hugegraph-dist</module>
+        <module>hugegraph-api</module>
         <module>hugegraph-example</module>
         <module>hugegraph-test</module>
-        <module>hugegraph-api</module>
     </modules>
-    <repositories>
-        <repository>
-            <id>apache-snapshots</id>
-            <name>repository.apache.org snapshots</name>
-            <url>https://repository.apache.org/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
