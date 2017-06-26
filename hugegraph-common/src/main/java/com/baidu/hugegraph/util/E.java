@@ -11,18 +11,26 @@ import com.google.common.base.Preconditions;
  */
 public class E {
 
-    public static void checkNotNull(Object object,
-                                    @Nullable String elem,
-                                    @Nullable Object... args) {
-        String message = String.format("%s can't be null.", elem);
-        Preconditions.checkNotNull(object, message, args);
+    public static void checkNotNull(Object object, String elem) {
+        Preconditions.checkNotNull(object, "The '%s' can't be null", elem);
     }
 
-    public static void checkNotEmpty(Collection collection,
-                                     @Nullable String elem,
-                                     @Nullable Object... args) {
-        String message = String.format("%s can't be empty.", elem);
-        Preconditions.checkArgument(!collection.isEmpty(), message, args);
+    public static void checkNotNull(Object object, String elem, String owner) {
+        Preconditions.checkNotNull(object, "The '%s' of '%s' can't be null",
+                                   elem, owner);
+    }
+
+    public static void checkNotEmpty(Collection<?> collection, String elem) {
+        Preconditions.checkArgument(!collection.isEmpty(),
+                                    "The '%s' can't be empty", elem);
+    }
+
+    public static void checkNotEmpty(Collection<?> collection,
+                                     String elem,
+                                     String owner) {
+        Preconditions.checkArgument(!collection.isEmpty(),
+                                    "The '%s' of '%s' can't be empty",
+                                    elem, owner);
     }
 
     public static void checkArgument(boolean expression,
@@ -32,8 +40,14 @@ public class E {
     }
 
     public static void checkArgumentNotNull(Object object,
-                                     @Nullable String message,
-                                     @Nullable Object... args) {
+                                            @Nullable String message,
+                                            @Nullable Object... args) {
         Preconditions.checkArgument(object != null, message, args);
+    }
+
+    public static void checkState(boolean expression,
+                                  @Nullable String message,
+                                  @Nullable Object... args) {
+        Preconditions.checkState(expression, message, args);
     }
 }

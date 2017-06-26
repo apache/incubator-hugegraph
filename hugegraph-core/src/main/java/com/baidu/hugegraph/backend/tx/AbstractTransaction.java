@@ -22,7 +22,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.type.HugeType;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 
 public abstract class AbstractTransaction implements Transaction {
     private Thread ownerThread = Thread.currentThread();
@@ -40,8 +40,8 @@ public abstract class AbstractTransaction implements Transaction {
     protected IdGenerator idGenerator;
 
     public AbstractTransaction(HugeGraph graph, BackendStore store) {
-        Preconditions.checkNotNull(graph);
-        Preconditions.checkNotNull(store);
+        E.checkNotNull(graph, "graph");
+        E.checkNotNull(store, "store");
 
         this.autoCommit = false;
 
@@ -56,12 +56,12 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     public HugeGraph graph() {
-        Preconditions.checkNotNull(this.graph, "graph");
+        E.checkNotNull(this.graph, "graph");
         return this.graph;
     }
 
     public BackendStore store() {
-        Preconditions.checkNotNull(this.graph, "store");
+        E.checkNotNull(this.graph, "store");
         return this.store;
     }
 
@@ -219,16 +219,16 @@ public abstract class AbstractTransaction implements Transaction {
 
     public void addEntry(BackendEntry entry) {
         logger.debug("Transaction add entry {}", entry);
-        Preconditions.checkNotNull(entry);
-        Preconditions.checkNotNull(entry.id());
+        E.checkNotNull(entry, "entry");
+        E.checkNotNull(entry.id(), "entry id");
 
         this.additions.add(entry);
     }
 
     public void removeEntry(BackendEntry entry) {
         logger.debug("Transaction remove entry {}", entry);
-        Preconditions.checkNotNull(entry);
-        Preconditions.checkNotNull(entry.id());
+        E.checkNotNull(entry, "entry");
+        E.checkNotNull(entry.id(), "entry id");
 
         this.deletions.add(entry);
     }

@@ -122,8 +122,8 @@ public class HugeVertexLabel extends VertexLabel {
     }
 
     private void checkProperties() {
-        E.checkNotNull(this.properties, "The properties of '%s'", this.name);
-        E.checkNotEmpty(this.properties, "The properties of '%s'", this.name);
+        E.checkNotNull(this.properties, "properties", this.name);
+        E.checkNotEmpty(this.properties, "properties", this.name);
         // If properties is not empty, check all property.
         for (String pk : this.properties) {
             PropertyKey propertyKey = this.transaction().getPropertyKey(pk);

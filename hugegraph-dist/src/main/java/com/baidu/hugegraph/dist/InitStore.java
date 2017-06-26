@@ -9,7 +9,6 @@ import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
 
 /**
@@ -33,15 +32,15 @@ public class InitStore {
         List<ConfigurationNode> graphNames = config.getRootNode().getChildren(
                 CoreOptions.GRAPHS.name()).get(0).getChildren();
 
-        E.checkNotNull(graphNames, "Node: '%s' is not found in the config "
-                + "file %s", CoreOptions.GRAPHS.name(), confFile);
-        E.checkNotEmpty(graphNames,
-                "Node : '%s' must contain at least one child node");
+        E.checkArgumentNotNull(graphNames,
+                "The node '%s' is not found in the config file %s",
+                CoreOptions.GRAPHS.name(), confFile);
+        E.checkArgument(!graphNames.isEmpty(),
+                "The node '%s' must contain at least one child node");
 
         for (ConfigurationNode graphName : graphNames) {
             String graphPropFile = graphName.getValue().toString();
             // get graph property file path
-
             HugeGraph graph = HugeFactory.open(graphPropFile);
             graph.clearBackend();
             graph.initBackend();
