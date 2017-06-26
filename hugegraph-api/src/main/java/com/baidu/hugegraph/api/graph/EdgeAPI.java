@@ -36,6 +36,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/graph/edges")
@@ -151,6 +152,7 @@ public class EdgeAPI extends API {
         return vertex;
     }
 
+    @JsonIgnoreProperties(value = {"type"})
     static class CreateEdge {
 
         public String source;
@@ -161,6 +163,7 @@ public class EdgeAPI extends API {
         @JsonProperty("inVLabel")
         public String targetLabel;
         public Map<String, Object> properties;
+        public String type;
 
         public Object[] properties() {
             return API.properties(this.properties);

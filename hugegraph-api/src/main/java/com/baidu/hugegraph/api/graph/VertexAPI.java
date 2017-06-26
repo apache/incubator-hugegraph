@@ -33,6 +33,7 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.HugeServer;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Path("graphs/{graph}/graph/vertices")
 @Singleton
@@ -129,10 +130,12 @@ public class VertexAPI extends API {
         g.vertices(id).next().remove();
     }
 
+    @JsonIgnoreProperties(value = {"type"})
     static class CreateVertex {
 
         public String label;
         public Map<String, Object> properties;
+        public String type;
 
         public Object[] properties() {
             Object[] props = API.properties(this.properties);
