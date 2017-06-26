@@ -96,7 +96,7 @@ public class IndexLabelAPI extends API {
         public String baseValue;
         public IndexType indexType;
         public String[] fields;
-        public boolean checkExists;
+        public boolean checkExist;
 
         @Override
         public String toString() {
@@ -115,7 +115,7 @@ public class IndexLabelAPI extends API {
             indexLabel.baseValue(this.baseValue);
             indexLabel.indexType(this.indexType);
             indexLabel.indexFields(this.fields);
-            indexLabel.checkExists(this.checkExists);
+            indexLabel.checkExist(this.checkExist);
             return indexLabel;
         }
     }

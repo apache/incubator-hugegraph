@@ -1,11 +1,8 @@
 package com.baidu.hugegraph.type.schema;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
-import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 
@@ -35,7 +32,7 @@ public abstract class VertexLabel extends SchemaElement {
 
     @Override
     public VertexLabel ifNotExist() {
-        this.checkExits = false;
+        this.checkExist = false;
         return this;
     }
 

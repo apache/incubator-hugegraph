@@ -94,7 +94,7 @@ public class PropertyKeyAPI extends API {
         public Cardinality cardinality;
         public DataType dataType;
         public String[] properties;
-        public boolean checkExists;
+        public boolean checkExist;
 
         @Override
         public String toString() {
@@ -112,7 +112,7 @@ public class PropertyKeyAPI extends API {
             propertyKey.cardinality(this.cardinality);
             propertyKey.dataType(this.dataType);
             propertyKey.properties(this.properties);
-            propertyKey.checkExists(this.checkExists);
+            propertyKey.checkExist(this.checkExist);
             return propertyKey;
         }
     }

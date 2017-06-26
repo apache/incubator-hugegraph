@@ -1,10 +1,10 @@
 package com.baidu.hugegraph.schema;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
@@ -114,8 +114,8 @@ public class HugeIndexLabel extends IndexLabel {
         return this;
     }
 
-    public void checkExists(boolean checkExists) {
-        this.checkExits = checkExists;
+    public void checkExist(boolean checkExists) {
+        this.checkExist = checkExists;
     }
 
     @Override
@@ -132,8 +132,12 @@ public class HugeIndexLabel extends IndexLabel {
 
         StringUtil.checkName(this.name);
         IndexLabel indexLabel = this.transaction().getIndexLabel(this.name);
-        if (indexLabel != null && checkExits) {
-            throw new HugeException("The index label '%s' has exised", this.name);
+        if (indexLabel != null) {
+            if (this.checkExist) {
+                throw new ExistedException("index label", this.name);
+            } else {
+                return indexLabel;
+            }
         }
 
         // check field

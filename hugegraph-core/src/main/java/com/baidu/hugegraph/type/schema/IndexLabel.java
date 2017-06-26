@@ -30,7 +30,7 @@ public abstract class IndexLabel extends SchemaElement {
 
     @Override
     public IndexLabel ifNotExist() {
-        this.checkExits = false;
+        this.checkExist = false;
         return this;
     }
 
