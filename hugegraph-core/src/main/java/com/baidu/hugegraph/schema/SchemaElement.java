@@ -1,16 +1,13 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.type.Typifiable;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
-import com.baidu.hugegraph.type.schema.PropertyKey;
+import com.baidu.hugegraph.type.Typifiable;
 import com.google.common.base.Preconditions;
 
 /**
@@ -19,7 +16,7 @@ import com.google.common.base.Preconditions;
 public abstract class SchemaElement implements Namifiable, Typifiable {
 
     protected String name;
-    protected boolean checkExits;
+    protected boolean checkExist;
     protected Set<String> properties;
     protected Set<String> indexNames;
 
@@ -28,7 +25,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
 
     public SchemaElement(String name) {
         this.name = name;
-        this.checkExits = true;
+        this.checkExist = true;
         this.properties = new LinkedHashSet<>();
         this.indexNames = new LinkedHashSet<>();
         this.transaction = null;

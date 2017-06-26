@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.type.define.EdgeLink;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -105,8 +106,8 @@ public class HugeEdgeLabel extends EdgeLabel {
         return this;
     }
 
-    public void checkExists(boolean checkExists) {
-        this.checkExits = checkExists;
+    public void checkExist(boolean checkExists) {
+        this.checkExist = checkExists;
     }
 
     public String linkSchema() {
@@ -139,10 +140,13 @@ public class HugeEdgeLabel extends EdgeLabel {
         StringUtil.checkName(this.name);
         // Try to read
         EdgeLabel edgeLabel = this.transaction().getEdgeLabel(this.name);
-        // if edgeLabel exist and checkExits
-        if (edgeLabel != null && this.checkExits) {
-            throw new HugeException(String.format(
-                    "The edge label '%s' has exised", this.name));
+        // if edgeLabel exist and checkExist
+        if (edgeLabel != null) {
+            if (this.checkExist) {
+                throw new ExistedException("edge label", this.name);
+            } else {
+                return edgeLabel;
+            }
         }
 
         this.checkLinks();

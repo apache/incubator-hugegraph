@@ -3,6 +3,7 @@ package com.baidu.hugegraph.schema;
 import java.util.Arrays;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
@@ -46,8 +47,8 @@ public class HugePropertyKey extends PropertyKey {
         this.cardinality = cardinality;
     }
 
-    public void checkExists(boolean checkExists) {
-        this.checkExits = checkExists;
+    public void checkExist(boolean checkExists) {
+        this.checkExist = checkExists;
     }
 
     @Override
@@ -139,14 +140,18 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     @Override
-    public HugePropertyKey create() {
+    public PropertyKey create() {
 
         StringUtil.checkName(this.name);
         // Try to read
         PropertyKey propertyKey = this.transaction().getPropertyKey(this.name);
-        // if propertyKey exist and checkExits
-        if (propertyKey != null && this.checkExits) {
-            throw new HugeException("The property key '%s' has exised", this.name);
+        // if propertyKey exist and checkExist
+        if (propertyKey != null) {
+            if (this.checkExist) {
+                throw new ExistedException("property key", this.name);
+            } else {
+                return propertyKey;
+            }
         }
 
         this.transaction().addPropertyKey(this);

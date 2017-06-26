@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -46,8 +47,8 @@ public class HugeVertexLabel extends VertexLabel {
         return this;
     }
 
-    public void checkExists(boolean checkExists) {
-        this.checkExits = checkExists;
+    public void checkExist(boolean checkExists) {
+        this.checkExist = checkExists;
     }
 
     @Override
@@ -64,9 +65,13 @@ public class HugeVertexLabel extends VertexLabel {
         StringUtil.checkName(this.name);
         // Try to read
         VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
-        // if vertexLabel exist and checkExits
-        if (vertexLabel != null && this.checkExits) {
-            throw new HugeException("The vertex label '%s' has exised", this.name);
+        // if vertexLabel exist and checkExist
+        if (vertexLabel != null) {
+            if (this.checkExist) {
+                throw new ExistedException("vertex label", this.name);
+            } else {
+                return vertexLabel;
+            }
         }
 
         this.checkProperties();
