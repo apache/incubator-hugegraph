@@ -37,7 +37,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
 public class GraphTransaction extends AbstractTransaction {
@@ -278,9 +278,9 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Check whether primaryKey exists
         List<String> primaryKeys = ((VertexLabel) label).primaryKeys();
-        Preconditions.checkArgument(CollectionUtil.containsAll(
+        E.checkArgument(CollectionUtil.containsAll(
                 ElementHelper.getKeys(keyValues), primaryKeys),
-                "The primary key(s) must be set: %s", primaryKeys);
+                "The primary key(s) must be set: '%s'", primaryKeys);
 
         // Create HugeVertex
         HugeVertex vertex = new HugeVertex(this, id, (VertexLabel) label);
@@ -416,11 +416,12 @@ public class GraphTransaction extends AbstractTransaction {
             Direction direction,
             String... edgeLabels) {
 
-        Preconditions.checkNotNull(sourceVertex);
-        Preconditions.checkArgument(
-                (direction == null && edgeLabels.length == 0)
-                || (direction != null && edgeLabels.length == 0)
-                || (direction != null && edgeLabels.length != 0));
+        E.checkState(sourceVertex != null,
+                "The edge query must contain source vertex");
+        E.checkState((direction != null
+                || (direction == null && edgeLabels.length == 0)),
+                "The edge query must contain direction " +
+                "if it contains edge label");
 
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
 

@@ -225,7 +225,7 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     private void checkProperties() {
-        E.checkNotNull(this.properties, "The properties of '%s'", this.name);
+        E.checkNotNull(this.properties, "properties", this.name);
         // The properties of edge label allowded be empty.
         // If properties is not empty, check all property.
         for (String pk : this.properties) {

@@ -26,8 +26,8 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
-import com.google.common.base.Preconditions;
 
 public class IndexTransaction extends AbstractTransaction {
 
@@ -59,18 +59,20 @@ public class IndexTransaction extends AbstractTransaction {
         }
     }
 
-    protected void updateIndex(String indexName, HugeElement element,
+    protected void updateIndex(String indexName,
+                               HugeElement element,
                                boolean removed) {
         SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(indexName);
-        Preconditions.checkNotNull(indexLabel,
-                "Not existed index: " + indexName);
+        E.checkArgumentNotNull(indexLabel,
+                "Not existed index: '%s'", indexName);
 
         List<Object> propertyValues = new LinkedList<>();
         for (String field : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(field);
-            Preconditions.checkNotNull(property,
-                    "Not existed property: " + field);
+            E.checkState(property != null,
+                    "Not existed property '%s' in %s '%s'",
+                    field, element.type(), element.id());
             propertyValues.add(property.value());
         }
 
@@ -79,7 +81,7 @@ public class IndexTransaction extends AbstractTransaction {
             propValue = SplicingIdGenerator.concatValues(propertyValues);
         } else {
             assert indexLabel.indexType() == IndexType.SEARCH;
-            Preconditions.checkState(propertyValues.size() == 1,
+            E.checkState(propertyValues.size() == 1,
                     "Expect searching by only one property");
             propValue = NumericUtil.convert2Number(propertyValues.get(0));
         }
@@ -116,22 +118,24 @@ public class IndexTransaction extends AbstractTransaction {
         SchemaTransaction schema = graph().schemaTransaction();
 
         Object label = query.condition(HugeKeys.LABEL);
-        Preconditions.checkNotNull(label,
-                "Must contain key 'label' in conditions");
+        E.checkArgumentNotNull(label,
+                "Must contain key 'label' in the conditions, but got: '%s'",
+                query.conditions());
 
+        assert label instanceof String;
         switch (query.resultType()) {
             case VERTEX:
-                schemaElement = schema.getVertexLabel(label.toString());
+                schemaElement = schema.getVertexLabel((String) label);
                 break;
             case EDGE:
-                schemaElement = schema.getEdgeLabel(label.toString());
+                schemaElement = schema.getEdgeLabel((String) label);
                 break;
             default:
                 throw new BackendException(
                         "Unsupported index query: " + query.resultType());
         }
 
-        Preconditions.checkNotNull(schemaElement, "Invalid label: " + label);
+        E.checkArgumentNotNull(schemaElement, "Invalid label: '%s'", label);
 
         Set<String> indexNames = schemaElement.indexNames();
         logger.debug("The label '{}' with index names: {}", label, indexNames);
