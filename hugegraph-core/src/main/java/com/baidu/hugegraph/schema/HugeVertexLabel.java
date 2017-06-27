@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.exception.ExistedException;
+import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -153,11 +154,11 @@ public class HugeVertexLabel extends VertexLabel {
     private void checkStableVars() {
         // Don't allow to append sort keys.
         if (!this.primaryKeys.isEmpty()) {
-            throw new HugeException("Don't allow to append primary keys for "
-                    + "existed vertex label '%s'", this.name);
+            throw new NotAllowException("Not allowed to append primary keys "
+                    + "for existed vertex label '%s'", this.name);
         }
         if (!this.indexNames.isEmpty()) {
-            throw new HugeException("Don't allow to append indexes for "
+            throw new NotAllowException("Not allowed to append indexes for "
                     + "existed vertex label '%s'", this.name);
         }
     }

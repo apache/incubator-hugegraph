@@ -8,6 +8,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.exception.ExistedException;
+import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.type.define.EdgeLink;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -269,7 +270,7 @@ public class HugeEdgeLabel extends EdgeLabel {
     private void checkFrequency(Frequency frequency) {
         // Don't allow to modify frequency.
         if (this.frequency != frequency) {
-            throw new HugeException("Don't allow to modify frequency for "
+            throw new NotAllowException("Not allowed to modify frequency for "
                     + "existed edge label '%s'", this.name);
         }
     }
@@ -277,11 +278,11 @@ public class HugeEdgeLabel extends EdgeLabel {
     private void checkStableVars() {
         // Don't allow to append sort keys.
         if (!this.sortKeys.isEmpty()) {
-            throw new HugeException("Don't allow to append sort keys for "
+            throw new NotAllowException("Not allowed to append sort keys for "
                     + "existed edge label '%s'", this.name);
         }
         if (!this.indexNames.isEmpty()) {
-            throw new HugeException("Don't allow to append indexes for "
+            throw new NotAllowException("Not allowed to append indexes for "
                     + "existed edge label '%s'", this.name);
         }
     }
