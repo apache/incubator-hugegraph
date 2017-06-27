@@ -43,8 +43,8 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 
-public final class HugeVertexStep<E extends Element>
-             extends VertexStep<E> implements QueryHolder {
+public class HugeVertexStep<E extends Element>
+       extends VertexStep<E> implements QueryHolder {
 
     private static final long serialVersionUID = -7850636388424382454L;
 

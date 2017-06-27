@@ -23,8 +23,11 @@ import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy.ProviderOptimizationStrategy;
+import org.apache.tinkerpop.gremlin.process.traversal.step.TraversalParent;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.PathStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversalStrategy;
+import org.apache.tinkerpop.gremlin.process.traversal.util.EmptyTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 
 public final class HugeVertexStepStrategy
@@ -50,8 +53,14 @@ public final class HugeVertexStepStrategy
 
         List<VertexStep> steps = TraversalHelper.getStepsOfClass(
                                  VertexStep.class, traversal);
+        boolean withoutPath = false;
+        if (!steps.isEmpty()) {
+            withoutPath = !HugeVertexStepStrategy.containsPath(traversal);
+        }
         for (VertexStep originStep : steps) {
-            HugeVertexStep<?> newStep = new HugeVertexStep<>(originStep);
+            HugeVertexStep<?> newStep = withoutPath ?
+                              new HugeVertexStepWithoutPath<>(originStep) :
+                              new HugeVertexStep<>(originStep);
             TraversalHelper.replaceStep(originStep, newStep, traversal);
 
             TraversalUtil.extractHasContainer(newStep, traversal);
@@ -63,6 +72,24 @@ public final class HugeVertexStepStrategy
 
             TraversalUtil.extractCount(newStep, traversal);
         }
+    }
+
+    /**
+     * Does a Traversal contain any Path step
+     * @param traversal
+     * @return the traversal or its parents contain at least one Path step
+     */
+    protected static boolean containsPath(Traversal.Admin<?, ?> traversal) {
+        boolean hasPath = TraversalHelper.getStepsOfClass(
+                          PathStep.class, traversal).size() > 0;
+        if (hasPath) {
+            return true;
+        } else if (traversal instanceof EmptyTraversal) {
+            return false;
+        }
+
+        TraversalParent parent = traversal.getParent();
+        return containsPath(parent.asStep().getTraversal());
     }
 
     public static HugeVertexStepStrategy instance() {

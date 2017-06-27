@@ -125,6 +125,20 @@ public class Example2 {
         System.out.println(">>>> test shortest path: " + paths.get(0));
         assert paths.get(0).get(0).equals("marko");
         assert paths.get(0).get(1).equals("lop");
+
+        System.out.println(">>>> query with out() optimize: " +
+                graph.traversal().V("person:marko")
+                .out()
+                .out()
+                .values("name").toList());
+
+        System.out.println(">>>> query with out() optimize and path(): " +
+                graph.traversal().V()
+                .out("knows")
+                .out("created")
+                .values("name")
+                .path()
+                .toList());
     }
 
     public static List<Path> shortestPath(final HugeGraph graph,
