@@ -8,6 +8,13 @@
     <artifactId>hugegraph-common</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>Baidu_Local_Snapshots</id>
+            <url>http://maven.scm.baidu.com:8081/nexus/content/repositories/Baidu_Local_Snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <properties>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <final.name>hugegraph-bin</final.name>
