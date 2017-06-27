@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.exception.ExistedException;
+import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
@@ -151,7 +152,7 @@ public class HugeIndexLabel extends IndexLabel {
         try {
             cloneElement = element.copy();
         } catch (CloneNotSupportedException e) {
-            throw new HugeException("Don't allow to build index on this "
+            throw new NotAllowException("Not allowed to build index on this "
                     + "schema type: '%s'", this.element.type());
         }
 
