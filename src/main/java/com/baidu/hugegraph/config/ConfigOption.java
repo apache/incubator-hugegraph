@@ -44,7 +44,12 @@ public class ConfigOption<T> {
     private T value;
     private final Predicate<T> checkFunc;
 
-    private ConfigOption(String name, Class<T> dataType, T value, Boolean
+    public ConfigOption(String name, T value, Boolean rewritable, String desc,
+                        Predicate<T> verifyFunc) {
+        this(name, (Class<T>) value.getClass(), value, rewritable, desc, verifyFunc);
+    }
+
+    public ConfigOption(String name, Class<T> dataType, T value, Boolean
             rewritable, String desc, Predicate<T> checkFunc) {
         Preconditions.checkNotNull(name);
         Preconditions.checkNotNull(dataType);
@@ -93,7 +98,7 @@ public class ConfigOption<T> {
         this.value = value;
     }
 
-    private void check(Object value) {
+    public void check(Object value) {
         E.checkNotNull(value, "value", this.name);
         E.checkArgument(this.dataType.isInstance(value),
                 "Invalid class for option '%s'. Expected '%s' but given '%s'",
