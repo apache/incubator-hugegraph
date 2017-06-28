@@ -2,12 +2,12 @@ package com.baidu.hugegraph.backend.serializer;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -20,7 +20,7 @@ public class TextBackendEntry implements BackendEntry {
 
     public TextBackendEntry(Id id) {
         this.id = id;
-        this.columns = new HashMap<String, String>();
+        this.columns = new ConcurrentHashMap<>();
     }
 
     @Override
