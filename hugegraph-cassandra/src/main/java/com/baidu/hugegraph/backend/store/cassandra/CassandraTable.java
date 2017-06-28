@@ -236,11 +236,7 @@ public abstract class CassandraTable {
         Object value = relation.value();
 
         // serialize value (TODO: should move to Serializer)
-        if (value instanceof Id) {
-            value = ((Id) value).asString();
-        } else if (value instanceof Direction) {
-            value = ((Direction) value).name();
-        }
+        value = serializeValue(value);
 
         switch (relation.relation()) {
             case EQ:
@@ -254,7 +250,12 @@ public abstract class CassandraTable {
             case LTE:
                 return QueryBuilder.lte(key, value);
             case IN:
-                return QueryBuilder.in(key, (List<?>) value);
+                List<?> values = (List<?>) value;
+                List<Object> serializedValues = new ArrayList<>(values.size());
+                for (Object v : values) {
+                    serializedValues.add(serializeValue(v));
+                }
+                return QueryBuilder.in(key, serializedValues);
             case CONTAINS_KEY:
                 return QueryBuilder.containsKey(key, value);
             case SCAN:
@@ -271,6 +272,17 @@ public abstract class CassandraTable {
             default:
                 throw new AssertionError("Unsupported relation: " + relation);
         }
+    }
+
+    protected static Object serializeValue(Object value) {
+        // serialize value (TODO: should move to Serializer)
+        if (value instanceof Id) {
+            value = ((Id) value).asString();
+        } else if (value instanceof Direction) {
+            value = ((Direction) value).name();
+        }
+
+        return value;
     }
 
     protected List<BackendEntry> results2Entries(HugeType resultType,
