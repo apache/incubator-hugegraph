@@ -23,6 +23,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +55,9 @@ public class EdgeAPI extends API {
                          CreateEdge edge) {
         logger.debug("Graph [{}] create edge: {}", graph, edge);
 
+        E.checkArgumentNotNull(edge.source, "Expect source vertex id");
+        E.checkArgumentNotNull(edge.target, "Expect target vertex id");
+
         Graph g = graph(manager, graph);
 
         Vertex srcVertex = g.traversal().V(edge.source).next();
@@ -68,10 +72,15 @@ public class EdgeAPI extends API {
     @Status(Status.CREATED)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public List<String> create(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
-                         List<CreateEdge> edges) {
+    public List<String> create(
+            @Context GraphManager manager,
+            @PathParam("graph") String graph,
+            @QueryParam("checkVertex") @DefaultValue("true") boolean checkV,
+            List<CreateEdge> edges) {
         HugeGraph g = (HugeGraph) graph(manager, graph);
+
+        TriFunction<HugeGraph, String, String, Vertex> getVertex = checkV ?
+                EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         if (edges.size() > g.configuration().get(MAX_EDGES_PER_BATCH)) {
             throw new HugeException("Too many counts of edges for one time "
@@ -85,18 +94,30 @@ public class EdgeAPI extends API {
         g.tx().open();
         try {
             for (CreateEdge edge : edges) {
-                Vertex srcVertex = this.newVertex(g, edge.source,
+                E.checkArgumentNotNull(edge.source,
+                        "Expect source vertex id");
+                E.checkArgumentNotNull(edge.sourceLabel,
+                        "Expect source vertex label");
+                E.checkArgumentNotNull(edge.target,
+                        "Expect target vertex id");
+                E.checkArgumentNotNull(edge.targetLabel,
+                        "Expect target vertex label");
+
+                Vertex srcVertex = getVertex.apply(g, edge.source,
                         edge.sourceLabel);
-                Vertex tgtVertex = this.newVertex(g, edge.target,
+                Vertex tgtVertex = getVertex.apply(g, edge.target,
                         edge.targetLabel);
                 ids.add(srcVertex.addEdge(edge.label, tgtVertex,
                         edge.properties()).id().toString());
             }
             g.tx().commit();
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e1) {
             try {
                 g.tx().rollback();
             } catch (Exception e2) {
+                logger.error("Failed to add edges", e1);
                 logger.error("Failed to rollback edges", e2);
                 throw new HugeException("Failed to add edges", e1);
             }
@@ -110,7 +131,7 @@ public class EdgeAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @DefaultValue("100") @QueryParam("limit") long limit) {
+                       @QueryParam("limit") @DefaultValue("100") long limit) {
         logger.debug("Graph [{}] get vertices", graph);
 
         Graph g = graph(manager, graph);
@@ -143,7 +164,11 @@ public class EdgeAPI extends API {
         g.edges(id).next().remove();
     }
 
-    private Vertex newVertex(HugeGraph graph, String id, String label) {
+    private static Vertex getVertex(HugeGraph graph, String id, String label) {
+        return graph.traversal().V(id).next();
+    }
+
+    private static Vertex newVertex(HugeGraph graph, String id, String label) {
         VertexLabel vertexLabel = graph.schemaTransaction()
                 .getVertexLabel(label);
         E.checkNotNull(vertexLabel, "Not found this vertex label '%s'", label);
