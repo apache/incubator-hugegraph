@@ -175,10 +175,10 @@ public class IndexTransaction extends AbstractTransaction {
         }
 
         if (indexLabel.indexType() == IndexType.SECONDARY) {
-            String valueStr = query.userpropValuesString(indexFields);
+            String joinedValues = query.userpropValuesString(indexFields);
             indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
             indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
-            indexQuery.eq(HugeKeys.PROPERTY_VALUES, valueStr);
+            indexQuery.eq(HugeKeys.PROPERTY_VALUES, joinedValues);
         } else {
             assert indexLabel.indexType() == IndexType.SEARCH;
             if (query.userpropConditions().size() != 1) {
@@ -186,10 +186,13 @@ public class IndexTransaction extends AbstractTransaction {
                         "Only support searching by one field");
             }
             // replace the query key with PROPERTY_VALUES, and set number value
-            Condition condition = query.userpropConditions().get(0);
+            Condition condition = query.userpropConditions().get(0).copy();
             for (Condition.Relation r : condition.relations()) {
-                r.key(HugeKeys.PROPERTY_VALUES);
-                r.value(NumericUtil.convert2Number(r.value()));
+                Condition.Relation sys = new Condition.SyspropRelation(
+                        HugeKeys.PROPERTY_VALUES,
+                        r.relation(),
+                        NumericUtil.convert2Number(r.value()));
+                condition = condition.replace(r, sys);
             }
 
             indexQuery = new ConditionQuery(HugeType.SEARCH_INDEX);

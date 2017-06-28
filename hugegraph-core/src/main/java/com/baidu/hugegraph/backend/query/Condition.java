@@ -110,6 +110,12 @@ public abstract class Condition {
 
     public abstract List<? extends Relation> relations();
 
+    public abstract boolean test(Object value);
+
+    public abstract Condition copy();
+
+    public abstract Condition replace(Relation from, Relation to);
+
     /*************************************************************************/
 
     public Condition and(Condition other) {
@@ -248,6 +254,13 @@ public abstract class Condition {
         }
 
         @Override
+        public Condition replace(Relation from, Relation to) {
+            this.left = this.left.replace(from, to);
+            this.right = this.right.replace(from, to);
+            return this;
+        }
+
+        @Override
         public String toString() {
             return String.format("%s %s %s",
                     this.left, this.type().name(), this.right);
@@ -276,6 +289,16 @@ public abstract class Condition {
         public ConditionType type() {
             return ConditionType.AND;
         }
+
+        @Override
+        public boolean test(Object value) {
+            return this.left().test(value) && this.right().test(value);
+        }
+
+        @Override
+        public Condition copy() {
+            return new And(this.left().copy(), this.right().copy());
+        }
     }
 
     public static class Or extends BinCondition {
@@ -286,6 +309,16 @@ public abstract class Condition {
         @Override
         public ConditionType type() {
             return ConditionType.OR;
+        }
+
+        @Override
+        public boolean test(Object value) {
+            return this.left().test(value) || this.right().test(value);
+        }
+
+        @Override
+        public Condition copy() {
+            return new Or(this.left().copy(), this.right().copy());
         }
     }
 
@@ -314,6 +347,7 @@ public abstract class Condition {
             this.value = value;
         }
 
+        @Override
         public boolean test(Object value) {
             return this.relation.test(value, this.value);
         }
@@ -321,6 +355,15 @@ public abstract class Condition {
         @Override
         public List<? extends Relation> relations() {
             return ImmutableList.of(this);
+        }
+
+        @Override
+        public Condition replace(Relation from, Relation to) {
+            if (this == from) {
+                return to;
+            } else {
+                return this;
+            }
         }
 
         @Override
@@ -354,10 +397,14 @@ public abstract class Condition {
         private Object key;
 
         public SyspropRelation(HugeKeys key, Object value) {
-            this(key, RelationType.EQ, value);
+            this((Object) key, RelationType.EQ, value);
         }
 
         public SyspropRelation(HugeKeys key, RelationType op, Object value) {
+            this((Object) key, op, value);
+        }
+
+        private SyspropRelation(Object key, RelationType op, Object value) {
             Preconditions.checkNotNull(op);
             this.key = key;
             this.relation = op;
@@ -377,6 +424,11 @@ public abstract class Condition {
         @Override
         public boolean isSysprop() {
             return true;
+        }
+
+        @Override
+        public Condition copy() {
+            return new SyspropRelation(this.key, this.relation(), this.value);
         }
     }
 
@@ -408,6 +460,11 @@ public abstract class Condition {
         @Override
         public boolean isSysprop() {
             return false;
+        }
+
+        @Override
+        public Condition copy() {
+            return new UserpropRelation(this.key, this.relation(), this.value);
         }
     }
 }
