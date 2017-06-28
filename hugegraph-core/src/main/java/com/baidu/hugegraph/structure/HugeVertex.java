@@ -53,9 +53,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public String name() {
         if (this.name == null) {
             if (this.id != null) {
-                String[] parts = SplicingIdGenerator.parse(id);
-                E.checkState(parts.length == 2, "Invalid vertex id '%s'", id);
-                name = parts[1];
+                String[] parts = SplicingIdGenerator.parse(this.id);
+                E.checkState(parts.length == 2, "Invalid vertex id '%s'", this.id);
+                this.name = parts[1];
             } else {
                 List<Object> propValues = primaryValues();
                 E.checkState(!propValues.isEmpty(),
@@ -155,8 +155,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         Preconditions.checkArgument(
                 edgeLabel.checkLink(this.label(), vertex.label()),
-                String.format("Undefined link of edge label '%s': '%s' -> '%s'",
-                        label, this.label(), vertex.label()));
+                "Undefined link of edge label '%s': '%s' -> '%s'",
+                label, this.label(), vertex.label());
 
         Id id = HugeElement.getIdValue(properties);
 
@@ -255,7 +255,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
-    public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality,
+    public <V> VertexProperty<V> property(
+            VertexProperty.Cardinality cardinality,
             String key, V value, Object... objects) {
         if (objects.length != 0 && objects[0].equals(T.id)) {
             throw VertexProperty.Exceptions.userSuppliedIdsNotSupported();
@@ -266,8 +267,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         Preconditions.checkArgument(this.label.properties().contains(key),
-                "Invalid property '%s' for vertex label '%s', "
-                + "valid properties are '%s'",
+                "Invalid property '%s' for vertex label '%s', expected: %s",
                 key, this.label(), this.vertexLabel().properties());
 
         HugeProperty<V> prop = this.addProperty(key, value);
@@ -293,23 +293,23 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
-        List<VertexProperty<V>> propertyList = new ArrayList<>(propertyKeys.length);
+        List<VertexProperty<V>> props = new ArrayList<>(propertyKeys.length);
 
         if (propertyKeys.length == 0) {
             for (HugeProperty<?> prop : this.getProperties().values()) {
-                propertyList.add((VertexProperty<V>) prop);
+                props.add((VertexProperty<V>) prop);
             }
         } else {
             for (String pk : propertyKeys) {
                 HugeProperty<? extends Object> prop = this.getProperty(pk);
                 if (prop != null) {
                     assert prop instanceof VertexProperty;
-                    propertyList.add((VertexProperty<V>) prop);
-                } /* else not found */
+                    props.add((VertexProperty<V>) prop);
+                } // else not found
             }
         }
 
-        return propertyList.iterator();
+        return props.iterator();
     }
 
     /**

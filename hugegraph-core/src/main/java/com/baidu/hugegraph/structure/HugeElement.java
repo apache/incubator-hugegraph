@@ -20,7 +20,7 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 
 /**
  * Created by jishilei on 17/3/16.
@@ -91,10 +91,9 @@ public abstract class HugeElement implements Element, GraphType {
                 this.setProperty(prop);
                 break;
             case SET:
-                Preconditions.checkArgument(pkey.checkDataType(value),
-                        String.format("Invalid property value '%s' for"
-                                + " key '%s'", value, key));
-
+                E.checkArgument(pkey.checkDataType(value),
+                                "Invalid property value '%s' for key '%s'",
+                                value, key);
                 HugeProperty<Set<V>> propSet;
                 if (this.hasProperty(key)) {
                     propSet = this.<Set<V>>getProperty(key);
@@ -109,10 +108,9 @@ public abstract class HugeElement implements Element, GraphType {
                 prop = (HugeProperty) propSet;
                 break;
             case LIST:
-                Preconditions.checkArgument(pkey.checkDataType(value),
-                        String.format("Invalid property value '%s' for key '%s'",
-                                      value, key));
-
+                E.checkArgument(pkey.checkDataType(value),
+                                "Invalid property value '%s' for key '%s'",
+                                value, key);
                 HugeProperty<List<V>> propList;
                 if (!this.hasProperty(key)) {
                     propList = this.newProperty(pkey, new LinkedList<V>());
@@ -187,8 +185,8 @@ public abstract class HugeElement implements Element, GraphType {
 
         // throw if error type
         throw new UnsupportedOperationException(
-                "Unsupported id type(must be a number or a string): " +
-                idValue.getClass().getSimpleName());
+                  "Unsupported id type(must be a number or a string): " +
+                  idValue.getClass().getSimpleName());
     }
 
     public static Object getLabelValue(Object... keyValues) {
@@ -196,10 +194,11 @@ public abstract class HugeElement implements Element, GraphType {
         for (int i = 0; i < keyValues.length; i = i + 2) {
             if (keyValues[i].equals(T.label)) {
                 labelValue = keyValues[i + 1];
-                Preconditions.checkArgument(labelValue instanceof VertexLabel
-                        || labelValue instanceof String,
-                        "Expected a string or VertexLabel as the vertex label"
-                        + " argument, but got: %s", labelValue);
+                E.checkArgument(labelValue instanceof String ||
+                                labelValue instanceof VertexLabel,
+                                "Expect a string or a VertexLabel object " +
+                                "as the vertex label argument, but got: '%s'",
+                                labelValue);
                 if (labelValue instanceof String) {
                     ElementHelper.validateLabel((String) labelValue);
                 }

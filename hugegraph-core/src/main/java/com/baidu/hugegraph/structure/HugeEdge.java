@@ -3,7 +3,6 @@ package com.baidu.hugegraph.structure;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -117,8 +116,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public <V> Property<V> property(String key, V value) {
         Preconditions.checkArgument(this.label.properties().contains(key),
-                "Invalid property '%s' for edge label '%s', "
-                + "valid properties are '%s'",
+                "Invalid property '%s' for edge label '%s', expected: %s",
                 key, this.label(), this.edgeLabel().properties());
         return this.addProperty(key, value);
     }
@@ -134,22 +132,22 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     @SuppressWarnings("unchecked") // (Property<V>) prop
     public <V> Iterator<Property<V>> properties(String... propertyKeys) {
-        List<Property<V>> propertyList = new ArrayList<>(propertyKeys.length);
+        List<Property<V>> props = new ArrayList<>(propertyKeys.length);
 
         if (propertyKeys.length == 0) {
             for (HugeProperty<?> prop : this.getProperties().values()) {
-                propertyList.add((Property<V>) prop);
+                props.add((Property<V>) prop);
             }
         } else {
             for (String pk : propertyKeys) {
                 HugeProperty<? extends Object> prop = this.getProperty(pk);
                 if (prop != null) {
                     assert prop instanceof Property;
-                    propertyList.add((Property<V>) prop);
+                    props.add((Property<V>) prop);
                 } // else not found
             }
         }
-        return propertyList.iterator();
+        return props.iterator();
     }
 
     @Override
