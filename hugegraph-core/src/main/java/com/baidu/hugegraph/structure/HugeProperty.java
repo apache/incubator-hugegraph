@@ -8,7 +8,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 
 /**
  * Created by jishilei on 17/3/16.
@@ -20,20 +20,19 @@ public class HugeProperty<V> implements Property<V>, GraphType {
     protected final V value;
 
     public HugeProperty(final HugeElement owner, PropertyKey key, V value) {
-        Preconditions.checkArgument(owner != null, "Property owner can't be null");
-        Preconditions.checkArgument(key != null, "Property key can't be null");
+        E.checkArgument(owner != null, "Property owner can't be null");
+        E.checkArgument(key != null, "Property key can't be null");
 
         this.owner = owner;
         this.key = key;
         this.value = value;
 
-        Preconditions.checkArgument(key.checkValue(value),
-                "Invalid property value '%s' for key '%s', "
-                        + "expect '%s', actual '%s'",
-                value,
-                key.name(),
-                key.clazz().getSimpleName(),
-                value.getClass().getSimpleName());
+        E.checkArgument(key.checkValue(value),
+                        "Invalid property value '%s' for key '%s', " +
+                        "expect '%s', actual '%s'",
+                        value, key.name(),
+                        key.clazz().getSimpleName(),
+                        value.getClass().getSimpleName());
     }
 
     public PropertyKey propertyKey() {
