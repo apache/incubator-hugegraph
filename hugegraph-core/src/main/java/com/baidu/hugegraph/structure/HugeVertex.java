@@ -26,6 +26,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
+import com.baidu.hugegraph.util.E;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -51,9 +52,17 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public String name() {
         if (this.name == null) {
-            List<Object> propValues = primaryValues();
-            assert !propValues.isEmpty() : "Primary values must not be empty";
-            this.name = SplicingIdGenerator.concatValues(propValues);
+            if (this.id != null) {
+                String[] parts = SplicingIdGenerator.parse(id);
+                E.checkState(parts.length == 2, "Invalid vertex id '%s'", id);
+                name = parts[1];
+            } else {
+                List<Object> propValues = primaryValues();
+                E.checkState(!propValues.isEmpty(),
+                        "Primary values must not be empty(has properties %s)",
+                        hasProperties());
+                this.name = SplicingIdGenerator.concatValues(propValues);
+            }
         }
         return this.name;
     }
