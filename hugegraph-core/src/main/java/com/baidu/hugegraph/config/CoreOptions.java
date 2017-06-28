@@ -1,6 +1,6 @@
 package com.baidu.hugegraph.config;
 
-import static com.baidu.hugegraph.config.ConfigVerifier.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 
 /**
  * Created by liningrui on 2017/5/25.

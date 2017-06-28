@@ -1,23 +1,18 @@
 package com.baidu.hugegraph.dist;
 
 import java.io.InputStream;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.tree.ConfigurationNode;
-import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.config.CassandraOptions;
-import com.baidu.hugegraph.config.ConfigSpace;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.exception.ConfigException;
 import com.baidu.hugegraph.util.E;
 
 /**
@@ -26,7 +21,7 @@ import com.baidu.hugegraph.util.E;
 public class RegisterUtil {
 
     static {
-        ConfigSpace.register(CoreOptions.Instance());
+        OptionSpace.register(CoreOptions.Instance());
     }
 
     public static void registerBackends() throws ConfigurationException {
@@ -56,7 +51,7 @@ public class RegisterUtil {
 
     public static void registerCassandra() {
         // register config
-        ConfigSpace.register(CassandraOptions.Instance());
+        OptionSpace.register(CassandraOptions.Instance());
         // register serializer
         SerializerFactory.register("cassandra",
                 "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
@@ -70,6 +65,6 @@ public class RegisterUtil {
     }
 
     public static void registerServer() {
-        ConfigSpace.register(ServerOptions.Instance());
+        OptionSpace.register(ServerOptions.Instance());
     }
 }
