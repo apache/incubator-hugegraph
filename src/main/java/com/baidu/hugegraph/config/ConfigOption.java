@@ -5,6 +5,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph.util.E;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -33,16 +34,6 @@ public class ConfigOption<T> {
                 String[].class
         );
 
-        //        StandardSerializer ss = new StandardSerializer();
-        //        for (Class<?> c : ACCEPTED_DATATYPES) {
-        //            if (!ss.validDataType(c)) {
-        //                String msg = String.format("%s datatype %s is not accepted by %s",
-        //                        ConfigOption.class.getSimpleName(), c, StandardSerializer.class.getSimpleName());
-        //                log.error(msg);
-        //                throw new IllegalStateException(msg);
-        //            }
-        //        }
-
         ACCEPTED_DATATYPES_STRING = Joiner.on(", ").join(ACCEPTED_DATATYPES);
     }
 
@@ -51,20 +42,18 @@ public class ConfigOption<T> {
     private final Boolean rewritable;
     private final Class<T> dataType;
     private T value;
-    private final Predicate<T> verifyFunc;
+    private final Predicate<T> checkFunc;
 
-    public ConfigOption(String name, T value, Boolean rewritable, String desc, Predicate<T> verifyFunc) {
-        this(name, (Class<T>) value.getClass(), value, rewritable, desc, verifyFunc);
-    }
-
-    public ConfigOption(String name, Class<T> dataType, T value, Boolean rewritable, String desc,
-                        Predicate<T> verifyFunc) {
+    private ConfigOption(String name, Class<T> dataType, T value, Boolean
+            rewritable, String desc, Predicate<T> checkFunc) {
         Preconditions.checkNotNull(name);
         Preconditions.checkNotNull(dataType);
         Preconditions.checkNotNull(rewritable);
 
         if (!ACCEPTED_DATATYPES.contains(dataType)) {
-            String msg = String.format("Datatype %s is not one of %s", dataType, ACCEPTED_DATATYPES_STRING);
+            String msg = String.format("Input datatype: '%s' doesn't belong "
+                            + "to acceptable type set: [%s]",
+                    dataType, ACCEPTED_DATATYPES_STRING);
             logger.error(msg);
             throw new IllegalArgumentException(msg);
         }
@@ -74,55 +63,44 @@ public class ConfigOption<T> {
         this.value = value;
         this.rewritable = rewritable;
         this.desc = desc;
-        this.verifyFunc = verifyFunc;
+        this.checkFunc = checkFunc;
 
-        if (this.verifyFunc != null) {
-            verify(this.value);
+        if (this.checkFunc != null) {
+            check(this.value);
         }
     }
 
     public String name() {
-        return name;
+        return this.name;
     }
 
     public Class<T> dataType() {
-        return dataType;
+        return this.dataType;
     }
 
-    /**
-     * @return
-     */
+    public String desc() {
+        return this.desc;
+    }
+
     public T value() {
-        return value;
+        return this.value;
     }
 
-    /**
-     * @param value
-     */
     public void value(T value) {
-        verify(value);
-        Preconditions.checkArgument(rewritable);
+        check(value);
+        E.checkArgument(this.rewritable, "Not allowed to modify option: '%s' "
+                + "which is unrewritable", this.name);
         this.value = value;
     }
 
-    public T verify(Object input) {
-        Preconditions.checkNotNull(input);
-        Preconditions.checkArgument(dataType.isInstance(input),
-                "Invalid class for configuration value [%s]. Expected [%s] but given [%s]", this.toString(), dataType,
-                input.getClass());
-        T result = (T) input;
-        Preconditions.checkArgument(verifyFunc.apply(result), "Invalid configuration value for [%s]: %s",
-                this.toString(), input);
-        return result;
+    private void check(Object value) {
+        E.checkNotNull(value, "value", this.name);
+        E.checkArgument(this.dataType.isInstance(value),
+                "Invalid class for option '%s'. Expected '%s' but given '%s'",
+                this.name, this.dataType, value.getClass());
+        T result = (T) value;
+        E.checkArgument(this.checkFunc.apply(result),
+                "Invalid option value for [%s]: %s", this.name, value);
     }
-
-    //    public static final<E extends Enum> E getEnumValue(String str, Class<E> enumClass) {
-    //        str = str.trim();
-    //        if (StringUtils.isBlank(str)) return null;
-    //        for (E e : enumClass.getEnumConstants()) {
-    //            if (e.toString().equalsIgnoreCase(str)) return e;
-    //        }
-    //        throw new IllegalArgumentException("Invalid enum string provided for ["+enumClass+"]: " + str);
-    //    }
 
 }

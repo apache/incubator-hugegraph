@@ -14,7 +14,6 @@ import org.apache.commons.configuration.AbstractFileConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +26,7 @@ public class HugeConfig extends PropertiesConfiguration {
 
     public HugeConfig(Configuration config) {
         if (config == null) {
-            throw new ConfigException("Config object is null.");
+            throw new ConfigException("Passed config object is null");
         }
         if (config instanceof AbstractFileConfiguration) {
             File file = ((AbstractFileConfiguration) config).getFile();
@@ -42,39 +41,41 @@ public class HugeConfig extends PropertiesConfiguration {
             this.setProperty(key.replace("..", "."), config.getProperty(key));
         }
 
-        updateDefaultConfiguration();
+        updateDefaultOption();
     }
 
     public HugeConfig(String configFile) throws ConfigurationException {
         super(loadConfigFile(configFile));
-        updateDefaultConfiguration();
+        updateDefaultOption();
     }
 
     public HugeConfig(InputStream is) throws ConfigurationException {
+        E.checkNotNull(is, "config input stream");
         this.load(new InputStreamReader(is));
-        updateDefaultConfiguration();
+        updateDefaultOption();
     }
 
     private static File loadConfigFile(String fileName) {
-        E.checkArgument(StringUtils.isNotEmpty(fileName),
-                "Can't load config file: %s", fileName);
+        E.checkNotNull(fileName, "config file");
+        E.checkArgument(!fileName.isEmpty(), "The config file can't be empty");
+
         File file = new File(fileName);
         E.checkArgument(file.exists() && file.isFile() && file.canRead(),
                 "Need to specify a readable config file, " +
-                "but was given: %s", file.toString());
+                "but got: %s", file.toString());
         return file;
     }
 
-    public void updateDefaultConfiguration() {
+    public void updateDefaultOption() {
         try {
             Iterator<String> keys = this.getKeys();
             while (keys.hasNext()) {
                 String key = keys.next();
-                if (!ConfigSpace.containKey(key)) {
-                    logger.warn("A redundant config option is set：" + key);
+                if (!OptionSpace.containKey(key)) {
+                    logger.warn("The option: '%s' is redundant", key);
                     continue;
                 }
-                ConfigOption option = ConfigSpace.get(key);
+                ConfigOption option = OptionSpace.get(key);
                 Class dataType = option.dataType();
                 String getMethod = "get" + dataType.getSimpleName();
                 Method method = this.getClass()
@@ -87,12 +88,6 @@ public class HugeConfig extends PropertiesConfiguration {
         }
     }
 
-    /**
-     * @param option
-     * @param <T>
-     *
-     * @return
-     */
     public <T> T get(ConfigOption<T> option) {
         return option.value();
     }

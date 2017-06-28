@@ -26,7 +26,7 @@ public class OptionHolder {
         Field[] fields = this.getClass().getFields();
         for (Field field : fields) {
             try {
-                ConfigOption option = (ConfigOption)field.get(this);
+                ConfigOption option = (ConfigOption) field.get(this);
                 this.options.put(option.name(), option);
             } catch (Exception e) {
                 String msg = String.format("Failed to regiser option : %s", field);

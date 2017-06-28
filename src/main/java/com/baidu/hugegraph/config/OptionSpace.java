@@ -5,15 +5,15 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 import com.google.common.collect.Maps;
 
 /**
  * Created by liningrui on 2017/3/27.
  */
-public class ConfigSpace {
+public class OptionSpace {
 
-    private static final Logger logger = LoggerFactory.getLogger(ConfigSpace.class);
+    private static final Logger logger = LoggerFactory.getLogger(OptionSpace.class);
 
     private static final Map<String, ConfigOption> options = Maps.newHashMap();
 
@@ -23,20 +23,17 @@ public class ConfigSpace {
     }
 
     public static void register(ConfigOption<?> element) {
-        Preconditions.checkNotNull(element);
-        Preconditions.checkArgument(!options.containsKey(element.name()),
-                "An same config option has already been added to this " +
-                "namespace: %s", element.name());
+        E.checkArgument(!options.containsKey(element.name()),
+                "The option: '%s' has already been registered",
+                element.name());
         options.put(element.name(), element);
     }
 
     public static Boolean containKey(String key) {
-        Preconditions.checkNotNull(key);
         return options.containsKey(key);
     }
 
     public static ConfigOption<?> get(String key) {
-        Preconditions.checkNotNull(key);
         return options.get(key);
     }
 }
