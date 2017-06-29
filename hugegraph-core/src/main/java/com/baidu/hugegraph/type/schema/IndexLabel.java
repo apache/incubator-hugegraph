@@ -28,13 +28,6 @@ public abstract class IndexLabel extends SchemaElement {
 
     public abstract IndexLabel search();
 
-    @Override
-    public IndexLabel ifNotExist() {
-        this.checkExist = false;
-        return this;
-    }
-
-    @Override
     public abstract IndexLabel create();
 
     public abstract HugeType baseType();
@@ -44,4 +37,10 @@ public abstract class IndexLabel extends SchemaElement {
     public abstract IndexType indexType();
 
     public abstract List<String> indexFields();
+
+    @Override
+    public IndexLabel ifNotExist() {
+        this.checkExist = false;
+        return this;
+    }
 }

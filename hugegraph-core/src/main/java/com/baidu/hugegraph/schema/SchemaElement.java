@@ -8,7 +8,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Typifiable;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 
 /**
  * Created by liningrui on 2017/3/27.
@@ -20,7 +20,6 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
     protected Set<String> properties;
     protected Set<String> indexNames;
 
-    // TODO: Don't reference SchemaTransaction here(to avoid mutual reference)
     private SchemaTransaction transaction;
 
     public SchemaElement(String name) {
@@ -36,8 +35,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
     }
 
     protected SchemaTransaction transaction() {
-        Preconditions.checkNotNull(this.transaction,
-                "Transaction must not be null when creating");
+        E.checkNotNull(this.transaction, "schema transaction");
         return this.transaction;
     }
 
@@ -51,14 +49,12 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
     }
 
     protected String propertiesSchema() {
-        String props = "";
+        StringBuilder sb = new StringBuilder();
         for (String propertyName : this.properties) {
-            props += "\"";
-            props += propertyName;
-            props += "\",";
+            sb.append("\"").append(propertyName).append("\",");
         }
-        int endIdx = props.lastIndexOf(",") > 0 ? props.length() - 1 : props.length();
-        return "properties(" + props.substring(0, endIdx) + ")";
+        int endIdx = sb.lastIndexOf(",") > 0 ? sb.length() - 1 : sb.length();
+        return String.format(".properties(%s)", sb.substring(0, endIdx));
     }
 
     public Set<String> indexNames() {

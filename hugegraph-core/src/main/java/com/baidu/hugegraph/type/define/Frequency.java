@@ -4,10 +4,10 @@ package com.baidu.hugegraph.type.define;
  * Created by liningrui on 2017/3/30.
  */
 public enum Frequency {
+
     SINGLE(1, "single"),
 
     MULTIPLE(2, "multiple");
-
 
     private byte code = 0;
     private String name = null;
@@ -24,5 +24,10 @@ public enum Frequency {
 
     public String string() {
         return this.name;
+    }
+
+    public String schema() {
+        return String.format(".%s()",
+                this == SINGLE ? "singleTime" : "multiTimes");
     }
 }

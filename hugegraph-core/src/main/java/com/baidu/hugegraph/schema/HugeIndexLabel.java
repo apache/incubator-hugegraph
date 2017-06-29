@@ -121,11 +121,28 @@ public class HugeIndexLabel extends IndexLabel {
 
     @Override
     public String schema() {
-        String schema = "";
-        schema = ".index(\"" + this.name + "\")"
-                + StringUtil.desc("by", this.indexFields)
-                + "." + this.indexType.string() + "()";
-        return schema;
+        StringBuilder sb = new StringBuilder();
+        sb.append("schema.makeIndexlabel(\"").append(this.name).append("\")");
+        sb.append(this.baseLabelSchema());
+        sb.append(this.indexFieldsSchema());
+        sb.append(this.indexType.schema());
+        sb.append(".ifNotExist()");
+        sb.append(".create();");
+        return sb.toString();
+    }
+
+    // TODO: Print the element name instead of object may lead custom confused.
+    private String baseLabelSchema() {
+        return String.format(".on(%s)", this.baseValue);
+    }
+
+    private String indexFieldsSchema() {
+        StringBuilder sb = new StringBuilder();
+        for (String indexField : this.indexFields) {
+            sb.append("\"").append(indexField).append("\",");
+        }
+        int endIdx = sb.lastIndexOf(",") > 0 ? sb.length() - 1 : sb.length();
+        return String.format(".by(%s)", sb.substring(0, endIdx));
     }
 
     @Override

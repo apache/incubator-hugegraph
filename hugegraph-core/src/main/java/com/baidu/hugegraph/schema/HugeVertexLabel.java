@@ -54,10 +54,17 @@ public class HugeVertexLabel extends VertexLabel {
 
     @Override
     public String schema() {
-        return "schema.vertexLabel(\"" + this.name + "\")"
-                + "." + propertiesSchema()
-                + StringUtil.desc("primaryKeys", this.primaryKeys)
-                + ".create();";
+        StringBuilder sb = new StringBuilder();
+        sb.append("schema.makePropertyKey(\"").append(this.name).append("\")");
+        sb.append(this.propertiesSchema());
+        sb.append(this.primaryKeysSchema());
+        sb.append(".ifNotExist()");
+        sb.append(".create();");
+        return sb.toString();
+    }
+
+    private String primaryKeysSchema() {
+        return StringUtil.desc("primaryKeys", this.primaryKeys);
     }
 
     @Override

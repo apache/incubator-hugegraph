@@ -51,8 +51,7 @@ public enum DataType {
     }
 
     public String schema() {
-        // enum object -> string -> lowercase -> capture name
-        return "as" + StringUtils.capitalize(this.toString().toLowerCase());
+        return String.format(".as%s()", StringUtils.capitalize(this.name));
     }
 
     public static DataType fromCode(byte dataType) {
