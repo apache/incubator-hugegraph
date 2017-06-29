@@ -8,10 +8,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONWriter;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.schema.HugeEdgeLabel;
-import com.baidu.hugegraph.schema.HugeIndexLabel;
-import com.baidu.hugegraph.schema.HugePropertyKey;
-import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
@@ -58,7 +54,7 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writePropertyKeys(List<HugePropertyKey> propertyKeys) {
+    public String writePropertyKeys(List<PropertyKey> propertyKeys) {
         return writeList("propertykeys", propertyKeys);
     }
 
@@ -68,7 +64,7 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeVertexLabels(List<HugeVertexLabel> vertexLabels) {
+    public String writeVertexLabels(List<VertexLabel> vertexLabels) {
         return writeList("vertexlabels", vertexLabels);
     }
 
@@ -78,7 +74,7 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeEdgeLabels(List<HugeEdgeLabel> edgeLabels) {
+    public String writeEdgeLabels(List<EdgeLabel> edgeLabels) {
         return writeList("edgelabels", edgeLabels);
     }
 
@@ -88,7 +84,7 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeIndexlabels(List<HugeIndexLabel> indexLabels) {
+    public String writeIndexlabels(List<IndexLabel> indexLabels) {
         return writeList("indexlabels", indexLabels);
     }
 

@@ -58,7 +58,7 @@ public class IndexLabelAPI extends API {
         logger.debug("Graph [{}] get edge labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<HugeIndexLabel> indexLabels = g.schemaTransaction().getIndexLabels();
+        List<IndexLabel> indexLabels = g.schemaTransaction().getIndexLabels();
 
         return manager.serializer(g).writeIndexlabels(indexLabels);
     }

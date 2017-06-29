@@ -75,7 +75,7 @@ public class VertexLabelAPI extends API {
         logger.debug("Graph [{}] get vertex labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<HugeVertexLabel> vertexLabels = g.schemaTransaction().getVertexLabels();
+        List<VertexLabel> vertexLabels = g.schemaTransaction().getVertexLabels();
 
         return manager.serializer(g).writeVertexLabels(vertexLabels);
     }
