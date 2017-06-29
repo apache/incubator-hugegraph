@@ -131,12 +131,14 @@ public class HugePropertyKey extends PropertyKey {
 
     @Override
     public String schema() {
-        String schema = "schema.propertyKey(\"" + this.name + "\")"
-                + "." + this.dataType.schema() + "()"
-                + "." + this.cardinality.string() + "()"
-                + "." + propertiesSchema()
-                + ".create();";
-        return schema;
+        StringBuilder sb = new StringBuilder();
+        sb.append("schema.makePropertyKey(\"").append(this.name).append("\")");
+        sb.append(this.dataType.schema());
+        sb.append(this.cardinality.schema());
+        sb.append(this.propertiesSchema());
+        sb.append(".ifNotExist()");
+        sb.append(".create();");
+        return sb.toString();
     }
 
     @Override

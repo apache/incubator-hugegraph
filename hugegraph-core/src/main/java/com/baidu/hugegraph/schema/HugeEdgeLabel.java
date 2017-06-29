@@ -112,27 +112,32 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     public String linkSchema() {
-        String linkSchema = "";
-        if (this.links != null) {
-            for (EdgeLink link : this.links) {
-                linkSchema += ".link(\"";
-                linkSchema += link.source();
-                linkSchema += "\",\"";
-                linkSchema += link.target();
-                linkSchema += "\")";
-            }
+        StringBuilder sb = new StringBuilder();
+        for (EdgeLink link : this.links) {
+            sb.append(".link(\"");
+            sb.append(link.source);
+            sb.append("\",\"");
+            sb.append(link.target);
+            sb.append("\")");
         }
-        return linkSchema;
+        return sb.toString();
     }
 
     @Override
     public String schema() {
-        return "schema.edgeLabel(\"" + this.name + "\")"
-                + "." + this.frequency.string() + "()"
-                + "." + propertiesSchema()
-                + linkSchema()
-                + StringUtil.desc("sortKeys", this.sortKeys)
-                + ".create();";
+        StringBuilder sb = new StringBuilder();
+        sb.append("schema.makePropertyKey(\"").append(this.name).append("\")");
+        sb.append(this.propertiesSchema());
+        sb.append(this.linkSchema());
+        sb.append(this.frequency.schema());
+        sb.append(this.sortKeysSchema());
+        sb.append(".ifNotExist()");
+        sb.append(".create();");
+        return sb.toString();
+    }
+
+    private String sortKeysSchema() {
+        return StringUtil.desc("sortKeys", this.sortKeys);
     }
 
     @Override

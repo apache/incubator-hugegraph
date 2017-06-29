@@ -25,4 +25,8 @@ public enum IndexType {
     public String string() {
         return this.name;
     }
+
+    public String schema() {
+        return String.format(".%s()", this.name);
+    }
 }

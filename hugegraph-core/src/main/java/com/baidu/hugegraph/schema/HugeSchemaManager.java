@@ -79,6 +79,7 @@ public class HugeSchemaManager implements SchemaManager {
         elements.addAll(this.transaction.getPropertyKeys());
         elements.addAll(this.transaction.getVertexLabels());
         elements.addAll(this.transaction.getEdgeLabels());
+        elements.addAll(this.transaction.getIndexLabels());
         return elements;
     }
 
