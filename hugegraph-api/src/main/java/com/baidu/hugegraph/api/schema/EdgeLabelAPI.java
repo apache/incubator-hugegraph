@@ -76,7 +76,7 @@ public class EdgeLabelAPI extends API {
         logger.debug("Graph [{}] get edge labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<HugeEdgeLabel> edgeLabels = g.schemaTransaction().getEdgeLabels();
+        List<EdgeLabel> edgeLabels = g.schemaTransaction().getEdgeLabels();
 
         return manager.serializer(g).writeEdgeLabels(edgeLabels);
     }

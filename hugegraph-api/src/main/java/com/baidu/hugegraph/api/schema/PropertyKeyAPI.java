@@ -58,7 +58,7 @@ public class PropertyKeyAPI extends API {
         logger.debug("Graph [{}] get property keys", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<HugePropertyKey> propertyKeys = g.schemaTransaction().getPropertyKeys();
+        List<PropertyKey> propertyKeys = g.schemaTransaction().getPropertyKeys();
 
         return manager.serializer(g).writePropertyKeys(propertyKeys);
     }

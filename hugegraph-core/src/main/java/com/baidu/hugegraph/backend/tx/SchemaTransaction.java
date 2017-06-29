@@ -25,54 +25,49 @@ public class SchemaTransaction extends AbstractTransaction {
         super(graph, store);
     }
 
-    public List<HugePropertyKey> getPropertyKeys() {
-        List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
+    public List<PropertyKey> getPropertyKeys() {
+        List<PropertyKey> propertyKeys = new ArrayList<>();
         Query q = new Query(HugeType.PROPERTY_KEY);
         Iterable<BackendEntry> entries = query(q);
-        entries.forEach(item -> {
-            propertyKeys.add((HugePropertyKey) this.serializer.readPropertyKey(item));
+        entries.forEach(i -> {
+            propertyKeys.add(this.serializer.readPropertyKey(i));
         });
         return propertyKeys;
     }
 
-    public List<HugeVertexLabel> getVertexLabels() {
-        List<HugeVertexLabel> vertexLabels = new ArrayList<>();
+    public List<VertexLabel> getVertexLabels() {
+        List<VertexLabel> vertexLabels = new ArrayList<>();
         Query q = new Query(HugeType.VERTEX_LABEL);
         Iterable<BackendEntry> entries = query(q);
-        entries.forEach(item -> {
-            vertexLabels.add((HugeVertexLabel) this.serializer.readVertexLabel(item));
+        entries.forEach(i -> {
+            vertexLabels.add(this.serializer.readVertexLabel(i));
         });
         return vertexLabels;
     }
 
-    public List<HugeEdgeLabel> getEdgeLabels() {
-        List<HugeEdgeLabel> edgeLabels = new ArrayList<>();
+    public List<EdgeLabel> getEdgeLabels() {
+        List<EdgeLabel> edgeLabels = new ArrayList<>();
         Query q = new Query(HugeType.EDGE_LABEL);
         Iterable<BackendEntry> entries = query(q);
-        entries.forEach(item -> {
-            edgeLabels.add((HugeEdgeLabel) this.serializer.readEdgeLabel(item));
+        entries.forEach(i -> {
+            edgeLabels.add(this.serializer.readEdgeLabel(i));
         });
         return edgeLabels;
     }
 
-    public List<HugeIndexLabel> getIndexLabels() {
-        List<HugeIndexLabel> indexLabels = new ArrayList<>();
+    public List<IndexLabel> getIndexLabels() {
+        List<IndexLabel> indexLabels = new ArrayList<>();
         Query q = new Query(HugeType.INDEX_LABEL);
         Iterable<BackendEntry> entries = query(q);
-        entries.forEach(item -> {
-            indexLabels.add((HugeIndexLabel) this.serializer.readIndexLabel(item));
+        entries.forEach(i -> {
+            indexLabels.add(this.serializer.readIndexLabel(i));
         });
         return indexLabels;
     }
 
-    public void addPropertyKey(PropertyKey propertyKey) {
-        logger.debug("SchemaTransaction add property key, "
-                + "name: " + propertyKey.name() + ", "
-                + "dataType: " + propertyKey.dataType() + ", "
-                + "cardinality: " + propertyKey.cardinality());
-
-        this.addSchema(propertyKey, this.serializer.writePropertyKey(
-                propertyKey));
+    public void addPropertyKey(PropertyKey propKey) {
+        logger.debug("SchemaTransaction add property key: {}", propKey);
+        this.addSchema(propKey, this.serializer.writePropertyKey(propKey));
     }
 
     public PropertyKey getPropertyKey(String name) {
@@ -81,17 +76,14 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void removePropertyKey(String name) {
-        logger.debug("SchemaTransaction remove property key " + name);
-
+        logger.debug("SchemaTransaction remove property key '{}'", name);
         this.removeSchema(new HugePropertyKey(name));
     }
 
     public void addVertexLabel(VertexLabel vertexLabel) {
-        logger.debug("SchemaTransaction add vertex label, "
-                + "name: " + vertexLabel.name());
-
-        this.addSchema(vertexLabel, this.serializer.writeVertexLabel(
-                vertexLabel));
+        logger.debug("SchemaTransaction add vertex label: {}", vertexLabel);
+        BackendEntry entry = this.serializer.writeVertexLabel(vertexLabel);
+        this.addSchema(vertexLabel, entry);
     }
 
     public VertexLabel getVertexLabel(String name) {
@@ -100,16 +92,12 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void removeVertexLabel(String name) {
-        logger.info("SchemaTransaction remove vertex label " + name);
-
+        logger.debug("SchemaTransaction remove vertex label '{}'", name);
         this.removeSchema(new HugeVertexLabel(name));
     }
 
     public void addEdgeLabel(EdgeLabel edgeLabel) {
-        logger.debug("SchemaTransaction add edge label, "
-                + "name: " + edgeLabel.name() + ", "
-                + "frequency: " + edgeLabel.frequency());
-
+        logger.debug("SchemaTransaction add edge label: {}", edgeLabel);
         this.addSchema(edgeLabel, this.serializer.writeEdgeLabel(edgeLabel));
     }
 
@@ -119,21 +107,13 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void removeEdgeLabel(String name) {
-        logger.info("SchemaTransaction remove edge label " + name);
-
+        logger.debug("SchemaTransaction remove edge label '{}'", name);
         this.removeSchema(new HugeEdgeLabel(name));
     }
 
     public void addIndexLabel(IndexLabel indexLabel) {
-        logger.debug("SchemaTransaction add index label, "
-                + "name: " + indexLabel.name() + ", "
-                + "base-type: " + indexLabel.baseType() + ", "
-                + "base-value:" + indexLabel.baseValue() + ", "
-                + "indexType: " + indexLabel.indexType() + ", "
-                + "fields: " + indexLabel.indexFields());
-
-        this.addSchema(indexLabel, this.serializer.writeIndexLabel(
-                indexLabel));
+        logger.debug("SchemaTransaction add index label: {}", indexLabel);
+        this.addSchema(indexLabel, this.serializer.writeIndexLabel(indexLabel));
     }
 
     public IndexLabel getIndexLabel(String name) {
@@ -142,7 +122,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void removeIndexLabel(String name) {
-        logger.info("SchemaTransaction remove index label " + name);
+        logger.debug("SchemaTransaction remove index label '{}'", name);
         // TODO: need check index data exists
         this.removeSchema(new HugeIndexLabel(name));
     }
