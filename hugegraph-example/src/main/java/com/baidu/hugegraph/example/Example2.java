@@ -2,7 +2,10 @@ package com.baidu.hugegraph.example;
 
 import java.util.List;
 
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -56,6 +59,34 @@ public class Example2 {
                 .toList();
         System.out.println(">>>> query with AND: " + names);
         assert names.size() == 1 : names.size();
+
+        List<Path> paths = graph.traversal().V("person\u0002marko")
+                .out().out().path().by("name").toList();
+        System.out.println(">>>> test out path: " + paths);
+        assert paths.size() == 2;
+        assert paths.get(0).get(0).equals("marko");
+        assert paths.get(0).get(1).equals("josh");
+        assert paths.get(0).get(2).equals("lop");
+        assert paths.get(1).get(0).equals("marko");
+        assert paths.get(1).get(1).equals("josh");
+        assert paths.get(1).get(2).equals("ripple");
+
+        paths = shortestPath(graph, "person\u0002marko", "software\u0002lop", 5);
+        System.out.println(">>>> test shortest path: " + paths.get(0));
+        assert paths.get(0).get(0).equals("marko");
+        assert paths.get(0).get(1).equals("lop");
+    }
+
+    public static List<Path> shortestPath(final HugeGraph graph,
+            Object from, Object to, int maxDepth) {
+        GraphTraversal<Vertex, Path> t = graph.traversal()
+                .V(from)
+                .repeat(__.out().simplePath())
+                .until(__.hasId(to).or().loops().is(P.gt(maxDepth)))
+                .hasId(to)
+                .path().by("name")
+                .limit(1);
+        return t.toList();
     }
 
     public static void showSchema(final HugeGraph graph) {
