@@ -36,6 +36,8 @@ public abstract class IndexLabel extends SchemaElement {
 
     public abstract IndexType indexType();
 
+    public abstract HugeType queryType();
+
     public abstract List<String> indexFields();
 
     @Override

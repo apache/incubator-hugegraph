@@ -77,6 +77,18 @@ public class HugeIndexLabel extends IndexLabel {
         return this.indexType;
     }
 
+    @Override
+    public HugeType queryType() {
+        switch (this.baseType) {
+            case VERTEX_LABEL:
+                return HugeType.VERTEX;
+            case EDGE_LABEL:
+                return HugeType.EDGE;
+            default:
+                return HugeType.UNKNOWN;
+        }
+    }
+
     public void indexType(IndexType indexType) {
         this.indexType = indexType;
     }
@@ -211,7 +223,7 @@ public class HugeIndexLabel extends IndexLabel {
         if (this.indexType == IndexType.SEARCH) {
             E.checkArgument(this.indexFields.size() == 1,
                     "Search index can only build on one property, " +
-                    "but got %d properties: '%s'",
+                    "but got %s properties: '%s'",
                     this.indexFields.size(),
                     this.indexFields);
             String field = this.indexFields.iterator().next();
