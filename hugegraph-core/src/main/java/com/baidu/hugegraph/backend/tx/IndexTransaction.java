@@ -18,12 +18,13 @@
  */
 package com.baidu.hugegraph.backend.tx;
 
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -40,6 +41,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.type.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
@@ -84,42 +86,61 @@ public class IndexTransaction extends AbstractTransaction {
         IndexLabel indexLabel = schema.getIndexLabel(indexName);
         E.checkArgumentNotNull(indexLabel, "Not existed index: '%s'", indexName);
 
-        List<Object> propertyValues = new ArrayList<>();
+        List<Object> propValues = new ArrayList<>();
         for (String field : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(field);
             E.checkState(property != null,
                          "Not existed property '%s' in %s '%s'",
                          field, element.type(), element.id());
-            propertyValues.add(property.value());
+            propValues.add(property.value());
         }
 
-        Object propValue = null;
-        if (indexLabel.indexType() == IndexType.SECONDARY) {
-            propValue = SplicingIdGenerator.concatValues(propertyValues);
-        } else {
-            assert indexLabel.indexType() == IndexType.SEARCH;
-            E.checkState(propertyValues.size() == 1,
-                         "Expect searching by only one property");
-            propValue = NumericUtil.convert2Number(propertyValues.get(0));
-        }
+        for (int i = 0; i < propValues.size(); i++) {
+            List<Object> subPropValues = propValues.subList(0, i + 1);
 
-        HugeIndex index = new HugeIndex(indexLabel);
-        index.propertyValues(propValue);
-        index.elementIds(element.id());
+            Object propValue = null;
+            if (indexLabel.indexType() == IndexType.SECONDARY) {
+                propValue = SplicingIdGenerator.concatValues(subPropValues);
+            } else {
+                assert indexLabel.indexType() == IndexType.SEARCH;
+                E.checkState(subPropValues.size() == 1,
+                             "Expect searching by only one property");
+                propValue = NumericUtil.convert2Number(subPropValues.get(0));
+            }
 
-        if (!removed) {
-            this.addEntry(this.serializer.writeIndex(index));
-        } else {
-            this.removeEntry(this.serializer.writeIndex(index));
+            HugeIndex index = new HugeIndex(indexLabel);
+            index.propertyValues(propValue);
+            index.elementIds(element.id());
+
+            if (!removed) {
+                this.addEntry(this.serializer.writeIndex(index));
+            } else {
+                this.removeEntry(this.serializer.writeIndex(index));
+            }
         }
     }
 
     public Query query(ConditionQuery query) {
-        /* Condition => Entry */
-        ConditionQuery indexQuery = this.constructIndexQuery(query);
-        Iterator<BackendEntry> entries = super.query(indexQuery).iterator();
 
-        /* Entry => Id */
+        SchemaTransaction schema = graph().schemaTransaction();
+
+        List<IndexLabel> indexLabels = schema.getIndexLabels();
+        // Get user applied label or collect all qualified labels
+        Set<String> labels = collectQueryLabels(query, indexLabels);
+
+        if (labels.isEmpty()) {
+            throw new HugeException("Don't accept query based on properties: "
+                    + "'%s' that are not indexed", query.userpropKeys());
+        }
+
+        ExtendableIterator<BackendEntry> entries = new ExtendableIterator<>();
+        for (String label : labels) {
+            // Condition => Entry
+            ConditionQuery indexQuery = this.constructIndexQuery(query, label);
+            entries.extend(super.query(indexQuery).iterator());
+        }
+
+        // Entry => Id
         Set<Id> ids = new LinkedHashSet<>();
         while (entries.hasNext()) {
             HugeIndex index = this.serializer.readIndex(entries.next());
@@ -128,28 +149,42 @@ public class IndexTransaction extends AbstractTransaction {
         return new IdQuery(query.resultType(), ids);
     }
 
-    protected ConditionQuery constructIndexQuery(ConditionQuery query) {
+    private Set<String> collectQueryLabels(ConditionQuery query,
+                                           List<IndexLabel> indexLabels) {
+        Set<String> labels = new HashSet<>();
+
+        String label = (String) query.condition(HugeKeys.LABEL);
+        if (label != null) {
+            labels.add(label);
+        } else {
+            Set<String> queryKeys = query.userpropKeys();
+            for (IndexLabel indexLabel : indexLabels) {
+                List<String> indexFields = indexLabel.indexFields();
+                if (query.resultType() == indexLabel.queryType()
+                        && matchIndexFields(queryKeys, indexFields)) {
+                    labels.add(indexLabel.baseValue());
+                }
+            }
+        }
+        return labels;
+    }
+
+    protected ConditionQuery constructIndexQuery(ConditionQuery query,
+                                                 String label) {
         ConditionQuery indexQuery = null;
         SchemaElement schemaElement = null;
 
         SchemaTransaction schema = graph().schemaTransaction();
-
-        Object label = query.condition(HugeKeys.LABEL);
-        E.checkArgumentNotNull(label,
-                "Must contain key 'label' in the conditions, but got: '%s'",
-                query.conditions());
-
-        assert label instanceof String;
         switch (query.resultType()) {
             case VERTEX:
-                schemaElement = schema.getVertexLabel((String) label);
+                schemaElement = schema.getVertexLabel(label);
                 break;
             case EDGE:
-                schemaElement = schema.getEdgeLabel((String) label);
+                schemaElement = schema.getEdgeLabel(label);
                 break;
             default:
-                throw new BackendException("Unsupported index query: "
-                                           + query.resultType());
+                throw new BackendException(
+                        "Unsupported index query: %s", query.resultType());
         }
 
         E.checkArgumentNotNull(schemaElement, "Invalid label: '%s'", label);
@@ -175,9 +210,11 @@ public class IndexTransaction extends AbstractTransaction {
         ConditionQuery indexQuery = null;
 
         boolean requireSearch = query.hasSearchCondition();
+
+        Set<String> queryKeys = query.userpropKeys();
         List<String> indexFields = indexLabel.indexFields();
 
-        if (!query.matchUserpropKeys(indexFields)) {
+        if (!matchIndexFields(queryKeys, indexFields)) {
             return null;
         }
         logger.debug("Matched index fields: {} of index '{}'",
@@ -192,7 +229,8 @@ public class IndexTransaction extends AbstractTransaction {
         }
 
         if (indexLabel.indexType() == IndexType.SECONDARY) {
-            String joinedValues = query.userpropValuesString(indexFields);
+            List<String> joinedKeys = indexFields.subList(0, queryKeys.size());
+            String joinedValues = query.userpropValuesString(joinedKeys);
             indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
             indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
             indexQuery.eq(HugeKeys.PROPERTY_VALUES, joinedValues);
@@ -202,15 +240,13 @@ public class IndexTransaction extends AbstractTransaction {
                 throw new BackendException(
                           "Only support searching by one field");
             }
-            /*
-             * Replace the query key with PROPERTY_VALUES, and set number
-             * value.
-             */
+            // Replace the query key with PROPERTY_VALUES, and set number value
             Condition condition = query.userpropConditions().get(0).copy();
             for (Condition.Relation r : condition.relations()) {
                 Condition.Relation sys = new Condition.SyspropRelation(
-                                HugeKeys.PROPERTY_VALUES, r.relation(),
-                                NumericUtil.convert2Number(r.value()));
+                        HugeKeys.PROPERTY_VALUES,
+                        r.relation(),
+                        NumericUtil.convert2Number(r.value()));
                 condition = condition.replace(r, sys);
             }
 
@@ -219,5 +255,19 @@ public class IndexTransaction extends AbstractTransaction {
             indexQuery.query(condition);
         }
         return indexQuery;
+    }
+
+    private static boolean matchIndexFields(Set<String> queryKeys,
+                                            List<String> indexFields) {
+        if (queryKeys.size() > indexFields.size()) {
+            return false;
+        }
+
+        // Is queryKeys the prefix of indexFields?
+        List<String> subFields = indexFields.subList(0, queryKeys.size());
+        if (!subFields.containsAll(queryKeys)) {
+            return false;
+        }
+        return true;
     }
 }

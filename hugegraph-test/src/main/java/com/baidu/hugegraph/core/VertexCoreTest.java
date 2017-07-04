@@ -40,6 +40,10 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.makePropertyKey("contribution").asText().valueSet().create();
         schema.makePropertyKey("lived").asText().create();
         schema.makePropertyKey("city").asText().create();
+        schema.makePropertyKey("cpu").asText().create();
+        schema.makePropertyKey("ram").asText().create();
+        schema.makePropertyKey("band").asText().create();
+        schema.makePropertyKey("price").asInt().create();
 
         logger.info("===============  vertexLabel  ================");
 
@@ -47,6 +51,13 @@ public class VertexCoreTest extends BaseCoreTest {
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
+
+        VertexLabel computer = schema.makeVertexLabel("computer")
+                .properties("name", "band", "cpu", "ram", "price")
+                .primaryKeys("name", "band")
+                .ifNotExist()
+                .create();
+
         schema.makeVertexLabel("author")
                 .properties("id", "name", "age", "lived")
                 .primaryKeys("id")
@@ -66,6 +77,15 @@ public class VertexCoreTest extends BaseCoreTest {
                 .by("city").create();
         schema.makeIndexLabel("personByAge").on(person).search()
                 .by("age").create();
+
+        schema.makeIndexLabel("pcByBand").on(computer)
+                .secondary().by("band")
+                .ifNotExist()
+                .create();
+        schema.makeIndexLabel("pcByCpuAndRamAndBand").on(computer)
+                .secondary().by("cpu", "ram", "band")
+                .ifNotExist()
+                .create();
     }
 
     @Test
@@ -735,6 +755,137 @@ public class VertexCoreTest extends BaseCoreTest {
         });
     }
 
+    @Test
+    public void testQuerySingleIndexedPropertyByEqual() {
+        HugeGraph graph = graph();
+        init5Computers();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                .has("band", "lenovo").toList();
+        Assert.assertEquals(2, vertexes.size());
+
+        vertexes = graph.traversal().V().has("band", "apple").toList();
+        Assert.assertEquals(1, vertexes.size());
+    }
+
+    @Test
+    public void testQuerySingleIndexedPropertyByNotEqual() {
+        HugeGraph graph = graph();
+        init5Computers();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                .has("band", "acer").toList();
+        Assert.assertEquals(0, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                .has("band", "Hp").toList();
+        Assert.assertEquals(0, vertexes.size());
+    }
+
+    @Test
+    public void testQueryComplexIndexedPropertyByEqualOnePrefix() {
+        HugeGraph graph = graph();
+        init5Computers();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                .has("cpu", "3.2GHz").toList();
+        Assert.assertEquals(3, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                .has("cpu", "4.6GHz").toList();
+        Assert.assertEquals(1, vertexes.size());
+    }
+
+    @Test
+    public void testQueryComplexIndexedPropertyByNotEqualOnePrefix() {
+        HugeGraph graph = graph();
+        init5Computers();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                .has("cpu", "2.8GHz").toList();
+        Assert.assertEquals(0, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                .has("cpu", "4.8GHz").toList();
+        Assert.assertEquals(0, vertexes.size());
+    }
+
+    @Test
+    public void testQueryComplexIndexedPropertyByEqualTwoPrefix() {
+        HugeGraph graph = graph();
+        init5Computers();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                .has("cpu", "3.2GHz")
+                .has("ram", "16GB")
+                .toList();
+        Assert.assertEquals(2, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                .has("ram", "32GB")
+                .has("cpu", "4.6GHz")
+                .toList();
+        Assert.assertEquals(1, vertexes.size());
+    }
+
+    @Test
+    public void testQueryComplexIndexedPropertyByNotEqualTwoPrefix() {
+        HugeGraph graph = graph();
+        init5Computers();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                .has("cpu", "3.3GHz")
+                .has("ram", "16GB")
+                .toList();
+        Assert.assertEquals(0, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                .has("ram", "32GB")
+                .has("cpu", "4.8GHz")
+                .toList();
+        Assert.assertEquals(0, vertexes.size());
+    }
+
+    @Test
+    public void testQueryComplexIndexedPropertyByEqualAll() {
+        HugeGraph graph = graph();
+        init5Computers();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                .has("cpu", "3.2GHz")
+                .has("band", "lenovo")
+                .has("ram", "16GB")
+                .toList();
+        Assert.assertEquals(1, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                .has("ram", "32GB")
+                .has("cpu", "4.6GHz")
+                .has("band", "microsoft")
+                .toList();
+        Assert.assertEquals(1, vertexes.size());
+    }
+
+    @Test
+    public void testQueryComplexIndexedPropertyByNotEqualAll() {
+        HugeGraph graph = graph();
+        init5Computers();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                .has("cpu", "3.3GHz")
+                .has("band", "apple")
+                .has("ram", "16GB")
+                .toList();
+        Assert.assertEquals(0, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                .has("ram", "32GB")
+                .has("cpu", "4.8GHz")
+                .has("band", "microsoft")
+                .toList();
+        Assert.assertEquals(0, vertexes.size());
+    }
+
     private void init10Vertices() {
         HugeGraph graph = graph();
         graph.tx().open();
@@ -771,6 +922,29 @@ public class VertexCoreTest extends BaseCoreTest {
                 "city", "Beijing", "age", 20);
         graph.addVertex(T.label, "person", "name", "Hebe",
                 "city", "Taipei", "age", 21);
+
+        graph.tx().close();
+    }
+
+    private void init5Computers() {
+        HugeGraph graph = graph();
+        graph.tx().open();
+
+        graph.addVertex(T.label, "computer", "name", "YangTian T6900C",
+                "band", "lenovo", "cpu", "3.2GHz", "ram", "8GB",
+                "price", 4599);
+        graph.addVertex(T.label, "computer", "name", "Fengxing K450e",
+                "band", "lenovo", "cpu", "3.2GHz", "ram", "16GB",
+                "price", 6099);
+        graph.addVertex(T.label, "computer", "name", "iMac MK482CH/A",
+                "band", "apple", "cpu", "3.3GHz", "ram", "32GB",
+                "price", 15990);
+        graph.addVertex(T.label, "computer", "name", "Surface Studio",
+                "band", "microsoft", "cpu", "4.6GHz", "ram", "32GB",
+                "price", 35990);
+        graph.addVertex(T.label, "computer", "name", "Zen AIO Pro",
+                "band", "asus", "cpu", "3.2GHz", "ram", "16GB",
+                "price", 6999);
 
         graph.tx().close();
     }

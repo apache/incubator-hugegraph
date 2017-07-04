@@ -60,6 +60,19 @@ public class Example2 {
         System.out.println(">>>> query with AND: " + names);
         assert names.size() == 1 : names.size();
 
+        System.out.println(graph.traversal().V()
+                .has("age", 29)
+                .toList());
+
+        System.out.println(graph.traversal().V()
+                .has("age", 29)
+                .has("city", "Beijing")
+                .toList());
+
+        System.out.println(graph.traversal().E()
+                .has("city", "Beijing")
+                .toList());
+
         List<Path> paths = graph.traversal().V("person\u0002marko")
                 .out().out().path().by("name").toList();
         System.out.println(">>>> test out path: " + paths);
@@ -110,18 +123,16 @@ public class Example2 {
          */
         schema.makePropertyKey("name").asText().ifNotExist().create();
         schema.makePropertyKey("age").asInt().ifNotExist().create();
+        schema.makePropertyKey("city").asText().ifNotExist().create();
         schema.makePropertyKey("lang").asText().ifNotExist().create();
         schema.makePropertyKey("date").asText().ifNotExist().create();
         schema.makePropertyKey("price").asInt().ifNotExist().create();
 
         VertexLabel person = schema.makeVertexLabel("person")
-                .properties("name", "age")
+                .properties("name", "age", "city")
                 .primaryKeys("name")
                 .ifNotExist()
                 .create();
-
-        schema.makeVertexLabel("person").properties("date").append();
-//        person.properties("date").append();
 
         VertexLabel software = schema.makeVertexLabel("software")
                 .properties("name", "lang", "price")
@@ -132,10 +143,19 @@ public class Example2 {
         schema.makeIndexLabel("personByName").on(person).by("name").secondary()
                 .ifNotExist().create();
 
+        schema.makeIndexLabel("personByAge").on(person).by("age").search()
+                .ifNotExist().create();
+
+        schema.makeIndexLabel("personByCity").on(person).by("city").secondary()
+                .ifNotExist().create();
+
+        schema.makeIndexLabel("personByAgeAndCityAndName").on(person)
+                .by("age", "city", "name")
+                .secondary()
+                .ifNotExist().create();
+
         schema.makeIndexLabel("softwareByPrice").on(software).by("price").search()
                 .ifNotExist().create();
-        //        schema.makeIndexLabel("softwareByLang").on(software).by("lang")
-        // .search().ifNotExist().create();
 
         schema.makeEdgeLabel("knows").link("person", "person")
                 .properties("date").create();
@@ -145,7 +165,7 @@ public class Example2 {
 
         EdgeLabel created = schema.makeEdgeLabel("created")
                 .link("person", "software")
-                .properties("date")
+                .properties("date", "city")
                 .ifNotExist()
                 .create();
 
@@ -153,29 +173,34 @@ public class Example2 {
                 .ifNotExist()
                 .create();
 
+        schema.makeIndexLabel("createdByCity").on(created)
+                .by("city")
+                .secondary()
+                .ifNotExist().create();
+
         schema.desc();
 
         graph.tx().open();
 
         Vertex marko = graph.addVertex(T.label, "person",
-                "name", "marko", "age", 29);
+                "name", "marko", "age", 29, "city", "Beijing");
         Vertex vadas = graph.addVertex(T.label, "person",
-                        "name", "vadas", "age", 27);
+                        "name", "vadas", "age", 27, "city", "Hongkong");
         Vertex lop = graph.addVertex(T.label, "software",
                 "name", "lop", "lang", "java", "price", 328);
         Vertex josh = graph.addVertex(T.label, "person",
-                "name", "josh", "age", 32);
+                "name", "josh", "age", 32, "city", "Beijing");
         Vertex ripple = graph.addVertex(T.label, "software",
                 "name", "ripple", "lang", "java", "price", 199);
         Vertex peter = graph.addVertex(T.label, "person",
-                "name", "peter", "age", 35);
+                "name", "peter", "age", 29, "city", "Shanghai");
 
         marko.addEdge("knows", vadas, "date", "20160110");
         marko.addEdge("knows", josh, "date", "20130220");
-        marko.addEdge("created", lop, "date", "20171210");
-        josh.addEdge("created", ripple, "date", "20171210");
-        josh.addEdge("created", lop, "date", "20091111");
-        peter.addEdge("created", lop, "date", "20170324");
+        marko.addEdge("created", lop, "date", "20171210", "city", "Shanghai");
+        josh.addEdge("created", ripple, "date", "20171210", "city", "Beijing");
+        josh.addEdge("created", lop, "date", "20091111", "city", "Beijing");
+        peter.addEdge("created", lop, "date", "20170324", "city", "Hongkong");
 
         graph.tx().commit();
     }
