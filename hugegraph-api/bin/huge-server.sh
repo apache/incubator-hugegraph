@@ -61,5 +61,5 @@ if [ $# = 0 ] ; then
 ARGS="conf/huge-server.properties"
 fi
 exec $JAVA -Dhugegraph.logdir="$HUGESERVER_LOGDIR" \
--Dlog4j.configuration=conf/log4j.properties \
+-Dlog4j.configuration=conf/huge-server-log4j.properties \
 $JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.dist.HugeGraphServer $ARGS
