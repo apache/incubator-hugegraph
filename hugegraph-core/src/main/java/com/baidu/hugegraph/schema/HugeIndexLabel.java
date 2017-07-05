@@ -7,6 +7,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
@@ -220,6 +221,13 @@ public class HugeIndexLabel extends IndexLabel {
                     "Search index can only build on numeric property, " +
                     "but got %s(%s)", propertyKey.dataType(),
                     propertyKey.name());
+        }
+
+        for (String field : this.indexFields()) {
+            PropertyKey propertyKey = this.transaction().getPropertyKey(field);
+            E.checkArgument(propertyKey.cardinality() == Cardinality.SINGLE,
+                    "Not allowed to build index on property key: '%s' that " +
+                    "cardinality is list or set.", propertyKey.name());
         }
     }
 
