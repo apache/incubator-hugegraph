@@ -80,6 +80,30 @@ public class Query implements Cloneable {
     }
 
     @Override
+    public boolean equals(Object object) {
+        if (!(object instanceof Query)) {
+            return false;
+        }
+        Query other = (Query) object;
+        return this.resultType.equals(other.resultType)
+                && this.orders.equals(other.orders)
+                && this.offset == other.offset
+                && this.limit == other.limit
+                && this.ids().equals(other.ids())
+                && this.conditions().equals(other.conditions());
+    }
+
+    @Override
+    public int hashCode() {
+        return this.resultType.hashCode()
+                ^ this.orders.hashCode()
+                ^ (int) this.offset
+                ^ (int) this.limit
+                ^ this.ids().hashCode()
+                ^ this.conditions().hashCode();
+    }
+
+    @Override
     public String toString() {
         return String.format("Query for %s offset=%d, limit=%d, order by %s",
                 this.resultType,

@@ -13,12 +13,12 @@ import com.baidu.hugegraph.backend.id.Id;
 
 public class RamCache implements Cache {
 
+    public static final int MB = 1024 * 1024;
+    public static final int DEFAULT_SIZE = 1 * MB;
+    public static final int MAX_INIT_CAP = 100 * MB;
+
     private static final Logger logger = LoggerFactory.getLogger(
             RamCache.class);
-
-    private static int MB = 1024 * 1024;
-    private static int DEFAULT_SIZE = 1 * MB;
-    private static int MAX_INIT_CAP = 100 * MB;
 
     private long hits = 0;
     private long miss = 0;
