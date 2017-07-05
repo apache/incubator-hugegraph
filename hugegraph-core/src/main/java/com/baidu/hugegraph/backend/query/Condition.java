@@ -276,6 +276,13 @@ public abstract class Condition {
                     && this.left().equals(other.left())
                     && this.right().equals(other.right());
         }
+
+        @Override
+        public int hashCode() {
+            return this.type().hashCode()
+                    ^ this.left().hashCode()
+                    ^ this.right().hashCode();
+        }
     }
 
     /*************************************************************************/
@@ -381,6 +388,14 @@ public abstract class Condition {
             return this.relation().equals(other.relation())
                     && this.key().equals(other.key())
                     && this.value().equals(other.value());
+        }
+
+        @Override
+        public int hashCode() {
+            return this.type().hashCode()
+                    ^ this.relation().hashCode()
+                    ^ this.key().hashCode()
+                    ^ this.value().hashCode();
         }
 
         @Override
