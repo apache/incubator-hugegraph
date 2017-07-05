@@ -59,7 +59,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <final.name>hugegraph-bin</final.name>
-        <tinkerpop.version>3.2.4</tinkerpop.version>
+        <tinkerpop.version>3.2.5</tinkerpop.version>
         <junit.version>4.12</junit.version>
         <metrics.version>3.1.0</metrics.version>
         <slf4j.version>1.7.5</slf4j.version>
