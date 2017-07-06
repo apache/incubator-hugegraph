@@ -1,8 +1,26 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.baidu.hugegraph.backend.tx;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -36,24 +54,24 @@ public class IndexTransaction extends AbstractTransaction {
     }
 
     public void updateVertexIndex(HugeVertex vertex, boolean removed) {
-        // vertex index
+        /* Vertex index */
         for (String indexName : vertex.vertexLabel().indexNames()) {
             updateIndex(indexName, vertex, removed);
         }
 
-        // edges index
+        /* Edges index */
         this.updateEdgesIndex(vertex, removed);
     }
 
     public void updateEdgesIndex(HugeVertex vertex, boolean removed) {
-        // edges index
+        /* Edges index */
         for (HugeEdge edge : vertex.getEdges()) {
             updateEdgeIndex(edge, removed);
         }
     }
 
     public void updateEdgeIndex(HugeEdge edge, boolean removed) {
-        // edge index
+        /* Edge index */
         for (String indexName : edge.edgeLabel().indexNames()) {
             updateIndex(indexName, edge, removed);
         }
@@ -64,15 +82,14 @@ public class IndexTransaction extends AbstractTransaction {
                                boolean removed) {
         SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(indexName);
-        E.checkArgumentNotNull(indexLabel,
-                "Not existed index: '%s'", indexName);
+        E.checkArgumentNotNull(indexLabel, "Not existed index: '%s'", indexName);
 
-        List<Object> propertyValues = new LinkedList<>();
+        List<Object> propertyValues = new ArrayList<>();
         for (String field : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(field);
             E.checkState(property != null,
-                    "Not existed property '%s' in %s '%s'",
-                    field, element.type(), element.id());
+                         "Not existed property '%s' in %s '%s'",
+                         field, element.type(), element.id());
             propertyValues.add(property.value());
         }
 
@@ -82,7 +99,7 @@ public class IndexTransaction extends AbstractTransaction {
         } else {
             assert indexLabel.indexType() == IndexType.SEARCH;
             E.checkState(propertyValues.size() == 1,
-                    "Expect searching by only one property");
+                         "Expect searching by only one property");
             propValue = NumericUtil.convert2Number(propertyValues.get(0));
         }
 
@@ -98,11 +115,11 @@ public class IndexTransaction extends AbstractTransaction {
     }
 
     public Query query(ConditionQuery query) {
-        // Condition => Entry
+        /* Condition => Entry */
         ConditionQuery indexQuery = this.constructIndexQuery(query);
         Iterator<BackendEntry> entries = super.query(indexQuery).iterator();
 
-        // Entry => Id
+        /* Entry => Id */
         Set<Id> ids = new LinkedHashSet<>();
         while (entries.hasNext()) {
             HugeIndex index = this.serializer.readIndex(entries.next());
@@ -131,8 +148,8 @@ public class IndexTransaction extends AbstractTransaction {
                 schemaElement = schema.getEdgeLabel((String) label);
                 break;
             default:
-                throw new BackendException(
-                        "Unsupported index query: " + query.resultType());
+                throw new BackendException("Unsupported index query: "
+                                           + query.resultType());
         }
 
         E.checkArgumentNotNull(schemaElement, "Invalid label: '%s'", label);
@@ -148,29 +165,29 @@ public class IndexTransaction extends AbstractTransaction {
         }
 
         if (indexQuery == null) {
-            throw new BackendException("No matched index for query: " + query);
+            throw new BackendException("No matching index for query: " + query);
         }
         return indexQuery;
     }
 
     private static ConditionQuery matchIndexLabel(IndexLabel indexLabel,
-            ConditionQuery query) {
+                                                  ConditionQuery query) {
         ConditionQuery indexQuery = null;
 
-        boolean mustBeSearch = query.hasSearchCondition();
+        boolean requireSearch = query.hasSearchCondition();
         List<String> indexFields = indexLabel.indexFields();
 
         if (!query.matchUserpropKeys(indexFields)) {
             return null;
         }
         logger.debug("Matched index fields: {} of index '{}'",
-                indexFields, indexLabel.name());
+                     indexFields, indexLabel.name());
 
-        boolean isSearch = indexLabel.indexType() == IndexType.SEARCH;
-        if (mustBeSearch && !isSearch) {
-            logger.debug("There is search condition in '{}', " +
-                    "but the index label '{}' is not for search",
-                    query, indexLabel.name());
+        boolean searching = indexLabel.indexType() == IndexType.SEARCH;
+        if (requireSearch && !searching) {
+            logger.debug("There is search condition in '{}', but the " +
+                         "index label '{}' is unable to search",
+                         query, indexLabel.name());
             return null;
         }
 
@@ -183,15 +200,17 @@ public class IndexTransaction extends AbstractTransaction {
             assert indexLabel.indexType() == IndexType.SEARCH;
             if (query.userpropConditions().size() != 1) {
                 throw new BackendException(
-                        "Only support searching by one field");
+                          "Only support searching by one field");
             }
-            // replace the query key with PROPERTY_VALUES, and set number value
+            /*
+             * Replace the query key with PROPERTY_VALUES, and set number
+             * value.
+             */
             Condition condition = query.userpropConditions().get(0).copy();
             for (Condition.Relation r : condition.relations()) {
                 Condition.Relation sys = new Condition.SyspropRelation(
-                        HugeKeys.PROPERTY_VALUES,
-                        r.relation(),
-                        NumericUtil.convert2Number(r.value()));
+                                HugeKeys.PROPERTY_VALUES, r.relation(),
+                                NumericUtil.convert2Number(r.value()));
                 condition = condition.replace(r, sys);
             }
 

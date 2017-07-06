@@ -2,7 +2,7 @@ package com.baidu.hugegraph.schema;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.baidu.hugegraph.HugeException;
@@ -14,17 +14,13 @@ import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringUtil;
 
-/**
- * Created by liningrui on 2017/3/20.
- */
 public class HugeVertexLabel extends VertexLabel {
 
-    // Note: Use TreeSet to ensure vertex label id is always sorted.
     private List<String> primaryKeys;
 
     public HugeVertexLabel(String name) {
         super(name);
-        this.primaryKeys = new LinkedList<>();
+        this.primaryKeys = new ArrayList<>();
     }
 
     @Override
@@ -123,7 +119,7 @@ public class HugeVertexLabel extends VertexLabel {
         for (String property : this.properties) {
             vertexLabel.properties.add(property);
         }
-        vertexLabel.primaryKeys = new LinkedList<>();
+        vertexLabel.primaryKeys = new ArrayList<>();
         for (String primaryKey : this.primaryKeys) {
             vertexLabel.primaryKeys.add(primaryKey);
         }

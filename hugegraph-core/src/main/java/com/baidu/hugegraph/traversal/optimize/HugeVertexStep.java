@@ -3,7 +3,7 @@ package com.baidu.hugegraph.traversal.optimize;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
@@ -32,7 +32,7 @@ public final class HugeVertexStep<E extends Element>
 
     private static final Logger logger = LoggerFactory.getLogger(HugeVertexStep.class);
 
-    private final List<HasContainer> hasContainers = new LinkedList<>();;
+    private final List<HasContainer> hasContainers = new ArrayList<>();;
 
     public HugeVertexStep(final VertexStep<E> originalVertexStep) {
         super(originalVertexStep.getTraversal(),
@@ -63,11 +63,9 @@ public final class HugeVertexStep<E extends Element>
         Iterator<Edge> edges = this.edges(traverser);
         Iterator<Vertex> vertices = graph.adjacentVertices(edges);
         if (logger.isDebugEnabled()) {
-            logger.debug("HugeVertexStep.vertices(): "
-                    + "is there adjacent vertices of {}: {}, has={}",
-                    vertex.id(),
-                    vertices.hasNext(),
-                    this.hasContainers);
+            logger.debug("HugeVertexStep.vertices(): is there adjacent " +
+                         "vertices of {}: {}, has={}",
+                         vertex.id(), vertices.hasNext(), this.hasContainers);
         }
 
         // TODO: query by vertex index to optimize
@@ -81,9 +79,9 @@ public final class HugeVertexStep<E extends Element>
         Direction direction = this.getDirection();
         String[] edgeLabels = this.getEdgeLabels();
 
-        logger.debug("HugeVertexStep.edges(): "
-                + "vertex={}, direction={}, edgeLabels={}, has={}",
-                vertex.id(), direction, edgeLabels, this.hasContainers);
+        logger.debug("HugeVertexStep.edges() vertex={}, direction={}, " +
+                     "edgeLabels={}, has={}",
+                     vertex.id(), direction, edgeLabels, this.hasContainers);
 
         ImmutableSet<Direction> directions = ImmutableSet.of(direction);
         // deal with direction is BOTH

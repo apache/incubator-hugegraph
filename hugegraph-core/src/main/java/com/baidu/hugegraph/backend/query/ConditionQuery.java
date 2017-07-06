@@ -1,10 +1,27 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -20,7 +37,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class ConditionQuery extends IdQuery {
 
-    // conditions will be concated with `and` by default
+    /* Conditions will be concated with `and` by default */
     private Set<Condition> conditions;
 
     public ConditionQuery(HugeType resultType) {
@@ -29,11 +46,11 @@ public class ConditionQuery extends IdQuery {
     }
 
     public ConditionQuery query(Condition condition) {
-        // query by id (HugeGraph-259)
+        /* query by id (HugeGraph-259) */
         if (condition instanceof Relation) {
             Relation relation = (Relation) condition;
             if (relation.key().equals(HugeKeys.ID)
-                    && relation.relation() == RelationType.EQ) {
+                && relation.relation() == RelationType.EQ) {
                 super.query(HugeElement.getIdValue(T.id, relation.value()));
                 return this;
             }
@@ -44,7 +61,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public ConditionQuery eq(HugeKeys key, Object value) {
-        // filter value by key
+        /* filter value by key */
         return this.query(Condition.eq(key, value));
     }
 
@@ -106,7 +123,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public List<Condition.Relation> relations() {
-        List<Condition.Relation> relations = new LinkedList<>();
+        List<Condition.Relation> relations = new ArrayList<>();
         for (Condition c : this.conditions) {
             relations.addAll(c.relations());
         }
@@ -130,8 +147,7 @@ public class ConditionQuery extends IdQuery {
         Iterator<Condition> iterator = this.conditions.iterator();
         while (iterator.hasNext()) {
             Condition c = iterator.next();
-            if (c.isRelation()
-                    && ((Condition.Relation) c).key().equals(key)) {
+            if (c.isRelation() && ((Condition.Relation) c).key().equals(key)) {
                 iterator.remove();
             }
             // TODO: deal with other Condition
@@ -145,7 +161,7 @@ public class ConditionQuery extends IdQuery {
     public boolean containsCondition(Condition.RelationType type) {
         for (Condition c : this.conditions) {
             if (c.isRelation()
-                    && ((Condition.Relation) c).relation().equals(type)) {
+                && ((Condition.Relation) c).relation().equals(type)) {
                 return true;
             }
             // TODO: deal with other Condition
@@ -158,7 +174,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public List<Condition> userpropConditions() {
-        List<Condition> conds = new LinkedList<>();
+        List<Condition> conds = new ArrayList<>();
         for (Condition c : this.conditions) {
             if (!c.isSysprop()) {
                 conds.add(c);
@@ -219,7 +235,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public boolean hasSearchCondition() {
-        // NOTE: we need to judge all the conditions, including the nested
+        /* NOTE: we need to judge all the conditions, including the nested */
         for (Condition.Relation r : this.relations()) {
             if (r.relation().isSearchType()) {
                 return true;
@@ -231,7 +247,7 @@ public class ConditionQuery extends IdQuery {
     public boolean matchUserpropKeys(List<String> keys) {
         Set<String> conditionKeys = userpropKeys();
         if (keys.size() == conditionKeys.size()
-                && conditionKeys.containsAll(keys)) {
+            && conditionKeys.containsAll(keys)) {
             return true;
         }
 

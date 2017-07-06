@@ -1,7 +1,25 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.baidu.hugegraph.io;
 
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 import org.apache.tinkerpop.gremlin.structure.io.AbstractIoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
@@ -56,11 +74,11 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
     }
 
     private static void writeEntry(Output output, BackendEntry entry) {
-        // write id
+        /* Write id */
         output.writeInt(entry.id().asBytes().length);
         output.writeBytes(entry.id().asBytes());
 
-        // write columns size and data
+        /* Write columns size and data */
         output.writeInt(entry.columns().size());
         for (BackendEntry.BackendColumn c : entry.columns()) {
             output.writeInt(c.name.length);
@@ -71,12 +89,12 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
     }
 
     private static BackendEntry readEntry(Input input) {
-        // read id
+        /* Read id */
         int idLen = input.readInt();
         Id id = IdGeneratorFactory.generator().parse(input.readBytes(idLen));
 
-        // read columns size and data
-        Collection<BackendEntry.BackendColumn> columns = new LinkedList<>();
+        /* Read columns size and data */
+        Collection<BackendEntry.BackendColumn> columns = new ArrayList<>();
         int columnSize = input.readInt();
         for (int i = 0; i < columnSize; i++) {
             BackendEntry.BackendColumn backendColumn = new BackendEntry.BackendColumn();
@@ -84,6 +102,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
             backendColumn.value = input.readBytes(input.readInt());
             columns.add(backendColumn);
         }
+
         BackendEntry backendEntry = new TextBackendEntry(id);
         backendEntry.columns(columns);
         return backendEntry;
@@ -116,7 +135,6 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
     }
 
     private class EdgeLabelKryoSerializer extends Serializer<EdgeLabel> {
-
         @Override
         public void write(Kryo kryo, Output output, EdgeLabel edgeLabel) {
             BackendEntry entry = textSerializer.writeEdgeLabel(edgeLabel);
@@ -128,6 +146,4 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
             return textSerializer.readEdgeLabel(readEntry(input));
         }
     }
-
-
 }

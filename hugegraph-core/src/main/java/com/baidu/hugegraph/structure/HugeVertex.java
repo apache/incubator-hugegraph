@@ -209,7 +209,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         List<Edge> list = new LinkedList<>();
         for (HugeEdge edge : this.edges) {
             if ((edge.direction() == direction || direction == Direction.BOTH)
-                    && edge.belongToLabels(edgeLabels)) {
+                && edge.belongToLabels(edgeLabels)) {
                 list.add(edge);
             }
         }
@@ -217,7 +217,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public Iterator<Vertex> getVertices(Direction direction,
-            String... edgeLabels) {
+                                        String... edgeLabels) {
         List<Vertex> list = new LinkedList<>();
         Iterator<Edge> edges = this.getEdges(direction, edgeLabels);
         while (edges.hasNext()) {
@@ -229,7 +229,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
-        // NOTE: get edges from memory if load all edges when loading vertex
+        /*
+         * NOTE: get edges from memory if load all edges when loading vertex.
+         */
         if (this.existsEdges()) {
             return this.getEdges(direction, edgeLabels);
         }
@@ -270,12 +272,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         HugeProperty<V> prop = this.addProperty(key, value);
 
-        // NOTE: currently we don't support custom id, if id is null
-        // maybe the Vertex.attachProperties() has not been called.
-        // if we support custom id, this should be improved!
+        /*
+         * Note that, currently we don't support custom id if id is null.
+         * Maybe the Vertex.attachProperties() has not been called if we
+         * support custom id, that should be improved in the furture.
+         */
         if (prop != null && this.id() != null) {
             assert prop instanceof VertexProperty;
-            // update self (TODO: add tx.addProperty() method)
+            /* Update self (TODO: add tx.addProperty() method) */
             this.tx().addVertex(this);
         }
         return (VertexProperty<V>) prop;
@@ -301,35 +305,38 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 if (prop != null) {
                     assert prop instanceof VertexProperty;
                     propertyList.add((VertexProperty<V>) prop);
-                } // else not found
+                } /* else not found */
             }
         }
 
         return propertyList.iterator();
     }
 
-    // TODO: after separating edges from vertex,
-    // we will remove these prepareXX() methods
+    /**
+     * TODO: We should remove those prepareXX() methods after separating edges
+     * from vertex.
+     */
     public HugeVertex prepareAdded() {
-        // NOTE: keep properties(without edges) of the cloned vertex and return
+        /* NOTE: keep properties(without edges) of the cloned vertex and return */
         HugeVertex vertex = this.clone();
         vertex.resetEdges();
         return vertex;
     }
 
     public HugeVertex prepareRemoved() {
-        // NOTE: clear edges/properties of the cloned vertex and return
+        /* NOTE: clear edges/properties of the cloned vertex and return */
         HugeVertex vertex = this.clone();
-        vertex.removed = true; // remove self
+        vertex.removed = true; /* Remove self */
         vertex.resetEdges();
         vertex.resetProperties();
         return vertex;
     }
 
     public HugeVertex prepareRemovedChildren() {
-        // NOTE: clear edges/properties of the cloned vertex and return
+        /* NOTE: clear edges/properties of the cloned vertex and return */
         HugeVertex vertex = this.clone();
-        vertex.removed = false; // not remove self
+        /* Don't remove self */
+        vertex.removed = false;
         vertex.resetEdges();
         vertex.resetProperties();
         return vertex;
@@ -354,9 +361,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public String toString() {
         return String.format("{id=%s, label=%s, edges=%s, properties=%s}",
-                this.id,
-                this.label.name(),
-                this.edges,
-                this.properties.values());
+                             this.id, this.label.name(), this.edges,
+                             this.properties.values());
     }
 }

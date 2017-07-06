@@ -1,9 +1,27 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.baidu.hugegraph.traversal.optimize;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiPredicate;
 
@@ -39,9 +57,9 @@ public final class HugeGraphStep<S, E extends Element>
 
     private static final Logger logger = LoggerFactory.getLogger(HugeGraphStep.class);
 
-    private final List<HasContainer> hasContainers = new LinkedList<>();
-    private long offset = 0;
+    private final List<HasContainer> hasContainers = new ArrayList<>();
     private long limit = Query.NO_LIMIT;
+    private long offset = 0;
 
     public HugeGraphStep(final GraphStep<S, E> originalGraphStep) {
         super(originalGraphStep.getTraversal(),
@@ -62,16 +80,13 @@ public final class HugeGraphStep<S, E extends Element>
         logger.debug("HugeGraphStep.vertices(): {}", this);
 
         HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
-
         if (this.ids != null && this.ids.length > 0) {
-            return filterResult(this.hasContainers,
-                    graph.vertices(this.ids));
+            return filterResult(this.hasContainers, graph.vertices(this.ids));
         }
 
         Query query = null;
-
         if (this.hasContainers.isEmpty()) {
-            // query all
+            /* Query all */
             query = new Query(HugeType.VERTEX);
         } else {
             ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
@@ -98,7 +113,7 @@ public final class HugeGraphStep<S, E extends Element>
         Query query = null;
 
         if (this.hasContainers.isEmpty()) {
-            // query all
+            /* Query all */
             query = new Query(HugeType.EDGE);
         } else {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
@@ -106,14 +121,16 @@ public final class HugeGraphStep<S, E extends Element>
         }
 
         query.offset(this.offset);
-        // NOTE: double limit because of duplicate edges(when BOTH Direction)
-        // TODO: the `this.limit * 2` maybe will overflow
+        /*
+         * NOTE: double limit because of duplicate edges(when BOTH Direction)
+         * TODO: the `this.limit * 2` maybe will overflow.
+         */
         query.limit(this.limit == Query.NO_LIMIT ?
-                Query.NO_LIMIT : this.limit * 2);
+                    Query.NO_LIMIT : this.limit << 1);
 
         @SuppressWarnings("unchecked")
         Iterator<E> result = (Iterator<E>) graph.edges(query);
-        return  result;
+        return result;
     }
 
     @Override
@@ -188,7 +205,7 @@ public final class HugeGraphStep<S, E extends Element>
             throw newUnsupportedPredicate(p);
         }
 
-        // just for supporting P.inside() / P.between()
+        /* Just for supporting P.inside() / P.between() */
         return Condition.and(
                 HugeGraphStep.convCompare2Relation(
                         new HasContainer(has.getKey(), predicates.get(0))),
@@ -296,7 +313,7 @@ public final class HugeGraphStep<S, E extends Element>
     public static <E> Iterator<E> filterResult(
             List<HasContainer> hasContainers,
             Iterator<? extends Element> iterator) {
-        final List<E> list = new LinkedList<>();
+        final List<E> list = new ArrayList<>();
 
         while (iterator.hasNext()) {
             final Element elem = iterator.next();

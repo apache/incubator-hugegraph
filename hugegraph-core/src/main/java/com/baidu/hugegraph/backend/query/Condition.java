@@ -1,7 +1,25 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.baidu.hugegraph.backend.query;
 
 import java.math.BigDecimal;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -13,8 +31,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public abstract class Condition {
-
-    /*************************************************************************/
 
     public enum ConditionType {
         NONE,
@@ -51,8 +67,7 @@ public abstract class Condition {
         protected static int compare(final Object first, final Object second) {
             if (first == null || second == null) {
                 throw new BackendException(String.format(
-                        "Can't compare between %s and %s",
-                        first, second));
+                        "Can't compare between %s and %s", first, second));
             }
 
             Function<Object, Number> toBig = (number) -> {
@@ -66,18 +81,21 @@ public abstract class Condition {
             };
 
             Number n1 = (first instanceof Number)
-                    ? (Number) first : toBig.apply(first);
+                        ? (Number) first : toBig.apply(first);
 
             Number n2 = (second instanceof Number)
-                    ? (Number) second : toBig.apply(second);
+                        ? (Number) second : toBig.apply(second);
 
-            // the `first` may be serialized to String,
-            // so convert the `second` to String too, and then to Big
+            /*
+             * It is proberly that the `first` is serialized to String. Hence,
+             * Convert the `second` to String too, and then to Big.
+             */
             if (!n1.getClass().equals(n2.getClass())
-                    && first.getClass().equals(String.class)) {
+                && first.getClass().equals(String.class)) {
                 n2 = toBig.apply(second);
             }
-            // check they are the same type
+
+            /* Check they are the same type */
             if (!n1.getClass().equals(n2.getClass())) {
                 throw new BackendException(String.format(
                         "Can't compare class %s with class %s",
@@ -248,7 +266,7 @@ public abstract class Condition {
 
         @Override
         public List<? extends Relation> relations() {
-            List<Relation> list = new LinkedList<>(this.left.relations());
+            List<Relation> list = new ArrayList<>(this.left.relations());
             list.addAll(this.right.relations());
             return list;
         }
@@ -332,9 +350,9 @@ public abstract class Condition {
     /*************************************************************************/
 
     public abstract static class Relation extends Condition {
-        // relational operator (like: =, >, <, in, ...)
+        /* Relational operator (like: =, >, <, in, ...) */
         protected RelationType relation;
-        // single-type value or a list of single-type value
+        /* Single-type value or a list of single-type value */
         protected Object value;
 
         @Override
@@ -407,8 +425,11 @@ public abstract class Condition {
     }
 
     public static class SyspropRelation extends Relation {
-        // column name
-        // TODO: the key should be serialized(code/string) by back-end store
+
+        /*
+         * Column name. TODO: the key should be serialized(code/string) by
+         * backend store private Object key.
+         */
         private Object key;
 
         public SyspropRelation(HugeKeys key, Object value) {
@@ -448,7 +469,7 @@ public abstract class Condition {
     }
 
     public static class UserpropRelation extends Relation {
-        // column name
+        /* Column name */
         private String key;
 
         public UserpropRelation(String key, Object value) {
