@@ -1,8 +1,25 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.baidu.hugegraph.backend.serializer;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,10 +86,8 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     protected String formatSyspropName(String name) {
-        return String.format("%s%s%s",
-                HugeType.SYS_PROPERTY.name(),
-                COLUME_SPLITOR,
-                name);
+        return String.format("%s%s%s", HugeType.SYS_PROPERTY.name(),
+                             COLUME_SPLITOR, name);
     }
 
     protected String formatSyspropName(HugeKeys col) {
@@ -80,42 +95,39 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     protected Object formatPropertyName(Object key) {
-        return String.format("%s%s%s",
-                HugeType.PROPERTY.name(),
-                COLUME_SPLITOR,
-                key);
+        return String.format("%s%s%s", HugeType.PROPERTY.name(),
+                             COLUME_SPLITOR, key);
     }
 
     protected String formatPropertyName(HugeProperty<?> prop) {
-        return String.format("%s%s%s",
-                prop.type().name(),
-                COLUME_SPLITOR,
-                prop.key());
+        return String.format("%s%s%s", prop.type().name(),
+                             COLUME_SPLITOR, prop.key());
     }
 
     protected String formatPropertyValue(HugeProperty<?> prop) {
-        // may be a single value or a list of values
+        /* May be a single value or a list of values */
         return JsonUtil.toJson(prop.value());
     }
 
-    protected void parseProperty(String colName, String colValue, HugeElement owner) {
+    protected void parseProperty(String colName, String colValue,
+                                 HugeElement owner) {
         String[] colParts = colName.split(COLUME_SPLITOR);
         assert colParts.length == 2 : colName;
 
-        // get PropertyKey by PropertyKey name
+        /* Get PropertyKey by PropertyKey name */
         PropertyKey pkey = this.graph.schema().propertyKey(colParts[1]);
 
-        // parse value
+        /* Parse value */
         Object value = JsonUtil.fromJson(colValue, pkey.clazz());
 
-        // set properties of vertex/edge
+        /* Set properties of vertex/edge */
         if (pkey.cardinality() == Cardinality.SINGLE) {
             owner.addProperty(pkey.name(), value);
         } else {
             if (!(value instanceof Collection)) {
                 throw new BackendException(String.format(
-                        "Invalid value of non-sigle property: %s",
-                        colValue));
+                          "Invalid value of non-sigle property: %s",
+                          colValue));
             }
             for (Object v : (Collection<?>) value) {
                 owner.addProperty(pkey.name(), v);
@@ -124,7 +136,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     protected String formatEdgeName(HugeEdge edge) {
-        // type + edge-label-name + sortKeys + targetVertex
+        /* type + edge-label-name + sortKeys + targetVertex */
         StringBuilder sb = new StringBuilder(256);
         sb.append(edge.type().name());
         sb.append(COLUME_SPLITOR);
@@ -138,9 +150,9 @@ public class TextSerializer extends AbstractSerializer {
 
     protected String formatEdgeValue(HugeEdge edge) {
         StringBuilder sb = new StringBuilder(256 * edge.getProperties().size());
-        // edge id
+        /* Edge id */
         sb.append(edge.id().asString());
-        // edge properties
+        /* Edge properties */
         for (HugeProperty<?> property : edge.getProperties().values()) {
             sb.append(VALUE_SPLITOR);
             sb.append(this.formatPropertyName(property));
@@ -150,23 +162,24 @@ public class TextSerializer extends AbstractSerializer {
         return sb.toString();
     }
 
-    // parse an edge from a column item
-    protected void parseEdge(String colName, String colValue, HugeVertex vertex) {
+    /** Parse an edge from a column item */
+    protected void parseEdge(String colName, String colValue,
+                             HugeVertex vertex) {
         String[] colParts = colName.split(COLUME_SPLITOR);
-        String[] valParts = colValue.split(VALUE_SPLITOR);
 
-        boolean isOutEdge = colParts[0].equals(HugeType.EDGE_OUT.name());
         EdgeLabel label = this.graph.schema().edgeLabel(colParts[1]);
 
         // TODO: how to construct targetVertex with id
         Id otherVertexId = IdGeneratorFactory.generator().generate(colParts[3]);
         HugeVertex otherVertex = new HugeVertex(this.graph.graphTransaction(),
-                otherVertexId, null);
+                                                otherVertexId, null);
 
+        String[] valParts = colValue.split(VALUE_SPLITOR);
         Id id = IdGeneratorFactory.generator().generate(valParts[0]);
 
         HugeEdge edge = new HugeEdge(this.graph, id, label);
 
+        boolean isOutEdge = colParts[0].equals(HugeType.EDGE_OUT.name());
         if (isOutEdge) {
             edge.targetVertex(otherVertex);
             vertex.addOutEdge(edge);
@@ -175,22 +188,23 @@ public class TextSerializer extends AbstractSerializer {
             vertex.addInEdge(edge);
         }
 
-        // edge properties
+        /* Edge properties */
         for (int i = 1; i < valParts.length; i += 2) {
             this.parseProperty(valParts[i], valParts[i + 1], edge);
         }
     }
 
-    protected void parseColumn(String colName, String colValue, HugeVertex vertex) {
-        // column name
+    protected void parseColumn(String colName, String colValue,
+                               HugeVertex vertex) {
+        /* Column name */
         String type = colName.split(COLUME_SPLITOR, 2)[0];
-        // property
+        /* Property */
         if (type.equals(HugeType.PROPERTY.name())) {
             this.parseProperty(colName, colValue, vertex);
         }
-        // edge
-        else if (type.equals(HugeType.EDGE_OUT.name())
-                || type.equals(HugeType.EDGE_IN.name())) {
+        /* Edge */
+        if (type.equals(HugeType.EDGE_OUT.name()) ||
+            type.equals(HugeType.EDGE_IN.name())) {
             this.parseEdge(colName, colValue, vertex);
         }
     }
@@ -199,22 +213,22 @@ public class TextSerializer extends AbstractSerializer {
     public BackendEntry writeVertex(HugeVertex vertex) {
         TextBackendEntry entry = new TextBackendEntry(vertex.id());
 
-        // label (NOTE: maybe just with edges if label is null)
+        /* Label (NOTE: maybe just with edges if label is null) */
         if (vertex.vertexLabel() != null) {
             entry.column(this.formatSyspropName(HugeKeys.LABEL),
-                    vertex.label());
+                         vertex.label());
         }
 
-        // add all properties of a Vertex
+        /* Add all properties of a Vertex */
         for (HugeProperty<?> prop : vertex.getProperties().values()) {
             entry.column(this.formatPropertyName(prop),
-                    this.formatPropertyValue(prop));
+                         this.formatPropertyValue(prop));
         }
 
-        // add all edges of a Vertex
+        /* add all edges of a Vertex */
         for (HugeEdge edge : vertex.getEdges()) {
             entry.column(this.formatEdgeName(edge),
-                    this.formatEdgeValue(edge));
+                         this.formatEdgeValue(edge));
         }
 
         return entry;
@@ -229,19 +243,18 @@ public class TextSerializer extends AbstractSerializer {
         assert bytesEntry instanceof TextBackendEntry;
         TextBackendEntry entry = (TextBackendEntry) bytesEntry;
 
-        // label
-        String labelName = entry.column(
-                this.formatSyspropName(HugeKeys.LABEL));
+        /* Label */
+        String labelName = entry.column(this.formatSyspropName(HugeKeys.LABEL));
         VertexLabel label = null;
         if (labelName != null) {
             label = this.graph.schema().vertexLabel(labelName);
         }
 
-        // id
+        /* Id */
         HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
-                entry.id(), label);
+                                           entry.id(), label);
 
-        // parse all properties or edges of a Vertex
+        /* Parse all properties or edges of a Vertex */
         for (String name : entry.columnNames()) {
             this.parseColumn(name, entry.column(name), vertex);
         }
@@ -259,17 +272,18 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public Query writeQuery(Query query) {
-        // serialize edge query by id/conditions to
-        // query by src-vertex + edge-name
-        if (query.resultType() == HugeType.EDGE
-                && query instanceof IdQuery) {
+        /*
+         * Serialize edge query by id/conditions to query by src-vertex +
+         * edge-name.
+         */
+        if (query.resultType() == HugeType.EDGE && query instanceof IdQuery) {
             return this.writeEdgeQuery((IdQuery) query);
         }
 
-        // prefix schema-id with type
+        /* Prefix schema-id with type */
         if (SchemaElement.isSchema(query.resultType())
-                && query instanceof IdQuery) {
-            // serialize query id of schema
+            && query instanceof IdQuery) {
+            /* Serialize query id of schema */
             IdQuery result = (IdQuery) query.clone();
             result.resetIds();
             for (Id id : query.ids()) {
@@ -278,15 +292,15 @@ public class TextSerializer extends AbstractSerializer {
             return result;
         }
 
-        // serialize query key
-        if (!query.conditions().isEmpty()
-                && query instanceof ConditionQuery) {
+        /* Serialize query key */
+        if (!query.conditions().isEmpty() && query instanceof ConditionQuery) {
             ConditionQuery result = (ConditionQuery) query;
-            assert result.allSysprop(); // no user-prop when serialize
+            /* No user-prop when serialize */
+            assert result.allSysprop();
             for (Condition.Relation r : result.relations()) {
-                // serialize and reset key
+                /* Serialize and reset key */
                 r.key(formatSyspropName((HugeKeys) r.key()));
-                // serialize has-key
+                /* serialize has-key */
                 if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
                     r.value(formatPropertyName(r.value()));
                 }
@@ -302,29 +316,31 @@ public class TextSerializer extends AbstractSerializer {
 
         if (!query.conditions().isEmpty() && !query.ids().isEmpty()) {
             throw new BackendException("Not supported querying edge by id(s) "
-                    + "and condition(s) at the same time");
+                                       + "and condition(s) at the same time");
         }
 
-        // by id
+        /* By id */
         if (query.ids().size() > 0) {
             for (Id id : query.ids()) {
                 // TODO: improve edge id split
-                List<String> idParts = new LinkedList<>(ImmutableList.copyOf(
-                        SplicingIdGenerator.split(id)));
-                // NOTE: we assume the id without Direction if
-                // it contains 4 parts
+                List<String> idParts = new ArrayList<>(ImmutableList.copyOf(
+                                           SplicingIdGenerator.split(id)));
+                /*
+                 * Note that we assume the id without Direction if it contains
+                 * 4 parts.
+                 */
                 if (idParts.size() == 4) {
-                    // ensure edge id with Direction
+                    /* Ensure edge id with Direction */
                     idParts.add(1, HugeType.EDGE_OUT.name());
                 }
 
                 result.query(SplicingIdGenerator.concat(
-                        idParts.toArray(new String[0])));
+                             idParts.toArray(new String[0])));
             }
             return result;
         }
 
-        // by condition (then convert the query to query by id)
+        /* By condition (then convert the query to query by id) */
         List<String> condParts = new ArrayList<>(query.conditions().size());
 
         HugeKeys[] keys = new HugeKeys[] {
@@ -340,7 +356,7 @@ public class TextSerializer extends AbstractSerializer {
             if (value == null) {
                 break;
             }
-            // serialize value
+            /* Serialize value */
             if (value instanceof Direction) {
                 value = ((Direction) value) == Direction.OUT
                         ? HugeType.EDGE_OUT.name()
@@ -352,13 +368,13 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         if (condParts.size() > 0) {
-            // conditions to id
+            /* Conditions to id */
             result.query(SplicingIdGenerator.concat(
-                    condParts.toArray(new String[0])));
+                         condParts.toArray(new String[0])));
         }
 
         if (result.conditions().size() > 0) {
-            // like query by edge label
+            /* Like query by edge label */
             assert result.ids().isEmpty();
         }
 
@@ -414,13 +430,14 @@ public class TextSerializer extends AbstractSerializer {
         return entry;
     }
 
-    public void writeProperties(SchemaElement schemaElement, TextBackendEntry entry) {
+    public void writeProperties(SchemaElement schemaElement,
+                                TextBackendEntry entry) {
         Set<String> properties = schemaElement.properties();
         if (properties == null) {
             entry.column(HugeKeys.PROPERTIES.string(), "[]");
         } else {
             entry.column(HugeKeys.PROPERTIES.string(),
-                    JsonUtil.toJson(properties.toArray()));
+                         JsonUtil.toJson(properties.toArray()));
         }
     }
 
@@ -551,14 +568,14 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = new TextBackendEntry(id);
         // TODO: propertyValues may be a number (SEARCH index)
         entry.column(formatSyspropName(HugeKeys.PROPERTY_VALUES),
-                index.propertyValues().toString());
+                     index.propertyValues().toString());
         entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
-                index.indexLabelName());
+                     index.indexLabelName());
         // TODO: try to make these code more clear.
         Id[] ids = index.elementIds().toArray(new Id[0]);
         assert ids.length == 1;
         entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
-                ids[0].asString());
+                     ids[0].asString());
         return entry;
     }
 
@@ -579,16 +596,17 @@ public class TextSerializer extends AbstractSerializer {
         String elementIds = entry.column(
                 formatSyspropName(HugeKeys.ELEMENT_IDS));
 
-        IndexLabel indexLabel = this.graph.schemaTransaction().getIndexLabel(indexLabelName);
+        IndexLabel indexLabel = this.graph.schemaTransaction()
+                                    .getIndexLabel(indexLabelName);
 
         HugeIndex index = new HugeIndex(indexLabel);
         index.propertyValues(indexValues);
         // TODO: don forget to remove the [] symbol
-        String[] ids = JsonUtil.fromJson("[\"" + elementIds + "\"]", String[].class);
+        String[] ids = JsonUtil.fromJson("[\"" + elementIds + "\"]",
+                                         String[].class);
         for (String id : ids) {
             index.elementIds(IdGeneratorFactory.generator().generate(id));
         }
-
 
         return index;
     }
