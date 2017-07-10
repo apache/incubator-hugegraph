@@ -1,15 +1,14 @@
 package com.baidu.hugegraph.backend.cache;
 
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.concurrent.KeyLock;
 
 public class RamCache implements Cache {
 
@@ -17,89 +16,120 @@ public class RamCache implements Cache {
     public static final int DEFAULT_SIZE = 1 * MB;
     public static final int MAX_INIT_CAP = 100 * MB;
 
-    private static final Logger logger = LoggerFactory.getLogger(
-            RamCache.class);
+    private static final Logger logger = LoggerFactory.getLogger(RamCache.class);
+
+    private final KeyLock keyLock = new KeyLock();
 
     private long hits = 0;
     private long miss = 0;
-    private long size = 0;
+    private int capacity = 0;
 
-    // implement LRU cache
-    private Map<Id, Object> store;
-    private Queue<Id> sortedIds;
+    // Implement LRU cache
+    private Map<Id, LinkNode<Id, Object>> map;
+    private LinkedQueueNonBigLock<Id, Object> queue;
 
     public RamCache() {
         this(DEFAULT_SIZE);
     }
 
-    public RamCache(long size) {
-        if (size < 8) {
-            size = 8;
+    // NOTE: count in number of items, not in bytes
+    public RamCache(int capacity) {
+        if (capacity < 8) {
+            capacity = 8;
         }
-        this.size = size;
+        this.capacity = capacity;
 
-        long cap = size >> 3;
-        if (cap > MAX_INIT_CAP) {
-            cap = MAX_INIT_CAP;
+        int initialCapacity = capacity >> 3;
+        if (initialCapacity > MAX_INIT_CAP) {
+            initialCapacity = MAX_INIT_CAP;
         }
-        // NOTE: maybe we can use LinkedHashMap if not support multi-thread
-        // this.store = new ConcurrentHashMap<>((int) cap);
-        // this.sortedIds = new ConcurrentLinkedQueue<>();
-        this.store = new HashMap<>((int) cap);
-        this.sortedIds = new LinkedList<>();
+
+        this.map = new ConcurrentHashMap<>(initialCapacity);
+        this.queue = new LinkedQueueNonBigLock<>();
     }
 
-    // TODO: synchronized the id instead of access() and write()
-    private synchronized void access(Id id) {
+    private void access(LinkNode<Id, Object> node) {
+        // Ignore concurrent write for hits
         ++this.hits;
-        // add to tail
-        this.sortedIds.remove(id);
-        this.sortedIds.add(id);
+
+        Id id = node.key();
+        this.keyLock.lock(id);
+        try {
+            // Add to tail
+            this.queue.remove(node);
+            this.queue.enqueue(node);
+        } finally {
+            this.keyLock.unlock(id);
+        }
     }
 
-    private synchronized void write(Id id, Object value) {
+    private void write(Id id, Object value) {
         assert id != null;
-        if (this.sortedIds.size() >= this.size) {
-            // remove the oldest
-            Id removed = this.sortedIds.poll();
-            assert removed != null;
-            this.store.remove(removed);
-            logger.debug("RamCache replace '{}' with '{}' (size={})",
-                    removed, id, this.size);
+
+        this.keyLock.lock(id);
+        try {
+            if (this.map.size() < this.capacity) {
+                // Add the new item to tail, then map it
+                this.map.put(id, this.queue.enqueue(id, value));
+            } else {
+                // Remove the oldest
+                LinkNode<Id, Object> removed = this.queue.dequeue();
+                assert removed != null;
+                this.map.remove(removed.key());
+                logger.debug("RamCache replace '{}' with '{}' (capacity={})",
+                             removed.value(), id, this.capacity);
+
+                // Reuse the removed node
+                LinkNode<Id, Object> newest = removed;
+                newest.reset(id, value);
+                this.map.put(id, newest);
+            }
+        } finally {
+            this.keyLock.unlock(id);
         }
-        // add the new item to tail
-        this.sortedIds.add(id);
-        this.store.put(id, value);
+    }
+
+    private void remove(Id id) {
+        assert id != null;
+
+        this.keyLock.lock(id);
+        try {
+            this.queue.remove(this.map.remove(id));
+        } finally {
+            this.keyLock.unlock(id);
+        }
     }
 
     @Override
     public Object get(Id id) {
-        Object value = this.store.get(id);
-        if (value != null) {
-            this.access(id);
+        LinkNode<Id, Object> node = this.map.get(id);
+        if (node != null) {
+            this.access(node);
             logger.debug("RamCache cached '{}' (hits={}, miss={})",
-                    id, this.hits, this.miss);
+                         id, this.hits, this.miss);
+            return node.value();
         } else {
             logger.debug("RamCache missed '{}' (miss={}, hits={})",
-                    id, ++this.miss, this.hits);
+                         id, ++this.miss, this.hits);
+            return null;
         }
-        return value;
     }
 
     @Override
     public Object getOrFetch(Id id, Function<Id, Object> fetcher) {
-        Object value = this.store.get(id);
-        if (value != null) {
-            this.access(id);
+        LinkNode<Id, Object> node = this.map.get(id);
+        if (node != null) {
+            this.access(node);
             logger.debug("RamCache cached '{}' (hits={}, miss={})",
-                    id, this.hits, this.miss);
+                         id, this.hits, this.miss);
+            return node.value();
         } else {
             logger.debug("RamCache missed '{}' (miss={}, hits={})",
-                    id, ++this.miss, this.hits);
-            value = fetcher.apply(id);
+                         id, ++this.miss, this.hits);
+            Object value = fetcher.apply(id);
             this.update(id, value);
+            return value;
         }
-        return value;
     }
 
     @Override
@@ -112,7 +142,7 @@ public class RamCache implements Cache {
 
     @Override
     public void updateIfAbsent(Id id, Object value) {
-        if (id == null || value == null || this.store.containsKey(id)) {
+        if (id == null || value == null || this.map.containsKey(id)) {
             return;
         }
         this.write(id, value);
@@ -120,21 +150,150 @@ public class RamCache implements Cache {
 
     @Override
     public void invalidate(Id id) {
-        this.store.remove(id);
+        if (id == null || !this.map.containsKey(id)) {
+            return;
+        }
+        this.remove(id);
     }
 
     @Override
     public void clear() {
-        this.store.clear();
+        // TODO: synchronized
+        this.map.clear();
+        this.queue.clear();
+    }
+
+    @Override
+    public long capacity() {
+        return this.capacity;
     }
 
     @Override
     public long size() {
-        return this.size;
+        return this.map.size();
     }
 
     @Override
     public String toString() {
-        return this.store.toString();
+        return this.map.toString();
+    }
+
+    private static class LinkNode<K, V> {
+
+        private K key;
+        private V value;
+        private LinkNode<K, V> prev;
+        private LinkNode<K, V> next;
+
+        public LinkNode(K key, V value) {
+            this.reset(key, value);
+        }
+
+        public final K key() {
+            return this.key;
+        }
+
+        public final V value() {
+            return this.value;
+        }
+
+        public void reset(K key, V value) {
+            this.key = key;
+            this.value = value;
+            this.prev = this.next = null;
+        }
+
+        @Override
+        public String toString() {
+            return this.value == null ? null : this.value.toString();
+        }
+    }
+
+    private static class LinkedQueueNonBigLock<K, V> {
+
+        private final LinkNode<K, V> empty;
+        private final LinkNode<K, V> head;
+        private LinkNode<K, V> rear;
+
+        @SuppressWarnings("unchecked")
+        public LinkedQueueNonBigLock() {
+            this.empty = new LinkNode<>(null, (V) "<empty>");
+            this.head = new LinkNode<>(null, (V) "<head>");
+            this.rear = this.head;
+
+            this.clear();
+        }
+
+        public void clear() {
+            synchronized (this.head) {
+                synchronized (this.rear) {
+                    this.head.next = this.empty;
+                    this.head.prev = this.empty;
+
+                    this.rear = this.head;
+                }
+            }
+        }
+
+        public final LinkNode<K, V> enqueue(K key, V value) {
+            return this.enqueue(new LinkNode<>(key, value));
+        }
+
+        public final LinkNode<K, V> enqueue(LinkNode<K, V> node) {
+            synchronized (this.rear) {
+                node.next = this.empty;
+                // Build the link between rear and node
+                this.rear.next = node;
+                node.prev = this.rear;
+                // Reset rear
+                this.rear = node;
+            }
+            return node;
+        }
+
+        public final LinkNode<K, V> dequeue() {
+            synchronized (this.head) {
+                if (this.rear == this.head) {
+                    return null;
+                }
+
+                /* If there is only one element, the rear would point to the
+                 * deleting node, so we should lock the rear to avoid enqueue()
+                 */
+                LinkNode<K, V> node = this.head.next;
+                if (node == this.rear) {
+                    synchronized (this.rear) {
+                        if (node == this.rear) {
+                            this.rear = this.head;
+                        }
+                    }
+                }
+
+                // Break the link between head and node
+                this.head.next = node.next;
+                node.next.prev = this.head;
+                // Clear node links
+                node.prev = this.empty;
+                node.next = this.empty;
+
+                return node;
+            }
+        }
+
+        public final void remove(LinkNode<K, V> node) {
+            synchronized (node) {
+                synchronized (node.prev) {
+                    if (node == this.rear) {
+                        this.rear = node.prev;
+                    }
+                    // Build the link between node.prev and node.next
+                    node.prev.next = node.next;
+                    node.next.prev = node.prev;
+                    // Clear node links
+                    node.prev = this.empty;
+                    node.next = this.empty;
+                }
+            }
+        }
     }
 }
