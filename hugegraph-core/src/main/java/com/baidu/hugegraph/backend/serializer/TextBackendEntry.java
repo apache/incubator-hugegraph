@@ -67,8 +67,8 @@ public class TextBackendEntry implements BackendEntry {
     }
 
     public boolean contains(String colume, String value) {
-        return this.columns.containsKey(colume)
-            && this.columns.get(colume).equals(value);
+        return this.columns.containsKey(colume) &&
+               this.columns.get(colume).equals(value);
     }
 
     public boolean containsPrefix(String column) {

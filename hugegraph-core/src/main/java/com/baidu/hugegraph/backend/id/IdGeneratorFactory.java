@@ -2,7 +2,7 @@ package com.baidu.hugegraph.backend.id;
 
 public class IdGeneratorFactory {
 
-    // the default IdGenerator is SplicingIdGenerator
+    // The default IdGenerator is SplicingIdGenerator
     private static IdGenerator initedGenerator = initGenerator("splicing");
 
     public static IdGenerator initGenerator(String generatorType) {

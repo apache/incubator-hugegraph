@@ -49,8 +49,9 @@ public class ConditionQuery extends IdQuery {
         /* query by id (HugeGraph-259) */
         if (condition instanceof Relation) {
             Relation relation = (Relation) condition;
-            if (relation.key().equals(HugeKeys.ID)
-                && relation.relation() == RelationType.EQ) {
+            if (relation.key().equals(HugeKeys.ID) &&
+                relation.relation() == RelationType.EQ) {
+
                 super.query(HugeElement.getIdValue(T.id, relation.value()));
                 return this;
             }
@@ -109,8 +110,8 @@ public class ConditionQuery extends IdQuery {
     @Override
     public String toString() {
         return String.format("%s and %s",
-                super.toString(),
-                this.conditions.toString());
+                             super.toString(),
+                             this.conditions.toString());
     }
 
     public boolean allSysprop() {
@@ -160,8 +161,8 @@ public class ConditionQuery extends IdQuery {
 
     public boolean containsCondition(Condition.RelationType type) {
         for (Condition c : this.conditions) {
-            if (c.isRelation()
-                && ((Condition.Relation) c).relation().equals(type)) {
+            if (c.isRelation() &&
+                ((Condition.Relation) c).relation().equals(type)) {
                 return true;
             }
             // TODO: deal with other Condition
@@ -212,7 +213,7 @@ public class ConditionQuery extends IdQuery {
                 if (!c.isRelation()) {
                     // TODO: deal with other Condition like AND/OR
                     throw new BackendException(
-                            "Not support getting userprop from non relation");
+                              "Not support getting userprop from non relation");
                 }
                 Relation r = ((Relation) c);
                 if (r.key().equals(field) && !c.isSysprop()) {
@@ -223,8 +224,8 @@ public class ConditionQuery extends IdQuery {
             }
             if (!got) {
                 throw new BackendException(
-                        "No such userprop named '%s' in the query '%s'",
-                        field, this);
+                          "No such userprop named '%s' in the query '%s'",
+                          field, this);
             }
         }
         return values;
@@ -235,7 +236,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public boolean hasSearchCondition() {
-        /* NOTE: we need to judge all the conditions, including the nested */
+        // NOTE: we need to judge all the conditions, including the nested
         for (Condition.Relation r : this.relations()) {
             if (r.relation().isSearchType()) {
                 return true;
@@ -246,8 +247,8 @@ public class ConditionQuery extends IdQuery {
 
     public boolean matchUserpropKeys(List<String> keys) {
         Set<String> conditionKeys = userpropKeys();
-        if (keys.size() == conditionKeys.size()
-            && conditionKeys.containsAll(keys)) {
+        if (keys.size() == conditionKeys.size() &&
+            conditionKeys.containsAll(keys)) {
             return true;
         }
 

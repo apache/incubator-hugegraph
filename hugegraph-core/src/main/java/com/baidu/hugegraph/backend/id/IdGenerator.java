@@ -9,14 +9,14 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public abstract class IdGenerator {
 
-    /****************************** id type ******************************/
+    /****************************** id type **********************************/
 
     public static enum IdType {
         LONG,
         STRING;
     }
 
-    // this could be set by conf
+    // This could be set by conf
     public static IdType ID_TYPE = IdType.STRING;
 
     /****************************** id generate ******************************/
@@ -27,7 +27,7 @@ public abstract class IdGenerator {
 
     public abstract Id generate(HugeEdge entry);
 
-    // generate a string id
+    // Generate a string id
     public Id generate(String id) {
         switch (ID_TYPE) {
             case LONG:
@@ -40,7 +40,7 @@ public abstract class IdGenerator {
         }
     }
 
-    // generate a long id
+    // Generate a long id
     public Id generate(long id) {
         switch (ID_TYPE) {
             case LONG:
@@ -53,7 +53,7 @@ public abstract class IdGenerator {
         }
     }
 
-    // parse an id from bytes
+    // Parse an id from bytes
     public Id parse(byte[] bytes) {
         switch (ID_TYPE) {
             case LONG:

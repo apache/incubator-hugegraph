@@ -23,6 +23,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 import com.google.common.base.Preconditions;
 
 // NOTE:
@@ -68,8 +69,9 @@ public class InMemoryDBStore implements BackendStore {
                 // query edge(in a vertex) by id (or v-id + column-name prefix)
                 // TODO: separate this method into a class
                 rs = queryEdgeById(query.ids(), rs);
-                Preconditions.checkState(query.conditions().isEmpty(),
-                        "Not support querying edge by %s", query.conditions());
+                E.checkState(query.conditions().isEmpty(),
+                             "Not support querying edge by %s",
+                             query.conditions());
             } else {
                 rs = queryById(query.ids(), rs);
             }
@@ -81,7 +83,7 @@ public class InMemoryDBStore implements BackendStore {
         }
 
         logger.info("[store {}] return {} for query: {}",
-                this.name, rs.values(), query);
+                    this.name, rs.values(), query);
         return rs.values();
     }
 
@@ -100,9 +102,8 @@ public class InMemoryDBStore implements BackendStore {
         return entries;
     }
 
-    protected Map<Id, BackendEntry> queryById(
-            Set<Id> ids,
-            Map<Id, BackendEntry> entries) {
+    protected Map<Id, BackendEntry> queryById(Set<Id> ids,
+                                              Map<Id, BackendEntry> entries) {
         assert ids.size() > 0;
         Map<Id, BackendEntry> rs = new HashMap<>();
 
@@ -114,9 +115,8 @@ public class InMemoryDBStore implements BackendStore {
         return rs;
     }
 
-    private Map<Id, BackendEntry> queryEdgeById(
-            Set<Id> ids,
-            Map<Id, BackendEntry> entries) {
+    private Map<Id, BackendEntry> queryEdgeById(Set<Id> ids,
+                                                Map<Id, BackendEntry> entries) {
         assert ids.size() > 0;
         Map<Id, BackendEntry> rs = new HashMap<>();
 

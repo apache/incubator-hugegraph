@@ -101,7 +101,7 @@ public abstract class AbstractTransaction implements Transaction {
         BackendEntry entry = query(type, id);
         if (entry == null) {
             throw new NotFoundException(
-                    "Not found the %s entry with id '%s'", type, id);
+                      "Not found the %s entry with id '%s'", type, id);
         }
         return entry;
     }
@@ -207,7 +207,7 @@ public abstract class AbstractTransaction implements Transaction {
             }
             // rethrow
             throw new BackendException(
-                    "Failed to commit changes: %s", e1.getMessage());
+                      "Failed to commit changes: %s", e1.getMessage());
         }
     }
 

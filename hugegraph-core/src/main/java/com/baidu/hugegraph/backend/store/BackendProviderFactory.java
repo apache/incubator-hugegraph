@@ -21,8 +21,8 @@ public class BackendProviderFactory {
 
         Class<? extends BackendStoreProvider> clazz = storeProviders.get(backend);
         if (clazz == null) {
-            throw new BackendException(String.format(
-                    "Not exists BackendStoreProvider: %s", backend));
+            throw new BackendException(
+                      "Not exists BackendStoreProvider: %s", backend);
         }
 
         assert BackendStoreProvider.class.isAssignableFrom(clazz);
@@ -48,16 +48,15 @@ public class BackendProviderFactory {
 
         // check subclass
         if (!BackendStoreProvider.class.isAssignableFrom(clazz)) {
-            throw new BackendException(String.format(
-                    "Class '%s' is not a subclass of class BackendStoreProvider",
-                    classPath));
+            throw new BackendException("Class '%s' is not a subclass of " +
+                                       "class BackendStoreProvider", classPath);
         }
 
         // check exists
         if (storeProviders.containsKey(name)) {
-            throw new BackendException(String.format(
-                    "Exists BackendStoreProvider: %s(Class '%s')",
-                    name, storeProviders.get(name).getName()));
+            throw new BackendException(
+                      "Exists BackendStoreProvider: %s(Class '%s')",
+                      name, storeProviders.get(name).getName());
         }
 
         // register class

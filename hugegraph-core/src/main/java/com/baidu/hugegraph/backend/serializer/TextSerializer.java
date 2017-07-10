@@ -125,9 +125,9 @@ public class TextSerializer extends AbstractSerializer {
             owner.addProperty(pkey.name(), value);
         } else {
             if (!(value instanceof Collection)) {
-                throw new BackendException(String.format(
+                throw new BackendException(
                           "Invalid value of non-sigle property: %s",
-                          colValue));
+                          colValue);
             }
             for (Object v : (Collection<?>) value) {
                 owner.addProperty(pkey.name(), v);
@@ -281,8 +281,8 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         /* Prefix schema-id with type */
-        if (SchemaElement.isSchema(query.resultType())
-            && query instanceof IdQuery) {
+        if (SchemaElement.isSchema(query.resultType()) &&
+            query instanceof IdQuery) {
             /* Serialize query id of schema */
             IdQuery result = (IdQuery) query.clone();
             result.resetIds();
@@ -315,8 +315,8 @@ public class TextSerializer extends AbstractSerializer {
         result.resetIds();
 
         if (!query.conditions().isEmpty() && !query.ids().isEmpty()) {
-            throw new BackendException("Not supported querying edge by id(s) "
-                                       + "and condition(s) at the same time");
+            throw new BackendException("Not supported query edge by id(s) " +
+                                       "and condition(s) at the same time");
         }
 
         /* By id */
@@ -358,9 +358,9 @@ public class TextSerializer extends AbstractSerializer {
             }
             /* Serialize value */
             if (value instanceof Direction) {
-                value = ((Direction) value) == Direction.OUT
-                        ? HugeType.EDGE_OUT.name()
-                        : HugeType.EDGE_IN.name();
+                value = ((Direction) value) == Direction.OUT ?
+                        HugeType.EDGE_OUT.name() :
+                        HugeType.EDGE_IN.name();
             }
             condParts.add(value.toString());
 
@@ -387,11 +387,11 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.writeId(vertexLabel.type(), id);
         entry.column(HugeKeys.NAME.string(),
-                JsonUtil.toJson(vertexLabel.name()));
+                     JsonUtil.toJson(vertexLabel.name()));
         entry.column(HugeKeys.PRIMARY_KEYS.string(),
-                JsonUtil.toJson(vertexLabel.primaryKeys().toArray()));
+                     JsonUtil.toJson(vertexLabel.primaryKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES.string(),
-                JsonUtil.toJson(vertexLabel.indexNames().toArray()));
+                     JsonUtil.toJson(vertexLabel.indexNames().toArray()));
         writeProperties(vertexLabel, entry);
         return entry;
     }
@@ -402,15 +402,15 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.writeId(edgeLabel.type(), id);
         entry.column(HugeKeys.NAME.string(),
-                JsonUtil.toJson(edgeLabel.name()));
+                     JsonUtil.toJson(edgeLabel.name()));
         entry.column(HugeKeys.FREQUENCY.string(),
-                JsonUtil.toJson(edgeLabel.frequency()));
+                     JsonUtil.toJson(edgeLabel.frequency()));
         entry.column(HugeKeys.LINKS.string(),
-                JsonUtil.toJson(edgeLabel.links()));
+                     JsonUtil.toJson(edgeLabel.links()));
         entry.column(HugeKeys.SORT_KEYS.string(),
-                JsonUtil.toJson(edgeLabel.sortKeys().toArray()));
+                     JsonUtil.toJson(edgeLabel.sortKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES.string(),
-                JsonUtil.toJson(edgeLabel.indexNames().toArray()));
+                     JsonUtil.toJson(edgeLabel.indexNames().toArray()));
         writeProperties(edgeLabel, entry);
         return entry;
     }
@@ -421,11 +421,11 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.writeId(propertyKey.type(), id);
         entry.column(HugeKeys.NAME.string(),
-                JsonUtil.toJson(propertyKey.name()));
+                     JsonUtil.toJson(propertyKey.name()));
         entry.column(HugeKeys.DATA_TYPE.string(),
-                JsonUtil.toJson(propertyKey.dataType()));
+                     JsonUtil.toJson(propertyKey.dataType()));
         entry.column(HugeKeys.CARDINALITY.string(),
-                JsonUtil.toJson(propertyKey.cardinality()));
+                     JsonUtil.toJson(propertyKey.cardinality()));
         writeProperties(propertyKey, entry);
         return entry;
     }
@@ -510,7 +510,8 @@ public class TextSerializer extends AbstractSerializer {
         HugePropertyKey propertyKey = new HugePropertyKey(
                 JsonUtil.fromJson(name, String.class));
         propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
-        propertyKey.cardinality(JsonUtil.fromJson(cardinality, Cardinality.class));
+        propertyKey.cardinality(JsonUtil.fromJson(cardinality,
+                                Cardinality.class));
         propertyKey.properties(JsonUtil.fromJson(properties, String[].class));
 
         return propertyKey;
@@ -522,15 +523,15 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = this.writeId(indexLabel.type(), id);
 
         entry.column(HugeKeys.NAME.string(),
-                JsonUtil.toJson(indexLabel.name()));
+                     JsonUtil.toJson(indexLabel.name()));
         entry.column(HugeKeys.BASE_TYPE.string(),
-                JsonUtil.toJson(indexLabel.baseType()));
+                     JsonUtil.toJson(indexLabel.baseType()));
         entry.column(HugeKeys.BASE_VALUE.string(),
-                JsonUtil.toJson(indexLabel.baseValue()));
+                     JsonUtil.toJson(indexLabel.baseValue()));
         entry.column(HugeKeys.INDEX_TYPE.string(),
-                JsonUtil.toJson(indexLabel.indexType()));
+                     JsonUtil.toJson(indexLabel.indexType()));
         entry.column(HugeKeys.FIELDS.string(),
-                JsonUtil.toJson(indexLabel.indexFields().toArray()));
+                     JsonUtil.toJson(indexLabel.indexFields().toArray()));
         return entry;
     }
 
@@ -554,7 +555,8 @@ public class TextSerializer extends AbstractSerializer {
         String indexType = textEntry.column(HugeKeys.INDEX_TYPE.string());
         String indexFields = textEntry.column(HugeKeys.FIELDS.string());
 
-        HugeIndexLabel indexLabel = new HugeIndexLabel(name, baseType, baseValue);
+        HugeIndexLabel indexLabel = new HugeIndexLabel(name, baseType,
+                                                       baseValue);
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
         indexLabel.by(JsonUtil.fromJson(indexFields, String[].class));
 

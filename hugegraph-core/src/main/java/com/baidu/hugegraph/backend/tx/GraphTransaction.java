@@ -51,7 +51,7 @@ public class GraphTransaction extends AbstractTransaction {
     private Set<HugeEdge> removedEdges;
 
     public GraphTransaction(final HugeGraph graph,
-            BackendStore store, BackendStore indexStore) {
+                            BackendStore store, BackendStore indexStore) {
         super(graph, store);
 
         this.indexTx = new IndexTransaction(graph, indexStore);
@@ -60,10 +60,10 @@ public class GraphTransaction extends AbstractTransaction {
 
     @Override
     public boolean hasUpdates() {
-        boolean empty = (this.addedVertexes.isEmpty()
-                && this.removedVertexes.isEmpty()
-                && this.addedEdges.isEmpty()
-                && this.removedEdges.isEmpty());
+        boolean empty = (this.addedVertexes.isEmpty() &&
+                         this.removedVertexes.isEmpty() &&
+                         this.addedEdges.isEmpty() &&
+                         this.removedEdges.isEmpty());
         return !empty || super.hasUpdates();
     }
 
@@ -86,9 +86,8 @@ public class GraphTransaction extends AbstractTransaction {
         this.prepareAdditions(this.addedVertexes, this.addedEdges);
     }
 
-    protected void prepareAdditions(
-            Set<HugeVertex> updatedVertexes,
-            Set<HugeEdge> updatedEdges) {
+    protected void prepareAdditions(Set<HugeVertex> updatedVertexes,
+                                    Set<HugeEdge> updatedEdges) {
 
         Map<Id, HugeVertex> vertexes = new HashMap<>();
 
@@ -142,9 +141,8 @@ public class GraphTransaction extends AbstractTransaction {
         updatedEdges.clear();
     }
 
-    protected void prepareDeletions(
-            Set<HugeVertex> updatedVertexes,
-            Set<HugeEdge> updatedEdges) {
+    protected void prepareDeletions(Set<HugeVertex> updatedVertexes,
+                                    Set<HugeEdge> updatedEdges) {
 
         Set<HugeVertex> vertexes = new LinkedHashSet<>();
         vertexes.addAll(updatedVertexes);
@@ -259,7 +257,7 @@ public class GraphTransaction extends AbstractTransaction {
         // Vertex id must be null now
         if (!features.supportsUserSuppliedIds() && id != null) {
             throw new IllegalArgumentException(
-                    "Not support user defined id of Vertex");
+                      "Not support user defined id of Vertex");
         }
 
         // Check Vertex label
@@ -322,8 +320,8 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query query) {
-        assert Arrays.asList(HugeType.VERTEX, HugeType.EDGE).contains(
-                query.resultType());
+        assert Arrays.asList(HugeType.VERTEX, HugeType.EDGE)
+                     .contains(query.resultType());
         List<Vertex> list = new ArrayList<Vertex>();
 
         Iterator<BackendEntry> entries = this.query(query).iterator();
@@ -411,17 +409,16 @@ public class GraphTransaction extends AbstractTransaction {
         return queryEdges(constructEdgesQuery(id, null));
     }
 
-    public static ConditionQuery constructEdgesQuery(
-            Id sourceVertex,
-            Direction direction,
-            String... edgeLabels) {
+    public static ConditionQuery constructEdgesQuery(Id sourceVertex,
+                                                     Direction direction,
+                                                     String... edgeLabels) {
 
         E.checkState(sourceVertex != null,
-                "The edge query must contain source vertex");
-        E.checkState((direction != null
-                || (direction == null && edgeLabels.length == 0)),
-                "The edge query must contain direction " +
-                "if it contains edge label");
+                     "The edge query must contain source vertex");
+        E.checkState((direction != null ||
+                     (direction == null && edgeLabels.length == 0)),
+                     "The edge query must contain direction " +
+                     "if it contains edge label");
 
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
 
@@ -441,7 +438,7 @@ public class GraphTransaction extends AbstractTransaction {
             // TODO: support query by multi edge labels
             // query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
             throw new BackendException(
-                    "Not support querying by multi edge-labels");
+                      "Not support querying by multi edge-labels");
         } else {
             assert edgeLabels.length == 0;
         }
@@ -462,8 +459,8 @@ public class GraphTransaction extends AbstractTransaction {
         int total = query.conditions().size();
         if (total == 1) {
             // Supported: 1.query just by edge label, 2.query with scan
-            if (query.containsCondition(HugeKeys.LABEL)
-                    || query.containsScanCondition()) {
+            if (query.containsCondition(HugeKeys.LABEL) ||
+                query.containsScanCondition()) {
                 return;
             }
         }
@@ -477,9 +474,9 @@ public class GraphTransaction extends AbstractTransaction {
             matched++;
         }
         if (matched != total) {
-            throw new BackendException(String.format(
+            throw new BackendException(
                     "Not supported querying edges by %s, expected %s",
-                    query.conditions(), keys[matched]));
+                    query.conditions(), keys[matched]);
         }
     }
 
@@ -488,8 +485,9 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Optimize vertex query
         Object label = query.condition(HugeKeys.LABEL);
-        if (label != null && query.resultType() == HugeType.VERTEX
-                && !features.vertex().supportsUserSuppliedIds()) {
+        if (label != null && query.resultType() == HugeType.VERTEX &&
+            !features.vertex().supportsUserSuppliedIds()) {
+
             // Query vertex by label + primary-values
             List<String> keys = graph().schema().vertexLabel(
                     label.toString()).primaryKeys();
@@ -508,8 +506,8 @@ public class GraphTransaction extends AbstractTransaction {
                     query.resetConditions();
                 } else {
                     // Assert this.store().supportsSysIndex();
-                    logger.warn("Please ensure the backend supports"
-                            + " query by primary-key: {}", query);
+                    logger.warn("Please ensure the backend supports " +
+                                "query by primary-key: {}", query);
                 }
                 return query;
             }
@@ -520,11 +518,13 @@ public class GraphTransaction extends AbstractTransaction {
             // Query edge by sourceVertex + direction + label + sort-values
             List<String> keys = graph().schema().edgeLabel(
                     label.toString()).sortKeys();
-            if (query.condition(HugeKeys.SOURCE_VERTEX) != null
-                    && query.condition(HugeKeys.DIRECTION) != null
-                    && !keys.isEmpty() && query.matchUserpropKeys(keys)) {
+            if (query.condition(HugeKeys.SOURCE_VERTEX) != null &&
+                query.condition(HugeKeys.DIRECTION) != null &&
+                !keys.isEmpty() &&
+                query.matchUserpropKeys(keys)) {
+
                 query.eq(HugeKeys.SORT_VALUES,
-                        query.userpropValuesString(keys));
+                         query.userpropValuesString(keys));
                 query.resetUserpropConditions();
                 logger.debug("Query edges by sortKeys: {}", query);
                 return query;
