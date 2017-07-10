@@ -24,7 +24,10 @@ public class SplicingIdGenerator extends IdGenerator {
     // generate a string id of HugeVertex from Vertex name
     @Override
     public Id generate(HugeVertex entry) {
-        String id = String.format("%s%s%s", entry.label(), ID_SPLITOR, entry.name());
+        String id = String.format("%s%s%s",
+                                  entry.label(),
+                                  ID_SPLITOR,
+                                  entry.name());
 
         // hash for row-key which will be evenly distributed
         // we can also use LongEncoding.encode() to encode the int/long hash if needed

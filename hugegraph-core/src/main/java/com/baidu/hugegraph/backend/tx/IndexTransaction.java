@@ -84,7 +84,8 @@ public class IndexTransaction extends AbstractTransaction {
                                boolean removed) {
         SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(indexName);
-        E.checkArgumentNotNull(indexLabel, "Not existed index: '%s'", indexName);
+        E.checkArgumentNotNull(indexLabel,
+                               "Not existed index: '%s'", indexName);
 
         List<Object> propValues = new ArrayList<>();
         for (String field : indexLabel.indexFields()) {
@@ -129,8 +130,9 @@ public class IndexTransaction extends AbstractTransaction {
         Set<String> labels = collectQueryLabels(query, indexLabels);
 
         if (labels.isEmpty()) {
-            throw new HugeException("Don't accept query based on properties: "
-                    + "'%s' that are not indexed", query.userpropKeys());
+            throw new HugeException("Don't accept query based on properties: " +
+                                    "'%s' that are not indexed",
+                                    query.userpropKeys());
         }
 
         ExtendableIterator<BackendEntry> entries = new ExtendableIterator<>();
@@ -160,8 +162,9 @@ public class IndexTransaction extends AbstractTransaction {
             Set<String> queryKeys = query.userpropKeys();
             for (IndexLabel indexLabel : indexLabels) {
                 List<String> indexFields = indexLabel.indexFields();
-                if (query.resultType() == indexLabel.queryType()
-                        && matchIndexFields(queryKeys, indexFields)) {
+                if (query.resultType() == indexLabel.queryType() &&
+                    matchIndexFields(queryKeys, indexFields)) {
+
                     labels.add(indexLabel.baseValue());
                 }
             }
@@ -184,7 +187,7 @@ public class IndexTransaction extends AbstractTransaction {
                 break;
             default:
                 throw new BackendException(
-                        "Unsupported index query: %s", query.resultType());
+                          "Unsupported index query: %s", query.resultType());
         }
 
         E.checkArgumentNotNull(schemaElement, "Invalid label: '%s'", label);
@@ -231,6 +234,7 @@ public class IndexTransaction extends AbstractTransaction {
         if (indexLabel.indexType() == IndexType.SECONDARY) {
             List<String> joinedKeys = indexFields.subList(0, queryKeys.size());
             String joinedValues = query.userpropValuesString(joinedKeys);
+
             indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
             indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
             indexQuery.eq(HugeKeys.PROPERTY_VALUES, joinedValues);

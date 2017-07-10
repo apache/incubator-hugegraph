@@ -26,6 +26,7 @@ import java.util.function.Function;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -55,7 +56,7 @@ public abstract class Condition {
         private final BiFunction<Object, Object, Boolean> tester;
 
         private RelationType(String op,
-                BiFunction<Object, Object, Boolean> tester) {
+                             BiFunction<Object, Object, Boolean> tester) {
             this.operator = op;
             this.tester = tester;
         }
@@ -66,41 +67,43 @@ public abstract class Condition {
 
         protected static int compare(final Object first, final Object second) {
             if (first == null || second == null) {
-                throw new BackendException(String.format(
-                        "Can't compare between %s and %s", first, second));
+                throw new BackendException(
+                          "Can't compare between %s and %s", first, second);
             }
 
             Function<Object, Number> toBig = (number) -> {
                 try {
                     return new BigDecimal(number.toString());
                 } catch (NumberFormatException e) {
-                    throw new BackendException(String.format(
-                            "Can't compare between %s and %s, must be numbers",
-                            first, second));
+                    throw new BackendException(
+                              "Can't compare between %s and %s, " +
+                              "must be numbers", first, second);
                 }
             };
 
-            Number n1 = (first instanceof Number)
-                        ? (Number) first : toBig.apply(first);
+            Number n1 = (first instanceof Number) ?
+                        (Number) first :
+                        toBig.apply(first);
 
-            Number n2 = (second instanceof Number)
-                        ? (Number) second : toBig.apply(second);
+            Number n2 = (second instanceof Number) ?
+                        (Number) second :
+                        toBig.apply(second);
 
             /*
              * It is proberly that the `first` is serialized to String. Hence,
              * Convert the `second` to String too, and then to Big.
              */
-            if (!n1.getClass().equals(n2.getClass())
-                && first.getClass().equals(String.class)) {
+            if (!n1.getClass().equals(n2.getClass()) &&
+                first.getClass().equals(String.class)) {
                 n2 = toBig.apply(second);
             }
 
             /* Check they are the same type */
             if (!n1.getClass().equals(n2.getClass())) {
-                throw new BackendException(String.format(
-                        "Can't compare class %s with class %s",
-                        first.getClass().getSimpleName(),
-                        second.getClass().getSimpleName()));
+                throw new BackendException(
+                          "Can't compare class %s with class %s",
+                          first.getClass().getSimpleName(),
+                          second.getClass().getSimpleName());
             }
 
             @SuppressWarnings("unchecked")
@@ -110,8 +113,7 @@ public abstract class Condition {
         }
 
         public boolean test(Object value1, Object value2) {
-            Preconditions.checkNotNull(this.tester,
-                    "Can't test " + this.name());
+            E.checkNotNull(this.tester, "Can't test %s", this.name());
             return this.tester.apply(value1, value2);
         }
 
@@ -149,8 +151,8 @@ public abstract class Condition {
     }
 
     public boolean isLogic() {
-        return (this.type() == ConditionType.AND
-                || this.type() == ConditionType.OR);
+        return this.type() == ConditionType.AND ||
+               this.type() == ConditionType.OR;
     }
 
     /*************************************************************************/
@@ -245,8 +247,8 @@ public abstract class Condition {
         private Condition right;
 
         public BinCondition(Condition left, Condition right) {
-            Preconditions.checkNotNull(left, "Condition can't be null");
-            Preconditions.checkNotNull(right, "Condition can't be null");
+            E.checkNotNull(left, "Condition can't be null");
+            E.checkNotNull(right, "Condition can't be null");
             this.left = left;
             this.right = right;
         }
@@ -281,7 +283,9 @@ public abstract class Condition {
         @Override
         public String toString() {
             return String.format("%s %s %s",
-                    this.left, this.type().name(), this.right);
+                                 this.left,
+                                 this.type().name(),
+                                 this.right);
         }
 
         @Override
@@ -290,16 +294,16 @@ public abstract class Condition {
                 return false;
             }
             BinCondition other = (BinCondition) object;
-            return this.type().equals(other.type())
-                    && this.left().equals(other.left())
-                    && this.right().equals(other.right());
+            return this.type().equals(other.type()) &&
+                   this.left().equals(other.left()) &&
+                   this.right().equals(other.right());
         }
 
         @Override
         public int hashCode() {
-            return this.type().hashCode()
-                    ^ this.left().hashCode()
-                    ^ this.right().hashCode();
+            return this.type().hashCode() ^
+                   this.left().hashCode() ^
+                   this.right().hashCode();
         }
     }
 
@@ -394,7 +398,9 @@ public abstract class Condition {
         @Override
         public String toString() {
             return String.format("%s %s %s",
-                    this.key(), this.relation.string(), this.value);
+                                 this.key(),
+                                 this.relation.string(),
+                                 this.value);
         }
 
         @Override
@@ -403,17 +409,17 @@ public abstract class Condition {
                 return false;
             }
             Relation other = (Relation) object;
-            return this.relation().equals(other.relation())
-                    && this.key().equals(other.key())
-                    && this.value().equals(other.value());
+            return this.relation().equals(other.relation()) &&
+                   this.key().equals(other.key()) &&
+                   this.value().equals(other.value());
         }
 
         @Override
         public int hashCode() {
-            return this.type().hashCode()
-                    ^ this.relation().hashCode()
-                    ^ this.key().hashCode()
-                    ^ this.value().hashCode();
+            return this.type().hashCode() ^
+                   this.relation().hashCode() ^
+                   this.key().hashCode() ^
+                   this.value().hashCode();
         }
 
         @Override

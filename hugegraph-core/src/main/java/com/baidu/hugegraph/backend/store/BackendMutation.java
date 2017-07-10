@@ -16,7 +16,7 @@ public class BackendMutation {
     }
 
     public BackendMutation(Collection<BackendEntry> additions,
-            Collection<BackendEntry> deletions) {
+                           Collection<BackendEntry> deletions) {
         this.additions = additions;
         this.deletions = deletions;
     }
@@ -131,6 +131,6 @@ public class BackendMutation {
     @Override
     public String toString() {
         return String.format("BackendMutation{additions=%s, deletions=%s}",
-                this.additions, this.deletions);
+                             this.additions, this.deletions);
     }
 }

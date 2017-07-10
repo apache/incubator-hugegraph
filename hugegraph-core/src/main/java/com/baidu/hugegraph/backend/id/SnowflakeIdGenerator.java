@@ -53,7 +53,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
      */
     static class IdWorker {
 
-        protected static final Logger LOG = LoggerFactory.getLogger(IdWorker.class);
+        protected static final Logger logger = LoggerFactory.getLogger(IdWorker.class);
 
         private long workerId;
         private long datacenterId;
@@ -67,7 +67,9 @@ public class SnowflakeIdGenerator extends IdGenerator {
 
         private long workerIdShift = this.sequenceBits;
         private long datacenterIdShift = this.sequenceBits + this.workerIdBits;
-        private long timestampLeftShift = this.sequenceBits + this.workerIdBits + this.datacenterIdBits;
+        private long timestampLeftShift = this.sequenceBits +
+                                          this.workerIdBits +
+                                          this.datacenterIdBits;
         private long sequenceMask = -1L ^ (-1L << this.sequenceBits);
 
         private long lastTimestamp = -1L;
@@ -76,37 +78,36 @@ public class SnowflakeIdGenerator extends IdGenerator {
             // sanity check for workerId
             if (workerId > this.maxWorkerId || workerId < 0) {
                 throw new IllegalArgumentException(String.format(
-                        "worker Id can't be greater than %d or less than 0",
-                        this.maxWorkerId));
+                          "Worker id can't be be > %d or < 0",
+                          this.maxWorkerId));
             }
             if (datacenterId > this.maxDatacenterId || datacenterId < 0) {
                 throw new IllegalArgumentException(String.format(
-                        "datacenter Id can't be greater than %d or less than 0",
-                        this.maxDatacenterId));
+                          "Datacenter id can't be > %d or < 0",
+                          this.maxDatacenterId));
             }
             this.workerId = workerId;
             this.datacenterId = datacenterId;
-            LOG.info(String.format(
-                    "worker starting. timestamp left shift %d,"
-                            + "datacenter id bits %d, worker id bits %d,"
-                            + "sequence bits %d, workerid %d",
-                    this.timestampLeftShift,
-                    this.datacenterIdBits,
-                    this.workerIdBits,
-                    this.sequenceBits,
-                    workerId));
+            logger.info("Worker starting. timestamp left shift {}," +
+                        "datacenter id bits {}, worker id bits {}," +
+                        "sequence bits {}, workerid {}",
+                        this.timestampLeftShift,
+                        this.datacenterIdBits,
+                        this.workerIdBits,
+                        this.sequenceBits,
+                        workerId);
         }
 
         public synchronized long nextId() {
             long timestamp = TimeUtil.timeGen();
 
             if (timestamp < this.lastTimestamp) {
-                LOG.error(String.format("clock is moving backwards."
-                                + "Rejecting requests until %d.",
-                        this.lastTimestamp));
-                throw new RuntimeException(String.format("Clock moved backwards."
-                                + "Refusing to generate id for %d milliseconds",
-                        this.lastTimestamp - timestamp));
+                logger.error("Clock is moving backwards, " +
+                             "rejecting requests until {}.",
+                             this.lastTimestamp);
+                throw new HugeException("Clock moved backwards. Refusing to " +
+                                        "generate id for %d milliseconds",
+                                        this.lastTimestamp - timestamp);
             }
 
             if (this.lastTimestamp == timestamp) {
@@ -120,10 +121,10 @@ public class SnowflakeIdGenerator extends IdGenerator {
 
             this.lastTimestamp = timestamp;
 
-            return (timestamp << this.timestampLeftShift)
-                    | (this.datacenterId << this.datacenterIdShift)
-                    | (this.workerId << this.workerIdShift)
-                    | this.sequence;
+            return (timestamp << this.timestampLeftShift) |
+                   (this.datacenterId << this.datacenterIdShift) |
+                   (this.workerId << this.workerIdShift) |
+                   this.sequence;
         }
 
     }

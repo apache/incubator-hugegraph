@@ -43,7 +43,6 @@ public class IdQuery extends Query {
     @Override
     public String toString() {
         return String.format("%s where id in %s",
-                super.toString(),
-                this.ids.toString());
+                             super.toString(), this.ids.toString());
     }
 }
