@@ -18,5 +18,7 @@ public interface Cache {
 
     public void clear();
 
+    public long capacity();
+
     public long size();
 }
