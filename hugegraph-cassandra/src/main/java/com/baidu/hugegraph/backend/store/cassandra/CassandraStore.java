@@ -14,17 +14,17 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
-import com.google.common.base.Preconditions;
 
 public abstract class CassandraStore implements BackendStore {
 
-    private static final Logger logger = LoggerFactory.getLogger(
-            CassandraStore.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(CassandraStore.class);
 
     private final String name;
     private final String keyspace;
@@ -35,8 +35,8 @@ public abstract class CassandraStore implements BackendStore {
     private HugeConfig conf = null;
 
     public CassandraStore(final String keyspace, final String name) {
-        Preconditions.checkNotNull(keyspace);
-        Preconditions.checkNotNull(name);
+        E.checkNotNull(keyspace, "keyspace");
+        E.checkNotNull(name, "name");
 
         this.keyspace = keyspace;
         this.name = name;
@@ -68,10 +68,10 @@ public abstract class CassandraStore implements BackendStore {
         String hosts = config.get(CassandraOptions.CASSANDRA_HOST);
         int port = config.get(CassandraOptions.CASSANDRA_PORT);
 
-        // init cluster
+        // Init cluster
         this.sessions.open(hosts, port);
 
-        // init a session for current thread
+        // Init a session for current thread
         try {
             logger.debug("Store connect with keyspace: {}", this.keyspace);
             try {
@@ -79,11 +79,11 @@ public abstract class CassandraStore implements BackendStore {
             } catch (InvalidQueryException e) {
                 // TODO: the error message may be changed in different versions
                 if (!e.getMessage().contains(String.format(
-                        "Keyspace '%s' does not exist", this.keyspace))) {
+                    "Keyspace '%s' does not exist", this.keyspace))) {
                     throw e;
                 }
-                logger.info("Failed to connect keyspace: {},"
-                        + " try init keyspace later", this.keyspace);
+                logger.info("Failed to connect keyspace: {}, " +
+                            "try init keyspace later", this.keyspace);
                 this.sessions.closeSession();
             }
         } catch (Exception e) {
@@ -107,34 +107,34 @@ public abstract class CassandraStore implements BackendStore {
     @Override
     public void mutate(BackendMutation mutation) {
         logger.debug("Store {} mutate: additions={}, deletions={}",
-                this.name,
-                mutation.additions().size(),
-                mutation.deletions().size());
+                     this.name,
+                     mutation.additions().size(),
+                     mutation.deletions().size());
 
         this.checkSessionConneted();
         CassandraSessionPool.Session session = this.sessions.session();
 
-        // delete data
+        // Delete data
         for (BackendEntry i : mutation.deletions()) {
             CassandraBackendEntry entry = castBackendEntry(i);
             if (entry.selfChanged()) {
                 // delete entry
                 this.table(entry.type()).delete(session, entry.row());
             }
-            // delete sub rows (edges)
+            // Delete sub rows (edges)
             for (CassandraBackendEntry.Row row : entry.subRows()) {
                 this.table(row.type()).delete(session, row);
             }
         }
 
-        // insert data
+        // Insert data
         for (BackendEntry i : mutation.additions()) {
             CassandraBackendEntry entry = castBackendEntry(i);
-            // insert entry
+            // Insert entry
             if (entry.selfChanged()) {
                 this.table(entry.type()).insert(session, entry.row());
             }
-            // insert sub rows (edges)
+            // Insert sub rows (edges)
             for (CassandraBackendEntry.Row row : entry.subRows()) {
                 this.table(row.type()).insert(session, row);
             }
@@ -188,7 +188,7 @@ public abstract class CassandraStore implements BackendStore {
     public void commitTx() {
         this.checkSessionConneted();
 
-        // do update
+        // Do update
         CassandraSessionPool.Session session = this.sessions.session();
         if (!session.hasChanged()) {
             logger.debug("Store {} has nothing to commit", this.name);
@@ -196,16 +196,16 @@ public abstract class CassandraStore implements BackendStore {
         }
 
         logger.debug("Store {} commit statements: {}",
-                this.name, session.statements());
+                     this.name, session.statements());
         try {
             session.commit();
         } catch (InvalidQueryException e) {
             logger.error("Failed to commit statements due to:", e);
             assert session.statements().size() > 0;
             throw new BackendException(
-                    "Failed to commit %s statements: '%s'...",
-                    session.statements().size(),
-                    session.statements().iterator().next());
+                      "Failed to commit %s statements: '%s'...",
+                      session.statements().size(),
+                      session.statements().iterator().next());
         } finally {
             session.clear();
         }
@@ -217,7 +217,7 @@ public abstract class CassandraStore implements BackendStore {
     public void rollbackTx() {
         // TODO how to implement?
         throw new UnsupportedOperationException(
-                "Unsupported rollback operation by Cassandra");
+                  "Unsupported rollback operation by Cassandra");
     }
 
     @Override
@@ -230,18 +230,17 @@ public abstract class CassandraStore implements BackendStore {
     }
 
     protected void initKeyspace() {
-        // replication strategy: SimpleStrategy or NetworkTopologyStrategy
+        // Replication strategy: SimpleStrategy or NetworkTopologyStrategy
         String strategy = this.conf.get(CassandraOptions.CASSANDRA_STRATEGY);
 
-        // replication factor
+        // Replication factor
         int replication = this.conf.get(CassandraOptions.CASSANDRA_REPLICATION);
 
-        String cql = String.format("CREATE KEYSPACE IF NOT EXISTS %s "
-                + "WITH replication={'class':'%s', 'replication_factor':%d}",
-                this.keyspace,
-                strategy, replication);
+        String cql = String.format("CREATE KEYSPACE IF NOT EXISTS %s " +
+                     "WITH replication={'class':'%s','replication_factor':%d}",
+                     this.keyspace, strategy, replication);
 
-        // create keyspace with non-keyspace-session
+        // Create keyspace with non-keyspace-session
         logger.info("Create keyspace: {}", cql);
         Session session = this.cluster().connect();
         try {
@@ -254,7 +253,7 @@ public abstract class CassandraStore implements BackendStore {
     }
 
     protected void clearKeyspace() {
-        // drop keyspace with non-keyspace-session
+        // Drop keyspace with non-keyspace-session
         Statement stmt = SchemaBuilder.dropKeyspace(this.keyspace).ifExists();
         logger.info("Drop keyspace: {}", stmt);
 
@@ -290,20 +289,20 @@ public abstract class CassandraStore implements BackendStore {
         assert type != null;
         CassandraTable table = this.tables.get(type);
         if (table == null) {
-            throw new BackendException("Unsupported type:" + type.name());
+            throw new BackendException("Unsupported type: %s", type.name());
         }
         return table;
     }
 
     protected void checkClusterConneted() {
-        Preconditions.checkNotNull(this.sessions,
-                "Cassandra store has not been initialized");
+        E.checkState(this.sessions != null,
+                     "Cassandra store has not been initialized");
         this.sessions.checkClusterConneted();
     }
 
     protected void checkSessionConneted() {
-        Preconditions.checkNotNull(this.sessions,
-                "Cassandra store has not been initialized");
+        E.checkState(this.sessions != null,
+                     "Cassandra store has not been initialized");
         this.sessions.checkSessionConneted();
     }
 
@@ -311,12 +310,12 @@ public abstract class CassandraStore implements BackendStore {
         assert entry instanceof CassandraBackendEntry;
         if (!(entry instanceof CassandraBackendEntry)) {
             throw new BackendException(
-                    "Cassandra store only supports CassandraBackendEntry");
+                      "Cassandra store only supports CassandraBackendEntry");
         }
         return (CassandraBackendEntry) entry;
     }
 
-    /***************************** store defines *****************************/
+    /***************************** Store defines *****************************/
 
     public static class CassandraSchemaStore extends CassandraStore {
 
@@ -326,10 +325,14 @@ public abstract class CassandraStore implements BackendStore {
 
         @Override
         protected void initTableManagers() {
-            super.tables.put(HugeType.VERTEX_LABEL, new CassandraTables.VertexLabel());
-            super.tables.put(HugeType.EDGE_LABEL, new CassandraTables.EdgeLabel());
-            super.tables.put(HugeType.PROPERTY_KEY, new CassandraTables.PropertyKey());
-            super.tables.put(HugeType.INDEX_LABEL, new CassandraTables.IndexLabel());
+            super.tables.put(HugeType.VERTEX_LABEL,
+                             new CassandraTables.VertexLabel());
+            super.tables.put(HugeType.EDGE_LABEL,
+                             new CassandraTables.EdgeLabel());
+            super.tables.put(HugeType.PROPERTY_KEY,
+                             new CassandraTables.PropertyKey());
+            super.tables.put(HugeType.INDEX_LABEL,
+                             new CassandraTables.IndexLabel());
         }
     }
 
@@ -354,8 +357,10 @@ public abstract class CassandraStore implements BackendStore {
 
         @Override
         protected void initTableManagers() {
-            super.tables.put(HugeType.SECONDARY_INDEX, new CassandraTables.SecondaryIndex());
-            super.tables.put(HugeType.SEARCH_INDEX, new CassandraTables.SearchIndex());
+            super.tables.put(HugeType.SECONDARY_INDEX,
+                             new CassandraTables.SecondaryIndex());
+            super.tables.put(HugeType.SEARCH_INDEX,
+                             new CassandraTables.SearchIndex());
         }
     }
 }

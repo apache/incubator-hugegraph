@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class CassandraTables {
 
-    /***************************** table defines *****************************/
+    /***************************** Table defines *****************************/
 
     public static class VertexLabel extends CassandraTable {
 
@@ -40,8 +40,7 @@ public class CassandraTables {
                     HugeKeys.NAME,
                     HugeKeys.PROPERTIES,
                     HugeKeys.PRIMARY_KEYS,
-                    HugeKeys.INDEX_NAMES
-            };
+                    HugeKeys.INDEX_NAMES };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
 
@@ -65,8 +64,7 @@ public class CassandraTables {
                     HugeKeys.PROPERTIES,
                     HugeKeys.SORT_KEYS,
                     HugeKeys.FREQUENCY,
-                    HugeKeys.INDEX_NAMES
-            };
+                    HugeKeys.INDEX_NAMES };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
 
@@ -88,7 +86,7 @@ public class CassandraTables {
                     HugeKeys.NAME,
                     HugeKeys.DATA_TYPE,
                     HugeKeys.CARDINALITY,
-                    HugeKeys.PROPERTIES};
+                    HugeKeys.PROPERTIES };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
 
@@ -111,15 +109,13 @@ public class CassandraTables {
                     HugeKeys.BASE_TYPE,
                     HugeKeys.BASE_VALUE,
                     HugeKeys.INDEX_TYPE,
-                    HugeKeys.FIELDS
-            };
+                    HugeKeys.FIELDS };
 
-            // base-type and base-value as clustering key
+            // The base-type and base-value as clustering key
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.NAME,
                     HugeKeys.BASE_TYPE,
-                    HugeKeys.BASE_VALUE,
-            };
+                    HugeKeys.BASE_VALUE };
 
             super.createTable(session, columns, primaryKeys);
         }
@@ -138,32 +134,28 @@ public class CassandraTables {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.LABEL,
                     HugeKeys.PRIMARY_VALUES,
-                    HugeKeys.PROPERTIES
-            };
+                    HugeKeys.PROPERTIES };
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
                     DataType.text(),
-                    DataType.map(DataType.text(), DataType.text())
-            };
+                    DataType.map(DataType.text(), DataType.text()) };
 
             HugeKeys[] partitionKeys = new HugeKeys[] {
                     HugeKeys.LABEL,
-                    HugeKeys.PRIMARY_VALUES
-            };
+                    HugeKeys.PRIMARY_VALUES };
 
             HugeKeys[] clusterKeys = new HugeKeys[] {};
 
             super.createTable(session, columns, columnTypes,
-                    partitionKeys, clusterKeys);
+                              partitionKeys, clusterKeys);
             super.createIndex(session, "vertices_label_index", HugeKeys.LABEL);
         }
 
         @Override
         protected List<String> idColumnName() {
-            return ImmutableList.of(
-                    formatKey(HugeKeys.LABEL),
-                    formatKey( HugeKeys.PRIMARY_VALUES));
+            return ImmutableList.of(formatKey(HugeKeys.LABEL),
+                                    formatKey( HugeKeys.PRIMARY_VALUES));
         }
 
         @Override
@@ -174,7 +166,7 @@ public class CassandraTables {
 
         @Override
         protected List<BackendEntry> mergeEntries(List<BackendEntry> entries) {
-            // set id for entries
+            // Set id for entries
             for (BackendEntry i : entries) {
                 CassandraBackendEntry entry = (CassandraBackendEntry) i;
                 Id id = SplicingIdGenerator.splicing(
@@ -195,7 +187,7 @@ public class CassandraTables {
                 HugeKeys.DIRECTION,
                 HugeKeys.LABEL,
                 HugeKeys.SORT_VALUES,
-                HugeKeys.TARGET_VERTEX};
+                HugeKeys.TARGET_VERTEX };
 
         private static List<String> KEYS_STRING = null;
 
@@ -211,7 +203,7 @@ public class CassandraTables {
                     HugeKeys.LABEL,
                     HugeKeys.SORT_VALUES,
                     HugeKeys.TARGET_VERTEX,
-                    HugeKeys.PROPERTIES};
+                    HugeKeys.PROPERTIES };
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
@@ -219,15 +211,14 @@ public class CassandraTables {
                     DataType.text(),
                     DataType.text(),
                     DataType.text(),
-                    DataType.map(DataType.text(), DataType.text())
-            };
+                    DataType.map(DataType.text(), DataType.text()) };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.SOURCE_VERTEX,
                     HugeKeys.DIRECTION,
                     HugeKeys.LABEL,
                     HugeKeys.SORT_VALUES,
-                    HugeKeys.TARGET_VERTEX};
+                    HugeKeys.TARGET_VERTEX };
 
             super.createTable(session, columns, columnTypes, primaryKeys);
             super.createIndex(session, "edges_label_index", HugeKeys.LABEL);
@@ -253,9 +244,8 @@ public class CassandraTables {
         protected List<String> idColumnValue(Id id) {
             // TODO: improve Id split()
             List<String> idParts = ImmutableList.copyOf(
-                    SplicingIdGenerator.split(id));
-
-            // ensure edge id with Direction
+                                   SplicingIdGenerator.split(id));
+            // Ensure edge id with Direction
             // NOTE: we assume the id without Direction if it contains 4 parts
             // TODO: should move to Serializer
             if (idParts.size() == 4) {
@@ -270,17 +260,17 @@ public class CassandraTables {
         protected List<BackendEntry> mergeEntries(List<BackendEntry> entries) {
             // TODO: merge rows before calling result2Entry()
 
-            // merge edges into vertex
+            // Merge edges into vertex
             Map<Id, CassandraBackendEntry> vertices = new HashMap<>();
 
             for (BackendEntry i : entries) {
                 CassandraBackendEntry entry = (CassandraBackendEntry) i;
                 Id srcVertexId = IdGeneratorFactory.generator().generate(
-                        entry.<String>column(HugeKeys.SOURCE_VERTEX));
+                                 entry.<String>column(HugeKeys.SOURCE_VERTEX));
                 if (!vertices.containsKey(srcVertexId)) {
                     CassandraBackendEntry vertex = new CassandraBackendEntry(
                             HugeType.VERTEX, srcVertexId);
-                    // set vertex label and pv(assume vertex id with a label)
+                    // Set vertex label and pv(assume vertex id with a label)
                     // TODO: improve Id parse()
                     String[] idParts = SplicingIdGenerator.parse(srcVertexId);
                     vertex.column(HugeKeys.LABEL, idParts[0]);
@@ -289,7 +279,7 @@ public class CassandraTables {
 
                     vertices.put(srcVertexId, vertex);
                 }
-                // add edge into vertex as a sub row
+                // Add edge into vertex as a sub row
                 vertices.get(srcVertexId).subRow(entry.row());
             }
 
@@ -310,19 +300,16 @@ public class CassandraTables {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.PROPERTY_VALUES,
                     HugeKeys.INDEX_LABEL_NAME,
-                    HugeKeys.ELEMENT_IDS
-            };
+                    HugeKeys.ELEMENT_IDS };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.PROPERTY_VALUES,
-                    HugeKeys.INDEX_LABEL_NAME
-            };
+                    HugeKeys.INDEX_LABEL_NAME };
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
                     DataType.text(),
-                    DataType.set(DataType.text())
-            };
+                    DataType.set(DataType.text()) };
 
             super.createTable(session, columns, columnTypes, primaryKeys);
         }
@@ -337,12 +324,15 @@ public class CassandraTables {
                            CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(table());
 
-            update.with(QueryBuilder.append(formatKey(HugeKeys.ELEMENT_IDS),
-                    entry.column(HugeKeys.ELEMENT_IDS)));
-            update.where(QueryBuilder.eq(formatKey(HugeKeys.INDEX_LABEL_NAME),
-                    entry.column(HugeKeys.INDEX_LABEL_NAME)));
-            update.where(QueryBuilder.eq(formatKey(HugeKeys.PROPERTY_VALUES),
-                    entry.column(HugeKeys.PROPERTY_VALUES)));
+            update.with(QueryBuilder.append(
+                        formatKey(HugeKeys.ELEMENT_IDS),
+                        entry.column(HugeKeys.ELEMENT_IDS)));
+            update.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.INDEX_LABEL_NAME),
+                         entry.column(HugeKeys.INDEX_LABEL_NAME)));
+            update.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.PROPERTY_VALUES),
+                         entry.column(HugeKeys.PROPERTY_VALUES)));
 
             session.add(update);
         }
@@ -352,12 +342,15 @@ public class CassandraTables {
                            CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(table());
 
-            update.with(QueryBuilder.remove(formatKey(HugeKeys.ELEMENT_IDS),
-                    entry.column(HugeKeys.ELEMENT_IDS)));
-            update.where(QueryBuilder.eq(formatKey(HugeKeys.INDEX_LABEL_NAME),
-                    entry.column(HugeKeys.INDEX_LABEL_NAME)));
-            update.where(QueryBuilder.eq(formatKey(HugeKeys.PROPERTY_VALUES),
-                    entry.column(HugeKeys.PROPERTY_VALUES)));
+            update.with(QueryBuilder.remove(
+                        formatKey(HugeKeys.ELEMENT_IDS),
+                        entry.column(HugeKeys.ELEMENT_IDS)));
+            update.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.INDEX_LABEL_NAME),
+                         entry.column(HugeKeys.INDEX_LABEL_NAME)));
+            update.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.PROPERTY_VALUES),
+                         entry.column(HugeKeys.PROPERTY_VALUES)));
 
             session.add(update);
         }
@@ -367,11 +360,12 @@ public class CassandraTables {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
 
             entry.column(HugeKeys.PROPERTY_VALUES,
-                    row.getString(formatKey(HugeKeys.PROPERTY_VALUES)));
+                         row.getString(formatKey(HugeKeys.PROPERTY_VALUES)));
             entry.column(HugeKeys.INDEX_LABEL_NAME,
-                    row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
+                         row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
             entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(
-                    row.getSet(formatKey(HugeKeys.ELEMENT_IDS), String.class)));
+                         row.getSet(formatKey(HugeKeys.ELEMENT_IDS),
+                         String.class)));
 
             return entry;
         }
@@ -390,18 +384,16 @@ public class CassandraTables {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.INDEX_LABEL_NAME,
                     HugeKeys.PROPERTY_VALUES,
-                    HugeKeys.ELEMENT_IDS};
+                    HugeKeys.ELEMENT_IDS };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.INDEX_LABEL_NAME,
-                    HugeKeys.PROPERTY_VALUES
-            };
+                    HugeKeys.PROPERTY_VALUES };
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
                     DataType.decimal(),
-                    DataType.set(DataType.text())
-            };
+                    DataType.set(DataType.text()) };
 
             super.createTable(session, columns, columnTypes, primaryKeys);
         }
@@ -416,12 +408,15 @@ public class CassandraTables {
                            CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(table());
 
-            update.where(QueryBuilder.eq(formatKey(HugeKeys.INDEX_LABEL_NAME),
-                    entry.column(HugeKeys.INDEX_LABEL_NAME)));
-            update.with(QueryBuilder.append(formatKey(HugeKeys.ELEMENT_IDS),
-                    entry.column(HugeKeys.ELEMENT_IDS)));
-            update.where(QueryBuilder.eq(formatKey(HugeKeys.PROPERTY_VALUES),
-                    entry.column(HugeKeys.PROPERTY_VALUES)));
+            update.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.INDEX_LABEL_NAME),
+                         entry.column(HugeKeys.INDEX_LABEL_NAME)));
+            update.with(QueryBuilder.append(
+                        formatKey(HugeKeys.ELEMENT_IDS),
+                        entry.column(HugeKeys.ELEMENT_IDS)));
+            update.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.PROPERTY_VALUES),
+                         entry.column(HugeKeys.PROPERTY_VALUES)));
 
             session.add(update);
         }
@@ -431,12 +426,15 @@ public class CassandraTables {
                            CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(table());
 
-            update.where(QueryBuilder.eq(formatKey(HugeKeys.INDEX_LABEL_NAME),
-                    entry.column(HugeKeys.INDEX_LABEL_NAME)));
-            update.with(QueryBuilder.remove(formatKey(HugeKeys.ELEMENT_IDS),
-                    entry.column(HugeKeys.ELEMENT_IDS)));
-            update.where(QueryBuilder.eq(formatKey(HugeKeys.PROPERTY_VALUES),
-                    entry.column(HugeKeys.PROPERTY_VALUES)));
+            update.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.INDEX_LABEL_NAME),
+                         entry.column(HugeKeys.INDEX_LABEL_NAME)));
+            update.with(QueryBuilder.remove(
+                        formatKey(HugeKeys.ELEMENT_IDS),
+                        entry.column(HugeKeys.ELEMENT_IDS)));
+            update.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.PROPERTY_VALUES),
+                         entry.column(HugeKeys.PROPERTY_VALUES)));
 
             session.add(update);
         }
@@ -446,11 +444,12 @@ public class CassandraTables {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
 
             entry.column(HugeKeys.INDEX_LABEL_NAME,
-                    row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
+                         row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
             entry.column(HugeKeys.PROPERTY_VALUES,
-                    row.getDecimal(formatKey(HugeKeys.PROPERTY_VALUES)));
+                         row.getDecimal(formatKey(HugeKeys.PROPERTY_VALUES)));
             entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(
-                    row.getSet(formatKey(HugeKeys.ELEMENT_IDS), String.class)));
+                         row.getSet(formatKey(HugeKeys.ELEMENT_IDS),
+                         String.class)));
 
             return entry;
         }

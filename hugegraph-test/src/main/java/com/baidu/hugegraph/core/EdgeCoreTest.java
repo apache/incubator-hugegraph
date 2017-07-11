@@ -19,7 +19,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.core.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.Split;
+import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -655,7 +655,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         long splitSize = 1 * 1024 * 1024;
         Object splits = graph.graphTransaction().metadata(
                 HugeType.EDGE, "splits", splitSize);
-        for (Split split : (List<Split>) splits) {
+        for (Shard split : (List<Shard>) splits) {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
             q.scan(split.start(), split.end());
             edges.addAll(ImmutableList.copyOf(graph.edges(q)));

@@ -40,14 +40,16 @@ import com.google.common.collect.ImmutableList;
 
 public abstract class CassandraTable {
 
-    private static final Logger logger = LoggerFactory.getLogger(
-            CassandraStore.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(CassandraStore.class);
+
+    private interface MetaHandler {
+        public Object handle(CassandraSessionPool.Session session,
+                             String meta, Object... args);
+    }
+
     private final String table;
 
-    interface MetaHandler {
-        public Object handle(CassandraSessionPool.Session session,
-                String meta, Object... args);
-    }
     private final Map<String, MetaHandler> metaHandlers;
 
     public CassandraTable(String table) {
@@ -64,8 +66,7 @@ public abstract class CassandraTable {
     public Object metadata(CassandraSessionPool.Session session,
                            String meta, Object... args) {
         if (!this.metaHandlers.containsKey(meta)) {
-            throw new BackendException(String.format(
-                    "Invalid metadata name '%s'", meta));
+            throw new BackendException("Invalid metadata name '%s'", meta);
         }
         return this.metaHandlers.get(meta).handle(session, meta, args);
     }
@@ -73,10 +74,11 @@ public abstract class CassandraTable {
     private void registerMetaHandlers() {
         this.metaHandlers.put("splits", (session, meta, args) -> {
             E.checkArgument(args.length == 1,
-                    "The args count of %s must be 1", meta);
+                            "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
-            CassandraSplit spliter = new CassandraSplit(session,
-                    session.keyspace(), table());
+            CassandraShard spliter = new CassandraShard(session,
+                                                        session.keyspace(),
+                                                        table());
             return spliter.getSplits(0, splitSize);
         });
     }
@@ -86,7 +88,7 @@ public abstract class CassandraTable {
         List<BackendEntry> rs = new LinkedList<>();
 
         if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
-            logger.debug("return empty result(limit=0) for query {}", query);
+            logger.debug("Return empty result(limit=0) for query {}", query);
             return rs;
         }
 
@@ -100,26 +102,26 @@ public abstract class CassandraTable {
             throw new BackendException("Failed to query [%s]", e, query);
         }
 
-        logger.debug("return {} for query {}", rs, query);
+        logger.debug("Return {} for query {}", rs, query);
         return rs;
     }
 
     protected List<Select> query2Select(Query query) {
-        // table
+        // Set table
         Select select = QueryBuilder.select().from(this.table);
 
-        // limit
+        // Set limit
         if (query.limit() != Query.NO_LIMIT) {
             select.limit((int) query.limit());
         }
 
         // NOTE: Cassandra does not support query.offset()
         if (query.offset() != 0) {
-            logger.warn("Query offset is not supported currently"
-                    + " on Cassandra strore, it will be ignored");
+            logger.warn("Query offset is not supported currently " +
+                        "on Cassandra strore, it will be ignored");
         }
 
-        // order-by
+        // Set order-by
         for (Map.Entry<HugeKeys, Order> order : query.orders().entrySet()) {
             String name = formatKey(order.getKey());
             if (order.getValue() == Order.ASC) {
@@ -130,26 +132,26 @@ public abstract class CassandraTable {
             }
         }
 
-        // by id
+        // Is query by id?
         List<Select> ids = this.queryId2Select(query, select);
 
         if (query.conditions().isEmpty()) {
-            // only by id
-            logger.debug("query only by id(s): {}", ids);
+            // Query only by id
+            logger.debug("Query only by id(s): {}", ids);
             return ids;
         } else {
             List<Select> conds = new ArrayList<Select>(ids.size());
             for (Select selection : ids) {
-                // by condition
+                // Query by condition
                 conds.addAll(this.queryCondition2Select(query, selection));
             }
-            logger.debug("query by conditions: {}", conds);
+            logger.debug("Query by conditions: {}", conds);
             return conds;
         }
     }
 
     protected List<Select> queryId2Select(Query query, Select select) {
-        // query by id(s)
+        // Query by id(s)
         if (query.ids().isEmpty()) {
             return ImmutableList.of(select);
         }
@@ -161,13 +163,13 @@ public abstract class CassandraTable {
             List<String> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
                 throw new BackendException(String.format(
-                        "Unsupported ID format: '%s' (should contain %s)",
-                        id, nameParts));
+                          "Unsupported ID format: '%s' (should contain %s)",
+                          id, nameParts));
             }
             ids.add(idParts);
         }
 
-        // query only by partition-key
+        // Query only by partition-key
         if (nameParts.size() == 1) {
             List<String> idList = new ArrayList<>(ids.size());
             for (List<String> id : ids) {
@@ -178,30 +180,35 @@ public abstract class CassandraTable {
             return ImmutableList.of(select);
         }
 
-        // query by partition-key + clustering-key
-        // NOTE: Error if multi-column IN clause include partition key:
-        // error: multi-column relations can only be applied to clustering
-        // columns when using: select.where(QueryBuilder.in(names, idList));
-        // so we use multi-query instead of IN
+        /**
+         * Query by partition-key + clustering-key
+         * NOTE: Error if multi-column IN clause include partition key:
+         * error: multi-column relations can only be applied to clustering
+         * columns when using: select.where(QueryBuilder.in(names, idList));
+         * So we use multi-query instead of IN
+         */
         List<Select> selections = new ArrayList<Select>(ids.size());
         for (List<String> id : ids) {
             assert nameParts.size() == id.size();
             // NOTE: there is no Select.clone(), just use copy instead
             Select idSelection = CopyUtil.copy(select,
-                    QueryBuilder.select().from(this.table));
-            // NOTE: concat with AND relation
-            // like: pk = id and ck1 = v1 and ck2 = v2
+                                 QueryBuilder.select().from(this.table));
+            /**
+             * NOTE: concat with AND relation, like:
+             * "pk = id and ck1 = v1 and ck2 = v2"
+             */
             for (int i = 0; i < nameParts.size(); i++) {
-                idSelection.where(QueryBuilder.eq(nameParts.get(i), id.get(i)));
+                idSelection.where(QueryBuilder.eq(nameParts.get(i),
+                                                  id.get(i)));
             }
             selections.add(idSelection);
         }
         return selections;
     }
 
-    protected Collection<Select> queryCondition2Select(
-            Query query, Select select) {
-        // query by conditions
+    protected Collection<Select> queryCondition2Select(Query query,
+                                                       Select select) {
+        // Query by conditions
         Set<Condition> conditions = query.conditions();
         for (Condition condition : conditions) {
             Clause clause = condition2Cql(condition);
@@ -226,7 +233,7 @@ public abstract class CassandraTable {
                 Condition.Relation r = (Condition.Relation) condition;
                 return relation2Cql(r);
             default:
-                String msg = "Unsupported condition: " + condition;
+                final String msg = "Unsupported condition: " + condition;
                 throw new AssertionError(msg);
         }
     }
@@ -235,7 +242,7 @@ public abstract class CassandraTable {
         String key = relation.key().toString();
         Object value = relation.value();
 
-        // serialize value (TODO: should move to Serializer)
+        // Serialize value (TODO: should move to Serializer)
         value = serializeValue(value);
 
         switch (relation.relation()) {
@@ -265,7 +272,10 @@ public abstract class CassandraTable {
                 return Clauses.and(
                         QueryBuilder.gte(QueryBuilder.token(col), start),
                         QueryBuilder.lt(QueryBuilder.token(col), end));
-            // Error: cassandra no viable alternative at input 'like'
+            /**
+             * Currently we can't sypport LIKE due to error:
+             * "cassandra no viable alternative at input 'like'..."
+             */
             // case LIKE:
             //    return QueryBuilder.like(key, value);
             case NEQ:
@@ -275,7 +285,7 @@ public abstract class CassandraTable {
     }
 
     protected static Object serializeValue(Object value) {
-        // serialize value (TODO: should move to Serializer)
+        // Serialize value (TODO: should move to Serializer)
         if (value instanceof Id) {
             value = ((Id) value).asString();
         } else if (value instanceof Direction) {
@@ -305,7 +315,6 @@ public abstract class CassandraTable {
         for (Definition col : cols) {
             String name = col.getName();
             Object value = row.getObject(name);
-
             entry.column(parseKey(name), value);
         }
 
@@ -350,8 +359,8 @@ public abstract class CassandraTable {
 
     public void delete(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
-        // delete just by id
         if (entry.columns().isEmpty()) {
+            // Delete just by id
             List<String> idNames = this.idColumnName();
             List<String> idValues = this.idColumnValue(entry.id());
             assert idNames.size() == idValues.size();
@@ -362,17 +371,16 @@ public abstract class CassandraTable {
             }
 
             session.add(delete);
-        }
-        // delete just by column keys
-        // TODO: delete by id + keys(like index element-ids))
-        else {
+        } else {
+            // Delete just by column keys
+            // TODO: delete by id + keys(like index element-ids))
+
             // NOTE: there are multi deletions if delete by id + keys
             Delete delete = QueryBuilder.delete().from(this.table);
             for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
                 // TODO: should support other filters (like containsKey)
-                delete.where(QueryBuilder.eq(
-                        formatKey(c.getKey()),
-                        c.getValue()));
+                delete.where(QueryBuilder.eq(formatKey(c.getKey()),
+                                             c.getValue()));
             }
 
             session.add(delete);
@@ -399,11 +407,12 @@ public abstract class CassandraTable {
         HugeKeys[] clusterKeys = null;
         if (primaryKeys.length > 1) {
             clusterKeys = Arrays.copyOfRange(
-                    primaryKeys, 1, primaryKeys.length);
+                          primaryKeys, 1, primaryKeys.length);
         } else {
             clusterKeys = new HugeKeys[] {};
         }
-        this.createTable(session, columns, columnTypes, partitionKeys, clusterKeys);
+        this.createTable(session, columns, columnTypes,
+                         partitionKeys, clusterKeys);
     }
 
     protected void createTable(CassandraSessionPool.Session session,
@@ -427,25 +436,25 @@ public abstract class CassandraTable {
 
         StringBuilder sb = new StringBuilder(128 + columns.length * 64);
 
-        // table
+        // Append table
         sb.append("CREATE TABLE IF NOT EXISTS ");
         sb.append(this.table);
         sb.append("(");
 
-        // columns
+        // Append columns
         for (int i = 0; i < columns.length; i++) {
-            // column name
+            // Append column name
             sb.append(formatKey(columns[i]));
             sb.append(" ");
-            // column type
+            // Append column type
             sb.append(columnTypes[i].asFunctionParameterString());
             sb.append(", ");
         }
 
-        // primary keys
+        // Append primary keys
         sb.append("PRIMARY KEY (");
 
-        // partition keys
+        // Append partition keys
         sb.append("(");
         for (HugeKeys i : pKeys) {
             if (i != pKeys[0]) {
@@ -455,16 +464,16 @@ public abstract class CassandraTable {
         }
         sb.append(")");
 
-        // clustering keys
+        // Append clustering keys
         for (HugeKeys i : cKeys) {
             sb.append(", ");
             sb.append(formatKey(i));
         }
 
-        // end of primary keys
+        // Append the end of primary keys
         sb.append(")");
 
-        // end of table declare
+        // Append the end of table declare
         sb.append(");");
 
         logger.info("Create table: {}", sb);

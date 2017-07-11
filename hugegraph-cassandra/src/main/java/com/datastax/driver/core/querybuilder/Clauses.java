@@ -9,8 +9,8 @@ import com.datastax.driver.core.querybuilder.Clause.ContainsKeyClause;
 public class Clauses {
 
     public static boolean needAllowFiltering(Clause clause) {
-        return (ContainsKeyClause.class.isInstance(clause)
-                || ContainsClause.class.isInstance(clause));
+        return ContainsKeyClause.class.isInstance(clause) ||
+               ContainsClause.class.isInstance(clause);
     }
 
     public static AndClause and(Clause left, Clause right) {
@@ -41,8 +41,8 @@ public class Clauses {
 
         @Override
         boolean containsBindMarker() {
-            if (Utils.containsBindMarker(this.left)
-                    || Utils.containsBindMarker(this.right)) {
+            if (Utils.containsBindMarker(this.left) ||
+                Utils.containsBindMarker(this.right)) {
                 return true;
             }
             return false;
@@ -50,7 +50,7 @@ public class Clauses {
 
         @Override
         void appendTo(StringBuilder sb, List<Object> variables,
-                CodecRegistry codecRegistry) {
+                      CodecRegistry codecRegistry) {
             // NOTE: '(? AND ?)' is not supported by Cassandra:
             // SyntaxError: line xx missing ')' at 'AND'
             // sb.append("(");
