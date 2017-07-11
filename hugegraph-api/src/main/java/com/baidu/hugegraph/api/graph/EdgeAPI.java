@@ -44,7 +44,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class EdgeAPI extends API {
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(HugeServer.class);
 
     @POST
     @Status(Status.CREATED)
@@ -82,45 +83,48 @@ public class EdgeAPI extends API {
         TriFunction<HugeGraph, String, String, Vertex> getVertex = checkV ?
                 EdgeAPI::getVertex : EdgeAPI::newVertex;
 
-        if (edges.size() > g.configuration().get(MAX_EDGES_PER_BATCH)) {
-            throw new HugeException("Too many counts of edges for one time "
-                    + "post, the maximum number is '%s'",
-                    g.configuration().get(MAX_EDGES_PER_BATCH));
+        final int maxEdges = g.configuration().get(MAX_EDGES_PER_BATCH);
+        if (edges.size() > maxEdges) {
+            throw new HugeException(
+                      "Too many counts of edges for one time post, " +
+                      "the maximum number is '%s'", maxEdges);
         }
 
         logger.debug("Graph [{}] create edges: {}", graph, edges);
 
         List<String> ids = new ArrayList<>(edges.size());
+
         g.tx().open();
         try {
             for (CreateEdge edge : edges) {
                 E.checkArgumentNotNull(edge.source,
-                        "Expect source vertex id");
+                                       "Expect source vertex id");
                 E.checkArgumentNotNull(edge.sourceLabel,
-                        "Expect source vertex label");
+                                       "Expect source vertex label");
                 E.checkArgumentNotNull(edge.target,
-                        "Expect target vertex id");
+                                       "Expect target vertex id");
                 E.checkArgumentNotNull(edge.targetLabel,
-                        "Expect target vertex label");
+                                       "Expect target vertex label");
 
                 Vertex srcVertex = getVertex.apply(g, edge.source,
-                        edge.sourceLabel);
+                                                   edge.sourceLabel);
                 Vertex tgtVertex = getVertex.apply(g, edge.target,
-                        edge.targetLabel);
-                ids.add(srcVertex.addEdge(edge.label, tgtVertex,
-                        edge.properties()).id().toString());
+                                                   edge.targetLabel);
+                Edge result = srcVertex.addEdge(edge.label, tgtVertex,
+                                                edge.properties());
+                ids.add(result.id().toString());
             }
             g.tx().commit();
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e1) {
+            logger.error("Failed to add edges", e1);
             try {
                 g.tx().rollback();
             } catch (Exception e2) {
-                logger.error("Failed to add edges", e1);
                 logger.error("Failed to rollback edges", e2);
-                throw new HugeException("Failed to add edges", e1);
             }
+            throw new HugeException("Failed to add edges", e1);
         } finally {
             g.tx().close();
         }
@@ -170,10 +174,11 @@ public class EdgeAPI extends API {
 
     private static Vertex newVertex(HugeGraph graph, String id, String label) {
         VertexLabel vertexLabel = graph.schemaTransaction()
-                .getVertexLabel(label);
-        E.checkNotNull(vertexLabel, "Not found this vertex label '%s'", label);
+                                       .getVertexLabel(label);
+        E.checkNotNull(vertexLabel, "Not found the vertex label '%s'", label);
         Vertex vertex = new HugeVertex(graph.graphTransaction(),
-                HugeElement.getIdValue(T.id, id), vertexLabel);
+                                       HugeElement.getIdValue(T.id, id),
+                                       vertexLabel);
         return vertex;
     }
 
@@ -196,11 +201,13 @@ public class EdgeAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("{label=%s, source-vertex=%s, "
-                    + "source-vertex-label=%s, target-vertex=%s, "
-                    + "target-vertex-label=%s, properties=%s}",
-                    this.label, this.source, this.sourceLabel,
-                    this.target, this.targetLabel, this.properties);
+            return String.format("CreateEdge{label=%s, " +
+                                 "source-vertex=%s, source-vertex-label=%s, " +
+                                 "target-vertex=%s, target-vertex-label=%s, " +
+                                 "properties=%s}",
+                                 this.label, this.source, this.sourceLabel,
+                                 this.target, this.targetLabel,
+                                 this.properties);
         }
     }
 }

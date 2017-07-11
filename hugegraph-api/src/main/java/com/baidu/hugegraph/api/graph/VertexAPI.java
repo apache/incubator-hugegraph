@@ -39,7 +39,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Singleton
 public class VertexAPI extends API {
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(HugeServer.class);
 
     @POST
     @Status(Status.CREATED)
@@ -61,14 +62,15 @@ public class VertexAPI extends API {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public List<String> create(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
-                         List<CreateVertex> vertices) {
+                               @PathParam("graph") String graph,
+                               List<CreateVertex> vertices) {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
-        if (vertices.size() > g.configuration().get(MAX_VERTICES_PER_BATCH)) {
-            throw new HugeException("Too many counts of vertices for one time "
-                    + "post, the maximum number is '%s'",
-                    g.configuration().get(MAX_VERTICES_PER_BATCH));
+        final int maxVertices = g.configuration().get(MAX_VERTICES_PER_BATCH);
+        if (vertices.size() > maxVertices) {
+            throw new HugeException(
+                      "Too many counts of vertices for one time post, " +
+                      "the maximum number is '%s'", maxVertices);
         }
 
         logger.debug("Graph [{}] create vertices: {}", graph, vertices);
@@ -81,12 +83,13 @@ public class VertexAPI extends API {
             }
             g.tx().commit();
         } catch (Exception e1) {
+            logger.error("Failed to add vertices", e1);
             try {
                 g.tx().rollback();
             } catch (Exception e2) {
                 logger.error("Failed to rollback vertices", e2);
-                throw new HugeException("Failed to add vertices", e1);
             }
+            throw new HugeException("Failed to add vertices", e1);
         } finally {
             g.tx().close();
         }
@@ -147,9 +150,8 @@ public class VertexAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("{label=%s, properties=%s}",
-                    this.label,
-                    this.properties);
+            return String.format("CreateVertex{label=%s, properties=%s}",
+                                 this.label, this.properties);
         }
     }
 }

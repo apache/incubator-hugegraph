@@ -25,7 +25,8 @@ import com.google.common.collect.ImmutableMap;
 @Singleton
 public class GraphsAPI extends API {
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(HugeServer.class);
 
     private static final String TOKEN = "162f7848-0b6d-4faf-b557-3a0797869c55";
 
@@ -61,8 +62,8 @@ public class GraphsAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, name);
         File file = g.configuration().getFile();
         if (file == null) {
-            throw new NotSupportedException("Can't access the api in the mode "
-                    + "that server started with non local file configuration.");
+            throw new NotSupportedException("Can't access the api in " +
+                      "a node which started with non local file config.");
         }
         return file;
     }

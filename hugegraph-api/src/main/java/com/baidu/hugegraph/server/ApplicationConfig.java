@@ -22,10 +22,10 @@ public class ApplicationConfig extends ResourceConfig {
     public ApplicationConfig(HugeConfig conf) {
         packages("com.baidu.hugegraph.api");
 
-        // json support
+        // Register Jackson to support json
         register(org.glassfish.jersey.jackson.JacksonFeature.class);
 
-        // register Configuration to context
+        // Register Configuration to context
         register(new ConfFactory(conf));
 
         register(new GraphManagerFactory(parseGraphs(conf)));

@@ -32,7 +32,9 @@ import com.baidu.hugegraph.type.schema.PropertyKey;
 @Path("graphs/{graph}/schema/propertykeys")
 @Singleton
 public class PropertyKeyAPI extends API {
-    private static final Logger logger = LoggerFactory.getLogger(PropertyKeyAPI.class);
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(PropertyKeyAPI.class);
 
     @POST
     @Status(Status.CREATED)
@@ -40,12 +42,13 @@ public class PropertyKeyAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         CreatePropertyKey createPropertyKey) {
-        logger.debug("Graph [{}] create property key: {}", graph, createPropertyKey);
+                         JsonPropertyKey jsonPropertyKey) {
+        logger.debug("Graph [{}] create property key: {}",
+                     graph, jsonPropertyKey);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
-        PropertyKey propertyKey = createPropertyKey.convert2PropertyKey();
+        PropertyKey propertyKey = jsonPropertyKey.convert2PropertyKey();
         g.schema().create(propertyKey);
 
         return manager.serializer(g).writePropertyKey(propertyKey);
@@ -58,9 +61,9 @@ public class PropertyKeyAPI extends API {
         logger.debug("Graph [{}] get property keys", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<PropertyKey> propertyKeys = g.schemaTransaction().getPropertyKeys();
+        List<PropertyKey> propKeys = g.schemaTransaction().getPropertyKeys();
 
-        return manager.serializer(g).writePropertyKeys(propertyKeys);
+        return manager.serializer(g).writePropertyKeys(propKeys);
     }
 
     @GET
@@ -83,13 +86,15 @@ public class PropertyKeyAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {
-        logger.debug("Graph [{}] remove property key by name '{}'", graph, name);
+        logger.debug("Graph [{}] remove property key by name '{}'",
+                     graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         g.schemaTransaction().removePropertyKey(name);
     }
 
-    static class CreatePropertyKey {
+    static class JsonPropertyKey {
+
         public String name;
         public Cardinality cardinality;
         public DataType dataType;
@@ -98,17 +103,14 @@ public class PropertyKeyAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("{name=%s, cardinality=%s, "
-                            + "dataType=%s, properties=%s}",
-                    this.name,
-                    this.cardinality,
-                    this.dataType,
-                    this.properties);
+            return String.format("JsonPropertyKey{name=%s, cardinality=%s, " +
+                                 "dataType=%s, properties=%s}",
+                                 this.name, this.cardinality,
+                                 this.dataType, this.properties);
         }
 
         public PropertyKey convert2PropertyKey() {
             HugePropertyKey propertyKey = new HugePropertyKey(this.name);
-
             propertyKey.cardinality(this.cardinality);
             propertyKey.dataType(this.dataType);
             propertyKey.properties(this.properties);

@@ -32,7 +32,9 @@ import com.baidu.hugegraph.type.schema.IndexLabel;
 @Path("graphs/{graph}/schema/indexlabels")
 @Singleton
 public class IndexLabelAPI extends API {
-    private static final Logger logger = LoggerFactory.getLogger(VertexLabelAPI.class);
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(VertexLabelAPI.class);
 
     @POST
     @Status(Status.CREATED)
@@ -40,12 +42,13 @@ public class IndexLabelAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         IndexLabelAPI.CreateIndexLabel createIndexLabel) {
-        logger.debug("Graph [{}] create index label: {}", graph, createIndexLabel);
+                         IndexLabelAPI.JsonIndexLabel jsonIndexLabel) {
+        logger.debug("Graph [{}] create index label: {}",
+                     graph, jsonIndexLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
-        IndexLabel indexLabel = createIndexLabel.convert2IndexLabel();
+        IndexLabel indexLabel = jsonIndexLabel.convert2IndexLabel();
         g.schema().create(indexLabel);
 
         return manager.serializer(g).writeIndexlabel(indexLabel);
@@ -58,9 +61,9 @@ public class IndexLabelAPI extends API {
         logger.debug("Graph [{}] get edge labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<IndexLabel> indexLabels = g.schemaTransaction().getIndexLabels();
+        List<IndexLabel> labels = g.schemaTransaction().getIndexLabels();
 
-        return manager.serializer(g).writeIndexlabels(indexLabels);
+        return manager.serializer(g).writeIndexlabels(labels);
     }
 
     @GET
@@ -83,13 +86,14 @@ public class IndexLabelAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {
-        logger.debug("Graph [{}] remove index label by name '{}'", graph, name);
+        logger.debug("Graph [{}] remove index label by name '{}'",
+                     graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         g.schemaTransaction().removeIndexLabel(name);
     }
 
-    private static class CreateIndexLabel {
+    private static class JsonIndexLabel {
 
         public String name;
         public HugeType baseType;
@@ -100,13 +104,10 @@ public class IndexLabelAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("{name=%s, baseType=%s, baseValue=%s, "
-                            + "indexType=%s, fields=%s}",
-                    this.name,
-                    this.baseType,
-                    this.baseValue,
-                    this.indexType,
-                    this.fields);
+            return String.format("JsonIndexLabel{name=%s, baseType=%s," +
+                                 "baseValue=%s, indexType=%s, fields=%s}",
+                                 this.name, this.baseType, this.baseValue,
+                                 this.indexType, this.fields);
         }
 
         public IndexLabel convert2IndexLabel() {

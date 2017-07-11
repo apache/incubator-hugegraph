@@ -20,9 +20,9 @@ public class ExceptionFilter {
         @Override
         public Response toResponse(HugeException exception) {
             return Response.status(400)
-                    .type(MediaType.APPLICATION_JSON)
-                    .entity(formatException(exception))
-                    .build();
+                           .type(MediaType.APPLICATION_JSON)
+                           .entity(formatException(exception))
+                           .build();
         }
     }
 
@@ -33,9 +33,9 @@ public class ExceptionFilter {
         @Override
         public Response toResponse(IllegalArgumentException exception) {
             return Response.status(400)
-                    .type(MediaType.APPLICATION_JSON)
-                    .entity(formatException(exception))
-                    .build();
+                           .type(MediaType.APPLICATION_JSON)
+                           .entity(formatException(exception))
+                           .build();
         }
     }
 
@@ -43,8 +43,8 @@ public class ExceptionFilter {
     public static class WebApplicationExceptionMapper
             implements ExceptionMapper<WebApplicationException> {
 
-        private static final int INTERNAL_SERVER_ERROR = Response.Status
-                .INTERNAL_SERVER_ERROR.getStatusCode();
+        private static final int INTERNAL_SERVER_ERROR =
+                Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
 
         @Override
         public Response toResponse(WebApplicationException exception) {
@@ -56,9 +56,9 @@ public class ExceptionFilter {
 
             boolean trace = response.getStatus() == INTERNAL_SERVER_ERROR;
             return Response.status(response.getStatus())
-                    .type(MediaType.APPLICATION_JSON)
-                    .entity(formatException(exception, trace))
-                    .build();
+                           .type(MediaType.APPLICATION_JSON)
+                           .entity(formatException(exception, trace))
+                           .build();
         }
     }
 
@@ -69,9 +69,9 @@ public class ExceptionFilter {
         @Override
         public Response toResponse(Exception exception) {
             return Response.status(500)
-                    .type(MediaType.APPLICATION_JSON)
-                    .entity(formatException(exception, true))
-                    .build();
+                           .type(MediaType.APPLICATION_JSON)
+                           .entity(formatException(exception, true))
+                           .build();
         }
     }
 
@@ -80,10 +80,10 @@ public class ExceptionFilter {
     }
 
     public static String formatException(Exception exception, boolean trace) {
-        String msg = (exception.getMessage() != null
-                ? exception.getMessage() : "");
-        String cause = (exception.getCause() != null
-                ? exception.getCause().toString() : "");
+        String msg = exception.getMessage() != null ?
+                     exception.getMessage() : "";
+        String cause = exception.getCause() != null ?
+                       exception.getCause().toString() : "";
 
         JsonObjectBuilder json = Json.createObjectBuilder()
                 .add("exception", exception.getClass().toString())
