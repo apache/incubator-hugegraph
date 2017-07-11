@@ -146,7 +146,7 @@ public class HugeEdgeLabel extends EdgeLabel {
         StringUtil.checkName(this.name);
         // Try to read
         EdgeLabel edgeLabel = this.transaction().getEdgeLabel(this.name);
-        // if edgeLabel exist and checkExist
+        // If edgeLabel exist and checkExist
         if (edgeLabel != null) {
             if (this.checkExist) {
                 throw new ExistedException("edge label", this.name);
@@ -177,8 +177,8 @@ public class HugeEdgeLabel extends EdgeLabel {
         EdgeLabel edgeLabel = this.transaction().getEdgeLabel(this.name);
         if (edgeLabel == null) {
             throw new HugeException(
-                    "Can't append the edge label '%s' since it doesn't exist",
-                    this.name);
+                      "Can't append the edge label '%s' since it doesn't exist",
+                      this.name);
         }
 
         this.checkFrequency(edgeLabel.frequency());
@@ -224,13 +224,15 @@ public class HugeEdgeLabel extends EdgeLabel {
 
         for (EdgeLink link : this.links) {
             VertexLabel src = this.transaction().getVertexLabel(link.source());
-            E.checkArgumentNotNull(src, "The vertex label '%s' is undefined in "
-                            + "the links of edge label '%s'",
-                    link.source(), this.name);
+            E.checkArgumentNotNull(src, "The vertex label '%s' is undefined " +
+                                   "in the links of edge label '%s'",
+                                   link.source(),
+                                   this.name);
             VertexLabel tgt = this.transaction().getVertexLabel(link.target());
-            E.checkArgumentNotNull(tgt, "The vertex label '%s' is undefined in "
-                            + "the links of edge label '%s'",
-                    link.target(), this.name);
+            E.checkArgumentNotNull(tgt, "The vertex label '%s' is undefined " +
+                                   "in the links of edge label '%s'",
+                                   link.target(),
+                                   this.name);
         }
     }
 
@@ -240,34 +242,36 @@ public class HugeEdgeLabel extends EdgeLabel {
         // If properties is not empty, check all property.
         for (String pk : this.properties) {
             PropertyKey propertyKey = this.transaction().getPropertyKey(pk);
-            E.checkArgumentNotNull(propertyKey, "The property key '%s' is "
-                            + "undefined in the edge label '%s'",
-                    pk, this.name);
+            E.checkArgumentNotNull(propertyKey,
+                                   "The property key '%s' is undefined in " +
+                                   "the edge label '%s'", pk, this.name);
         }
     }
 
     private void checkSortKeys() {
         if (this.frequency == Frequency.SINGLE) {
             E.checkArgument(this.sortKeys.isEmpty(),
-                    "EdgeLabel can not contain sortKeys when the " +
-                    "cardinality property is single");
+                            "EdgeLabel can not contain sortKeys when the " +
+                            "cardinality property is single");
         } else {
             E.checkNotNull(this.sortKeys,
-                    "The sortKeys can not be null when the cardinality " +
-                    "property is multiple");
+                           "The sortKeys can not be null when the " +
+                           "cardinality property is multiple");
             E.checkArgument(!this.sortKeys.isEmpty(),
-                    "EdgeLabel must contain sortKeys when the cardinality " +
-                    "property is multiple");
+                            "EdgeLabel must contain sortKeys when the " +
+                            "cardinality property is multiple");
         }
 
         if (this.sortKeys != null && !this.sortKeys.isEmpty()) {
             // Check whether the properties contains the specified keys
             E.checkArgument(!this.properties.isEmpty(),
-                    "Properties can not be empty when exist sort keys");
+                            "Properties can not be empty when exist sort " +
+                            "keys");
             for (String key : this.sortKeys) {
                 E.checkArgument(this.properties.contains(key),
-                        "The sort key '%s' of edge label '%s' must be "
-                        + "contained in %s", key, this.name, this.properties);
+                                "The sort key '%s' of edge label '%s' must " +
+                                "be contained in %s", key, this.name,
+                                this.properties);
             }
         }
     }
@@ -275,20 +279,20 @@ public class HugeEdgeLabel extends EdgeLabel {
     private void checkFrequency(Frequency frequency) {
         // Don't allow to modify frequency.
         if (this.frequency != frequency) {
-            throw new NotAllowException("Not allowed to modify frequency for "
-                    + "existed edge label '%s'", this.name);
+            throw new NotAllowException("Not allowed to modify frequency for " +
+                                        "existed edge label '%s'", this.name);
         }
     }
 
     private void checkStableVars() {
         // Don't allow to append sort keys.
         if (!this.sortKeys.isEmpty()) {
-            throw new NotAllowException("Not allowed to append sort keys for "
-                    + "existed edge label '%s'", this.name);
+            throw new NotAllowException("Not allowed to append sort keys for " +
+                                        "existed edge label '%s'", this.name);
         }
         if (!this.indexNames.isEmpty()) {
-            throw new NotAllowException("Not allowed to append indexes for "
-                    + "existed edge label '%s'", this.name);
+            throw new NotAllowException("Not allowed to append indexes for " +
+                                        "existed edge label '%s'", this.name);
         }
     }
 

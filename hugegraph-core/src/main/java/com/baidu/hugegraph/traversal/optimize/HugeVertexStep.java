@@ -30,7 +30,8 @@ public final class HugeVertexStep<E extends Element>
 
     private static final long serialVersionUID = -7850636388424382454L;
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeVertexStep.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(HugeVertexStep.class);
 
     private final List<HasContainer> hasContainers = new ArrayList<>();;
 
@@ -79,12 +80,12 @@ public final class HugeVertexStep<E extends Element>
         Direction direction = this.getDirection();
         String[] edgeLabels = this.getEdgeLabels();
 
-        logger.debug("HugeVertexStep.edges() vertex={}, direction={}, " +
+        logger.debug("HugeVertexStep.edges(): vertex={}, direction={}, " +
                      "edgeLabels={}, has={}",
                      vertex.id(), direction, edgeLabels, this.hasContainers);
 
         ImmutableSet<Direction> directions = ImmutableSet.of(direction);
-        // deal with direction is BOTH
+        // Deal with direction is BOTH
         if (direction == Direction.BOTH) {
             directions = ImmutableSet.of(Direction.OUT, Direction.IN);
         }
@@ -94,7 +95,7 @@ public final class HugeVertexStep<E extends Element>
             ConditionQuery query = GraphTransaction.constructEdgesQuery(
                     (Id) vertex.id(), dir, edgeLabels);
 
-            // enable conditions if query for edge else conditions for vertex
+            // Enable conditions if query for edge else conditions for vertex
             if (Edge.class.isAssignableFrom(getReturnClass())) {
                 HugeGraphStep.fillConditionQuery(this.hasContainers, query);
             }
@@ -106,7 +107,7 @@ public final class HugeVertexStep<E extends Element>
                 logger.warn("It's not recommended to query by has(id)");
             }
 
-            // do query
+            // Do query
             results.extend(graph.edges(query));
         }
         return results;

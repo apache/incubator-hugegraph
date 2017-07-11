@@ -19,17 +19,18 @@ public final class HugeVertexStepStrategy
 
     private static final long serialVersionUID = 491355700217483162L;
 
-    private static final HugeVertexStepStrategy INSTANCE = new HugeVertexStepStrategy();
+    private static final HugeVertexStepStrategy INSTANCE =
+            new HugeVertexStepStrategy();
 
     private HugeVertexStepStrategy() {
-        // pass
+        // Pass
     }
 
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void apply(final Traversal.Admin<?, ?> traversal) {
-        List<VertexStep> steps = TraversalHelper.getStepsOfClass(
-                VertexStep.class, traversal);
+        List<VertexStep> steps =
+                TraversalHelper.getStepsOfClass(VertexStep.class, traversal);
         for (VertexStep originalStep : steps) {
             HugeVertexStep<?> newStep = new HugeVertexStep<>(originalStep);
             TraversalHelper.replaceStep(originalStep, newStep, traversal);
@@ -38,7 +39,7 @@ public final class HugeVertexStepStrategy
     }
 
     protected static void extractHasContainer(HugeVertexStep<?> newStep,
-            Traversal.Admin<?, ?> traversal) {
+                                              Traversal.Admin<?, ?> traversal) {
         Step<?, ?> step = newStep;
         do {
             if (step instanceof HasStep) {

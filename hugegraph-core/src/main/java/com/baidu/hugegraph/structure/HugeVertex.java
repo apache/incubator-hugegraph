@@ -27,7 +27,6 @@ import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
@@ -56,6 +55,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 String[] parts = SplicingIdGenerator.parse(this.id);
                 E.checkState(parts.length == 2, "Invalid vertex id '%s'", this.id);
                 this.name = parts[1];
+
             } else {
                 List<Object> propValues = primaryValues();
                 E.checkState(!propValues.isEmpty(),
@@ -73,13 +73,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public GraphTransaction tx() {
-        Preconditions.checkNotNull(this.tx);
+        E.checkNotNull(this.tx, "transaction");
         return this.tx;
     }
 
     public void assignId() {
         assert this.id == null;
-        // generate an id and assign
+        // Generate an id and assign
         if (this.id == null) {
             this.id = IdGeneratorFactory.generator().generate(this);
         }
@@ -139,21 +139,21 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... properties) {
-        Preconditions.checkNotNull(label,
-                "The edge label can not be null.");
-        Preconditions.checkNotNull(vertex,
-                "The target vertex can not be null.");
+        E.checkNotNull(label, "The edge label can not be null.");
+        E.checkNotNull(vertex, "The target vertex can not be null.");
 
         HugeVertex targetVertex = (HugeVertex) vertex;
         HugeEdgeLabel edgeLabel =
                 (HugeEdgeLabel) this.graph.schema().edgeLabel(label);
 
-        Preconditions.checkArgument(CollectionUtil.containsAll(
-                ElementHelper.getKeys(properties), edgeLabel.sortKeys()),
+        E.checkArgument(
+                CollectionUtil.containsAll(
+                        ElementHelper.getKeys(properties),
+                        edgeLabel.sortKeys()),
                 "The sort key(s) must be setted for the edge with label: '%s'",
                 edgeLabel.name());
 
-        Preconditions.checkArgument(
+        E.checkArgument(
                 edgeLabel.checkLink(this.label(), vertex.label()),
                 "Undefined link of edge label '%s': '%s' -> '%s'",
                 label, this.label(), vertex.label());
@@ -165,15 +165,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         edge.vertices(this, targetVertex);
         this.addOutEdge(edge);
 
-        // set properties
+        // Set properties
         ElementHelper.attachProperties(edge, properties);
 
-        // set id if it not exists
+        // Set id if it not exists
         if (id == null) {
             edge.assignId();
         }
 
-        // add to other Vertex
+        // Add to other Vertex
         if (edge != null) {
             targetVertex.addInEdge(edge.switchOwner());
         }
@@ -181,27 +181,27 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return this.tx().addEdge(edge);
     }
 
-    // add edge with direction OUT
+    // Add edge with direction OUT
     public void addOutEdge(HugeEdge edge) {
         if (edge.owner() == null) {
             edge.owner(this);
             edge.sourceVertex(this);
         }
-        Preconditions.checkState(edge.type() == HugeType.EDGE_OUT,
-                "The owner vertex('%s') of OUT edge '%s' should be '%s'",
-                edge.owner().id, edge, this.id());
+        E.checkState(edge.type() == HugeType.EDGE_OUT,
+                     "The owner vertex('%s') of OUT edge '%s' should be '%s'",
+                     edge.owner().id, edge, this.id());
         this.edges.add(edge);
     }
 
-    // add edge with direction IN
+    // Add edge with direction IN
     public void addInEdge(HugeEdge edge) {
         if (edge.owner() == null) {
             edge.owner(this);
             edge.targetVertex(this);
         }
-        Preconditions.checkState(edge.type() == HugeType.EDGE_IN,
-                "The owner vertex('%s') of IN edge '%s' should be '%s'",
-                edge.owner().id(), edge, this.id());
+        E.checkState(edge.type() == HugeType.EDGE_IN,
+                     "The owner vertex('%s') of IN edge '%s' should be '%s'",
+                     edge.owner().id(), edge, this.id());
         this.edges.add(edge);
     }
 
@@ -266,7 +266,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             throw VertexProperty.Exceptions.metaPropertiesNotSupported();
         }
 
-        Preconditions.checkArgument(this.label.properties().contains(key),
+        E.checkArgument(
+                this.label.properties().contains(key),
                 "Invalid property '%s' for vertex label '%s', expected: %s",
                 key, this.label(), this.vertexLabel().properties());
 

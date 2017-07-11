@@ -22,7 +22,6 @@ public class HugeFeatures implements Graph.Features {
     protected final HugeGraphFeatures graphFeatures = new HugeGraphFeatures();
     protected final HugeVertexFeatures vertexFeatures = new HugeVertexFeatures();
     protected final HugeEdgeFeatures edgeFeatures = new HugeEdgeFeatures();
-    protected final DataTypeFeatures dataTypeFeatures = new HugeDataTypeFeatures();
 
     public HugeFeatures(HugeGraph graph, boolean supportsPersistence) {
         this.graph = graph;
@@ -51,7 +50,8 @@ public class HugeFeatures implements Graph.Features {
 
     public class HugeGraphFeatures implements GraphFeatures {
 
-        private final VariableFeatures variableFeatures = new HugeVariableFeatures();
+        private final VariableFeatures variableFeatures =
+                new HugeVariableFeatures();
 
         @Override
         public boolean supportsConcurrentAccess() {
@@ -292,8 +292,10 @@ public class HugeFeatures implements Graph.Features {
 
     }
 
-    public class HugeVertexFeatures extends HugeElementFeatures implements VertexFeatures {
-        private final VertexPropertyFeatures vertexPropertyFeatures = new HugeVertexPropertyFeatures();
+    public class HugeVertexFeatures extends HugeElementFeatures
+                                    implements VertexFeatures {
+        private final VertexPropertyFeatures vertexPropertyFeatures =
+                new HugeVertexPropertyFeatures();
 
         @Override
         public VertexPropertyFeatures properties() {
@@ -325,9 +327,11 @@ public class HugeFeatures implements Graph.Features {
         }
     }
 
-    public class HugeEdgeFeatures extends HugeElementFeatures implements EdgeFeatures {
+    public class HugeEdgeFeatures extends HugeElementFeatures
+                                  implements EdgeFeatures {
 
-        private final EdgePropertyFeatures edgePropertyFeatures = new HugeEdgePropertyFeatures();
+        private final EdgePropertyFeatures edgePropertyFeatures =
+                new HugeEdgePropertyFeatures();
 
         @Override
         public EdgePropertyFeatures properties() {

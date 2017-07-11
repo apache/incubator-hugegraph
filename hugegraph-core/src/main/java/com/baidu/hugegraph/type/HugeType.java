@@ -4,19 +4,23 @@ public enum HugeType {
 
     UNKNOWN(0),
 
-    // schema types
+    /* Schema types */
     VERTEX_LABEL(1),
     EDGE_LABEL(2),
     PROPERTY_KEY(3),
     INDEX_LABEL(4),
 
-    // data types
+    /* Data types */
     VERTEX(101),
-    SYS_PROPERTY(102), // system meta
-    PROPERTY(103), // property
+    // System meta
+    SYS_PROPERTY(102),
+    // Property
+    PROPERTY(103),
     EDGE(120),
-    EDGE_OUT(120), // edge's direction is OUT for the specified vertex
-    EDGE_IN(121), // edge's direction is IN for the specified vertex
+    // Edge's direction is OUT for the specified vertex
+    EDGE_OUT(120),
+    // Edge's direction is IN for the specified vertex
+    EDGE_IN(121),
 
     SECONDARY_INDEX(150),
     SEARCH_INDEX(151),

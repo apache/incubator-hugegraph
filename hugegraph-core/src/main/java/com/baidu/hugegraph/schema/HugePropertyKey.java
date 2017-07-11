@@ -163,7 +163,7 @@ public class HugePropertyKey extends PropertyKey {
     @Override
     public SchemaElement append() {
         throw new HugeException(
-                "Not support append operation for property key");
+                  "Not support append operation for property key");
     }
 
     @Override
@@ -174,6 +174,6 @@ public class HugePropertyKey extends PropertyKey {
     @Override
     public SchemaElement copy() throws CloneNotSupportedException {
         throw new CloneNotSupportedException(
-                "Not support copy operation for property key");
+                  "Not support copy operation for property key");
     }
 }

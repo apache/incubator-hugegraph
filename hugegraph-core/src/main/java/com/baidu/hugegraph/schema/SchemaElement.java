@@ -74,10 +74,10 @@ public abstract class SchemaElement implements Namifiable, Typifiable {
     }
 
     public static boolean isSchema(HugeType type) {
-        if (type == HugeType.VERTEX_LABEL
-                || type == HugeType.EDGE_LABEL
-                || type == HugeType.PROPERTY_KEY
-                || type == HugeType.INDEX_LABEL) {
+        if (type == HugeType.VERTEX_LABEL ||
+            type == HugeType.EDGE_LABEL ||
+            type == HugeType.PROPERTY_KEY ||
+            type == HugeType.INDEX_LABEL) {
             return true;
         }
         return false;

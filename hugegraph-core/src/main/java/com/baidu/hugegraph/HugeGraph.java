@@ -45,13 +45,12 @@ public class HugeGraph implements Graph {
 
     static {
         TraversalStrategies strategies = null;
-        strategies = TraversalStrategies.GlobalCache.getStrategies(
-                Graph.class).clone();
-        strategies.addStrategies(
-                HugeVertexStepStrategy.instance(),
-                HugeGraphStepStrategy.instance());
-        TraversalStrategies.GlobalCache.registerStrategies(
-                HugeGraph.class, strategies);
+        strategies = TraversalStrategies.GlobalCache.getStrategies(Graph.class)
+                                        .clone();
+        strategies.addStrategies(HugeVertexStepStrategy.instance(),
+                                 HugeGraphStepStrategy.instance());
+        TraversalStrategies.GlobalCache.registerStrategies(HugeGraph.class,
+                                                           strategies);
     }
 
     private String name = null;
@@ -59,10 +58,10 @@ public class HugeGraph implements Graph {
     private HugeConfig configuration = null;
     private HugeFeatures features = null;
 
-    // store provider like Cassandra
+    // Store provider like Cassandra
     private BackendStoreProvider storeProvider = null;
 
-    // default transactions
+    // Default transactions
     private ThreadLocal<GraphTransaction> graphTransaction = null;
     private ThreadLocal<SchemaTransaction> schemaTransaction = null;
 
@@ -86,9 +85,9 @@ public class HugeGraph implements Graph {
 
     private synchronized void initTransaction() throws HugeException {
         if (this.storeProvider == null) {
-            this.storeProvider = BackendProviderFactory.open(
-                    this.configuration.get(CoreOptions.BACKEND),
-                    this.name);
+            String backend = this.configuration.get(CoreOptions.BACKEND);
+            logger.info("Opening backend store: '{}'", backend);
+            this.storeProvider = BackendProviderFactory.open(backend, name);
         }
 
         SchemaTransaction schemaTx = this.openSchemaTransaction();
@@ -321,13 +320,13 @@ public class HugeGraph implements Graph {
         @Override
         public <R> Workload<R> submit(Function<Graph, R> graphRFunction) {
             throw new UnsupportedOperationException(
-                    "HugeGraph transaction does not support submit.");
+                      "HugeGraph transaction does not support submit.");
         }
 
         @Override
         public <G extends Graph> G createThreadedTx() {
             throw new UnsupportedOperationException(
-                    "HugeGraph does not support threaded transactions.");
+                      "HugeGraph does not support threaded transactions.");
         }
 
         @Override
@@ -339,12 +338,12 @@ public class HugeGraph implements Graph {
         public void doClose() {
             this.verifyOpened();
 
-            // calling super will clear listeners
+            // Calling super will clear listeners
             super.doClose();
 
             this.backendTx().autoCommit(true);
             try {
-                // would commit() if there is changes
+                // Would commit() if there is changes
                 // TODO: maybe we should call commit() directly
                 this.backendTx().afterWrite();
             } finally {

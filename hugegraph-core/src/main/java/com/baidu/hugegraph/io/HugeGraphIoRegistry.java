@@ -50,15 +50,26 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         return INSTANCE;
     }
 
-    private static TextSerializer textSerializer = new TextSerializer(null);
+    private static TextSerializer textSerializer =
+            new TextSerializer(null);
 
     public HugeGraphIoRegistry() {
-        register(GryoIo.class, IdGenerator.StringId.class, new IdSerializer());
-        register(GryoIo.class, HugePropertyKey.class, new PropertyKeyKryoSerializer());
-        register(GryoIo.class, HugeVertexLabel.class, new VertexLabelKryoSerializer());
-        register(GryoIo.class, HugeEdgeLabel.class, new EdgeLabelKryoSerializer());
+        register(GryoIo.class,
+                 IdGenerator.StringId.class,
+                 new IdSerializer());
+        register(GryoIo.class,
+                 HugePropertyKey.class,
+                 new PropertyKeyKryoSerializer());
+        register(GryoIo.class,
+                 HugeVertexLabel.class,
+                 new VertexLabelKryoSerializer());
+        register(GryoIo.class,
+                 HugeEdgeLabel.class,
+                 new EdgeLabelKryoSerializer());
 
-        register(GraphSONIo.class, null, HugeGraphSONModule.getInstance());
+        register(GraphSONIo.class,
+                 null,
+                 HugeGraphSONModule.getInstance());
     }
 
     public static class IdSerializer extends Serializer<Id> {
@@ -97,7 +108,8 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         Collection<BackendEntry.BackendColumn> columns = new ArrayList<>();
         int columnSize = input.readInt();
         for (int i = 0; i < columnSize; i++) {
-            BackendEntry.BackendColumn backendColumn = new BackendEntry.BackendColumn();
+            BackendEntry.BackendColumn backendColumn =
+                    new BackendEntry.BackendColumn();
             backendColumn.name = input.readBytes(input.readInt());
             backendColumn.value = input.readBytes(input.readInt());
             columns.add(backendColumn);
@@ -116,7 +128,9 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         }
 
         @Override
-        public PropertyKey read(Kryo kryo, Input input, Class<PropertyKey> aClass) {
+        public PropertyKey read(Kryo kryo,
+                                Input input,
+                                Class<PropertyKey> aClass) {
             return textSerializer.readPropertyKey(readEntry(input));
         }
     }
@@ -129,7 +143,9 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         }
 
         @Override
-        public VertexLabel read(Kryo kryo, Input input, Class<VertexLabel> aClass) {
+        public VertexLabel read(Kryo kryo,
+                                Input input,
+                                Class<VertexLabel> aClass) {
             return textSerializer.readVertexLabel(readEntry(input));
         }
     }

@@ -10,7 +10,7 @@ public class EdgeLink {
     @SuppressWarnings("unused")
     private static final long serialVersionUID = 4954918890077093841L;
 
-    // use public for json serialize
+    // Use public for json serialize
     public String source;
     public String target;
 
@@ -44,8 +44,8 @@ public class EdgeLink {
         }
 
         EdgeLink other = (EdgeLink) obj;
-        if (this.source().equals(other.source())
-                && this.target().equals(other.target())) {
+        if (this.source().equals(other.source()) &&
+            this.target().equals(other.target())) {
             return true;
         } else {
             return false;

@@ -55,7 +55,8 @@ public final class HugeGraphStep<S, E extends Element>
 
     private static final long serialVersionUID = -679873894532085972L;
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeGraphStep.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(HugeGraphStep.class);
 
     private final List<HasContainer> hasContainers = new ArrayList<>();
     private long limit = Query.NO_LIMIT;
@@ -126,7 +127,8 @@ public final class HugeGraphStep<S, E extends Element>
          * TODO: the `this.limit * 2` maybe will overflow.
          */
         query.limit(this.limit == Query.NO_LIMIT ?
-                    Query.NO_LIMIT : this.limit << 1);
+                    Query.NO_LIMIT :
+                    this.limit << 1);
 
         @SuppressWarnings("unchecked")
         Iterator<E> result = (Iterator<E>) graph.edges(query);
@@ -140,13 +142,13 @@ public final class HugeGraphStep<S, E extends Element>
         }
 
         return this.ids.length == 0 ?
-                StringFactory.stepString(this,
-                        this.returnClass.getSimpleName(),
-                        this.hasContainers) :
-                StringFactory.stepString(this,
-                        this.returnClass.getSimpleName(),
-                        Arrays.toString(this.ids),
-                        this.hasContainers);
+               StringFactory.stepString(this,
+                                        this.returnClass.getSimpleName(),
+                                        this.hasContainers) :
+               StringFactory.stepString(this,
+                                        this.returnClass.getSimpleName(),
+                                        Arrays.toString(this.ids),
+                                        this.hasContainers);
     }
 
     @Override

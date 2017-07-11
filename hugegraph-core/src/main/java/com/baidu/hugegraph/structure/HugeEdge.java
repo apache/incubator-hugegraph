@@ -17,7 +17,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
 public class HugeEdge extends HugeElement implements Edge, Cloneable {
@@ -25,7 +25,8 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     protected EdgeLabel label;
     protected String name;
 
-    protected HugeVertex owner; // the Vertex who owned me
+    // The Vertex who owned me
+    protected HugeVertex owner;
     protected HugeVertex sourceVertex;
     protected HugeVertex targetVertex;
 
@@ -37,7 +38,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public HugeType type() {
         // NOTE: we optimize the edge type that let it include direction
-        return this.owner == this.sourceVertex ? HugeType.EDGE_OUT : HugeType.EDGE_IN;
+        return this.owner == this.sourceVertex ?
+                             HugeType.EDGE_OUT :
+                             HugeType.EDGE_IN;
     }
 
     @Override
@@ -115,7 +118,8 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public <V> Property<V> property(String key, V value) {
-        Preconditions.checkArgument(this.label.properties().contains(key),
+        E.checkArgument(
+                this.label.properties().contains(key),
                 "Invalid property '%s' for edge label '%s', expected: %s",
                 key, this.label(), this.edgeLabel().properties());
         return this.addProperty(key, value);
@@ -201,8 +205,8 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     public HugeEdge switchOwner() {
         HugeEdge edge = this.clone();
 
-        Preconditions.checkState(edge.sourceVertex != edge.targetVertex,
-                "Can't switch owner of self-to-self edge");
+        E.checkState(edge.sourceVertex != edge.targetVertex,
+                     "Can't switch owner of self-to-self edge");
         if (edge.owner == edge.sourceVertex) {
             edge.owner = edge.targetVertex;
         } else {
@@ -270,9 +274,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     // TODO: after separating edges from vertex,
-    // we will remove these prepareXX() methods
+    // We will remove these prepareXX() methods
     public HugeVertex prepareAddedOut() {
-        // return a vertex just with this edge(OUT)
+        // Return a vertex just with this edge(OUT)
         HugeVertex sourceVertex = this.sourceVertex.prepareRemovedChildren();
         HugeEdge edge = this.clone();
         edge.vertices(sourceVertex, this.targetVertex);
@@ -282,7 +286,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeEdge prepareAddedOut(HugeVertex sourceVertex) {
-        // return a new edge, and add it to sourceVertex as OUT edge
+        // Return a new edge, and add it to sourceVertex as OUT edge
         HugeEdge edge = this.clone();
         edge.vertices(sourceVertex, this.targetVertex);
         edge.owner(sourceVertex);
@@ -290,7 +294,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeVertex prepareAddedIn() {
-        // return a vertex just with this edge(IN)
+        // Return a vertex just with this edge(IN)
         HugeVertex targetVertex = this.targetVertex.prepareRemovedChildren();
         HugeEdge edge = this.clone();
         edge.vertices(this.sourceVertex, targetVertex);
@@ -300,7 +304,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeEdge prepareAddedIn(HugeVertex targetVertex) {
-        // return a new edge, and add it to targetVertex as IN edge
+        // Return a new edge, and add it to targetVertex as IN edge
         HugeEdge edge = this.clone();
         edge.vertices(this.sourceVertex, targetVertex);
         edge.owner(targetVertex);
@@ -327,13 +331,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public String toString() {
-        return String.format("{id=%s, label=%s,"
-                + " source=%s, target=%s, direction=%s, properties=%s}",
-                this.id,
-                this.label.name(),
-                this.sourceVertex.id(),
-                this.targetVertex.id(),
-                this.direction().name(),
-                this.properties.values());
+        return String.format("{id=%s, label=%s, source=%s, target=%s, " +
+                             "direction=%s, properties=%s}",
+                             this.id,
+                             this.label.name(),
+                             this.sourceVertex.id(),
+                             this.targetVertex.id(),
+                             this.direction().name(),
+                             this.properties.values());
     }
 }

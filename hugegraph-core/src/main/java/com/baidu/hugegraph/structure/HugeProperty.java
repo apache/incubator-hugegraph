@@ -22,7 +22,6 @@ public class HugeProperty<V> implements Property<V>, GraphType {
     public HugeProperty(final HugeElement owner, PropertyKey key, V value) {
         E.checkArgument(owner != null, "Property owner can't be null");
         E.checkArgument(key != null, "Property key can't be null");
-
         this.owner = owner;
         this.key = key;
         this.value = value;

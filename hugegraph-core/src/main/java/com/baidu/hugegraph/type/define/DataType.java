@@ -14,7 +14,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
  */
 public enum DataType {
 
-    // this property has sub properties
+    // This property has sub properties
     OBJECT(1, "object", HugeProperty.class),
     BOOLEAN(2, "boolean", Boolean.class),
     BYTE(3, "byte", Byte.class),
