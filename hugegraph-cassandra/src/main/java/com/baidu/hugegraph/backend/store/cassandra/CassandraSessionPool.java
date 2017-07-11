@@ -7,17 +7,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Statement;
-import com.google.common.base.Preconditions;
 
 public class CassandraSessionPool {
 
-    private static final Logger logger = LoggerFactory.getLogger(
-            CassandraStore.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(CassandraStore.class);
 
     private Cluster cluster;
     private String keyspace;
@@ -34,13 +34,13 @@ public class CassandraSessionPool {
 
     public void open(String hosts, int port) {
         if (isOpened()) {
-            throw new BackendException("Please close the old SessionPool "
-                    + "before open a new one");
+            throw new BackendException("Please close the old SessionPool " +
+                      "before opening a new one");
         }
         this.cluster = Cluster.builder()
-                .addContactPoints(hosts.split(","))
-                .withPort(port)
-                .build();
+                       .addContactPoints(hosts.split(","))
+                       .withPort(port)
+                       .build();
     }
 
     public boolean isOpened() {
@@ -58,7 +58,7 @@ public class CassandraSessionPool {
             this.threadLocalSession.set(session);
             this.sessionCount.incrementAndGet();
             logger.debug("Now(after connect()) session count is: {}",
-                    this.sessionCount.get());
+                         this.sessionCount.get());
         }
         return session;
     }
@@ -82,23 +82,23 @@ public class CassandraSessionPool {
             }
         }
         logger.debug("Now(after close()) session count is: {}",
-                this.sessionCount.get());
+                     this.sessionCount.get());
     }
 
     public void checkClusterConneted() {
-        Preconditions.checkNotNull(this.cluster,
-                "Cassandra cluster has not been initialized");
-        Preconditions.checkState(!this.cluster.isClosed(),
-                "Cassandra cluster has been closed");
+        E.checkState(this.cluster != null,
+                     "Cassandra cluster has not been initialized");
+        E.checkState(!this.cluster.isClosed(),
+                     "Cassandra cluster has been closed");
     }
 
     public void checkSessionConneted() {
         this.checkClusterConneted();
 
-        Preconditions.checkNotNull(this.session(),
-                "Cassandra session has not been initialized");
-        Preconditions.checkState(!this.session().isClosed(),
-                "Cassandra session has been closed");
+        E.checkState(this.session() != null,
+                     "Cassandra session has not been initialized");
+        E.checkState(!this.session().isClosed(),
+                     "Cassandra session has been closed");
     }
 
     // Expect every thread hold a Session wrapper

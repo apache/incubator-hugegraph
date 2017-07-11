@@ -5,12 +5,15 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraGraphStore;
+import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraIndexStore;
+import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraSchemaStore;
+import com.baidu.hugegraph.util.E;
 
 public class CassandraStoreProvider extends AbstractBackendStoreProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(
-            CassandraStore.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(CassandraStore.class);
 
     private String keyspace() {
         return this.name();
@@ -21,14 +24,13 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         logger.info("CassandraStoreProvider load SchemaStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.putIfAbsent(name,
-                    new CassandraStore.CassandraSchemaStore(keyspace(), name));
+            this.stores.put(name, new CassandraSchemaStore(keyspace(), name));
         }
 
         BackendStore store = this.stores.get(name);
-        Preconditions.checkNotNull(store);
-        Preconditions.checkState(
-                store instanceof CassandraStore.CassandraSchemaStore);
+        E.checkNotNull(store, "store");
+        E.checkState(store instanceof CassandraStore.CassandraSchemaStore,
+                     "SchemaStore must be a instance of CassandraSchemaStore");
         return store;
     }
 
@@ -37,14 +39,13 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         logger.info("CassandraStoreProvider load GraphStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.putIfAbsent(name,
-                    new CassandraStore.CassandraGraphStore(keyspace(), name));
+            this.stores.put(name, new CassandraGraphStore(keyspace(), name));
         }
 
         BackendStore store = this.stores.get(name);
-        Preconditions.checkNotNull(store);
-        Preconditions.checkState(
-                store instanceof CassandraStore.CassandraGraphStore);
+        E.checkNotNull(store, "store");
+        E.checkState(store instanceof CassandraStore.CassandraGraphStore,
+                     "GraphStore must be a instance of CassandraGraphStore");
         return store;
     }
 
@@ -53,14 +54,13 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         logger.info("CassandraStoreProvider load IndexStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.putIfAbsent(name,
-                    new CassandraStore.CassandraIndexStore(keyspace(), name));
+            this.stores.put(name, new CassandraIndexStore(keyspace(), name));
         }
 
         BackendStore store = this.stores.get(name);
-        Preconditions.checkNotNull(store);
-        Preconditions.checkState(
-                store instanceof CassandraStore.CassandraIndexStore);
+        E.checkNotNull(store, "store");
+        E.checkState(store instanceof CassandraStore.CassandraIndexStore,
+                     "IndexStore must be a instance of CassandraIndexStore");
         return store;
     }
 

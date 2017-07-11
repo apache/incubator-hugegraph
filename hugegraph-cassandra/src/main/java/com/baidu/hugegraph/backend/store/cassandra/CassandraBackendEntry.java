@@ -18,6 +18,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 public class CassandraBackendEntry implements BackendEntry {
 
     public static class Row {
+
         private HugeType type;
         private Id id;
         private Map<HugeKeys, Object> columns;
@@ -46,7 +47,7 @@ public class CassandraBackendEntry implements BackendEntry {
 
         @SuppressWarnings("unchecked")
         public <T> T column(HugeKeys key) {
-            // the T must be primitive type, or list/set/map of primitive type
+            // The T must be primitive type, or list/set/map of primitive type
             return (T) this.columns.get(key);
         }
 
@@ -80,9 +81,7 @@ public class CassandraBackendEntry implements BackendEntry {
         @Override
         public String toString() {
             return String.format("Row{type=%s, id=%s, columns=%s}",
-                    this.type,
-                    this.id,
-                    this.columns);
+                                 this.type, this.id, this.columns);
         }
     }
 
@@ -169,8 +168,8 @@ public class CassandraBackendEntry implements BackendEntry {
     @Override
     public String toString() {
         return String.format("CassandraBackendEntry{%s, sub-rows: %s}",
-                this.row.toString(),
-                this.subRows.toString());
+                             this.row.toString(),
+                             this.subRows.toString());
     }
 
     @Override
