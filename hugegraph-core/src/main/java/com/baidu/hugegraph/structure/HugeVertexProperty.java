@@ -9,7 +9,8 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 
-public class HugeVertexProperty<V> extends HugeProperty<V> implements VertexProperty<V> {
+public class HugeVertexProperty<V> extends HugeProperty<V>
+        implements VertexProperty<V> {
 
     public HugeVertexProperty(HugeElement owner, PropertyKey key, V value) {
         super(owner, key, value);

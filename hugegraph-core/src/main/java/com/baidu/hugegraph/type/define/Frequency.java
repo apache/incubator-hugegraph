@@ -27,7 +27,9 @@ public enum Frequency {
     }
 
     public String schema() {
-        return String.format(".%s()",
-                this == SINGLE ? "singleTime" : "multiTimes");
+        String schema = this == SINGLE ?
+                        "singleTime" :
+                        "multiTimes";
+        return String.format(".%s()", schema);
     }
 }

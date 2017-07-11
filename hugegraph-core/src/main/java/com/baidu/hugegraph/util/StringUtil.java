@@ -21,13 +21,13 @@ public class StringUtil {
         E.checkNotNull(name, "name");
         E.checkArgument(!name.isEmpty(), "name can't be empty.");
         E.checkArgument(name.length() < 256,
-                "The length of name must less than 256 bytes.");
+                        "The length of name must less than 256 bytes.");
         E.checkArgument(name.substring(0, 1) != "_",
-                "The first letter of name can't be '_'.");
+                        "The first letter of name can't be '_'.");
         E.checkArgument(!name.contains("\u0001"),
-                "name can't contain the character '\u0001'.");
+                        "name can't contain the character '\u0001'.");
         E.checkArgument(!name.contains("\u0002"),
-                "name can't contain the character '\u0002'.");
+                        "name can't contain the character '\u0002'.");
     }
 
 }

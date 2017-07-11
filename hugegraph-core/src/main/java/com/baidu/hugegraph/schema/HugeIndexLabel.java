@@ -171,7 +171,7 @@ public class HugeIndexLabel extends IndexLabel {
             }
         }
 
-        // check field
+        // Check field
         this.checkFields();
 
         if (this.element == null) {
@@ -182,8 +182,9 @@ public class HugeIndexLabel extends IndexLabel {
         try {
             cloneElement = element.copy();
         } catch (CloneNotSupportedException e) {
-            throw new NotAllowException("Not allowed to build index on this "
-                    + "schema type: '%s'", this.element.type());
+            throw new NotAllowException(
+                      "Not allowed to build index on this schema type: '%s'",
+                      this.element.type());
         }
 
         // TODO: should wrap update and add operation in one transaction.
@@ -213,8 +214,9 @@ public class HugeIndexLabel extends IndexLabel {
                 this.element = this.transaction().getPropertyKey(this.baseValue);
                 break;
             default:
-                throw new HugeException("Unsupported element type '%s' of " +
-                          "index label '%s'", this.baseType, this.name);
+                throw new HugeException(
+                          "Unsupported element type '%s' of index label '%s'",
+                          this.baseType, this.name);
         }
     }
 
@@ -222,24 +224,26 @@ public class HugeIndexLabel extends IndexLabel {
         // search index must build on single numeric column
         if (this.indexType == IndexType.SEARCH) {
             E.checkArgument(this.indexFields.size() == 1,
-                    "Search index can only build on one property, " +
-                    "but got %s properties: '%s'",
-                    this.indexFields.size(),
-                    this.indexFields);
+                            "Search index can only build on one property, " +
+                            "but got %s properties: '%s'",
+                            this.indexFields.size(),
+                            this.indexFields);
             String field = this.indexFields.iterator().next();
             PropertyKey propertyKey = this.transaction().getPropertyKey(field);
             E.checkArgument(
                     NumericUtil.isNumber(propertyKey.dataType().clazz()),
                     "Search index can only build on numeric property, " +
-                    "but got %s(%s)", propertyKey.dataType(),
+                    "but got %s(%s)",
+                    propertyKey.dataType(),
                     propertyKey.name());
         }
 
         for (String field : this.indexFields()) {
             PropertyKey propertyKey = this.transaction().getPropertyKey(field);
             E.checkArgument(propertyKey.cardinality() == Cardinality.SINGLE,
-                    "Not allowed to build index on property key: '%s' that " +
-                    "cardinality is list or set.", propertyKey.name());
+                            "Not allowed to build index on property key: " +
+                            "'%s' that cardinality is list or set.",
+                            propertyKey.name());
         }
     }
 
@@ -254,8 +258,9 @@ public class HugeIndexLabel extends IndexLabel {
                 break;
             case PROPERTY_KEY:
             default:
-                throw new HugeException("Can't update index name of " +
-                                        "schema type: %s", baseType);
+                throw new HugeException(
+                          "Can't update index name of schema type: %s",
+                          baseType);
         }
     }
 
@@ -267,6 +272,6 @@ public class HugeIndexLabel extends IndexLabel {
     @Override
     protected SchemaElement copy() throws CloneNotSupportedException {
         throw new CloneNotSupportedException(
-                "Not support copy operation for index label");
+                  "Not support copy operation for index label");
     }
 }

@@ -97,8 +97,9 @@ public class HugeVertexLabel extends VertexLabel {
         // Try to read
         VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
         if (vertexLabel == null) {
-            throw new HugeException("Can't append the vertex label '%s' since "
-                    + "it doesn't exist", this.name);
+            throw new HugeException("Can't append the vertex label '%s' " +
+                                    "since it doesn't exist",
+                                    this.name);
         }
 
         vertexLabel.properties().addAll(this.properties);
@@ -136,7 +137,8 @@ public class HugeVertexLabel extends VertexLabel {
         // If properties is not empty, check all property.
         for (String pk : this.properties) {
             PropertyKey propertyKey = this.transaction().getPropertyKey(pk);
-            E.checkArgumentNotNull(propertyKey,
+            E.checkArgumentNotNull(
+                    propertyKey,
                     "Undefined property key '%s' in the vertex label '%s'",
                     pk, this.name);
         }
@@ -149,20 +151,22 @@ public class HugeVertexLabel extends VertexLabel {
         // Use loop instead containAll for more detailed exception info.
         for (String key : this.primaryKeys) {
             E.checkArgument(this.properties.contains(key),
-                    "The primary key '%s' of vertex label '%s' must be "
-                    + "contained in %s", key, this.name, this.properties);
+                            "The primary key '%s' of vertex label '%s' must " +
+                            "be contained in %s", key, this.name,
+                            this.properties);
         }
     }
 
     private void checkStableVars() {
         // Don't allow to append sort keys.
         if (!this.primaryKeys.isEmpty()) {
-            throw new NotAllowException("Not allowed to append primary keys "
-                    + "for existed vertex label '%s'", this.name);
+            throw new NotAllowException("Not allowed to append primary keys " +
+                                        "for existed vertex label '%s'",
+                                        this.name);
         }
         if (!this.indexNames.isEmpty()) {
-            throw new NotAllowException("Not allowed to append indexes for "
-                    + "existed vertex label '%s'", this.name);
+            throw new NotAllowException("Not allowed to append indexes for " +
+                                        "existed vertex label '%s'", this.name);
         }
     }
 }

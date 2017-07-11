@@ -8,10 +8,10 @@ import com.baidu.hugegraph.HugeException;
 public class CopyUtil {
 
     public static boolean isSimpleType(Class<?> type) {
-        if (type.isPrimitive()
-                || type.equals(String.class)
-                || type.equals(Boolean.class)
-                || NumericUtil.isNumber(type)) {
+        if (type.isPrimitive() ||
+            type.equals(String.class) ||
+            type.equals(Boolean.class) ||
+            NumericUtil.isNumber(type)) {
             return true;
         }
 

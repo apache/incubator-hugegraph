@@ -91,7 +91,7 @@ public class HugeIndex implements GraphType {
     @Override
     public String toString() {
         return String.format("{label=%s<%s>, fieldValues=%s, elementIds=%s}",
-                this.label.name(), this.label.indexType().string(),
-                this.fieldValues, this.elementIds);
+                             this.label.name(), this.label.indexType().string(),
+                             this.fieldValues, this.elementIds);
     }
 }

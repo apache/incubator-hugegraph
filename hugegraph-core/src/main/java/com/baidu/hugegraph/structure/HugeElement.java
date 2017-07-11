@@ -104,7 +104,7 @@ public abstract class HugeElement implements Element, GraphType {
 
                 propSet.value().add(value);
 
-                // any better ways?
+                // Any better ways?
                 prop = (HugeProperty) propSet;
                 break;
             case LIST:
@@ -121,7 +121,7 @@ public abstract class HugeElement implements Element, GraphType {
 
                 propList.value().add(value);
 
-                // any better ways?
+                // Any better ways?
                 prop = (HugeProperty) propList;
                 break;
             default:
@@ -169,21 +169,21 @@ public abstract class HugeElement implements Element, GraphType {
 
         Object idValue = id.get();
         if (idValue instanceof Number) {
-            // number id
+            // Number id
             return IdGeneratorFactory.generator().generate(
                     ((Number) idValue).longValue());
         } else if (idValue instanceof String) {
-            // string id
+            // String id
             return IdGeneratorFactory.generator().generate((String) idValue);
         } else if (idValue instanceof Id) {
-            // id itself
+            // Id itself
             return (Id) idValue;
         } else if (idValue instanceof Element) {
-            // element
+            // Element
             return (Id) ((Element) idValue).id();
         }
 
-        // throw if error type
+        // Throw if error type
         throw new UnsupportedOperationException(
                   "Unsupported id type(must be a number or a string): " +
                   idValue.getClass().getSimpleName());

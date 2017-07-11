@@ -26,7 +26,7 @@ import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 
 public class HugeSchemaManager implements SchemaManager {
 
@@ -67,24 +67,24 @@ public class HugeSchemaManager implements SchemaManager {
     @Override
     public PropertyKey propertyKey(String name) {
         PropertyKey propertyKey = this.transaction.getPropertyKey(name);
-        Preconditions.checkArgument(propertyKey != null,
-                "Undefined property key: '%s'", name);
+        E.checkArgument(propertyKey != null,
+                        "Undefined property key:'%s'", name);
         return propertyKey;
     }
 
     @Override
     public VertexLabel vertexLabel(String name) {
         VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
-        Preconditions.checkArgument(vertexLabel != null,
-                "Undefined vertex label: '%s'", name);
+        E.checkArgument(vertexLabel != null,
+                        "Undefined vertexlabel: '%s'", name);
         return vertexLabel;
     }
 
     @Override
     public EdgeLabel edgeLabel(String name) {
         EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
-        Preconditions.checkArgument(edgeLabel != null,
-                "Undefined edge label: '%s'", name);
+        E.checkArgument(edgeLabel != null,
+                        "Undefined edge label: '%s'", name);
         return edgeLabel;
     }
 

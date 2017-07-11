@@ -40,10 +40,12 @@ public abstract class PropertyKey extends SchemaElement {
             case SINGLE:
                 cls = dataType;
                 break;
-            case SET: // a set of values: Set<DataType>
+            // A set of values: Set<DataType>
+            case SET:
                 cls = LinkedHashSet.class;
                 break;
-            case LIST: // a list of values: List<DataType>
+            // A list of values: List<DataType>
+            case LIST:
                 cls = LinkedList.class;
                 break;
             default:
@@ -53,12 +55,12 @@ public abstract class PropertyKey extends SchemaElement {
         return cls;
     }
 
-    // check type of the value valid
+    // Check type of the value valid
     public <V> boolean checkDataType(V value) {
         return this.dataType().clazz().isInstance(value);
     }
 
-    // check type of all the values(may be some of list properties) valid
+    // Check type of all the values(may be some of list properties) valid
     public <V> boolean checkDataType(Collection<V> values) {
         boolean valid = true;
         for (Object o : values) {
@@ -70,7 +72,7 @@ public abstract class PropertyKey extends SchemaElement {
         return valid;
     }
 
-    // check property value valid
+    // Check property value valid
     public <V> boolean checkValue(V value) {
         boolean valid = false;
 

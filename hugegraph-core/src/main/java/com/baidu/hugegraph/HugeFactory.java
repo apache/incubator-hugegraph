@@ -9,7 +9,6 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
-import com.google.common.base.Preconditions;
 
 /**
  * Created by jishilei on 17/3/16.
@@ -30,9 +29,9 @@ public class HugeFactory {
 
     private static PropertiesConfiguration getLocalConfig(String path) {
         File file = new File(path);
-        Preconditions.checkArgument(
+        E.checkArgument(
                 file.exists() && file.isFile() && file.canRead(),
-                "Need to specify a readable configuration file rather than: %s",
+                "Need to specify a readable config file rather than: %s",
                 file.toString());
         try {
             PropertiesConfiguration config = new PropertiesConfiguration(file);
@@ -45,8 +44,9 @@ public class HugeFactory {
                 configParent = tmpParent;
             }
 
-            Preconditions.checkNotNull(configParent);
-            Preconditions.checkArgument(configParent.isDirectory());
+            E.checkNotNull(configParent, "Config Parent");
+            E.checkArgument(configParent.isDirectory(),
+                            "Config Parent must be directory.");
 
             return config;
         } catch (ConfigurationException e) {
@@ -59,7 +59,7 @@ public class HugeFactory {
             return new PropertiesConfiguration(url);
         } catch (ConfigurationException e) {
             throw new HugeException("Unable to load remote config file: %s",
-                    e, url);
+                                    e, url);
         }
     }
 

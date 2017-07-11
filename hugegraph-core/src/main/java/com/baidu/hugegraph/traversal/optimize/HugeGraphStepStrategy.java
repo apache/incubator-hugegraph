@@ -15,15 +15,16 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 
 public final class HugeGraphStepStrategy
-        extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
-        implements ProviderOptimizationStrategy {
+             extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
+             implements ProviderOptimizationStrategy {
 
     private static final long serialVersionUID = -2952498905649139719L;
 
-    private static final HugeGraphStepStrategy INSTANCE = new HugeGraphStepStrategy();
+    private static final HugeGraphStepStrategy INSTANCE =
+            new HugeGraphStepStrategy();
 
     private HugeGraphStepStrategy() {
-        // pass
+        // Pass
     }
 
     @Override
@@ -41,7 +42,7 @@ public final class HugeGraphStepStrategy
     }
 
     protected static void extractHasContainer(HugeGraphStep<?, ?> newStep,
-            Traversal.Admin<?, ?> traversal) {
+                                              Traversal.Admin<?, ?> traversal) {
         Step<?, ?> step = null;
         do {
             step = newStep.getNextStep();
@@ -59,7 +60,7 @@ public final class HugeGraphStepStrategy
     }
 
     protected static void extractRange(HugeGraphStep<?, ?> newStep,
-            Traversal.Admin<?, ?> traversal) {
+                                       Traversal.Admin<?, ?> traversal) {
         Step<?, ?> step = null;
         do {
             step = newStep.getNextStep();
