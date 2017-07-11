@@ -18,8 +18,8 @@ import com.baidu.hugegraph.server.HugeServer;
 
 public final class GraphManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(
-            HugeServer.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(HugeServer.class);
 
     private final Map<String, Graph> graphs;
 
@@ -35,10 +35,10 @@ public final class GraphManager {
                 final Graph newGraph = GraphFactory.open(conf.getValue());
                 this.graphs.put(conf.getKey(), newGraph);
                 logger.info("Graph '{}' was successfully configured via '{}'",
-                        conf.getKey(), conf.getValue());
+                            conf.getKey(), conf.getValue());
             } catch (RuntimeException e) {
                 logger.error("Graph '{}': '{}' can't be instantiated",
-                        conf.getKey(), conf.getValue(), e);
+                             conf.getKey(), conf.getValue(), e);
             }
         });
     }
@@ -53,15 +53,15 @@ public final class GraphManager {
 
     public Serializer serializer(Graph g) {
         // TODO: cache Serializer
-        return new JsonSerializer(g.io(
-                IoCore.graphson()).writer().wrapAdjacencyList(true).create());
+        return new JsonSerializer(g.io(IoCore.graphson()).writer()
+                   .wrapAdjacencyList(true).create());
     }
 
     public void rollbackAll() {
         this.graphs.entrySet().forEach(e -> {
             final Graph graph = e.getValue();
-            if (graph.features().graph().supportsTransactions()
-                    && graph.tx().isOpen()) {
+            if (graph.features().graph().supportsTransactions() &&
+                graph.tx().isOpen()) {
                 graph.tx().rollback();
             }
         });
@@ -74,8 +74,8 @@ public final class GraphManager {
     public void commitAll() {
         this.graphs.entrySet().forEach(e -> {
             final Graph graph = e.getValue();
-            if (graph.features().graph().supportsTransactions()
-                    && graph.tx().isOpen()) {
+            if (graph.features().graph().supportsTransactions() &&
+                graph.tx().isOpen()) {
                 graph.tx().commit();
             }
         });
@@ -86,17 +86,18 @@ public final class GraphManager {
     }
 
     private void closeTx(final Set<String> graphSourceNamesToCloseTxOn,
-            final Transaction.Status tx) {
+                         final Transaction.Status tx) {
         final Set<Graph> graphsToCloseTxOn = new HashSet<>();
 
         graphSourceNamesToCloseTxOn.forEach(r -> {
-            if (this.graphs.containsKey(r))
+            if (this.graphs.containsKey(r)) {
                 graphsToCloseTxOn.add(this.graphs.get(r));
+            }
         });
 
         graphsToCloseTxOn.forEach(graph -> {
-            if (graph.features().graph().supportsTransactions()
-                    && graph.tx().isOpen()) {
+            if (graph.features().graph().supportsTransactions() &&
+                graph.tx().isOpen()) {
                 if (tx == Transaction.Status.COMMIT) {
                     graph.tx().commit();
                 } else {

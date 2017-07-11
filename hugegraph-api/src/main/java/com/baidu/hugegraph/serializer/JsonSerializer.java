@@ -26,9 +26,8 @@ public class JsonSerializer implements Serializer {
         try {
             this.writer.writeObject(out, object);
         } catch (Exception e) {
-            throw new HugeException(String.format(
-                    "Failed to serialize %s",
-                    object.getClass().getSimpleName()), e);
+            throw new HugeException("Failed to serialize %s", e,
+                                    object.getClass().getSimpleName());
         }
 
         return out.toString();
@@ -41,8 +40,7 @@ public class JsonSerializer implements Serializer {
             this.writer.writeObject(out, object);
             out.write("}".getBytes());
         } catch (Exception e) {
-            throw new HugeException(String.format(
-                    "Failed to serialize %s", label), e);
+            throw new HugeException("Failed to serialize %s", e, label);
         }
 
         return out.toString();

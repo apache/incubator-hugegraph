@@ -16,11 +16,12 @@ public class StatusFilter implements ContainerResponseFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext,
-            ContainerResponseContext responseContext) throws IOException {
+                       ContainerResponseContext responseContext)
+                       throws IOException {
         if (responseContext.getStatus() == 200) {
-            for (Annotation annotation : responseContext.getEntityAnnotations()) {
-                if (annotation instanceof Status) {
-                    responseContext.setStatus(((Status) annotation).value());
+            for (Annotation i : responseContext.getEntityAnnotations()) {
+                if (i instanceof Status) {
+                    responseContext.setStatus(((Status) i).value());
                     break;
                 }
             }
@@ -30,6 +31,7 @@ public class StatusFilter implements ContainerResponseFilter {
     @NameBinding
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Status {
+        final int OK = 200;
         final int CREATED = 201;
 
         int value();

@@ -33,7 +33,9 @@ import com.baidu.hugegraph.type.schema.EdgeLabel;
 @Path("graphs/{graph}/schema/edgelabels")
 @Singleton
 public class EdgeLabelAPI extends API {
-    private static final Logger logger = LoggerFactory.getLogger(EdgeLabelAPI.class);
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(EdgeLabelAPI.class);
 
     @POST
     @Status(Status.CREATED)
@@ -58,8 +60,8 @@ public class EdgeLabelAPI extends API {
     public String append(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdgeLabel jsonEdgeLabel) {
-        logger.debug("Graph [{}] append edge label: {}", graph,
-                jsonEdgeLabel);
+        logger.debug("Graph [{}] append edge label: {}",
+                     graph, jsonEdgeLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -76,9 +78,9 @@ public class EdgeLabelAPI extends API {
         logger.debug("Graph [{}] get edge labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<EdgeLabel> edgeLabels = g.schemaTransaction().getEdgeLabels();
+        List<EdgeLabel> labels = g.schemaTransaction().getEdgeLabels();
 
-        return manager.serializer(g).writeEdgeLabels(edgeLabels);
+        return manager.serializer(g).writeEdgeLabels(labels);
     }
 
     @GET
@@ -119,15 +121,15 @@ public class EdgeLabelAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("{name=%s, frequency=%s, links=%s,"
-                            + " sortKeys=%s, indexNames=%s, properties=%s}",
+            return String.format(
+                    "JsonEdgeLabel{name=%s, frequency=%s, links=%s, " +
+                    "sortKeys=%s, indexNames=%s, properties=%s}",
                     this.name, this.frequency, this.links,
                     this.sortKeys, this.indexNames, this.properties);
         }
 
         public EdgeLabel convert2EdgeLabel() {
             HugeEdgeLabel edgeLabel = new HugeEdgeLabel(this.name);
-
             edgeLabel.frequency(this.frequency);
             edgeLabel.links(this.links);
             edgeLabel.sortKeys(this.sortKeys);

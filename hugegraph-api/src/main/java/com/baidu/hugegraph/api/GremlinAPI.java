@@ -27,16 +27,16 @@ public class GremlinAPI extends API {
 
     private Response doGetRequest(String location, String query) {
         return this.client.target(String.format("%s?%s", location, query))
-                .request()
-                .accept(MediaType.APPLICATION_JSON)
-                .get();
+                   .request()
+                   .accept(MediaType.APPLICATION_JSON)
+                   .get();
     }
 
     private Response doPostRequest(String location, Object request) {
         return this.client.target(location)
-                .request()
-                .accept(MediaType.APPLICATION_JSON)
-                .post(Entity.entity(request, MediaType.APPLICATION_JSON));
+                   .request()
+                   .accept(MediaType.APPLICATION_JSON)
+                   .post(Entity.entity(request, MediaType.APPLICATION_JSON));
     }
 
     private Response doPostRequest(String location, String request) {
@@ -48,6 +48,7 @@ public class GremlinAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public Response post(@Context HugeConfig conf,
                          String request) {
+        /* The following code is reserved for forwarding request */
         // context.getRequestDispatcher(location).forward(request, response);
         // return Response.seeOther(UriBuilder.fromUri(location).build())
         // .build();
@@ -66,7 +67,7 @@ public class GremlinAPI extends API {
     }
 
     static class GremlinRequest {
-        // see org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
+        // See org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
         public String gremlin;
         public Map<String, Object> bindings;
         public String language;

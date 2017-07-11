@@ -40,7 +40,8 @@ import com.google.common.base.Preconditions;
 
 public class HugeServer {
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(HugeServer.class);
 
     private HugeConfig conf = null;
 
@@ -83,8 +84,8 @@ public class HugeServer {
 
     protected static HugeConfig loadConf(String[] args) {
         E.checkArgument(args.length == 1,
-                "HugeServer need one config file, but was given %s",
-                Arrays.asList(args));
+                        "HugeServer need one config file, but was given %s",
+                        Arrays.asList(args));
 
         HugeConfig conf = null;
         try {
