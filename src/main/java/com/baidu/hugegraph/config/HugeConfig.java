@@ -61,8 +61,8 @@ public class HugeConfig extends PropertiesConfiguration {
 
         File file = new File(fileName);
         E.checkArgument(file.exists() && file.isFile() && file.canRead(),
-                "Need to specify a readable config file, " +
-                "but got: %s", file.toString());
+                        "Need to specify a readable config file, " +
+                        "but got: %s", file.toString());
         return file;
     }
 
@@ -79,7 +79,7 @@ public class HugeConfig extends PropertiesConfiguration {
                 Class dataType = option.dataType();
                 String getMethod = "get" + dataType.getSimpleName();
                 Method method = this.getClass()
-                        .getMethod(getMethod, String.class, dataType);
+                                .getMethod(getMethod, String.class, dataType);
                 option.value(method.invoke(this, key, option.value()));
             }
         } catch (Exception e) {

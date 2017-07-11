@@ -32,7 +32,8 @@ import javassist.NotFoundException;
 
 public class PerfUtil {
 
-    private static final Logger logger = LoggerFactory.getLogger(PerfUtil.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(PerfUtil.class);
     private static ThreadLocal<PerfUtil> instance = new ThreadLocal<>();
 
     private Map<String, Stopwatch> stopwatches;
@@ -40,7 +41,7 @@ public class PerfUtil {
 
     private PerfUtil() {
         this.stopwatches = new HashMap<>();
-        this.callStack = new Stack<String>();
+        this.callStack = new Stack<>();
     }
 
     public static PerfUtil instance() {
@@ -143,7 +144,8 @@ public class PerfUtil {
         }
 
         ctMethod.insertBefore(String.format(START, name));
-        ctMethod.insertAfter(String.format(END, name), true); // asFinally true
+        // Insert as a finally-statement
+        ctMethod.insertAfter(String.format(END, name), true);
 
         logger.debug("Profiled for: '{}' [{}]", name, ctMethod.getLongName());
     }
@@ -193,13 +195,13 @@ public class PerfUtil {
             sb.append("name: 'Total Cost',");
             sb.append("type: 'pie',");
             sb.append(String.format("radius: ['%s%%', '%s%%'],",
-                    radiusFrom, radiusTo));
+                                    radiusFrom, radiusTo));
             sb.append(String.format(
-                    "label: {normal: {position: 'inner', formatter:"
-                    + "function(params) {"
-                    + "  if (params.percent > %s) return params.data.name;"
-                    + "  else return '';"
-                    + "}}},", showFactor));
+                    "label: {normal: {position: 'inner', formatter:" +
+                    "function(params) {" +
+                    "  if (params.percent > %s) return params.data.name;" +
+                    "  else return '';" +
+                    "}}},", showFactor));
             sb.append("data: [");
 
             items.sort((i, j) -> i.id().compareTo(j.id()));
@@ -239,8 +241,8 @@ public class PerfUtil {
             return sb.toString();
         };
 
-        BiConsumer<List<Stopwatch>, List<Stopwatch>> fillOther = (
-                itemsOfI, parents) -> {
+        BiConsumer<List<Stopwatch>, List<Stopwatch>> fillOther =
+            (itemsOfI, parents) -> {
             for (Stopwatch parent : parents) {
                 Stream<Stopwatch> children = itemsOfI.stream().filter(c -> {
                     return c.parent().equals(parent.id());

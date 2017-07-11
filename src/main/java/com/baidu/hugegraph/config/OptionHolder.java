@@ -14,7 +14,8 @@ import com.baidu.hugegraph.exception.ConfigException;
  */
 public class OptionHolder {
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeConfig.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(HugeConfig.class);
 
     protected Map<String, ConfigOption> options;
 
@@ -29,7 +30,8 @@ public class OptionHolder {
                 ConfigOption option = (ConfigOption) field.get(this);
                 this.options.put(option.name(), option);
             } catch (Exception e) {
-                String msg = String.format("Failed to regiser option : %s", field);
+                String msg = String.format(
+                             "Failed to regiser option : %s", field);
                 logger.error(msg, e);
                 throw new ConfigException(msg, e);
             }

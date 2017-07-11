@@ -97,9 +97,9 @@ public class Stopwatch implements Cloneable {
     }
 
     public String toJson() {
-        return String.format("{\"totalCost\":%s, "
-                + "\"minCost\":%s, \"maxCost\":%s, \"times\":%s, "
-                + "\"name\":\"%s\", \"parent\":\"%s\"}",
+        return String.format("{\"totalCost\":%s, " +
+                "\"minCost\":%s, \"maxCost\":%s, \"times\":%s, " +
+                "\"name\":\"%s\", \"parent\":\"%s\"}",
                 this.totalCost,
                 this.minCost,
                 this.maxCost,

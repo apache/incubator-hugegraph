@@ -42,9 +42,8 @@ public class CheckSocket {
             System.exit(E_USAGE);
         }
         try {
-            Socket s = new Socket(
-                InetAddress.getByName(args[0]),
-                Integer.valueOf(args[1]).intValue());
+            Socket s = new Socket(InetAddress.getByName(args[0]),
+                                  Integer.valueOf(args[1]).intValue());
             s.close();
             System.exit(0);
         } catch (Throwable t) {

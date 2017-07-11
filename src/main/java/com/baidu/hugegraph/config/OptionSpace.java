@@ -13,7 +13,8 @@ import com.google.common.collect.Maps;
  */
 public class OptionSpace {
 
-    private static final Logger logger = LoggerFactory.getLogger(OptionSpace.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(OptionSpace.class);
 
     private static final Map<String, ConfigOption> options = Maps.newHashMap();
 
