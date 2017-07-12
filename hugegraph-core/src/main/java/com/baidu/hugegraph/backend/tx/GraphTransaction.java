@@ -50,8 +50,8 @@ public class GraphTransaction extends AbstractTransaction {
     private Set<HugeEdge> addedEdges;
     private Set<HugeEdge> removedEdges;
 
-    public GraphTransaction(final HugeGraph graph,
-                            BackendStore store, BackendStore indexStore) {
+    public GraphTransaction(HugeGraph graph, BackendStore store,
+                            BackendStore indexStore) {
         super(graph, store);
 
         this.indexTx = new IndexTransaction(graph, indexStore);
@@ -300,7 +300,7 @@ public class GraphTransaction extends AbstractTransaction {
         this.afterWrite();
     }
 
-    public Iterator<Vertex> queryVertices(Object... vertexIds) {
+    public Iterable<Vertex> queryVertices(Object... vertexIds) {
         List<Vertex> list = new ArrayList<Vertex>(vertexIds.length);
 
         for (Object vertexId : vertexIds) {
@@ -311,15 +311,15 @@ public class GraphTransaction extends AbstractTransaction {
             list.add(vertex);
         }
 
-        return list.iterator();
+        return list;
     }
 
-    public Iterator<Vertex> queryVertices() {
+    public Iterable<Vertex> queryVertices() {
         Query q = new Query(HugeType.VERTEX);
         return this.queryVertices(q);
     }
 
-    public Iterator<Vertex> queryVertices(Query query) {
+    public Iterable<Vertex> queryVertices(Query query) {
         assert Arrays.asList(HugeType.VERTEX, HugeType.EDGE)
                      .contains(query.resultType());
         List<Vertex> list = new ArrayList<Vertex>();
@@ -331,12 +331,12 @@ public class GraphTransaction extends AbstractTransaction {
             list.add(vertex);
         }
 
-        return list.iterator();
+        return list;
     }
 
-    public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
+    public Iterable<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
         if (!edges.hasNext()) {
-            return ImmutableList.<Vertex>of().iterator();
+            return ImmutableList.<Vertex>of();
         }
 
         IdQuery query = new IdQuery(HugeType.VERTEX);
@@ -363,7 +363,7 @@ public class GraphTransaction extends AbstractTransaction {
         this.afterWrite();
     }
 
-    public Iterator<Edge> queryEdges(Object... edgeIds) {
+    public Iterable<Edge> queryEdges(Object... edgeIds) {
         List<Edge> list = new ArrayList<Edge>(edgeIds.length);
 
         for (Object edgeId : edgeIds) {
@@ -374,17 +374,17 @@ public class GraphTransaction extends AbstractTransaction {
             list.addAll(ImmutableList.copyOf(vertex.getEdges()));
         }
 
-        return list.iterator();
+        return list;
     }
 
-    public Iterator<Edge> queryEdges() {
+    public Iterable<Edge> queryEdges() {
         Query q = new Query(HugeType.EDGE);
         return this.queryEdges(q);
     }
 
-    public Iterator<Edge> queryEdges(Query query) {
+    public Iterable<Edge> queryEdges(Query query) {
         assert query.resultType() == HugeType.EDGE;
-        Iterator<Vertex> vertices = this.queryVertices(query);
+        Iterator<Vertex> vertices = this.queryVertices(query).iterator();
 
         Map<Id, Edge> results = new HashMap<>();
         while (vertices.hasNext()) {
@@ -402,10 +402,10 @@ public class GraphTransaction extends AbstractTransaction {
             }
         }
 
-        return results.values().iterator();
+        return results.values();
     }
 
-    public Iterator<Edge> queryEdgesByVertex(Id id) {
+    public Iterable<Edge> queryEdgesByVertex(Id id) {
         return queryEdges(constructEdgesQuery(id, null));
     }
 

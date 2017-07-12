@@ -238,13 +238,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         Query query = GraphTransaction.constructEdgesQuery(
                 this.id, direction, edgeLabels);
-        return this.tx().queryEdges(query);
+        return this.tx().queryEdges(query).iterator();
     }
 
     @Override
     public Iterator<Vertex> vertices(Direction direction, String... edgeLabels) {
         Iterator<Edge> edges = this.edges(direction, edgeLabels);
-        return this.tx().queryAdjacentVertices(edges);
+        return this.tx().queryAdjacentVertices(edges).iterator();
     }
 
     @Override
