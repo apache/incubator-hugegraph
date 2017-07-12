@@ -36,7 +36,8 @@ import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 
 /**
- * Created by jishilei on 17/3/17.
+ * HugeGraph is the entrance of the graph system, you can modify or query
+ * the schema/vertex/edge data through this class.
  */
 @Graph.OptIn("com.baidu.hugegraph.base.HugeStructureBasicSuite")
 public class HugeGraph implements Graph {
@@ -87,7 +88,7 @@ public class HugeGraph implements Graph {
         if (this.storeProvider == null) {
             String backend = this.configuration.get(CoreOptions.BACKEND);
             logger.info("Opening backend store: '{}'", backend);
-            this.storeProvider = BackendProviderFactory.open(backend, name);
+            this.storeProvider = BackendProviderFactory.open(backend, this.name);
         }
 
         SchemaTransaction schemaTx = this.openSchemaTransaction();
@@ -225,29 +226,29 @@ public class HugeGraph implements Graph {
     @Override
     public Iterator<Vertex> vertices(Object... objects) {
         if (objects.length == 0) {
-            return this.graphTransaction().queryVertices();
+            return this.graphTransaction().queryVertices().iterator();
         }
-        return this.graphTransaction().queryVertices(objects);
+        return this.graphTransaction().queryVertices(objects).iterator();
     }
 
     public Iterator<Vertex> vertices(Query query) {
-        return this.graphTransaction().queryVertices(query);
+        return this.graphTransaction().queryVertices(query).iterator();
     }
 
     public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
-        return this.graphTransaction().queryAdjacentVertices(edges);
+        return this.graphTransaction().queryAdjacentVertices(edges).iterator();
     }
 
     @Override
     public Iterator<Edge> edges(Object... objects) {
         if (objects.length == 0) {
-            return this.graphTransaction().queryEdges();
+            return this.graphTransaction().queryEdges().iterator();
         }
-        return this.graphTransaction().queryEdges(objects);
+        return this.graphTransaction().queryEdges(objects).iterator();
     }
 
     public Iterator<Edge> edges(Query query) {
-        return this.graphTransaction().queryEdges(query);
+        return this.graphTransaction().queryEdges(query).iterator();
     }
 
     @Override

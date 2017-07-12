@@ -183,7 +183,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             return;
         }
 
-        Iterator<Vertex> vertices = tx().queryVertices(vertex.id());
+        Iterator<Vertex> vertices = tx().queryVertices(vertex.id()).iterator();
         assert vertices.hasNext();
         HugeVertex fetched = (HugeVertex) vertices.next();
         vertex.setProperties(fetched.getProperties());

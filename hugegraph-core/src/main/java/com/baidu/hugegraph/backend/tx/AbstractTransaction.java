@@ -25,17 +25,19 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
 public abstract class AbstractTransaction implements Transaction {
+
+    protected static final Logger logger =
+              LoggerFactory.getLogger(Transaction.class);
+
     private Thread ownerThread = Thread.currentThread();
     private boolean autoCommit = false;
 
-    private final HugeGraph graph; // parent graph
-    private BackendStore store;
+    private final HugeGraph graph;
+    private final BackendStore store;
 
     private Set<BackendEntry> additions;
     private Set<BackendEntry> deletions;
 
-    protected static final Logger logger = LoggerFactory.getLogger(
-            Transaction.class);
     protected AbstractSerializer serializer;
     protected IdGenerator idGenerator;
 

@@ -18,9 +18,9 @@
  */
 package com.baidu.hugegraph.backend.tx;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -51,7 +51,7 @@ import com.baidu.hugegraph.util.NumericUtil;
 
 public class IndexTransaction extends AbstractTransaction {
 
-    public IndexTransaction(final HugeGraph graph, BackendStore store) {
+    public IndexTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
     }
 
