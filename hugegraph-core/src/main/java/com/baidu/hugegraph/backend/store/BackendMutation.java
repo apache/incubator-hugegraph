@@ -1,42 +1,62 @@
 package com.baidu.hugegraph.backend.store;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.util.E;
 
 public class BackendMutation {
 
-    private Collection<BackendEntry> additions;
-    private Collection<BackendEntry> deletions;
+    private Map<Id, List<MutateItem>> updates;
 
-    public BackendMutation(Collection<BackendEntry> additions) {
-        this(additions, null);
+    public BackendMutation() {
+        this.updates = new LinkedHashMap<>();
     }
 
-    public BackendMutation(Collection<BackendEntry> additions,
-                           Collection<BackendEntry> deletions) {
-        this.additions = additions;
-        this.deletions = deletions;
+    public void add(BackendEntry entry, MutateAction mutateAction) {
+        Id id = entry.id();
+        List<MutateItem> items = this.updates.get(id);
+        // If there is no entity of this id, add it
+        if (items == null) {
+            items = new LinkedList<>();
+            items.add(MutateItem.of(entry, mutateAction));
+            updates.put(id, items);
+            return;
+        }
+
+        /*
+         * TODO: Should do some optimize when seperate edges from vertex
+         * The Optimized scenes include but are not limited to：
+         * 1、If you want to delete an entry, the other mutations previously
+         * can be ignored
+         * 2、As similar to the item No. one, If you want to insert an entry,
+         * the other mutations previously also can be ignored.
+         * 3、To be added
+         */
+
+        items.add(MutateItem.of(entry, mutateAction));
     }
 
     /**
-     * Whether this mutation has additions
-     *
-     * @return boolean
+     * Reset all items in mutations.
      */
-    public boolean hasAdditions() {
-        return this.additions != null && !this.additions.isEmpty();
+    private void reset() {
+        this.updates = new LinkedHashMap<>();
     }
 
     /**
-     * Whether this mutation has deletions
-     *
-     * @return boolean
+     * Reset all items in mutations of this id.
+     * @param id
      */
-    public boolean hasDeletions() {
-        return this.deletions != null && !this.deletions.isEmpty();
+    private void reset(Id id) {
+        this.updates.replace(id, new LinkedList<>());
+    }
+
+    public Map<Id, List<MutateItem>> mutation() {
+        return this.updates;
     }
 
     /**
@@ -45,55 +65,7 @@ public class BackendMutation {
      * @return boolean
      */
     public boolean isEmpty() {
-        return !hasAdditions() && !hasDeletions();
-    }
-
-    /**
-     * Returns the list of additions in this mutation
-     *
-     * @return
-     */
-    public Collection<BackendEntry> additions() {
-        if (this.additions == null) {
-            return ImmutableList.of();
-        }
-        return this.additions;
-    }
-
-    /**
-     * Returns the list of deletions in this mutation.
-     *
-     * @return
-     */
-    public Collection<BackendEntry> deletions() {
-        if (this.deletions == null) {
-            return ImmutableList.of();
-        }
-        return this.deletions;
-    }
-
-    /**
-     * Adds a new entry as an addition to this mutation
-     *
-     * @param entry
-     */
-    public void addition(BackendEntry entry) {
-        if (this.additions == null) {
-            this.additions = new ArrayList<>();
-        }
-        this.additions.add(entry);
-    }
-
-    /**
-     * Adds a new entry as a deletion to this mutation
-     *
-     * @param entry
-     */
-    public void deletion(BackendEntry entry) {
-        if (this.deletions == null) {
-            this.deletions = new ArrayList<>();
-        }
-        this.deletions.add(entry);
+        return this.updates.isEmpty();
     }
 
     /**
@@ -101,36 +73,19 @@ public class BackendMutation {
      * and deletions are added to this mutation. Does not remove duplicates
      * if such exist - this needs to be ensured by the caller.
      *
-     * @param m
+     * @param mutation
      */
-    public void merge(BackendMutation m) {
-        Preconditions.checkNotNull(m);
-
-        if (m.additions != null) {
-            if (this.additions == null) {
-                this.additions = m.additions;
-            } else {
-                this.additions.addAll(m.additions);
-            }
-        }
-
-        if (m.deletions != null) {
-            if (this.deletions == null) {
-                this.deletions = m.deletions;
-            } else {
-                this.deletions.addAll(m.deletions);
+    public void merge(BackendMutation mutation) {
+        E.checkNotNull(mutation, "mutation");
+        for (List<MutateItem> items : mutation.mutation().values()) {
+            for (MutateItem item : items) {
+                this.add(item.entry(), item.type());
             }
         }
     }
 
-    /**
-     * Returns as a string of this mutation
-     *
-     * @return String
-     */
     @Override
     public String toString() {
-        return String.format("BackendMutation{additions=%s, deletions=%s}",
-                             this.additions, this.deletions);
+        return String.format("BackendMutation{mutations=%s}", this.updates);
     }
 }

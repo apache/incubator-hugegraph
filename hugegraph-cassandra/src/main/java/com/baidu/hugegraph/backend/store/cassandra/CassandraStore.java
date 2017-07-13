@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -11,6 +12,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
@@ -20,6 +22,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
+
 
 public abstract class CassandraStore implements BackendStore {
 
@@ -106,38 +109,65 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void mutate(BackendMutation mutation) {
-        logger.debug("Store {} mutate: additions={}, deletions={}",
-                     this.name,
-                     mutation.additions().size(),
-                     mutation.deletions().size());
+        logger.debug("Store {} mutation: {}", this.name, mutation);
 
         this.checkSessionConneted();
         CassandraSessionPool.Session session = this.sessions.session();
 
-        // Delete data
-        for (BackendEntry i : mutation.deletions()) {
-            CassandraBackendEntry entry = castBackendEntry(i);
-            if (entry.selfChanged()) {
-                // Delete entry
-                this.table(entry.type()).delete(session, entry.row());
-            }
-            // Delete sub rows (edges)
-            for (CassandraBackendEntry.Row row : entry.subRows()) {
-                this.table(row.type()).delete(session, row);
+        for (List<MutateItem> items : mutation.mutation().values()) {
+            for (MutateItem item : items) {
+                mutate(session, item);
             }
         }
+    }
 
-        // Insert data
-        for (BackendEntry i : mutation.additions()) {
-            CassandraBackendEntry entry = castBackendEntry(i);
-            // Insert entry
-            if (entry.selfChanged()) {
-                this.table(entry.type()).insert(session, entry.row());
-            }
-            // Insert sub rows (edges)
-            for (CassandraBackendEntry.Row row : entry.subRows()) {
-                this.table(row.type()).insert(session, row);
-            }
+    private void mutate(CassandraSessionPool.Session session, MutateItem item) {
+
+        CassandraBackendEntry entry = castBackendEntry(item.entry());
+        switch (item.type()) {
+            case INSERT:
+                // Insert entry
+                if (entry.selfChanged()) {
+                    this.table(entry.type()).insert(session, entry.row());
+                }
+                // Insert sub rows (edges)
+                for (CassandraBackendEntry.Row row : entry.subRows()) {
+                    this.table(row.type()).insert(session, row);
+                }
+                break;
+            case DELETE:
+                // Delete entry
+                if (entry.selfChanged()) {
+                    this.table(entry.type()).delete(session, entry.row());
+                }
+                // Delete sub rows (edges)
+                for (CassandraBackendEntry.Row row : entry.subRows()) {
+                    this.table(row.type()).delete(session, row);
+                }
+                break;
+            case APPEND:
+                // Append entry
+                if (entry.selfChanged()) {
+                    this.table(entry.type()).append(session, entry.row());
+                }
+                // Append sub rows (edges)
+                for (CassandraBackendEntry.Row row : entry.subRows()) {
+                    this.table(row.type()).append(session, row);
+                }
+                break;
+            case ELIMINATE:
+                // Eliminate entry
+                if (entry.selfChanged()) {
+                    this.table(entry.type()).eliminate(session, entry.row());
+                }
+                // Eliminate sub rows (edges)
+                for (CassandraBackendEntry.Row row : entry.subRows()) {
+                    this.table(row.type()).eliminate(session, row);
+                }
+                break;
+            default:
+                throw new BackendException("Unsupported mutate type: %s",
+                                           item.type());
         }
     }
 

@@ -2,6 +2,7 @@ package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -20,11 +21,11 @@ import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
-import com.google.common.base.Preconditions;
 
 // NOTE:
 // InMemoryDBStore support:
@@ -202,23 +203,42 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public void mutate(BackendMutation mutation) {
-        mutation.additions().forEach((entry) -> {
-            logger.info("[store {}] add entry: {}", this.name, entry);
-            if (!this.store.containsKey(entry.id())) {
-                this.store.put(entry.id(), entry);
-            } else {
-                // merge columns if the entry exists
-                BackendEntry old =  this.store.get(entry.id());
-                // TODO: Compatible with BackendEntry
-                ((TextBackendEntry) old).merge((TextBackendEntry) entry);
+        for (List<MutateItem> items : mutation.mutation().values()) {
+            for (MutateItem item : items) {
+                mutate(item);
             }
-        });
+        }
+    }
 
-        mutation.deletions().forEach((k) -> {
-            logger.info("[store {}] remove id: {}", this.name, k.toString());
-            // remove by id (TODO: support remove by id + condition)
-            this.store.remove(k.id());
-        });
+    private void mutate(MutateItem item) {
+        BackendEntry entry = item.entry();
+        switch (item.type()) {
+            case INSERT:
+                logger.info("[store {}] add entry: {}", this.name, entry);
+                if (!this.store.containsKey(entry.id())) {
+                    this.store.put(entry.id(), entry);
+                } else {
+                    // merge columns if the entry exists
+                    BackendEntry old =  this.store.get(entry.id());
+                    // TODO: Compatible with BackendEntry
+                    ((TextBackendEntry) old).merge((TextBackendEntry) entry);
+                }
+                break;
+            case DELETE:
+                logger.info("[store {}] remove id: {}", this.name, entry.id());
+                // remove by id (TODO: support remove by id + condition)
+                this.store.remove(entry.id());
+                break;
+            case APPEND:
+                // TODO: Append entry
+                break;
+            case ELIMINATE:
+                // TODO: Eliminate entry
+                break;
+            default:
+                throw new BackendException("Unsupported mutate type: %s",
+                                           item.type());
+        }
     }
 
     @Override
