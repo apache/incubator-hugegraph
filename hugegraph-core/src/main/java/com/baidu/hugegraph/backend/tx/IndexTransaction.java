@@ -114,8 +114,12 @@ public class IndexTransaction extends AbstractTransaction {
             index.elementIds(element.id());
 
             if (!removed) {
+                // TODO: Should change to this method
+                // this.appendEntry(this.serializer.writeIndex(index));
                 this.addEntry(this.serializer.writeIndex(index));
             } else {
+                // TODO: Should change to this method
+                // this.eliminateEntry(this.serializer.writeIndex(index));
                 this.removeEntry(this.serializer.writeIndex(index));
             }
         }

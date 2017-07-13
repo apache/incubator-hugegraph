@@ -35,6 +35,7 @@ import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.datastax.driver.core.querybuilder.Update;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import com.google.common.collect.ImmutableList;
 
@@ -355,6 +356,61 @@ public abstract class CassandraTable {
         }
 
         session.add(insert);
+    }
+
+    /**
+     * Additional update operations
+     * Append several elements to the collection column
+     */
+    public void append(CassandraSessionPool.Session session,
+                       CassandraBackendEntry.Row entry) {
+
+        List<String> idNames = this.idColumnName();
+        List<String> idValues = this.idColumnValue(entry.id());
+        assert idNames.size() == idValues.size();
+
+        Update update = QueryBuilder.update(table());
+
+        for (Map.Entry<HugeKeys, Object> column : entry.columns().entrySet()) {
+            String key = this.formatKey(column.getKey());
+            if (!idNames.contains(key)) {
+                update.with(QueryBuilder.append(key, column.getValue()));
+            }
+        }
+
+        for (int i = 0; i < idNames.size(); i++) {
+            update.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
+        }
+
+        session.add(update);
+    }
+
+    /**
+     * Removal update operations
+     * Eliminate several elements from the collection column
+     */
+    public void eliminate(CassandraSessionPool.Session session,
+                          CassandraBackendEntry.Row entry) {
+
+        List<String> idNames = this.idColumnName();
+        List<String> idValues = this.idColumnValue(entry.id());
+        assert idNames.size() == idValues.size();
+
+        // Update by id
+        Update update = QueryBuilder.update(table());
+
+        for (Map.Entry<HugeKeys, Object> column : entry.columns().entrySet()) {
+            String key = this.formatKey(column.getKey());
+            if (!idNames.contains(key)) {
+                update.with(QueryBuilder.remove(key, column.getValue()));
+            }
+        }
+
+        for (int i = 0; i < idNames.size(); i++) {
+            update.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
+        }
+
+        session.add(update);
     }
 
     public void delete(CassandraSessionPool.Session session,

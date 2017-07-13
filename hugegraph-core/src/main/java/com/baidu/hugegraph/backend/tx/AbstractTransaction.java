@@ -1,9 +1,6 @@
 package com.baidu.hugegraph.backend.tx;
 
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +17,7 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.MutateAction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
@@ -35,8 +33,7 @@ public abstract class AbstractTransaction implements Transaction {
     private final HugeGraph graph;
     private final BackendStore store;
 
-    private Set<BackendEntry> additions;
-    private Set<BackendEntry> deletions;
+    private BackendMutation mutation;
 
     protected AbstractSerializer serializer;
     protected IdGenerator idGenerator;
@@ -175,14 +172,11 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     protected void reset() {
-        this.additions = new LinkedHashSet<>();
-        this.deletions = new LinkedHashSet<>();
+        this.mutation = new BackendMutation();
     }
 
     protected BackendMutation mutation() {
-        return new BackendMutation(
-                Collections.unmodifiableSet(this.additions),
-                Collections.unmodifiableSet(this.deletions));
+        return this.mutation;
     }
 
     protected void prepareCommit() {
@@ -224,7 +218,7 @@ public abstract class AbstractTransaction implements Transaction {
         E.checkNotNull(entry, "entry");
         E.checkNotNull(entry.id(), "entry id");
 
-        this.additions.add(entry);
+        this.mutation.add(entry, MutateAction.INSERT);
     }
 
     public void removeEntry(BackendEntry entry) {
@@ -232,14 +226,30 @@ public abstract class AbstractTransaction implements Transaction {
         E.checkNotNull(entry, "entry");
         E.checkNotNull(entry.id(), "entry id");
 
-        this.deletions.add(entry);
+        this.mutation.add(entry, MutateAction.DELETE);
     }
 
     public void removeEntry(HugeType type, Id id) {
         this.removeEntry(this.serializer.writeId(type, id));
     }
 
+    public void appendEntry(BackendEntry entry) {
+        logger.debug("Transaction append entry {}", entry);
+        E.checkNotNull(entry, "entry");
+        E.checkNotNull(entry.id(), "entry id");
+
+        this.mutation.add(entry, MutateAction.APPEND);
+    }
+
+    public void eliminateEntry(BackendEntry entry) {
+        logger.debug("Transaction eliminate entry {}", entry);
+        E.checkNotNull(entry, "entry");
+        E.checkNotNull(entry.id(), "entry id");
+
+        this.mutation.add(entry, MutateAction.ELIMINATE);
+    }
+
     public boolean hasUpdates() {
-        return !this.additions.isEmpty() || !this.deletions.isEmpty();
+        return !this.mutation.isEmpty();
     }
 }
