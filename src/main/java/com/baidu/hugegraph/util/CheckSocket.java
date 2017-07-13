@@ -29,7 +29,7 @@ import java.net.Socket;
  *  to keep the JanusGraph distribution self-contained insofar as is
  *  reasonable.
  */
-public class CheckSocket {
+public final class CheckSocket {
 
     public static final int E_USAGE  = 1;
     public static final int E_FAILED = 2;

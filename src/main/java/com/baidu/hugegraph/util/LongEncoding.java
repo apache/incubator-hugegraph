@@ -24,7 +24,7 @@ import com.google.common.base.Preconditions;
  * {@linktourl http://stackoverflow.com/questions/2938482/encode-decode-a-long-to-a-string-using-a-fixed-set-of-letters-in-java}
  *
  */
-public class LongEncoding {
+public final class LongEncoding {
 
     private static final String BASE_SYMBOLS = "0123456789abcdefghijklmnopqrstuvwxyz";
 

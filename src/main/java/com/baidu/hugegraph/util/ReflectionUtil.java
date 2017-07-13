@@ -17,7 +17,7 @@ import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.NotFoundException;
 
-public class ReflectionUtil {
+public final class ReflectionUtil {
 
     public static List<Method> getMethodsAnnotatedWith(
             Class<?> type,

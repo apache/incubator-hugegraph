@@ -9,14 +9,15 @@ import com.google.common.base.Preconditions;
 /**
  * Created by liningrui on 2017/5/26.
  */
-public class E {
+public final class E {
 
     public static void checkNotNull(Object object, String elem) {
         Preconditions.checkNotNull(object, "The '%s' can't be null", elem);
     }
 
     public static void checkNotNull(Object object, String elem, String owner) {
-        Preconditions.checkNotNull(object, "The '%s' of '%s' can't be null",
+        Preconditions.checkNotNull(object,
+                                   "The '%s' of '%s' can't be null",
                                    elem, owner);
     }
 

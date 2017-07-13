@@ -2,7 +2,7 @@ package com.baidu.hugegraph.util;
 
 import java.util.Date;
 
-public class TimeUtil {
+public final class TimeUtil {
 
     public static long twepoch = 1288834974657L;
 
