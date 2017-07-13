@@ -180,7 +180,7 @@ public abstract class CassandraTable {
             return ImmutableList.of(select);
         }
 
-        /**
+        /*
          * Query by partition-key + clustering-key
          * NOTE: Error if multi-column IN clause include partition key:
          * error: multi-column relations can only be applied to clustering
@@ -193,7 +193,7 @@ public abstract class CassandraTable {
             // NOTE: there is no Select.clone(), just use copy instead
             Select idSelection = CopyUtil.copy(select,
                                  QueryBuilder.select().from(this.table));
-            /**
+            /*
              * NOTE: concat with AND relation, like:
              * "pk = id and ck1 = v1 and ck2 = v2"
              */
@@ -272,7 +272,7 @@ public abstract class CassandraTable {
                 return Clauses.and(
                         QueryBuilder.gte(QueryBuilder.token(col), start),
                         QueryBuilder.lt(QueryBuilder.token(col), end));
-            /**
+            /*
              * Currently we can't sypport LIKE due to error:
              * "cassandra no viable alternative at input 'like'..."
              */
@@ -337,11 +337,11 @@ public abstract class CassandraTable {
         return entries;
     }
 
-    protected String formatKey(HugeKeys key) {
+    protected final String formatKey(HugeKeys key) {
         return key.name();
     }
 
-    protected HugeKeys parseKey(String name) {
+    protected final HugeKeys parseKey(String name) {
         return HugeKeys.valueOf(name.toUpperCase());
     }
 

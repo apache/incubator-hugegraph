@@ -57,7 +57,7 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void open(HugeConfig config) {
-        if (this.sessions.isOpened()) {
+        if (this.sessions.opened()) {
             // TODO: maybe we should throw an exception here instead of ignore
             logger.debug("Store {} has been opened before", this.name);
             return;
@@ -118,7 +118,7 @@ public abstract class CassandraStore implements BackendStore {
         for (BackendEntry i : mutation.deletions()) {
             CassandraBackendEntry entry = castBackendEntry(i);
             if (entry.selfChanged()) {
-                // delete entry
+                // Delete entry
                 this.table(entry.type()).delete(session, entry.row());
             }
             // Delete sub rows (edges)
@@ -195,8 +195,11 @@ public abstract class CassandraStore implements BackendStore {
             return;
         }
 
-        logger.debug("Store {} commit statements: {}",
-                     this.name, session.statements());
+        if (logger.isDebugEnabled()) {
+            logger.debug("Store {} commit statements: {}",
+                         this.name, session.statements());
+        }
+
         try {
             session.commit();
         } catch (InvalidQueryException e) {
@@ -285,7 +288,7 @@ public abstract class CassandraStore implements BackendStore {
         }
     }
 
-    protected CassandraTable table(HugeType type) {
+    protected final CassandraTable table(HugeType type) {
         assert type != null;
         CassandraTable table = this.tables.get(type);
         if (table == null) {
@@ -294,19 +297,20 @@ public abstract class CassandraStore implements BackendStore {
         return table;
     }
 
-    protected void checkClusterConneted() {
+    protected final void checkClusterConneted() {
         E.checkState(this.sessions != null,
                      "Cassandra store has not been initialized");
         this.sessions.checkClusterConneted();
     }
 
-    protected void checkSessionConneted() {
+    protected final void checkSessionConneted() {
         E.checkState(this.sessions != null,
                      "Cassandra store has not been initialized");
         this.sessions.checkSessionConneted();
     }
 
-    protected static CassandraBackendEntry castBackendEntry(BackendEntry entry) {
+    protected static final CassandraBackendEntry castBackendEntry(
+              BackendEntry entry) {
         assert entry instanceof CassandraBackendEntry;
         if (!(entry instanceof CassandraBackendEntry)) {
             throw new BackendException(

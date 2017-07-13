@@ -33,7 +33,7 @@ public class CassandraSessionPool {
     }
 
     public void open(String hosts, int port) {
-        if (isOpened()) {
+        if (opened()) {
             throw new BackendException("Please close the old SessionPool " +
                       "before opening a new one");
         }
@@ -43,11 +43,11 @@ public class CassandraSessionPool {
                        .build();
     }
 
-    public boolean isOpened() {
+    public final boolean opened() {
         return (this.cluster != null && !this.cluster.isClosed());
     }
 
-    public Cluster cluster() {
+    public final Cluster cluster() {
         return this.cluster;
     }
 
@@ -85,24 +85,27 @@ public class CassandraSessionPool {
                      this.sessionCount.get());
     }
 
-    public void checkClusterConneted() {
+    public final void checkClusterConneted() {
         E.checkState(this.cluster != null,
                      "Cassandra cluster has not been initialized");
         E.checkState(!this.cluster.isClosed(),
                      "Cassandra cluster has been closed");
     }
 
-    public void checkSessionConneted() {
+    public final void checkSessionConneted() {
         this.checkClusterConneted();
 
         E.checkState(this.session() != null,
                      "Cassandra session has not been initialized");
-        E.checkState(!this.session().isClosed(),
+        E.checkState(!this.session().closed(),
                      "Cassandra session has been closed");
     }
 
-    // Expect every thread hold a Session wrapper
-    class Session {
+    /**
+     * The Session class is a wrapper of driver Session
+     * Expect every thread hold a Session wrapper
+     */
+    protected final class Session {
 
         private com.datastax.driver.core.Session session;
         private BatchStatement batch;
@@ -120,7 +123,7 @@ public class CassandraSessionPool {
             this.batch.clear();
         }
 
-        public synchronized ResultSet commit() {
+        public ResultSet commit() {
             return this.session.execute(this.batch);
         }
 
@@ -136,7 +139,7 @@ public class CassandraSessionPool {
             return this.session.execute(statement, args);
         }
 
-        public boolean isClosed() {
+        public boolean closed() {
             return this.session.isClosed();
         }
 
