@@ -2,7 +2,7 @@ package com.baidu.hugegraph.concurrent;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
+
 
 /**
  * Created by zhangyi51 on 17/7/13.
@@ -15,61 +15,41 @@ public class LockManager {
         return INSTANCE;
     }
 
-    private Map<String, Lock> locksMap;
+    private Map<String, LockGroup> lockGroupMap;
 
     private LockManager() {
-        locksMap = new ConcurrentHashMap<>();
+        this.lockGroupMap = new ConcurrentHashMap<>();
     }
 
-    public boolean exists(String lockName) {
-        return locksMap.containsKey(lockName);
+    public boolean exists(String lockGroup) {
+        return this.lockGroupMap.containsKey(lockGroup);
     }
 
-    public Lock create(String lockName) {
-        if (locksMap.containsKey(lockName)) {
+    public LockGroup create(String lockGroup) {
+        if (this.lockGroupMap.containsKey(lockGroup)) {
             throw new RuntimeException(String.format(
-                      "Lock '%s' exists!", lockName));
+                      "LockGroup '%s' already exists!", lockGroup));
         }
-        Lock lock = new Lock(lockName);
+        LockGroup lockgroup = new LockGroup(lockGroup);
 
-        locksMap.put(lockName, lock);
-        return lock;
+        this.lockGroupMap.put(lockGroup, lockgroup);
+        return lockgroup;
     }
 
-    public Lock get(String lockName) {
-        return locksMap.get(lockName);
+    public LockGroup get(String lockGroup) {
+        if (!exists(lockGroup)) {
+            throw new RuntimeException(String.format(
+                      "Not exist LockGroup '%s'", lockGroup));
+        }
+        return this.lockGroupMap.get(lockGroup);
     }
 
-    public class Lock {
-
-        private String name;
-        private AtomicReference<Thread> sign;
-
-        public Lock(String name) {
-            this.name = name;
-            sign = new AtomicReference<>();
-        }
-
-        public boolean lock() {
-            Thread current = Thread.currentThread();
-            return sign.compareAndSet(null, current);
-        }
-
-        public void unlock() {
-            Thread current = Thread.currentThread();
-            if (!sign.compareAndSet(current, null)) {
-                throw new RuntimeException(String.format("Thread '%s' try to " +
-                          "unlock '%s' which is held by other thread now.",
-                          current.getName(), this.name));
-            }
-        }
-
-        public String name() {
-            return this.name;
-        }
-
-        public void name(String name) {
-            this.name = name;
+    public void destroy(String lockGroup) {
+        if (this.exists(lockGroup)) {
+            this.lockGroupMap.remove(lockGroup);
+        } else {
+            throw new RuntimeException(String.format(
+                      "Not exist LockGroup '%s'", lockGroup));
         }
     }
 }
