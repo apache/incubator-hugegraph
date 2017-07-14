@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
+import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.HugeServer;
@@ -57,6 +59,7 @@ public class VertexAPI extends API {
     }
 
     @POST
+    @Decompress
     @Path("batch")
     @Status(Status.CREATED)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -97,6 +100,7 @@ public class VertexAPI extends API {
     }
 
     @GET
+    @Compress
     @Produces(MediaType.APPLICATION_JSON)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,

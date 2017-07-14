@@ -16,6 +16,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 
@@ -29,6 +30,7 @@ public class GremlinAPI extends API {
         return this.client.target(String.format("%s?%s", location, query))
                    .request()
                    .accept(MediaType.APPLICATION_JSON)
+                   .acceptEncoding("gzip")
                    .get();
     }
 
@@ -36,6 +38,7 @@ public class GremlinAPI extends API {
         return this.client.target(location)
                    .request()
                    .accept(MediaType.APPLICATION_JSON)
+                   .acceptEncoding("gzip")
                    .post(Entity.entity(request, MediaType.APPLICATION_JSON));
     }
 
@@ -44,10 +47,10 @@ public class GremlinAPI extends API {
     }
 
     @POST
+    @Compress
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response post(@Context HugeConfig conf,
-                         String request) {
+    public Response post(@Context HugeConfig conf, String request) {
         /* The following code is reserved for forwarding request */
         // context.getRequestDispatcher(location).forward(request, response);
         // return Response.seeOther(UriBuilder.fromUri(location).build())
@@ -59,6 +62,7 @@ public class GremlinAPI extends API {
     }
 
     @GET
+    @Compress(buffer=(1024 * 40))
     @Produces(MediaType.APPLICATION_JSON)
     public Response get(@Context HugeConfig conf,
                         @Context UriInfo uriInfo) {
