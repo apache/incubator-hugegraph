@@ -189,10 +189,12 @@ public class EdgeAPI extends API {
     @JsonIgnoreProperties(value = {"type"})
     static class CreateEdge {
 
+        @JsonProperty("outV")
         public String source;
         @JsonProperty("outVLabel")
         public String sourceLabel;
         public String label;
+        @JsonProperty("inV")
         public String target;
         @JsonProperty("inVLabel")
         public String targetLabel;
