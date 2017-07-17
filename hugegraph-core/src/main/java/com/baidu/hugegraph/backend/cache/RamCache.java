@@ -240,25 +240,48 @@ public class RamCache implements Cache {
         }
 
         public final LinkNode<K, V> enqueue(LinkNode<K, V> node) {
-            synchronized (this.rear) {
-                node.next = this.empty;
-                // Build the link between rear and node
-                this.rear.next = node;
-                node.prev = this.rear;
-                // Reset rear
-                this.rear = node;
+            while (true) {
+                LinkNode<K, V> rear = this.rear;
+                synchronized (rear) {
+                    /*
+                     * The rear may be changed after another thread calling
+                     * enqueue()(and remove()?), at this time, we did not
+                     * actually lock the really rear, so let's lock the new
+                     * really rear again.
+                     */
+                    if (rear != this.rear) {
+                        continue;
+                    }
+                    assert this.rear.next == this.empty : this.rear.next;
+
+                    // Build the link between rear and node
+                    this.rear.next = node;
+                    node.prev = this.rear;
+                    node.next = this.empty;
+                    // Reset rear
+                    this.rear = node;
+                }
+                return node;
             }
-            return node;
         }
 
         public final LinkNode<K, V> dequeue() {
             synchronized (this.head) {
+                /*
+                 * There is no need to lock this.head.next because
+                 * both enqueue() and remove() can't get its previous
+                 * lock(that's the locked head here).
+                 */
+
+                // Empty queue
                 if (this.rear == this.head) {
                     return null;
                 }
 
-                /* If there is only one element, the rear would point to the
+                /*
+                 * If there is only one element, the rear would point to the
                  * deleting node, so we should lock the rear to avoid enqueue()
+                 * when updating the rear.
                  */
                 LinkNode<K, V> node = this.head.next;
                 if (node == this.rear) {
@@ -282,16 +305,37 @@ public class RamCache implements Cache {
 
         public final void remove(LinkNode<K, V> node) {
             synchronized (node) {
-                synchronized (node.prev) {
-                    if (node == this.rear) {
-                        this.rear = node.prev;
+                while (true) {
+                    LinkNode<K, V> prev = node.prev;
+                    synchronized (prev) {
+                        if (prev != node.prev) {
+                            /*
+                             * The previous node has changed(maybe it released
+                             * lock after it's removed, then we got the lock)
+                             */
+                            continue;
+                        }
+                        assert node.next != node.prev : node.next;
+
+                        /*
+                         * If the rear is `node`, we can update the rear
+                         * without lock(because `node` is locked).
+                         */
+                        if (node == this.rear) {
+                            this.rear = node.prev;
+                        }
+
+                        // Build the link between node.prev and node.next
+                        node.prev.next = node.next;
+                        node.next.prev = node.prev;
+                        assert prev == node.prev;
+
+                        // Clear node links
+                        node.prev = this.empty;
+                        node.next = this.empty;
+
+                        return;
                     }
-                    // Build the link between node.prev and node.next
-                    node.prev.next = node.next;
-                    node.next.prev = node.prev;
-                    // Clear node links
-                    node.prev = this.empty;
-                    node.next = this.empty;
                 }
             }
         }
