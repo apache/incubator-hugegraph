@@ -71,20 +71,20 @@ public class BaseCoreTest {
             // clear schema
             SchemaTransaction schema = graph.schemaTransaction();
 
-            schema.getVertexLabels().stream().forEach(elem -> {
-                schema.removeVertexLabel(elem.name());
+            schema.getIndexLabels().stream().forEach(elem -> {
+                schema.removeIndexLabel(elem.name());
             });
 
             schema.getEdgeLabels().stream().forEach(elem -> {
                 schema.removeEdgeLabel(elem.name());
             });
 
-            schema.getPropertyKeys().stream().forEach(elem -> {
-                schema.removePropertyKey(elem.name());
+            schema.getVertexLabels().stream().forEach(elem -> {
+                schema.removeVertexLabel(elem.name());
             });
 
-            schema.getIndexLabels().stream().forEach(elem -> {
-                schema.removeIndexLabel(elem.name());
+            schema.getPropertyKeys().stream().forEach(elem -> {
+                schema.removePropertyKey(elem.name());
             });
 
             graph.tx().commit();

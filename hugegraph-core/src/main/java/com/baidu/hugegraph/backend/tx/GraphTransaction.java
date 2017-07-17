@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.baidu.hugegraph.schema.SchemaElement;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -503,9 +504,8 @@ public class GraphTransaction extends AbstractTransaction {
 
                 // Convert vertex-label + primary-key to vertex-id
                 if (IdGeneratorFactory.supportSplicing()) {
-                    Id id = SplicingIdGenerator.splicing(
-                            label.toString(),
-                            primaryValues);
+                    Id id = SplicingIdGenerator.splicing(label.toString(),
+                                                         primaryValues);
                     query.query(id);
                     query.resetConditions();
                 } else {
@@ -549,5 +549,23 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Optimize by index-query
         return this.indexTx.query(query);
+    }
+
+    public void removeIndex(String indexName) {
+        // TODO: use event to replace direct call
+        this.checkOwnerThread();
+
+        this.beforeWrite();
+        this.indexTx.removeIndex(indexName);
+        this.afterWrite();
+    }
+
+    public void rebuildIndex(SchemaElement schemaElement) {
+        // TODO: use event to replace direct call
+        this.checkOwnerThread();
+
+        this.beforeWrite();
+        this.indexTx.rebuildIndex(schemaElement);
+        this.afterWrite();
     }
 }

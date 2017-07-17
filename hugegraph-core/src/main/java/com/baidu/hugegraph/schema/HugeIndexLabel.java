@@ -2,12 +2,15 @@ package com.baidu.hugegraph.schema;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
@@ -135,7 +138,7 @@ public class HugeIndexLabel extends IndexLabel {
     @Override
     public String schema() {
         StringBuilder sb = new StringBuilder();
-        sb.append("schema.makeIndexlabel(\"").append(this.name).append("\")");
+        sb.append("schema.makeIndexLabel(\"").append(this.name).append("\")");
         sb.append(this.baseLabelSchema());
         sb.append(this.indexFieldsSchema());
         sb.append(this.indexType.schema());
@@ -192,9 +195,33 @@ public class HugeIndexLabel extends IndexLabel {
 
         this.transaction().addIndexLabel(this);
 
+        // TODO: use event to replace direct call
+        this.rebuildIndexIfNeeded();
+
         // If addIndexLabel successed, update schema element indexNames
         this.element.indexNames(this.name);
         return this;
+    }
+
+    public void rebuildIndexIfNeeded() {
+        if (this.baseType() == HugeType.VERTEX_LABEL) {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, this.baseValue);
+            query.limit(1L);
+            if (this.transaction().graph().graphTransaction()
+                    .queryVertices(query).iterator().hasNext()) {
+                this.transaction().rebuildIndex(this);
+            }
+        } else {
+            assert this.baseType() == HugeType.EDGE_LABEL;
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, this.baseValue);
+            query.limit(1L);
+            if (this.transaction().graph().graphTransaction()
+                    .queryEdges(query).iterator().hasNext()) {
+                this.transaction().rebuildIndex(this);
+            }
+        }
     }
 
     @Override
@@ -267,6 +294,14 @@ public class HugeIndexLabel extends IndexLabel {
     @Override
     public void remove() {
         this.transaction().removeIndexLabel(this.name);
+        // Delete indexName from vertex label object
+        Set<String> indexNames = this.element.indexNames();
+        indexNames.remove(this.name);
+        this.element.indexNames(indexNames.toArray(new String[]{}));
+    }
+
+    public void rebuild() {
+        this.transaction().rebuildIndex(this);
     }
 
     @Override

@@ -50,7 +50,7 @@ public class HugeVertexLabel extends VertexLabel {
     @Override
     public String schema() {
         StringBuilder sb = new StringBuilder();
-        sb.append("schema.makePropertyKey(\"").append(this.name).append("\")");
+        sb.append("schema.makeVertexLabel(\"").append(this.name).append("\")");
         sb.append(this.propertiesSchema());
         sb.append(this.primaryKeysSchema());
         sb.append(".ifNotExist()");
@@ -167,5 +167,9 @@ public class HugeVertexLabel extends VertexLabel {
             throw new NotAllowException("Not allowed to append indexes for " +
                                         "existed vertex label '%s'", this.name);
         }
+    }
+
+    public void rebuildIndex() {
+        this.transaction().rebuildIndex(this);
     }
 }

@@ -38,4 +38,6 @@ public abstract class VertexLabel extends SchemaElement {
 
     @Override
     public abstract VertexLabel create();
+
+    public abstract void rebuildIndex();
 }

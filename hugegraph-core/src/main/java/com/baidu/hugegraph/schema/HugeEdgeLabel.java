@@ -125,7 +125,7 @@ public class HugeEdgeLabel extends EdgeLabel {
     @Override
     public String schema() {
         StringBuilder sb = new StringBuilder();
-        sb.append("schema.makePropertyKey(\"").append(this.name).append("\")");
+        sb.append("schema.makeEdgeLabel(\"").append(this.name).append("\")");
         sb.append(this.propertiesSchema());
         sb.append(this.linkSchema());
         sb.append(this.frequency.schema());
@@ -295,4 +295,7 @@ public class HugeEdgeLabel extends EdgeLabel {
         }
     }
 
+    public void rebuildIndex() {
+        this.transaction().rebuildIndex(this);
+    }
 }

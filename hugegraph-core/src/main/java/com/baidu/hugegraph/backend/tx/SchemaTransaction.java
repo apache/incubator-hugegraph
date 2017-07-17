@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -121,10 +122,35 @@ public class SchemaTransaction extends AbstractTransaction {
         return this.serializer.readIndexLabel(entry);
     }
 
-    public void removeIndexLabel(String name) {
-        logger.debug("SchemaTransaction remove index label '{}'", name);
-        // TODO: need check index data exists
-        this.removeSchema(new HugeIndexLabel(name));
+    public void removeIndexLabel(String indexName) {
+        logger.debug("SchemaTransaction remove index label '{}'", indexName);
+        // TODO: should lock indexLabel
+        // Remove index data
+        // TODO: use event to replace direct call
+        this.graph().graphTransaction().removeIndex(indexName);
+        // Remove indexName from indexNames of vertex label or edge label
+        this.removeIndexNames(indexName);
+        this.removeSchema(new HugeIndexLabel(indexName));
+    }
+
+    public void rebuildIndex(SchemaElement schemaElement) {
+        logger.debug("SchemaTransaction rebuild index for '{}' '{}'",
+                     schemaElement.type(), schemaElement.name());
+        // Flag to indicate whether there are indexes to be rebuild
+        boolean needRebuild = false;
+        if (schemaElement.type() == HugeType.INDEX_LABEL) {
+            needRebuild = true;
+            this.graph().graphTransaction().removeIndex(schemaElement.name());
+        } else {
+            for (String indexName : schemaElement.indexNames()) {
+                needRebuild = true;
+                this.graph().graphTransaction().removeIndex(indexName);
+            }
+        }
+        if (needRebuild) {
+            // TODO: should lock indexLabels related with schemaElement
+            this.graph().graphTransaction().rebuildIndex(schemaElement);
+        }
     }
 
     protected void addSchema(SchemaElement schemaElement, BackendEntry entry) {
@@ -146,5 +172,34 @@ public class SchemaTransaction extends AbstractTransaction {
         this.beforeWrite();
         this.removeEntry(schemaElement.type(), id);
         this.afterWrite();
+    }
+
+    protected void removeIndexNames(String indexName) {
+        IndexLabel label = getIndexLabel(indexName);
+        HugeType baseType = label.baseType();
+        String baseValue = label.baseValue();
+        if (baseType == HugeType.VERTEX_LABEL) {
+            VertexLabel vertexLabel = getVertexLabel(baseValue);
+            vertexLabel.indexNames().remove(indexName);
+            addVertexLabel(vertexLabel);
+        } else {
+            assert baseType == HugeType.EDGE_LABEL;
+            EdgeLabel edgeLabel = getEdgeLabel(baseValue);
+            edgeLabel.indexNames().remove(indexName);
+            addEdgeLabel(edgeLabel);
+        }
+    }
+
+    @Override
+    public void commit() throws BackendException {
+        try {
+            super.commit();
+        } catch (Throwable e) {
+            // TODO: use event to replace direct call
+            this.graph().graphTransaction().reset();
+            throw e;
+        }
+        // TODO: use event to replace direct call
+        this.graph().graphTransaction().commit();
     }
 }

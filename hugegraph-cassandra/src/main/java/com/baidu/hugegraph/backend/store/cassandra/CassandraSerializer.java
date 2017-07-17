@@ -403,12 +403,19 @@ public class CassandraSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeIndex(HugeIndex index) {
         CassandraBackendEntry entry = newBackendEntry(index);
-        entry.column(HugeKeys.PROPERTY_VALUES, index.propertyValues());
-        entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
-        // TODO: try to make these code more clear.
-        Id[] ids = index.elementIds().toArray(new Id[0]);
-        assert ids.length == 1;
-        entry.column(HugeKeys.ELEMENT_IDS, ids[0].asString());
+        // When propertyValues is null and elementIds size is 0, it is
+        // meaningful for deletion of index data in secondary_index or
+        // search_index.
+        if (index.propertyValues() == null && index.elementIds().size() == 0) {
+            entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
+        } else {
+            entry.column(HugeKeys.PROPERTY_VALUES, index.propertyValues());
+            entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
+            // TODO: try to make these code more clear.
+            Id[] ids = index.elementIds().toArray(new Id[0]);
+            assert ids.length == 1;
+            entry.column(HugeKeys.ELEMENT_IDS, ids[0].asString());
+        }
         return entry;
     }
 

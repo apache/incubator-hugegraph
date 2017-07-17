@@ -40,6 +40,8 @@ public abstract class IndexLabel extends SchemaElement {
 
     public abstract List<String> indexFields();
 
+    public abstract void rebuild();
+
     @Override
     public IndexLabel ifNotExist() {
         this.checkExist = false;
