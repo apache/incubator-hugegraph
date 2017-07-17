@@ -56,4 +56,6 @@ public abstract class EdgeLabel extends SchemaElement {
     @Override
     public abstract EdgeLabel create();
 
+    public abstract void rebuildIndex();
+
 }

@@ -2,10 +2,15 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.baidu.hugegraph.backend.BackendException;
+import com.datastax.driver.core.querybuilder.Delete;
+import com.datastax.driver.core.querybuilder.Select;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -320,7 +325,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void insert(CassandraSessionPool.Session session,
+        public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(table());
 
@@ -338,8 +343,8 @@ public class CassandraTables {
         }
 
         @Override
-        public void delete(CassandraSessionPool.Session session,
-                           CassandraBackendEntry.Row entry) {
+        public void eliminate(CassandraSessionPool.Session session,
+                              CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(table());
 
             update.with(QueryBuilder.remove(
@@ -356,16 +361,58 @@ public class CassandraTables {
         }
 
         @Override
+        public void delete(CassandraSessionPool.Session session,
+                               CassandraBackendEntry.Row entry) {
+
+            String propValues = entry.column(HugeKeys.PROPERTY_VALUES);
+            String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
+            if (propValues != null) {
+                throw new BackendException("SecondaryIndex deletion " +
+                          "should just have INDEX_LABEL_NAME, but " +
+                          "PROPERTY_VALUES:(%s) is provided.", propValues);
+            }
+            if (indexLabelName == null || indexLabelName.isEmpty()) {
+                throw new BackendException("SecondaryIndex deletion needs " +
+                          "INDEX_LABEL_NAME, but not provided.");
+            }
+            Select select = QueryBuilder.select().from(this.table());
+            select.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.INDEX_LABEL_NAME),
+                         indexLabelName));
+            select.allowFiltering();
+            Iterator<Row> it = session.execute(select).iterator();
+            while (it.hasNext()) {
+                propValues = it.next().get(formatKey(HugeKeys.PROPERTY_VALUES),
+                                           String.class);
+                Delete delete = QueryBuilder.delete().from(table());
+                delete.where(QueryBuilder.eq(
+                             formatKey(HugeKeys.INDEX_LABEL_NAME),
+                             indexLabelName));
+                delete.where(QueryBuilder.eq(
+                             formatKey(HugeKeys.PROPERTY_VALUES),
+                             propValues));
+                session.add(delete);
+            }
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            throw new BackendException(
+                      "SecondaryIndex insertion is not supported.");
+        }
+
+        @Override
         protected CassandraBackendEntry result2Entry(HugeType type, Row row) {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
-
+            Set<String> elemIds = row.getSet(formatKey(HugeKeys.ELEMENT_IDS),
+                                             String.class);
             entry.column(HugeKeys.PROPERTY_VALUES,
                          row.getString(formatKey(HugeKeys.PROPERTY_VALUES)));
             entry.column(HugeKeys.INDEX_LABEL_NAME,
                          row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
-            entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(
-                         row.getSet(formatKey(HugeKeys.ELEMENT_IDS),
-                         String.class)));
+            // TODO: use default result2Entry after remove toJson()
+            entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(elemIds));
 
             return entry;
         }
@@ -404,7 +451,7 @@ public class CassandraTables {
         }
 
         @Override
-        public void insert(CassandraSessionPool.Session session,
+        public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(table());
 
@@ -422,8 +469,8 @@ public class CassandraTables {
         }
 
         @Override
-        public void delete(CassandraSessionPool.Session session,
-                           CassandraBackendEntry.Row entry) {
+        public void eliminate(CassandraSessionPool.Session session,
+                              CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(table());
 
             update.where(QueryBuilder.eq(
@@ -440,16 +487,44 @@ public class CassandraTables {
         }
 
         @Override
+        public void delete(CassandraSessionPool.Session session,
+                                        CassandraBackendEntry.Row entry) {
+            String propValues = entry.column(HugeKeys.PROPERTY_VALUES);
+            String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
+            if (propValues != null) {
+                throw new BackendException("SearchIndex deletion " +
+                          "should just have INDEX_LABEL_NAME, but " +
+                          "PROPERTY_VALUES:(%s) is provided.", propValues);
+            }
+            if (indexLabelName == null || indexLabelName.isEmpty()) {
+                throw new BackendException("SearchIndex deletion needs " +
+                          "INDEX_LABEL_NAME, but not provided.");
+            }
+            Delete delete = QueryBuilder.delete().from(table());
+            delete.where(QueryBuilder.eq(
+                         formatKey(HugeKeys.INDEX_LABEL_NAME),
+                         indexLabelName));
+            session.add(delete);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            throw new BackendException(
+                      "SearchIndex insertion is not supported.");
+        }
+
+        @Override
         protected CassandraBackendEntry result2Entry(HugeType type, Row row) {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
-
+            Set<String> elemIds = row.getSet(formatKey(HugeKeys.ELEMENT_IDS),
+                                             String.class);
             entry.column(HugeKeys.INDEX_LABEL_NAME,
                          row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
             entry.column(HugeKeys.PROPERTY_VALUES,
                          row.getDecimal(formatKey(HugeKeys.PROPERTY_VALUES)));
-            entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(
-                         row.getSet(formatKey(HugeKeys.ELEMENT_IDS),
-                         String.class)));
+            // TODO: use default result2Entry after remove toJson()
+            entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(elemIds));
 
             return entry;
         }

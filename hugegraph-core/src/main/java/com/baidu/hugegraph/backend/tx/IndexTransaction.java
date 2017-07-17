@@ -35,6 +35,7 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -48,6 +49,8 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public class IndexTransaction extends AbstractTransaction {
 
@@ -114,13 +117,9 @@ public class IndexTransaction extends AbstractTransaction {
             index.elementIds(element.id());
 
             if (!removed) {
-                // TODO: Should change to this method
-                // this.appendEntry(this.serializer.writeIndex(index));
-                this.addEntry(this.serializer.writeIndex(index));
+                this.appendEntry(this.serializer.writeIndex(index));
             } else {
-                // TODO: Should change to this method
-                // this.eliminateEntry(this.serializer.writeIndex(index));
-                this.removeEntry(this.serializer.writeIndex(index));
+                this.eliminateEntry(this.serializer.writeIndex(index));
             }
         }
     }
@@ -141,6 +140,7 @@ public class IndexTransaction extends AbstractTransaction {
 
         ExtendableIterator<BackendEntry> entries = new ExtendableIterator<>();
         for (String label : labels) {
+            // TODO: should lock indexLabels
             // Condition => Entry
             ConditionQuery indexQuery = this.constructIndexQuery(query, label);
             entries.extend(super.query(indexQuery).iterator());
@@ -277,5 +277,60 @@ public class IndexTransaction extends AbstractTransaction {
             return false;
         }
         return true;
+    }
+
+    public void removeIndex (String indexName) {
+        SchemaTransaction schema = graph().schemaTransaction();
+        IndexLabel indexLabel = schema.getIndexLabel(indexName);
+        E.checkArgumentNotNull(indexLabel, "Not existed index: '%s'", indexName);
+        HugeIndex index = new HugeIndex(indexLabel);
+        this.removeEntry(this.serializer.writeIndex(index));
+    }
+
+    public void rebuildIndex(SchemaElement schemaElement) {
+        GraphTransaction graphTransaction = graph().graphTransaction();
+        Set<String> indexNames = schemaElement.indexNames();
+        if (schemaElement.type() == HugeType.INDEX_LABEL) {
+            // Rebuild index for indexLabel, just this kind index is
+            // updated for related vertices/edges
+            IndexLabel indexLabel = (HugeIndexLabel) schemaElement;
+            if (indexLabel.baseType() == HugeType.VERTEX_LABEL) {
+                ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+                query.eq(HugeKeys.LABEL, indexLabel.baseValue());
+                for (Vertex vertex : graphTransaction.queryVertices(query)) {
+                    updateIndex(indexLabel.name(), (HugeVertex) vertex, false);
+                }
+            } else {
+                assert indexLabel.baseType() == HugeType.EDGE_LABEL;
+                ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+                query.eq(HugeKeys.LABEL, indexLabel.baseValue());
+                for (Edge edge : graphTransaction.queryEdges(query)) {
+                    updateIndex(indexLabel.name(), (HugeEdge) edge, false);
+                }
+            }
+        } else if (schemaElement.type() == HugeType.VERTEX_LABEL) {
+            // Rebuild index for vertexLabel, all kinds indexes based on this
+            // vertexLabel are updated for related vertices
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, schemaElement.name());
+
+            for (Vertex vertex : graphTransaction.queryVertices(query)) {
+                for (String indexName : indexNames) {
+                    updateIndex(indexName, (HugeVertex) vertex, false);
+                }
+            }
+        } else {
+            // Rebuild index for edgeLabel, all kinds indexes based on this
+            // edgeLabel are updated for related edges.
+            assert schemaElement.type() == HugeType.EDGE_LABEL;
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, schemaElement.name());
+
+            for (Edge edge : graphTransaction.queryEdges(query)) {
+                for (String indexName : indexNames) {
+                    updateIndex(indexName, (HugeEdge) edge, false);
+                }
+            }
+        }
     }
 }

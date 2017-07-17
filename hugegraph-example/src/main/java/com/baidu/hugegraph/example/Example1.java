@@ -3,6 +3,7 @@ package com.baidu.hugegraph.example;
 import java.util.Iterator;
 import java.util.List;
 
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -111,8 +112,8 @@ public class Example1 {
         schema.makeVertexLabel("FridgeSensor").properties("city").primaryKeys("city").create();
 
         logger.info("===============  vertexLabel & index  ================");
-        schema.makeIndexLabel("personByCity").on(person).secondary().by("city").create();
-        schema.makeIndexLabel("personByAge").on(person).search().by("age").create();
+        IndexLabel personByCity = schema.makeIndexLabel("personByCity").on(person).secondary().by("city").create();
+        IndexLabel personByAge = schema.makeIndexLabel("personByAge").on(person).search().by("age").create();
         // schemaManager.vertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schemaManager.vertexLabel("meal").index("byMeal").materialized().by("name").add();
@@ -338,6 +339,20 @@ public class Example1 {
         } catch (NotFoundException e) {
             assert e.getMessage().contains("Not found the EDGE entry");
         }
+
+        // TODO: move to core test
+        // test index remove and index rebuild
+        personByCity.remove();
+        personByAge.remove();
+        graph.addVertex(T.label, "person", "name", "Bright",
+                "city", "LuAn", "age", 27);
+        personByCity = schema.makeIndexLabel("personByCity").on(person).secondary().by("city").create();
+        personByAge = schema.makeIndexLabel("personByAge").on(person).search().by("age").create();
+        // insert one person here manually
+        personByCity.rebuild();
+        personByAge.rebuild();
+        // insert one person here manually
+        person.rebuildIndex();
     }
 
 }
