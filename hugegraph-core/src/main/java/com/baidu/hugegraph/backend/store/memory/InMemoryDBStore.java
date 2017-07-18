@@ -21,6 +21,7 @@ import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -42,10 +43,13 @@ public class InMemoryDBStore implements BackendStore {
 
     private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStore.class);
 
+    private final BackendStoreProvider provider;
     private final String name;
     private final ConcurrentNavigableMap<Id, BackendEntry> store;
 
-    public InMemoryDBStore(final String name) {
+    public InMemoryDBStore(final BackendStoreProvider provider,
+                           final String name) {
+        this.provider = provider;
         this.name = name;
         this.store = new ConcurrentSkipListMap<Id, BackendEntry>();
     }
@@ -246,6 +250,11 @@ public class InMemoryDBStore implements BackendStore {
     @Override
     public String name() {
         return this.name;
+    }
+
+    @Override
+    public BackendStoreProvider provider() {
+        return this.provider;
     }
 
     @Override

@@ -28,6 +28,7 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.schema.HugeSchemaManager;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -54,23 +55,25 @@ public class HugeGraph implements Graph {
                                                            strategies);
     }
 
-    private String name = null;
-
-    private HugeConfig configuration = null;
-    private HugeFeatures features = null;
+    private String name;
+    private EventHub schemaEventHub;
+    private HugeFeatures features;
+    private HugeConfig configuration;
 
     // Store provider like Cassandra
     private BackendStoreProvider storeProvider = null;
 
     // Default transactions
-    private ThreadLocal<GraphTransaction> graphTransaction = null;
-    private ThreadLocal<SchemaTransaction> schemaTransaction = null;
+    private ThreadLocal<GraphTransaction> graphTransaction;
+    private ThreadLocal<SchemaTransaction> schemaTransaction;
 
     public HugeGraph(HugeConfig configuration) {
         this.configuration = configuration;
-        this.name = configuration.get(CoreOptions.STORE);
 
+        this.schemaEventHub = new EventHub("schema");
         this.features = new HugeFeatures(this, true);
+
+        this.name = configuration.get(CoreOptions.STORE);
 
         this.graphTransaction = new ThreadLocal<>();
         this.schemaTransaction = new ThreadLocal<>();
@@ -126,6 +129,10 @@ public class HugeGraph implements Graph {
 
     public String name() {
         return this.name;
+    }
+
+    public EventHub schemaEventHub() {
+        return this.schemaEventHub;
     }
 
     public void initBackend() {

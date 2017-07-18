@@ -12,6 +12,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -30,6 +31,7 @@ public abstract class CassandraStore implements BackendStore {
             LoggerFactory.getLogger(CassandraStore.class);
 
     private final String name;
+    private final BackendStoreProvider provider;
     private final String keyspace;
     private CassandraSessionPool sessions;
 
@@ -37,10 +39,12 @@ public abstract class CassandraStore implements BackendStore {
 
     private HugeConfig conf = null;
 
-    public CassandraStore(final String keyspace, final String name) {
+    public CassandraStore(final BackendStoreProvider provider,
+                          final String keyspace, final String name) {
         E.checkNotNull(keyspace, "keyspace");
         E.checkNotNull(name, "name");
 
+        this.provider = provider;
         this.keyspace = keyspace;
         this.name = name;
         this.sessions = new CassandraSessionPool(this.keyspace);
@@ -56,6 +60,11 @@ public abstract class CassandraStore implements BackendStore {
     @Override
     public String name() {
         return this.name;
+    }
+
+    @Override
+    public BackendStoreProvider provider() {
+        return this.provider;
     }
 
     @Override
@@ -353,8 +362,9 @@ public abstract class CassandraStore implements BackendStore {
 
     public static class CassandraSchemaStore extends CassandraStore {
 
-        public CassandraSchemaStore(String keyspace, String name) {
-            super(keyspace, name);
+        public CassandraSchemaStore(BackendStoreProvider provider,
+                                    String keyspace, String name) {
+            super(provider, keyspace, name);
         }
 
         @Override
@@ -372,8 +382,9 @@ public abstract class CassandraStore implements BackendStore {
 
     public static class CassandraGraphStore extends CassandraStore {
 
-        public CassandraGraphStore(String keyspace, String name) {
-            super(keyspace, name);
+        public CassandraGraphStore(BackendStoreProvider provider,
+                                   String keyspace, String name) {
+            super(provider, keyspace, name);
         }
 
         @Override
@@ -385,8 +396,9 @@ public abstract class CassandraStore implements BackendStore {
 
     public static class CassandraIndexStore extends CassandraStore {
 
-        public CassandraIndexStore(String keyspace, String name) {
-            super(keyspace, name);
+        public CassandraIndexStore(BackendStoreProvider provider,
+                                   String keyspace, String name) {
+            super(provider, keyspace, name);
         }
 
         @Override

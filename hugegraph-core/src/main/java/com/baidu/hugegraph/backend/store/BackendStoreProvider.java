@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.backend.store;
 
+import com.baidu.hugegraph.event.EventListener;
+
 public interface BackendStoreProvider {
 
     public String type();
@@ -19,4 +21,6 @@ public interface BackendStoreProvider {
     public void init();
 
     public void clear();
+
+    public void listen(EventListener listener);
 }
