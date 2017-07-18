@@ -271,7 +271,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                 .primaryKeys("id").create();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            EdgeLabel look = schema.makeEdgeLabel("look").multiTimes()
+            schema.makeEdgeLabel("look").multiTimes()
                     .properties("time")
                     .sortKeys("time")
                     .create();
@@ -408,7 +408,7 @@ public class SchemaCoreTest extends BaseCoreTest{
     }
 
     // utils
-    public void initProperties() {
+    private void initProperties() {
         SchemaManager schema = graph().schema();
         schema.makePropertyKey("id").asInt().create();
         schema.makePropertyKey("name").asText().create();
