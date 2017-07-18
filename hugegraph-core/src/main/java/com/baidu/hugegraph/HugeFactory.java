@@ -44,9 +44,9 @@ public class HugeFactory {
                 configParent = tmpParent;
             }
 
-            E.checkNotNull(configParent, "Config Parent");
+            E.checkNotNull(configParent, "config parent");
             E.checkArgument(configParent.isDirectory(),
-                            "Config Parent must be directory.");
+                            "Config parent must be directory.");
 
             return config;
         } catch (ConfigurationException e) {

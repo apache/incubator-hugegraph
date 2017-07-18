@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 
 public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
@@ -23,7 +23,7 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
             this.stores.putIfAbsent(name, new InMemoryDBStore(name));
         }
         BackendStore store = this.stores.get(name);
-        Preconditions.checkNotNull(store);
+        E.checkNotNull(store, "store");
         return store;
     }
 

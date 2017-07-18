@@ -14,7 +14,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 
 @ApplicationPath("/")
 public class ApplicationConfig extends ResourceConfig {
@@ -48,7 +48,7 @@ public class ApplicationConfig extends ResourceConfig {
         private HugeConfig conf = null;
 
         public ConfFactory(HugeConfig conf) {
-            Preconditions.checkNotNull(conf, "Configuration is null");
+            E.checkNotNull(conf, "configuration");
             this.conf = conf;
         }
 

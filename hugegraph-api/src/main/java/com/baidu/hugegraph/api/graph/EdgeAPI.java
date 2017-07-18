@@ -179,7 +179,8 @@ public class EdgeAPI extends API {
     private static Vertex newVertex(HugeGraph graph, String id, String label) {
         VertexLabel vertexLabel = graph.schemaTransaction()
                                        .getVertexLabel(label);
-        E.checkNotNull(vertexLabel, "Not found the vertex label '%s'", label);
+        E.checkState(vertexLabel != null,
+                     "Not found the vertex label '%s'", label);
         Vertex vertex = new HugeVertex(graph.graphTransaction(),
                                        HugeElement.getIdValue(T.id, id),
                                        vertexLabel);

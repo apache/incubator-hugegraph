@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.google.common.base.Preconditions;
+import com.baidu.hugegraph.util.E;
 
 public abstract class AbstractBackendStoreProvider
         implements BackendStoreProvider {
@@ -19,10 +19,10 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void open(String name) {
-        Preconditions.checkNotNull(name);
+        E.checkNotNull(name, "store name");
 
         this.name = name;
-        this.stores = new ConcurrentHashMap<String, BackendStore>();
+        this.stores = new ConcurrentHashMap<>();
     }
 
     @Override

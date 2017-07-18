@@ -27,7 +27,6 @@ import java.util.function.Function;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -113,7 +112,7 @@ public abstract class Condition {
         }
 
         public boolean test(Object value1, Object value2) {
-            E.checkNotNull(this.tester, "Can't test %s", this.name());
+            E.checkState(this.tester != null, "Can't test %s", this.name());
             return this.tester.apply(value1, value2);
         }
 
@@ -247,8 +246,8 @@ public abstract class Condition {
         private Condition right;
 
         public BinCondition(Condition left, Condition right) {
-            E.checkNotNull(left, "Condition can't be null");
-            E.checkNotNull(right, "Condition can't be null");
+            E.checkNotNull(left, "left condition");
+            E.checkNotNull(right, "right condition");
             this.left = left;
             this.right = right;
         }
@@ -447,7 +446,7 @@ public abstract class Condition {
         }
 
         private SyspropRelation(Object key, RelationType op, Object value) {
-            Preconditions.checkNotNull(op);
+            E.checkNotNull(op, "relation type");
             this.key = key;
             this.relation = op;
             this.value = value;
@@ -483,7 +482,7 @@ public abstract class Condition {
         }
 
         public UserpropRelation(String key, RelationType op, Object value) {
-            Preconditions.checkNotNull(op);
+            E.checkNotNull(op, "relation type");
             this.key = key;
             this.relation = op;
             this.value = value;
