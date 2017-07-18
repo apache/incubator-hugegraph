@@ -37,7 +37,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class ConditionQuery extends IdQuery {
 
-    /* Conditions will be concated with `and` by default */
+    // Conditions will be concated with `and` by default
     private Set<Condition> conditions;
 
     public ConditionQuery(HugeType resultType) {
@@ -46,7 +46,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public ConditionQuery query(Condition condition) {
-        /* query by id (HugeGraph-259) */
+        // Query by id (HugeGraph-259)
         if (condition instanceof Relation) {
             Relation relation = (Relation) condition;
             if (relation.key().equals(HugeKeys.ID) &&
@@ -62,7 +62,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public ConditionQuery eq(HugeKeys key, Object value) {
-        /* filter value by key */
+        // Filter value by key
         return this.query(Condition.eq(key, value));
     }
 

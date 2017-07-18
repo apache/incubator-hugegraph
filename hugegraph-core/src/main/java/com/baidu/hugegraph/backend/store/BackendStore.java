@@ -6,28 +6,28 @@ import com.baidu.hugegraph.type.HugeType;
 
 public interface BackendStore {
 
-    // database name
+    // Database name
     public String name();
 
-    // open/close database
+    // Open/close database
     public void open(HugeConfig config);
     public void close();
 
-    // initialize/clear database
+    // Initialize/clear database
     public void init();
     public void clear();
 
-    // add/delete data
+    // Add/delete data
     public void mutate(BackendMutation mutation);
 
-    // query data
+    // Query data
     public Iterable<BackendEntry> query(Query query);
 
-    // transaction
+    // Transaction
     public void beginTx();
     public void commitTx();
     public void rollbackTx();
 
-    // get metadata by key
+    // Get metadata by key
     public Object metadata(HugeType type, String meta, Object[] args);
 }

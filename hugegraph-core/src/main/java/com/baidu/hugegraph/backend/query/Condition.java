@@ -97,7 +97,7 @@ public abstract class Condition {
                 n2 = toBig.apply(second);
             }
 
-            /* Check they are the same type */
+            // Check they are the same type
             if (!n1.getClass().equals(n2.getClass())) {
                 throw new BackendException(
                           "Can't compare class %s with class %s",
@@ -240,7 +240,9 @@ public abstract class Condition {
 
     /*************************************************************************/
 
-    // Condition defines
+    /**
+     * Condition defines
+     */
     public static abstract class BinCondition extends Condition {
         private Condition left;
         private Condition right;
@@ -353,9 +355,9 @@ public abstract class Condition {
     /*************************************************************************/
 
     public abstract static class Relation extends Condition {
-        /* Relational operator (like: =, >, <, in, ...) */
+        // Relational operator (like: =, >, <, in, ...)
         protected RelationType relation;
-        /* Single-type value or a list of single-type value */
+        // Single-type value or a list of single-type value
         protected Object value;
 
         @Override
@@ -474,7 +476,7 @@ public abstract class Condition {
     }
 
     public static class UserpropRelation extends Relation {
-        /* Column name */
+        // Column name
         private String key;
 
         public UserpropRelation(String key, Object value) {

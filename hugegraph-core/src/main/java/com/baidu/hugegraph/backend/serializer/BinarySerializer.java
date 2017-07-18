@@ -77,16 +77,17 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     private byte[] formatPropertyName(HugeProperty<?> prop) {
-        // with encoded bytes
+        // With encoded bytes
         byte[] name = StringEncoding.encodeString(prop.key());
         ByteBuffer buffer = ByteBuffer.allocate(3 + name.length);
         buffer.put(prop.type().code());
-        buffer.put(name); // writeString(name, buffer);
+        // WriteString(name, buffer);
+        buffer.put(name);
         return buffer.array();
     }
 
     private byte[] formatPropertyValue(HugeProperty<?> prop) {
-        // with encoded bytes
+        // With encoded bytes
         Object value = prop.value();
         // TODO: serialize any object, not only string
         return StringEncoding.encodeString(value.toString());
@@ -107,12 +108,12 @@ public class BinarySerializer extends AbstractSerializer {
     private void parseColumn(BackendColumn col, HugeVertex vertex) {
         ByteBuffer buffer = ByteBuffer.wrap(col.name);
         byte type = buffer.get();
-        /* Property */
+        // Property
         if (type == HugeType.PROPERTY.code()) {
             String name = readStringFromRemaining(buffer);
             Object value = parsePropertyValue(col.value);
             vertex.addProperty(name, value);
-        } else if (type == HugeType.EDGE_IN.code() || /* Edge */
+        } else if (type == HugeType.EDGE_IN.code() ||
                    type == HugeType.EDGE_OUT.code()) {
             // TODO: parse edge
             ;
@@ -123,15 +124,15 @@ public class BinarySerializer extends AbstractSerializer {
     public BackendEntry writeVertex(HugeVertex vertex) {
         BinaryBackendEntry entry = new BinaryBackendEntry(vertex.id());
 
-        /* Label */
+        // Write label column
         entry.column(this.formatLabel(vertex.vertexLabel()));
 
-        /* Add all properties of a Vertex */
+        // Add all properties of a Vertex
         for (HugeProperty<?> prop : vertex.getProperties().values()) {
             entry.column(this.formatProperty(prop));
         }
 
-        /* Add all edges of a Vertex */
+        // Add all edges of a Vertex
         for (@SuppressWarnings("unused") Edge edge : vertex.getEdges()) {
             // TODO: format edge
         }
@@ -144,15 +145,14 @@ public class BinarySerializer extends AbstractSerializer {
         assert bytesEntry instanceof BinaryBackendEntry;
         BinaryBackendEntry entry = (BinaryBackendEntry) bytesEntry;
 
-        /* label */
+        // Parse label
         byte[] labelCol = this.formatSystemPropertyName(HugeKeys.LABEL);
         VertexLabel label = this.parseLabel(entry.column(labelCol));
 
-        /* id */
         HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
                 entry.id(), label);
 
-        /* Parse all properties and edges of a Vertex */
+        // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {
             this.parseColumn(col, vertex);
         }

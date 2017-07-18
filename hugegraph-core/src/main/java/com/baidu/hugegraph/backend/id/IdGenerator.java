@@ -27,7 +27,9 @@ public abstract class IdGenerator {
 
     public abstract Id generate(HugeEdge entry);
 
-    // Generate a string id
+    /**
+     * Generate a string id
+     */
     public Id generate(String id) {
         switch (ID_TYPE) {
             case LONG:
@@ -40,7 +42,9 @@ public abstract class IdGenerator {
         }
     }
 
-    // Generate a long id
+    /**
+     * Generate a long id
+     */
     public Id generate(long id) {
         switch (ID_TYPE) {
             case LONG:
@@ -53,7 +57,9 @@ public abstract class IdGenerator {
         }
     }
 
-    // Parse an id from bytes
+    /**
+     * Parse an id from bytes
+     */
     public Id parse(byte[] bytes) {
         switch (ID_TYPE) {
             case LONG:

@@ -27,15 +27,17 @@ import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
-// NOTE:
-// InMemoryDBStore support:
-//  1.query by id (include query edges by id)
-//  2.query by condition (include query edges by condition)
-//  3.remove by id
-//  4.range query
-// InMemoryDBStore not support currently:
-//  1.remove by id + condition
-//  2.append/subtract index data(element-id)
+/**
+ * NOTE:
+ * InMemoryDBStore support:
+ * 1.query by id (include query edges by id)
+ * 2.query by condition (include query edges by condition)
+ * 3.remove by id
+ * 4.range query
+ * InMemoryDBStore not support currently:
+ * 1.remove by id + condition
+ * 2.append/subtract index data(element-id)
+ */
 public class InMemoryDBStore implements BackendStore {
 
     private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStore.class);
@@ -57,17 +59,17 @@ public class InMemoryDBStore implements BackendStore {
     public Iterable<BackendEntry> query(final Query query) {
         Map<Id, BackendEntry> rs = null;
 
-        // filter by type (TODO: maybe we should let all id prefix with type)
+        // Filter by type (TODO: maybe we should let all id prefix with type)
         if (SchemaElement.isSchema(query.resultType())) {
             rs = queryPrefixWith(query.resultType().code());
         } else {
             rs = queryAll();
         }
 
-        // query by id(s)
+        // Query by id(s)
         if (!query.ids().isEmpty()) {
             if (query.resultType() == HugeType.EDGE) {
-                // query edge(in a vertex) by id (or v-id + column-name prefix)
+                // Query edge(in a vertex) by id (or v-id + column-name prefix)
                 // TODO: separate this method into a class
                 rs = queryEdgeById(query.ids(), rs);
                 E.checkState(query.conditions().isEmpty(),
@@ -78,7 +80,7 @@ public class InMemoryDBStore implements BackendStore {
             }
         }
 
-        // query by condition(s)
+        // Query by condition(s)
         if (!query.conditions().isEmpty()) {
             rs = queryByFilter(query.conditions(), rs);
         }
@@ -131,7 +133,7 @@ public class InMemoryDBStore implements BackendStore {
                 parts = Arrays.copyOfRange(parts, 1, parts.length);
                 column = SplicingIdGenerator.concat(parts).asString();
             } else {
-                // all edges
+                // All edges
                 assert parts.length == 1;
             }
 
@@ -140,10 +142,10 @@ public class InMemoryDBStore implements BackendStore {
                 // TODO: Compatible with BackendEntry
                 TextBackendEntry textEntry = (TextBackendEntry) entry;
                 if (column == null) {
-                    // all edges in the vertex
+                    // All edges in the vertex
                     rs.put(entryId, entry);
                 } else if (textEntry.containsPrefix(column)) {
-                    // an edge in the vertex
+                    // An edge in the vertex
                     TextBackendEntry result = new TextBackendEntry(entryId);
                     result.columns(textEntry.columnsWithPrefix(column));
                     rs.put(entryId, result);
@@ -162,7 +164,7 @@ public class InMemoryDBStore implements BackendStore {
         Map<Id, BackendEntry> rs = new HashMap<>();
 
         for (BackendEntry entry : entries.values()) {
-            // query by conditions
+            // Query by conditions
             boolean matched = true;
             for (Condition c : conditions) {
                 if (!matchCondition(entry, c)) {
@@ -182,7 +184,7 @@ public class InMemoryDBStore implements BackendStore {
         // TODO: Compatible with BackendEntry
         TextBackendEntry entry = (TextBackendEntry) item;
 
-        // not supported by memory
+        // Not supported by memory
         if (!(c instanceof Condition.Relation)) {
             throw new BackendException("Unsupported condition: " + c);
         }
@@ -218,7 +220,7 @@ public class InMemoryDBStore implements BackendStore {
                 if (!this.store.containsKey(entry.id())) {
                     this.store.put(entry.id(), entry);
                 } else {
-                    // merge columns if the entry exists
+                    // Merge columns if the entry exists
                     BackendEntry old =  this.store.get(entry.id());
                     // TODO: Compatible with BackendEntry
                     ((TextBackendEntry) old).merge((TextBackendEntry) entry);
@@ -226,7 +228,7 @@ public class InMemoryDBStore implements BackendStore {
                 break;
             case DELETE:
                 logger.info("[store {}] remove id: {}", this.name, entry.id());
-                // remove by id (TODO: support remove by id + condition)
+                // Remove by id (TODO: support remove by id + condition)
                 this.store.remove(entry.id());
                 break;
             case APPEND:

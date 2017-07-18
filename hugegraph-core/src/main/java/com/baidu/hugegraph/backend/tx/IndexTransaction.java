@@ -56,24 +56,24 @@ public class IndexTransaction extends AbstractTransaction {
     }
 
     public void updateVertexIndex(HugeVertex vertex, boolean removed) {
-        /* Vertex index */
+        // Vertex index
         for (String indexName : vertex.vertexLabel().indexNames()) {
             updateIndex(indexName, vertex, removed);
         }
 
-        /* Edges index */
+        // Edges index
         this.updateEdgesIndex(vertex, removed);
     }
 
     public void updateEdgesIndex(HugeVertex vertex, boolean removed) {
-        /* Edges index */
+        // Edges index
         for (HugeEdge edge : vertex.getEdges()) {
             updateEdgeIndex(edge, removed);
         }
     }
 
     public void updateEdgeIndex(HugeEdge edge, boolean removed) {
-        /* Edge index */
+        // Edge index
         for (String indexName : edge.edgeLabel().indexNames()) {
             updateIndex(indexName, edge, removed);
         }

@@ -53,7 +53,8 @@ public class SnowflakeIdGenerator extends IdGenerator {
      */
     static class IdWorker {
 
-        protected static final Logger logger = LoggerFactory.getLogger(IdWorker.class);
+        protected static final Logger logger =
+                  LoggerFactory.getLogger(IdWorker.class);
 
         private long workerId;
         private long datacenterId;
@@ -75,7 +76,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
         private long lastTimestamp = -1L;
 
         public IdWorker(long workerId, long datacenterId) {
-            // sanity check for workerId
+            // Sanity check for workerId
             if (workerId > this.maxWorkerId || workerId < 0) {
                 throw new IllegalArgumentException(String.format(
                           "Worker id can't be be > %d or < 0",

@@ -46,20 +46,20 @@ public class BackendProviderFactory {
             throw new BackendException(e);
         }
 
-        // check subclass
+        // Check subclass
         if (!BackendStoreProvider.class.isAssignableFrom(clazz)) {
             throw new BackendException("Class '%s' is not a subclass of " +
                                        "class BackendStoreProvider", classPath);
         }
 
-        // check exists
+        // Check exists
         if (storeProviders.containsKey(name)) {
             throw new BackendException(
                       "Exists BackendStoreProvider: %s(Class '%s')",
                       name, storeProviders.get(name).getName());
         }
 
-        // register class
+        // Register class
         storeProviders.put(name, (Class) clazz);
     }
 }

@@ -28,7 +28,7 @@ public class IdGeneratorFactory {
             return new SnowflakeIdGenerator(workerId, datacenterId);
         }
 
-        // add others IdGenerator here
+        // Add others IdGenerator here
 
         return null;
     }

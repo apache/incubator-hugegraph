@@ -61,7 +61,6 @@ public class BackendMutation {
 
     /**
      * Whether this mutation is empty
-     *
      * @return boolean
      */
     public boolean isEmpty() {
