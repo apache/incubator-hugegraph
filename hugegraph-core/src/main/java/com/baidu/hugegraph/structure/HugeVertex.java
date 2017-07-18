@@ -139,8 +139,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... properties) {
-        E.checkNotNull(label, "The edge label can not be null.");
-        E.checkNotNull(vertex, "The target vertex can not be null.");
+        E.checkNotNull(label, "edge label");
+        E.checkNotNull(vertex, "target vertex");
 
         HugeVertex targetVertex = (HugeVertex) vertex;
         HugeEdgeLabel edgeLabel =

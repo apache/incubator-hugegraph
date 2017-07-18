@@ -36,7 +36,6 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
-import com.google.common.base.Preconditions;
 
 public class HugeServer {
 
@@ -63,7 +62,7 @@ public class HugeServer {
 
     @SuppressWarnings("deprecation") // TODO: use shutdown instead
     public void stop() {
-        Preconditions.checkNotNull(this.httpServer);
+        E.checkNotNull(this.httpServer, "http server");
         this.httpServer.stop();
     }
 

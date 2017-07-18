@@ -1,14 +1,13 @@
 package com.baidu.hugegraph.schema;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.ArrayList;
 import java.util.List;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
@@ -145,8 +144,8 @@ public class HugeVertexLabel extends VertexLabel {
     }
 
     private void checkPrimaryKeys() {
-        E.checkNotNull(this.primaryKeys, HugeKeys.PRIMARY_KEYS.string());
-        E.checkNotEmpty(this.primaryKeys, HugeKeys.PRIMARY_KEYS.string());
+        E.checkNotNull(this.primaryKeys, "primary keys");
+        E.checkNotEmpty(this.primaryKeys, "primary keys");
 
         // Use loop instead containAll for more detailed exception info.
         for (String key : this.primaryKeys) {

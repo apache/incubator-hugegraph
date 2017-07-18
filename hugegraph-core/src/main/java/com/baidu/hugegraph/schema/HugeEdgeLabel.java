@@ -11,7 +11,6 @@ import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.type.define.EdgeLink;
 import com.baidu.hugegraph.type.define.Frequency;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -219,8 +218,8 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     private void checkLinks() {
-        E.checkNotNull(this.links, HugeKeys.LINKS.string());
-        E.checkNotEmpty(this.links, HugeKeys.LINKS.string());
+        E.checkNotNull(this.links, "links");
+        E.checkNotEmpty(this.links, "links");
 
         for (EdgeLink link : this.links) {
             VertexLabel src = this.transaction().getVertexLabel(link.source());
@@ -254,9 +253,9 @@ public class HugeEdgeLabel extends EdgeLabel {
                             "EdgeLabel can not contain sortKeys when the " +
                             "cardinality property is single");
         } else {
-            E.checkNotNull(this.sortKeys,
-                           "The sortKeys can not be null when the " +
-                           "cardinality property is multiple");
+            E.checkState(this.sortKeys != null,
+                         "The sortKeys can not be null when the " +
+                         "cardinality property is multiple");
             E.checkArgument(!this.sortKeys.isEmpty(),
                             "EdgeLabel must contain sortKeys when the " +
                             "cardinality property is multiple");
