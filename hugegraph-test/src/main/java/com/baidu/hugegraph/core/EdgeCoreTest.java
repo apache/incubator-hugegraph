@@ -437,7 +437,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, edges.size());
     }
 
-    @Test()
+    @Test
     public void testQueryEdgesByIdNotFound() {
         HugeGraph graph = graph();
         init18Edges();
@@ -449,7 +449,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         });
     }
 
-    @Test()
+    @Test
     public void testQueryEdgesByInvalidId() {
         HugeGraph graph = graph();
         init18Edges();
