@@ -44,20 +44,20 @@ public class SerializerFactory {
             throw new BackendException(e);
         }
 
-        // check subclass
+        // Check subclass
         if (!AbstractSerializer.class.isAssignableFrom(clazz)) {
             throw new BackendException(
                     "Class '%s' is not a subclass of class AbstractSerializer",
                     classPath);
         }
 
-        // check exists
+        // Check exists
         if (serializers.containsKey(name)) {
             throw new BackendException("Exists serializer: %s(Class '%s')",
                                        name, serializers.get(name).getName());
         }
 
-        // register class
+        // Register class
         serializers.put(name, (Class) clazz);
     }
 }

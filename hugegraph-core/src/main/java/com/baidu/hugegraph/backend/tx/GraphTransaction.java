@@ -226,9 +226,11 @@ public class GraphTransaction extends AbstractTransaction {
     public Iterable<BackendEntry> query(Query query) {
         if (query instanceof ConditionQuery) {
             query = this.optimizeQuery((ConditionQuery) query);
-            // NOTE: There are two possibilities for this query:
-            // 1.sysprop-query, which would not be empty.
-            // 2.index-query result(ids after optimize), which may be empty.
+            /*
+             * NOTE: There are two possibilities for this query:
+             * 1.sysprop-query, which would not be empty.
+             * 2.index-query result(ids after optimize), which may be empty.
+             */
             if (query.empty()) {
                 // Return empty if there is no result after index-query
                 return ImmutableList.of();
@@ -391,10 +393,12 @@ public class GraphTransaction extends AbstractTransaction {
             HugeVertex vertex = (HugeVertex) vertices.next();
             for (HugeEdge edge : vertex.getEdges()) {
                 if (!results.containsKey(edge.id())) {
-                    // NOTE: Maybe some edges are IN and others are OUT if
-                    // querying edges both directions, perhaps it would look
-                    // better if we convert all edges in results to OUT, but
-                    // that would break the logic when querying IN edges.
+                    /*
+                     * NOTE: Maybe some edges are IN and others are OUT if
+                     * querying edges both directions, perhaps it would look
+                     * better if we convert all edges in results to OUT, but
+                     * that would break the logic when querying IN edges.
+                     */
                     results.put(edge.id(), edge);
                 } else {
                     logger.debug("Results contains edge: {}", edge);
@@ -436,7 +440,7 @@ public class GraphTransaction extends AbstractTransaction {
             query.eq(HugeKeys.LABEL, edgeLabels[0]);
         } else if (edgeLabels.length > 1) {
             // TODO: support query by multi edge labels
-            // query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
+            // Like: query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
             throw new BackendException(
                       "Not support querying by multi edge-labels");
         } else {

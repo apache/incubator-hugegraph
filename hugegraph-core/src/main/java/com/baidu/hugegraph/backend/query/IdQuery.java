@@ -8,7 +8,7 @@ import com.baidu.hugegraph.type.HugeType;
 
 public class IdQuery extends Query {
 
-    // ids will be concated with `or`
+    // The ids will be concated with `or`
     private Set<Id> ids;
 
     public IdQuery(HugeType resultType) {

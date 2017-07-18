@@ -70,8 +70,10 @@ public abstract class AbstractTransaction implements Transaction {
 
     public Iterable<BackendEntry> query(Query query) {
         logger.debug("Transaction query: {}", query);
-        // NOTE: it's dangerous if an IdQuery/ConditionQuery is empty
-        // check if the query is empty and its class is not the Query itself
+        /*
+         * NOTE: it's dangerous if an IdQuery/ConditionQuery is empty
+         * check if the query is empty and its class is not the Query itself
+         */
         if (query.empty() && !query.getClass().equals(Query.class)) {
             throw new BackendException("Query without any id or condition");
         }
@@ -118,7 +120,7 @@ public abstract class AbstractTransaction implements Transaction {
             return;
         }
 
-        // if an exception occurred, catch in the upper layer and roll back
+        // If an exception occurred, catch in the upper layer and roll back
         this.store.beginTx();
         this.store.mutate(mutation);
         this.reset();
@@ -163,7 +165,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Override
     public void afterRead() {
-        // pass
+        // Pass
     }
 
     @Override
@@ -180,7 +182,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     protected void prepareCommit() {
-        // for sub-class preparing data, nothing to do here
+        // For sub-class preparing data, nothing to do here
         logger.debug("Transaction prepareCommit()...");
     }
 
@@ -191,17 +193,17 @@ public abstract class AbstractTransaction implements Transaction {
         BackendMutation mutation = this.mutation();
 
         try {
-            // commit
+            // Commit
             this.commit();
         } catch (Throwable e1) {
             logger.error("Failed to commit changes:", e1);
-            // rollback
+            // Rollback
             try {
                 this.rollback();
             } catch (Throwable e2) {
                 logger.error("Failed to rollback changes:\n {}", mutation, e2);
             }
-            // rethrow
+            // Rethrow
             throw new BackendException(
                       "Failed to commit changes: %s", e1.getMessage());
         }
