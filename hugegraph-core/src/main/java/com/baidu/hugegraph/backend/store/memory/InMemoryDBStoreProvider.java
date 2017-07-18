@@ -20,7 +20,7 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
         logger.info("InMemoryDBStoreProvider load '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.putIfAbsent(name, new InMemoryDBStore(name));
+            this.stores.putIfAbsent(name, new InMemoryDBStore(this, name));
         }
         BackendStore store = this.stores.get(name);
         E.checkNotNull(store, "store");

@@ -9,6 +9,9 @@ public interface BackendStore {
     // Database name
     public String name();
 
+    // Get the parent provider
+    public BackendStoreProvider provider();
+
     // Open/close database
     public void open(HugeConfig config);
     public void close();

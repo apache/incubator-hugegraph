@@ -1,16 +1,21 @@
 package com.baidu.hugegraph.backend.cache;
 
+import java.util.List;
+
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.util.Events;
+import com.google.common.collect.ImmutableList;
 
 public class CachedSchemaTransaction extends SchemaTransaction {
 
@@ -19,10 +24,42 @@ public class CachedSchemaTransaction extends SchemaTransaction {
     public CachedSchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
         this.cache = new RamCache();
+
+        this.listenChanges();
     }
 
     public void cache(Cache cache) {
         this.cache = cache;
+    }
+
+    private void listenChanges() {
+        // Listen store event: "store.init", "store.clear"
+        List<String> events = ImmutableList.of(Events.STORE_INIT,
+                                               Events.STORE_CLEAR);
+        super.store().provider().listen(event -> {
+            if (events.contains(event.name())) {
+                logger.info("Clear cache on event '{}'", event.name());
+                this.cache.clear();
+                return true;
+            }
+            return false;
+        });
+
+        // Listen cache event: "cache"(invalid cache item)
+        EventHub schemaEventHub = super.graph().schemaEventHub();
+        if (!schemaEventHub.containsListener(Events.CACHE)) {
+            schemaEventHub.listen(Events.CACHE, event -> {
+                logger.debug("Received event: {}", event);
+                event.checkArgs(String.class, Id.class);
+                Object[] args = event.args();
+                if (args[0].equals("invalid")) {
+                    Id id = (Id) args[1];
+                    this.cache.invalidate(id);
+                    return true;
+                }
+                return false;
+            });
+        }
     }
 
     private Id generateId(HugeType type, String name) {

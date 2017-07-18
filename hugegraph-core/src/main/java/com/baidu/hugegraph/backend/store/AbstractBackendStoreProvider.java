@@ -4,13 +4,23 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Events;
 
 public abstract class AbstractBackendStoreProvider
-        implements BackendStoreProvider {
+                implements BackendStoreProvider {
 
     protected String name;
     protected Map<String, BackendStore> stores;
+
+    private EventHub storeEventHub = new EventHub("store");
+
+    @Override
+    public void listen(EventListener listener) {
+        this.storeEventHub.listen(EventHub.ANY_EVENT, listener);
+    }
 
     @Override
     public String name() {
@@ -23,6 +33,8 @@ public abstract class AbstractBackendStoreProvider
 
         this.name = name;
         this.stores = new ConcurrentHashMap<>();
+
+        this.storeEventHub.notify(Events.STORE_OPEN, this);
     }
 
     @Override
@@ -31,6 +43,7 @@ public abstract class AbstractBackendStoreProvider
             // TODO: catch exceptions here
             store.close();
         }
+        this.storeEventHub.notify(Events.STORE_CLOSE, this);
     }
 
     @Override
@@ -38,6 +51,7 @@ public abstract class AbstractBackendStoreProvider
         for (BackendStore store : this.stores.values()) {
             store.init();
         }
+        this.storeEventHub.notify(Events.STORE_INIT, this);
     }
 
     @Override
@@ -45,5 +59,6 @@ public abstract class AbstractBackendStoreProvider
         for (BackendStore store : this.stores.values()) {
             store.clear();
         }
+        this.storeEventHub.notify(Events.STORE_CLEAR, this);
     }
 }

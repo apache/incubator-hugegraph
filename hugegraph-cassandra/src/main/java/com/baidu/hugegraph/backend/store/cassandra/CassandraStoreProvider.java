@@ -24,7 +24,7 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         logger.info("CassandraStoreProvider load SchemaStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.put(name, new CassandraSchemaStore(keyspace(), name));
+            this.stores.put(name, new CassandraSchemaStore(this, keyspace(), name));
         }
 
         BackendStore store = this.stores.get(name);
@@ -39,7 +39,7 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         logger.info("CassandraStoreProvider load GraphStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.put(name, new CassandraGraphStore(keyspace(), name));
+            this.stores.put(name, new CassandraGraphStore(this, keyspace(), name));
         }
 
         BackendStore store = this.stores.get(name);
@@ -54,7 +54,7 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         logger.info("CassandraStoreProvider load IndexStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.put(name, new CassandraIndexStore(keyspace(), name));
+            this.stores.put(name, new CassandraIndexStore(this, keyspace(), name));
         }
 
         BackendStore store = this.stores.get(name);
