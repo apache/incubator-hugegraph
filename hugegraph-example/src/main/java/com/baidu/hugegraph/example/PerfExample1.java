@@ -60,7 +60,7 @@ public class PerfExample1 {
             Thread t = new Thread(() -> {
                 graph.tx().open();
                 Pair<Long, Long> rate = testInsertPerf(graph, times);
-                graph.tx().commit();
+                graph.tx().close();
 
                 rates.add(rate);
             });
@@ -76,7 +76,7 @@ public class PerfExample1 {
         long edges = rates.stream().mapToLong(i -> i.getLeft()).sum();
         // total cost (average time of all threads) (ms)
         long cost = (long) rates.stream().mapToLong(i -> i.getRight())
-                .average().getAsDouble();
+                    .average().getAsDouble();
         logger.info("Rate with threads: {} edges/s", edges * 1000 / cost);
     }
 
@@ -124,9 +124,8 @@ public class PerfExample1 {
                 .create();
     }
 
-    public static Pair<Long, Long> testInsertPerf(
-            GraphManager graph,
-            int times) {
+    public static Pair<Long, Long> testInsertPerf(GraphManager graph,
+                                                  int times) {
         long total = EDGE_NUM * times;
         long startTime = System.currentTimeMillis();
 
@@ -145,9 +144,9 @@ public class PerfExample1 {
                 personAge = random.nextInt(70);
                 personName = "P" + random.nextInt(10000);
                 Vertex vetex = graph.addVertex(T.label, "person",
-                        "name", personName, "age", personAge);
+                               "name", personName, "age", personAge);
                 personVertexIds.add(vetex.id());
-                logger.debug(vetex.toString());
+                logger.debug("Add vertex: {}", vetex);
             }
 
             int softwarePrice = 0;
@@ -159,8 +158,8 @@ public class PerfExample1 {
                 softwarePrice = random.nextInt(10000) + 1;
                 softwareName = "S" + random.nextInt(10000);
                 Vertex vetex = graph.addVertex(T.label, "software",
-                        "name", softwareName, "lang", "java",
-                        "price", softwarePrice);
+                               "name", softwareName, "lang", "java",
+                               "price", softwarePrice);
                 softwareVertexIds.add(vetex.id());
             }
 
@@ -173,28 +172,29 @@ public class PerfExample1 {
                 Object p1 = personVertexIds.get(random.nextInt(PERSON_NUM));
                 Object p2 = personVertexIds.get(random.nextInt(PERSON_NUM));
                 Edge edge1 = graph.getVertex(p1).addEdge("knows",
-                        graph.getVertex(p2));
+                                                         graph.getVertex(p2));
 
                 // Add edge: person --created-> software
                 Object p3 = personVertexIds.get(random.nextInt(PERSON_NUM));
                 Object s1 = softwareVertexIds.get(random.nextInt(SOFTWARE_NUM));
                 Edge edge2 = graph.getVertex(p3).addEdge("created",
-                        graph.getVertex(s1));
+                                                         graph.getVertex(s1));
             }
 
+            graph.tx().commit();
             personVertexIds.clear();
             softwareVertexIds.clear();
             times--;
             endTime0 = System.currentTimeMillis();
             logger.debug("Adding edges during time: {} ms",
-                    endTime0 - startTime0);
+                         endTime0 - startTime0);
         }
         long endTime = System.currentTimeMillis();
 
         long cost = endTime - startTime;
         long rate = total * 1000 / cost;
         logger.info("All tests cost time: {} ms, the rate is: {} edges/s",
-                cost, rate);
+                    cost, rate);
         return Pair.of(total, cost);
     }
 
