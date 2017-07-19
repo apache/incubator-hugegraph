@@ -19,17 +19,13 @@ import com.google.common.collect.ImmutableList;
 
 public class CachedSchemaTransaction extends SchemaTransaction {
 
-    private Cache cache = null;
+    private final Cache cache;
 
     public CachedSchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
-        this.cache = new RamCache();
+        this.cache = CacheManager.instance().cache("schema-" + graph.name());
 
         this.listenChanges();
-    }
-
-    public void cache(Cache cache) {
-        this.cache = cache;
     }
 
     private void listenChanges() {
