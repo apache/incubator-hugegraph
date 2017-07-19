@@ -20,8 +20,8 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.baidu.hugegraph.type.TriFunction;
 import com.baidu.hugegraph.util.ReflectionUtil;
-import com.baidu.hugegraph.util.TriFunction;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
 import javassist.CannotCompileException;
