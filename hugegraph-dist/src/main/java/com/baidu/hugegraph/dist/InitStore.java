@@ -9,6 +9,7 @@ import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.E;
 
 /**
@@ -16,12 +17,13 @@ import com.baidu.hugegraph.util.E;
  */
 public class InitStore {
 
-    public static void main(String[] args) throws ConfigurationException {
+    public static void main(String[] args)
+                  throws ConfigurationException, InterruptedException {
 
         E.checkArgument(args.length == 1,
-                "Init store only accept one config file.");
+                        "Init store only accept one config file.");
         E.checkArgument(args[0].endsWith(".yaml"),
-                "Init store only accept yaml config file.");
+                        "Init store only accept yaml config file.");
 
         String confFile = args[0];
         RegisterUtil.registerBackends();
@@ -33,10 +35,10 @@ public class InitStore {
                 CoreOptions.GRAPHS.name()).get(0).getChildren();
 
         E.checkArgumentNotNull(graphNames,
-                "The node '%s' is not found in the config file %s",
-                CoreOptions.GRAPHS.name(), confFile);
+                               "Not found the node '%s' in the config file %s",
+                               CoreOptions.GRAPHS.name(), confFile);
         E.checkArgument(!graphNames.isEmpty(),
-                "The node '%s' must contain at least one child node");
+                        "The node '%s' must contain at least one child node");
 
         for (ConfigurationNode graphName : graphNames) {
             String graphPropFile = graphName.getValue().toString();
@@ -46,6 +48,9 @@ public class InitStore {
             graph.initBackend();
             graph.close();
         }
+
+        // Wait cache clear or init up to 30 seconds
+        EventHub.destroy(30);
     }
 
 }

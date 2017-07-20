@@ -26,7 +26,8 @@ public class RegisterUtil {
 
     public static void registerBackends() throws ConfigurationException {
         String confFile = "/backend.properties";
-        InputStream is = RegisterUtil.class.getClass().getResourceAsStream(confFile);
+        InputStream is = RegisterUtil.class.getClass()
+                         .getResourceAsStream(confFile);
         E.checkState(is != null, "Can't read file '%s' as stream", confFile);
 
         HugeConfig config = new HugeConfig(is);
