@@ -19,4 +19,13 @@
 export MAVEN_HOME=/home/scmtools/buildkit/maven/apache-maven-3.3.9/
 export JAVA_HOME=/home/scmtools/buildkit/java/jdk1.8.0_25/
 export PATH=$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH
+
+if [ "$#" -eq "0" ]
+ then
+  echo "No argument supplied,use default store"
+else
+  STORE=$1
+  echo "Set store=hugegraph_$STORE"
+  sed -i "s/.*store=.*/store=hugegraph_$STORE/" hugegraph-test/src/main/resources/hugegraph.properties
+fi
 mvn clean package
