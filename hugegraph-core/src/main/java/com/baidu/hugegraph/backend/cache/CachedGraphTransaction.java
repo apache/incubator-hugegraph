@@ -14,6 +14,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -31,10 +32,15 @@ public class CachedGraphTransaction extends GraphTransaction {
     }
 
     private Cache cache(String prefix) {
+        HugeConfig conf = super.graph().configuration();
+
         final String name = prefix + "-" + super.graph().name();
-        final int capacity = super.graph().configuration()
-                             .get(CoreOptions.GRAPH_CACHE_CAPACITY);
-        return CacheManager.instance().cache(name, capacity);
+        final int capacity = conf.get(CoreOptions.GRAPH_CACHE_CAPACITY);
+        final int expire = conf.get(CoreOptions.GRAPH_CACHE_EXPIRE);
+
+        Cache cache = CacheManager.instance().cache(name, capacity);
+        cache.expire(expire);
+        return cache;
     }
 
     @Override

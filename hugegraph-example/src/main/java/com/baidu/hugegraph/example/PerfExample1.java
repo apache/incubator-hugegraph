@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.cache.Cache;
-import com.baidu.hugegraph.backend.cache.RamCache;
+import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -200,7 +200,7 @@ public class PerfExample1 {
 
     static class GraphManager {
         private HugeGraph hugegraph;
-        private Cache cache = new RamCache();
+        private Cache cache = CacheManager.instance().cache("perf-test");
 
         public GraphManager(HugeGraph hugegraph) {
             this.hugegraph = hugegraph;

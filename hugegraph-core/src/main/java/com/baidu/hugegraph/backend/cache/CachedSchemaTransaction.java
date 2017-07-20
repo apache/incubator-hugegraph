@@ -7,6 +7,8 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
@@ -23,9 +25,21 @@ public class CachedSchemaTransaction extends SchemaTransaction {
 
     public CachedSchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
-        this.cache = CacheManager.instance().cache("schema-" + graph.name());
+        this.cache = this.cache("schema");
 
         this.listenChanges();
+    }
+
+    private Cache cache(String prefix) {
+        HugeConfig conf = super.graph().configuration();
+
+        final String name = prefix + "-" + super.graph().name();
+        final int capacity = conf.get(CoreOptions.SCHEMA_CACHE_CAPACITY);
+        final int expire = conf.get(CoreOptions.SCHEMA_CACHE_EXPIRE);
+
+        Cache cache = CacheManager.instance().cache(name, capacity);
+        cache.expire(expire);
+        return cache;
     }
 
     private void listenChanges() {

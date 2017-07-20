@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.backend.cache;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -16,13 +18,15 @@ public class RamCache implements Cache {
     public static final int DEFAULT_SIZE = 1 * MB;
     public static final int MAX_INIT_CAP = 100 * MB;
 
-    private static final Logger logger = LoggerFactory.getLogger(RamCache.class);
+    private static final Logger logger = LoggerFactory.getLogger(Cache.class);
 
     private final KeyLock keyLock = new KeyLock();
 
     private long hits = 0;
     private long miss = 0;
     private int capacity = 0;
+    // Default expire time(ms)
+    private long expire = 0;
 
     // Implement LRU cache
     private Map<Id, LinkNode<Id, Object>> map;
@@ -164,6 +168,35 @@ public class RamCache implements Cache {
     }
 
     @Override
+    public void expire(long seconds) {
+        // Convert the unit from seconds to milliseconds
+        this.expire = seconds * 1000;
+    }
+
+    @Override
+    public void tick() {
+        if (this.expire <= 0) {
+            return;
+        }
+
+        long current = now();
+        List<Id> expireItems = new LinkedList<>();
+        for (LinkNode<Id, Object> node : this.map.values()) {
+            if (current - node.time() > this.expire) {
+                expireItems.add(node.key());
+            }
+        }
+
+        logger.debug("Cache expire items: {} (expire {}ms)",
+                     expireItems.size(), this.expire);
+        for (Id id : expireItems) {
+            this.remove(id);
+        }
+        logger.debug("Cache expired items: {} (size {})",
+                     expireItems.size(), size());
+    }
+
+    @Override
     public long capacity() {
         return this.capacity;
     }
@@ -178,10 +211,15 @@ public class RamCache implements Cache {
         return this.map.toString();
     }
 
+    private static final long now() {
+        return System.currentTimeMillis();
+    }
+
     private static class LinkNode<K, V> {
 
         private K key;
         private V value;
+        private long time;
         private LinkNode<K, V> prev;
         private LinkNode<K, V> next;
 
@@ -197,7 +235,12 @@ public class RamCache implements Cache {
             return this.value;
         }
 
+        public long time() {
+            return this.time;
+        }
+
         public void reset(K key, V value) {
+            this.time = now();
             this.key = key;
             this.value = value;
             this.prev = this.next = null;
@@ -219,18 +262,39 @@ public class RamCache implements Cache {
         public LinkedQueueNonBigLock() {
             this.empty = new LinkNode<>(null, (V) "<empty>");
             this.head = new LinkNode<>(null, (V) "<head>");
-            this.rear = this.head;
+            this.rear = new LinkNode<>(null, (V) "<rear>");
 
-            this.clear();
+            this.reset();
+        }
+
+        /**
+         * Reset the head node and rear node
+         * NOTE:
+         *  only called by LinkedQueueNonBigLock() without lock,
+         *  or called by clear() with lock(head, rear)
+         */
+        private void reset() {
+            this.head.prev = this.empty;
+            this.head.next = this.rear;
+
+            this.rear.prev = this.head;
+            this.rear.next = this.empty;
+
+            assert this.head.next == this.rear;
+            assert this.rear.prev == this.head;
         }
 
         public void clear() {
-            synchronized (this.head) {
-                synchronized (this.rear) {
-                    this.head.next = this.empty;
-                    this.head.prev = this.empty;
-
-                    this.rear = this.head;
+            synchronized (this.rear) {
+                /*
+                 * If someone is removing the last node by remove(),
+                 * it will update the rear.prev, so we should lock it.
+                 */
+                assert this.rear.prev != null : this.head.next;
+                synchronized (this.rear.prev) {
+                    synchronized (this.head) {
+                        this.reset();
+                    }
                 }
             }
         }
@@ -240,62 +304,70 @@ public class RamCache implements Cache {
         }
 
         public final LinkNode<K, V> enqueue(LinkNode<K, V> node) {
-            while (true) {
-                LinkNode<K, V> rear = this.rear;
-                synchronized (rear) {
-                    /*
-                     * The rear may be changed after another thread calling
-                     * enqueue()(and remove()?), at this time, we did not
-                     * actually lock the really rear, so let's lock the new
-                     * really rear again.
-                     */
-                    if (rear != this.rear) {
-                        continue;
-                    }
-                    assert this.rear.next == this.empty : this.rear.next;
+            synchronized (this.rear) {
+                while (true) {
+                    LinkNode<K, V> last = this.rear.prev;
+                    synchronized (last) {
+                        if (last != this.rear.prev) {
+                            // The rear.prev has changed, try to get lock again
+                            continue;
+                        }
+                        // Build the link between `last` and `node`
+                        last.next = node;
+                        node.prev = last;
+                        // Build the link between `node` and the rear
+                        node.next = this.rear;
+                        assert this.rear.prev == last : this.rear.prev;
+                        this.rear.prev = node;
 
-                    // Build the link between rear and node
-                    this.rear.next = node;
-                    node.prev = this.rear;
-                    node.next = this.empty;
-                    // Reset rear
-                    this.rear = node;
+                        return node;
+                    }
                 }
-                return node;
             }
         }
 
         public final LinkNode<K, V> dequeue() {
             synchronized (this.head) {
                 /*
-                 * There is no need to lock this.head.next because
-                 * both enqueue() and remove() can't get its previous
-                 * lock(that's the locked head here).
+                 * There is no need to lock this.head.next because the remove()
+                 * can't get its previous lock(that's the locked head here).
                  */
+                boolean updatedTheOnlyOneElem = false;
 
-                // Empty queue
-                if (this.rear == this.head) {
+                LinkNode<K, V> node = this.head.next;
+                if (node == this.rear) {
+                    // Empty queue
                     return null;
                 }
 
                 /*
-                 * If there is only one element, the rear would point to the
-                 * deleting node, so we should lock the rear to avoid enqueue()
-                 * when updating the rear.
+                 * If there is only one element, the rear.prev would point to
+                 * the deleting node, so we should lock the rear.prev to avoid
+                 * enqueue() which may update the rear.prev(that's `node`).
                  */
-                LinkNode<K, V> node = this.head.next;
-                if (node == this.rear) {
-                    synchronized (this.rear) {
-                        if (node == this.rear) {
-                            this.rear = this.head;
+                if (node == this.rear.prev) {
+                    /*
+                     * FIXME: Maybe lead dead lock if someone else is removing
+                     * `node` or clearing the queue and catching the lock of
+                     * the rear.(but dequeue() would only be called when the
+                     * cache is full--in general one element is not full)
+                     */
+                    synchronized (node) {
+                        if (node == this.rear.prev) {
+                            updatedTheOnlyOneElem = true;
+                            // Break the link between the head and `node`
+                            this.head.next = node.next;
+                            node.next.prev = this.head;
                         }
                     }
                 }
 
-                // Break the link between head and node
-                this.head.next = node.next;
-                node.next.prev = this.head;
-                // Clear node links
+                if (!updatedTheOnlyOneElem) {
+                    // Break the link between the head and `node`(without lock)
+                    this.head.next = node.next;
+                    node.next.prev = this.head;
+                }
+                // Clear `node` links
                 node.prev = this.empty;
                 node.next = this.empty;
 
@@ -305,32 +377,31 @@ public class RamCache implements Cache {
 
         public final void remove(LinkNode<K, V> node) {
             synchronized (node) {
+                assert node != this.empty;
+                assert node != this.head && node != this.rear;
+                if (node.next == node.prev && node.prev == this.empty) {
+                    // Ignore the node if it has been removed
+                    return;
+                }
                 while (true) {
                     LinkNode<K, V> prev = node.prev;
                     synchronized (prev) {
                         if (prev != node.prev) {
                             /*
                              * The previous node has changed(maybe it released
-                             * lock after it's removed, then we got the lock)
+                             * lock after it's removed, and we got the lock),
+                             * so try again until it's not changed.
                              */
                             continue;
                         }
                         assert node.next != node.prev : node.next;
 
-                        /*
-                         * If the rear is `node`, we can update the rear
-                         * without lock(because `node` is locked).
-                         */
-                        if (node == this.rear) {
-                            this.rear = node.prev;
-                        }
-
                         // Build the link between node.prev and node.next
                         node.prev.next = node.next;
                         node.next.prev = node.prev;
-                        assert prev == node.prev;
 
                         // Clear node links
+                        assert prev == node.prev;
                         node.prev = this.empty;
                         node.next = this.empty;
 

@@ -18,6 +18,10 @@ public interface Cache {
 
     public void clear();
 
+    public void expire(long seconds);
+
+    public void tick();
+
     public long capacity();
 
     public long size();

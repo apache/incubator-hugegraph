@@ -90,10 +90,31 @@ public class CoreOptions extends OptionHolder {
             "The map of graphs' name and config file.",
             disallowEmpty(String.class));
 
+    public static final ConfigOption<Integer> SCHEMA_CACHE_CAPACITY = new ConfigOption<>(
+            "schema.cache_capacity",
+            (1024 * 1024 * 1),
+            true,
+            "The max cache size(items) of schema data.",
+            rangeInt(1, Integer.MAX_VALUE));
+
+    public static final ConfigOption<Integer> SCHEMA_CACHE_EXPIRE = new ConfigOption<>(
+            "schema.cache_expire",
+            (60 * 30),
+            true,
+            "The expire time in seconds of schema data.",
+            rangeInt(0, Integer.MAX_VALUE));
+
     public static final ConfigOption<Integer> GRAPH_CACHE_CAPACITY = new ConfigOption<>(
             "graph.cache_capacity",
             (1024 * 1024 * 10),
             true,
-            "The max cache size of graph data(vertex/edge).",
+            "The max cache size(items) of graph data(vertex/edge).",
             rangeInt(1, Integer.MAX_VALUE));
+
+    public static final ConfigOption<Integer> GRAPH_CACHE_EXPIRE = new ConfigOption<>(
+            "graph.cache_expire",
+            (60 * 10),
+            true,
+            "The expire time in seconds of graph data(vertex/edge).",
+            rangeInt(0, Integer.MAX_VALUE));
 }
