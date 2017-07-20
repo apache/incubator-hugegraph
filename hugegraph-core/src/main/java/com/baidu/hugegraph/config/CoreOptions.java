@@ -1,6 +1,7 @@
 package com.baidu.hugegraph.config;
 
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 /**
  * Created by liningrui on 2017/5/25.
@@ -75,12 +76,12 @@ public class CoreOptions extends OptionHolder {
             "The serializer for backend store, like: text/binary/cassandra",
             disallowEmpty(String.class));
 
-    public static final ConfigOption<String> DEFAULT_VERTEX_LABEL =
-            new ConfigOption<>("vertex.default_label",
-                               "v",
-                               true,
-                               "The default vertex label.",
-                               disallowEmpty(String.class));
+    public static final ConfigOption<String> DEFAULT_VERTEX_LABEL =  new ConfigOption<>(
+            "vertex.default_label",
+            "v",
+            true,
+            "The default vertex label.",
+            disallowEmpty(String.class));
 
     public static final ConfigOption<String> GRAPHS = new ConfigOption<>(
             "graphs",
@@ -88,4 +89,11 @@ public class CoreOptions extends OptionHolder {
             true,
             "The map of graphs' name and config file.",
             disallowEmpty(String.class));
+
+    public static final ConfigOption<Integer> GRAPH_CACHE_CAPACITY = new ConfigOption<>(
+            "graph.cache_capacity",
+            (1024 * 1024 * 10),
+            true,
+            "The max cache size of graph data(vertex/edge).",
+            rangeInt(1, Integer.MAX_VALUE));
 }
