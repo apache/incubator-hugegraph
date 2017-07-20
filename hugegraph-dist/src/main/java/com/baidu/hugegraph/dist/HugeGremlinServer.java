@@ -72,9 +72,9 @@ public class HugeGremlinServer {
             GraphTraversalSource g = graphManager.getGraph(graph).traversal();
             String gName = G_PREFIX + graph;
             if (graphManager.getTraversalSource(gName) != null) {
-                throw new HugeException("Found existed name '%s' in global " +
-                                        "bindings, it may lead gremlin query " +
-                                        "error.", gName);
+                throw new HugeException(
+                          "Found existed name '%s' in global bindings, " +
+                          "it may lead gremlin query error.", gName);
             }
             // Add a traversal source for all graphs with customed rule.
             graphManager.putTraversalSource(gName, g);
