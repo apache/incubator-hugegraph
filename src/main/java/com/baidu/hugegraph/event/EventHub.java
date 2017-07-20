@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -22,10 +23,11 @@ public class EventHub {
 
     private static final Logger logger =
             LoggerFactory.getLogger(EventHub.class);
+    // Event executor
+    private static ExecutorService executor = null;
 
     private String name;
     private Map<String, List<EventListener>> listeners;
-    private ExecutorService executor;
 
     public EventHub() {
         this("hub");
@@ -34,7 +36,26 @@ public class EventHub {
     public EventHub(String name) {
         this.name = name;
         this.listeners = new ConcurrentHashMap<>();
-        this.executor = Executors.newFixedThreadPool(1);
+        EventHub.init(1);
+    }
+
+    public static synchronized void init(int poolSize) {
+        if (executor != null) {
+            return;
+        }
+        executor = Executors.newFixedThreadPool(poolSize);
+    }
+
+    public static synchronized boolean destroy(long timeout)
+                                               throws InterruptedException {
+        executor.shutdown();
+        return executor.awaitTermination(timeout, TimeUnit.SECONDS);
+    }
+
+    private static ExecutorService executor() {
+        ExecutorService e = executor;
+        E.checkState(e != null, "The event executor has been destroyed");
+        return e;
     }
 
     public String name() {
@@ -90,7 +111,7 @@ public class EventHub {
         }
 
         Event ev = new Event(this, event, args);
-        this.executor.submit(() -> {
+        executor().submit(() -> {
             // Notify all listeners, and ignore the results
             while (all.hasNext()) {
                 try {
