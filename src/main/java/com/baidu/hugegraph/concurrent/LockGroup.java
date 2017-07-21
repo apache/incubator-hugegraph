@@ -1,3 +1,22 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package com.baidu.hugegraph.concurrent;
 
 import org.slf4j.Logger;
@@ -6,9 +25,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Created by zhangyi51 on 17/7/20.
- */
 public class LockGroup {
 
     private static final Logger logger =
@@ -31,31 +47,38 @@ public class LockGroup {
 
     public boolean lock(String lockName, int retries) {
         // The interval between retries is exponential growth(2^i)
-        if (retries < 0 || retries > 10) {
-            throw new RuntimeException("Lock retry times should in [0, 10]");
+        if (retries < 1 || retries > 10) {
+            throw new IllegalArgumentException(String.format(
+                "Locking retry times should be between 1 and 10, but got %d",
+                retries));
         }
+
         if (!this.locksMap.containsKey(lockName)) {
             this.locksMap.putIfAbsent(lockName, new Lock(lockName));
         }
-        for (int i = 0;; i++) {
-            if (this.locksMap.get(lockName).lock()) {
-                return true;
-            } else if (i >= retries) {
-                break;
-            }
-            try {
+
+        boolean isLocked = false;
+        try {
+            int i = 0;
+            do {
+                if (this.locksMap.get(lockName).lock()) {
+                    isLocked = true;
+                    break;
+                }
+
                 Thread.sleep(1000 * (1L << i));
-            } catch (InterruptedException ignored) {
-                logger.info("Thread sleep is interrupted.");
-            }
+            } while (++i < retries);
+        } catch (InterruptedException ignored) {
+            logger.info("Thread sleep is interrupted.");
         }
-        return false;
+
+        return isLocked;
     }
 
     public void unlock(String lockName) {
         if (!this.locksMap.containsKey(lockName)) {
             throw new RuntimeException(String.format(
-                      "There is no lock '%s' in LockGroup '%s'",
+                      "There is no lock '%s' found in LockGroup '%s'",
                       lockName, this.name));
         }
         this.locksMap.get(lockName).unlock();
