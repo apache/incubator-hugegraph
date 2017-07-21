@@ -73,7 +73,7 @@ public class Example2 {
                 .has("city", "Beijing")
                 .toList());
 
-        List<Path> paths = graph.traversal().V("person\u0002marko")
+        List<Path> paths = graph.traversal().V("person:marko")
                 .out().out().path().by("name").toList();
         System.out.println(">>>> test out path: " + paths);
         assert paths.size() == 2;
@@ -84,7 +84,7 @@ public class Example2 {
         assert paths.get(1).get(1).equals("josh");
         assert paths.get(1).get(2).equals("ripple");
 
-        paths = shortestPath(graph, "person\u0002marko", "software\u0002lop", 5);
+        paths = shortestPath(graph, "person:marko", "software:lop", 5);
         System.out.println(">>>> test shortest path: " + paths.get(0));
         assert paths.get(0).get(0).equals("marko");
         assert paths.get(0).get(1).equals("lop");
@@ -185,7 +185,7 @@ public class Example2 {
         Vertex marko = graph.addVertex(T.label, "person",
                 "name", "marko", "age", 29, "city", "Beijing");
         Vertex vadas = graph.addVertex(T.label, "person",
-                        "name", "vadas", "age", 27, "city", "Hongkong");
+                "name", "vadas", "age", 27, "city", "Hongkong");
         Vertex lop = graph.addVertex(T.label, "software",
                 "name", "lop", "lang", "java", "price", 328);
         Vertex josh = graph.addVertex(T.label, "person",

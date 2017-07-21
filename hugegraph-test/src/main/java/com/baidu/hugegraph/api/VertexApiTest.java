@@ -38,8 +38,8 @@ public class VertexApiTest extends BaseApiTest {
 
     @AfterClass
     public static void teardown() {
-        newClient().delete(path, "person%02Lisa");
-        newClient().delete(path, "person%02Hebe");
+        newClient().delete(path, "person:Lisa");
+        newClient().delete(path, "person:Hebe");
     }
 
     @Test
@@ -54,14 +54,14 @@ public class VertexApiTest extends BaseApiTest {
 
     @Test
     public void testGet() {
-        String vertex = "person%02Lisa";
+        String vertex = "person:Lisa";
         Response r = client().get(path, vertex);
         Assert.assertEquals(200, r.getStatus());
     }
 
     @Test
     public void testGetNotFound() {
-        String vertex = "person%02!not-exists-this-vertex!";
+        String vertex = "person:!not-exists-this-vertex!";
         Response r = client().get(path, vertex);
         // TODO: improve to 404 (currently server returns 400 if not found)
         Assert.assertEquals(400, r.getStatus());
@@ -76,7 +76,7 @@ public class VertexApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() {
-        String vertex = "person%02Lisa";
+        String vertex = "person:Lisa";
         Response r = client().delete(path, vertex);
         Assert.assertEquals(204, r.getStatus());
     }

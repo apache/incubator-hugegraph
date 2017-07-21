@@ -16,15 +16,15 @@ public class EdgeApiTest extends BaseApiTest {
         // add some edges (NOTE: vertices have been added before)
         String look2 = "{"
                 + "\"label\":\"look\","
-                + "\"source\":\"author\\u00021\","
-                + "\"target\":\"book\\u0002java-2\","
+                + "\"outV\":\"author:1\","
+                + "\"inV\":\"book:java-2\","
                 + "\"properties\":{"
                 + "\"time\":\"2017-5-18\""
                 + "}}";
         String look3 = "{"
                 + "\"label\":\"look\","
-                + "\"source\":\"author\\u00021\","
-                + "\"target\":\"book\\u0002java-3\","
+                + "\"outV\":\"author:1\","
+                + "\"inV\":\"book:java-3\","
                 + "\"properties\":{"
                 + "\"time\":\"2017-5-18\""
                 + "}}";
@@ -38,31 +38,32 @@ public class EdgeApiTest extends BaseApiTest {
 
     @AfterClass
     public static void teardown() {
-        newClient().delete(path, "author%021%01look%012017-5-18%01book%02java-3");
+        newClient().delete(path, "author:1>look>2017-5-18>book:java-3");
     }
 
     @Test
     public void testCreate() {
         String edge = "{"
-                + "\"label\":\"created\","
-                + "\"source\":\"author\\u00021\","
-                + "\"target\":\"language\\u0002java\","
+                + "\"label\":\"authored\","
+                + "\"outV\":\"author:1\","
+                + "\"inV\":\"book:java-1\","
                 + "\"properties\":{"
                 + "\"contribution\":\"2017-5-18\""
                 + "}}";
+        System.out.println(client().post(path, edge).readEntity(String.class));
         Assert.assertEquals(201, client().post(path, edge).getStatus());
     }
 
     @Test
     public void testGet() {
-        String edge = "author%021%01look%012017-5-18%01book%02java-2";
+        String edge = "author:1>look>2017-5-18>book:java-2";
         Response r = client().get(path, edge);
         Assert.assertEquals(200, r.getStatus());
     }
 
     @Test
     public void testGetNotFound() {
-        String edge = "author%021%01look%012017-5-18%01book%02!not-exists!";
+        String edge = "author:1>look>2017-5-18>book:!not-exists!";
         Response r = client().get(path, edge);
         // TODO: improve to 404 (currently server returns 400 if not found)
         Assert.assertEquals(400, r.getStatus());
@@ -77,7 +78,7 @@ public class EdgeApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() {
-        String edge = "author%021%01look%012017-5-18%01book%02java-3";
+        String edge = "author:1>look>2017-5-18>book:java-3";
         Response r = client().delete(path, edge);
         Assert.assertEquals(204, r.getStatus());
     }

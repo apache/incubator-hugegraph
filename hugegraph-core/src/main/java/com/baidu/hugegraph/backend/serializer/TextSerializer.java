@@ -61,7 +61,7 @@ import com.google.common.collect.ImmutableList;
 
 public class TextSerializer extends AbstractSerializer {
 
-    private static final String COLUME_SPLITOR = SplicingIdGenerator.IDS_SPLITOR;
+    private static final String COLUME_SPLITOR = "\u0001";
     private static final String VALUE_SPLITOR = "\u0004";
 
     public TextSerializer(final HugeGraph graph) {

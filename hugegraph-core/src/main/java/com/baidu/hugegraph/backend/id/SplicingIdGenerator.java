@@ -1,16 +1,27 @@
 package com.baidu.hugegraph.backend.id;
 
-import org.apache.commons.lang3.StringUtils;
+import java.util.List;
 
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.util.StringUtil;
 
 public class SplicingIdGenerator extends IdGenerator {
 
-    public static final String IDS_SPLITOR = "\u0001";
-    public static final String ID_SPLITOR = "\u0002";
-    public static final String NAME_SPLITOR = "\u0003";
+    /*
+     * The following defines can't be java regex special characters:
+     * "\^$.|?*+()[{"
+     * See: http://www.regular-expressions.info/characters.html
+     */
+    private static final char ESCAPE = '`';
+    private static final char IDS_SPLITOR = '>';
+    private static final char ID_SPLITOR = ':';
+    private static final char NAME_SPLITOR = '!';
+
+    private static final String ESCAPE_STR = String.valueOf(ESCAPE);
+    private static final String IDS_SPLITOR_STR = String.valueOf(IDS_SPLITOR);
+    private static final String ID_SPLITOR_STR = String.valueOf(ID_SPLITOR);
 
     /****************************** id generate ******************************/
 
@@ -21,7 +32,7 @@ public class SplicingIdGenerator extends IdGenerator {
     public Id generate(SchemaElement entry) {
         /*
          * String id = String.format("%x%s%s", entry.type().code(),
-         * ID_SPLITOR, entry.name());
+         *                           ID_SPLITOR, escapeId(entry.name()));
          */
         return generate(entry.name());
     }
@@ -30,70 +41,60 @@ public class SplicingIdGenerator extends IdGenerator {
      * Generate a string id of HugeEdge from:
      * { source-vertex-id + edge-label + edge-name + target-vertex-id }
      * NOTE: if we use `entry.type()` which is IN or OUT as a part of id,
-     * an edge's id will be different due to different directions (belongs to
-     * 2 vertex)
+     * an edge's id will be different due to different directions (belongs
+     * to 2 vertex)
      */
     @Override
-    public Id generate(HugeEdge entry) {
-        String id = String.format("%s%s%s%s%s%s%s",
-                entry.sourceVertex().id().asString(),
-                IDS_SPLITOR,
-                entry.label(),
-                IDS_SPLITOR,
-                entry.name(),
-                IDS_SPLITOR,
-                entry.targetVertex().id().asString());
-        return generate(id);
+    public Id generate(HugeEdge edge) {
+        return concat(edge.sourceVertex().id().asString(),
+                      edge.label(),
+                      edge.name(),
+                      edge.targetVertex().id().asString());
     }
 
     /**
      * Generate a string id of HugeVertex from Vertex name
      */
     @Override
-    public Id generate(HugeVertex entry) {
-        String id = String.format("%s%s%s",
-                                  entry.label(),
-                                  ID_SPLITOR,
-                                  entry.name());
-
+    public Id generate(HugeVertex vertex) {
         /*
          * Hash for row-key which will be evenly distributed.
          * We can also use LongEncoding.encode() to encode the int/long hash
          * if needed.
          * id = String.format("%s%s%s", HashUtil.hash(id), ID_SPLITOR, id);
          */
-
         // TODO: use binary Id with binary fields instead of string id
-        return generate(id);
+        return splicing(vertex.label(), vertex.name());
     }
 
     public static Id concat(String... ids) {
         // NOTE: must support string id when using this method
-        String id = String.join(IDS_SPLITOR, ids);
-        return IdGeneratorFactory.generator().generate(id);
+        String escaped = StringUtil.escape(IDS_SPLITOR, ESCAPE, ids);
+        return IdGeneratorFactory.generator().generate(escaped);
     }
 
     public static String[] split(Id id) {
-        String[] ids = id.asString().split(IDS_SPLITOR);
-        return ids;
+        return StringUtil.unescape(id.asString(), IDS_SPLITOR_STR, ESCAPE_STR);
     }
 
-    public static String concatValues(Iterable<?> values) {
-        // TODO: use a better delimiter
-        return StringUtils.join(values, NAME_SPLITOR);
-    }
-
-    public static String[] splitValues(String values) {
-        return values.split(IDS_SPLITOR);
+    /**
+     * Concat property values with name splitor
+     */
+    public static String concatValues(List<?> values) {
+        // Convert the object list to string array
+        String[] parts = new String[values.size()];
+        for (int i = 0; i < values.size(); i++) {
+            parts[i] = values.get(i).toString();
+        }
+        return StringUtil.escape(NAME_SPLITOR, ESCAPE, parts);
     }
 
     public static Id splicing(String... parts) {
-        String id = String.join(ID_SPLITOR, parts);
-        return IdGeneratorFactory.generator().generate(id);
+        String escaped = StringUtil.escape(ID_SPLITOR, ESCAPE, parts);
+        return IdGeneratorFactory.generator().generate(escaped);
     }
 
     public static String[] parse(Id id) {
-        String[] parts = id.asString().split(ID_SPLITOR);
-        return parts;
+        return StringUtil.unescape(id.asString(), ID_SPLITOR_STR, ESCAPE_STR);
     }
 }

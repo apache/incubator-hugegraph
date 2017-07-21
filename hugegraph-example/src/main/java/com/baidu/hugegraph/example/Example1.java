@@ -217,20 +217,20 @@ public class Example1 {
         System.out.println(">>>> query vertices by primary-values: " + vertexList);
 
         // query vertex by id and query out edges
-        vertexes = graph.traversal().V("author\u00021");
+        vertexes = graph.traversal().V("author:1");
         GraphTraversal<Vertex, Edge> edgesOfVertex = vertexes.outE("created");
         List<Edge> edgeList = edgesOfVertex.toList();
         assert edgeList.size() == 1;
         System.out.println(">>>> query edges of vertex: " + edgeList);
 
-        vertexes = graph.traversal().V("author\u00021");
+        vertexes = graph.traversal().V("author:1");
         GraphTraversal<Vertex, Vertex> verticesOfVertex = vertexes.out("created");
         vertexList = verticesOfVertex.toList();
         assert vertexList.size() == 1;
         System.out.println(">>>> query vertices of vertex: " + vertexList);
 
         // query edge by sort-values
-        vertexes = graph.traversal().V("author\u00021");
+        vertexes = graph.traversal().V("author:1");
         edgesOfVertex = vertexes.outE("look").has("time", "2017-4-28");
         edgeList = edgesOfVertex.toList();
         assert edgeList.size() == 2;
@@ -238,7 +238,7 @@ public class Example1 {
 
         // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
-        q.query(IdGeneratorFactory.generator().generate("author\u00021"));
+        q.query(IdGeneratorFactory.generator().generate("author:1"));
         // TODO: remove the PROPERTIES which may just be used by Cassandra
         q.key(HugeKeys.PROPERTIES, "age");
 
@@ -256,7 +256,7 @@ public class Example1 {
         System.out.println(">>>> query all edges with limit 2: size=" + size);
 
         // query edge by id
-        String id = "author\u00021\u0001authored\u0001\u0001book\u0002java-2";
+        String id = "author:1>authored>>book:java-2";
         edges = graph.traversal().E(id);
         edgeList = edges.toList();
         assert edgeList.size() == 1;
@@ -270,11 +270,11 @@ public class Example1 {
 
         // query edge by condition
         q = new ConditionQuery(HugeType.EDGE);
-        q.eq(HugeKeys.SOURCE_VERTEX, "author\u00021");
+        q.eq(HugeKeys.SOURCE_VERTEX, "author:1");
         q.eq(HugeKeys.DIRECTION, Direction.OUT);
         q.eq(HugeKeys.LABEL, "authored");
         q.eq(HugeKeys.SORT_VALUES, "");
-        q.eq(HugeKeys.TARGET_VERTEX, "book\u0002java-1");
+        q.eq(HugeKeys.TARGET_VERTEX, "book:java-1");
         // NOTE: query edge by has-key just supported by Cassandra
         // q.hasKey(HugeKeys.PROPERTIES, "contribution");
 
@@ -328,7 +328,7 @@ public class Example1 {
         }
 
         // remove edge
-        id = "author\u00021\u0001authored\u0001\u0001book\u0002java-2";
+        id = "author:1>authored>>book:java-2";
         edges = graph.traversal().E(id);
         edge = edges.toList().get(0);
         System.out.println(">>>> remove edge: " + edge);
