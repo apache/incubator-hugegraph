@@ -2,9 +2,6 @@ package com.baidu.hugegraph.util;
 
 import java.util.Collection;
 
-/**
- * Created by jishilei on 2017/3/22.
- */
 public class StringUtil {
 
     public static String desc(String prefix, Collection<String> elems) {
@@ -17,17 +14,56 @@ public class StringUtil {
     }
 
     public static void checkName(String name) {
-        // TODO: perform is by regex
         E.checkNotNull(name, "name");
-        E.checkArgument(!name.isEmpty(), "name can't be empty.");
+        E.checkArgument(!name.isEmpty(),
+                        "The name can't be empty.");
         E.checkArgument(name.length() < 256,
                         "The length of name must less than 256 bytes.");
-        E.checkArgument(name.substring(0, 1) != "_",
-                        "The first letter of name can't be '_'.");
-        E.checkArgument(!name.contains("\u0001"),
-                        "name can't contain the character '\u0001'.");
-        E.checkArgument(!name.contains("\u0002"),
-                        "name can't contain the character '\u0002'.");
+        E.checkArgument(!name.startsWith("_"),
+                        "The name can't be started with'_'.");
+
+        final char[] filters = {'#', '>', ':', '!'};
+        for (char c : filters) {
+            E.checkArgument(name.indexOf(c) == -1,
+                            "The name can't contain character '%s'.", c);
+        }
     }
 
+    public static String escape(char splitor, char escape, String... values) {
+        StringBuilder escaped = new StringBuilder((values.length + 1) * 16);
+        // Do escape for every item in values
+        for (String value : values) {
+            if (escaped.length() > 0) {
+                escaped.append(splitor);
+            }
+
+            if (value.indexOf(splitor) == -1) {
+                escaped.append(value);
+                continue;
+            }
+            // Do escape for current item
+            for (int i = 0; i < value.length(); i++) {
+                char ch = value.charAt(i);
+                if (ch == splitor) {
+                    escaped.append(escape);
+                }
+                escaped.append(ch);
+            }
+        }
+        return escaped.toString();
+    }
+
+    public static String[] unescape(String id, String splitor, String escape) {
+        /*
+         * NOTE: The `splitor`/`escape` may be special characters in regular
+         * expressions, but this is a frequently called method, for faster
+         * execution, we forbid the use of special characters as delimiter
+         * or escape sign.
+         */
+        String[] parts = id.split("(?<!" + escape + ")" + splitor);
+        for (int i = 0; i < parts.length; i++) {
+            parts[i] = parts[i].replaceAll(escape + splitor, splitor);
+        }
+        return parts;
+    }
 }

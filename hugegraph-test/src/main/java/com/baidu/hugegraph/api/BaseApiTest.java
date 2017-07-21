@@ -9,6 +9,8 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.glassfish.jersey.client.filter.EncodingFilter;
+import org.glassfish.jersey.message.GZipEncoder;
 import org.junit.After;
 import org.junit.Before;
 
@@ -43,6 +45,8 @@ public class BaseApiTest {
 
         public RestClient(String url) {
             this.client = ClientBuilder.newClient();
+            this.client.register(EncodingFilter.class);
+            this.client.register(GZipEncoder.class);
             this.target = this.client.target(url);
         }
 

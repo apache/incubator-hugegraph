@@ -53,10 +53,11 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         if (this.name == null) {
             if (this.id != null) {
                 String[] parts = SplicingIdGenerator.parse(this.id);
-                E.checkState(parts.length == 2, "Invalid vertex id '%s'", this.id);
+                E.checkState(parts.length == 2,
+                             "Invalid vertex id '%s'", this.id);
                 this.name = parts[1];
-
             } else {
+                assert this.id == null;
                 List<Object> propValues = primaryValues();
                 E.checkState(!propValues.isEmpty(),
                         "Primary values must not be empty(has properties %s)",
