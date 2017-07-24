@@ -20,10 +20,10 @@
 package com.baidu.hugegraph.event;
 
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -93,11 +93,11 @@ public class EventHub {
         E.checkNotNull(event, "event");
         E.checkNotNull(listener, "event listener");
 
-        List<EventListener> ls = this.listeners.get(event);
-        if (ls == null) {
-            ls = new LinkedList<>();
-            this.listeners.put(event, ls);
+        if (!this.listeners.containsKey(event)) {
+            this.listeners.putIfAbsent(event, new CopyOnWriteArrayList<>());
         }
+        List<EventListener> ls = this.listeners.get(event);
+        assert ls != null : this.listeners;
         ls.add(listener);
     }
 
