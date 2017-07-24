@@ -13,7 +13,7 @@ import com.baidu.hugegraph.util.E;
 public class CassandraStoreProvider extends AbstractBackendStoreProvider {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(CassandraStore.class);
+                         LoggerFactory.getLogger(CassandraStore.class);
 
     private String keyspace() {
         return this.name();
@@ -24,7 +24,8 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         logger.info("CassandraStoreProvider load SchemaStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.put(name, new CassandraSchemaStore(this, keyspace(), name));
+            BackendStore s = new CassandraSchemaStore(this, keyspace(), name);
+            this.stores.putIfAbsent(name, s);
         }
 
         BackendStore store = this.stores.get(name);
@@ -39,7 +40,8 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         logger.info("CassandraStoreProvider load GraphStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.put(name, new CassandraGraphStore(this, keyspace(), name));
+            BackendStore s = new CassandraGraphStore(this, keyspace(), name);
+            this.stores.putIfAbsent(name, s);
         }
 
         BackendStore store = this.stores.get(name);
@@ -54,7 +56,8 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         logger.info("CassandraStoreProvider load IndexStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
-            this.stores.put(name, new CassandraIndexStore(this, keyspace(), name));
+            BackendStore s = new CassandraIndexStore(this, keyspace(), name);
+            this.stores.putIfAbsent(name, s);
         }
 
         BackendStore store = this.stores.get(name);
