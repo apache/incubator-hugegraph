@@ -6,8 +6,8 @@ import java.util.Set;
 
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.EdgeLink;
+import com.baidu.hugegraph.type.define.Frequency;
 
 /**
  * Created by jishilei on 17/3/18.
@@ -55,6 +55,15 @@ public abstract class EdgeLabel extends SchemaElement {
 
     @Override
     public abstract EdgeLabel create();
+
+    @Override
+    public abstract EdgeLabel append();
+
+    @Override
+    public abstract EdgeLabel eliminate();
+
+    @Override
+    public abstract void remove();
 
     public abstract void rebuildIndex();
 

@@ -57,4 +57,7 @@ public class EdgeLink {
         return this.source().hashCode() ^ this.target().hashCode();
     }
 
+    public boolean contains(String name) {
+        return this.source.equals(name) || this.target.equals(name);
+    }
 }

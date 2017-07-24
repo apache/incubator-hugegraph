@@ -39,5 +39,14 @@ public abstract class VertexLabel extends SchemaElement {
     @Override
     public abstract VertexLabel create();
 
+    @Override
+    public abstract VertexLabel append();
+
+    @Override
+    public abstract VertexLabel eliminate();
+
+    @Override
+    public abstract void remove();
+
     public abstract void rebuildIndex();
 }

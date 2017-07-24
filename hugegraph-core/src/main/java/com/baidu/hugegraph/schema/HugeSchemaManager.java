@@ -89,6 +89,14 @@ public class HugeSchemaManager implements SchemaManager {
     }
 
     @Override
+    public IndexLabel indexLabel(String name) {
+        IndexLabel indexLabel = this.transaction.getIndexLabel(name);
+        E.checkArgument(indexLabel != null,
+                        "Undefined index label: '%s'", name);
+        return indexLabel;
+    }
+
+    @Override
     public List<SchemaElement> desc() {
         List<SchemaElement> elements = new ArrayList<>();
         elements.addAll(this.transaction.getPropertyKeys());
@@ -108,5 +116,17 @@ public class HugeSchemaManager implements SchemaManager {
     public SchemaElement append(SchemaElement element) {
         element.transaction(this.transaction);
         return element.append();
+    }
+
+    @Override
+    public SchemaElement eliminate(SchemaElement element) {
+        element.transaction(this.transaction);
+        return element.eliminate();
+    }
+
+    @Override
+    public void remove(SchemaElement element) {
+        element.transaction(this.transaction);
+        element.remove();
     }
 }

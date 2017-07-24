@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.baidu.hugegraph.schema.SchemaElement;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -18,6 +17,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -28,6 +28,7 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -36,6 +37,7 @@ import com.baidu.hugegraph.structure.HugeFeatures.HugeVertexFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
@@ -567,5 +569,41 @@ public class GraphTransaction extends AbstractTransaction {
         this.beforeWrite();
         this.indexTx.rebuildIndex(schemaElement);
         this.afterWrite();
+    }
+
+    public void removeVertices(VertexLabel vertexLabel) {
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.eq(HugeKeys.LABEL, vertexLabel.name());
+        Iterator<Vertex> vertices = this.queryVertices(query).iterator();
+
+        boolean autoCommit = this.autoCommit();
+        this.autoCommit(false);
+        try {
+            while (vertices.hasNext()) {
+                this.removeVertex((HugeVertex) vertices.next());
+            }
+            this.commit();
+        } catch (Exception e) {
+            logger.error("Failed to remove vertices", e);
+            throw new HugeException("Failed to remove vertices", e);
+        } finally {
+            this.autoCommit(autoCommit);
+        }
+    }
+
+    public void removeEdges(EdgeLabel edgeLabel) {
+        // TODO: Need to change to writeQuery.
+        Id id = idGenerator.generate(edgeLabel.name());
+        boolean autoCommit = this.autoCommit();
+        this.autoCommit(false);
+        try {
+            this.removeEntry(this.serializer.writeId(HugeType.EDGE, id));
+            this.commit();
+        } catch (Exception e) {
+            logger.error("Failed to remove edges", e);
+            throw new HugeException("Failed to remove edges", e);
+        } finally {
+            this.autoCommit(autoCommit);
+        }
     }
 }

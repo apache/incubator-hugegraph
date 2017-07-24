@@ -85,7 +85,7 @@ public class HugeVertexLabel extends VertexLabel {
     }
 
     @Override
-    public SchemaElement append() {
+    public VertexLabel append() {
 
         StringUtil.checkName(this.name);
         // Don't allow user to modify some stable properties.
@@ -97,14 +97,18 @@ public class HugeVertexLabel extends VertexLabel {
         VertexLabel vertexLabel = this.transaction().getVertexLabel(this.name);
         if (vertexLabel == null) {
             throw new HugeException("Can't append the vertex label '%s' " +
-                                    "since it doesn't exist",
-                                    this.name);
+                                    "since it doesn't exist", this.name);
         }
 
         vertexLabel.properties().addAll(this.properties);
 
         this.transaction().addVertexLabel(vertexLabel);
         return this;
+    }
+
+    @Override
+    public VertexLabel eliminate() {
+        throw new HugeException("Not support eliminate action on vertex label");
     }
 
     @Override

@@ -161,9 +161,13 @@ public class HugePropertyKey extends PropertyKey {
     }
 
     @Override
-    public SchemaElement append() {
-        throw new HugeException(
-                  "Not support append operation for property key");
+    public PropertyKey append() {
+        throw new HugeException("Not support append action on property key");
+    }
+
+    @Override
+    public PropertyKey eliminate() {
+        throw new HugeException("Not support eliminate action on property key");
     }
 
     @Override
