@@ -46,10 +46,11 @@ public class LockGroup {
     }
 
     public boolean lock(String lockName, int retries) {
-        // The interval between retries is exponential growth(2^i)
-        if (retries < 1 || retries > 10) {
+        // The interval between retries is exponential growth, most wait
+        // interval is 2^(retries-1)s. If retries=0, don't retry.
+        if (retries < 0 || retries > 10) {
             throw new IllegalArgumentException(String.format(
-                "Locking retry times should be between 1 and 10, but got %d",
+                "Locking retry times should be between 0 and 10, but got %d",
                 retries));
         }
 
@@ -59,19 +60,13 @@ public class LockGroup {
 
         boolean isLocked = false;
         try {
-            int i = 0;
-            do {
-                if (this.locksMap.get(lockName).lock()) {
-                    isLocked = true;
-                    break;
-                }
-
+            for (int i = 0; !(isLocked = this.locksMap.get(lockName).lock()) &&
+                            i < retries; i++) {
                 Thread.sleep(1000 * (1L << i));
-            } while (++i < retries);
+            }
         } catch (InterruptedException ignored) {
             logger.info("Thread sleep is interrupted.");
         }
-
         return isLocked;
     }
 
