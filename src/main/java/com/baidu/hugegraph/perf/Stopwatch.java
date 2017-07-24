@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.perf;
 
 public class Stopwatch implements Cloneable {
+
     private long lastStartTime = -1L;
 
     private long totalCost = 0L;
@@ -37,7 +38,7 @@ public class Stopwatch implements Cloneable {
     }
 
     public String id() {
-        return id(this.parent, this.name);
+        return Stopwatch.id(this.parent, this.name);
     }
 
     public static String id(String parent, String name) {
@@ -56,22 +57,23 @@ public class Stopwatch implements Cloneable {
     }
 
     public void startTime(long time) {
-        assert this.lastStartTime == -1;
+        assert this.lastStartTime == -1L;
+
         this.lastStartTime = time;
         this.times++;
     }
 
     public void endTime(long time) {
-        assert time >= this.lastStartTime && this.lastStartTime != -1;
+        assert time >= this.lastStartTime && this.lastStartTime != -1L;
 
         long cost = time - this.lastStartTime;
         this.totalCost += cost;
-        this.lastStartTime = -1;
+        this.lastStartTime = -1L;
         this.updateMinMax(cost);
     }
 
     protected void updateMinMax(long cost) {
-        if (this.minCost > cost || this.minCost == 0) {
+        if (this.minCost > cost || this.minCost == 0L) {
             this.minCost = cost;
         }
         if (this.maxCost < cost) {
@@ -111,7 +113,7 @@ public class Stopwatch implements Cloneable {
     public String toString() {
         return String.format(
                 "{totalCost:%sms, minCost:%sns, maxCost:%sns, times:%s}",
-                this.totalCost / 1000000.0,
+                this.totalCost / 1000000.0F,
                 this.minCost, this.maxCost,
                 this.times);
     }

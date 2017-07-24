@@ -17,30 +17,17 @@
  * the License.
  */
 
-package com.baidu.hugegraph.concurrent;
+package com.baidu.hugegraph.config;
 
-import java.util.concurrent.locks.Lock;
+public class ConfigException extends RuntimeException {
 
-import com.google.common.util.concurrent.Striped;
+    private static final long serialVersionUID = -8711375282196157058L;
 
-public class KeyLock {
-
-    private Striped<Lock> locks;
-
-    public KeyLock() {
-        // The default size is availableProcessors() * 4
-        this(Runtime.getRuntime().availableProcessors() << 2);
+    public ConfigException(String message) {
+        super(message);
     }
 
-    public KeyLock(int size) {
-        this.locks = Striped.lock(size);
-    }
-
-    public final void lock(Object key) {
-        this.locks.get(key).lock();
-    }
-
-    public final void unlock(Object key) {
-        this.locks.get(key).unlock();
+    public ConfigException(String msg, Throwable cause) {
+        super(msg, cause);
     }
 }

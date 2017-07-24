@@ -41,8 +41,9 @@ public class EventHub {
     private static final Logger logger =
                          LoggerFactory.getLogger(EventHub.class);
 
-    // Event executor
     public static final String ANY_EVENT = "*";
+
+    // Event executor
     private static ExecutorService executor = null;
 
     private String name;
