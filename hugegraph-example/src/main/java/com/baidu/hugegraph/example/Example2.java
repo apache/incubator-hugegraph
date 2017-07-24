@@ -32,7 +32,7 @@ public class Example2 {
         Example2.load(graph);
         showSchema(graph);
         traversal(graph);
-
+        removeSchema(graph);
         System.exit(0);
     }
 
@@ -203,5 +203,19 @@ public class Example2 {
         peter.addEdge("created", lop, "date", "20170324", "city", "Hongkong");
 
         graph.tx().commit();
+    }
+
+    private static void removeSchema(HugeGraph graph) {
+        SchemaManager schema = graph.schema();
+        // Remove edge label
+        schema.makeEdgeLabel("created").remove();
+        // Remove vertex label
+        schema.makeVertexLabel("software").remove();
+        try {
+            schema.makePropertyKey("name").remove();
+        } catch (Exception e) {
+            logger.info("Not allowed to remove property key '{}' that is in " +
+                        "using by some vertex or edge label.", "name");
+        }
     }
 }

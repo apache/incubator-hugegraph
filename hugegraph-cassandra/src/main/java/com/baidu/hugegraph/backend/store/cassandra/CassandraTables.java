@@ -8,11 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.baidu.hugegraph.backend.BackendException;
-import com.datastax.driver.core.querybuilder.Delete;
-import com.datastax.driver.core.querybuilder.Select;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
@@ -22,7 +20,9 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Update;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -259,6 +259,47 @@ public class CassandraTables {
             }
 
             return idParts;
+        }
+
+        @Override
+        public void delete(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            /*
+             * TODO: Delete edge by label
+             * Need to implement the framework that can delete with query
+             * which contains id or condition.
+             */
+            if (entry.columns().size() > 0) {
+                super.delete(session, entry);
+                return;
+            }
+            List<String> ids = idColumnValue(entry.id());
+            if (ids.size() != 1) {
+                super.delete(session, entry);
+                return;
+            }
+            // The only element is label
+            String label = ids.get(0);
+
+            Select select = QueryBuilder.select().from(this.table());
+            select.where(QueryBuilder.eq(formatKey(HugeKeys.LABEL), label));
+
+            Iterator<Row> it = session.execute(select).iterator();
+            while (it.hasNext()) {
+                Row row = it.next();
+                String sourceVertex = row.get(formatKey(HugeKeys.SOURCE_VERTEX),
+                                              String.class);
+                String direction = row.get(formatKey(HugeKeys.DIRECTION),
+                                           String.class);
+                Delete delete = QueryBuilder.delete().from(table());
+                delete.where(QueryBuilder.eq(formatKey(HugeKeys.SOURCE_VERTEX),
+                                             sourceVertex));
+                delete.where(QueryBuilder.eq(formatKey(HugeKeys.DIRECTION),
+                                             direction));
+                delete.where(QueryBuilder.eq(formatKey(HugeKeys.LABEL), label));
+
+                session.add(delete);
+            }
         }
 
         @Override

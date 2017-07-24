@@ -18,17 +18,23 @@ public interface SchemaManager {
 
     public EdgeLabel makeEdgeLabel(String name);
 
+    public IndexLabel makeIndexLabel(String name);
+
     public PropertyKey propertyKey(String name);
 
     public VertexLabel vertexLabel(String name);
 
     public EdgeLabel edgeLabel(String name);
 
-    public IndexLabel makeIndexLabel(String name);
+    public IndexLabel indexLabel(String name);
 
     public List<SchemaElement> desc();
 
     public SchemaElement create(SchemaElement element);
 
     public SchemaElement append(SchemaElement element);
+
+    public SchemaElement eliminate(SchemaElement element);
+
+    public void remove(SchemaElement element);
 }

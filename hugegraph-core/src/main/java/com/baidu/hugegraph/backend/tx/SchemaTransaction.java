@@ -2,6 +2,8 @@ package com.baidu.hugegraph.backend.tx;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -9,16 +11,19 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.schema.HugeIndexLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.EdgeLink;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.google.common.collect.ImmutableSet;
 
 public class SchemaTransaction extends AbstractTransaction {
 
@@ -77,6 +82,24 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void removePropertyKey(String name) {
+        List<VertexLabel> vertexLabels = this.getVertexLabels();
+        for (VertexLabel vertexLabel : vertexLabels) {
+            if (vertexLabel.properties().contains(name)) {
+                throw new NotAllowException(
+                          "Not allowed to remove property key: '%s' " +
+                          "because the vertex label '%s' is still using it.",
+                          name, vertexLabel.name());
+            }
+        }
+        List<EdgeLabel> edgeLabels = this.getEdgeLabels();
+        for (EdgeLabel edgeLabel : edgeLabels) {
+            if (edgeLabel.properties().contains(name)) {
+                throw new NotAllowException(
+                          "Not allowed to remove property key: '%s' " +
+                          "because the edge label '%s' is still using it.",
+                          name, edgeLabel.name());
+            }
+        }
         logger.debug("SchemaTransaction remove property key '{}'", name);
         this.removeSchema(new HugePropertyKey(name));
     }
@@ -93,6 +116,37 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void removeVertexLabel(String name) {
+        VertexLabel vertexLabel = this.getVertexLabel(name);
+        // If the vertex label does not exist, return directly
+        if (vertexLabel == null) {
+            return;
+        }
+        /*
+         *  Copy index names because removeIndexLabel will mutate
+         *  vertexLabel.indexNames()
+         */
+        Set<String> indexNames = ImmutableSet.copyOf(vertexLabel.indexNames());
+        for (String indexName : indexNames) {
+            this.removeIndexLabel(indexName);
+        }
+
+        // TODO: use event to replace direct call
+        // Deleting a vertex will automatically deletes the held edge
+        this.graph().graphTransaction().removeVertices(vertexLabel);
+
+        // Delete links of edge label
+        List<EdgeLabel> edgeLabels = this.getEdgeLabels();
+        for (EdgeLabel edgeLabel : edgeLabels) {
+            Set<EdgeLink> links = edgeLabel.links();
+            // Delete links which contains the vertex label
+            links = links.stream().filter(edgeLink ->
+                    !edgeLink.contains(vertexLabel.name())
+            ).collect(Collectors.toSet());
+            edgeLabel.links(links);
+            // Update edge label by adding a new one
+            this.addEdgeLabel(edgeLabel);
+        }
+
         logger.debug("SchemaTransaction remove vertex label '{}'", name);
         this.removeSchema(new HugeVertexLabel(name));
     }
@@ -108,6 +162,20 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void removeEdgeLabel(String name) {
+        EdgeLabel edgeLabel = this.getEdgeLabel(name);
+        // If the edge label does not exist, return directly
+        if (edgeLabel == null) {
+            return;
+        }
+        // TODO: use event to replace direct call
+        // Remove index related data(include schema) of this edge label
+        Set<String> indexNames = ImmutableSet.copyOf(edgeLabel.indexNames());
+        for (String indexName : indexNames) {
+            this.removeIndexLabel(indexName);
+        }
+        // Remove all edges which has matched label
+        this.graph().graphTransaction().removeEdges(edgeLabel);
+
         logger.debug("SchemaTransaction remove edge label '{}'", name);
         this.removeSchema(new HugeEdgeLabel(name));
     }

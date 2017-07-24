@@ -190,6 +190,11 @@ public class HugeEdgeLabel extends EdgeLabel {
     }
 
     @Override
+    public EdgeLabel eliminate() {
+        throw new HugeException("Not support eliminate action on edge label");
+    }
+
+    @Override
     public void remove() {
         this.transaction().removeEdgeLabel(this.name);
     }
@@ -250,11 +255,11 @@ public class HugeEdgeLabel extends EdgeLabel {
     private void checkSortKeys() {
         if (this.frequency == Frequency.SINGLE) {
             E.checkArgument(this.sortKeys.isEmpty(),
-                            "EdgeLabel can not contain sortKeys when the " +
+                            "EdgeLabel can't contain sortKeys when the " +
                             "cardinality property is single");
         } else {
             E.checkState(this.sortKeys != null,
-                         "The sortKeys can not be null when the " +
+                         "The sortKeys can't be null when the " +
                          "cardinality property is multiple");
             E.checkArgument(!this.sortKeys.isEmpty(),
                             "EdgeLabel must contain sortKeys when the " +
@@ -264,8 +269,7 @@ public class HugeEdgeLabel extends EdgeLabel {
         if (this.sortKeys != null && !this.sortKeys.isEmpty()) {
             // Check whether the properties contains the specified keys
             E.checkArgument(!this.properties.isEmpty(),
-                            "Properties can not be empty when exist sort " +
-                            "keys");
+                            "Properties can't be empty when exist sort keys");
             for (String key : this.sortKeys) {
                 E.checkArgument(this.properties.contains(key),
                                 "The sort key '%s' of edge label '%s' must " +

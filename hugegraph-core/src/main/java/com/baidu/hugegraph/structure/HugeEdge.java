@@ -252,7 +252,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             return true;
         }
 
-        // does edgeLabels contain me
+        // Does edgeLabels contain me
         for (String label : edgeLabels) {
             if (label.equals(this.label())) {
                 return true;

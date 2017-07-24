@@ -3,6 +3,7 @@ package com.baidu.hugegraph.backend.store.cassandra;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -402,7 +403,26 @@ public abstract class CassandraTable {
         for (Map.Entry<HugeKeys, Object> column : entry.columns().entrySet()) {
             String key = this.formatKey(column.getKey());
             if (!idNames.contains(key)) {
-                update.with(QueryBuilder.remove(key, column.getValue()));
+                /*
+                 * NOTE: eliminate from map<text, text> should just pass key,
+                 * if use following statement:
+                 * UPDATE vertices SET PROPERTIES=PROPERTIES-{'city':'"Wuhan"'}
+                 * WHERE LABEL='person' AND PRIMARY_VALUES='josh';
+                 * will throw a cassandra exception:
+                 * "Invalid map literal for properties of typefrozen<set<text>>"
+                 */
+                Object value = column.getValue();
+                if (value instanceof Map) {
+                    Set<?> keySet = ((Map) value).keySet();
+                    update.with(QueryBuilder.removeAll(key, keySet));
+                } else if (value instanceof Set) {
+                    update.with(QueryBuilder.removeAll(key, (Set) value));
+                } else if (value instanceof List) {
+                    Set<?> keySet = new HashSet<>((List) value);
+                    update.with(QueryBuilder.removeAll(key, keySet));
+                } else {
+                    update.with(QueryBuilder.remove(key, value));
+                }
             }
         }
 

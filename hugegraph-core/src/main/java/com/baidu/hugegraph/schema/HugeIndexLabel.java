@@ -225,8 +225,13 @@ public class HugeIndexLabel extends IndexLabel {
     }
 
     @Override
-    public SchemaElement append() {
-        throw new HugeException("Not support append operation for index label");
+    public IndexLabel append() {
+        throw new HugeException("Not support append action on index label");
+    }
+
+    @Override
+    public IndexLabel eliminate() {
+        throw new HugeException("Not support eliminate action on index label");
     }
 
     private void loadElement() {

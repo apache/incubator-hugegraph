@@ -133,4 +133,13 @@ public abstract class PropertyKey extends SchemaElement {
 
     @Override
     public abstract PropertyKey create();
+
+    @Override
+    public abstract PropertyKey append();
+
+    @Override
+    public abstract PropertyKey eliminate();
+
+    @Override
+    public abstract void remove();
 }
