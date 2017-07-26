@@ -42,7 +42,7 @@ public class Utils {
     }
 
     public static boolean contains(List<Vertex> vertexes,
-            FakeVertex fakeVertex) {
+                                   FakeVertex fakeVertex) {
         for (Vertex v : vertexes) {
             if (fakeVertex.equalsVertex(v)) {
                 return true;

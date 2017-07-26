@@ -24,6 +24,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -49,8 +52,6 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public class IndexTransaction extends AbstractTransaction {
 
@@ -59,24 +60,21 @@ public class IndexTransaction extends AbstractTransaction {
     }
 
     public void updateVertexIndex(HugeVertex vertex, boolean removed) {
-        // Vertex index
+        // Update index(only property, no edge) of a vertex
         for (String indexName : vertex.vertexLabel().indexNames()) {
             updateIndex(indexName, vertex, removed);
         }
-
-        // Edges index
-        this.updateEdgesIndex(vertex, removed);
     }
 
     public void updateEdgesIndex(HugeVertex vertex, boolean removed) {
-        // Edges index
+        // Update index of edges in a vertex
         for (HugeEdge edge : vertex.getEdges()) {
             updateEdgeIndex(edge, removed);
         }
     }
 
     public void updateEdgeIndex(HugeEdge edge, boolean removed) {
-        // Edge index
+        // Update index of an edge
         for (String indexName : edge.edgeLabel().indexNames()) {
             updateIndex(indexName, edge, removed);
         }
@@ -88,13 +86,13 @@ public class IndexTransaction extends AbstractTransaction {
         SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(indexName);
         E.checkArgumentNotNull(indexLabel,
-                               "Not existed index: '%s'", indexName);
+                               "Not exist index label: '%s'", indexName);
 
         List<Object> propValues = new ArrayList<>();
         for (String field : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(field);
             E.checkState(property != null,
-                         "Not existed property '%s' in %s '%s'",
+                         "Not exist property '%s' in %s '%s'",
                          field, element.type(), element.id());
             propValues.add(property.value());
         }
@@ -113,7 +111,7 @@ public class IndexTransaction extends AbstractTransaction {
             }
 
             HugeIndex index = new HugeIndex(indexLabel);
-            index.propertyValues(propValue);
+            index.fieldValues(propValue);
             index.elementIds(element.id());
 
             if (!removed) {
@@ -241,7 +239,7 @@ public class IndexTransaction extends AbstractTransaction {
 
             indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
             indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
-            indexQuery.eq(HugeKeys.PROPERTY_VALUES, joinedValues);
+            indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
         } else {
             assert indexLabel.indexType() == IndexType.SEARCH;
             if (query.userpropConditions().size() != 1) {
@@ -252,7 +250,7 @@ public class IndexTransaction extends AbstractTransaction {
             Condition condition = query.userpropConditions().get(0).copy();
             for (Condition.Relation r : condition.relations()) {
                 Condition.Relation sys = new Condition.SyspropRelation(
-                        HugeKeys.PROPERTY_VALUES,
+                        HugeKeys.FIELD_VALUES,
                         r.relation(),
                         NumericUtil.convert2Number(r.value()));
                 condition = condition.replace(r, sys);
@@ -279,10 +277,11 @@ public class IndexTransaction extends AbstractTransaction {
         return true;
     }
 
-    public void removeIndex (String indexName) {
+    public void removeIndex(String indexName) {
         SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(indexName);
-        E.checkArgumentNotNull(indexLabel, "Not existed index: '%s'", indexName);
+        E.checkArgumentNotNull(indexLabel,
+                               "Not exist index label: '%s'", indexName);
         HugeIndex index = new HugeIndex(indexLabel);
         this.removeEntry(this.serializer.writeIndex(index));
     }

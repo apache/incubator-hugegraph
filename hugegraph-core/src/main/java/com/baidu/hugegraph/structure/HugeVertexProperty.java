@@ -22,14 +22,13 @@ package com.baidu.hugegraph.structure;
 import java.util.Iterator;
 
 import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 
 public class HugeVertexProperty<V> extends HugeProperty<V>
-        implements VertexProperty<V> {
+                                   implements VertexProperty<V> {
 
     public HugeVertexProperty(HugeElement owner, PropertyKey key, V value) {
         super(owner, key, value);
@@ -46,8 +45,15 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
     }
 
     @Override
-    public Vertex element() {
-        return (Vertex) super.element();
+    public HugeVertex element() {
+        assert super.element() instanceof HugeVertex;
+        return (HugeVertex) super.element();
+    }
+
+    @Override
+    public void remove() {
+        this.owner.removeProperty(this.key());
+        this.owner.tx().removeVertexProperty(this);
     }
 
     @Override

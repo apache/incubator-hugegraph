@@ -38,9 +38,9 @@ public class SplicingIdGenerator extends IdGenerator {
     private static final char ID_SPLITOR = ':';
     private static final char NAME_SPLITOR = '!';
 
-    private static final String ESCAPE_STR = String.valueOf(ESCAPE);
-    private static final String IDS_SPLITOR_STR = String.valueOf(IDS_SPLITOR);
-    private static final String ID_SPLITOR_STR = String.valueOf(ID_SPLITOR);
+    public static final String ESCAPE_STR = String.valueOf(ESCAPE);
+    public static final String IDS_SPLITOR_STR = String.valueOf(IDS_SPLITOR);
+    public static final String ID_SPLITOR_STR = String.valueOf(ID_SPLITOR);
 
     /****************************** id generate ******************************/
 

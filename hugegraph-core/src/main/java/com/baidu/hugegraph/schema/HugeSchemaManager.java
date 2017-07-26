@@ -33,6 +33,7 @@ public class HugeSchemaManager implements SchemaManager {
     private final SchemaTransaction transaction;
 
     public HugeSchemaManager(SchemaTransaction transaction) {
+        E.checkNotNull(transaction, "transaction");
         this.transaction = transaction;
     }
 

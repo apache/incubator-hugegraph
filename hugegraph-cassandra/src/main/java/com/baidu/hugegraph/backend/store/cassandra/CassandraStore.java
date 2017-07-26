@@ -91,6 +91,7 @@ public abstract class CassandraStore implements BackendStore {
         if (this.sessions.opened()) {
             // TODO: maybe we should throw an exception here instead of ignore
             logger.debug("Store {} has been opened before", this.name);
+            this.sessions.useSession();
             return;
         }
         assert config != null;
@@ -152,7 +153,7 @@ public abstract class CassandraStore implements BackendStore {
     private void mutate(CassandraSessionPool.Session session, MutateItem item) {
 
         CassandraBackendEntry entry = castBackendEntry(item.entry());
-        switch (item.type()) {
+        switch (item.action()) {
             case INSERT:
                 // Insert entry
                 if (entry.selfChanged()) {
@@ -195,7 +196,7 @@ public abstract class CassandraStore implements BackendStore {
                 break;
             default:
                 throw new BackendException("Unsupported mutate type: %s",
-                                           item.type());
+                                           item.action());
         }
     }
 

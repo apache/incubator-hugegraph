@@ -50,10 +50,12 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeFeatures.HugeVertexFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
@@ -110,52 +112,21 @@ public class GraphTransaction extends AbstractTransaction {
 
     protected void prepareAdditions(Set<HugeVertex> updatedVertexes,
                                     Set<HugeEdge> updatedEdges) {
-
-        Map<Id, HugeVertex> vertexes = new HashMap<>();
-
-        // Copy updated vertexes(only with props, without edges)
+        // Do vertex update
         for (HugeVertex v : updatedVertexes) {
-            vertexes.put(v.id(), v.prepareAdded());
-        }
-
-        // Copy updated edges and merge into owner vertex
-        for (HugeEdge edge : updatedEdges) {
-            assert edge.type() == HugeType.EDGE_OUT;
-            Id sourceId = edge.sourceVertex().id();
-
-            if (!vertexes.containsKey(sourceId)) {
-                vertexes.put(sourceId, edge.prepareAddedOut());
-            } else {
-                HugeVertex sourceVertex = vertexes.get(sourceId);
-                sourceVertex.addOutEdge(edge.prepareAddedOut(sourceVertex));
-            }
-        }
-
-        // Ensure all the target vertexes (of out edges) are in vertexes
-        for (HugeEdge edge : updatedEdges) {
-            assert edge.type() == HugeType.EDGE_OUT;
-            Id targetId = edge.targetVertex().id();
-
-            if (!vertexes.containsKey(targetId)) {
-                vertexes.put(targetId, edge.prepareAddedIn());
-            } else {
-                HugeVertex targetVertex = vertexes.get(targetId);
-                targetVertex.addInEdge(edge.prepareAddedIn(targetVertex));
-            }
-        }
-
-        // Do update
-        for (HugeVertex v : vertexes.values()) {
             // Add vertex entry
             this.addEntry(this.serializer.writeVertex(v));
+            // Update index of vertex(only include props)
+            this.indexTx.updateVertexIndex(v, false);
+        }
 
-            if (v.hasProperties()) {
-                // Update index of vertex(include props and edges)
-                this.indexTx.updateVertexIndex(v, false);
-            } else {
-                // Update index of vertex edges
-                this.indexTx.updateEdgesIndex(v, false);
-            }
+        // Do edge update
+        for (HugeEdge e : updatedEdges) {
+            // Add edge entry of OUT and IN
+            this.addEntry(this.serializer.writeEdge(e));
+            this.addEntry(this.serializer.writeEdge(e.switchOwner()));
+            // Update index of edge
+            this.indexTx.updateEdgeIndex(e, false);
         }
 
         // Clear updates
@@ -180,7 +151,7 @@ public class GraphTransaction extends AbstractTransaction {
         for (HugeVertex v : vertexes) {
             @SuppressWarnings({ "unchecked", "rawtypes" })
             Collection<HugeEdge> vedges = (Collection) ImmutableList.copyOf(
-                    this.queryEdgesByVertex(v.id()));
+                                          this.queryEdgesByVertex(v.id()));
             edges.addAll(vedges);
         }
 
@@ -194,24 +165,17 @@ public class GraphTransaction extends AbstractTransaction {
              */
             this.removeEntry(this.serializer.writeVertex(v.prepareRemoved()));
             // Calling vertex.prepareAdded() returns a vertex without edges
-            this.indexTx.updateVertexIndex(v.prepareAdded(), true);
+            this.indexTx.updateVertexIndex(v, true);
         }
 
-        // Remove edges independently
+        // Remove edges
         for (HugeEdge edge : edges) {
-            // Remove OUT
-            HugeVertex vertex = edge.sourceVertex().prepareRemovedChildren();
-            // Calling edge.prepareRemoved() returns an edge only with edge-id
-            vertex.addEdge(edge.prepareRemoved());
-            this.removeEntry(this.serializer.writeVertex(vertex));
-
-            // Remove IN
-            vertex = edge.targetVertex().prepareRemovedChildren();
-            vertex.addEdge(edge.switchOwner().prepareRemoved());
-            this.removeEntry(this.serializer.writeVertex(vertex));
-
             // Update edge index
             this.indexTx.updateEdgeIndex(edge, true);
+            // Remove edge of OUT and IN
+            edge = edge.prepareRemoved();
+            this.removeEntry(this.serializer.writeEdge(edge));
+            this.removeEntry(this.serializer.writeEdge(edge.switchOwner()));
         }
     }
 
@@ -300,9 +264,11 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Check whether primaryKey exists
         List<String> primaryKeys = ((VertexLabel) label).primaryKeys();
-        E.checkArgument(CollectionUtil.containsAll(
-                ElementHelper.getKeys(keyValues), primaryKeys),
-                "The primary key(s) must be set: '%s'", primaryKeys);
+        E.checkArgument(
+                CollectionUtil.containsAll(ElementHelper.getKeys(keyValues),
+                                           primaryKeys),
+                "The primary key(s) must be set: '%s'",
+                primaryKeys);
 
         // Create HugeVertex
         HugeVertex vertex = new HugeVertex(this, id, (VertexLabel) label);
@@ -319,6 +285,8 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public void removeVertex(HugeVertex vertex) {
+        this.checkOwnerThread();
+
         this.beforeWrite();
         this.removedVertexes.add(vertex);
         this.afterWrite();
@@ -382,6 +350,8 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public void removeEdge(HugeEdge edge) {
+        this.checkOwnerThread();
+
         this.beforeWrite();
         this.removedEdges.add(edge);
         this.afterWrite();
@@ -435,10 +405,85 @@ public class GraphTransaction extends AbstractTransaction {
         return queryEdges(constructEdgesQuery(id, null));
     }
 
+    public <V> void addVertexProperty(HugeVertexProperty<V> prop) {
+        this.checkOwnerThread();
+        assert prop.element().getProperty(prop.key()) == prop;
+        /*
+         * Update the owner (because too many props when inserting vertex,
+         * currently we don't update every prop separately).
+         * TODO: update property directly
+         */
+        HugeVertex vertex = prop.element();
+        this.addVertex(vertex);
+    }
+
+    public <V> void addEdgeProperty(HugeEdgeProperty<V> prop) {
+        this.checkOwnerThread();
+        assert prop.element().getProperty(prop.key()) == prop;
+        /*
+         * Update the owner (because too many props when inserting edge,
+         * currently we don't update every prop separately).
+         * TODO: update property directly
+         */
+        HugeEdge edge = prop.element();
+        this.addEdge(edge);
+    }
+
+    public <V> void removeVertexProperty(HugeVertexProperty<V> prop) {
+        this.checkOwnerThread();
+
+        HugeVertex vertex = prop.element();
+        List<String> primaryKeys = vertex.vertexLabel().primaryKeys();
+        E.checkArgument(!primaryKeys.contains(prop.key()),
+                        "Can't remove primary key: '%s'", prop.key());
+
+        this.beforeWrite();
+
+        // Update index of old vertex to remove the prop
+        HugeVertex old = vertex.copy();
+        old.setProperty(prop);
+        this.indexTx.updateVertexIndex(old, true);
+
+        // Update index of current vertex without the prop
+        this.indexTx.updateVertexIndex(vertex, false);
+
+        // Update vertex
+        vertex = vertex.prepareRemovedChildren();
+        vertex.setProperty(prop);
+        this.eliminateEntry(this.serializer.writeVertex(vertex));
+
+        this.afterWrite();
+    }
+
+    public <V> void removeEdgeProperty(HugeEdgeProperty<V> prop) {
+        this.checkOwnerThread();
+
+        HugeEdge edge = prop.element();
+        E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
+                        "Can't remove primary key: '%s'", prop.key());
+
+        this.beforeWrite();
+
+        // Update index of old edge to remove the prop
+        HugeEdge old = edge.copy();
+        old.setProperty(prop);
+        this.indexTx.updateEdgeIndex(old, true);
+
+        // Update index of current edge(without `prop`)
+        this.indexTx.updateEdgeIndex(edge, false);
+
+        // Update edge of OUT and IN
+        edge = edge.prepareRemovedChildren();
+        edge.setProperty(prop);
+        this.eliminateEntry(this.serializer.writeEdge(edge));
+        this.eliminateEntry(this.serializer.writeEdge(edge.switchOwner()));
+
+        this.afterWrite();
+    }
+
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,
                                                      Direction direction,
                                                      String... edgeLabels) {
-
         E.checkState(sourceVertex != null,
                      "The edge query must contain source vertex");
         E.checkState((direction != null ||
@@ -461,8 +506,8 @@ public class GraphTransaction extends AbstractTransaction {
         if (edgeLabels.length == 1) {
             query.eq(HugeKeys.LABEL, edgeLabels[0]);
         } else if (edgeLabels.length > 1) {
-            // TODO: support query by multi edge labels
-            // Like: query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
+            // TODO: support query by multi edge labels like:
+            // query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
             throw new BackendException(
                       "Not support querying by multi edge-labels");
         } else {
@@ -501,8 +546,8 @@ public class GraphTransaction extends AbstractTransaction {
         }
         if (matched != total) {
             throw new BackendException(
-                    "Not supported querying edges by %s, expected %s",
-                    query.conditions(), keys[matched]);
+                      "Not supported querying edges by %s, expected %s",
+                      query.conditions(), keys[matched]);
         }
     }
 
@@ -612,7 +657,7 @@ public class GraphTransaction extends AbstractTransaction {
 
     public void removeEdges(EdgeLabel edgeLabel) {
         // TODO: Need to change to writeQuery.
-        Id id = idGenerator.generate(edgeLabel.name());
+        Id id = this.idGenerator.generate(edgeLabel.name());
         boolean autoCommit = this.autoCommit();
         this.autoCommit(false);
         try {

@@ -218,6 +218,8 @@ public class Example1 {
                 // TODO Auto-generated catch block
                 e2.printStackTrace();
             }
+        } finally {
+            tx.close();
         }
 
         // use the default Transaction to commit

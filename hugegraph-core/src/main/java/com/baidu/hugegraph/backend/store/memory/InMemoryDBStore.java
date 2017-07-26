@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,13 +55,16 @@ import com.baidu.hugegraph.util.E;
  * 2.query by condition (include query edges by condition)
  * 3.remove by id
  * 4.range query
+ * 5.append/subtract index data(element-id) and vertex-property
  * InMemoryDBStore not support currently:
  * 1.remove by id + condition
- * 2.append/subtract index data(element-id)
+ * 2.append/subtract edge-property
+ * 3.query edge by edge-label
  */
 public class InMemoryDBStore implements BackendStore {
 
-    private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStore.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(InMemoryDBStore.class);
 
     private final BackendStoreProvider provider;
     private final String name;
@@ -114,7 +118,7 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     protected Map<Id, BackendEntry> queryAll() {
-        return this.store;
+        return Collections.unmodifiableMap(this.store);
     }
 
     protected Map<Id, BackendEntry> queryPrefixWith(byte prefix) {
@@ -154,7 +158,7 @@ public class InMemoryDBStore implements BackendStore {
             String column = null;
             if (parts.length > 1) {
                 parts = Arrays.copyOfRange(parts, 1, parts.length);
-                column = SplicingIdGenerator.concat(parts).asString();
+                column = String.join(TextBackendEntry.COLUME_SPLITOR, parts);
             } else {
                 // All edges
                 assert parts.length == 1;
@@ -237,7 +241,7 @@ public class InMemoryDBStore implements BackendStore {
 
     private void mutate(MutateItem item) {
         BackendEntry entry = item.entry();
-        switch (item.type()) {
+        switch (item.action()) {
             case INSERT:
                 logger.info("[store {}] add entry: {}", this.name, entry);
                 if (!this.store.containsKey(entry.id())) {
@@ -255,14 +259,24 @@ public class InMemoryDBStore implements BackendStore {
                 this.store.remove(entry.id());
                 break;
             case APPEND:
-                // TODO: Append entry
+                // Append entry to a column
+                BackendEntry parent = this.store.get(entry.id());
+                if (parent == null) {
+                    this.store.put(entry.id(), entry);
+                } else {
+                    // TODO: Compatible with BackendEntry
+                    ((TextBackendEntry) parent).append((TextBackendEntry) entry);
+                }
                 break;
             case ELIMINATE:
-                // TODO: Eliminate entry
+                // Eliminate item from a column in entry
+                parent = this.store.get(entry.id());
+                // TODO: Compatible with BackendEntry
+                ((TextBackendEntry) parent).eliminate((TextBackendEntry) entry);
                 break;
             default:
                 throw new BackendException("Unsupported mutate type: %s",
-                                           item.type());
+                                           item.action());
         }
     }
 

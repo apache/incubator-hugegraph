@@ -366,6 +366,9 @@ public abstract class CassandraTable {
         return HugeKeys.valueOf(name.toUpperCase());
     }
 
+    /**
+     * Insert an entire row
+     */
     public void insert(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
         assert entry.columns().size() > 0;
@@ -379,8 +382,7 @@ public abstract class CassandraTable {
     }
 
     /**
-     * Additional update operations
-     * Append several elements to the collection column
+     * Append several elements to the collection column of a row
      */
     public void append(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
@@ -406,8 +408,7 @@ public abstract class CassandraTable {
     }
 
     /**
-     * Removal update operations
-     * Eliminate several elements from the collection column
+     * Eliminate several elements from the collection column of a row
      */
     public void eliminate(CassandraSessionPool.Session session,
                           CassandraBackendEntry.Row entry) {
@@ -453,6 +454,9 @@ public abstract class CassandraTable {
         session.add(update);
     }
 
+    /**
+     * Delete an entire row
+     */
     public void delete(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
         if (entry.columns().isEmpty()) {

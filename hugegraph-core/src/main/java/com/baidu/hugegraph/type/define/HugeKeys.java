@@ -52,7 +52,7 @@ public enum HugeKeys {
 
     /* Column names of index data */
     INDEX_NAME(180, "indexName"),
-    PROPERTY_VALUES(181, "propertyValues"),
+    FIELD_VALUES(181, "fieldValues"),
     INDEX_LABEL_NAME(182, "indexLabelName"),
     ELEMENT_IDS(183, "elementIds"),
 

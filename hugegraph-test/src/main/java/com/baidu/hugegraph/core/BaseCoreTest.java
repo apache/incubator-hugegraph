@@ -64,7 +64,7 @@ public class BaseCoreTest {
 
     @Before
     public void setup() {
-        clearData();
+        this.clearData();
     }
 
     @After
@@ -77,17 +77,20 @@ public class BaseCoreTest {
 
         graph.tx().open();
         try {
-            // clear vertex
-            graph().traversal().V().toStream().forEach(v -> {
-                v.remove();
-            });
-
-            // clear edge
+            // Clear edge
             graph().traversal().E().toStream().forEach(e -> {
                 e.remove();
             });
 
-            // clear schema
+            // Clear vertex
+            graph().traversal().V().toStream().forEach(v -> {
+                v.remove();
+            });
+
+            // Commit before clearing schema
+            graph.tx().commit();
+
+            // Clear schema
             SchemaTransaction schema = graph.schemaTransaction();
 
             schema.getIndexLabels().stream().forEach(elem -> {

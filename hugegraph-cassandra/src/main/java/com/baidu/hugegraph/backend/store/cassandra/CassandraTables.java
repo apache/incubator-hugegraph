@@ -363,12 +363,12 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
-                    HugeKeys.PROPERTY_VALUES,
+                    HugeKeys.FIELD_VALUES,
                     HugeKeys.INDEX_LABEL_NAME,
                     HugeKeys.ELEMENT_IDS };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {
-                    HugeKeys.PROPERTY_VALUES,
+                    HugeKeys.FIELD_VALUES,
                     HugeKeys.INDEX_LABEL_NAME };
 
             DataType[] columnTypes = new DataType[] {
@@ -381,7 +381,7 @@ public class CassandraTables {
 
         @Override
         protected List<String> idColumnName() {
-            return ImmutableList.of(formatKey(HugeKeys.PROPERTY_VALUES));
+            return ImmutableList.of(formatKey(HugeKeys.FIELD_VALUES));
         }
 
         @Override
@@ -396,8 +396,8 @@ public class CassandraTables {
                          formatKey(HugeKeys.INDEX_LABEL_NAME),
                          entry.column(HugeKeys.INDEX_LABEL_NAME)));
             update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.PROPERTY_VALUES),
-                         entry.column(HugeKeys.PROPERTY_VALUES)));
+                         formatKey(HugeKeys.FIELD_VALUES),
+                         entry.column(HugeKeys.FIELD_VALUES)));
 
             session.add(update);
         }
@@ -414,8 +414,8 @@ public class CassandraTables {
                          formatKey(HugeKeys.INDEX_LABEL_NAME),
                          entry.column(HugeKeys.INDEX_LABEL_NAME)));
             update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.PROPERTY_VALUES),
-                         entry.column(HugeKeys.PROPERTY_VALUES)));
+                         formatKey(HugeKeys.FIELD_VALUES),
+                         entry.column(HugeKeys.FIELD_VALUES)));
 
             session.add(update);
         }
@@ -424,7 +424,7 @@ public class CassandraTables {
         public void delete(CassandraSessionPool.Session session,
                                CassandraBackendEntry.Row entry) {
 
-            String propValues = entry.column(HugeKeys.PROPERTY_VALUES);
+            String propValues = entry.column(HugeKeys.FIELD_VALUES);
             String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
             if (propValues != null) {
                 throw new BackendException("SecondaryIndex deletion " +
@@ -442,14 +442,14 @@ public class CassandraTables {
             select.allowFiltering();
             Iterator<Row> it = session.execute(select).iterator();
             while (it.hasNext()) {
-                propValues = it.next().get(formatKey(HugeKeys.PROPERTY_VALUES),
+                propValues = it.next().get(formatKey(HugeKeys.FIELD_VALUES),
                                            String.class);
                 Delete delete = QueryBuilder.delete().from(table());
                 delete.where(QueryBuilder.eq(
                              formatKey(HugeKeys.INDEX_LABEL_NAME),
                              indexLabelName));
                 delete.where(QueryBuilder.eq(
-                             formatKey(HugeKeys.PROPERTY_VALUES),
+                             formatKey(HugeKeys.FIELD_VALUES),
                              propValues));
                 session.add(delete);
             }
@@ -467,8 +467,8 @@ public class CassandraTables {
             CassandraBackendEntry entry = new CassandraBackendEntry(type);
             Set<String> elemIds = row.getSet(formatKey(HugeKeys.ELEMENT_IDS),
                                              String.class);
-            entry.column(HugeKeys.PROPERTY_VALUES,
-                         row.getString(formatKey(HugeKeys.PROPERTY_VALUES)));
+            entry.column(HugeKeys.FIELD_VALUES,
+                         row.getString(formatKey(HugeKeys.FIELD_VALUES)));
             entry.column(HugeKeys.INDEX_LABEL_NAME,
                          row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
             // TODO: use default result2Entry after remove toJson()
@@ -490,12 +490,12 @@ public class CassandraTables {
         public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.INDEX_LABEL_NAME,
-                    HugeKeys.PROPERTY_VALUES,
+                    HugeKeys.FIELD_VALUES,
                     HugeKeys.ELEMENT_IDS };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.INDEX_LABEL_NAME,
-                    HugeKeys.PROPERTY_VALUES };
+                    HugeKeys.FIELD_VALUES };
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
@@ -522,8 +522,8 @@ public class CassandraTables {
                         formatKey(HugeKeys.ELEMENT_IDS),
                         entry.column(HugeKeys.ELEMENT_IDS)));
             update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.PROPERTY_VALUES),
-                         entry.column(HugeKeys.PROPERTY_VALUES)));
+                         formatKey(HugeKeys.FIELD_VALUES),
+                         entry.column(HugeKeys.FIELD_VALUES)));
 
             session.add(update);
         }
@@ -540,8 +540,8 @@ public class CassandraTables {
                         formatKey(HugeKeys.ELEMENT_IDS),
                         entry.column(HugeKeys.ELEMENT_IDS)));
             update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.PROPERTY_VALUES),
-                         entry.column(HugeKeys.PROPERTY_VALUES)));
+                         formatKey(HugeKeys.FIELD_VALUES),
+                         entry.column(HugeKeys.FIELD_VALUES)));
 
             session.add(update);
         }
@@ -549,7 +549,7 @@ public class CassandraTables {
         @Override
         public void delete(CassandraSessionPool.Session session,
                                         CassandraBackendEntry.Row entry) {
-            String propValues = entry.column(HugeKeys.PROPERTY_VALUES);
+            String propValues = entry.column(HugeKeys.FIELD_VALUES);
             String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
             if (propValues != null) {
                 throw new BackendException("SearchIndex deletion " +
@@ -581,8 +581,8 @@ public class CassandraTables {
                                              String.class);
             entry.column(HugeKeys.INDEX_LABEL_NAME,
                          row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
-            entry.column(HugeKeys.PROPERTY_VALUES,
-                         row.getDecimal(formatKey(HugeKeys.PROPERTY_VALUES)));
+            entry.column(HugeKeys.FIELD_VALUES,
+                         row.getDecimal(formatKey(HugeKeys.FIELD_VALUES)));
             // TODO: use default result2Entry after remove toJson()
             entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(elemIds));
 

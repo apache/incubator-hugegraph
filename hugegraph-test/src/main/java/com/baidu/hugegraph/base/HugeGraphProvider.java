@@ -22,7 +22,6 @@ package com.baidu.hugegraph.base;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -54,21 +53,20 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 public class HugeGraphProvider extends AbstractGraphProvider {
 
     public static String CONF_PATH = "hugegraph.properties";
 
-    private static final Set<Class> IMPLEMENTATIONS = new HashSet<Class>() {
-        {
-            add(HugeEdge.class);
-            add(HugeElement.class);
-            add(HugeGraph.class);
-            add(HugeProperty.class);
-            add(HugeVertex.class);
-            add(HugeVertexProperty.class);
-        }
-    };
+    @SuppressWarnings("rawtypes")
+    private static final Set<Class> IMPLEMENTATIONS = ImmutableSet.of(
+            HugeEdge.class,
+            HugeElement.class,
+            HugeGraph.class,
+            HugeProperty.class,
+            HugeVertex.class,
+            HugeVertexProperty.class);
 
     @Override
     public Map<String, Object> getBaseConfiguration(String graphName,
@@ -118,6 +116,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     public void loadGraphData(final Graph graph,
                               final LoadGraphWith loadGraphWith,
@@ -268,6 +267,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         // schema.makeEdgeLabel("created").ifNotExist().create();
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     public Set<Class> getImplementations() {
         return IMPLEMENTATIONS;
@@ -297,14 +297,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
             List<Object> kvs = new ArrayList<>();
             Optional<Object> idValue = ElementHelper.getIdValue(keyValues);
             if (!idValue.isPresent()) {
-                kvs.add(loadedGraph ? "id" : "__id");
-                kvs.add(loadedGraph ? id : String.valueOf(id));
+                kvs.add(this.loadedGraph ? "id" : "__id");
+                kvs.add(this.loadedGraph ? id : String.valueOf(id));
                 id++;
             }
 
             for (int i = 0; i < keyValues.length; i += 2) {
                 kvs.add(keyValues[i].equals(T.id)
-                        ? (loadedGraph ? "id" : "__id") : keyValues[i]);
+                        ? (this.loadedGraph ? "id" : "__id") : keyValues[i]);
                 kvs.add(keyValues[i + 1]);
             }
 

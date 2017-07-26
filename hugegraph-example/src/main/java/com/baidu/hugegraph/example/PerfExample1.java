@@ -230,15 +230,15 @@ public class PerfExample1 {
         }
 
         public Vertex addVertex(Object... keyValues) {
-            Vertex v = this.hugegraph.addVertex(keyValues);
-            this.cache.update((Id) v.id(), v);
+            HugeVertex v = (HugeVertex) this.hugegraph.addVertex(keyValues);
+            this.cache.update(v.id(), v.resetTx());
             return v;
         }
 
         public Vertex getVertex(Object id) {
-            return ((HugeVertex) this.cache.getOrFetch((Id) id, k -> {
+            return ((Vertex) this.cache.getOrFetch((Id) id, k -> {
                 return this.hugegraph.vertices(k).next();
-            })).copy();
+            }));
         }
     }
 }

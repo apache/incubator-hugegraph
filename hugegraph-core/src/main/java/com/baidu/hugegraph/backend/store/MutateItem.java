@@ -23,37 +23,35 @@ package com.baidu.hugegraph.backend.store;
 public class MutateItem {
 
     private BackendEntry entry;
+    private MutateAction action;
 
-    private MutateAction type;
-
-    public static MutateItem of(BackendEntry entry, MutateAction type) {
-        return new MutateItem(entry, type);
+    public static MutateItem of(BackendEntry entry, MutateAction action) {
+        return new MutateItem(entry, action);
     }
 
-    public MutateItem(BackendEntry entry, MutateAction type) {
+    public MutateItem(BackendEntry entry, MutateAction action) {
         this.entry = entry;
-        this.type = type;
+        this.action = action;
     }
 
     public BackendEntry entry() {
-        return entry;
+        return this.entry;
     }
 
     public void entry(BackendEntry entry) {
         this.entry = entry;
     }
 
-    public MutateAction type() {
-        return type;
+    public MutateAction action() {
+        return this.action;
     }
 
-    public void type(MutateAction type) {
-        this.type = type;
+    public void action(MutateAction action) {
+        this.action = action;
     }
 
     @Override
     public String toString() {
-        return String.format("entry: %s, type: %s", entry, type);
+        return String.format("entry: %s, action: %s", this.entry, this.action);
     }
-
 }

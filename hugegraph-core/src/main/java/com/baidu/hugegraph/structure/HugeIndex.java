@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.schema.IndexLabel;
@@ -32,9 +33,9 @@ import com.baidu.hugegraph.type.schema.IndexLabel;
 
 public class HugeIndex implements GraphType {
 
-    private IndexLabel label;
-    private Object fieldValues;
-    private Set<Id> elementIds;
+    private Object fieldValues = null;
+    private final IndexLabel label;
+    private final Set<Id> elementIds;
 
     public HugeIndex(IndexLabel indexLabel) {
         this.label = indexLabel;
@@ -57,21 +58,23 @@ public class HugeIndex implements GraphType {
         }
     }
 
-    public String id() {
+    public Id id() {
+        String propValues = fieldValues() == null ?
+                            "<?>" : fieldValues().toString();
         if (type() == HugeType.SECONDARY_INDEX) {
-            return propertyValues() + indexLabelName();
+            return SplicingIdGenerator.splicing(propValues, indexLabelName());
         } else {
             assert type() == HugeType.SEARCH_INDEX;
-            return indexLabelName() + propertyValues();
+            return SplicingIdGenerator.splicing(indexLabelName(), propValues);
         }
     }
 
-    public Object propertyValues() {
+    public Object fieldValues() {
         return this.fieldValues;
     }
 
-    public void propertyValues(Object propertyValues) {
-        this.fieldValues = propertyValues;
+    public void fieldValues(Object fieldValues) {
+        this.fieldValues = fieldValues;
     }
 
     public String indexLabelName() {
@@ -80,10 +83,6 @@ public class HugeIndex implements GraphType {
 
     public Set<Id> elementIds() {
         return Collections.unmodifiableSet(this.elementIds);
-    }
-
-    public void elementIds(Set<Id> elementIds) {
-        this.elementIds = elementIds;
     }
 
     public void elementIds(Id... elementIds) {
