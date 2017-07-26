@@ -78,8 +78,10 @@ public class StringUtil {
          * expressions, but this is a frequently called method, for faster
          * execution, we forbid the use of special characters as delimiter
          * or escape sign.
+         * The `limit` param -1 in split method can ensure empty string be
+         * splited to a part.
          */
-        String[] parts = id.split("(?<!" + escape + ")" + splitor);
+        String[] parts = id.split("(?<!" + escape + ")" + splitor, -1);
         for (int i = 0; i < parts.length; i++) {
             parts[i] = parts[i].replaceAll(escape + splitor, splitor);
         }
