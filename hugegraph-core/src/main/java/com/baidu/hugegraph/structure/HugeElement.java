@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
@@ -40,7 +39,6 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
-
 
 public abstract class HugeElement implements Element, GraphType {
 
@@ -56,21 +54,23 @@ public abstract class HugeElement implements Element, GraphType {
         this.removed = false;
     }
 
+    public abstract GraphTransaction tx();
+
+    protected abstract <V> HugeProperty<V> newProperty(PropertyKey pk, V v);
+
     @Override
     public Id id() {
         return this.id;
     }
 
     @Override
-    public Graph graph() {
+    public HugeGraph graph() {
         return this.graph;
     }
 
     public boolean removed() {
         return this.removed;
     }
-
-    public abstract GraphTransaction tx();
 
     public Map<String, HugeProperty<?>> getProperties() {
         return Collections.unmodifiableMap(this.properties);
@@ -97,6 +97,10 @@ public abstract class HugeElement implements Element, GraphType {
         this.properties.put(prop.key(), prop);
     }
 
+    public <V> void removeProperty(String key) {
+        this.properties.remove(key);
+    }
+
     // SuppressWarnings for (HugeProperty) propSet/propList
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public <V> HugeProperty<V> addProperty(String key, V value) {
@@ -104,6 +108,12 @@ public abstract class HugeElement implements Element, GraphType {
         PropertyKey pkey = this.graph.schema().propertyKey(key);
         switch (pkey.cardinality()) {
             case SINGLE:
+                /*
+                 * NOTE: we don't support updating property(SINGLE), please use
+                 * remove() + add() instead.
+                 */
+                E.checkArgument(!this.hasProperty(key),
+                                "Not support updating property value");
                 prop = this.newProperty(pkey, value);
                 this.setProperty(prop);
                 break;
@@ -146,10 +156,6 @@ public abstract class HugeElement implements Element, GraphType {
                 break;
         }
         return prop;
-    }
-
-    protected <V> HugeProperty<V> newProperty(PropertyKey pkey, V value) {
-        return new HugeProperty<>(this, pkey, value);
     }
 
     public void resetProperties() {

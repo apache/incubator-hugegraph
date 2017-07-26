@@ -21,7 +21,6 @@ package com.baidu.hugegraph.structure;
 
 import java.util.NoSuchElementException;
 
-import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
@@ -29,14 +28,13 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.util.E;
 
-
-public class HugeProperty<V> implements Property<V>, GraphType {
+public abstract class HugeProperty<V> implements Property<V>, GraphType {
 
     protected final HugeElement owner;
     protected final PropertyKey key;
     protected final V value;
 
-    public HugeProperty(final HugeElement owner, PropertyKey key, V value) {
+    public HugeProperty(HugeElement owner, PropertyKey key, V value) {
         E.checkArgument(owner != null, "Property owner can't be null");
         E.checkArgument(key != null, "Property key can't be null");
         this.owner = owner;
@@ -81,13 +79,8 @@ public class HugeProperty<V> implements Property<V>, GraphType {
     }
 
     @Override
-    public Element element() {
+    public HugeElement element() {
         return this.owner;
-    }
-
-    @Override
-    public void remove() {
-        throw Property.Exceptions.propertyRemovalNotSupported();
     }
 
     @Override

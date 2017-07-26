@@ -48,6 +48,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     private Thread ownerThread = Thread.currentThread();
     private boolean autoCommit = false;
+    private boolean closed = false;
 
     private final HugeGraph graph;
     private final BackendStore store;
@@ -60,8 +61,6 @@ public abstract class AbstractTransaction implements Transaction {
     public AbstractTransaction(HugeGraph graph, BackendStore store) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(store, "store");
-
-        this.autoCommit = false;
 
         this.graph = graph;
         this.serializer = this.graph.serializer();
@@ -131,6 +130,10 @@ public abstract class AbstractTransaction implements Transaction {
         logger.debug("Transaction commit() [auto: {}]...", this.autoCommit);
         this.checkOwnerThread();
 
+        if (this.closed) {
+            throw new BackendException("Transaction has been closed");
+        }
+
         this.prepareCommit();
 
         BackendMutation mutation = this.mutation();
@@ -189,6 +192,8 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Override
     public void close() {
+        this.closed = true;
+        this.autoCommit = true; /* Let call after close() fail to commit */
         this.store().close();
     }
 
@@ -209,20 +214,24 @@ public abstract class AbstractTransaction implements Transaction {
         logger.debug("Transaction commitOrRollback()");
         this.checkOwnerThread();
 
+        /*
+         * The mutation will be reset after commit, in order to log the
+         * mutation after failure, let's save it to a local variable.
+         */
         BackendMutation mutation = this.mutation();
 
         try {
-            // Commit
+            // Do commit
             this.commit();
         } catch (Throwable e1) {
             logger.error("Failed to commit changes:", e1);
-            // Rollback
+            // Do rollback
             try {
                 this.rollback();
             } catch (Throwable e2) {
                 logger.error("Failed to rollback changes:\n {}", mutation, e2);
             }
-            // Rethrow
+            // Rethrow the commit exception
             throw new BackendException(
                       "Failed to commit changes: %s", e1.getMessage());
         }

@@ -25,6 +25,8 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
+import com.baidu.hugegraph.structure.HugeEdge;
+
 public class FakeObjects {
 
     public static class FakeVertex {
@@ -39,12 +41,12 @@ public class FakeObjects {
             this.values.remove("label");
         }
 
-        public boolean equalsVertex(Vertex v) {
-            if (!v.label().equals(this.label)) {
+        public boolean equalsVertex(Vertex vertex) {
+            if (!vertex.label().equals(this.label)) {
                 return false;
             }
             for (Map.Entry<String, Object> i : this.values.entrySet()) {
-                if (!v.property(i.getKey()).value().equals(i.getValue())) {
+                if (!vertex.property(i.getKey()).value().equals(i.getValue())) {
                     return false;
                 }
             }
@@ -67,14 +69,14 @@ public class FakeObjects {
             this.values = ElementHelper.asMap(keyValues);
         }
 
-        public boolean equalsEdge(Edge e) {
-            if (!e.label().equals(this.label)
-                    || !e.outVertex().id().equals(this.outVertex.id())
-                    || !e.inVertex().id().equals(this.inVertex.id())) {
+        public boolean equalsEdge(Edge edge) {
+            if (!edge.label().equals(this.label) ||
+                !((HugeEdge) edge).sourceVertex().equals(this.outVertex) ||
+                !((HugeEdge) edge).targetVertex().equals(this.inVertex)) {
                 return false;
             }
             for (Map.Entry<String, Object> i : this.values.entrySet()) {
-                if (!e.property(i.getKey()).value().equals(i.getValue())) {
+                if (!edge.property(i.getKey()).value().equals(i.getValue())) {
                     return false;
                 }
             }

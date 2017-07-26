@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -61,8 +63,8 @@ import com.google.common.collect.ImmutableList;
 
 public class TextSerializer extends AbstractSerializer {
 
-    private static final String COLUME_SPLITOR = "\u0001";
-    private static final String VALUE_SPLITOR = "\u0004";
+    private static final String COLUME_SPLITOR = TextBackendEntry.COLUME_SPLITOR;
+    private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
 
     public TextSerializer(final HugeGraph graph) {
         super(graph);
@@ -167,13 +169,14 @@ public class TextSerializer extends AbstractSerializer {
     protected void parseEdge(String colName, String colValue,
                              HugeVertex vertex) {
         String[] colParts = colName.split(COLUME_SPLITOR);
+        assert colParts.length == 4;
 
         EdgeLabel label = this.graph.schema().edgeLabel(colParts[1]);
 
         // TODO: how to construct targetVertex with id
         Id otherVertexId = IdGeneratorFactory.generator().generate(colParts[3]);
-        HugeVertex otherVertex = new HugeVertex(this.graph.graphTransaction(),
-                                                otherVertexId, null);
+        HugeVertex otherVertex = new HugeVertex(this.graph, otherVertexId,
+                                                null);
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
         Id id = IdGeneratorFactory.generator().generate(valParts[0]);
@@ -226,12 +229,6 @@ public class TextSerializer extends AbstractSerializer {
                          this.formatPropertyValue(prop));
         }
 
-        // Add all edges of a Vertex
-        for (HugeEdge edge : vertex.getEdges()) {
-            entry.column(this.formatEdgeName(edge),
-                         this.formatEdgeValue(edge));
-        }
-
         return entry;
     }
 
@@ -251,8 +248,7 @@ public class TextSerializer extends AbstractSerializer {
             label = this.graph.schema().vertexLabel(labelName);
         }
 
-        HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
-                                           entry.id(), label);
+        HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
 
         // Parse all properties or edges of a Vertex
         for (String name : entry.columnNames()) {
@@ -260,6 +256,19 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         return vertex;
+    }
+
+    @Override
+    public BackendEntry writeEdge(HugeEdge edge) {
+        TextBackendEntry entry = new TextBackendEntry(edge.owner().id());
+        entry.column(this.formatEdgeName(edge), this.formatEdgeValue(edge));
+        return entry;
+    }
+
+    @Override
+    public HugeEdge readEdge(BackendEntry entry) {
+        // TODO: implement
+        throw new NotImplementedException("Unsupport readEdge()");
     }
 
     @Override
@@ -537,7 +546,6 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public IndexLabel readIndexLabel(BackendEntry entry) {
-
         if (entry == null) {
             return null;
         }
@@ -565,19 +573,25 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeIndex(HugeIndex index) {
-
-        Id id = IdGeneratorFactory.generator().generate(index.id());
-        TextBackendEntry entry = new TextBackendEntry(id);
-        // TODO: propertyValues may be a number (SEARCH index)
-        entry.column(formatSyspropName(HugeKeys.PROPERTY_VALUES),
-                     index.propertyValues().toString());
-        entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
-                     index.indexLabelName());
-        // TODO: try to make these code more clear.
-        Id[] ids = index.elementIds().toArray(new Id[0]);
-        assert ids.length == 1;
-        entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
-                     ids[0].asString());
+        TextBackendEntry entry = new TextBackendEntry(index.id());
+        /*
+         * When field-values is null and elementIds size is 0, it is
+         * meaningful for deletion of index data in secondary/search index.
+         */
+        if (index.fieldValues() == null && index.elementIds().size() == 0) {
+            entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
+                         index.indexLabelName());
+        } else {
+            // TODO: field-values may be a number (SEARCH index)
+            entry.column(formatSyspropName(HugeKeys.FIELD_VALUES),
+                         index.fieldValues().toString());
+            entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
+                         index.indexLabelName());
+            Set<String> ids = index.elementIds().stream().map(id ->
+                              id.asString()).collect(Collectors.toSet());
+            entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
+                         JsonUtil.toJson(ids));
+        }
         return entry;
     }
 
@@ -592,7 +606,7 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = (TextBackendEntry) backendEntry;
 
         String indexValues = entry.column(
-                formatSyspropName(HugeKeys.PROPERTY_VALUES));
+                formatSyspropName(HugeKeys.FIELD_VALUES));
         String indexLabelName = entry.column(
                 formatSyspropName(HugeKeys.INDEX_LABEL_NAME));
         String elementIds = entry.column(
@@ -602,9 +616,8 @@ public class TextSerializer extends AbstractSerializer {
                                     .getIndexLabel(indexLabelName);
 
         HugeIndex index = new HugeIndex(indexLabel);
-        index.propertyValues(indexValues);
-        // TODO: don forget to remove the [] symbol
-        String[] ids = JsonUtil.fromJson("[\"" + elementIds + "\"]",
+        index.fieldValues(indexValues);
+        String[] ids = JsonUtil.fromJson(elementIds,
                                          String[].class);
         for (String id : ids) {
             index.elementIds(IdGeneratorFactory.generator().generate(id));

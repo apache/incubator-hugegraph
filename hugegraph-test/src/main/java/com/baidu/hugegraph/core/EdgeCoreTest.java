@@ -65,6 +65,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.makePropertyKey("score").asInt().create();
         schema.makePropertyKey("lived").asText().create();
         schema.makePropertyKey("city").asText().create();
+        schema.makePropertyKey("amount").asFloat().create();
+        schema.makePropertyKey("message").asText().create();
 
         logger.info("===============  vertexLabel  ================");
 
@@ -95,10 +97,11 @@ public class EdgeCoreTest extends BaseCoreTest {
         logger.info("===============  edgeLabel  ================");
 
         EdgeLabel transfer = schema.makeEdgeLabel("transfer")
-                .properties("id", "timestamp")
+                .properties("id", "amount", "timestamp", "message")
                 .multiTimes().sortKeys("id")
                 .link("person", "person")
                 .create();
+        @SuppressWarnings("unused")
         EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
                 .properties("contribution", "comment", "score")
                 .link("author", "book")
@@ -810,6 +813,80 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(0, edges.size());
     }
 
+    @Test
+    public void testAddEdgeProperty() {
+        HugeGraph graph = graph();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("transfer", sean, "id", 1,
+                                   "amount", 500.00F, "timestamp", current);
+
+        // Add property
+        edge.property("message", "Happy birthday!");
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        assertContains(edges, "transfer", louise, sean, "id", 1,
+                       "amount", 500.00F, "timestamp", current,
+                       "message", "Happy birthday!");
+    }
+
+    @Test
+    public void testAddEdgePropertyExisted() {
+        Edge edge = initEdgeTransfer();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("amount", 200.00F);
+        });
+    }
+
+    @Test
+    public void testAddEdgePropertyNotInEdgeLabel() {
+        Edge edge = initEdgeTransfer();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("time", "2017-1-1");
+        });
+    }
+
+    @Test
+    public void testAddEdgePropertyWithNotExistPropKey() {
+        Edge edge = initEdgeTransfer();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("prop-not-exist", "2017-1-1");
+        });
+    }
+
+    @Test
+    public void testRemoveEdgeProperty() {
+        HugeGraph graph = graph();
+
+        Edge edge = initEdgeTransfer();
+        Assert.assertEquals("Happy birthday!",
+                            edge.property("message").value());
+
+        // Remove property
+        edge.property("message").remove();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertFalse(edges.get(0).property("message").isPresent());
+    }
+
+    @Test
+    public void testRemoveEdgePropertyOfSortKey() {
+        Edge edge = initEdgeTransfer();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("id").remove();
+        });
+    }
+
     private void init18Edges() {
         HugeGraph graph = graph();
 
@@ -859,9 +936,25 @@ public class EdgeCoreTest extends BaseCoreTest {
         jeff.addEdge("friend", james);
     }
 
+    private Edge initEdgeTransfer() {
+        HugeGraph graph = graph();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("transfer", sean, "id", 1,
+                                   "amount", 500.00F, "timestamp", current,
+                                   "message", "Happy birthday!");
+        return edge;
+    }
+
     private Vertex vertex(String label, String pkName, Object pkValue) {
-        List<Vertex> vertexes = graph().traversal().V().hasLabel(
-                label).has(pkName, pkValue).toList();
+        List<Vertex> vertexes = graph().traversal().V()
+                                .hasLabel(label)
+                                .has(pkName, pkValue).toList();
         Assert.assertEquals(1, vertexes.size());
         return vertexes.get(0);
     }
@@ -872,7 +965,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             Vertex outVertex,
             Vertex inVertex,
             Object... kvs) {
-        Assert.assertTrue(Utils.contains(edges, new FakeEdge(
-                label, outVertex, inVertex, kvs)));
+        Assert.assertTrue(Utils.contains(edges,
+                          new FakeEdge(label, outVertex, inVertex, kvs)));
     }
 }

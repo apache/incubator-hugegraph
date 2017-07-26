@@ -181,7 +181,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testAddVertexWithTx() {
         HugeGraph graph = graph();
 
-        // tinkerpop tx
+        // Use tinkerpop tx
         graph.tx().open();
         graph.addVertex(T.label, "book", "name", "java-4");
         graph.addVertex(T.label, "book", "name", "java-5");
@@ -196,7 +196,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query all
+        // Query all
         List<Vertex> vertexes = graph.traversal().V().toList();
 
         Assert.assertEquals(10, vertexes.size());
@@ -218,7 +218,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query all with limit
+        // Query all with limit
         List<Vertex> vertexes = graph.traversal().V().limit(3).toList();
 
         Assert.assertEquals(3, vertexes.size());
@@ -229,7 +229,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query all with limit 0
+        // Query all with limit 0
         List<Vertex> vertexes = graph.traversal().V().limit(0).toList();
 
         Assert.assertEquals(0, vertexes.size());
@@ -240,7 +240,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query all with limit -1 (also no-limit)
+        // Query all with limit -1 (also no-limit)
         List<Vertex> vertexes = graph.traversal().V().limit(-1).toList();
 
         Assert.assertEquals(10, vertexes.size());
@@ -265,7 +265,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query vertex by id
+        // Query vertex by id
         Id id = SplicingIdGenerator.splicing("author", "1");
         List<Vertex> vertexes = graph.traversal().V(id).toList();
         Assert.assertEquals(1, vertexes.size());
@@ -279,7 +279,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query vertex by id which not exists
+        // Query vertex by id which not exists
         Id id = SplicingIdGenerator.splicing("author", "not-exists-id");
         Utils.assertThrows(HugeException.class, () -> {
             graph.traversal().V(id).toList();
@@ -291,7 +291,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query by vertex label
+        // Query by vertex label
         List<Vertex> vertexes = graph.traversal().V().hasLabel("book").toList();
 
         Assert.assertEquals(5, vertexes.size());
@@ -313,7 +313,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query by not exists vertex label
+        // Query by not exists vertex label
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().hasLabel("xx").toList();
         });
@@ -324,7 +324,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query by vertex label and key-name
+        // Query by vertex label and key-name
         List<Vertex> vertexes = graph.traversal().V().hasLabel(
                 "language").has("dynamic").toList();
 
@@ -338,7 +338,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query vertex by primary-values
+        // Query vertex by primary-values
         List<Vertex> vertexes = graph.traversal().V().hasLabel(
                 "author").has("id", "1").toList();
         Assert.assertEquals(1, vertexes.size());
@@ -352,7 +352,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // query vertex by condition (filter by property name)
+        // Query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
         q.eq(HugeKeys.LABEL, "language");
         q.key(HugeKeys.PROPERTIES, "dynamic");
@@ -718,6 +718,119 @@ public class VertexCoreTest extends BaseCoreTest {
             vertexes.get(i).remove();
             Assert.assertEquals(9 - i, graph.traversal().V().toList().size());
         }
+    }
+
+    @Test
+    public void testAddVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1);
+
+        // Add properties
+        vertex.property("name", "Tom");
+        vertex.property("age", 10);
+        vertex.property("lived", "USA");
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertEquals("Tom", vertex.property("name").value());
+        Assert.assertEquals(10, vertex.property("age").value());
+        Assert.assertEquals("USA", vertex.property("lived").value());
+    }
+
+    @Test
+    public void testAddVertexPropertyExisted() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom");
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            vertex.property("name", "Tom2");
+        });
+
+        vertex.property("age", 10);
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            vertex.property("age", "11");
+        });
+    }
+
+    @Test
+    public void testAddVertexPropertyNotInVertexLabel() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1);
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            vertex.property("time", "2017-1-1");
+        });
+    }
+
+    @Test
+    public void testAddVertexPropertyWithNotExistPropKey() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1);
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            vertex.property("prop-not-exist", "2017-1-1");
+        });
+    }
+
+    @Test
+    public void testRemoveVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                        "name", "Tom", "age", 10, "lived", "USA");
+
+        // Remove "name" property
+        Assert.assertTrue(vertex.property("name").isPresent());
+        Assert.assertTrue(vertex.property("lived").isPresent());
+        vertex.property("name").remove();
+        Assert.assertFalse(vertex.property("name").isPresent());
+        Assert.assertTrue(vertex.property("lived").isPresent());
+
+        // Remove "lived" property
+        vertex = vertex("author", "id", 1);
+        Assert.assertFalse(vertex.property("name").isPresent());
+        Assert.assertTrue(vertex.property("lived").isPresent());
+        vertex.property("lived").remove();
+        Assert.assertFalse(vertex.property("name").isPresent());
+        Assert.assertFalse(vertex.property("lived").isPresent());
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertEquals(10, vertex.property("age").value());
+        Assert.assertFalse(vertex.property("name").isPresent());
+        Assert.assertFalse(vertex.property("lived").isPresent());
+    }
+
+    @Test
+    public void testRemoveVertexPropertyOfPrimaryKey() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                        "name", "Tom", "age", 10, "lived", "USA");
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            vertex.property("id").remove();
+        });
+    }
+
+    @Test
+    public void testRemoveVertexPropertyWithIndex() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
+                        "city", "Hongkong", "age", 3);
+        // TODO: this should be resolved
+        Utils.assertThrows(IllegalStateException.class, () -> {
+            vertex.property("age").remove();
+        });
+    }
+
+    @Test
+    public void testUpdateVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom");
+        vertex.property("name").remove();
+        vertex.property("name", "Tom-2");
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertEquals("Tom-2", vertex.property("name").value());
     }
 
     @SuppressWarnings("unchecked")

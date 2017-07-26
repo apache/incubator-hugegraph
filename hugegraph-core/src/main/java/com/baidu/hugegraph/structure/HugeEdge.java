@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.structure;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -36,6 +37,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
+import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
@@ -136,20 +138,35 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     @Override
-    public <V> Property<V> property(String key, V value) {
-        E.checkArgument(
-                this.label.properties().contains(key),
-                "Invalid property '%s' for edge label '%s', expected: %s",
-                key, this.label(), this.edgeLabel().properties());
-        return this.addProperty(key, value);
-    }
-
-    @Override
     public void remove() {
         this.removed = true;
         this.sourceVertex.removeEdge(this);
         this.targetVertex.removeEdge(this);
         this.tx().removeEdge(this);
+    }
+
+    @Override
+    public <V> Property<V> property(String key, V value) {
+        E.checkArgument(this.label.properties().contains(key),
+                "Invalid property '%s' for edge label '%s', expected: %s",
+                key, this.label(), this.edgeLabel().properties());
+        HugeProperty<V> prop = this.addProperty(key, value);
+
+        /*
+         * Edge is new if id is null, Note that, currently we don't support
+         * custom id. Maybe the Vertex.attachProperties() has not been called
+         * if we support custom id, that should be improved in the future.
+         */
+        if (prop != null && this.id() != null) {
+            assert prop instanceof HugeEdgeProperty;
+            this.tx().addEdgeProperty((HugeEdgeProperty<V>) prop);
+        }
+        return prop;
+    }
+
+    @Override
+    protected <V> HugeEdgeProperty<V> newProperty(PropertyKey pkey, V val) {
+        return new HugeEdgeProperty<>(this, pkey, val);
     }
 
     @Override
@@ -235,7 +252,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return edge;
     }
 
-    public HugeEdge switchOutDirection() {
+    public HugeEdge switchToOutDirection() {
         if (this.type() == HugeType.EDGE_IN) {
             return this.switchOwner();
         }
@@ -292,52 +309,33 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.otherVertex(this.owner);
     }
 
-    // TODO: after separating edges from vertex,
-    // We will remove these prepareXX() methods
-    public HugeVertex prepareAddedOut() {
-        // Return a vertex just with this edge(OUT)
-        HugeVertex sourceVertex = this.sourceVertex.prepareRemovedChildren();
-        HugeEdge edge = this.clone();
-        edge.vertices(sourceVertex, this.targetVertex);
-        edge.owner(sourceVertex);
-        sourceVertex.addOutEdge(edge);
-        return sourceVertex;
-    }
-
-    public HugeEdge prepareAddedOut(HugeVertex sourceVertex) {
-        // Return a new edge, and add it to sourceVertex as OUT edge
-        HugeEdge edge = this.clone();
-        edge.vertices(sourceVertex, this.targetVertex);
-        edge.owner(sourceVertex);
-        return edge;
-    }
-
-    public HugeVertex prepareAddedIn() {
-        // Return a vertex just with this edge(IN)
-        HugeVertex targetVertex = this.targetVertex.prepareRemovedChildren();
-        HugeEdge edge = this.clone();
-        edge.vertices(this.sourceVertex, targetVertex);
-        edge.owner(targetVertex);
-        targetVertex.addInEdge(edge);
-        return targetVertex;
-    }
-
-    public HugeEdge prepareAddedIn(HugeVertex targetVertex) {
-        // Return a new edge, and add it to targetVertex as IN edge
-        HugeEdge edge = this.clone();
-        edge.vertices(this.sourceVertex, targetVertex);
-        edge.owner(targetVertex);
-        return edge;
-    }
-
+    /**
+     * Clear properties of the edge, and set `removed` true
+     * @return a new edge
+     */
     public HugeEdge prepareRemoved() {
-        // NOTE: clear properties of the edge(keep sort-values)
         HugeEdge edge = this.clone();
         edge.removed = true;
         edge.resetProperties();
         return edge;
     }
 
+    /**
+     * Clear properties of the edge, and set `removed` false
+     * @return a new edge
+     */
+    public HugeEdge prepareRemovedChildren() {
+        HugeEdge edge = this.clone();
+        edge.removed = false;
+        edge.resetProperties();
+        return edge;
+    }
+
+    public HugeEdge copy() {
+        HugeEdge edge = this.clone();
+        edge.properties = new HashMap<>(edge.properties);
+        return edge;
+    }
 
     @Override
     protected HugeEdge clone() {

@@ -51,10 +51,10 @@ public class CassandraSessionPool {
         this.sessionCount = new AtomicInteger(0);
     }
 
-    public void open(String hosts, int port) {
-        if (opened()) {
+    public synchronized void open(String hosts, int port) {
+        if (this.opened()) {
             throw new BackendException("Please close the old SessionPool " +
-                      "before opening a new one");
+                                       "before opening a new one");
         }
         this.cluster = Cluster.builder()
                        .addContactPoints(hosts.split(","))
@@ -62,15 +62,15 @@ public class CassandraSessionPool {
                        .build();
     }
 
-    public final boolean opened() {
+    public final synchronized boolean opened() {
         return (this.cluster != null && !this.cluster.isClosed());
     }
 
-    public final Cluster cluster() {
+    public final synchronized Cluster cluster() {
         return this.cluster;
     }
 
-    public synchronized Session session() {
+    public final synchronized Session session() {
         Session session = this.threadLocalSession.get();
         if (session == null) {
             session = new Session(this.cluster.connect(this.keyspace));
@@ -82,17 +82,27 @@ public class CassandraSessionPool {
         return session;
     }
 
+    public void useSession() {
+        Session session = this.threadLocalSession.get();
+        if (session == null) {
+            return;
+        }
+        session.attach();
+    }
+
     public void closeSession() {
         Session session = this.threadLocalSession.get();
         if (session == null) {
             return;
         }
-        session.close();
-        this.threadLocalSession.remove();
-        this.sessionCount.decrementAndGet();
+        if (session.detach() <= 0) {
+            session.close();
+            this.threadLocalSession.remove();
+            this.sessionCount.decrementAndGet();
+        }
     }
 
-    public void close() {
+    public synchronized void close() {
         try {
             this.closeSession();
         } finally {
@@ -122,16 +132,26 @@ public class CassandraSessionPool {
 
     /**
      * The Session class is a wrapper of driver Session
-     * Expect every thread hold a Session wrapper
+     * Expect every thread hold a its own session(wrapper)
      */
     protected final class Session {
 
         private com.datastax.driver.core.Session session;
         private BatchStatement batch;
+        private int refs;
 
         public Session(com.datastax.driver.core.Session session) {
             this.session = session;
             this.batch = new BatchStatement();
+            this.refs = 1;
+        }
+
+        private int attach() {
+            return ++this.refs;
+        }
+
+        private int detach() {
+            return --this.refs;
         }
 
         public BatchStatement add(Statement statement) {

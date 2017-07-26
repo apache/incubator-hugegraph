@@ -35,8 +35,10 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.structure.HugeVertexProperty;
 
 public class CachedGraphTransaction extends GraphTransaction {
 
@@ -119,6 +121,22 @@ public class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
+    public <V> void addVertexProperty(HugeVertexProperty<V> prop) {
+        // Update vertex cache
+        this.verticesCache.invalidate(prop.element().id());
+
+        super.addVertexProperty(prop);
+    }
+
+    @Override
+    public <V> void removeVertexProperty(HugeVertexProperty<V> prop) {
+        // Update vertex cache
+        this.verticesCache.invalidate(prop.element().id());
+
+        super.removeVertexProperty(prop);
+    }
+
+    @Override
     public Edge addEdge(HugeEdge edge) {
         // TODO: Use a more precise strategy to update the edge cache
         this.edgesCache.clear();
@@ -132,6 +150,22 @@ public class CachedGraphTransaction extends GraphTransaction {
         this.edgesCache.clear();
 
         super.removeEdge(edge);
+    }
+
+    @Override
+    public <V> void addEdgeProperty(HugeEdgeProperty<V> prop) {
+        // TODO: Use a more precise strategy to update the edge cache
+        this.edgesCache.clear();
+
+        super.addEdgeProperty(prop);
+    }
+
+    @Override
+    public <V> void removeEdgeProperty(HugeEdgeProperty<V> prop) {
+        // TODO: Use a more precise strategy to update the edge cache
+        this.edgesCache.clear();
+
+        super.removeEdgeProperty(prop);
     }
 
     @Override

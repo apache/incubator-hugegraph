@@ -52,6 +52,7 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.HugeServer;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -102,8 +103,8 @@ public class EdgeAPI extends API {
             List<CreateEdge> edges) {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
-        TriFunction<HugeGraph, String, String, Vertex> getVertex = checkV ?
-                EdgeAPI::getVertex : EdgeAPI::newVertex;
+        TriFunction<HugeGraph, String, String, Vertex> getVertex =
+                    checkV ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         final int maxEdges = g.configuration().get(MAX_EDGES_PER_BATCH);
         if (edges.size() > maxEdges) {
@@ -200,9 +201,8 @@ public class EdgeAPI extends API {
                                        .getVertexLabel(label);
         E.checkState(vertexLabel != null,
                      "Not found the vertex label '%s'", label);
-        Vertex vertex = new HugeVertex(graph.graphTransaction(),
-                                       HugeElement.getIdValue(T.id, id),
-                                       vertexLabel);
+        Id idValue = HugeElement.getIdValue(T.id, id);
+        Vertex vertex = new HugeVertex(graph, idValue, vertexLabel);
         return vertex;
     }
 

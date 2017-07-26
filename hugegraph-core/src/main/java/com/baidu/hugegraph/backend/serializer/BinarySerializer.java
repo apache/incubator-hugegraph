@@ -27,6 +27,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -149,8 +150,7 @@ public class BinarySerializer extends AbstractSerializer {
         byte[] labelCol = this.formatSystemPropertyName(HugeKeys.LABEL);
         VertexLabel label = this.parseLabel(entry.column(labelCol));
 
-        HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
-                entry.id(), label);
+        HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
 
         // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {
@@ -237,6 +237,18 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public HugeIndex readIndex(BackendEntry entry) {
+        return null;
+    }
+
+    @Override
+    public BackendEntry writeEdge(HugeEdge edge) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public HugeEdge readEdge(BackendEntry entry) {
+        // TODO Auto-generated method stub
         return null;
     }
 }

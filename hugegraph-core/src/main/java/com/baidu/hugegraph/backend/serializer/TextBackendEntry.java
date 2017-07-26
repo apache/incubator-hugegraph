@@ -19,6 +19,7 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +29,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public class TextBackendEntry implements BackendEntry {
+
+    public static final String COLUME_SPLITOR = "\u0001";
+    public static final String VALUE_SPLITOR = "\u0002";
 
     private Id id;
     private Map<String, String> columns;
@@ -98,6 +104,46 @@ public class TextBackendEntry implements BackendEntry {
         this.columns.putAll(other.columns);
     }
 
+    public void append(TextBackendEntry entry) {
+        for (Entry<String, String> col : entry.columns.entrySet()) {
+            String newValue = col.getValue();
+            String oldValue = this.column(col.getKey());
+            if (newValue.equals(oldValue)) {
+                continue;
+            }
+            // TODO: ensure the old value is a list and json format
+            List<String> values = new ArrayList<>();
+            values.addAll(Arrays.asList(JsonUtil.fromJson(oldValue,
+                                                          String[].class)));
+            values.addAll(Arrays.asList(JsonUtil.fromJson(newValue,
+                                                          String[].class)));
+            // Update the old value
+            this.column(col.getKey(), JsonUtil.toJson(values));
+        }
+    }
+
+    public void eliminate(TextBackendEntry entry) {
+        for (Entry<String, String> col : entry.columns.entrySet()) {
+            String newValue = col.getValue();
+            String oldValue = this.column(col.getKey());
+            if (newValue.equals(oldValue)) {
+                // TODO: use more general method
+                if (col.getKey().startsWith(HugeType.PROPERTY.name())) {
+                    this.columns.remove(col.getKey());
+                }
+                continue;
+            }
+            // TODO: ensure the old value is a list and json format
+            List<String> values = new ArrayList<>();
+            values.addAll(Arrays.asList(JsonUtil.fromJson(oldValue,
+                                                          String[].class)));
+            values.removeAll(Arrays.asList(JsonUtil.fromJson(newValue,
+                                                             String[].class)));
+            // Update the old value
+            this.column(col.getKey(), JsonUtil.toJson(values));
+        }
+    }
+
     @Override
     public String toString() {
         return String.format("%s: %s", this.id, this.columns.toString());
@@ -105,7 +151,7 @@ public class TextBackendEntry implements BackendEntry {
 
     @Override
     public Collection<BackendColumn> columns() {
-        List<BackendColumn> list = new ArrayList<BackendColumn>(this.columns.size());
+        List<BackendColumn> list = new ArrayList<>(this.columns.size());
         for (Entry<String, String> column : this.columns.entrySet()) {
             BackendColumn bytesColumn = new BackendColumn();
             bytesColumn.name = StringEncoding.encodeString(column.getKey());
