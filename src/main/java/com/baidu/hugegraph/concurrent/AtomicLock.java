@@ -19,19 +19,25 @@
 
 package com.baidu.hugegraph.concurrent;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.atomic.AtomicReference;
 
-public class Lock {
+public class AtomicLock {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(LockManager.class);
 
     private String name;
     private AtomicReference<Thread> sign;
 
-    public Lock(String name) {
+    public AtomicLock(String name) {
         this.name = name;
         this.sign = new AtomicReference<>();
     }
 
-    public boolean lock() {
+    public boolean tryLock() {
         Thread current = Thread.currentThread();
         return this.sign.compareAndSet(null, current);
     }
@@ -44,6 +50,26 @@ public class Lock {
                       "which is held by other threads now.",
                       current.getName(), this.name));
         }
+    }
+
+    public boolean lock(int retries) {
+        // The interval between retries is exponential growth, most wait
+        // interval is 2^(retries-1)s. If retries=0, don't retry.
+        if (retries < 0 || retries > 10) {
+            throw new IllegalArgumentException(String.format(
+                  "Locking retry times should be between 0 and 10, but got %d",
+                  retries));
+        }
+
+        boolean isLocked = false;
+        try {
+            for (int i = 0; !(isLocked = this.tryLock()) && i < retries; i++) {
+                Thread.sleep(1000 * (1L << i));
+            }
+        } catch (InterruptedException ignored) {
+            logger.info("Thread sleep is interrupted.");
+        }
+        return isLocked;
     }
 
     public String name() {

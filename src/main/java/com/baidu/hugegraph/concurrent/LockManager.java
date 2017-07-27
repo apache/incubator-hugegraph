@@ -22,10 +22,6 @@ package com.baidu.hugegraph.concurrent;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-
-/**
- * Created by zhangyi51 on 17/7/13.
- */
 public class LockManager {
 
     private static final LockManager INSTANCE = new LockManager();
@@ -40,35 +36,34 @@ public class LockManager {
         this.lockGroupMap = new ConcurrentHashMap<>();
     }
 
-    public boolean exists(String lockGroup) {
-        return this.lockGroupMap.containsKey(lockGroup);
+    public boolean exists(String group) {
+        return this.lockGroupMap.containsKey(group);
     }
 
-    public LockGroup create(String lockGroup) {
-        if (this.lockGroupMap.containsKey(lockGroup)) {
+    public LockGroup create(String group) {
+        if (this.lockGroupMap.containsKey(group)) {
             throw new RuntimeException(String.format(
-                      "LockGroup '%s' already exists!", lockGroup));
+                      "LockGroup '%s' already exists!", group));
         }
-        LockGroup lockgroup = new LockGroup(lockGroup);
-
-        this.lockGroupMap.put(lockGroup, lockgroup);
-        return lockgroup;
+        LockGroup lockGroup = new LockGroup(group);
+        this.lockGroupMap.putIfAbsent(group, lockGroup);
+        return lockGroup;
     }
 
-    public LockGroup get(String lockGroup) {
-        if (!exists(lockGroup)) {
+    public LockGroup get(String group) {
+        if (!exists(group)) {
             throw new RuntimeException(String.format(
-                      "Not exist LockGroup '%s'", lockGroup));
+                      "Not exist LockGroup '%s'", group));
         }
-        return this.lockGroupMap.get(lockGroup);
+        return this.lockGroupMap.get(group);
     }
 
-    public void destroy(String lockGroup) {
-        if (this.exists(lockGroup)) {
-            this.lockGroupMap.remove(lockGroup);
+    public void destroy(String group) {
+        if (this.exists(group)) {
+            this.lockGroupMap.remove(group);
         } else {
             throw new RuntimeException(String.format(
-                      "Not exist LockGroup '%s'", lockGroup));
+                      "Not exist LockGroup '%s'", group));
         }
     }
 }

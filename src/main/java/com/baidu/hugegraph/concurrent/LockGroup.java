@@ -24,59 +24,43 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class LockGroup {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(Lock.class);
+            LoggerFactory.getLogger(LockManager.class);
 
     private String name;
-    private Map<String, Lock> locksMap;
+    private Map<String, Object> locksMap;
 
     public LockGroup(String lockGroup) {
         this.name = lockGroup;
         this.locksMap = new ConcurrentHashMap();
     }
 
-    public boolean lock(String lockName) {
+    public Lock lock(String lockName) {
         if (!this.locksMap.containsKey(lockName)) {
-            this.locksMap.putIfAbsent(lockName, new Lock(lockName));
+            this.locksMap.putIfAbsent(lockName, new ReentrantLock());
         }
-        return this.locksMap.get(lockName).lock();
+        return (Lock) this.locksMap.get(lockName);
     }
 
-    public boolean lock(String lockName, int retries) {
-        // The interval between retries is exponential growth, most wait
-        // interval is 2^(retries-1)s. If retries=0, don't retry.
-        if (retries < 0 || retries > 10) {
-            throw new IllegalArgumentException(String.format(
-                "Locking retry times should be between 0 and 10, but got %d",
-                retries));
-        }
-
+    public AtomicLock atomicLock(String lockName) {
         if (!this.locksMap.containsKey(lockName)) {
-            this.locksMap.putIfAbsent(lockName, new Lock(lockName));
+            this.locksMap.putIfAbsent(lockName, new AtomicLock(lockName));
         }
-
-        boolean isLocked = false;
-        try {
-            for (int i = 0; !(isLocked = this.locksMap.get(lockName).lock()) &&
-                            i < retries; i++) {
-                Thread.sleep(1000 * (1L << i));
-            }
-        } catch (InterruptedException ignored) {
-            logger.info("Thread sleep is interrupted.");
-        }
-        return isLocked;
+        return (AtomicLock) this.locksMap.get(lockName);
     }
 
-    public void unlock(String lockName) {
+    public ReadWriteLock readWriteLock(String lockName) {
         if (!this.locksMap.containsKey(lockName)) {
-            throw new RuntimeException(String.format(
-                      "There is no lock '%s' found in LockGroup '%s'",
-                      lockName, this.name));
+            this.locksMap.putIfAbsent(lockName, new ReentrantReadWriteLock());
         }
-        this.locksMap.get(lockName).unlock();
+        return (ReadWriteLock) this.locksMap.get(lockName);
     }
 
     public String name() {
