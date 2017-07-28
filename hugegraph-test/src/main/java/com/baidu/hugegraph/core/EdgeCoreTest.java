@@ -19,8 +19,9 @@
 
 package com.baidu.hugegraph.core;
 
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -669,7 +670,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init18Edges();
 
-        List<Edge> edges = new LinkedList<>();
+        Set<Edge> edges = new HashSet<>();
 
         long splitSize = 1 * 1024 * 1024;
         Object splits = graph.graphTransaction().metadata(
@@ -680,7 +681,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             edges.addAll(ImmutableList.copyOf(graph.edges(q)));
         }
 
-        Assert.assertEquals(18 * 2, edges.size());
+        Assert.assertEquals(18, edges.size());
     }
 
     @Test
