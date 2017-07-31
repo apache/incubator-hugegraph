@@ -37,8 +37,8 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
-
 public class Example2 {
+
     private static final Logger logger = LoggerFactory.getLogger(Example2.class);
 
     public static void main(String[] args) {
@@ -56,17 +56,16 @@ public class Example2 {
     public static void traversal(final HugeGraph graph) {
 
         GraphTraversal<Vertex, Vertex> vertexs = graph.traversal().V();
-        System.out.println(">>>> query all vertices: size="
-                + vertexs.toList().size());
+        System.out.println(">>>> query all vertices: size=" +
+                           vertexs.toList().size());
 
         GraphTraversal<Edge, Edge> edges = graph.traversal().E();
-        System.out.println(">>>> query all edges: size="
-                + edges.toList().size());
+        System.out.println(">>>> query all edges: size=" +
+                           edges.toList().size());
 
-        List<Object> names = graph.traversal().V().inE(
-                "knows").limit(2).outV().values("name").toList();
-        System.out.println(">>>> query vertex(with props) of edges: "
-                + names);
+        List<Object> names = graph.traversal().V().inE("knows").limit(2)
+                             .outV().values("name").toList();
+        System.out.println(">>>> query vertex(with props) of edges: " + names);
         assert names.size() == 2 : names.size();
 
         names = graph.traversal().V().as("a")
@@ -91,7 +90,7 @@ public class Example2 {
                 .toList());
 
         List<Path> paths = graph.traversal().V("person:marko")
-                .out().out().path().by("name").toList();
+                           .out().out().path().by("name").toList();
         System.out.println(">>>> test out path: " + paths);
         assert paths.size() == 2;
         assert paths.get(0).get(0).equals("marko");
@@ -108,7 +107,8 @@ public class Example2 {
     }
 
     public static List<Path> shortestPath(final HugeGraph graph,
-            Object from, Object to, int maxDepth) {
+                                          Object from, Object to,
+                                          int maxDepth) {
         GraphTraversal<Vertex, Path> t = graph.traversal()
                 .V(from)
                 .repeat(__.out().simplePath())
@@ -133,7 +133,7 @@ public class Example2 {
     public static void load(final HugeGraph graph) {
         SchemaManager schema = graph.schema();
 
-        /**
+        /*
          * Note:
          * Use schema.makePropertyKey interface to create propertyKey.
          * Use schema.propertyKey interface to query propertyKey.
@@ -171,8 +171,8 @@ public class Example2 {
                 .secondary()
                 .ifNotExist().create();
 
-        schema.makeIndexLabel("softwareByPrice").on(software).by("price").search()
-                .ifNotExist().create();
+        schema.makeIndexLabel("softwareByPrice").on(software).by("price")
+                .search().ifNotExist().create();
 
         schema.makeEdgeLabel("knows").link("person", "person")
                 .properties("date").create();
@@ -186,7 +186,8 @@ public class Example2 {
                 .ifNotExist()
                 .create();
 
-        schema.makeIndexLabel("createdByDate").on(created).by("date").secondary()
+        schema.makeIndexLabel("createdByDate").on(created).by("date")
+                .secondary()
                 .ifNotExist()
                 .create();
 
