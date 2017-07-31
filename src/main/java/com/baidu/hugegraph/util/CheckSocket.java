@@ -31,23 +31,23 @@ import java.net.Socket;
  */
 public final class CheckSocket {
 
-    public static final int E_USAGE  = 1;
-    public static final int E_FAILED = 2;
-    public static final String MSG_USAGE =
+    private static final int E_USAGE = 1;
+    private static final int E_FAILED = 2;
+    private static final String MSG_USAGE =
         "Usage: " + CheckSocket.class.getSimpleName() + " hostname port";
 
     public static void main(String args[]) {
-        if (2 != args.length) {
+        if (args.length != 2) {
             System.err.println(MSG_USAGE);
             System.exit(E_USAGE);
         }
         try {
             Socket s = new Socket(InetAddress.getByName(args[0]),
-                                  Integer.valueOf(args[1]).intValue());
+                                  Integer.parseInt(args[1]));
             s.close();
             System.exit(0);
-        } catch (Throwable t) {
-            System.err.println(t.toString());
+        } catch (Throwable ignored) {
+            System.err.println(ignored.toString());
             System.exit(E_FAILED);
         }
     }
