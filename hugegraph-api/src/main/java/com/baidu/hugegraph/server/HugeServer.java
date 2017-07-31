@@ -36,14 +36,14 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.version.ApiVersion;
 
 public class HugeServer {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(HugeServer.class);
+                         LoggerFactory.getLogger(HugeServer.class);
 
     private HugeConfig conf = null;
-
     private HttpServer httpServer = null;
 
     public HugeServer(HugeConfig conf) {
@@ -68,8 +68,9 @@ public class HugeServer {
 
     public static HugeServer start(String[] args) {
         logger.info("HugeServer starting...");
-        HugeConfig conf = HugeServer.loadConf(args);
+        ApiVersion.check();
 
+        HugeConfig conf = HugeServer.loadConf(args);
         HugeServer server = new HugeServer(conf);
         try {
             server.start();
@@ -85,15 +86,11 @@ public class HugeServer {
         E.checkArgument(args.length == 1,
                         "HugeServer need one config file, but was given %s",
                         Arrays.asList(args));
-
-        HugeConfig conf = null;
         try {
-            conf = new HugeConfig(args[0]);
+            return new HugeConfig(args[0]);
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to load config file", e);
         }
-
-        return conf;
     }
 
     public static void main(String[] args) throws Exception {
