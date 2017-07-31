@@ -26,9 +26,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Created by liningrui on 2017/5/25.
- */
 public class OptionHolder {
 
     private static final Logger logger =
@@ -48,7 +45,7 @@ public class OptionHolder {
                 this.options.put(option.name(), option);
             } catch (Exception e) {
                 String msg = String.format(
-                             "Failed to regiser option : %s", field);
+                             "Failed to register option : %s", field);
                 logger.error(msg, e);
                 throw new ConfigException(msg, e);
             }
