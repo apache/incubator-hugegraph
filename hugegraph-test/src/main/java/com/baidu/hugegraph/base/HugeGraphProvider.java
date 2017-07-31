@@ -149,122 +149,122 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     public static void initGratefulSchema(final Graph graph) {
         SchemaManager schema = ((TestGraph) graph).hugeGraph().schema();
 
-        schema.makePropertyKey("id").asInt().ifNotExist().create();
-        schema.makePropertyKey("weight").asInt().ifNotExist().create();
-        schema.makePropertyKey("name").ifNotExist().create();
-        schema.makePropertyKey("songType").asText().ifNotExist()
+        schema.propertyKey("id").asInt().ifNotExist().create();
+        schema.propertyKey("weight").asInt().ifNotExist().create();
+        schema.propertyKey("name").ifNotExist().create();
+        schema.propertyKey("songType").asText().ifNotExist()
                 .create();
-        schema.makePropertyKey("performances").asInt().ifNotExist()
+        schema.propertyKey("performances").asInt().ifNotExist()
                 .create();
-        schema.makeVertexLabel("song")
+        schema.vertexLabel("song")
                 .properties("id", "name", "songType", "performances")
                 .primaryKeys("id").ifNotExist().create();
-        schema.makeVertexLabel("artist").properties("id", "name")
+        schema.vertexLabel("artist").properties("id", "name")
                 .primaryKeys("id").ifNotExist().create();
-        schema.makeEdgeLabel("followedBy")
+        schema.edgeLabel("followedBy")
                 .link("song", "song").properties("weight")
                 .ifNotExist().create();
-        schema.makeEdgeLabel("sungBy").link("song", "artist")
+        schema.edgeLabel("sungBy").link("song", "artist")
                 .ifNotExist().create();
-        schema.makeEdgeLabel("writtenBy").link("song", "artist")
+        schema.edgeLabel("writtenBy").link("song", "artist")
                 .ifNotExist().create();
     }
 
     public static void initModernSchema(final Graph graph) {
         SchemaManager schema = ((TestGraph) graph).hugeGraph().schema();
 
-        schema.makePropertyKey("id").asInt().ifNotExist().create();
-        schema.makePropertyKey("weight").asDouble().ifNotExist().create();
-        schema.makePropertyKey("name").ifNotExist().create();
-        schema.makePropertyKey("lang").ifNotExist().create();
-        schema.makePropertyKey("age").asInt().ifNotExist().create();
+        schema.propertyKey("id").asInt().ifNotExist().create();
+        schema.propertyKey("weight").asDouble().ifNotExist().create();
+        schema.propertyKey("name").ifNotExist().create();
+        schema.propertyKey("lang").ifNotExist().create();
+        schema.propertyKey("age").asInt().ifNotExist().create();
 
-        schema.makeVertexLabel("person").properties("id", "name", "age")
+        schema.vertexLabel("person").properties("id", "name", "age")
                 .primaryKeys("id").ifNotExist().create();
-        schema.makeVertexLabel("software").properties("id", "name", "lang")
+        schema.vertexLabel("software").properties("id", "name", "lang")
                 .primaryKeys("id").ifNotExist().create();
-        schema.makeEdgeLabel("knows").link("person", "person")
+        schema.edgeLabel("knows").link("person", "person")
                 .properties("weight").ifNotExist().create();
-        schema.makeEdgeLabel("created").link("person", "software")
+        schema.edgeLabel("created").link("person", "software")
                 .properties("weight").ifNotExist().create();
     }
 
     public static void initClassicSchema(final Graph graph) {
         SchemaManager schema = ((TestGraph) graph).hugeGraph().schema();
 
-        schema.makePropertyKey("id").asInt().ifNotExist().create();
-        schema.makePropertyKey("weight").asFloat().ifNotExist().create();
-        schema.makePropertyKey("name").ifNotExist().create();
-        schema.makePropertyKey("lang").ifNotExist().create();
-        schema.makePropertyKey("age").asInt().ifNotExist().create();
+        schema.propertyKey("id").asInt().ifNotExist().create();
+        schema.propertyKey("weight").asFloat().ifNotExist().create();
+        schema.propertyKey("name").ifNotExist().create();
+        schema.propertyKey("lang").ifNotExist().create();
+        schema.propertyKey("age").asInt().ifNotExist().create();
 
-        schema.makeVertexLabel("vertex")
+        schema.vertexLabel("vertex")
                 .properties("id", "name", "age", "lang")
                 .primaryKeys("id").ifNotExist().create();
-        schema.makeEdgeLabel("knows").link("vertex", "vertex")
+        schema.edgeLabel("knows").link("vertex", "vertex")
                 .properties("weight").ifNotExist().create();
-        schema.makeEdgeLabel("created").link("vertex", "vertex")
+        schema.edgeLabel("created").link("vertex", "vertex")
                 .properties("weight").ifNotExist().create();
     }
 
     public static void initBasicSchema(final Graph graph) {
         SchemaManager schema = ((TestGraph) graph).hugeGraph().schema();
 
-        schema.makePropertyKey("oid").asInt().ifNotExist().create();
-        schema.makePropertyKey("__id").asText().ifNotExist().create();
-        schema.makePropertyKey("communityIndex").asInt()
+        schema.propertyKey("oid").asInt().ifNotExist().create();
+        schema.propertyKey("__id").asText().ifNotExist().create();
+        schema.propertyKey("communityIndex").asInt()
                 .ifNotExist().create();
-        schema.makePropertyKey("test").ifNotExist().create();
-        schema.makePropertyKey("data").ifNotExist().create();
-        schema.makePropertyKey("name").ifNotExist().create();
-        schema.makePropertyKey("location").ifNotExist().create();
-        schema.makePropertyKey("status").ifNotExist().create();
-        schema.makePropertyKey("boolean").asBoolean()
+        schema.propertyKey("test").ifNotExist().create();
+        schema.propertyKey("data").ifNotExist().create();
+        schema.propertyKey("name").ifNotExist().create();
+        schema.propertyKey("location").ifNotExist().create();
+        schema.propertyKey("status").ifNotExist().create();
+        schema.propertyKey("boolean").asBoolean()
                 .ifNotExist().create();
-        schema.makePropertyKey("float").asFloat().ifNotExist().create();
-        schema.makePropertyKey("since").asInt().ifNotExist().create();
-        schema.makePropertyKey("double").asDouble().ifNotExist().create();
-        schema.makePropertyKey("string").ifNotExist().create();
-        schema.makePropertyKey("integer").asInt().ifNotExist().create();
-        schema.makePropertyKey("long").asLong().ifNotExist().create();
-        schema.makePropertyKey("x").asInt().ifNotExist().create();
-        schema.makePropertyKey("y").asInt().ifNotExist().create();
-        schema.makePropertyKey("aKey").asDouble().ifNotExist().create();
-        schema.makePropertyKey("age").asInt().ifNotExist().create();
-        schema.makePropertyKey("lang").ifNotExist().create();
-        schema.makePropertyKey("weight").asDouble().ifNotExist().create();
-        schema.makePropertyKey("some").ifNotExist().create();
-        schema.makePropertyKey("that").ifNotExist().create();
-        schema.makePropertyKey("any").ifNotExist().create();
-        schema.makePropertyKey("this").ifNotExist().create();
-        schema.makePropertyKey("communityIndex").ifNotExist().create();
+        schema.propertyKey("float").asFloat().ifNotExist().create();
+        schema.propertyKey("since").asInt().ifNotExist().create();
+        schema.propertyKey("double").asDouble().ifNotExist().create();
+        schema.propertyKey("string").ifNotExist().create();
+        schema.propertyKey("integer").asInt().ifNotExist().create();
+        schema.propertyKey("long").asLong().ifNotExist().create();
+        schema.propertyKey("x").asInt().ifNotExist().create();
+        schema.propertyKey("y").asInt().ifNotExist().create();
+        schema.propertyKey("aKey").asDouble().ifNotExist().create();
+        schema.propertyKey("age").asInt().ifNotExist().create();
+        schema.propertyKey("lang").ifNotExist().create();
+        schema.propertyKey("weight").asDouble().ifNotExist().create();
+        schema.propertyKey("some").ifNotExist().create();
+        schema.propertyKey("that").ifNotExist().create();
+        schema.propertyKey("any").ifNotExist().create();
+        schema.propertyKey("this").ifNotExist().create();
+        schema.propertyKey("communityIndex").ifNotExist().create();
 
 
-        schema.makeVertexLabel("v").properties("__id", "oid", "name",
+        schema.vertexLabel("v").properties("__id", "oid", "name",
                 "some", "that", "any", "this")
                 .primaryKeys("__id").ifNotExist().create();
-        schema.makeEdgeLabel("self").link("v", "v")
+        schema.edgeLabel("self").link("v", "v")
                 .properties("__id", "test", "name", "some")
                 .ifNotExist()
                 .create();
-        schema.makeEdgeLabel("aTOa").link("v", "v")
+        schema.edgeLabel("aTOa").link("v", "v")
                 .ifNotExist().create();
-        schema.makeEdgeLabel("connectsTo").link("v", "v")
+        schema.edgeLabel("connectsTo").link("v", "v")
                 .ifNotExist().create();
 
-        // schema.makeEdgeLabel("collaborator").ifNotExist().create();
-        // schema.makeEdgeLabel("knows").ifNotExist().create();
-        // schema.makeEdgeLabel("friend").ifNotExist().create();
-        // schema.makeEdgeLabel("hate").ifNotExist().create();
-        // schema.makeEdgeLabel("test1").ifNotExist().create();
-        // schema.makeEdgeLabel("link").ifNotExist().create();
-        // schema.makeEdgeLabel("test2").ifNotExist().create();
-        // schema.makeEdgeLabel("test3").ifNotExist().create();
-        // schema.makeEdgeLabel("self").ifNotExist().create();
-        // schema.makeEdgeLabel("~systemLabel").ifNotExist().create();
-        // schema.makeEdgeLabel("friends").ifNotExist().create();
-        // schema.makeEdgeLabel("l").ifNotExist().create();
-        // schema.makeEdgeLabel("created").ifNotExist().create();
+        // schema.edgeLabel("collaborator").ifNotExist().create();
+        // schema.edgeLabel("knows").ifNotExist().create();
+        // schema.edgeLabel("friend").ifNotExist().create();
+        // schema.edgeLabel("hate").ifNotExist().create();
+        // schema.edgeLabel("test1").ifNotExist().create();
+        // schema.edgeLabel("link").ifNotExist().create();
+        // schema.edgeLabel("test2").ifNotExist().create();
+        // schema.edgeLabel("test3").ifNotExist().create();
+        // schema.edgeLabel("self").ifNotExist().create();
+        // schema.edgeLabel("~systemLabel").ifNotExist().create();
+        // schema.edgeLabel("friends").ifNotExist().create();
+        // schema.edgeLabel("l").ifNotExist().create();
+        // schema.edgeLabel("created").ifNotExist().create();
     }
 
     @SuppressWarnings("rawtypes")

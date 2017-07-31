@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.core;
 
-import com.baidu.hugegraph.backend.BackendException;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -27,24 +26,24 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.EdgeLink;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.IndexLabel;
-import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 
 public class SchemaCoreTest extends BaseCoreTest{
 
-    // propertykey tests
+    // Propertykey tests
     @Test
     public void testAddPropertyKeyWithoutDataType() {
         SchemaManager schema = graph().schema();
-        PropertyKey id = schema.makePropertyKey("id").create();
+        PropertyKey id = schema.propertyKey("id").create();
         Assert.assertNotNull(id);
         Assert.assertEquals(DataType.TEXT, id.dataType());
     }
@@ -52,21 +51,21 @@ public class SchemaCoreTest extends BaseCoreTest{
     @Test
     public void testAddPropertyKey() {
         SchemaManager schema = graph().schema();
-        schema.makePropertyKey("name").asText().create();
+        schema.propertyKey("name").asText().create();
 
-        Assert.assertNotNull(schema.propertyKey("name"));
-        Assert.assertEquals("name", schema.propertyKey("name").name());
+        Assert.assertNotNull(schema.getPropertyKey("name"));
+        Assert.assertEquals("name", schema.getPropertyKey("name").name());
         Assert.assertEquals(DataType.TEXT,
-                schema.propertyKey("name").dataType());
+                            schema.getPropertyKey("name").dataType());
     }
 
-    // vertexlabel tests
+    // Vertexlabel tests
     @Test
     public void testAddVertexLabel() {
         initProperties();
         SchemaManager schema = graph().schema();
 
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
@@ -86,7 +85,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         SchemaManager schema = graph().schema();
 
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name", "age")
                 .create();
@@ -108,9 +107,9 @@ public class SchemaCoreTest extends BaseCoreTest{
         SchemaManager schema = graph().schema();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.makeVertexLabel("person")
-                    .properties("name", "age", "city")
-                    .create();
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .create();
         });
     }
 
@@ -120,7 +119,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         SchemaManager schema = graph().schema();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.makeVertexLabel("person").create();
+            schema.vertexLabel("person").create();
         });
     }
 
@@ -130,7 +129,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         SchemaManager schema = graph().schema();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.makeVertexLabel("person").properties("sex").create();
+            schema.vertexLabel("person").properties("sex").create();
         });
     }
 
@@ -139,10 +138,10 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         SchemaManager schema = graph().schema();
 
-        schema.makeVertexLabel("person")
-                .properties("name", "age", "city")
-                .primaryKeys("name")
-                .create();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "person", "name", "Baby",
@@ -154,7 +153,7 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddVertexLabelNewVertexWithPropertyAbsent() {
         initProperties();
         SchemaManager schema = graph().schema();
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
@@ -177,7 +176,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         SchemaManager schema = graph().schema();
 
-        schema.makeVertexLabel("person")
+        schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
@@ -189,33 +188,29 @@ public class SchemaCoreTest extends BaseCoreTest{
 
     }
 
-    // edgelabel tests
+    // Edgelabel tests
     @Test
     public void testAddEdgeLabel() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("person")
+        schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
-        schema.makeVertexLabel("book").properties("id", "name")
+        schema.vertexLabel("book").properties("id", "name")
                 .primaryKeys("id").create();
-        EdgeLabel look = schema.makeEdgeLabel("look").multiTimes()
+        EdgeLabel look = schema.edgeLabel("look").multiTimes()
                 .properties("time")
-                .link("author", "book")
                 .link("person", "book")
                 .sortKeys("time")
                 .create();
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
-        Assert.assertEquals(2, look.links().size());
-        Assert.assertTrue(look.links()
-                .contains(new EdgeLink("author", "book")));
-        Assert.assertTrue(look.links()
-                .contains(new EdgeLink("person", "book")));
+        Assert.assertTrue(look.sourceLabel().equals("person"));
+        Assert.assertTrue(look.targetLabel().equals("book"));
         Assert.assertEquals(1, look.properties().size());
         Assert.assertTrue(look.properties().contains("time"));
         Assert.assertEquals(1, look.sortKeys().size());
@@ -227,26 +222,22 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddEdgeLabelWithoutFrequency() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("person")
+        schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
-        schema.makeVertexLabel("book").properties("id", "name")
+        schema.vertexLabel("book").properties("id", "name")
                 .primaryKeys("id").create();
-        EdgeLabel look = schema.makeEdgeLabel("look").properties("time")
-                .link("author", "book")
+        EdgeLabel look = schema.edgeLabel("look").properties("time")
                 .link("person", "book")
                 .create();
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
-        Assert.assertEquals(2, look.links().size());
-        Assert.assertTrue(look.links()
-                .contains(new EdgeLink("author", "book")));
-        Assert.assertTrue(look.links()
-                .contains(new EdgeLink("person", "book")));
+        Assert.assertTrue(look.sourceLabel().equals("person"));
+        Assert.assertTrue(look.targetLabel().equals("book"));
         Assert.assertEquals(1, look.properties().size());
         Assert.assertTrue(look.properties().contains("time"));
         Assert.assertEquals(0, look.sortKeys().size());
@@ -257,26 +248,22 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddEdgeLabelWithoutProperty() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("person")
+        schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
-        schema.makeVertexLabel("book").properties("id", "name")
+        schema.vertexLabel("book").properties("id", "name")
                 .primaryKeys("id").create();
-        EdgeLabel look = schema.makeEdgeLabel("look").singleTime()
-                .link("author", "book")
+        EdgeLabel look = schema.edgeLabel("look").singleTime()
                 .link("person", "book")
                 .create();
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
-        Assert.assertEquals(2, look.links().size());
-        Assert.assertTrue(look.links()
-                .contains(new EdgeLink("author", "book")));
-        Assert.assertTrue(look.links()
-                .contains(new EdgeLink("person", "book")));
+        Assert.assertTrue(look.sourceLabel().equals("person"));
+        Assert.assertTrue(look.targetLabel().equals("book"));
         Assert.assertEquals(0, look.properties().size());
         Assert.assertEquals(0, look.sortKeys().size());
         Assert.assertEquals(Frequency.SINGLE, look.frequency());
@@ -286,15 +273,15 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddEdgeLabelWithoutLink() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("person")
+        schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.makeEdgeLabel("look").multiTimes()
+            schema.edgeLabel("look").multiTimes()
                     .properties("time")
                     .sortKeys("time")
                     .create();
@@ -305,16 +292,15 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddEdgeLabelWithNotExistProperty() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("person")
+        schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.makeEdgeLabel("look").properties("date")
-                    .link("author", "book")
+            schema.edgeLabel("look").properties("date")
                     .link("person", "book")
                     .create();
         });
@@ -324,17 +310,16 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddEdgeLabelWithNotExistVertexLabel() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("person")
+        schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.makeEdgeLabel("look").multiTimes().properties("time")
+            schema.edgeLabel("look").multiTimes().properties("time")
                     .link("reviewer", "book")
-                    .link("person", "book")
                     .sortKeys("time")
                     .create();
         });
@@ -344,16 +329,15 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddEdgeLabelMultipleWithoutSortKey() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("person")
+        schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.makeEdgeLabel("look").multiTimes().properties("date")
-                    .link("author", "book")
+            schema.edgeLabel("look").multiTimes().properties("date")
                     .link("person", "book")
                     .create();
         });
@@ -363,35 +347,36 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddEdgeLabelSortKeyNotInProperty() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("person")
+        schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.makeEdgeLabel("look").multiTimes().properties("date")
-                    .link("author", "book")
+            schema.edgeLabel("look").multiTimes().properties("date")
                     .link("person", "book")
                     .sortKeys("time")
                     .create();
         });
     }
 
-    // indexlabel tests
+    // Indexlabel tests
     @Test
     public void testAddIndexLabelOfVertex() {
         initProperties();
         SchemaManager schema = graph().schema();
-        VertexLabel person = schema.makeVertexLabel("person")
-                .properties("name", "age", "city")
-                .primaryKeys("name")
-                .create();
-        IndexLabel personByCity = schema.makeIndexLabel("personByCity")
-                .on(person).secondary().by("city").create();
-        IndexLabel personByAge = schema.makeIndexLabel("personByAge")
-                .on(person).search().by("age").create();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+        schema.indexLabel("personByCity").onV("person").secondary()
+              .by("city").create();
+        schema.indexLabel("personByAge").onV("person").search()
+              .by("age").create();
+
+        VertexLabel person = schema.getVertexLabel("person");
+        IndexLabel personByCity = schema.getIndexLabel("personByCity");
+        IndexLabel personByAge = schema.getIndexLabel("personByAge");
 
         Assert.assertNotNull(personByCity);
         Assert.assertNotNull(personByAge);
@@ -410,17 +395,20 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddIndexLabelOfEdge() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
                 .primaryKeys("id").create();
-        schema.makeVertexLabel("book").properties("name")
+        schema.vertexLabel("book").properties("name")
                 .primaryKeys("name").create();
-        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+        schema.edgeLabel("authored").singleTime()
                 .link("author", "book")
                 .properties("contribution")
                 .create();
 
-        IndexLabel authoredByContri = schema.makeIndexLabel("authoredByContri")
-                .on(authored).secondary().by("contribution").create();
+        schema.indexLabel("authoredByContri").onE("authored").secondary()
+              .by("contribution").create();
+
+        EdgeLabel authored = schema.getEdgeLabel("authored");
+        IndexLabel authoredByContri = schema.getIndexLabel("authoredByContri");
 
         Assert.assertNotNull(authoredByContri);
         Assert.assertEquals(1, authored.indexNames().size());
@@ -434,7 +422,7 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddIndexLabelOfVertexWithVertexExist() {
         initProperties();
         SchemaManager schema = graph().schema();
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                                    .properties("name", "age", "city")
                                    .primaryKeys("name")
                                    .create();
@@ -447,7 +435,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                    .has("city", "Hongkong").next();
         });
 
-        schema.makeIndexLabel("personByCity").on(person).secondary()
+        schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
 
         Vertex vertex = graph().traversal().V().hasLabel("person")
@@ -458,7 +446,7 @@ public class SchemaCoreTest extends BaseCoreTest{
             graph().traversal().V().hasLabel("person")
                    .has("age", P.inside(2, 4)).next();
         });
-        schema.makeIndexLabel("personByAge").on(person).search()
+        schema.indexLabel("personByAge").onV("person").search()
               .by("age").create();
 
         vertex = graph().traversal().V().hasLabel("person")
@@ -470,11 +458,11 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testAddIndexLabelOfEdgeWithEdgeExist() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
-        schema.makeVertexLabel("book").properties("name")
+        schema.vertexLabel("book").properties("name")
               .primaryKeys("name").create();
-        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+        EdgeLabel authored = schema.edgeLabel("authored").singleTime()
                                    .link("author", "book")
                                    .properties("contribution")
                                    .create();
@@ -489,8 +477,8 @@ public class SchemaCoreTest extends BaseCoreTest{
                    .has("contribution", "test").next();
         });
 
-        schema.makeIndexLabel("authoredByContri")
-              .on(authored).secondary().by("contribution").create();
+        schema.indexLabel("authoredByContri").onE("authored")
+              .secondary().by("contribution").create();
 
         Edge edge = graph().traversal().E().hasLabel("authored")
                            .has("contribution", "test").next();
@@ -501,15 +489,15 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testRemoveIndexLabelOfVertex() {
         initProperties();
         SchemaManager schema = graph().schema();
-        VertexLabel person = schema.makeVertexLabel("person")
-                                   .properties("name", "age", "city")
-                                   .primaryKeys("name")
-                                   .create();
-        IndexLabel personByCity = schema.makeIndexLabel("personByCity")
-                                        .on(person).secondary().by("city")
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+        IndexLabel personByCity = schema.indexLabel("personByCity")
+                                        .onV("person").secondary().by("city")
                                         .create();
-        IndexLabel personByAge = schema.makeIndexLabel("personByAge")
-                                       .on(person).search().by("age").create();
+        IndexLabel personByAge = schema.indexLabel("personByAge")
+                                       .onV("person").search().by("age")
+                                       .create();
+        VertexLabel person = schema.getVertexLabel("person");
 
         Assert.assertEquals(2, person.indexNames().size());
         Assert.assertTrue(person.indexNames().contains("personByCity"));
@@ -524,10 +512,10 @@ public class SchemaCoreTest extends BaseCoreTest{
                         .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
 
-        personByCity.remove();
+        schema.indexLabel("personByCity").remove();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.indexLabel(personByCity.name());
+            schema.getIndexLabel("personByCity");
         });
 
         Assert.assertEquals(1, person.indexNames().size());
@@ -542,12 +530,13 @@ public class SchemaCoreTest extends BaseCoreTest{
                         .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
 
-        personByAge.remove();
+        schema.indexLabel("personByAge").remove();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.indexLabel(personByAge.name());
+            schema.getIndexLabel("personByAge");
         });
 
+        person = schema.getVertexLabel("person");
         Assert.assertEquals(0, person.indexNames().size());
 
         Utils.assertThrows(BackendException.class, () -> {
@@ -560,11 +549,11 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testRemoveIndexLabelOfEdge() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
-        schema.makeVertexLabel("book").properties("name")
+        schema.vertexLabel("book").properties("name")
               .primaryKeys("name").create();
-        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+        schema.edgeLabel("authored").singleTime()
                                    .link("author", "book")
                                    .properties("contribution")
                                    .create();
@@ -573,9 +562,11 @@ public class SchemaCoreTest extends BaseCoreTest{
                                          "name", "James Gosling");
         Vertex java1 = graph().addVertex(T.label, "book", "name", "java-1");
 
-        IndexLabel authoredByContri = schema.makeIndexLabel("authoredByContri")
-                                            .on(authored).secondary()
+        IndexLabel authoredByContri = schema.indexLabel("authoredByContri")
+                                            .onE("authored").secondary()
                                             .by("contribution").create();
+
+        EdgeLabel authored = schema.getEdgeLabel("authored");
 
         Assert.assertEquals(1, authored.indexNames().size());
         Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
@@ -586,10 +577,10 @@ public class SchemaCoreTest extends BaseCoreTest{
                            .has("contribution", "test").next();
         Assert.assertNotNull(edge);
 
-        authoredByContri.remove();
+        schema.indexLabel("authoredByContri").remove();
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.indexLabel(authoredByContri.name());
+            schema.getIndexLabel("authoredByContri");
         });
 
         Assert.assertEquals(0, authored.indexNames().size());
@@ -604,16 +595,15 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testRebuildIndexLabelOfVertex() {
         initProperties();
         SchemaManager schema = graph().schema();
-        VertexLabel person = schema.makeVertexLabel("person")
-                                   .properties("name", "age", "city")
-                                   .primaryKeys("name")
-                                   .create();
-        IndexLabel personByCity = schema.makeIndexLabel("personByCity")
-                                        .on(person).secondary()
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+        IndexLabel personByCity = schema.indexLabel("personByCity")
+                                        .onV("person").secondary()
                                         .by("city").create();
-        IndexLabel personByAge = schema.makeIndexLabel("personByAge")
-                                       .on(person).search().by("age").create();
-
+        IndexLabel personByAge = schema.indexLabel("personByAge")
+                                       .onV("person").search().by("age")
+                                       .create();
+        VertexLabel person = schema.getVertexLabel("person");
         Assert.assertEquals(2, person.indexNames().size());
         Assert.assertTrue(person.indexNames().contains("personByCity"));
         Assert.assertTrue(person.indexNames().contains("personByAge"));
@@ -627,12 +617,12 @@ public class SchemaCoreTest extends BaseCoreTest{
                         .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
 
-        personByCity.rebuild();
+        schema.indexLabel("personByCity").rebuild();
         vertex = graph().traversal().V().hasLabel("person")
                         .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
 
-        personByAge.rebuild();
+        schema.indexLabel("personByAge").rebuild();
         vertex = graph().traversal().V().hasLabel("person")
                         .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
@@ -642,15 +632,14 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testRebuildIndexLabelOfVertexLabel() {
         initProperties();
         SchemaManager schema = graph().schema();
-        VertexLabel person = schema.makeVertexLabel("person")
-                                   .properties("name", "age", "city")
-                                   .primaryKeys("name")
-                                   .create();
-        schema.makeIndexLabel("personByCity").on(person).secondary()
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+        schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
-        schema.makeIndexLabel("personByAge").on(person).search()
+        schema.indexLabel("personByAge").onV("person").search()
               .by("age").create();
 
+        VertexLabel person = schema.getVertexLabel("person");
         Assert.assertEquals(2, person.indexNames().size());
         Assert.assertTrue(person.indexNames().contains("personByCity"));
         Assert.assertTrue(person.indexNames().contains("personByAge"));
@@ -664,7 +653,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                         .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
 
-        person.rebuildIndex();
+        schema.vertexLabel("person").rebuildIndex();
         vertex = graph().traversal().V().hasLabel("person")
                         .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
@@ -677,11 +666,11 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testRebuildIndexLabelOfEdgeLabel() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
-        schema.makeVertexLabel("book").properties("name")
+        schema.vertexLabel("book").properties("name")
               .primaryKeys("name").create();
-        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+        schema.edgeLabel("authored").singleTime()
                                    .link("author", "book")
                                    .properties("contribution")
                                    .create();
@@ -690,9 +679,11 @@ public class SchemaCoreTest extends BaseCoreTest{
                                          "name", "James Gosling");
         Vertex java1 = graph().addVertex(T.label, "book", "name", "java-1");
 
-        IndexLabel authoredByContri = schema.makeIndexLabel("authoredByContri")
-                                            .on(authored).secondary()
+        IndexLabel authoredByContri = schema.indexLabel("authoredByContri")
+                                            .onE("authored").secondary()
                                             .by("contribution").create();
+
+        EdgeLabel authored = schema.getEdgeLabel("authored");
 
         Assert.assertEquals(1, authored.indexNames().size());
         Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
@@ -703,7 +694,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                            .has("contribution", "test").next();
         Assert.assertNotNull(edge);
 
-        authoredByContri.rebuild();
+        schema.indexLabel("authoredByContri").rebuild();
         Assert.assertEquals(1, authored.indexNames().size());
         Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
 
@@ -716,11 +707,11 @@ public class SchemaCoreTest extends BaseCoreTest{
     public void testRebuildIndexLabelOfEdge() {
         initProperties();
         SchemaManager schema = graph().schema();
-        schema.makeVertexLabel("author").properties("id", "name")
+        schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
-        schema.makeVertexLabel("book").properties("name")
+        schema.vertexLabel("book").properties("name")
               .primaryKeys("name").create();
-        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+        schema.edgeLabel("authored").singleTime()
                                    .link("author", "book")
                                    .properties("contribution")
                                    .create();
@@ -729,8 +720,10 @@ public class SchemaCoreTest extends BaseCoreTest{
                                          "name", "James Gosling");
         Vertex java1 = graph().addVertex(T.label, "book", "name", "java-1");
 
-        schema.makeIndexLabel("authoredByContri")
-              .on(authored).secondary().by("contribution").create();
+        schema.indexLabel("authoredByContri").onE("authored")
+              .secondary().by("contribution").create();
+
+        EdgeLabel authored = schema.getEdgeLabel("authored");
 
         Assert.assertEquals(1, authored.indexNames().size());
         Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
@@ -741,7 +734,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                            .has("contribution", "test").next();
         Assert.assertNotNull(edge);
 
-        authored.rebuildIndex();
+        schema.edgeLabel("authored").rebuildIndex();
         Assert.assertEquals(1, authored.indexNames().size());
         Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
         edge = graph().traversal().E().hasLabel("authored")
@@ -753,11 +746,11 @@ public class SchemaCoreTest extends BaseCoreTest{
     // utils
     private void initProperties() {
         SchemaManager schema = graph().schema();
-        schema.makePropertyKey("id").asInt().create();
-        schema.makePropertyKey("name").asText().create();
-        schema.makePropertyKey("age").asInt().valueSingle().create();
-        schema.makePropertyKey("city").asText().create();
-        schema.makePropertyKey("time").asText().create();
-        schema.makePropertyKey("contribution").asText().create();
+        schema.propertyKey("id").asInt().create();
+        schema.propertyKey("name").asText().create();
+        schema.propertyKey("age").asInt().valueSingle().create();
+        schema.propertyKey("city").asText().create();
+        schema.propertyKey("time").asText().create();
+        schema.propertyKey("contribution").asText().create();
     }
 }

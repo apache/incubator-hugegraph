@@ -40,8 +40,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.HugeVertexLabel;
-import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
 
 
 
@@ -65,7 +64,7 @@ public class VertexLabelAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         VertexLabel vertexLabel = jsonVertexLabel.convert2VertexLabel();
-        g.schema().create(vertexLabel);
+        g.schema().vertexLabel(vertexLabel).create();
 
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
@@ -82,7 +81,7 @@ public class VertexLabelAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         VertexLabel vertexLabel = jsonVertexLabel.convert2VertexLabel();
-        g.schema().append(vertexLabel);
+        g.schema().vertexLabel(vertexLabel).append();
 
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
@@ -143,7 +142,7 @@ public class VertexLabelAPI extends API {
         }
 
         public VertexLabel convert2VertexLabel() {
-            HugeVertexLabel vertexLabel = new HugeVertexLabel(this.name);
+            VertexLabel vertexLabel = new VertexLabel(this.name);
             vertexLabel.primaryKeys(this.primaryKeys);
             vertexLabel.indexNames(this.indexNames);
             vertexLabel.properties(this.properties);

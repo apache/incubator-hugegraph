@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
 
 public class GraphOfTheMoviesExample {
 
@@ -70,38 +70,40 @@ public class GraphOfTheMoviesExample {
 
         SchemaManager schema = graph.schema();
 
-        schema.makePropertyKey("name").asText().create();
-        schema.makePropertyKey("born").asInt().create();
-        schema.makePropertyKey("title").asText().create();
-        schema.makePropertyKey("released").asInt().create();
-        schema.makePropertyKey("score").asInt().create();
-        schema.makePropertyKey("roles").asText().create();
+        schema.propertyKey("name").asText().create();
+        schema.propertyKey("born").asInt().create();
+        schema.propertyKey("title").asText().create();
+        schema.propertyKey("released").asInt().create();
+        schema.propertyKey("score").asInt().create();
+        schema.propertyKey("roles").asText().create();
 
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                 .properties("name", "born")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("movie")
+        schema.vertexLabel("movie")
                 .properties("title", "released")
                 .primaryKeys("title")
                 .create();
 
-        schema.makeEdgeLabel("ACTED_IN").multiTimes().properties("roles")
-                .link("person", "movie")
+        schema.edgeLabel("ACTED_IN").multiTimes().properties("roles")
+                .sourceLabel("person").targetLabel("movie")
                 .sortKeys("roles")
                 .create();
-        schema.makeEdgeLabel("DIRECTED").properties("score")
-                .link("person", "movie")
+        schema.edgeLabel("DIRECTED").properties("score")
+                .sourceLabel("person").targetLabel("movie")
                 .create();
-        schema.makeEdgeLabel("PRODUCED").properties("score")
-                .link("person", "movie")
+        schema.edgeLabel("PRODUCED").properties("score")
+                .sourceLabel("person").targetLabel("movie")
                 .create();
-        schema.makeEdgeLabel("WROTE").properties("score")
-                .link("person", "movie")
+        schema.edgeLabel("WROTE").properties("score")
+                .sourceLabel("person").targetLabel("movie")
                 .create();
 
-        schema.makeIndexLabel("personByName").on(person).by("name").secondary().create();
-        schema.makeIndexLabel("personByBorn").on(person).by("born").search().create();
+        schema.indexLabel("personByName").onV("person").by("name")
+                .secondary().create();
+        schema.indexLabel("personByBorn").onV("person").by("born")
+                .search().create();
 
         graph.tx().open();
 

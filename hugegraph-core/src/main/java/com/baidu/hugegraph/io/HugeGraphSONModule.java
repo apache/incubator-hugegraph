@@ -34,11 +34,11 @@ import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.serializer.TextSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.IndexLabel;
-import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -48,8 +48,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     private static final String TYPE_NAMESPACE = "hugegraph";
 
-    private static TextSerializer textSerializer =
-            new TextSerializer(null);
+    private static TextSerializer textSerializer = new TextSerializer(null);
 
     @SuppressWarnings("rawtypes")
     private static final Map<Class, String> TYPE_DEFINITIONS = ImmutableMap.of(

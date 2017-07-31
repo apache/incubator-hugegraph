@@ -37,12 +37,12 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.core.FakeObjects.FakeEdge;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -54,80 +54,89 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         logger.info("===============  propertyKey  ================");
 
-        schema.makePropertyKey("id").asInt().create();
-        schema.makePropertyKey("name").asText().create();
-        schema.makePropertyKey("dynamic").asBoolean().create();
-        schema.makePropertyKey("time").asText().create();
-        schema.makePropertyKey("timestamp").asLong().create();
-        schema.makePropertyKey("age").asInt().valueSingle().create();
-        schema.makePropertyKey("comment").asText().valueSet().create();
-        schema.makePropertyKey("contribution").asText().create();
-        schema.makePropertyKey("score").asInt().create();
-        schema.makePropertyKey("lived").asText().create();
-        schema.makePropertyKey("city").asText().create();
-        schema.makePropertyKey("amount").asFloat().create();
-        schema.makePropertyKey("message").asText().create();
+        schema.propertyKey("id").asInt().create();
+        schema.propertyKey("name").asText().create();
+        schema.propertyKey("dynamic").asBoolean().create();
+        schema.propertyKey("time").asText().create();
+        schema.propertyKey("timestamp").asLong().create();
+        schema.propertyKey("age").asInt().valueSingle().create();
+        schema.propertyKey("comment").asText().valueSet().create();
+        schema.propertyKey("contribution").asText().create();
+        schema.propertyKey("score").asInt().create();
+        schema.propertyKey("lived").asText().create();
+        schema.propertyKey("city").asText().create();
+        schema.propertyKey("amount").asFloat().create();
+        schema.propertyKey("message").asText().create();
 
         logger.info("===============  vertexLabel  ================");
 
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author")
+        schema.vertexLabel("author")
                 .properties("id", "name", "age", "lived")
                 .primaryKeys("id")
                 .create();
-        schema.makeVertexLabel("language")
+        schema.vertexLabel("language")
                 .properties("name", "dynamic")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("book")
+        schema.vertexLabel("book")
                 .properties("name")
                 .primaryKeys("name")
                 .create();
 
         logger.info("===============  vertexLabel index  ================");
 
-        schema.makeIndexLabel("personByCity").on(person).secondary()
+        schema.indexLabel("personByCity").onV("person").secondary()
                 .by("city").create();
-        schema.makeIndexLabel("personByAge").on(person).search()
+        schema.indexLabel("personByAge").onV("person").search()
                 .by("age").create();
 
         logger.info("===============  edgeLabel  ================");
 
-        EdgeLabel transfer = schema.makeEdgeLabel("transfer")
+        EdgeLabel transfer = schema.edgeLabel("transfer")
                 .properties("id", "amount", "timestamp", "message")
                 .multiTimes().sortKeys("id")
                 .link("person", "person")
                 .create();
         @SuppressWarnings("unused")
-        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+        EdgeLabel authored = schema.edgeLabel("authored").singleTime()
                 .properties("contribution", "comment", "score")
                 .link("author", "book")
                 .create();
-        schema.makeEdgeLabel("look").properties("time")
+        schema.edgeLabel("write").properties("time")
                 .multiTimes().sortKeys("time")
                 .link("author", "book")
+                .create();
+        schema.edgeLabel("look").properties("time")
+                .multiTimes().sortKeys("time")
                 .link("person", "book")
                 .create();
-        schema.makeEdgeLabel("friend").singleTime()
+        schema.edgeLabel("know").singleTime()
                 .link("author", "author")
+                .create();
+        schema.edgeLabel("followedBy").singleTime()
                 .link("author", "person")
+                .create();
+        schema.edgeLabel("friend").singleTime()
                 .link("person", "person")
+                .create();
+        schema.edgeLabel("follow").singleTime()
                 .link("person", "author")
                 .create();
-        schema.makeEdgeLabel("created").singleTime()
+        schema.edgeLabel("created").singleTime()
                 .link("author", "language")
                 .create();
 
         logger.info("===============  edgeLabel index  ================");
 
-        schema.makeIndexLabel("transferByTimestamp").on(transfer).search()
+        schema.indexLabel("transferByTimestamp").onE("transfer").search()
                 .by("timestamp").create();
 
         // TODO: add edge index test
-        // schema.makeIndexLabel("authoredByScore").on(authored).secondary()
+        // schema.indexLabel("authoredByScore").on(authored).secondary()
         //        .by("score").create();
     }
 
@@ -212,11 +221,11 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
-        james.addEdge("look", book, "time", "2017-4-28");
+        james.addEdge("write", book, "time", "2017-4-28");
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(1, edges.size());
-        assertContains(edges, "look", james, book,
+        assertContains(edges, "write", james, book,
                 "time", "2017-4-28");
     }
 
@@ -296,17 +305,17 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
-        james.addEdge("look", book, "time", "2017-4-28");
-        james.addEdge("look", book, "time", "2017-5-21");
-        james.addEdge("look", book, "time", "2017-5-25");
+        james.addEdge("write", book, "time", "2017-4-28");
+        james.addEdge("write", book, "time", "2017-5-21");
+        james.addEdge("write", book, "time", "2017-5-25");
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(3, edges.size());
-        assertContains(edges, "look", james, book,
+        assertContains(edges, "write", james, book,
                 "time", "2017-4-28");
-        assertContains(edges, "look", james, book,
+        assertContains(edges, "write", james, book,
                 "time", "2017-5-21");
-        assertContains(edges, "look", james, book,
+        assertContains(edges, "write", james, book,
                 "time", "2017-5-25");
     }
 
@@ -319,20 +328,20 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
-        james.addEdge("look", book, "time", "2017-4-28");
-        james.addEdge("look", book, "time", "2017-5-21");
-        james.addEdge("look", book, "time", "2017-5-25");
+        james.addEdge("write", book, "time", "2017-4-28");
+        james.addEdge("write", book, "time", "2017-5-21");
+        james.addEdge("write", book, "time", "2017-5-25");
 
-        james.addEdge("look", book, "time", "2017-4-28");
-        james.addEdge("look", book, "time", "2017-5-21");
+        james.addEdge("write", book, "time", "2017-4-28");
+        james.addEdge("write", book, "time", "2017-5-21");
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(3, edges.size());
-        assertContains(edges, "look", james, book,
+        assertContains(edges, "write", james, book,
                 "time", "2017-4-28");
-        assertContains(edges, "look", james, book,
+        assertContains(edges, "write", james, book,
                 "time", "2017-5-21");
-        assertContains(edges, "look", james, book,
+        assertContains(edges, "write", james, book,
                 "time", "2017-5-25");
     }
 
@@ -498,7 +507,13 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(7, edges.size());
 
         edges = graph.traversal().E().hasLabel("friend").toList();
-        Assert.assertEquals(6, edges.size());
+        Assert.assertEquals(4, edges.size());
+
+        edges = graph.traversal().E().hasLabel("follow").toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().E().hasLabel("know").toList();
+        Assert.assertEquals(1, edges.size());
     }
 
     @Test
@@ -536,7 +551,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         List<Vertex> vertices = graph.traversal().V(jeff.id()).both(
                 "friend").toList();
-        Assert.assertEquals(3, vertices.size());
+        Assert.assertEquals(2, vertices.size());
     }
 
     @Test
@@ -569,12 +584,12 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Vertex louise = vertex("person", "name", "Louise");
 
-        List<Edge> edges = graph.traversal().V(louise.id()).outE("look").has(
-                "time", "2017-5-1").toList();
+        List<Edge> edges = graph.traversal().V(louise.id())
+                .outE("look").has("time", "2017-5-1").toList();
         Assert.assertEquals(2, edges.size());
 
-        edges = graph.traversal().V(louise.id()).outE("look").has(
-                "time", "2017-5-27").toList();
+        edges = graph.traversal().V(louise.id())
+                .outE("look").has("time", "2017-5-27").toList();
         Assert.assertEquals(2, edges.size());
     }
 
@@ -791,7 +806,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         james.addEdge("authored", java2);
         james.addEdge("authored", java3);
 
-        guido.addEdge("look", java1, "time", "2017-6-7");
+        guido.addEdge("write", java1, "time", "2017-6-7");
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(6, edges.size());
@@ -801,7 +816,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().E().toList();
         Assert.assertEquals(2, edges.size());
         assertContains(edges, "created", guido, python);
-        assertContains(edges, "look", guido, java1, "time", "2017-6-7");
+        assertContains(edges, "write", guido, java1,
+                "time", "2017-6-7");
 
         edges = graph.traversal().V(java1.id()).inE().toList();
         Assert.assertEquals(1, edges.size());
@@ -915,7 +931,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         james.addEdge("created", java);
         guido.addEdge("created", python);
 
-        guido.addEdge("friend", james);
+        guido.addEdge("know", james);
 
         james.addEdge("authored", java1);
         james.addEdge("authored", java2);
@@ -933,7 +949,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         louise.addEdge("friend", sean);
         louise.addEdge("friend", selina);
         jeff.addEdge("friend", sean);
-        jeff.addEdge("friend", james);
+        jeff.addEdge("follow", james);
     }
 
     private Edge initEdgeTransfer() {

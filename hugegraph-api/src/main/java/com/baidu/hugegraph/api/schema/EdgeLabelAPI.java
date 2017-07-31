@@ -40,10 +40,8 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.HugeEdgeLabel;
-import com.baidu.hugegraph.type.define.EdgeLink;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.Frequency;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
 
 
 
@@ -66,7 +64,7 @@ public class EdgeLabelAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
-        g.schema().create(edgeLabel);
+        g.schema().edgeLabel(edgeLabel).create();
 
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
@@ -83,7 +81,7 @@ public class EdgeLabelAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
-        g.schema().append(edgeLabel);
+        g.schema().edgeLabel(edgeLabel).append();
 
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
@@ -129,8 +127,9 @@ public class EdgeLabelAPI extends API {
     private static class JsonEdgeLabel {
 
         public String name;
+        public String sourceLabel;
+        public String targetLabel;
         public Frequency frequency;
-        public EdgeLink[] links;
         public String[] sortKeys;
         public String[] indexNames;
         public String[] properties;
@@ -139,16 +138,18 @@ public class EdgeLabelAPI extends API {
         @Override
         public String toString() {
             return String.format(
-                    "JsonEdgeLabel{name=%s, frequency=%s, links=%s, " +
-                    "sortKeys=%s, indexNames=%s, properties=%s}",
-                    this.name, this.frequency, this.links,
-                    this.sortKeys, this.indexNames, this.properties);
+                   "JsonEdgeLabel{name=%s, sourceLabel=%s, targetLabel=%s " +
+                   "frequency=%s, sortKeys=%s, indexNames=%s, properties=%s}",
+                   this.name, this.sourceLabel, this.targetLabel,
+                   this.frequency, this.sortKeys, this.indexNames,
+                   this.properties);
         }
 
         public EdgeLabel convert2EdgeLabel() {
-            HugeEdgeLabel edgeLabel = new HugeEdgeLabel(this.name);
+            EdgeLabel edgeLabel = new EdgeLabel(this.name);
+            edgeLabel.sourceLabel(this.sourceLabel);
+            edgeLabel.targetLabel(this.targetLabel);
             edgeLabel.frequency(this.frequency);
-            edgeLabel.links(this.links);
             edgeLabel.sortKeys(this.sortKeys);
             edgeLabel.indexNames(this.indexNames);
             edgeLabel.properties(this.properties);

@@ -36,10 +36,10 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.core.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.google.common.collect.ImmutableList;
 
 public class VertexCoreTest extends BaseCoreTest {
@@ -50,58 +50,58 @@ public class VertexCoreTest extends BaseCoreTest {
 
         logger.info("===============  propertyKey  ================");
 
-        schema.makePropertyKey("id").asInt().create();
-        schema.makePropertyKey("name").asText().create();
-        schema.makePropertyKey("dynamic").asBoolean().create();
-        schema.makePropertyKey("time").asText().create();
-        schema.makePropertyKey("age").asInt().valueSingle().create();
-        schema.makePropertyKey("comment").asText().valueSet().create();
-        schema.makePropertyKey("contribution").asText().valueSet().create();
-        schema.makePropertyKey("lived").asText().create();
-        schema.makePropertyKey("city").asText().create();
-        schema.makePropertyKey("cpu").asText().create();
-        schema.makePropertyKey("ram").asText().create();
-        schema.makePropertyKey("band").asText().create();
-        schema.makePropertyKey("price").asInt().create();
+        schema.propertyKey("id").asInt().create();
+        schema.propertyKey("name").asText().create();
+        schema.propertyKey("dynamic").asBoolean().create();
+        schema.propertyKey("time").asText().create();
+        schema.propertyKey("age").asInt().valueSingle().create();
+        schema.propertyKey("comment").asText().valueSet().create();
+        schema.propertyKey("contribution").asText().valueSet().create();
+        schema.propertyKey("lived").asText().create();
+        schema.propertyKey("city").asText().create();
+        schema.propertyKey("cpu").asText().create();
+        schema.propertyKey("ram").asText().create();
+        schema.propertyKey("band").asText().create();
+        schema.propertyKey("price").asInt().create();
 
         logger.info("===============  vertexLabel  ================");
 
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
 
-        VertexLabel computer = schema.makeVertexLabel("computer")
+        VertexLabel computer = schema.vertexLabel("computer")
                 .properties("name", "band", "cpu", "ram", "price")
                 .primaryKeys("name", "band")
                 .ifNotExist()
                 .create();
 
-        schema.makeVertexLabel("author")
+        schema.vertexLabel("author")
                 .properties("id", "name", "age", "lived")
                 .primaryKeys("id")
                 .create();
-        schema.makeVertexLabel("language")
+        schema.vertexLabel("language")
                 .properties("name", "dynamic")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("book")
+        schema.vertexLabel("book")
                 .properties("name")
                 .primaryKeys("name")
                 .create();
 
         logger.info("===============  vertexLabel index  ================");
 
-        schema.makeIndexLabel("personByCity").on(person).secondary()
+        schema.indexLabel("personByCity").onV("person").secondary()
                 .by("city").create();
-        schema.makeIndexLabel("personByAge").on(person).search()
+        schema.indexLabel("personByAge").onV("person").search()
                 .by("age").create();
 
-        schema.makeIndexLabel("pcByBand").on(computer)
+        schema.indexLabel("pcByBand").onV("computer")
                 .secondary().by("band")
                 .ifNotExist()
                 .create();
-        schema.makeIndexLabel("pcByCpuAndRamAndBand").on(computer)
+        schema.indexLabel("pcByCpuAndRamAndBand").onV("computer")
                 .secondary().by("cpu", "ram", "band")
                 .ifNotExist()
                 .create();

@@ -22,8 +22,8 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -31,17 +31,13 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotAllowException;
-import com.baidu.hugegraph.schema.HugeEdgeLabel;
-import com.baidu.hugegraph.schema.HugeIndexLabel;
-import com.baidu.hugegraph.schema.HugePropertyKey;
-import com.baidu.hugegraph.schema.HugeVertexLabel;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.SchemaLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.EdgeLink;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.IndexLabel;
-import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.google.common.collect.ImmutableSet;
 
 public class SchemaTransaction extends AbstractTransaction {
@@ -54,8 +50,8 @@ public class SchemaTransaction extends AbstractTransaction {
         List<PropertyKey> propertyKeys = new ArrayList<>();
         Query q = new Query(HugeType.PROPERTY_KEY);
         Iterable<BackendEntry> entries = query(q);
-        entries.forEach(i -> {
-            propertyKeys.add(this.serializer.readPropertyKey(i));
+        entries.forEach(entry -> {
+            propertyKeys.add(this.serializer.readPropertyKey(entry));
         });
         return propertyKeys;
     }
@@ -64,8 +60,8 @@ public class SchemaTransaction extends AbstractTransaction {
         List<VertexLabel> vertexLabels = new ArrayList<>();
         Query q = new Query(HugeType.VERTEX_LABEL);
         Iterable<BackendEntry> entries = query(q);
-        entries.forEach(i -> {
-            vertexLabels.add(this.serializer.readVertexLabel(i));
+        entries.forEach(entry -> {
+            vertexLabels.add(this.serializer.readVertexLabel(entry));
         });
         return vertexLabels;
     }
@@ -74,8 +70,8 @@ public class SchemaTransaction extends AbstractTransaction {
         List<EdgeLabel> edgeLabels = new ArrayList<>();
         Query q = new Query(HugeType.EDGE_LABEL);
         Iterable<BackendEntry> entries = query(q);
-        entries.forEach(i -> {
-            edgeLabels.add(this.serializer.readEdgeLabel(i));
+        entries.forEach(entry -> {
+            edgeLabels.add(this.serializer.readEdgeLabel(entry));
         });
         return edgeLabels;
     }
@@ -84,8 +80,8 @@ public class SchemaTransaction extends AbstractTransaction {
         List<IndexLabel> indexLabels = new ArrayList<>();
         Query q = new Query(HugeType.INDEX_LABEL);
         Iterable<BackendEntry> entries = query(q);
-        entries.forEach(i -> {
-            indexLabels.add(this.serializer.readIndexLabel(i));
+        entries.forEach(entry -> {
+            indexLabels.add(this.serializer.readIndexLabel(entry));
         });
         return indexLabels;
     }
@@ -96,7 +92,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public PropertyKey getPropertyKey(String name) {
-        BackendEntry entry = querySchema(new HugePropertyKey(name));
+        BackendEntry entry = querySchema(new PropertyKey(name));
         return this.serializer.readPropertyKey(entry);
     }
 
@@ -120,7 +116,7 @@ public class SchemaTransaction extends AbstractTransaction {
             }
         }
         logger.debug("SchemaTransaction remove property key '{}'", name);
-        this.removeSchema(new HugePropertyKey(name));
+        this.removeSchema(new PropertyKey(name));
     }
 
     public void addVertexLabel(VertexLabel vertexLabel) {
@@ -130,7 +126,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public VertexLabel getVertexLabel(String name) {
-        BackendEntry entry = querySchema(new HugeVertexLabel(name));
+        BackendEntry entry = querySchema(new VertexLabel(name));
         return this.serializer.readVertexLabel(entry);
     }
 
@@ -139,6 +135,16 @@ public class SchemaTransaction extends AbstractTransaction {
         // If the vertex label does not exist, return directly
         if (vertexLabel == null) {
             return;
+        }
+
+        List<EdgeLabel> edgeLabels = this.getEdgeLabels();
+        for (EdgeLabel edgeLabel : edgeLabels) {
+            if (edgeLabel.linkWithLabel(name)) {
+                throw new HugeException("Not allowed to remove vertex label " +
+                                        "'%s' because the edge label '%s' " +
+                                        "still link with it",
+                                        name, edgeLabel.name());
+            }
         }
         /*
          *  Copy index names because removeIndexLabel will mutate
@@ -153,21 +159,8 @@ public class SchemaTransaction extends AbstractTransaction {
         // Deleting a vertex will automatically deletes the held edge
         this.graph().graphTransaction().removeVertices(vertexLabel);
 
-        // Delete links of edge label
-        List<EdgeLabel> edgeLabels = this.getEdgeLabels();
-        for (EdgeLabel edgeLabel : edgeLabels) {
-            Set<EdgeLink> links = edgeLabel.links();
-            // Delete links which contains the vertex label
-            links = links.stream().filter(edgeLink ->
-                    !edgeLink.contains(vertexLabel.name())
-            ).collect(Collectors.toSet());
-            edgeLabel.links(links);
-            // Update edge label by adding a new one
-            this.addEdgeLabel(edgeLabel);
-        }
-
         logger.debug("SchemaTransaction remove vertex label '{}'", name);
-        this.removeSchema(new HugeVertexLabel(name));
+        this.removeSchema(new VertexLabel(name));
     }
 
     public void addEdgeLabel(EdgeLabel edgeLabel) {
@@ -176,7 +169,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public EdgeLabel getEdgeLabel(String name) {
-        BackendEntry entry = querySchema(new HugeEdgeLabel(name));
+        BackendEntry entry = querySchema(new EdgeLabel(name));
         return this.serializer.readEdgeLabel(entry);
     }
 
@@ -196,7 +189,7 @@ public class SchemaTransaction extends AbstractTransaction {
         this.graph().graphTransaction().removeEdges(edgeLabel);
 
         logger.debug("SchemaTransaction remove edge label '{}'", name);
-        this.removeSchema(new HugeEdgeLabel(name));
+        this.removeSchema(new EdgeLabel(name));
     }
 
     public void addIndexLabel(IndexLabel indexLabel) {
@@ -205,7 +198,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public IndexLabel getIndexLabel(String name) {
-        BackendEntry entry = querySchema(new HugeIndexLabel(name));
+        BackendEntry entry = querySchema(new IndexLabel(name));
         return this.serializer.readIndexLabel(entry);
     }
 
@@ -217,7 +210,7 @@ public class SchemaTransaction extends AbstractTransaction {
         this.graph().graphTransaction().removeIndex(indexName);
         // Remove indexName from indexNames of vertex label or edge label
         this.removeIndexNames(indexName);
-        this.removeSchema(new HugeIndexLabel(indexName));
+        this.removeSchema(new IndexLabel(indexName));
     }
 
     public void rebuildIndex(IndexLabel indexLabel) {
@@ -230,37 +223,25 @@ public class SchemaTransaction extends AbstractTransaction {
         this.graph().graphTransaction().rebuildIndex(indexLabel);
     }
 
-    public void rebuildIndex(VertexLabel vertexLabel) {
+    public void rebuildIndex(SchemaLabel schemaLabel) {
         logger.debug("SchemaTransaction rebuild index for '{}' '{}'",
-                     vertexLabel.type(), vertexLabel.name());
-        // Obtain vertex label from db by name
-        vertexLabel = this.getVertexLabel(vertexLabel.name());
+                     schemaLabel.type(), schemaLabel.name());
+        // Obtain vertex/edge label from db by name
+        if (schemaLabel.type() == HugeType.VERTEX_LABEL) {
+            schemaLabel = this.getVertexLabel(schemaLabel.name());
+        } else {
+            assert schemaLabel.type() == HugeType.EDGE_LABEL;
+            schemaLabel = this.getEdgeLabel(schemaLabel.name());
+        }
         // Flag to indicate whether there are indexes to be rebuild
         boolean needRebuild = false;
-        for (String indexName : vertexLabel.indexNames()) {
+        for (String indexName : schemaLabel.indexNames()) {
             needRebuild = true;
             this.graph().graphTransaction().removeIndex(indexName);
         }
         if (needRebuild) {
             // TODO: should lock indexLabels related with schemaElement
-            this.graph().graphTransaction().rebuildIndex(vertexLabel);
-        }
-    }
-
-    public void rebuildIndex(EdgeLabel edgeLabel) {
-        logger.debug("SchemaTransaction rebuild index for '{}' '{}'",
-                     edgeLabel.type(), edgeLabel.name());
-        // Obtain edge label from db by name
-        edgeLabel = this.getEdgeLabel(edgeLabel.name());
-        // Flag to indicate whether there are indexes to be rebuild
-        boolean needRebuild = false;
-        for (String indexName : edgeLabel.indexNames()) {
-            needRebuild = true;
-            this.graph().graphTransaction().removeIndex(indexName);
-        }
-        if (needRebuild) {
-            // TODO: should lock indexLabels related with schemaElement
-            this.graph().graphTransaction().rebuildIndex(edgeLabel);
+            this.graph().graphTransaction().rebuildIndex(schemaLabel);
         }
     }
 
@@ -286,16 +267,16 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     protected void removeIndexNames(String indexName) {
-        IndexLabel label = getIndexLabel(indexName);
+        IndexLabel label = this.getIndexLabel(indexName);
         HugeType baseType = label.baseType();
         String baseValue = label.baseValue();
         if (baseType == HugeType.VERTEX_LABEL) {
-            VertexLabel vertexLabel = getVertexLabel(baseValue);
+            VertexLabel vertexLabel = this.getVertexLabel(baseValue);
             vertexLabel.indexNames().remove(indexName);
             addVertexLabel(vertexLabel);
         } else {
             assert baseType == HugeType.EDGE_LABEL;
-            EdgeLabel edgeLabel = getEdgeLabel(baseValue);
+            EdgeLabel edgeLabel = this.getEdgeLabel(baseValue);
             edgeLabel.indexNames().remove(indexName);
             addEdgeLabel(edgeLabel);
         }

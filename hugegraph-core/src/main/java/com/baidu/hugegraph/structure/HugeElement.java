@@ -36,8 +36,8 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
 
 public abstract class HugeElement implements Element, GraphType {
@@ -105,7 +105,7 @@ public abstract class HugeElement implements Element, GraphType {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public <V> HugeProperty<V> addProperty(String key, V value) {
         HugeProperty<V> prop = null;
-        PropertyKey pkey = this.graph.schema().propertyKey(key);
+        PropertyKey pkey = this.graph.schema().getPropertyKey(key);
         switch (pkey.cardinality()) {
             case SINGLE:
                 /*

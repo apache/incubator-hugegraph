@@ -38,8 +38,11 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.schema.HugeIndexLabel;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.SchemaLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
@@ -49,7 +52,6 @@ import com.baidu.hugegraph.type.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 
@@ -177,24 +179,24 @@ public class IndexTransaction extends AbstractTransaction {
     protected ConditionQuery constructIndexQuery(ConditionQuery query,
                                                  String label) {
         ConditionQuery indexQuery = null;
-        SchemaElement schemaElement = null;
+        SchemaLabel schemaLabel = null;
 
         SchemaTransaction schema = graph().schemaTransaction();
         switch (query.resultType()) {
             case VERTEX:
-                schemaElement = schema.getVertexLabel(label);
+                schemaLabel = schema.getVertexLabel(label);
                 break;
             case EDGE:
-                schemaElement = schema.getEdgeLabel(label);
+                schemaLabel = schema.getEdgeLabel(label);
                 break;
             default:
                 throw new BackendException(
                           "Unsupported index query: %s", query.resultType());
         }
 
-        E.checkArgumentNotNull(schemaElement, "Invalid label: '%s'", label);
+        E.checkArgumentNotNull(schemaLabel, "Invalid label: '%s'", label);
 
-        Set<String> indexNames = schemaElement.indexNames();
+        Set<String> indexNames = schemaLabel.indexNames();
         logger.debug("The label '{}' with index names: {}", label, indexNames);
         for (String name : indexNames) {
             IndexLabel indexLabel = schema.getIndexLabel(name);
@@ -288,10 +290,11 @@ public class IndexTransaction extends AbstractTransaction {
 
     public void rebuildIndex(SchemaElement schemaElement) {
         GraphTransaction graphTransaction = graph().graphTransaction();
+
         if (schemaElement.type() == HugeType.INDEX_LABEL) {
             // Rebuild index for indexLabel, just this kind index is
             // updated for related vertices/edges
-            IndexLabel indexLabel = (HugeIndexLabel) schemaElement;
+            IndexLabel indexLabel = (IndexLabel) schemaElement;
             if (indexLabel.baseType() == HugeType.VERTEX_LABEL) {
                 ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
                 query.eq(HugeKeys.LABEL, indexLabel.baseValue());
@@ -309,7 +312,8 @@ public class IndexTransaction extends AbstractTransaction {
         } else if (schemaElement.type() == HugeType.VERTEX_LABEL) {
             // Rebuild index for vertexLabel, all kinds indexes based on this
             // vertexLabel are updated for related vertices
-            Set<String> indexNames = schemaElement.indexNames();
+            VertexLabel vertexLabel = (VertexLabel) schemaElement;
+            Set<String> indexNames = vertexLabel.indexNames();
 
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             query.eq(HugeKeys.LABEL, schemaElement.name());
@@ -322,7 +326,8 @@ public class IndexTransaction extends AbstractTransaction {
         } else {
             // Rebuild index for edgeLabel, all kinds indexes based on this
             // edgeLabel are updated for related edges.
-            Set<String> indexNames = schemaElement.indexNames();
+            EdgeLabel edgeLabel = (EdgeLabel) schemaElement;
+            Set<String> indexNames = edgeLabel.indexNames();
 
             assert schemaElement.type() == HugeType.EDGE_LABEL;
             ConditionQuery query = new ConditionQuery(HugeType.EDGE);

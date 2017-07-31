@@ -39,10 +39,9 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.HugeIndexLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.schema.IndexLabel;
 
 
 
@@ -66,7 +65,7 @@ public class IndexLabelAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         IndexLabel indexLabel = jsonIndexLabel.convert2IndexLabel();
-        g.schema().create(indexLabel);
+        g.schema().indexLabel(indexLabel).create();
 
         return manager.serializer(g).writeIndexlabel(indexLabel);
     }
@@ -128,7 +127,7 @@ public class IndexLabelAPI extends API {
         }
 
         public IndexLabel convert2IndexLabel() {
-            HugeIndexLabel indexLabel = new HugeIndexLabel(this.name);
+            IndexLabel indexLabel = new IndexLabel(this.name);
             indexLabel.baseType(this.baseType);
             indexLabel.baseValue(this.baseValue);
             indexLabel.indexType(this.indexType);

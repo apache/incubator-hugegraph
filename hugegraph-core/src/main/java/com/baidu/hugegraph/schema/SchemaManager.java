@@ -16,42 +16,104 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.baidu.hugegraph.schema;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.IndexLabel;
-import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.util.E;
 
+public class SchemaManager {
 
-public interface SchemaManager {
+    private final SchemaTransaction transaction;
 
-    public PropertyKey makePropertyKey(String name);
+    public SchemaManager(SchemaTransaction transaction) {
+        this.transaction = transaction;
+    }
 
-    public VertexLabel makeVertexLabel(String name);
+    public PropertyKey.Builder propertyKey(String name) {
+        return new PropertyKey.Builder(name, this.transaction);
+    }
 
-    public EdgeLabel makeEdgeLabel(String name);
+    public PropertyKey.Builder propertyKey(PropertyKey propertyKey) {
+        return new PropertyKey.Builder(propertyKey, this.transaction);
+    }
 
-    public IndexLabel makeIndexLabel(String name);
+    public VertexLabel.Builder vertexLabel(String name) {
+        return new VertexLabel.Builder(name, this.transaction);
+    }
 
-    public PropertyKey propertyKey(String name);
+    public VertexLabel.Builder vertexLabel(VertexLabel vertexLabel) {
+        return new VertexLabel.Builder(vertexLabel, this.transaction);
+    }
 
-    public VertexLabel vertexLabel(String name);
+    public EdgeLabel.Builder edgeLabel(String name) {
+        return new EdgeLabel.Builder(name, this.transaction);
+    }
 
-    public EdgeLabel edgeLabel(String name);
+    public EdgeLabel.Builder edgeLabel(EdgeLabel edgeLabel) {
+        return new EdgeLabel.Builder(edgeLabel, this.transaction);
+    }
 
-    public IndexLabel indexLabel(String name);
+    public IndexLabel.Builder indexLabel(String name) {
+        return new IndexLabel.Builder(name, this.transaction);
+    }
 
-    public List<SchemaElement> desc();
+    public IndexLabel.Builder indexLabel(IndexLabel indexLabel) {
+        return new IndexLabel.Builder(indexLabel, this.transaction);
+    }
 
-    public SchemaElement create(SchemaElement element);
+    public PropertyKey getPropertyKey(String name) {
+        PropertyKey propertyKey = this.transaction.getPropertyKey(name);
+        E.checkArgument(propertyKey != null,
+                        "Undefined property key:'%s'", name);
+        return propertyKey;
+    }
 
-    public SchemaElement append(SchemaElement element);
+    public VertexLabel getVertexLabel(String name) {
+        VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
+        E.checkArgument(vertexLabel != null,
+                        "Undefined vertexlabel: '%s'", name);
+        return vertexLabel;
+    }
 
-    public SchemaElement eliminate(SchemaElement element);
+    public EdgeLabel getEdgeLabel(String name) {
+        EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
+        E.checkArgument(edgeLabel != null,
+                        "Undefined edge label: '%s'", name);
+        return edgeLabel;
+    }
 
-    public void remove(SchemaElement element);
+    public IndexLabel getIndexLabel(String name) {
+        IndexLabel indexLabel = this.transaction.getIndexLabel(name);
+        E.checkArgument(indexLabel != null,
+                        "Undefined index label: '%s'", name);
+        return indexLabel;
+    }
+
+    public List<PropertyKey> getPropertyKeys() {
+        return this.transaction.getPropertyKeys();
+    }
+
+    public List<VertexLabel> getVertexLabels() {
+        return this.transaction.getVertexLabels();
+    }
+
+    public List<EdgeLabel> getEdgeLabels() {
+        return this.transaction.getEdgeLabels();
+    }
+
+    public List<IndexLabel> getIndexLabels() {
+        return this.transaction.getIndexLabels();
+    }
+
+    public List<SchemaElement> desc() {
+        List<SchemaElement> elements = new ArrayList<>();
+        elements.addAll(this.transaction.getPropertyKeys());
+        elements.addAll(this.transaction.getVertexLabels());
+        elements.addAll(this.transaction.getEdgeLabels());
+        elements.addAll(this.transaction.getIndexLabels());
+        return elements;
+    }
 }

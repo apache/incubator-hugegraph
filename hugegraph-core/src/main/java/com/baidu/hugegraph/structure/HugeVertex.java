@@ -42,10 +42,10 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.schema.HugeEdgeLabel;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -179,8 +179,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         E.checkNotNull(vertex, "target vertex");
 
         HugeVertex targetVertex = (HugeVertex) vertex;
-        HugeEdgeLabel edgeLabel =
-                      (HugeEdgeLabel) this.graph.schema().edgeLabel(label);
+        EdgeLabel edgeLabel = this.graph.schema().getEdgeLabel(label);
 
         E.checkArgument(
                 CollectionUtil.containsAll(ElementHelper.getKeys(properties),
@@ -188,7 +187,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 "The sort key(s) must be setted for the edge with label: '%s'",
                 edgeLabel.name());
 
-        E.checkArgument(edgeLabel.checkLink(this.label(), vertex.label()),
+        E.checkArgument(
+                edgeLabel.checkLinkEqual(this.label(), vertex.label()),
                 "Undefined link of edge label '%s': '%s' -> '%s'",
                 label, this.label(), vertex.label());
 

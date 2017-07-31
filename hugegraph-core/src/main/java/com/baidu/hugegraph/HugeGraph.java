@@ -50,7 +50,6 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
-import com.baidu.hugegraph.schema.HugeSchemaManager;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
@@ -210,7 +209,7 @@ public class HugeGraph implements Graph {
     }
 
     public SchemaManager schema() {
-        return new HugeSchemaManager(this.schemaTransaction());
+        return new SchemaManager(this.schemaTransaction());
     }
 
     public GraphTransaction openTransaction() {

@@ -37,11 +37,11 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.schema.IndexLabel;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 
 public class Example1 {
 
@@ -90,78 +90,80 @@ public class Example1 {
         /*********************** schemaManager operating *********************/
         SchemaManager schema = graph.schema();
         logger.info("===============  propertyKey  ================");
-        schema.makePropertyKey("id").asInt().create();
-        schema.makePropertyKey("~exist").asText().create();
-        schema.makePropertyKey("name").asText().create();
-        schema.makePropertyKey("gender").asText().create();
-        schema.makePropertyKey("instructions").asText().create();
-        schema.makePropertyKey("category").asText().create();
-        schema.makePropertyKey("year").asInt().create();
-        schema.makePropertyKey("time").asText().create();
-        schema.makePropertyKey("timestamp").asTimestamp().create();
-        schema.makePropertyKey("ISBN").asText().create();
-        schema.makePropertyKey("calories").asInt().create();
-        schema.makePropertyKey("amount").asText().create();
-        schema.makePropertyKey("stars").asInt().create();
-        schema.makePropertyKey("age").asInt().valueSingle().create();
-        schema.makePropertyKey("comment").asText().valueSet().create();
-        schema.makePropertyKey("contribution").asText().valueSet().create();
-        schema.makePropertyKey("nickname").asText().valueList().create();
-        schema.makePropertyKey("lived").asText().create();
-        schema.makePropertyKey("country").asText().valueSet()
-              .properties("livedIn").create();
-        schema.makePropertyKey("city").asText().create();
-        schema.makePropertyKey("sensor_id").asUuid().create();
+        schema.propertyKey("id").asInt().create();
+        schema.propertyKey("~exist").asText().create();
+        schema.propertyKey("name").asText().create();
+        schema.propertyKey("gender").asText().create();
+        schema.propertyKey("instructions").asText().create();
+        schema.propertyKey("category").asText().create();
+        schema.propertyKey("year").asInt().create();
+        schema.propertyKey("time").asText().create();
+        schema.propertyKey("timestamp").asTimestamp().create();
+        schema.propertyKey("ISBN").asText().create();
+        schema.propertyKey("calories").asInt().create();
+        schema.propertyKey("amount").asText().create();
+        schema.propertyKey("stars").asInt().create();
+        schema.propertyKey("age").asInt().valueSingle().create();
+        schema.propertyKey("comment").asText().valueSet().create();
+        schema.propertyKey("contribution").asText().valueSet().create();
+        schema.propertyKey("nickname").asText().valueList().create();
+        schema.propertyKey("lived").asText().create();
+        schema.propertyKey("country").asText().valueSet().create();
+        schema.propertyKey("country").asText().valueSet().create();
+        schema.propertyKey("city").asText().create();
+        schema.propertyKey("sensor_id").asUuid().create();
 
         logger.info("===============  vertexLabel  ================");
 
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .create();
-        schema.makeVertexLabel("author")
+        schema.vertexLabel("author")
               .properties("id", "name", "age", "lived")
               .primaryKeys("id").create();
-        schema.makeVertexLabel("language").properties("name")
+        schema.vertexLabel("language").properties("name")
               .primaryKeys("name").create();
-        schema.makeVertexLabel("recipe").properties("name", "instructions")
+        schema.vertexLabel("recipe").properties("name", "instructions")
               .primaryKeys("name").create();
-        schema.makeVertexLabel("book").properties("name")
+        schema.vertexLabel("book").properties("name")
               .primaryKeys("name").create();
-        schema.makeVertexLabel("reviewer").properties("name")
+        schema.vertexLabel("reviewer").properties("name")
               .primaryKeys("name").create();
         // vertex label must have the properties that specified in primary key
-        schema.makeVertexLabel("FridgeSensor").properties("city")
+        schema.vertexLabel("FridgeSensor").properties("city")
               .primaryKeys("city").create();
 
         logger.info("===============  vertexLabel & index  ================");
-        IndexLabel personByCity = schema.makeIndexLabel("personByCity")
-                .on(person).secondary().by("city").create();
-        IndexLabel personByAge = schema.makeIndexLabel("personByAge")
-                .on(person).search().by("age").create();
-        // schemaManager.vertexLabel("author").index("byName").secondary().by("name").add();
-        // schemaManager.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
-        // schemaManager.vertexLabel("meal").index("byMeal").materialized().by("name").add();
-        // schemaManager.vertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
-        // schemaManager.vertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
+        IndexLabel personByCity = schema.indexLabel("personByCity")
+                .onV("person").secondary().by("city").create();
+        IndexLabel personByAge = schema.indexLabel("personByAge")
+                .onV("person").search().by("age").create();
+        // schemaManager.getVertexLabel("author").index("byName").secondary().by("name").add();
+        // schemaManager.getVertexLabel("recipe").index("byRecipe").materialized().by("name").add();
+        // schemaManager.getVertexLabel("meal").index("byMeal").materialized().by("name").add();
+        // schemaManager.getVertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
+        // schemaManager.getVertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
 
         logger.info("===============  edgeLabel  ================");
 
-        schema.makeEdgeLabel("authored").singleTime()
-                .link("author", "book").properties("contribution", "comment")
+        schema.edgeLabel("authored").singleTime()
+                .sourceLabel("author").targetLabel("book")
+                .properties("contribution", "comment")
                 .create();
 
-        schema.makeEdgeLabel("look").multiTimes().properties("time")
-                .link("author", "book")
-                .link("person", "book")
+        schema.edgeLabel("look").multiTimes().properties("time")
+                .sourceLabel("author").targetLabel("book")
                 .sortKeys("time")
                 .create();
 
-        schema.makeEdgeLabel("created").singleTime()
-                .link("author", "language")
+        schema.edgeLabel("created").singleTime()
+                .sourceLabel("author").targetLabel("language")
                 .create();
 
-        schema.makeEdgeLabel("rated").link("reviewer", "recipe").create();
+        schema.edgeLabel("rated")
+                .sourceLabel("reviewer").targetLabel("recipe")
+                .create();
 
         logger.info("===============  schemaManager desc  ================");
         schema.desc().forEach(element -> System.out.println(element.schema()));
@@ -371,18 +373,18 @@ public class Example1 {
         }
 
         // test index remove and index rebuild
-        personByCity.remove();
-        personByAge.remove();
+        // personByCity.remove();
+        // personByAge.remove();
         graph.addVertex(T.label, "person", "name", "Bright",
                         "city", "LuAn", "age", 27);
-        personByCity = schema.makeIndexLabel("personByCity")
-                       .on(person).secondary().by("city").create();
-        personByAge = schema.makeIndexLabel("personByAge")
-                      .on(person).search().by("age").create();
+        personByCity = schema.indexLabel("personByCity").onV("person")
+                             .secondary().by("city").create();
+        personByAge = schema.indexLabel("personByAge").onV("person")
+                            .search().by("age").create();
         // insert one person here manually
-        personByCity.rebuild();
-        personByAge.rebuild();
+        schema.indexLabel("personByCity").rebuild();
+        schema.indexLabel("personByAge").rebuild();
+        schema.vertexLabel("person").rebuildIndex();
         // insert one person here manually
-        person.rebuildIndex();
     }
 }
