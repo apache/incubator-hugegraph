@@ -22,7 +22,6 @@ package com.baidu.hugegraph.example;
 import java.util.Iterator;
 import java.util.List;
 
-import com.baidu.hugegraph.type.schema.IndexLabel;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -41,8 +40,8 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.schema.IndexLabel;
 import com.baidu.hugegraph.type.schema.VertexLabel;
-
 
 public class Example1 {
 
@@ -82,12 +81,13 @@ public class Example1 {
     }
 
     public static void showFeatures(final HugeGraph graph) {
-        logger.info("supportsPersistence : " + graph.features().graph().supportsPersistence());
+        logger.info("SupportsPersistence: {}",
+                    graph.features().graph().supportsPersistence());
     }
 
     public static void load(final HugeGraph graph) {
 
-        /************************* schemaManager operating *************************/
+        /*********************** schemaManager operating *********************/
         SchemaManager schema = graph.schema();
         logger.info("===============  propertyKey  ================");
         schema.makePropertyKey("id").asInt().create();
@@ -108,7 +108,8 @@ public class Example1 {
         schema.makePropertyKey("contribution").asText().valueSet().create();
         schema.makePropertyKey("nickname").asText().valueList().create();
         schema.makePropertyKey("lived").asText().create();
-        schema.makePropertyKey("country").asText().valueSet().properties("livedIn").create();
+        schema.makePropertyKey("country").asText().valueSet()
+              .properties("livedIn").create();
         schema.makePropertyKey("city").asText().create();
         schema.makePropertyKey("sensor_id").asUuid().create();
 
@@ -119,18 +120,25 @@ public class Example1 {
                 .primaryKeys("name")
                 .create();
         schema.makeVertexLabel("author")
-                .properties("id", "name", "age", "lived").primaryKeys("id")
-                .create();
-        schema.makeVertexLabel("language").properties("name").primaryKeys("name").create();
-        schema.makeVertexLabel("recipe").properties("name", "instructions").primaryKeys("name").create();
-        schema.makeVertexLabel("book").properties("name").primaryKeys("name").create();
-        schema.makeVertexLabel("reviewer").properties("name").primaryKeys("name").create();
+              .properties("id", "name", "age", "lived")
+              .primaryKeys("id").create();
+        schema.makeVertexLabel("language").properties("name")
+              .primaryKeys("name").create();
+        schema.makeVertexLabel("recipe").properties("name", "instructions")
+              .primaryKeys("name").create();
+        schema.makeVertexLabel("book").properties("name")
+              .primaryKeys("name").create();
+        schema.makeVertexLabel("reviewer").properties("name")
+              .primaryKeys("name").create();
         // vertex label must have the properties that specified in primary key
-        schema.makeVertexLabel("FridgeSensor").properties("city").primaryKeys("city").create();
+        schema.makeVertexLabel("FridgeSensor").properties("city")
+              .primaryKeys("city").create();
 
         logger.info("===============  vertexLabel & index  ================");
-        IndexLabel personByCity = schema.makeIndexLabel("personByCity").on(person).secondary().by("city").create();
-        IndexLabel personByAge = schema.makeIndexLabel("personByAge").on(person).search().by("age").create();
+        IndexLabel personByCity = schema.makeIndexLabel("personByCity")
+                .on(person).secondary().by("city").create();
+        IndexLabel personByAge = schema.makeIndexLabel("personByAge")
+                .on(person).search().by("age").create();
         // schemaManager.vertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.vertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schemaManager.vertexLabel("meal").index("byMeal").materialized().by("name").add();
@@ -179,7 +187,8 @@ public class Example1 {
 
         logger.info("===============  addVertex  ================");
         Vertex james = tx.addVertex(T.label, "author",
-                "id", 1, "name", "James Gosling", "age", 62, "lived", "Canadian");
+                                    "id", 1, "name", "James Gosling",
+                                    "age", 62, "lived", "Canadian");
 
         Vertex java = tx.addVertex(T.label, "language", "name", "java");
         Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
@@ -188,10 +197,10 @@ public class Example1 {
 
         james.addEdge("created", java);
         james.addEdge("authored", book1,
-                "contribution", "1990-1-1",
-                "comment", "it's a good book",
-                "comment", "it's a good book",
-                "comment", "it's a good book too");
+                      "contribution", "1990-1-1",
+                      "comment", "it's a good book",
+                      "comment", "it's a good book",
+                      "comment", "it's a good book too");
         james.addEdge("authored", book2, "contribution", "2017-4-28");
 
         james.addEdge("look", book2, "time", "2017-4-28");
@@ -231,7 +240,8 @@ public class Example1 {
         vertexes = graph.traversal().V().hasLabel("author").has("id", "1");
         List<Vertex> vertexList = vertexes.toList();
         assert vertexList.size() == 1;
-        System.out.println(">>>> query vertices by primary-values: " + vertexList);
+        System.out.println(">>>> query vertices by primary-values: " +
+                           vertexList);
 
         // query vertex by id and query out edges
         vertexes = graph.traversal().V("author:1");
@@ -251,7 +261,8 @@ public class Example1 {
         edgesOfVertex = vertexes.outE("look").has("time", "2017-4-28");
         edgeList = edgesOfVertex.toList();
         assert edgeList.size() == 2;
-        System.out.println(">>>> query edges of vertex by sort-values: " + edgeList);
+        System.out.println(">>>> query edges of vertex by sort-values: " +
+                           edgeList);
 
         // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
@@ -362,14 +373,15 @@ public class Example1 {
         personByCity.remove();
         personByAge.remove();
         graph.addVertex(T.label, "person", "name", "Bright",
-                "city", "LuAn", "age", 27);
-        personByCity = schema.makeIndexLabel("personByCity").on(person).secondary().by("city").create();
-        personByAge = schema.makeIndexLabel("personByAge").on(person).search().by("age").create();
+                        "city", "LuAn", "age", 27);
+        personByCity = schema.makeIndexLabel("personByCity")
+                       .on(person).secondary().by("city").create();
+        personByAge = schema.makeIndexLabel("personByAge")
+                      .on(person).search().by("age").create();
         // insert one person here manually
         personByCity.rebuild();
         personByAge.rebuild();
         // insert one person here manually
         person.rebuildIndex();
     }
-
 }

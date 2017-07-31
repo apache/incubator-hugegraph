@@ -32,7 +32,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.schema.VertexLabel;
 
-
 public class GraphOfTheMoviesExample {
 
     private static final Logger logger = LoggerFactory.getLogger(GraphOfTheMoviesExample.class);
@@ -46,7 +45,7 @@ public class GraphOfTheMoviesExample {
         GraphOfTheMoviesExample.load(graph);
         long endTime = System.currentTimeMillis();
         System.out.println(">>>> adding all vertices cost time(s): " +
-                (endTime - startTime) / 1000.0);
+                           (endTime - startTime) / 1000.0);
 
         GraphOfTheMoviesExample.query(graph);
         System.exit(0);

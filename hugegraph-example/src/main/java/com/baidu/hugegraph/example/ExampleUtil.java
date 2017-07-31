@@ -39,8 +39,8 @@ public class ExampleUtil {
     public static HugeGraph loadGraph() {
         registerPlugins();
 
-        String confFile = ExampleUtil.class.getClassLoader().getResource(
-                "hugegraph.properties").getPath();
+        String confFile = ExampleUtil.class.getClassLoader()
+                         .getResource("hugegraph.properties").getPath();
 
         HugeGraph graph = HugeFactory.open(confFile);
 
