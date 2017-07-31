@@ -17,25 +17,33 @@
  * the License.
  */
 
-package com.baidu.hugegraph.backend.serializer;
+package com.baidu.hugegraph.schema.builder;
 
-import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.schema.IndexLabel;
-import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.VertexLabel;
+public interface PropertyKeyBuilder extends SchemaBuilder {
 
-public interface SchemaSerializer {
+    PropertyKeyBuilder asText();
 
-    public BackendEntry writeVertexLabel(VertexLabel vertexLabel);
-    public VertexLabel readVertexLabel(BackendEntry entry);
+    PropertyKeyBuilder asInt();
 
-    public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel);
-    public EdgeLabel readEdgeLabel(BackendEntry entry);
+    PropertyKeyBuilder asTimestamp();
 
-    public BackendEntry writePropertyKey(PropertyKey propertyKey);
-    public PropertyKey readPropertyKey(BackendEntry entry);
+    PropertyKeyBuilder asUuid();
 
-    public BackendEntry writeIndexLabel(IndexLabel indexLabel);
-    public IndexLabel readIndexLabel(BackendEntry entry);
+    PropertyKeyBuilder asBoolean();
+
+    PropertyKeyBuilder asByte();
+
+    PropertyKeyBuilder asBlob();
+
+    PropertyKeyBuilder asDouble();
+
+    PropertyKeyBuilder asFloat();
+
+    PropertyKeyBuilder asLong();
+
+    PropertyKeyBuilder valueSingle();
+
+    PropertyKeyBuilder valueList();
+
+    PropertyKeyBuilder valueSet();
 }

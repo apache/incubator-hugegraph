@@ -1,6 +1,6 @@
 package com.baidu.hugegraph.structure;
 
-import com.baidu.hugegraph.type.schema.PropertyKey;
+import com.baidu.hugegraph.schema.PropertyKey;
 
 public class HugeEdgeProperty<V> extends HugeProperty<V> {
 

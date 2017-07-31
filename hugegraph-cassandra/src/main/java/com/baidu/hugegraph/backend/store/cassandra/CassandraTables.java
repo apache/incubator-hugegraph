@@ -62,9 +62,10 @@ public class CassandraTables {
         public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.NAME,
-                    HugeKeys.PROPERTIES,
                     HugeKeys.PRIMARY_KEYS,
-                    HugeKeys.INDEX_NAMES };
+                    HugeKeys.INDEX_NAMES,
+                    HugeKeys.PROPERTIES
+            };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
 
@@ -84,11 +85,13 @@ public class CassandraTables {
         public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.NAME,
-                    HugeKeys.LINKS,
-                    HugeKeys.PROPERTIES,
-                    HugeKeys.SORT_KEYS,
+                    HugeKeys.SOURCE_LABEL,
+                    HugeKeys.TARGET_LABEL,
                     HugeKeys.FREQUENCY,
-                    HugeKeys.INDEX_NAMES };
+                    HugeKeys.SORT_KEYS,
+                    HugeKeys.INDEX_NAMES,
+                    HugeKeys.PROPERTIES
+            };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
 
@@ -110,7 +113,8 @@ public class CassandraTables {
                     HugeKeys.NAME,
                     HugeKeys.DATA_TYPE,
                     HugeKeys.CARDINALITY,
-                    HugeKeys.PROPERTIES };
+                    HugeKeys.PROPERTIES
+            };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
 
@@ -133,13 +137,15 @@ public class CassandraTables {
                     HugeKeys.BASE_TYPE,
                     HugeKeys.BASE_VALUE,
                     HugeKeys.INDEX_TYPE,
-                    HugeKeys.FIELDS };
+                    HugeKeys.FIELDS
+            };
 
             // The base-type and base-value as clustering key
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.NAME,
                     HugeKeys.BASE_TYPE,
-                    HugeKeys.BASE_VALUE };
+                    HugeKeys.BASE_VALUE
+            };
 
             super.createTable(session, columns, primaryKeys);
         }
@@ -158,16 +164,19 @@ public class CassandraTables {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.LABEL,
                     HugeKeys.PRIMARY_VALUES,
-                    HugeKeys.PROPERTIES };
+                    HugeKeys.PROPERTIES
+            };
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
                     DataType.text(),
-                    DataType.map(DataType.text(), DataType.text()) };
+                    DataType.map(DataType.text(), DataType.text())
+            };
 
             HugeKeys[] partitionKeys = new HugeKeys[] {
                     HugeKeys.LABEL,
-                    HugeKeys.PRIMARY_VALUES };
+                    HugeKeys.PRIMARY_VALUES
+            };
 
             HugeKeys[] clusterKeys = new HugeKeys[] {};
 
@@ -179,7 +188,7 @@ public class CassandraTables {
         @Override
         protected List<String> idColumnName() {
             return ImmutableList.of(formatKey(HugeKeys.LABEL),
-                                    formatKey( HugeKeys.PRIMARY_VALUES));
+                                    formatKey(HugeKeys.PRIMARY_VALUES));
         }
 
         @Override
@@ -211,7 +220,8 @@ public class CassandraTables {
                 HugeKeys.DIRECTION,
                 HugeKeys.LABEL,
                 HugeKeys.SORT_VALUES,
-                HugeKeys.TARGET_VERTEX };
+                HugeKeys.TARGET_VERTEX
+        };
 
         private static List<String> KEYS_STRING = null;
 
@@ -227,7 +237,8 @@ public class CassandraTables {
                     HugeKeys.LABEL,
                     HugeKeys.SORT_VALUES,
                     HugeKeys.TARGET_VERTEX,
-                    HugeKeys.PROPERTIES };
+                    HugeKeys.PROPERTIES
+            };
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
@@ -235,14 +246,16 @@ public class CassandraTables {
                     DataType.text(),
                     DataType.text(),
                     DataType.text(),
-                    DataType.map(DataType.text(), DataType.text()) };
+                    DataType.map(DataType.text(), DataType.text())
+            };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.SOURCE_VERTEX,
                     HugeKeys.DIRECTION,
                     HugeKeys.LABEL,
                     HugeKeys.SORT_VALUES,
-                    HugeKeys.TARGET_VERTEX };
+                    HugeKeys.TARGET_VERTEX
+            };
 
             super.createTable(session, columns, columnTypes, primaryKeys);
             super.createIndex(session, "edges_label_index", HugeKeys.LABEL);
@@ -365,16 +378,19 @@ public class CassandraTables {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.FIELD_VALUES,
                     HugeKeys.INDEX_LABEL_NAME,
-                    HugeKeys.ELEMENT_IDS };
+                    HugeKeys.ELEMENT_IDS
+            };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.FIELD_VALUES,
-                    HugeKeys.INDEX_LABEL_NAME };
+                    HugeKeys.INDEX_LABEL_NAME
+            };
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
                     DataType.text(),
-                    DataType.set(DataType.text()) };
+                    DataType.set(DataType.text())
+            };
 
             super.createTable(session, columns, columnTypes, primaryKeys);
         }
@@ -422,7 +438,7 @@ public class CassandraTables {
 
         @Override
         public void delete(CassandraSessionPool.Session session,
-                               CassandraBackendEntry.Row entry) {
+                           CassandraBackendEntry.Row entry) {
 
             String propValues = entry.column(HugeKeys.FIELD_VALUES);
             String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
@@ -491,16 +507,19 @@ public class CassandraTables {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.INDEX_LABEL_NAME,
                     HugeKeys.FIELD_VALUES,
-                    HugeKeys.ELEMENT_IDS };
+                    HugeKeys.ELEMENT_IDS
+            };
 
             HugeKeys[] primaryKeys = new HugeKeys[] {
                     HugeKeys.INDEX_LABEL_NAME,
-                    HugeKeys.FIELD_VALUES };
+                    HugeKeys.FIELD_VALUES
+            };
 
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
                     DataType.decimal(),
-                    DataType.set(DataType.text()) };
+                    DataType.set(DataType.text())
+            };
 
             super.createTable(session, columns, columnTypes, primaryKeys);
         }

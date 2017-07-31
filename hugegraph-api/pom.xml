@@ -5,7 +5,7 @@
     <parent>
         <artifactId>hugegraph</artifactId>
         <groupId>com.baidu.hugegraph</groupId>
-        <version>0.2.1-SNAPSHOT</version>
+        <version>0.2.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -105,7 +105,7 @@
                         </manifest>
                         <manifestEntries>
                             <Implementation-Version>
-                                0.3.0.0
+                                0.4.0.0
                             </Implementation-Version>
                         </manifestEntries>
                     </archive>

@@ -37,11 +37,11 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.schema.HugeEdgeLabel;
-import com.baidu.hugegraph.schema.HugeIndexLabel;
-import com.baidu.hugegraph.schema.HugePropertyKey;
-import com.baidu.hugegraph.schema.HugeVertexLabel;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
@@ -50,14 +50,9 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.EdgeLink;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.IndexLabel;
-import com.baidu.hugegraph.type.schema.PropertyKey;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -116,7 +111,7 @@ public class TextSerializer extends AbstractSerializer {
         assert colParts.length == 2 : colName;
 
         // Get PropertyKey by PropertyKey name
-        PropertyKey pkey = this.graph.schema().propertyKey(colParts[1]);
+        PropertyKey pkey = this.graph.schema().getPropertyKey(colParts[1]);
 
         // Parse value
         Object value = JsonUtil.fromJson(colValue, pkey.clazz());
@@ -171,7 +166,7 @@ public class TextSerializer extends AbstractSerializer {
         String[] colParts = colName.split(COLUME_SPLITOR);
         assert colParts.length == 4;
 
-        EdgeLabel label = this.graph.schema().edgeLabel(colParts[1]);
+        EdgeLabel label = this.graph.schema().getEdgeLabel(colParts[1]);
 
         // TODO: how to construct targetVertex with id
         Id otherVertexId = IdGeneratorFactory.generator().generate(colParts[3]);
@@ -245,7 +240,7 @@ public class TextSerializer extends AbstractSerializer {
         String labelName = entry.column(this.formatSyspropName(HugeKeys.LABEL));
         VertexLabel label = null;
         if (labelName != null) {
-            label = this.graph.schema().vertexLabel(labelName);
+            label = this.graph.schema().getVertexLabel(labelName);
         }
 
         HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
@@ -412,10 +407,12 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = this.writeId(edgeLabel.type(), id);
         entry.column(HugeKeys.NAME.string(),
                      JsonUtil.toJson(edgeLabel.name()));
+        entry.column(HugeKeys.SOURCE_LABEL.string(),
+                     JsonUtil.toJson(edgeLabel.sourceLabel()));
+        entry.column(HugeKeys.TARGET_LABEL.string(),
+                     JsonUtil.toJson(edgeLabel.targetLabel()));
         entry.column(HugeKeys.FREQUENCY.string(),
                      JsonUtil.toJson(edgeLabel.frequency()));
-        entry.column(HugeKeys.LINKS.string(),
-                     JsonUtil.toJson(edgeLabel.links()));
         entry.column(HugeKeys.SORT_KEYS.string(),
                      JsonUtil.toJson(edgeLabel.sortKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES.string(),
@@ -465,7 +462,7 @@ public class TextSerializer extends AbstractSerializer {
         String primarykeys = textEntry.column(HugeKeys.PRIMARY_KEYS.string());
         String indexNames = textEntry.column(HugeKeys.INDEX_NAMES.string());
 
-        HugeVertexLabel vertexLabel = new HugeVertexLabel(
+        VertexLabel vertexLabel = new VertexLabel(
                 JsonUtil.fromJson(name, String.class));
         vertexLabel.properties(JsonUtil.fromJson(properties, String[].class));
         vertexLabel.primaryKeys(JsonUtil.fromJson(primarykeys, String[].class));
@@ -485,16 +482,18 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry textEntry = (TextBackendEntry) entry;
         String name = textEntry.column(HugeKeys.NAME.string());
+        String sourceLabel = textEntry.column(HugeKeys.SOURCE_LABEL.string());
+        String targetLabel = textEntry.column(HugeKeys.TARGET_LABEL.string());
         String frequency = textEntry.column(HugeKeys.FREQUENCY.string());
         String sortKeys = textEntry.column(HugeKeys.SORT_KEYS.string());
-        String links = textEntry.column(HugeKeys.LINKS.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
         String indexNames = textEntry.column(HugeKeys.INDEX_NAMES.string());
 
-        HugeEdgeLabel edgeLabel = new HugeEdgeLabel(
+        EdgeLabel edgeLabel = new EdgeLabel(
                 JsonUtil.fromJson(name, String.class));
+        edgeLabel.sourceLabel(JsonUtil.fromJson(sourceLabel, String.class));
+        edgeLabel.targetLabel(JsonUtil.fromJson(targetLabel, String.class));
         edgeLabel.frequency(JsonUtil.fromJson(frequency, Frequency.class));
-        edgeLabel.links(JsonUtil.fromJson(links, EdgeLink[].class));
         edgeLabel.properties(JsonUtil.fromJson(properties, String[].class));
         edgeLabel.sortKeys(JsonUtil.fromJson(sortKeys, String[].class));
         edgeLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
@@ -516,7 +515,7 @@ public class TextSerializer extends AbstractSerializer {
         String cardinality = textEntry.column(HugeKeys.CARDINALITY.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
 
-        HugePropertyKey propertyKey = new HugePropertyKey(
+        PropertyKey propertyKey = new PropertyKey(
                 JsonUtil.fromJson(name, String.class));
         propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
         propertyKey.cardinality(JsonUtil.fromJson(cardinality,
@@ -563,10 +562,9 @@ public class TextSerializer extends AbstractSerializer {
         String indexType = textEntry.column(HugeKeys.INDEX_TYPE.string());
         String indexFields = textEntry.column(HugeKeys.FIELDS.string());
 
-        HugeIndexLabel indexLabel = new HugeIndexLabel(name, baseType,
-                                                       baseValue);
+        IndexLabel indexLabel = new IndexLabel(name, baseType, baseValue);
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
-        indexLabel.by(JsonUtil.fromJson(indexFields, String[].class));
+        indexLabel.indexFields(JsonUtil.fromJson(indexFields, String[].class));
 
         return indexLabel;
     }

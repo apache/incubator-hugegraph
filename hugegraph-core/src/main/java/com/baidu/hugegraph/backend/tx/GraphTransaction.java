@@ -47,8 +47,10 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -58,8 +60,6 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -257,7 +257,7 @@ public class GraphTransaction extends AbstractTransaction {
             throw Element.Exceptions.labelCanNotBeNull();
         } else if (label instanceof String) {
             SchemaManager schema = graph().schema();
-            label = schema.vertexLabel((String) label);
+            label = schema.getVertexLabel((String) label);
         }
 
         assert (label instanceof VertexLabel);
@@ -560,7 +560,7 @@ public class GraphTransaction extends AbstractTransaction {
             !features.vertex().supportsUserSuppliedIds()) {
 
             // Query vertex by label + primary-values
-            List<String> keys = graph().schema().vertexLabel(
+            List<String> keys = graph().schema().getVertexLabel(
                     label.toString()).primaryKeys();
             if (!keys.isEmpty() && query.matchUserpropKeys(keys)) {
                 String primaryValues = query.userpropValuesString(keys);
@@ -586,7 +586,7 @@ public class GraphTransaction extends AbstractTransaction {
         // Optimize edge query
         if (label != null && query.resultType() == HugeType.EDGE) {
             // Query edge by sourceVertex + direction + label + sort-values
-            List<String> keys = graph().schema().edgeLabel(
+            List<String> keys = graph().schema().getEdgeLabel(
                     label.toString()).sortKeys();
             if (query.condition(HugeKeys.SOURCE_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&

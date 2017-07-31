@@ -32,10 +32,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.VertexLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
 
 public class Example2 {
 
@@ -135,63 +135,64 @@ public class Example2 {
 
         /*
          * Note:
-         * Use schema.makePropertyKey interface to create propertyKey.
+         * Use schema.propertyKey interface to create propertyKey.
          * Use schema.propertyKey interface to query propertyKey.
          */
-        schema.makePropertyKey("name").asText().ifNotExist().create();
-        schema.makePropertyKey("age").asInt().ifNotExist().create();
-        schema.makePropertyKey("city").asText().ifNotExist().create();
-        schema.makePropertyKey("lang").asText().ifNotExist().create();
-        schema.makePropertyKey("date").asText().ifNotExist().create();
-        schema.makePropertyKey("price").asInt().ifNotExist().create();
+        schema.propertyKey("name").asText().ifNotExist().create();
+        schema.propertyKey("age").asInt().ifNotExist().create();
+        schema.propertyKey("city").asText().ifNotExist().create();
+        schema.propertyKey("lang").asText().ifNotExist().create();
+        schema.propertyKey("date").asText().ifNotExist().create();
+        schema.propertyKey("price").asInt().ifNotExist().create();
 
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                 .properties("name", "age", "city")
                 .primaryKeys("name")
                 .ifNotExist()
                 .create();
 
-        VertexLabel software = schema.makeVertexLabel("software")
+        VertexLabel software = schema.vertexLabel("software")
                 .properties("name", "lang", "price")
                 .primaryKeys("name")
                 .ifNotExist()
                 .create();
 
-        schema.makeIndexLabel("personByName").on(person).by("name").secondary()
+        schema.indexLabel("personByName").onV("person").by("name")
+                .secondary()
                 .ifNotExist().create();
 
-        schema.makeIndexLabel("personByAge").on(person).by("age").search()
+        schema.indexLabel("personByAge").onV("person").by("age").search()
                 .ifNotExist().create();
 
-        schema.makeIndexLabel("personByCity").on(person).by("city").secondary()
+        schema.indexLabel("personByCity").onV("person").by("city").secondary()
                 .ifNotExist().create();
 
-        schema.makeIndexLabel("personByAgeAndCityAndName").on(person)
+        schema.indexLabel("personByAgeAndCityAndName").onV("person")
                 .by("age", "city", "name")
                 .secondary()
                 .ifNotExist().create();
 
-        schema.makeIndexLabel("softwareByPrice").on(software).by("price")
+        schema.indexLabel("softwareByPrice").onV("software").by("price")
                 .search().ifNotExist().create();
 
-        schema.makeEdgeLabel("knows").link("person", "person")
+        schema.edgeLabel("knows")
+                .sourceLabel("person").targetLabel("person")
                 .properties("date").create();
 
-        schema.makeEdgeLabel("knows").link("software", "software")
-                .properties("price").append();
+        schema.edgeLabel("knows").properties("price").append();
 
-        EdgeLabel created = schema.makeEdgeLabel("created")
-                .link("person", "software")
+        EdgeLabel created = schema.edgeLabel("created")
+                .sourceLabel("person").targetLabel("software")
                 .properties("date", "city")
                 .ifNotExist()
                 .create();
 
-        schema.makeIndexLabel("createdByDate").on(created).by("date")
+        schema.indexLabel("createdByDate").onE("created").by("date")
                 .secondary()
                 .ifNotExist()
                 .create();
 
-        schema.makeIndexLabel("createdByCity").on(created)
+        schema.indexLabel("createdByCity").onE("created")
                 .by("city")
                 .secondary()
                 .ifNotExist().create();
@@ -226,11 +227,11 @@ public class Example2 {
     private static void removeSchema(HugeGraph graph) {
         SchemaManager schema = graph.schema();
         // Remove edge label
-        schema.makeEdgeLabel("created").remove();
+        schema.edgeLabel("created").remove();
         // Remove vertex label
-        schema.makeVertexLabel("software").remove();
+        schema.vertexLabel("software").remove();
         try {
-            schema.makePropertyKey("name").remove();
+            schema.propertyKey("name").remove();
         } catch (Exception e) {
             logger.info("Not allowed to remove property key '{}' that is in " +
                         "using by some vertex or edge label.", "name");

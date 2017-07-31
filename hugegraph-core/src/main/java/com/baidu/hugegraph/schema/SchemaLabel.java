@@ -17,25 +17,25 @@
  * the License.
  */
 
-package com.baidu.hugegraph.backend.serializer;
+package com.baidu.hugegraph.schema;
 
-import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.schema.IndexLabel;
-import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.VertexLabel;
+import java.util.HashSet;
+import java.util.Set;
 
-public interface SchemaSerializer {
+import com.baidu.hugegraph.type.Indexfiable;
 
-    public BackendEntry writeVertexLabel(VertexLabel vertexLabel);
-    public VertexLabel readVertexLabel(BackendEntry entry);
+public abstract class SchemaLabel extends SchemaElement implements Indexfiable {
 
-    public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel);
-    public EdgeLabel readEdgeLabel(BackendEntry entry);
+    protected Set<String> indexNames;
 
-    public BackendEntry writePropertyKey(PropertyKey propertyKey);
-    public PropertyKey readPropertyKey(BackendEntry entry);
+    public SchemaLabel(String name) {
+        super(name);
+        this.indexNames = new HashSet<>();
+    }
 
-    public BackendEntry writeIndexLabel(IndexLabel indexLabel);
-    public IndexLabel readIndexLabel(BackendEntry entry);
+    public Set<String> indexNames() {
+        return this.indexNames;
+    }
+
+    public abstract SchemaLabel indexNames(String... names);
 }

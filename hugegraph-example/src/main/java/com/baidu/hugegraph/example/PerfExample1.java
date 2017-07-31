@@ -36,10 +36,10 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.schema.EdgeLabel;
-import com.baidu.hugegraph.type.schema.VertexLabel;
 
 public class PerfExample1 {
 
@@ -100,44 +100,44 @@ public class PerfExample1 {
     }
 
     public static void initSchema(SchemaManager schema) {
-        schema.makePropertyKey("name").asText().create();
-        schema.makePropertyKey("age").asInt().create();
-        schema.makePropertyKey("lang").asText().create();
-        schema.makePropertyKey("date").asText().create();
-        schema.makePropertyKey("price").asInt().create();
+        schema.propertyKey("name").asText().create();
+        schema.propertyKey("age").asInt().create();
+        schema.propertyKey("lang").asText().create();
+        schema.propertyKey("date").asText().create();
+        schema.propertyKey("price").asInt().create();
 
-        VertexLabel person = schema.makeVertexLabel("person")
+        VertexLabel person = schema.vertexLabel("person")
                 .properties("name", "age")
                 .primaryKeys("name")
                 .ifNotExist()
                 .create();
 
-        VertexLabel software = schema.makeVertexLabel("software")
+        VertexLabel software = schema.vertexLabel("software")
                 .properties("name", "lang", "price")
                 .primaryKeys("name")
                 .ifNotExist()
                 .create();
 
-//        schema.makeIndexLabel("personByName")
+//        schema.indexLabel("personByName")
 //                .on(person).by("name")
 //                .secondary()
 //                .ifNotExist()
 //                .create();
 //
-//        schema.makeIndexLabel("softwareByPrice")
+//        schema.indexLabel("softwareByPrice")
 //                .on(software).by("price")
 //                .search()
 //                .ifNotExist()
 //                .create();
 
-        EdgeLabel knows = schema.makeEdgeLabel("knows")
-                .link("person", "person")
+        EdgeLabel knows = schema.edgeLabel("knows")
+                .sourceLabel("person").targetLabel("person")
                 .properties("date")
                 .ifNotExist()
                 .create();
 
-        EdgeLabel created = schema.makeEdgeLabel("created")
-                .link("person", "software")
+        EdgeLabel created = schema.edgeLabel("created")
+                .sourceLabel("person").targetLabel("software")
                 .properties("date")
                 .ifNotExist()
                 .create();

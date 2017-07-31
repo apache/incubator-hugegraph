@@ -36,8 +36,8 @@ public enum HugeKeys {
     /* Column names of schema type (EdgeLabel) */
     LINKS(80, "links"),
     FREQUENCY(81, "frequency"),
-    SRC_VERTEX_LABEL(82, "srcVertexLabel"),
-    TGT_VERTEX_LABEL(83, "tgtVertexLabel"),
+    SOURCE_LABEL(82, "sourceLabel"),
+    TARGET_LABEL(83, "targetLabel"),
     SORT_KEYS(84, "sortKeys"),
 
     /* Column names of schema type (PropertyKey) */

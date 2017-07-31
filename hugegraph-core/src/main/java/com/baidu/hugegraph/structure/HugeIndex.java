@@ -26,9 +26,9 @@ import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.schema.IndexLabel;
 
 
 public class HugeIndex implements GraphType {

@@ -25,7 +25,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.type.schema.PropertyKey;
+import com.baidu.hugegraph.schema.PropertyKey;
 
 public class HugeVertexProperty<V> extends HugeProperty<V>
                                    implements VertexProperty<V> {

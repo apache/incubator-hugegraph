@@ -39,10 +39,9 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.HugePropertyKey;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.schema.PropertyKey;
 
 
 
@@ -66,7 +65,7 @@ public class PropertyKeyAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         PropertyKey propertyKey = jsonPropertyKey.convert2PropertyKey();
-        g.schema().create(propertyKey);
+        g.schema().propertyKey(propertyKey).create();
 
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
@@ -127,7 +126,7 @@ public class PropertyKeyAPI extends API {
         }
 
         public PropertyKey convert2PropertyKey() {
-            HugePropertyKey propertyKey = new HugePropertyKey(this.name);
+            PropertyKey propertyKey = new PropertyKey(this.name);
             propertyKey.cardinality(this.cardinality);
             propertyKey.dataType(this.dataType);
             propertyKey.properties(this.properties);
