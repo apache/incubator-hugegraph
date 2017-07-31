@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
 
     <distributionManagement>
         <snapshotRepository>
@@ -145,13 +145,16 @@
                     <archive>
                         <index>true</index>
                         <manifest>
-                            <addDefaultImplementationEntries>false
+                            <addDefaultImplementationEntries>
+                                false
                             </addDefaultImplementationEntries>
-                            <addDefaultSpecificationEntries>true
+                            <addDefaultSpecificationEntries>
+                                true
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>0.1.0.1
+                            <Implementation-Version>
+                                1.1.0.0
                             </Implementation-Version>
                         </manifestEntries>
                     </archive>
