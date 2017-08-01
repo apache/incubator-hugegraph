@@ -29,6 +29,10 @@ import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.monitoring.ApplicationEvent;
+import org.glassfish.jersey.server.monitoring.ApplicationEventListener;
+import org.glassfish.jersey.server.monitoring.RequestEvent;
+import org.glassfish.jersey.server.monitoring.RequestEventListener;
 
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -44,9 +48,10 @@ public class ApplicationConfig extends ResourceConfig {
         // Register Jackson to support json
         register(org.glassfish.jersey.jackson.JacksonFeature.class);
 
-        // Register Configuration to context
+        // Register HugeConfig to context
         register(new ConfFactory(conf));
 
+        // Register GraphManager to context
         register(new GraphManagerFactory(parseGraphs(conf)));
     }
 
@@ -61,8 +66,8 @@ public class ApplicationConfig extends ResourceConfig {
         return graphMap;
     }
 
-    static class ConfFactory extends AbstractBinder
-            implements Factory<HugeConfig> {
+    private class ConfFactory extends AbstractBinder
+                              implements Factory<HugeConfig> {
 
         private HugeConfig conf = null;
 
@@ -87,13 +92,27 @@ public class ApplicationConfig extends ResourceConfig {
         }
     }
 
-    static class GraphManagerFactory extends AbstractBinder
-            implements Factory<GraphManager> {
+    private class GraphManagerFactory extends AbstractBinder
+                                      implements Factory<GraphManager> {
 
         private GraphManager manager = null;
 
         public GraphManagerFactory(final Map<String, String> graphConfs) {
-            this.manager = new GraphManager(graphConfs);
+            register(new ApplicationEventListener() {
+                private final ApplicationEvent.Type EVENT_INITED =
+                              ApplicationEvent.Type.INITIALIZATION_FINISHED;
+                @Override
+                public void onEvent(ApplicationEvent event) {
+                    if (event.getType() == this.EVENT_INITED) {
+                        manager = new GraphManager(graphConfs);
+                    }
+                }
+
+                @Override
+                public RequestEventListener onRequest(RequestEvent event) {
+                    return null;
+                }
+            });
         }
 
         @Override
@@ -103,6 +122,7 @@ public class ApplicationConfig extends ResourceConfig {
 
         @Override
         public GraphManager provide() {
+            E.checkNotNull(this.manager, "manager");
             return this.manager;
         }
 
