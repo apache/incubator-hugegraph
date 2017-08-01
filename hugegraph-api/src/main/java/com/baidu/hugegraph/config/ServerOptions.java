@@ -22,7 +22,6 @@ package com.baidu.hugegraph.config;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
-
 public class ServerOptions extends OptionHolder {
 
     private ServerOptions() {

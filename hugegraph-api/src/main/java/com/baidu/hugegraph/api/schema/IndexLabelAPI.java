@@ -43,14 +43,12 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 
-
-
 @Path("graphs/{graph}/schema/indexlabels")
 @Singleton
 public class IndexLabelAPI extends API {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(VertexLabelAPI.class);
+                         LoggerFactory.getLogger(VertexLabelAPI.class);
 
     @POST
     @Status(Status.CREATED)

@@ -38,7 +38,7 @@ import com.baidu.hugegraph.server.HugeServer;
 public final class GraphManager {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(HugeServer.class);
+                         LoggerFactory.getLogger(HugeServer.class);
 
     private final Map<String, Graph> graphs;
 

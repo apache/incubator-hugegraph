@@ -43,14 +43,12 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 
-
-
 @Path("graphs/{graph}/schema/propertykeys")
 @Singleton
 public class PropertyKeyAPI extends API {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(PropertyKeyAPI.class);
+                         LoggerFactory.getLogger(PropertyKeyAPI.class);
 
     @POST
     @Status(Status.CREATED)

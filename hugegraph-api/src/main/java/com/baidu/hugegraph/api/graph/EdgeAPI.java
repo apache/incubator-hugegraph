@@ -67,7 +67,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class EdgeAPI extends API {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(HugeServer.class);
+                         LoggerFactory.getLogger(HugeServer.class);
 
     @POST
     @Status(Status.CREATED)

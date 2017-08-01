@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableMap;
 public class GraphsAPI extends API {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(HugeServer.class);
+                         LoggerFactory.getLogger(HugeServer.class);
 
     private static final String TOKEN = "162f7848-0b6d-4faf-b557-3a0797869c55";
 

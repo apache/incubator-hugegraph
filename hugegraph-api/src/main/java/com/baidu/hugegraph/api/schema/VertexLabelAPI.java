@@ -42,14 +42,12 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 
-
-
 @Path("graphs/{graph}/schema/vertexlabels")
 @Singleton
 public class VertexLabelAPI extends API {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(VertexLabelAPI.class);
+                         LoggerFactory.getLogger(VertexLabelAPI.class);
 
     @POST
     @Status(Status.CREATED)
