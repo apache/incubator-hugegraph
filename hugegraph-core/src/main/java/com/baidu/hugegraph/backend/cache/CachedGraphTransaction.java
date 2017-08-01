@@ -133,4 +133,12 @@ public class CachedGraphTransaction extends GraphTransaction {
 
         super.removeEdge(edge);
     }
+
+    @Override
+    public void removeIndex(String indexName) {
+        // TODO: Use a more precise strategy to update the edge cache
+        this.edgesCache.clear();
+
+        super.removeIndex(indexName);
+    }
 }

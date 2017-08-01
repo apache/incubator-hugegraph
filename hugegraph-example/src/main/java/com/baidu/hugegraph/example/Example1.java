@@ -368,7 +368,6 @@ public class Example1 {
             assert e.getMessage().contains("Not found the EDGE entry");
         }
 
-        // TODO: move to core test
         // test index remove and index rebuild
         personByCity.remove();
         personByAge.remove();
