@@ -424,20 +424,21 @@ public abstract class CassandraTable {
             if (!idNames.contains(key)) {
                 /*
                  * NOTE: eliminate from map<text, text> should just pass key,
-                 * if use following statement:
+                 * if use the following statement:
                  * UPDATE vertices SET PROPERTIES=PROPERTIES-{'city':'"Wuhan"'}
                  * WHERE LABEL='person' AND PRIMARY_VALUES='josh';
-                 * will throw a cassandra exception:
-                 * "Invalid map literal for properties of typefrozen<set<text>>"
+                 * it will throw a cassandra exception:
+                 * Invalid map literal for properties of typefrozen<set<text>>
                  */
                 Object value = column.getValue();
                 if (value instanceof Map) {
+                    @SuppressWarnings("rawtypes")
                     Set<?> keySet = ((Map) value).keySet();
                     update.with(QueryBuilder.removeAll(key, keySet));
                 } else if (value instanceof Set) {
-                    update.with(QueryBuilder.removeAll(key, (Set) value));
+                    update.with(QueryBuilder.removeAll(key, (Set<?>) value));
                 } else if (value instanceof List) {
-                    Set<?> keySet = new HashSet<>((List) value);
+                    Set<?> keySet = new HashSet<>((List<?>) value);
                     update.with(QueryBuilder.removeAll(key, keySet));
                 } else {
                     update.with(QueryBuilder.remove(key, value));
