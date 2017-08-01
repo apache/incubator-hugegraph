@@ -33,26 +33,26 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 
 public final class HugeVertexStepStrategy
-        extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
-        implements ProviderOptimizationStrategy {
+             extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
+             implements ProviderOptimizationStrategy {
 
     private static final long serialVersionUID = 491355700217483162L;
 
     private static final HugeVertexStepStrategy INSTANCE =
-            new HugeVertexStepStrategy();
+                                                new HugeVertexStepStrategy();
 
     private HugeVertexStepStrategy() {
-        // Pass
+        // pass
     }
 
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void apply(final Traversal.Admin<?, ?> traversal) {
-        List<VertexStep> steps =
-                TraversalHelper.getStepsOfClass(VertexStep.class, traversal);
-        for (VertexStep originalStep : steps) {
-            HugeVertexStep<?> newStep = new HugeVertexStep<>(originalStep);
-            TraversalHelper.replaceStep(originalStep, newStep, traversal);
+        List<VertexStep> steps = TraversalHelper.getStepsOfClass(
+                                 VertexStep.class, traversal);
+        for (VertexStep originStep : steps) {
+            HugeVertexStep<?> newStep = new HugeVertexStep<>(originStep);
+            TraversalHelper.replaceStep(originStep, newStep, traversal);
             extractHasContainer(newStep, traversal);
         }
     }
@@ -76,5 +76,4 @@ public final class HugeVertexStepStrategy
     public static HugeVertexStepStrategy instance() {
         return INSTANCE;
     }
-
 }

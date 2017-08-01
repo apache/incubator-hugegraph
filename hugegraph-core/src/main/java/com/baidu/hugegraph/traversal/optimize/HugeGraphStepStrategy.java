@@ -40,21 +40,21 @@ public final class HugeGraphStepStrategy
     private static final long serialVersionUID = -2952498905649139719L;
 
     private static final HugeGraphStepStrategy INSTANCE =
-            new HugeGraphStepStrategy();
+                                               new HugeGraphStepStrategy();
 
     private HugeGraphStepStrategy() {
-        // Pass
+        // pass
     }
 
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void apply(Traversal.Admin<?, ?> traversal) {
-        // extract conditions in GraphStep
+        // Extract conditions in GraphStep
         List<GraphStep> steps = TraversalHelper.getStepsOfClass(
-                GraphStep.class, traversal);
-        for (GraphStep originalStep : steps) {
-            HugeGraphStep<?, ?> newStep = new HugeGraphStep<>(originalStep);
-            TraversalHelper.replaceStep(originalStep, newStep, traversal);
+                                GraphStep.class, traversal);
+        for (GraphStep originStep : steps) {
+            HugeGraphStep<?, ?> newStep = new HugeGraphStep<>(originStep);
+            TraversalHelper.replaceStep(originStep, newStep, traversal);
             extractHasContainer(newStep, traversal);
             extractRange(newStep, traversal);
         }
@@ -62,9 +62,9 @@ public final class HugeGraphStepStrategy
 
     protected static void extractHasContainer(HugeGraphStep<?, ?> newStep,
                                               Traversal.Admin<?, ?> traversal) {
-        Step<?, ?> step = null;
+        Step<?, ?> step = newStep;
         do {
-            step = newStep.getNextStep();
+            step = step.getNextStep();
             if (step instanceof HasStep) {
                 HasContainerHolder holder = (HasContainerHolder) step;
                 for (HasContainer has : holder.getHasContainers()) {
@@ -80,9 +80,9 @@ public final class HugeGraphStepStrategy
 
     protected static void extractRange(HugeGraphStep<?, ?> newStep,
                                        Traversal.Admin<?, ?> traversal) {
-        Step<?, ?> step = null;
+        Step<?, ?> step = newStep;
         do {
-            step = newStep.getNextStep();
+            step = step.getNextStep();
             if (step instanceof RangeGlobalStep) {
                 // NOTE: we just deal with the first limit
                 // (maybe should the min one)
