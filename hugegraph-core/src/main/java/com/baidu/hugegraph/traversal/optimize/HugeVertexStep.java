@@ -19,10 +19,10 @@
 
 package com.baidu.hugegraph.traversal.optimize;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
@@ -45,21 +45,21 @@ import com.baidu.hugegraph.type.ExtendableIterator;
 import com.google.common.collect.ImmutableSet;
 
 public final class HugeVertexStep<E extends Element>
-        extends VertexStep<E> implements HasContainerHolder {
+             extends VertexStep<E> implements HasContainerHolder {
 
     private static final long serialVersionUID = -7850636388424382454L;
 
     private static final Logger logger =
-            LoggerFactory.getLogger(HugeVertexStep.class);
+                         LoggerFactory.getLogger(HugeVertexStep.class);
 
-    private final List<HasContainer> hasContainers = new ArrayList<>();;
+    private final List<HasContainer> hasContainers = new ArrayList<>();
 
-    public HugeVertexStep(final VertexStep<E> originalVertexStep) {
-        super(originalVertexStep.getTraversal(),
-              originalVertexStep.getReturnClass(),
-              originalVertexStep.getDirection(),
-              originalVertexStep.getEdgeLabels());
-        originalVertexStep.getLabels().forEach(this::addLabel);
+    public HugeVertexStep(final VertexStep<E> originVertexStep) {
+        super(originVertexStep.getTraversal(),
+              originVertexStep.getReturnClass(),
+              originVertexStep.getDirection(),
+              originVertexStep.getEdgeLabels());
+        originVertexStep.getLabels().forEach(this::addLabel);
     }
 
     @SuppressWarnings("unchecked")
@@ -76,7 +76,7 @@ public final class HugeVertexStep<E extends Element>
         }
     }
 
-    private Iterator<Vertex> vertices(final Traverser.Admin<Vertex> traverser) {
+    private Iterator<Vertex> vertices(Traverser.Admin<Vertex> traverser) {
         HugeGraph graph = (HugeGraph) traverser.get().graph();
         Vertex vertex = traverser.get();
 
@@ -92,7 +92,7 @@ public final class HugeVertexStep<E extends Element>
         return HugeGraphStep.filterResult(this.hasContainers, vertices);
     }
 
-    private Iterator<Edge> edges(final Traverser.Admin<Vertex> traverser) {
+    private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
         HugeGraph graph = (HugeGraph) traverser.get().graph();
 
         Vertex vertex = traverser.get();
@@ -112,7 +112,7 @@ public final class HugeVertexStep<E extends Element>
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
         for (Direction dir : directions) {
             ConditionQuery query = GraphTransaction.constructEdgesQuery(
-                    (Id) vertex.id(), dir, edgeLabels);
+                                   (Id) vertex.id(), dir, edgeLabels);
 
             // Enable conditions if query for edge else conditions for vertex
             if (Edge.class.isAssignableFrom(getReturnClass())) {
@@ -139,11 +139,11 @@ public final class HugeVertexStep<E extends Element>
         }
 
         return StringFactory.stepString(
-                this,
-                getDirection(),
-                Arrays.asList(getEdgeLabels()),
-                getReturnClass().getSimpleName(),
-                this.hasContainers);
+               this,
+               getDirection(),
+               Arrays.asList(getEdgeLabels()),
+               getReturnClass().getSimpleName(),
+               this.hasContainers);
     }
 
     @Override

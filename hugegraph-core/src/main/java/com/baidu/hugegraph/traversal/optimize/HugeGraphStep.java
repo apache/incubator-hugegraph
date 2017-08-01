@@ -18,10 +18,10 @@
  */
 package com.baidu.hugegraph.traversal.optimize;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiPredicate;
 
@@ -51,30 +51,31 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public final class HugeGraphStep<S, E extends Element>
-        extends GraphStep<S, E> implements HasContainerHolder {
+             extends GraphStep<S, E> implements HasContainerHolder {
 
     private static final long serialVersionUID = -679873894532085972L;
 
     private static final Logger logger =
-            LoggerFactory.getLogger(HugeGraphStep.class);
+                         LoggerFactory.getLogger(HugeGraphStep.class);
 
     private final List<HasContainer> hasContainers = new ArrayList<>();
     private long limit = Query.NO_LIMIT;
     private long offset = 0;
 
-    public HugeGraphStep(final GraphStep<S, E> originalGraphStep) {
-        super(originalGraphStep.getTraversal(),
-              originalGraphStep.getReturnClass(),
-              originalGraphStep.isStartStep(),
-              originalGraphStep.getIds());
+    public HugeGraphStep(final GraphStep<S, E> originGraphStep) {
+        super(originGraphStep.getTraversal(),
+              originGraphStep.getReturnClass(),
+              originGraphStep.isStartStep(),
+              originGraphStep.getIds());
 
-        originalGraphStep.getLabels().forEach(this::addLabel);
+        originGraphStep.getLabels().forEach(this::addLabel);
 
         boolean queryVertex = Vertex.class.isAssignableFrom(this.returnClass);
         boolean queryEdge = Edge.class.isAssignableFrom(this.returnClass);
         assert queryVertex || queryEdge;
-        this.setIteratorSupplier(() -> (
-                queryVertex ? this.vertices() : this.edges()));
+        this.setIteratorSupplier(() -> {
+            return queryVertex ? this.vertices() : this.edges();
+        });
     }
 
     private Iterator<E> vertices() {
