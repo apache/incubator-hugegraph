@@ -19,9 +19,6 @@
 
 package com.baidu.hugegraph.concurrent;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
@@ -31,15 +28,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class LockGroup {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(LockManager.class);
-
-    private String name;
-    private Map<String, Object> locksMap;
+    private final String name;
+    private final Map<String, Object> locksMap;
 
     public LockGroup(String lockGroup) {
         this.name = lockGroup;
-        this.locksMap = new ConcurrentHashMap();
+        this.locksMap = new ConcurrentHashMap<>();
     }
 
     public Lock lock(String lockName) {
@@ -65,9 +59,5 @@ public class LockGroup {
 
     public String name() {
         return this.name;
-    }
-
-    public void name(String name) {
-        this.name = name;
     }
 }
