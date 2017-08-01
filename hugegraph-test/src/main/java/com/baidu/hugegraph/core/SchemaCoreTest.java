@@ -19,7 +19,11 @@
 
 package com.baidu.hugegraph.core;
 
+import com.baidu.hugegraph.backend.BackendException;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -416,7 +420,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                 .create();
 
         IndexLabel authoredByContri = schema.makeIndexLabel("authoredByContri")
-                .on(authored).secondary().by("city").create();
+                .on(authored).secondary().by("contribution").create();
 
         Assert.assertNotNull(authoredByContri);
         Assert.assertEquals(1, authored.indexNames().size());
@@ -426,6 +430,326 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertEquals(IndexType.SECONDARY, authoredByContri.indexType());
     }
 
+    @Test
+    public void testAddIndexLabelOfVertexWithVertexExist() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        VertexLabel person = schema.makeVertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .create();
+
+        graph().addVertex(T.label, "person", "name", "Baby",
+                          "city", "Hongkong", "age", 3);
+
+        Utils.assertThrows(BackendException.class, () -> {
+            graph().traversal().V().hasLabel("person")
+                   .has("city", "Hongkong").next();
+        });
+
+        schema.makeIndexLabel("personByCity").on(person).secondary()
+              .by("city").create();
+
+        Vertex vertex = graph().traversal().V().hasLabel("person")
+                               .has("city", "Hongkong").next();
+        Assert.assertNotNull(vertex);
+
+        Utils.assertThrows(BackendException.class, () -> {
+            graph().traversal().V().hasLabel("person")
+                   .has("age", P.inside(2, 4)).next();
+        });
+        schema.makeIndexLabel("personByAge").on(person).search()
+              .by("age").create();
+
+        vertex = graph().traversal().V().hasLabel("person")
+                        .has("age", P.inside(2, 4)).next();
+        Assert.assertNotNull(vertex);
+    }
+
+    @Test
+    public void testAddIndexLabelOfEdgeWithEdgeExist() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        schema.makeVertexLabel("author").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.makeVertexLabel("book").properties("name")
+              .primaryKeys("name").create();
+        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+                                   .link("author", "book")
+                                   .properties("contribution")
+                                   .create();
+
+        Vertex james = graph().addVertex(T.label, "author", "id", 1,
+                                         "name", "James Gosling");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "java-1");
+
+        james.addEdge("authored", java1,"contribution", "test");
+        Utils.assertThrows(BackendException.class, () -> {
+            graph().traversal().E().hasLabel("authored")
+                   .has("contribution", "test").next();
+        });
+
+        schema.makeIndexLabel("authoredByContri")
+              .on(authored).secondary().by("contribution").create();
+
+        Edge edge = graph().traversal().E().hasLabel("authored")
+                           .has("contribution", "test").next();
+        Assert.assertNotNull(edge);
+    }
+
+    @Test
+    public void testRemoveIndexLabelOfVertex() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        VertexLabel person = schema.makeVertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .create();
+        IndexLabel personByCity = schema.makeIndexLabel("personByCity")
+                                        .on(person).secondary().by("city")
+                                        .create();
+        IndexLabel personByAge = schema.makeIndexLabel("personByAge")
+                                       .on(person).search().by("age").create();
+
+        Assert.assertEquals(2, person.indexNames().size());
+        Assert.assertTrue(person.indexNames().contains("personByCity"));
+        Assert.assertTrue(person.indexNames().contains("personByAge"));
+
+        graph().addVertex(T.label, "person", "name", "Baby",
+                          "city", "Hongkong", "age", 3);
+        Vertex vertex = graph().traversal().V().hasLabel("person")
+                               .has("city", "Hongkong").next();
+        Assert.assertNotNull(vertex);
+        vertex = graph().traversal().V().hasLabel("person")
+                        .has("age", P.inside(2, 4)).next();
+        Assert.assertNotNull(vertex);
+
+        personByCity.remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel(personByCity.name());
+        });
+
+        Assert.assertEquals(1, person.indexNames().size());
+        Assert.assertTrue(!person.indexNames().contains("personByCity"));
+        Assert.assertTrue(person.indexNames().contains("personByAge"));
+
+        Utils.assertThrows(BackendException.class, () -> {
+            graph().traversal().V().hasLabel("person")
+                   .has("city", "Hongkong").next();
+        });
+        vertex = graph().traversal().V().hasLabel("person")
+                        .has("age", P.inside(2, 4)).next();
+        Assert.assertNotNull(vertex);
+
+        personByAge.remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel(personByAge.name());
+        });
+
+        Assert.assertEquals(0, person.indexNames().size());
+
+        Utils.assertThrows(BackendException.class, () -> {
+            graph().traversal().V().hasLabel("person")
+                   .has("age", P.inside(2, 4)).next();
+        });
+    }
+
+    @Test
+    public void testRemoveIndexLabelOfEdge() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        schema.makeVertexLabel("author").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.makeVertexLabel("book").properties("name")
+              .primaryKeys("name").create();
+        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+                                   .link("author", "book")
+                                   .properties("contribution")
+                                   .create();
+
+        Vertex james = graph().addVertex(T.label, "author", "id", 1,
+                                         "name", "James Gosling");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "java-1");
+
+        IndexLabel authoredByContri = schema.makeIndexLabel("authoredByContri")
+                                            .on(authored).secondary()
+                                            .by("contribution").create();
+
+        Assert.assertEquals(1, authored.indexNames().size());
+        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+
+        james.addEdge("authored", java1,"contribution", "test");
+
+        Edge edge = graph().traversal().E().hasLabel("authored")
+                           .has("contribution", "test").next();
+        Assert.assertNotNull(edge);
+
+        authoredByContri.remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel(authoredByContri.name());
+        });
+
+        Assert.assertEquals(0, authored.indexNames().size());
+
+        Utils.assertThrows(BackendException.class, () -> {
+            graph().traversal().E().hasLabel("authored")
+                   .has("contribution", "test").next();
+        });
+    }
+
+    @Test
+    public void testRebuildIndexLabelOfVertex() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        VertexLabel person = schema.makeVertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .create();
+        IndexLabel personByCity = schema.makeIndexLabel("personByCity")
+                                        .on(person).secondary()
+                                        .by("city").create();
+        IndexLabel personByAge = schema.makeIndexLabel("personByAge")
+                                       .on(person).search().by("age").create();
+
+        Assert.assertEquals(2, person.indexNames().size());
+        Assert.assertTrue(person.indexNames().contains("personByCity"));
+        Assert.assertTrue(person.indexNames().contains("personByAge"));
+
+        graph().addVertex(T.label, "person", "name", "Baby",
+                          "city", "Hongkong", "age", 3);
+        Vertex vertex = graph().traversal().V().hasLabel("person")
+                               .has("city", "Hongkong").next();
+        Assert.assertNotNull(vertex);
+        vertex = graph().traversal().V().hasLabel("person")
+                        .has("age", P.inside(2, 4)).next();
+        Assert.assertNotNull(vertex);
+
+        personByCity.rebuild();
+        vertex = graph().traversal().V().hasLabel("person")
+                        .has("city", "Hongkong").next();
+        Assert.assertNotNull(vertex);
+
+        personByAge.rebuild();
+        vertex = graph().traversal().V().hasLabel("person")
+                        .has("age", P.inside(2, 4)).next();
+        Assert.assertNotNull(vertex);
+    }
+
+    @Test
+    public void testRebuildIndexLabelOfVertexLabel() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        VertexLabel person = schema.makeVertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .create();
+        schema.makeIndexLabel("personByCity").on(person).secondary()
+              .by("city").create();
+        schema.makeIndexLabel("personByAge").on(person).search()
+              .by("age").create();
+
+        Assert.assertEquals(2, person.indexNames().size());
+        Assert.assertTrue(person.indexNames().contains("personByCity"));
+        Assert.assertTrue(person.indexNames().contains("personByAge"));
+
+        graph().addVertex(T.label, "person", "name", "Baby",
+                          "city", "Hongkong", "age", 3);
+        Vertex vertex = graph().traversal().V().hasLabel("person")
+                               .has("city", "Hongkong").next();
+        Assert.assertNotNull(vertex);
+        vertex = graph().traversal().V().hasLabel("person")
+                        .has("age", P.inside(2, 4)).next();
+        Assert.assertNotNull(vertex);
+
+        person.rebuildIndex();
+        vertex = graph().traversal().V().hasLabel("person")
+                        .has("city", "Hongkong").next();
+        Assert.assertNotNull(vertex);
+        vertex = graph().traversal().V().hasLabel("person")
+                        .has("age", P.inside(2, 4)).next();
+        Assert.assertNotNull(vertex);
+    }
+
+    @Test
+    public void testRebuildIndexLabelOfEdgeLabel() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        schema.makeVertexLabel("author").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.makeVertexLabel("book").properties("name")
+              .primaryKeys("name").create();
+        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+                                   .link("author", "book")
+                                   .properties("contribution")
+                                   .create();
+
+        Vertex james = graph().addVertex(T.label, "author", "id", 1,
+                                         "name", "James Gosling");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "java-1");
+
+        IndexLabel authoredByContri = schema.makeIndexLabel("authoredByContri")
+                                            .on(authored).secondary()
+                                            .by("contribution").create();
+
+        Assert.assertEquals(1, authored.indexNames().size());
+        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+
+        james.addEdge("authored", java1,"contribution", "test");
+
+        Edge edge = graph().traversal().E().hasLabel("authored")
+                           .has("contribution", "test").next();
+        Assert.assertNotNull(edge);
+
+        authoredByContri.rebuild();
+        Assert.assertEquals(1, authored.indexNames().size());
+        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+
+        edge = graph().traversal().E().hasLabel("authored")
+                      .has("contribution", "test").next();
+        Assert.assertNotNull(edge);
+    }
+
+    @Test
+    public void testRebuildIndexLabelOfEdge() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        schema.makeVertexLabel("author").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.makeVertexLabel("book").properties("name")
+              .primaryKeys("name").create();
+        EdgeLabel authored = schema.makeEdgeLabel("authored").singleTime()
+                                   .link("author", "book")
+                                   .properties("contribution")
+                                   .create();
+
+        Vertex james = graph().addVertex(T.label, "author", "id", 1,
+                                         "name", "James Gosling");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "java-1");
+
+        schema.makeIndexLabel("authoredByContri")
+              .on(authored).secondary().by("contribution").create();
+
+        Assert.assertEquals(1, authored.indexNames().size());
+        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+
+        james.addEdge("authored", java1,"contribution", "test");
+
+        Edge edge = graph().traversal().E().hasLabel("authored")
+                           .has("contribution", "test").next();
+        Assert.assertNotNull(edge);
+
+        authored.rebuildIndex();
+        Assert.assertEquals(1, authored.indexNames().size());
+        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+        edge = graph().traversal().E().hasLabel("authored")
+                      .has("contribution", "test").next();
+        Assert.assertNotNull(edge);
+    }
+
+
     // utils
     private void initProperties() {
         SchemaManager schema = graph().schema();
@@ -434,6 +758,6 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.makePropertyKey("age").asInt().valueSingle().create();
         schema.makePropertyKey("city").asText().create();
         schema.makePropertyKey("time").asText().create();
-        schema.makePropertyKey("contribution").asText().valueSet().create();
+        schema.makePropertyKey("contribution").asText().create();
     }
 }
