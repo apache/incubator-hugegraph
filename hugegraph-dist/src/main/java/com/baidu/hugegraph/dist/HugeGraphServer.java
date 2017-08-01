@@ -24,6 +24,7 @@ import com.baidu.hugegraph.server.HugeServer;
 
 
 public class HugeGraphServer {
+
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
             throw new HugeException("HugeGraphServer can only accept one " +

@@ -34,7 +34,6 @@ import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
 
-
 public class RegisterUtil {
 
     static {

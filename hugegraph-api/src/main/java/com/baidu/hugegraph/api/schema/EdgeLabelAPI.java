@@ -43,14 +43,12 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.Frequency;
 
-
-
 @Path("graphs/{graph}/schema/edgelabels")
 @Singleton
 public class EdgeLabelAPI extends API {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(EdgeLabelAPI.class);
+                         LoggerFactory.getLogger(EdgeLabelAPI.class);
 
     @POST
     @Status(Status.CREATED)

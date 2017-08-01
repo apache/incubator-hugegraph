@@ -31,7 +31,6 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.E;
 
-
 public class InitStore {
 
     public static void main(String[] args)

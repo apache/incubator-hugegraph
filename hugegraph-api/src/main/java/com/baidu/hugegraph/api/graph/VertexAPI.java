@@ -61,7 +61,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class VertexAPI extends API {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(HugeServer.class);
+                         LoggerFactory.getLogger(HugeServer.class);
 
     @POST
     @Status(Status.CREATED)
