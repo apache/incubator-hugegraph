@@ -33,6 +33,14 @@
                     <groupId>org.slf4j</groupId>
                     <artifactId>jcl-over-slf4j</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -44,26 +52,6 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.4</version>
-                <executions>
-                    <execution>
-                        <id>assembly-hugegraph-cassandra</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <attach>false</attach>
-                            <appendAssemblyId>false</appendAssemblyId>
-                            <outputDirectory>${top.level.dir}</outputDirectory>
-                            <descriptor>src/assembly/assembly.xml</descriptor>
-                            <finalName>${final.name}</finalName>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-clean-plugin</artifactId>
                 <version>3.0.0</version>
                 <configuration>
@@ -72,14 +60,6 @@
                             <directory>${top.level.dir}</directory>
                             <includes>
                                 <include>*.tar.gz</include>
-                                <!--<include>${final.name}/bin/cassadra</include>-->
-                                <!--<include>${final.name}/bin/cassadra.in.sh</include>-->
-                                <!--<include>${final.name}/bin/cqlsh</include>-->
-                                <!--<include>${final.name}/bin/nodetool</include>-->
-                                <!--<include>${final.name}/bin/start-cassandra.sh</include>-->
-                                <!--<include>${final.name}/bin/stop-cassandra.sh</include>-->
-                                <!--<include>${final.name}/conf/cassandra/**</include>-->
-                                <!--<include>${final.name}/**</include>-->
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>
