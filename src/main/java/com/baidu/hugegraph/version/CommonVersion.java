@@ -23,5 +23,7 @@ import com.baidu.hugegraph.util.VersionUtil.Version;
 
 public class CommonVersion {
 
+    public static final String NAME = "hugegraph-common";
+
     public static final Version VERSION = Version.of(CommonVersion.class);
 }

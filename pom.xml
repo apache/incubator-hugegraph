@@ -154,7 +154,7 @@
                         </manifest>
                         <manifestEntries>
                             <Implementation-Version>
-                                1.1.0.1
+                                1.1.0.2
                             </Implementation-Version>
                         </manifestEntries>
                     </archive>
