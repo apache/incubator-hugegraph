@@ -36,14 +36,14 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.version.ApiVersion;
 
 public class HugeServer {
 
     private static final Logger logger =
-                         LoggerFactory.getLogger(HugeServer.class);
+            LoggerFactory.getLogger(HugeServer.class);
 
     private HugeConfig conf = null;
+
     private HttpServer httpServer = null;
 
     public HugeServer(HugeConfig conf) {
@@ -97,8 +97,6 @@ public class HugeServer {
     }
 
     public static void main(String[] args) throws Exception {
-        ApiVersion.check();
-
         try {
             HugeServer.start(args);
             Thread.currentThread().join();
