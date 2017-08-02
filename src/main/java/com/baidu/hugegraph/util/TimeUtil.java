@@ -37,7 +37,7 @@ public final class TimeUtil {
         return time - twepoch;
     }
 
-    public static long tilNextMillis(long lastTimestamp) {
+    public static long tillNextMillis(long lastTimestamp) {
         long timestamp = timeGen();
         while (timestamp <= lastTimestamp) {
             timestamp = timeGen();

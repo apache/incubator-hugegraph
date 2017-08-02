@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.2.0-SNAPSHOT</version>
 
     <distributionManagement>
         <snapshotRepository>
@@ -154,7 +154,7 @@
                         </manifest>
                         <manifestEntries>
                             <Implementation-Version>
-                                1.1.0.2
+                                1.2.0.0
                             </Implementation-Version>
                         </manifestEntries>
                     </archive>
