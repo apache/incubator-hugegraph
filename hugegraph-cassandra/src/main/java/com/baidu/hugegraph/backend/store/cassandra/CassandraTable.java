@@ -416,7 +416,17 @@ public abstract class CassandraTable {
             if (!columns.containsKey(key)) {
                 continue;
             }
-            update.with(QueryBuilder.append(formatKey(key), columns.get(key)));
+
+            String name = formatKey(key);
+            Object value = columns.get(key);
+
+            if (value instanceof Map) {
+                update.with(QueryBuilder.putAll(name, (Map<?, ?>) value));
+            } else if (value instanceof List) {
+                update.with(QueryBuilder.appendAll(name, (List<?>) value));
+            } else {
+                update.with(QueryBuilder.append(name, value));
+            }
         }
 
         for (String idName : idNames) {
@@ -453,6 +463,7 @@ public abstract class CassandraTable {
             if (!columns.containsKey(key)) {
                 continue;
             }
+
             String name = formatKey(key);
             Object value = columns.get(key);
             if (value instanceof Map) {

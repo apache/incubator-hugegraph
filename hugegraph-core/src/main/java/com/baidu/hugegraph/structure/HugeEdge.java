@@ -38,6 +38,7 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
@@ -50,6 +51,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     protected HugeVertex owner;
     protected HugeVertex sourceVertex;
     protected HugeVertex targetVertex;
+
+    public HugeEdge(final HugeVertex owner, Id id, EdgeLabel label) {
+        this(owner.graph(), id, label);
+
+        this.owner = owner;
+        this.fresh = true;
+    }
 
     public HugeEdge(final HugeGraph graph, Id id, EdgeLabel label) {
         super(graph, id);
@@ -145,25 +153,24 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     public <V> Property<V> property(String key, V value) {
         E.checkArgument(this.label.properties().contains(key),
                         "Invalid property '%s' for edge label '%s', " +
-                        "expected: %s",
+                        "expect: %s",
                         key, this.label(), this.edgeLabel().properties());
-        HugeProperty<V> prop = this.addProperty(key, value);
-
-        /*
-         * Edge is new if id is null, Note that, currently we don't support
-         * custom id. Maybe the Vertex.attachProperties() has not been called
-         * if we support custom id, that should be improved in the future.
-         */
-        if (prop != null && this.id() != null) {
-            assert prop instanceof HugeEdgeProperty;
-            this.tx().addEdgeProperty((HugeEdgeProperty<V>) prop);
-        }
-        return prop;
+        return this.addProperty(key, value, true);
     }
 
     @Override
     protected <V> HugeEdgeProperty<V> newProperty(PropertyKey pkey, V val) {
         return new HugeEdgeProperty<>(this, pkey, val);
+    }
+
+    @Override
+    protected <V> void onUpdateProperty(Cardinality cardinality,
+                                        HugeProperty<V> prop) {
+        if (prop != null && !this.fresh()) {
+            assert prop instanceof HugeEdgeProperty;
+            // Use addEdgeProperty() to update
+            this.tx().addEdgeProperty((HugeEdgeProperty<V>) prop);
+        }
     }
 
     @Override

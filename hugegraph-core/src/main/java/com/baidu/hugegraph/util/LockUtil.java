@@ -19,16 +19,16 @@
 
 package com.baidu.hugegraph.util;
 
-import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.concurrent.LockManager;
-import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+
+import org.slf4j.Logger;
+
+import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.concurrent.LockManager;
 
 public class LockUtil {
 
@@ -103,7 +103,7 @@ public class LockUtil {
                 default:
                     throw new IllegalArgumentException(String.format(
                               "Invalid args '%s' at position '%s', " +
-                              "expected: 'write' or 'read'", locks[i], i));
+                              "expect 'write' or 'read'", locks[i], i));
             }
         }
         return lockList;

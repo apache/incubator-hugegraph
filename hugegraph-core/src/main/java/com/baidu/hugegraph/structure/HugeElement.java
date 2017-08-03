@@ -38,6 +38,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 
@@ -48,6 +49,7 @@ public abstract class HugeElement implements Element, GraphType {
     protected Id id;
     protected Map<String, HugeProperty<?>> properties;
     protected boolean removed;
+    protected boolean fresh;
 
     public HugeElement(final HugeGraph graph, Id id) {
         E.checkArgument(graph != null, "HugeElement graph can't be null");
@@ -55,11 +57,15 @@ public abstract class HugeElement implements Element, GraphType {
         this.id = id;
         this.properties = new HashMap<>();
         this.removed = false;
+        this.fresh = false;
     }
 
-    public abstract GraphTransaction tx();
+    protected abstract GraphTransaction tx();
 
-    protected abstract <V> HugeProperty<V> newProperty(PropertyKey pk, V v);
+    protected abstract <V> HugeProperty<V> newProperty(PropertyKey pk, V val);
+
+    protected abstract <V> void onUpdateProperty(Cardinality cardinality,
+                                                 HugeProperty<V> prop);
 
     @Override
     public Id id() {
@@ -73,6 +79,14 @@ public abstract class HugeElement implements Element, GraphType {
 
     public boolean removed() {
         return this.removed;
+    }
+
+    public boolean fresh() {
+        return this.fresh;
+    }
+
+    public void committed() {
+        this.fresh = false;
     }
 
     public Map<String, HugeProperty<?>> getProperties() {
@@ -116,24 +130,36 @@ public abstract class HugeElement implements Element, GraphType {
     }
 
     public <V> HugeProperty<V> addProperty(String key, V value) {
+        return this.addProperty(key, value, false);
+    }
+
+    public <V> HugeProperty<V> addProperty(String key, V value,
+                                           boolean notify) {
         HugeProperty<V> prop = null;
         PropertyKey pkey = this.graph.propertyKey(key);
         switch (pkey.cardinality()) {
             case SINGLE:
-                /*
-                 * NOTE: we don't support updating property(SINGLE), please use
-                 * remove() + add() instead.
-                 */
-                E.checkArgument(!this.hasProperty(key),
-                                "Not support updating property value");
                 prop = this.newProperty(pkey, value);
+                if (notify) {
+                    /*
+                     * NOTE: this method should be called before setProperty()
+                     * because tx need to delete index without the new property
+                     */
+                    this.onUpdateProperty(pkey.cardinality(), prop);
+                }
                 this.setProperty(prop);
                 break;
             case SET:
                 prop = this.addPropertySet(pkey, value);
+                if (notify) {
+                    this.onUpdateProperty(pkey.cardinality(), prop);
+                }
                 break;
             case LIST:
                 prop = this.addPropertyList(pkey, value);
+                if (notify) {
+                    this.onUpdateProperty(pkey.cardinality(), prop);
+                }
                 break;
             default:
                 assert false;

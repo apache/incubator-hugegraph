@@ -56,7 +56,6 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
 
     @Override
     public void remove() {
-        this.owner.removeProperty(this.key());
         this.owner.tx().removeVertexProperty(this);
     }
 

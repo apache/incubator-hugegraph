@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -118,6 +119,7 @@ public class GraphTransaction extends AbstractTransaction {
                                     Set<HugeEdge> updatedEdges) {
         // Do vertex update
         for (HugeVertex v : updatedVertexes) {
+            v.committed();
             // Add vertex entry
             this.addEntry(this.serializer.writeVertex(v));
             // Update index of vertex(only include props)
@@ -126,6 +128,7 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Do edge update
         for (HugeEdge e : updatedEdges) {
+            e.committed();
             // Add edge entry of OUT and IN
             this.addEntry(this.serializer.writeEdge(e));
             this.addEntry(this.serializer.writeEdge(e.switchOwner()));
@@ -422,93 +425,119 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public <V> void addVertexProperty(HugeVertexProperty<V> prop) {
-        this.checkOwnerThread();
-        assert prop.element().getProperty(prop.key()) == prop;
-        /*
-         * Update the owner (because too many props when inserting vertex,
-         * currently we don't update every prop separately).
-         * TODO: update property directly
-         */
-        HugeVertex vertex = prop.element();
-        this.addVertex(vertex);
-    }
+        // NOTE: this method can also be used to update property
 
-    public <V> void addEdgeProperty(HugeEdgeProperty<V> prop) {
-        this.checkOwnerThread();
-        assert prop.element().getProperty(prop.key()) == prop;
-        /*
-         * Update the owner (because too many props when inserting edge,
-         * currently we don't update every prop separately).
-         * TODO: update property directly
-         */
-        HugeEdge edge = prop.element();
-        this.addEdge(edge);
+        HugeVertex vertex = prop.element();
+        E.checkState(vertex != null,
+                     "No owner for updating property '%s'", prop.key());
+        // Check is updating primary key
+        List<String> primaryKeys = vertex.vertexLabel().primaryKeys();
+        E.checkArgument(!primaryKeys.contains(prop.key()),
+                        "Can't update primary key: '%s'", prop.key());
+
+        Set<String> lockNames = relatedIndexNames(prop.name(),
+                                                  vertex.vertexLabel());
+        this.lockForUpdateProperty(lockNames, (locks) -> {
+            // Update old vertex to remove index (without new property)
+            this.indexTx.updateVertexIndex(vertex, true);
+
+            // Update index of current vertex (with new property)
+            vertex.setProperty(prop);
+            this.indexTx.updateVertexIndex(vertex, false);
+
+            // Update vertex (append only with new property)
+            HugeVertex v = vertex.prepareRemovedChildren();
+            v.setProperty(prop);
+            this.appendEntry(this.serializer.writeVertex(v));
+        });
     }
 
     public <V> void removeVertexProperty(HugeVertexProperty<V> prop) {
-        this.checkOwnerThread();
-
         HugeVertex vertex = prop.element();
+        E.checkState(vertex != null,
+                     "No owner for removing property '%s'", prop.key());
+        // Maybe have ever been removed
+        if (!vertex.hasProperty(prop.key())) {
+            return;
+        }
+        // Check is removing primary key
         List<String> primaryKeys = vertex.vertexLabel().primaryKeys();
         E.checkArgument(!primaryKeys.contains(prop.key()),
-                        "Can't remove primary key: '%s'", prop.key());
+                        "Can't remove primary key '%s'", prop.key());
+
         Set<String> lockNames = relatedIndexNames(prop.name(),
                                                   vertex.vertexLabel());
-        LockUtil.Locks locks = new LockUtil.Locks();
-        try {
-            locks.lockReads(LockUtil.INDEX_LABEL, lockNames);
-            this.beforeWrite();
+        this.lockForUpdateProperty(lockNames, (locks) -> {
+            // Update old vertex to remove index (with the property)
+            this.indexTx.updateVertexIndex(vertex, true);
 
-            // Update index of old vertex to remove the prop
-            HugeVertex old = vertex.copy();
-            old.setProperty(prop);
-            this.indexTx.updateVertexIndex(old, true);
-
-            // Update index of current vertex without the prop
+            // Update index of current vertex (without the property)
+            vertex.removeProperty(prop.key());
             this.indexTx.updateVertexIndex(vertex, false);
 
-            // Update vertex
-            vertex = vertex.prepareRemovedChildren();
-            vertex.setProperty(prop);
-            this.eliminateEntry(this.serializer.writeVertex(vertex));
+            // Update vertex (eliminate only with the property)
+            HugeVertex v = vertex.prepareRemovedChildren();
+            v.setProperty(prop);
+            this.eliminateEntry(this.serializer.writeVertex(v));
+        });
+    }
 
-            this.afterWrite();
-        } finally {
-            locks.unlock();
-        }
+    public <V> void addEdgeProperty(HugeEdgeProperty<V> prop) {
+        // NOTE: this method can also be used to update property
+
+        HugeEdge edge = prop.element();
+        E.checkState(edge != null,
+                     "No owner for updating property '%s'", prop.key());
+        // Check is updating sort key
+        E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
+                        "Can't update sort key '%s'", prop.key());
+
+        Set<String> lockNames = relatedIndexNames(prop.name(),
+                                                  edge.edgeLabel());
+        this.lockForUpdateProperty(lockNames, (locks) -> {
+            // Update old edge to remove index (without new property)
+            this.indexTx.updateEdgeIndex(edge, true);
+
+            // Update index of current edge (with new property)
+            edge.setProperty(prop);
+            this.indexTx.updateEdgeIndex(edge, false);
+
+            // Update edge of OUT and IN (append only with new property)
+            HugeEdge e = edge.prepareRemovedChildren();
+            e.setProperty(prop);
+            this.appendEntry(this.serializer.writeEdge(e));
+            this.appendEntry(this.serializer.writeEdge(e.switchOwner()));
+        });
     }
 
     public <V> void removeEdgeProperty(HugeEdgeProperty<V> prop) {
-        this.checkOwnerThread();
-
         HugeEdge edge = prop.element();
+        E.checkState(edge != null,
+                     "No owner for removing property '%s'", prop.key());
+        // Maybe have ever been removed
+        if (!edge.hasProperty(prop.key())) {
+            return;
+        }
+        // Check is removing sort key
         E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
-                        "Can't remove primary key: '%s'", prop.key());
+                        "Can't remove sort key '%s'", prop.key());
+
         Set<String> lockNames = relatedIndexNames(prop.name(),
                                                   edge.edgeLabel());
-        LockUtil.Locks locks = new LockUtil.Locks();
-        try {
-            locks.lockReads(LockUtil.INDEX_LABEL, lockNames);
-            this.beforeWrite();
+        this.lockForUpdateProperty(lockNames, (locks) -> {
+            // Update old edge to remove index (with the property)
+            this.indexTx.updateEdgeIndex(edge, true);
 
-            // Update index of old edge to remove the prop
-            HugeEdge old = edge.copy();
-            old.setProperty(prop);
-            this.indexTx.updateEdgeIndex(old, true);
-
-            // Update index of current edge(without `prop`)
+            // Update index of current edge (without the property)
+            edge.removeProperty(prop.key());
             this.indexTx.updateEdgeIndex(edge, false);
 
-            // Update edge of OUT and IN
-            edge = edge.prepareRemovedChildren();
-            edge.setProperty(prop);
-            this.eliminateEntry(this.serializer.writeEdge(edge));
-            this.eliminateEntry(this.serializer.writeEdge(edge.switchOwner()));
-
-            this.afterWrite();
-        } finally {
-            locks.unlock();
-        }
+            // Update edge of OUT and IN (eliminate only with the property)
+            HugeEdge e = edge.prepareRemovedChildren();
+            e.setProperty(prop);
+            this.eliminateEntry(this.serializer.writeEdge(e));
+            this.eliminateEntry(this.serializer.writeEdge(e.switchOwner()));
+        });
     }
 
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,
@@ -588,7 +617,7 @@ public class GraphTransaction extends AbstractTransaction {
         }
         if (matched != total) {
             throw new BackendException(
-                      "Not supported querying edges by %s, expected %s",
+                      "Not supported querying edges by %s, expect %s",
                       query.conditions(), keys[matched]);
         }
     }
@@ -675,7 +704,7 @@ public class GraphTransaction extends AbstractTransaction {
         // The label must be an instance of String or VertexLabel
         if (label instanceof String) {
             ElementHelper.validateLabel((String) label);
-            label = this.graph().vertexLabel((String) label);
+            label = graph().vertexLabel((String) label);
         }
 
         assert (label instanceof VertexLabel);
@@ -684,10 +713,25 @@ public class GraphTransaction extends AbstractTransaction {
 
     private Set<String> relatedIndexNames(String prop,
                                           Indexfiable indexfiable) {
-        Set<String> rs = indexfiable.indexNames().stream().filter(index -> {
-            return this.graph().indexLabel(index).indexFields().contains(prop);
+        return indexfiable.indexNames().stream().filter(index -> {
+            return graph().indexLabel(index).indexFields().contains(prop);
         }).collect(Collectors.toSet());
-        return rs;
+    }
+
+    private void lockForUpdateProperty(Set<String> lockNames,
+                                       Consumer<LockUtil.Locks> callback) {
+        this.checkOwnerThread();
+
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockReads(LockUtil.INDEX_LABEL, lockNames);
+
+            this.beforeWrite();
+            callback.accept(locks);
+            this.afterWrite();
+        } finally {
+            locks.unlock();
+        }
     }
 
     public void removeIndex(IndexLabel indexLabel) {

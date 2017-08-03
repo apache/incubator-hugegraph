@@ -898,11 +898,17 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testAddEdgePropertyExisted() {
-        Edge edge = initEdgeTransfer();
+        HugeGraph graph = graph();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            edge.property("amount", 200.00F);
-        });
+        Edge edge = initEdgeTransfer();
+        Assert.assertEquals(500.00F, edge.property("amount").value());
+
+        edge.property("amount", 200.00F);
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(200.00F, edge.property("amount").value());
     }
 
     @Test
@@ -920,6 +926,17 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             edge.property("prop-not-exist", "2017-1-1");
+        });
+    }
+
+    @Test
+    public void testAddEdgePropertyOfSortKey() {
+        Edge edge = initEdgeTransfer();
+
+        Assert.assertEquals(1, edge.property("id").value());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Update sort key property
+            edge.property("id", 2);
         });
     }
 
