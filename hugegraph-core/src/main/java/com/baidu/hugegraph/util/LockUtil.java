@@ -52,6 +52,65 @@ public class LockUtil {
         LockManager.instance().create(INDEX_REBUILD);
     }
 
+    private static Lock lockRead(String group, String lock) {
+        Lock readLock = LockManager.instance().get(group)
+                                   .readWriteLock(lock).readLock();
+        logger.debug("Trying to get the read lock '%s' of LockGroup '%s'",
+                     lock, group);
+        if (!readLock.tryLock()) {
+            throw new HugeException(
+                      "Lock [%s:%s] is locked by other operation",
+                      group, lock);
+        }
+        logger.debug("Got the read lock '%s' of LockGroup '%s'",
+                     lock, group);
+        return readLock;
+    }
+
+    private static Lock lockWrite(String group, String lock, long time) {
+        Lock writeLock = LockManager.instance().get(group)
+                                    .readWriteLock(lock).writeLock();
+        logger.debug("Trying to get the write lock '%s' of LockGroup '%s'",
+                     lock, group);
+        while (true) {
+            try {
+                if (!writeLock.tryLock(time, TimeUnit.SECONDS)) {
+                    throw new HugeException(
+                              "Lock [%s:%s] is locked by other operation",
+                              group, lock);
+                }
+                break;
+            } catch (InterruptedException ignore) {
+                logger.info("Trying to lock write of is interrupted!");
+            }
+        }
+        logger.debug("Got the write lock '%s' of LockGroup '%s'",
+                     lock, group);
+        return writeLock;
+    }
+
+    public static List<Lock> lock(String... locks) {
+        List<Lock> lockList = new ArrayList<>();
+        E.checkArgument(locks.length % 3 == 0,
+                        "Invalid arguments number, expect multiple of 3.");
+        for (int i = 0; i < locks.length; i += 3) {
+            switch (locks[i]) {
+                case WRITE:
+                    lockList.add(lockWrite(locks[i + 1],
+                                           locks[i + 2],
+                                           WRITE_WAIT_TIME));
+                    break;
+                case READ:
+                    lockList.add(lockRead(locks[i + 1], locks[i + 2]));
+                    break;
+                default:
+                    throw new IllegalArgumentException(String.format(
+                              "Invalid args '%s' at position '%s', " +
+                              "expected: 'write' or 'read'", locks[i], i));
+            }
+        }
+        return lockList;
+    }
 
     public static class Locks {
 
@@ -61,7 +120,7 @@ public class LockUtil {
             this.lockList = new ArrayList<>();
         }
 
-        public void lockReads(String group, String ... locks) {
+        public void lockReads(String group, String... locks) {
             for (String lock : locks) {
                 this.lockList.add(lockRead(group, lock));
             }
@@ -73,7 +132,7 @@ public class LockUtil {
             }
         }
 
-        public void lockWrites(String group, String ... locks) {
+        public void lockWrites(String group, String... locks) {
             for (String lock : locks) {
                 this.lockList.add(lockWrite(group, lock, WRITE_WAIT_TIME));
             }
@@ -89,65 +148,6 @@ public class LockUtil {
             for (Lock lock : this.lockList) {
                 lock.unlock();
             }
-        }
-
-        private static Lock lockRead(String group, String lock) {
-            Lock readLock = LockManager.instance().get(group)
-                                       .readWriteLock(lock).readLock();
-            logger.debug("Trying to get the read lock '%s' of LockGroup '%s'",
-                         lock, group);
-            if (!readLock.tryLock()) {
-                throw new HugeException(
-                          "Lock [%s:%s] is locked by other operation",
-                          group, lock);
-            }
-            logger.debug("Got the read lock '%s' of LockGroup '%s'",
-                         lock, group);
-            return readLock;
-        }
-
-        private static Lock lockWrite(String group, String lock, long time) {
-            Lock writeLock = LockManager.instance().get(group)
-                                        .readWriteLock(lock).writeLock();
-            logger.debug("Trying to get the write lock '%s' of LockGroup '%s'",
-                         lock, group);
-            while (true) {
-                try {
-                    if (!writeLock.tryLock(time, TimeUnit.SECONDS)) {
-                        throw new HugeException(
-                                  "Lock [%s:%s] is locked by other operation",
-                                  group, lock);
-                    }
-                    break;
-                } catch (InterruptedException ignore) {
-                    logger.info("Trying to lock write of is interrupted!");
-                }
-            }
-            logger.debug("Got the write lock '%s' of LockGroup '%s'",
-                         lock, group);
-            return writeLock;
-        }
-
-        public static List<Lock> lock(String ... locks) {
-            List<Lock> lockList = new ArrayList<>();
-            E.checkArgument(locks.length % 3 == 0,
-                            "Invalid arguments number, expect multiple of 3.");
-            for (int i = 0; i < locks.length; i += 3) {
-                switch (locks[i]) {
-                    case WRITE:
-                        lockList.add(lockWrite(locks[i + 1], locks[i + 2],
-                                     WRITE_WAIT_TIME));
-                        break;
-                    case READ:
-                        lockList.add(lockRead(locks[i + 1], locks[i + 2]));
-                        break;
-                    default:
-                        throw new IllegalArgumentException(String.format(
-                                  "Invalid args '%s' at position '%s', " +
-                                  "expected: 'write' or 'read'", locks[i], i));
-                }
-            }
-            return lockList;
         }
     }
 }

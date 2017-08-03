@@ -295,19 +295,33 @@ public class IndexTransaction extends AbstractTransaction {
         this.removeEntry(this.serializer.writeIndex(index));
     }
 
-    public void rebuildIndex(SchemaElement schemaElement) {
-        GraphTransaction graphTransaction = graph().graphTransaction();
+    public void removeIndex(Set<String> indexNames) {
+        for (String index : indexNames) {
+            removeIndex(index);
+        }
+    }
 
-        if (schemaElement.type() == HugeType.INDEX_LABEL) {
-            // Rebuild index for indexLabel, just this kind index is
-            // updated for related vertices/edges
-            IndexLabel indexLabel = (IndexLabel) schemaElement;
+    public void rebuildIndex(IndexLabel indexLabel) {
+        // Rebuild index for indexLabel, just this kind index is
+        // updated for related vertices/edges
+        GraphTransaction graphTransaction = graph().graphTransaction();
+        // Manually commit avoid deletion override add/update
+        boolean autoCommit = this.autoCommit();
+        this.autoCommit(false);
+
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.INDEX_REBUILD, indexLabel.name());
+            locks.lockWrites(LockUtil.INDEX_LABEL, indexLabel.name());
+            this.removeIndex(indexLabel.name());
+            this.commit();
             if (indexLabel.baseType() == HugeType.VERTEX_LABEL) {
                 ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
                 query.eq(HugeKeys.LABEL, indexLabel.baseValue());
                 for (Vertex vertex : graphTransaction.queryVertices(query)) {
                     updateIndex(indexLabel.name(), (HugeVertex) vertex, false);
                 }
+                this.commit();
             } else {
                 assert indexLabel.baseType() == HugeType.EDGE_LABEL;
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
@@ -315,36 +329,92 @@ public class IndexTransaction extends AbstractTransaction {
                 for (Edge edge : graphTransaction.queryEdges(query)) {
                     updateIndex(indexLabel.name(), (HugeEdge) edge, false);
                 }
+                this.commit();
             }
-        } else if (schemaElement.type() == HugeType.VERTEX_LABEL) {
-            // Rebuild index for vertexLabel, all kinds indexes based on this
-            // vertexLabel are updated for related vertices
-            VertexLabel vertexLabel = (VertexLabel) schemaElement;
-            Set<String> indexNames = vertexLabel.indexNames();
+        } finally {
+            this.autoCommit(autoCommit);
+            locks.unlock();
+        }
+    }
 
+    public void rebuildIndex(VertexLabel vertexLabel) {
+        // Rebuild index for vertexLabel, all kinds indexes based on this
+        // vertexLabel are updated for related vertices
+        GraphTransaction graphTransaction = graph().graphTransaction();
+        Set<String> indexNames = vertexLabel.indexNames();
+        if (indexNames.isEmpty()) {
+            // No indexes need to rebuild
+            return;
+        }
+        // Manually commit avoid deletion override add/update
+        boolean autoCommit = this.autoCommit();
+        this.autoCommit(false);
+
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.INDEX_REBUILD, indexNames);
+            locks.lockWrites(LockUtil.INDEX_LABEL, indexNames);
+            this.removeIndex(indexNames);
+            this.commit();
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-            query.eq(HugeKeys.LABEL, schemaElement.name());
+            query.eq(HugeKeys.LABEL, vertexLabel.name());
 
             for (Vertex vertex : graphTransaction.queryVertices(query)) {
                 for (String indexName : indexNames) {
                     updateIndex(indexName, (HugeVertex) vertex, false);
                 }
             }
-        } else {
-            // Rebuild index for edgeLabel, all kinds indexes based on this
-            // edgeLabel are updated for related edges.
-            EdgeLabel edgeLabel = (EdgeLabel) schemaElement;
-            Set<String> indexNames = edgeLabel.indexNames();
+            this.commit();
+        } finally {
+            this.autoCommit(autoCommit);
+            locks.unlock();
+        }
+    }
 
-            assert schemaElement.type() == HugeType.EDGE_LABEL;
+    public void rebuildIndex(EdgeLabel edgeLabel) {
+        // Rebuild index for edgeLabel, all kinds indexes based on this
+        // edgeLabel are updated for related edges.
+        GraphTransaction graphTransaction = graph().graphTransaction();
+        Set<String> indexNames = edgeLabel.indexNames();
+        if (indexNames.isEmpty()) {
+            // No indexes need to rebuild
+            return;
+        }
+        // Manually commit avoid deletion override add/update
+        boolean autoCommit = this.autoCommit();
+        this.autoCommit(false);
+
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.INDEX_REBUILD, indexNames);
+            locks.lockWrites(LockUtil.INDEX_LABEL, indexNames);
+            this.removeIndex(indexNames);
+            this.commit();
             ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-            query.eq(HugeKeys.LABEL, schemaElement.name());
+            query.eq(HugeKeys.LABEL, edgeLabel.name());
 
             for (Edge edge : graphTransaction.queryEdges(query)) {
                 for (String indexName : indexNames) {
                     updateIndex(indexName, (HugeEdge) edge, false);
                 }
             }
+            this.commit();
+        } finally {
+            this.autoCommit(autoCommit);
+            locks.unlock();
+        }
+    }
+
+    public void rebuildIndex(SchemaElement schemaElement) {
+        if (schemaElement.type() == HugeType.INDEX_LABEL) {
+            this.rebuildIndex((IndexLabel) schemaElement);
+        } else if (schemaElement.type() == HugeType.VERTEX_LABEL) {
+            this.rebuildIndex((VertexLabel) schemaElement);
+        } else if (schemaElement.type() == HugeType.EDGE_LABEL) {
+            this.rebuildIndex((EdgeLabel) schemaElement);
+        } else {
+            assert schemaElement.type() == HugeType.PROPERTY_KEY;
+            throw new HugeException("Property Key can't rebuild index.");
         }
     }
 }
