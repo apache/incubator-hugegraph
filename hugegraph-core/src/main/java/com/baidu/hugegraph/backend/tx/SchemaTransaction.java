@@ -235,14 +235,7 @@ public class SchemaTransaction extends AbstractTransaction {
                      indexLabel.type(), indexLabel.name());
         // Obtain index label from db by name
         indexLabel = this.getIndexLabel(indexLabel.name());
-        LockUtil.Locks locks = new LockUtil.Locks();
-        try {
-            locks.lockWrites(LockUtil.INDEX_REBUILD, indexLabel.name());
-            this.graph().graphTransaction().removeIndex(indexLabel.name());
-            this.graph().graphTransaction().rebuildIndex(indexLabel);
-        } finally {
-            locks.unlock();
-        }
+        this.graph().graphTransaction().rebuildIndex(indexLabel);
     }
 
     public void rebuildIndex(SchemaLabel schemaLabel) {
@@ -255,20 +248,7 @@ public class SchemaTransaction extends AbstractTransaction {
             assert schemaLabel.type() == HugeType.EDGE_LABEL;
             schemaLabel = this.getEdgeLabel(schemaLabel.name());
         }
-        boolean needRebuild = false;
-        LockUtil.Locks locks = new LockUtil.Locks();
-        try {
-            for (String indexName : schemaLabel.indexNames()) {
-                needRebuild = true;
-                locks.lockWrites(LockUtil.INDEX_REBUILD, indexName);
-                this.graph().graphTransaction().removeIndex(indexName);
-            }
-            if (needRebuild) {
-                this.graph().graphTransaction().rebuildIndex(schemaLabel);
-            }
-        } finally {
-            locks.unlock();
-        }
+        this.graph().graphTransaction().rebuildIndex(schemaLabel);
     }
 
     protected void addSchema(SchemaElement schemaElement, BackendEntry entry) {

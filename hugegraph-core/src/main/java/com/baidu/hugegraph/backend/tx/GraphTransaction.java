@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.util.LockUtil;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -454,9 +455,8 @@ public class GraphTransaction extends AbstractTransaction {
         List<String> primaryKeys = vertex.vertexLabel().primaryKeys();
         E.checkArgument(!primaryKeys.contains(prop.key()),
                         "Can't remove primary key: '%s'", prop.key());
-
-        Set<String> lockNames = relatedIndexNames(
-                                prop.name(), vertex.vertexLabel().indexNames());
+        Set<String> lockNames = relatedIndexNames(prop.name(),
+                                                  vertex.vertexLabel());
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
             locks.lockReads(LockUtil.INDEX_LABEL, lockNames);
@@ -487,8 +487,8 @@ public class GraphTransaction extends AbstractTransaction {
         HugeEdge edge = prop.element();
         E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
                         "Can't remove primary key: '%s'", prop.key());
-        Set<String> lockNames = relatedIndexNames(
-                                prop.name(), edge.edgeLabel().indexNames());
+        Set<String> lockNames = relatedIndexNames(prop.name(),
+                                                  edge.edgeLabel());
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
             locks.lockReads(LockUtil.INDEX_LABEL, lockNames);
@@ -514,9 +514,10 @@ public class GraphTransaction extends AbstractTransaction {
         }
     }
 
-    private Set<String> relatedIndexNames(String prop, Set<String> indexNames) {
+    private Set<String> relatedIndexNames(String prop,
+                                          Indexfiable indexfiable) {
         SchemaManager schema = graph().schema();
-        Set<String> result = indexNames.stream().filter(index ->
+        Set<String> result = indexfiable.indexNames().stream().filter(index ->
                     schema.getIndexLabel(index).indexFields().contains(prop))
                     .collect(Collectors.toSet());
         return result;
