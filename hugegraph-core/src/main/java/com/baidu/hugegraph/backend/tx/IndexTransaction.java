@@ -53,6 +53,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 
 public class IndexTransaction extends AbstractTransaction {
@@ -140,10 +141,16 @@ public class IndexTransaction extends AbstractTransaction {
 
         ExtendableIterator<BackendEntry> entries = new ExtendableIterator<>();
         for (String label : labels) {
-            // TODO: should lock indexLabels
-            // Condition => Entry
-            ConditionQuery indexQuery = this.constructIndexQuery(query, label);
-            entries.extend(super.query(indexQuery).iterator());
+            LockUtil.Locks locks = new LockUtil.Locks();
+            try {
+                locks.lockReads(LockUtil.INDEX_LABEL, label);
+                locks.lockReads(LockUtil.INDEX_REBUILD, label);
+                // Condition => Entry
+                ConditionQuery indexQuery = this.constructIndexQuery(query, label);
+                entries.extend(super.query(indexQuery).iterator());
+            } finally {
+                locks.unlock();
+            }
         }
 
         // Entry => Id

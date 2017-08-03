@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import com.baidu.hugegraph.util.LockUtil;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -72,6 +73,10 @@ public class HugeGraph implements Graph {
                                  HugeGraphStepStrategy.instance());
         TraversalStrategies.GlobalCache.registerStrategies(HugeGraph.class,
                                                            strategies);
+    }
+
+    static {
+        LockUtil.init();
     }
 
     private String name;

@@ -28,7 +28,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.baidu.hugegraph.util.LockUtil;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -228,9 +230,17 @@ public class GraphTransaction extends AbstractTransaction {
     public Vertex addVertex(HugeVertex vertex) {
         this.checkOwnerThread();
 
-        this.beforeWrite();
-        this.addedVertexes.add(vertex);
-        this.afterWrite();
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockReads(LockUtil.VERTEX_LABEL, vertex.label());
+            locks.lockReads(LockUtil.INDEX_LABEL,
+                            vertex.vertexLabel().indexNames());
+            this.beforeWrite();
+            this.addedVertexes.add(vertex);
+            this.afterWrite();
+        } finally {
+            locks.unlock();
+        }
         return vertex;
     }
 
@@ -343,9 +353,17 @@ public class GraphTransaction extends AbstractTransaction {
     public Edge addEdge(HugeEdge edge) {
         this.checkOwnerThread();
 
-        this.beforeWrite();
-        this.addedEdges.add(edge);
-        this.afterWrite();
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockReads(LockUtil.EDGE_LABEL, edge.label());
+            locks.lockReads(LockUtil.INDEX_LABEL,
+                            edge.edgeLabel().indexNames());
+            this.beforeWrite();
+            this.addedEdges.add(edge);
+            this.afterWrite();
+        } finally {
+            locks.unlock();
+        }
         return edge;
     }
 
@@ -437,22 +455,30 @@ public class GraphTransaction extends AbstractTransaction {
         E.checkArgument(!primaryKeys.contains(prop.key()),
                         "Can't remove primary key: '%s'", prop.key());
 
-        this.beforeWrite();
+        Set<String> lockNames = relatedIndexNames(
+                                prop.name(), vertex.vertexLabel().indexNames());
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockReads(LockUtil.INDEX_LABEL, lockNames);
+            this.beforeWrite();
 
-        // Update index of old vertex to remove the prop
-        HugeVertex old = vertex.copy();
-        old.setProperty(prop);
-        this.indexTx.updateVertexIndex(old, true);
+            // Update index of old vertex to remove the prop
+            HugeVertex old = vertex.copy();
+            old.setProperty(prop);
+            this.indexTx.updateVertexIndex(old, true);
 
-        // Update index of current vertex without the prop
-        this.indexTx.updateVertexIndex(vertex, false);
+            // Update index of current vertex without the prop
+            this.indexTx.updateVertexIndex(vertex, false);
 
-        // Update vertex
-        vertex = vertex.prepareRemovedChildren();
-        vertex.setProperty(prop);
-        this.eliminateEntry(this.serializer.writeVertex(vertex));
+            // Update vertex
+            vertex = vertex.prepareRemovedChildren();
+            vertex.setProperty(prop);
+            this.eliminateEntry(this.serializer.writeVertex(vertex));
 
-        this.afterWrite();
+            this.afterWrite();
+        } finally {
+            locks.unlock();
+        }
     }
 
     public <V> void removeEdgeProperty(HugeEdgeProperty<V> prop) {
@@ -461,24 +487,39 @@ public class GraphTransaction extends AbstractTransaction {
         HugeEdge edge = prop.element();
         E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
                         "Can't remove primary key: '%s'", prop.key());
+        Set<String> lockNames = relatedIndexNames(
+                                prop.name(), edge.edgeLabel().indexNames());
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockReads(LockUtil.INDEX_LABEL, lockNames);
+            this.beforeWrite();
 
-        this.beforeWrite();
+            // Update index of old edge to remove the prop
+            HugeEdge old = edge.copy();
+            old.setProperty(prop);
+            this.indexTx.updateEdgeIndex(old, true);
 
-        // Update index of old edge to remove the prop
-        HugeEdge old = edge.copy();
-        old.setProperty(prop);
-        this.indexTx.updateEdgeIndex(old, true);
+            // Update index of current edge(without `prop`)
+            this.indexTx.updateEdgeIndex(edge, false);
 
-        // Update index of current edge(without `prop`)
-        this.indexTx.updateEdgeIndex(edge, false);
+            // Update edge of OUT and IN
+            edge = edge.prepareRemovedChildren();
+            edge.setProperty(prop);
+            this.eliminateEntry(this.serializer.writeEdge(edge));
+            this.eliminateEntry(this.serializer.writeEdge(edge.switchOwner()));
 
-        // Update edge of OUT and IN
-        edge = edge.prepareRemovedChildren();
-        edge.setProperty(prop);
-        this.eliminateEntry(this.serializer.writeEdge(edge));
-        this.eliminateEntry(this.serializer.writeEdge(edge.switchOwner()));
+            this.afterWrite();
+        } finally {
+            locks.unlock();
+        }
+    }
 
-        this.afterWrite();
+    private Set<String> relatedIndexNames(String prop, Set<String> indexNames) {
+        SchemaManager schema = graph().schema();
+        Set<String> result = indexNames.stream().filter(index ->
+                    schema.getIndexLabel(index).indexFields().contains(prop))
+                    .collect(Collectors.toSet());
+        return result;
     }
 
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,

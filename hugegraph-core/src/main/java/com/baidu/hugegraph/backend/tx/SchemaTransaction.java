@@ -38,6 +38,7 @@ import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableSet;
 
 public class SchemaTransaction extends AbstractTransaction {
@@ -151,16 +152,21 @@ public class SchemaTransaction extends AbstractTransaction {
          *  vertexLabel.indexNames()
          */
         Set<String> indexNames = ImmutableSet.copyOf(vertexLabel.indexNames());
-        for (String indexName : indexNames) {
-            this.removeIndexLabel(indexName);
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.VERTEX_LABEL, name);
+            for (String indexName : indexNames) {
+                this.removeIndexLabel(indexName);
+            }
+
+            // TODO: use event to replace direct call
+            // Deleting a vertex will automatically deletes the held edge
+            this.graph().graphTransaction().removeVertices(vertexLabel);
+            logger.debug("SchemaTransaction remove vertex label '{}'", name);
+            this.removeSchema(new VertexLabel(name));
+        } finally {
+            locks.unlock();
         }
-
-        // TODO: use event to replace direct call
-        // Deleting a vertex will automatically deletes the held edge
-        this.graph().graphTransaction().removeVertices(vertexLabel);
-
-        logger.debug("SchemaTransaction remove vertex label '{}'", name);
-        this.removeSchema(new VertexLabel(name));
     }
 
     public void addEdgeLabel(EdgeLabel edgeLabel) {
@@ -182,14 +188,20 @@ public class SchemaTransaction extends AbstractTransaction {
         // TODO: use event to replace direct call
         // Remove index related data(include schema) of this edge label
         Set<String> indexNames = ImmutableSet.copyOf(edgeLabel.indexNames());
-        for (String indexName : indexNames) {
-            this.removeIndexLabel(indexName);
-        }
-        // Remove all edges which has matched label
-        this.graph().graphTransaction().removeEdges(edgeLabel);
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.EDGE_LABEL, name);
+            for (String indexName : indexNames) {
+                this.removeIndexLabel(indexName);
+            }
+            // Remove all edges which has matched label
+            this.graph().graphTransaction().removeEdges(edgeLabel);
 
-        logger.debug("SchemaTransaction remove edge label '{}'", name);
-        this.removeSchema(new EdgeLabel(name));
+            logger.debug("SchemaTransaction remove edge label '{}'", name);
+            this.removeSchema(new EdgeLabel(name));
+        } finally {
+            locks.unlock();
+        }
     }
 
     public void addIndexLabel(IndexLabel indexLabel) {
@@ -204,13 +216,18 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public void removeIndexLabel(String indexName) {
         logger.debug("SchemaTransaction remove index label '{}'", indexName);
-        // TODO: should lock indexLabel
-        // Remove index data
-        // TODO: use event to replace direct call
-        this.graph().graphTransaction().removeIndex(indexName);
-        // Remove indexName from indexNames of vertex label or edge label
-        this.removeIndexNames(indexName);
-        this.removeSchema(new IndexLabel(indexName));
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.INDEX_LABEL, indexName);
+            // Remove index data
+            // TODO: use event to replace direct call
+            this.graph().graphTransaction().removeIndex(indexName);
+            // Remove indexName from indexNames of vertex label or edge label
+            this.removeIndexNames(indexName);
+            this.removeSchema(new IndexLabel(indexName));
+        } finally {
+            locks.unlock();
+        }
     }
 
     public void rebuildIndex(IndexLabel indexLabel) {
@@ -218,9 +235,14 @@ public class SchemaTransaction extends AbstractTransaction {
                      indexLabel.type(), indexLabel.name());
         // Obtain index label from db by name
         indexLabel = this.getIndexLabel(indexLabel.name());
-        this.graph().graphTransaction().removeIndex(indexLabel.name());
-        // TODO: should lock indexLabels related with schemaElement
-        this.graph().graphTransaction().rebuildIndex(indexLabel);
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.INDEX_REBUILD, indexLabel.name());
+            this.graph().graphTransaction().removeIndex(indexLabel.name());
+            this.graph().graphTransaction().rebuildIndex(indexLabel);
+        } finally {
+            locks.unlock();
+        }
     }
 
     public void rebuildIndex(SchemaLabel schemaLabel) {
@@ -233,15 +255,19 @@ public class SchemaTransaction extends AbstractTransaction {
             assert schemaLabel.type() == HugeType.EDGE_LABEL;
             schemaLabel = this.getEdgeLabel(schemaLabel.name());
         }
-        // Flag to indicate whether there are indexes to be rebuild
         boolean needRebuild = false;
-        for (String indexName : schemaLabel.indexNames()) {
-            needRebuild = true;
-            this.graph().graphTransaction().removeIndex(indexName);
-        }
-        if (needRebuild) {
-            // TODO: should lock indexLabels related with schemaElement
-            this.graph().graphTransaction().rebuildIndex(schemaLabel);
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            for (String indexName : schemaLabel.indexNames()) {
+                needRebuild = true;
+                locks.lockWrites(LockUtil.INDEX_REBUILD, indexName);
+                this.graph().graphTransaction().removeIndex(indexName);
+            }
+            if (needRebuild) {
+                this.graph().graphTransaction().rebuildIndex(schemaLabel);
+            }
+        } finally {
+            locks.unlock();
         }
     }
 
