@@ -289,7 +289,6 @@ public class IndexTransaction extends AbstractTransaction {
 
     public void rebuildIndex(SchemaElement schemaElement) {
         GraphTransaction graphTransaction = graph().graphTransaction();
-        Set<String> indexNames = schemaElement.indexNames();
         if (schemaElement.type() == HugeType.INDEX_LABEL) {
             // Rebuild index for indexLabel, just this kind index is
             // updated for related vertices/edges
@@ -311,6 +310,8 @@ public class IndexTransaction extends AbstractTransaction {
         } else if (schemaElement.type() == HugeType.VERTEX_LABEL) {
             // Rebuild index for vertexLabel, all kinds indexes based on this
             // vertexLabel are updated for related vertices
+            Set<String> indexNames = schemaElement.indexNames();
+
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             query.eq(HugeKeys.LABEL, schemaElement.name());
 
@@ -322,6 +323,8 @@ public class IndexTransaction extends AbstractTransaction {
         } else {
             // Rebuild index for edgeLabel, all kinds indexes based on this
             // edgeLabel are updated for related edges.
+            Set<String> indexNames = schemaElement.indexNames();
+
             assert schemaElement.type() == HugeType.EDGE_LABEL;
             ConditionQuery query = new ConditionQuery(HugeType.EDGE);
             query.eq(HugeKeys.LABEL, schemaElement.name());
