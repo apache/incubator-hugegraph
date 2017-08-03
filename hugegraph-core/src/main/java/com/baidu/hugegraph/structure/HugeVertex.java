@@ -49,6 +49,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
@@ -63,6 +64,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public HugeVertex(final GraphTransaction tx, Id id, VertexLabel label) {
         this(tx.graph(), id, label);
         this.tx = tx;
+        this.fresh = true;
     }
 
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
@@ -99,7 +101,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Override
-    public GraphTransaction tx() {
+    protected GraphTransaction tx() {
         GraphTransaction tx = this.tx;
         if (tx == null) {
             tx = super.graph().graphTransaction();
@@ -215,7 +217,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                             CollectionUtils.subtract(notNullableKeys, keys));
         }
 
-        HugeEdge edge = new HugeEdge(this.graph(), id, edgeLabel);
+        HugeEdge edge = new HugeEdge(this, id, edgeLabel);
 
         edge.vertices(this, targetVertex);
 
@@ -312,8 +314,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> VertexProperty<V> property(
-            VertexProperty.Cardinality cardinality,
-            String key, V value, Object... objects) {
+               VertexProperty.Cardinality cardinality,
+               String key, V value, Object... objects) {
         if (objects.length != 0 && objects[0].equals(T.id)) {
             throw VertexProperty.Exceptions.userSuppliedIdsNotSupported();
         }
@@ -323,26 +325,25 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         E.checkArgument(this.label.properties().contains(key),
-                "Invalid property '%s' for vertex label '%s', expected: %s",
-                key, this.label(), this.vertexLabel().properties());
-
-        HugeProperty<V> prop = this.addProperty(key, value);
-
-        /*
-         * Vertex is new if id is null, Note that, currently we don't support
-         * custom id. Maybe the Vertex.attachProperties() has not been called
-         * if we support custom id, that should be improved in the future.
-         */
-        if (prop != null && this.id() != null) {
-            assert prop instanceof HugeVertexProperty;
-            this.tx().addVertexProperty((HugeVertexProperty<V>) prop);
-        }
-        return (VertexProperty<V>) prop;
+                        "Invalid property '%s' for vertex label '%s', " +
+                        "expect: %s",
+                        key, this.label(), this.vertexLabel().properties());
+        return (VertexProperty<V>) this.addProperty(key, value, true);
     }
 
     @Override
     protected <V> HugeVertexProperty<V> newProperty(PropertyKey pkey, V val) {
         return new HugeVertexProperty<>(this, pkey, val);
+    }
+
+    @Override
+    protected <V> void onUpdateProperty(Cardinality cardinality,
+                                        HugeProperty<V> prop) {
+        if (prop != null && !this.fresh()) {
+            assert prop instanceof HugeVertexProperty;
+            // Use addVertexProperty() to update
+            this.tx().addVertexProperty((HugeVertexProperty<V>) prop);
+        }
     }
 
     @Override

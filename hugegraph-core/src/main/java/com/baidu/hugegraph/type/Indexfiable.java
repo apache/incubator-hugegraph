@@ -24,5 +24,4 @@ import java.util.Set;
 public interface Indexfiable {
 
     Set<String> indexNames();
-
 }

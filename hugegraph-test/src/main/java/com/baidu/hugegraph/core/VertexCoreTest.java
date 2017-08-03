@@ -266,7 +266,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithNotExistsProp() {
+    public void testAddVertexWithNotExistsPropKey() {
         HugeGraph graph = graph();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "book", "not-exists-porp", "test");
@@ -274,7 +274,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithNotExistsVertexProp() {
+    public void testAddVertexWithNotExistsVertexPropKey() {
         HugeGraph graph = graph();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "book", "age", 12);
@@ -1018,15 +1018,26 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom");
+        vertex = vertex("author", "id", 1);
+        Assert.assertEquals("Tom", vertex.property("name").value());
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            vertex.property("name", "Tom2");
-        });
+        vertex.property("name", "Tom2");
+        vertex = vertex("author", "id", 1);
+        Assert.assertEquals("Tom2", vertex.property("name").value());
+    }
 
-        vertex.property("age", 10);
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            vertex.property("age", "11");
-        });
+    @Test
+    public void testAddVertexPropertyExistedWithIndex() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "person", "name", "Tom",
+                                        "city", "Hongkong", "age", 3);
+        vertex = vertex("person", "name", "Tom");
+        Assert.assertEquals(3, vertex.property("age").value());
+
+        vertex.property("age", 4);
+        Assert.assertEquals(4, vertex.property("age").value());
+        vertex = vertex("person", "name", "Tom");
+        Assert.assertEquals(4, vertex.property("age").value());
     }
 
     @Test
@@ -1046,6 +1057,18 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             vertex.property("prop-not-exist", "2017-1-1");
+        });
+    }
+
+    @Test
+    public void testAddVertexPropertyOfPrimaryKey() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1);
+
+        Assert.assertEquals(1, vertex.property("id").value());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Update primary key property
+            vertex.property("id", 2);
         });
     }
 
