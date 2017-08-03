@@ -220,23 +220,47 @@ public class SchemaTransaction extends AbstractTransaction {
         this.removeSchema(new HugeIndexLabel(indexName));
     }
 
-    public void rebuildIndex(SchemaElement schemaElement) {
+    public void rebuildIndex(IndexLabel indexLabel) {
         logger.debug("SchemaTransaction rebuild index for '{}' '{}'",
-                     schemaElement.type(), schemaElement.name());
+                     indexLabel.type(), indexLabel.name());
+        // Obtain index label from db by name
+        indexLabel = this.getIndexLabel(indexLabel.name());
+        this.graph().graphTransaction().removeIndex(indexLabel.name());
+        // TODO: should lock indexLabels related with schemaElement
+        this.graph().graphTransaction().rebuildIndex(indexLabel);
+    }
+
+    public void rebuildIndex(VertexLabel vertexLabel) {
+        logger.debug("SchemaTransaction rebuild index for '{}' '{}'",
+                     vertexLabel.type(), vertexLabel.name());
+        // Obtain vertex label from db by name
+        vertexLabel = this.getVertexLabel(vertexLabel.name());
         // Flag to indicate whether there are indexes to be rebuild
         boolean needRebuild = false;
-        if (schemaElement.type() == HugeType.INDEX_LABEL) {
+        for (String indexName : vertexLabel.indexNames()) {
             needRebuild = true;
-            this.graph().graphTransaction().removeIndex(schemaElement.name());
-        } else {
-            for (String indexName : schemaElement.indexNames()) {
-                needRebuild = true;
-                this.graph().graphTransaction().removeIndex(indexName);
-            }
+            this.graph().graphTransaction().removeIndex(indexName);
         }
         if (needRebuild) {
             // TODO: should lock indexLabels related with schemaElement
-            this.graph().graphTransaction().rebuildIndex(schemaElement);
+            this.graph().graphTransaction().rebuildIndex(vertexLabel);
+        }
+    }
+
+    public void rebuildIndex(EdgeLabel edgeLabel) {
+        logger.debug("SchemaTransaction rebuild index for '{}' '{}'",
+                     edgeLabel.type(), edgeLabel.name());
+        // Obtain edge label from db by name
+        edgeLabel = this.getEdgeLabel(edgeLabel.name());
+        // Flag to indicate whether there are indexes to be rebuild
+        boolean needRebuild = false;
+        for (String indexName : edgeLabel.indexNames()) {
+            needRebuild = true;
+            this.graph().graphTransaction().removeIndex(indexName);
+        }
+        if (needRebuild) {
+            // TODO: should lock indexLabels related with schemaElement
+            this.graph().graphTransaction().rebuildIndex(edgeLabel);
         }
     }
 
