@@ -103,7 +103,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
             }
             if (datacenterId > this.maxDatacenterId || datacenterId < 0) {
                 throw new IllegalArgumentException(String.format(
-                          "Datacenter id can't be > %d or < 0",
+                          "Datacenter id can't > %d or < 0",
                           this.maxDatacenterId));
             }
             this.workerId = workerId;
@@ -133,7 +133,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
             if (this.lastTimestamp == timestamp) {
                 this.sequence = (this.sequence + 1) & this.sequenceMask;
                 if (this.sequence == 0) {
-                    timestamp = TimeUtil.tilNextMillis(this.lastTimestamp);
+                    timestamp = TimeUtil.tillNextMillis(this.lastTimestamp);
                 }
             } else {
                 this.sequence = 0L;
@@ -146,6 +146,5 @@ public class SnowflakeIdGenerator extends IdGenerator {
                    (this.workerId << this.workerIdShift) |
                    this.sequence;
         }
-
     }
 }
