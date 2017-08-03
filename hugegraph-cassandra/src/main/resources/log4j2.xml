@@ -35,6 +35,7 @@
             <appender-ref ref="file"/>
         </logger>
         <logger name="com.baidu.hugegraph" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </logger>
     </loggers>
