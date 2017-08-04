@@ -28,8 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -49,6 +48,7 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
@@ -73,7 +73,7 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     protected CassandraBackendEntry newBackendEntry(SchemaElement e) {
-        Id id = IdGeneratorFactory.generator().generate(e);
+        Id id = IdGenerator.of(e);
         return newBackendEntry(e.type(), id);
     }
 
@@ -142,8 +142,9 @@ public class CassandraSerializer extends AbstractSerializer {
      * @param vertex null or the source vertex
      * @return the source vertex
      */
-    protected HugeVertex parseEdge(CassandraBackendEntry.Row row,
-                                   HugeVertex vertex) {
+    protected HugeEdge parseEdge(CassandraBackendEntry.Row row,
+                                 HugeVertex vertex) {
+        @SuppressWarnings("unused")
         String sourceVertexId = row.column(HugeKeys.SOURCE_VERTEX);
         Direction direction = Direction.valueOf(
                               row.column(HugeKeys.DIRECTION));
@@ -152,34 +153,37 @@ public class CassandraSerializer extends AbstractSerializer {
         String targetVertexId = row.column(HugeKeys.TARGET_VERTEX);
 
         boolean isOutEdge = direction == Direction.OUT;
-
-        SchemaManager schema = this.graph.schema();
-        EdgeLabel label = schema.getEdgeLabel(labelName);
-
-        Id vertexId = IdGeneratorFactory.generator().generate(targetVertexId);
-        // TODO: improve Id parse()
-        // TODO: get vertex-label from edge-label link
-        String[] vIdParts = SplicingIdGenerator.parse(vertexId);
-        VertexLabel vertexLabel = schema.getVertexLabel(vIdParts[0]);
-
-        HugeVertex otherVertex = new HugeVertex(this.graph, vertexId,
-                                                vertexLabel);
-        otherVertex.name(vIdParts[1]);
+        EdgeLabel edgeLabel = this.graph.schema().getEdgeLabel(labelName);
 
         if (vertex == null) {
-            Id id = IdGeneratorFactory.generator().generate(sourceVertexId);
-            // TODO: get vertex-label from edge-label link
+            Id id = IdGenerator.of(sourceVertexId);
             vertex = new HugeVertex(this.graph, id, null);
         }
 
-        HugeEdge edge = new HugeEdge(this.graph, null, label);
+        SchemaManager schema = this.graph.schema();
+        VertexLabel srcLabel = schema.getVertexLabel(edgeLabel.sourceLabel());
+        VertexLabel tgtLabel = schema.getVertexLabel(edgeLabel.targetLabel());
+
+        Id vertexId = IdGenerator.of(targetVertexId);
+        HugeVertex otherVertex;
+        if (isOutEdge) {
+            vertex.vertexLabel(srcLabel);
+            otherVertex = new HugeVertex(this.graph, vertexId, tgtLabel);
+        } else {
+            vertex.vertexLabel(tgtLabel);
+            otherVertex = new HugeVertex(this.graph, vertexId, srcLabel);
+        }
+
+        HugeEdge edge = new HugeEdge(this.graph, null, edgeLabel);
 
         if (isOutEdge) {
+            edge.sourceVertex(vertex);
             edge.targetVertex(otherVertex);
             vertex.addOutEdge(edge);
             otherVertex.addInEdge(edge.switchOwner());
         } else {
             edge.sourceVertex(otherVertex);
+            edge.targetVertex(vertex);
             vertex.addInEdge(edge);
             otherVertex.addOutEdge(edge.switchOwner());
         }
@@ -193,18 +197,19 @@ public class CassandraSerializer extends AbstractSerializer {
         edge.name(sortValues);
         edge.assignId();
 
-        return vertex;
+        return edge;
     }
 
     @Override
     public BackendEntry writeVertex(HugeVertex vertex) {
         CassandraBackendEntry entry = newBackendEntry(vertex);
 
-        boolean changed = vertex.hasProperties() || vertex.removed();
-        entry.selfChanged(changed);
+        entry.selfChanged(vertex.hasProperties() || vertex.removed());
 
-        entry.column(HugeKeys.LABEL, vertex.label());
-        entry.column(HugeKeys.PRIMARY_VALUES, vertex.name());
+        if (!vertex.removed()) {
+            entry.column(HugeKeys.ID, vertex.id().asString());
+            entry.column(HugeKeys.LABEL, vertex.label());
+        }
 
         // Add all properties of a Vertex
         for (HugeProperty<?> prop : vertex.getProperties().values()) {
@@ -224,13 +229,14 @@ public class CassandraSerializer extends AbstractSerializer {
         assert bytesEntry instanceof CassandraBackendEntry;
         CassandraBackendEntry entry = (CassandraBackendEntry) bytesEntry;
 
+        Id id = IdGenerator.of(entry.<String>column(HugeKeys.ID));
         String labelName = entry.column(HugeKeys.LABEL);
-        String name = entry.column(HugeKeys.PRIMARY_VALUES);
 
-        VertexLabel label = this.graph.schema().getVertexLabel(labelName);
-
-        HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
-        vertex.name(name);
+        VertexLabel label = null;
+        if (labelName != null) {
+            label = this.graph.schemaTransaction().getVertexLabel(labelName);
+        }
+        HugeVertex vertex = new HugeVertex(this.graph, id, label);
 
         // Parse all properties of a Vertex
         Map<String, String> props = entry.column(HugeKeys.PROPERTIES);
@@ -259,9 +265,7 @@ public class CassandraSerializer extends AbstractSerializer {
         assert bytesEntry instanceof CassandraBackendEntry;
         CassandraBackendEntry entry = (CassandraBackendEntry) bytesEntry;
 
-        Set<HugeEdge> edges = this.parseEdge(entry.row(), null).getEdges();
-        assert edges.size() == 1;
-        return edges.iterator().next();
+        return this.parseEdge(entry.row(), null);
     }
 
     @Override
@@ -280,6 +284,8 @@ public class CassandraSerializer extends AbstractSerializer {
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
         CassandraBackendEntry entry = newBackendEntry(vertexLabel);
         entry.column(HugeKeys.NAME, vertexLabel.name());
+        entry.column(HugeKeys.ID_STRATEGY,
+                     JsonUtil.toJson(vertexLabel.idStrategy()));
         entry.column(HugeKeys.PRIMARY_KEYS,
                      JsonUtil.toJson(vertexLabel.primaryKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES,
@@ -338,14 +344,15 @@ public class CassandraSerializer extends AbstractSerializer {
 
         CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
         String name = entry.column(HugeKeys.NAME);
+        String idStrategy = entry.column(HugeKeys.ID_STRATEGY);
         String properties = entry.column(HugeKeys.PROPERTIES);
         String primarykeys = entry.column(HugeKeys.PRIMARY_KEYS);
         String indexNames = entry.column(HugeKeys.INDEX_NAMES);
 
         VertexLabel vertexLabel = new VertexLabel(name);
+        vertexLabel.idStrategy(JsonUtil.fromJson(idStrategy, IdStrategy.class));
         vertexLabel.properties(JsonUtil.fromJson(properties, String[].class));
-        vertexLabel.primaryKeys(JsonUtil.fromJson(primarykeys,
-                                                  String[].class));
+        vertexLabel.primaryKeys(JsonUtil.fromJson(primarykeys, String[].class));
         vertexLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
 
         return vertexLabel;
@@ -365,7 +372,6 @@ public class CassandraSerializer extends AbstractSerializer {
         String sourceLabel = entry.column(HugeKeys.SOURCE_LABEL);
         String targetLabel = entry.column(HugeKeys.TARGET_LABEL);
         String frequency = entry.column(HugeKeys.FREQUENCY);
-        String links = entry.column(HugeKeys.LINKS);
         String sortKeys = entry.column(HugeKeys.SORT_KEYS);
         String properties = entry.column(HugeKeys.PROPERTIES);
         String indexNames = entry.column(HugeKeys.INDEX_NAMES);
@@ -483,7 +489,7 @@ public class CassandraSerializer extends AbstractSerializer {
         index.fieldValues(indexValues);
 
         for (String id : elementIds) {
-            index.elementIds(IdGeneratorFactory.generator().generate(id));
+            index.elementIds(IdGenerator.of(id));
         }
 
         return index;

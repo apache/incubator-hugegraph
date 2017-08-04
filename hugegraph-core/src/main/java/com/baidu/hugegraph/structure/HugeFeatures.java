@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.structure;
 
-import java.io.Serializable;
-
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -105,7 +103,7 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean supportsUserSuppliedIds() {
-            return false;
+            return true;
         }
 
         @Override

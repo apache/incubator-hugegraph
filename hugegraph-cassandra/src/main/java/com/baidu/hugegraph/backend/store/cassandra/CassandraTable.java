@@ -207,7 +207,7 @@ public abstract class CassandraTable {
          * columns when using: select.where(QueryBuilder.in(names, idList));
          * So we use multi-query instead of IN
          */
-        List<Select> selections = new ArrayList<Select>(ids.size());
+        List<Select> selections = new ArrayList<>(ids.size());
         for (List<String> id : ids) {
             assert nameParts.size() == id.size();
             // NOTE: there is no Select.clone(), just use copy instead
@@ -352,6 +352,14 @@ public abstract class CassandraTable {
         return ImmutableList.of(id.asString());
     }
 
+    protected List<String> idColumnValue(CassandraBackendEntry.Row entry) {
+        return ImmutableList.of(entry.id().asString());
+    }
+
+    protected List<HugeKeys> modifiableColumnName() {
+        return ImmutableList.of(HugeKeys.PROPERTIES);
+    }
+
     protected List<BackendEntry> mergeEntries(List<BackendEntry> entries) {
         return entries;
     }
@@ -386,20 +394,23 @@ public abstract class CassandraTable {
                        CassandraBackendEntry.Row entry) {
 
         List<String> idNames = this.idColumnName();
-        List<String> idValues = this.idColumnValue(entry.id());
-        assert idNames.size() == idValues.size();
+        List<HugeKeys> colNames = this.modifiableColumnName();
+
+        Map<HugeKeys, Object> columns = entry.columns();
 
         Update update = QueryBuilder.update(table());
 
-        for (Map.Entry<HugeKeys, Object> column : entry.columns().entrySet()) {
-            String key = this.formatKey(column.getKey());
-            if (!idNames.contains(key)) {
-                update.with(QueryBuilder.append(key, column.getValue()));
+        for (HugeKeys key : colNames) {
+            if (!columns.containsKey(key)) {
+                continue;
             }
+            update.with(QueryBuilder.append(formatKey(key), columns.get(key)));
         }
 
-        for (int i = 0, n = idNames.size(); i < n; i++) {
-            update.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
+        for (String idName : idNames) {
+            HugeKeys key = parseKey(idName);
+            assert columns.containsKey(key);
+            update.where(QueryBuilder.eq(idName, columns.get(key)));
         }
 
         session.add(update);
@@ -412,41 +423,44 @@ public abstract class CassandraTable {
                           CassandraBackendEntry.Row entry) {
 
         List<String> idNames = this.idColumnName();
-        List<String> idValues = this.idColumnValue(entry.id());
-        assert idNames.size() == idValues.size();
+        List<HugeKeys> colNames = this.modifiableColumnName();
 
+        Map<HugeKeys, Object> columns = entry.columns();
         // Update by id
         Update update = QueryBuilder.update(table());
 
-        for (Map.Entry<HugeKeys, Object> column : entry.columns().entrySet()) {
-            String key = this.formatKey(column.getKey());
-            if (!idNames.contains(key)) {
-                /*
-                 * NOTE: eliminate from map<text, text> should just pass key,
-                 * if use the following statement:
-                 * UPDATE vertices SET PROPERTIES=PROPERTIES-{'city':'"Wuhan"'}
-                 * WHERE LABEL='person' AND PRIMARY_VALUES='josh';
-                 * it will throw a cassandra exception:
-                 * Invalid map literal for properties of typefrozen<set<text>>
-                 */
-                Object value = column.getValue();
-                if (value instanceof Map) {
-                    @SuppressWarnings("rawtypes")
-                    Set<?> keySet = ((Map) value).keySet();
-                    update.with(QueryBuilder.removeAll(key, keySet));
-                } else if (value instanceof Set) {
-                    update.with(QueryBuilder.removeAll(key, (Set<?>) value));
-                } else if (value instanceof List) {
-                    Set<?> keySet = new HashSet<>((List<?>) value);
-                    update.with(QueryBuilder.removeAll(key, keySet));
-                } else {
-                    update.with(QueryBuilder.remove(key, value));
-                }
+        for (HugeKeys key : colNames) {
+            /*
+             * NOTE: eliminate from map<text, text> should just pass key,
+             * if use the following statement:
+             * UPDATE vertices SET PROPERTIES=PROPERTIES-{'city':'"Wuhan"'}
+             * WHERE LABEL='person' AND PRIMARY_VALUES='josh';
+             * it will throw a cassandra exception:
+             * Invalid map literal for properties of typefrozen<set<text>>
+             */
+            if (!columns.containsKey(key)) {
+                continue;
+            }
+            String name = formatKey(key);
+            Object value = columns.get(key);
+            if (value instanceof Map) {
+                @SuppressWarnings("rawtypes")
+                Set<?> keySet = ((Map) value).keySet();
+                update.with(QueryBuilder.removeAll(name, keySet));
+            } else if (value instanceof Set) {
+                update.with(QueryBuilder.removeAll(name, (Set<?>) value));
+            } else if (value instanceof List) {
+                Set<?> keySet = new HashSet<>((List<?>) value);
+                update.with(QueryBuilder.removeAll(name, keySet));
+            } else {
+                update.with(QueryBuilder.remove(name, value));
             }
         }
 
-        for (int i = 0, n = idNames.size(); i < n; i++) {
-            update.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
+        for (String idName : idNames) {
+            HugeKeys key = parseKey(idName);
+            assert columns.containsKey(key);
+            update.where(QueryBuilder.eq(idName, columns.get(key)));
         }
 
         session.add(update);
@@ -460,7 +474,7 @@ public abstract class CassandraTable {
         if (entry.columns().isEmpty()) {
             // Delete just by id
             List<String> idNames = this.idColumnName();
-            List<String> idValues = this.idColumnValue(entry.id());
+            List<String> idValues = this.idColumnValue(entry);
             assert idNames.size() == idValues.size();
 
             Delete delete = QueryBuilder.delete().from(this.table);

@@ -40,6 +40,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import com.google.common.collect.ImmutableList;
 
 public class VertexCoreTest extends BaseCoreTest {
@@ -174,6 +175,118 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex("name", "test");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithAutomaticIdStrategyButPassedId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .idStrategy(IdStrategy.AUTOMATIC)
+              .properties("name", "age", "city")
+              .create();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "programmer", T.id, "123456",
+                            "name", "marko", "age", 18, "city", "Beijing");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithAutomaticIdStrategyAndNotPassedId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+                .idStrategy(IdStrategy.AUTOMATIC)
+                .properties("name", "age", "city")
+                .create();
+
+        graph.addVertex(T.label, "programmer", "name", "marko",
+                        "age", 18, "city", "Beijing");
+
+        List<Vertex> vertices = graph.traversal().V().toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertTrue(Utils.contains(vertices,
+                new FakeVertex(T.label, "programmer", "name", "marko",
+                               "age", 18, "city", "Beijing")));
+    }
+
+    @Test
+    public void testAddVertexWithPrimaryKeyIdStrategyButPassedId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .idStrategy(IdStrategy.PRIMARY_KEY)
+              .properties("name", "age", "city")
+              .primaryKeys("name", "age")
+              .create();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "programmer", T.id, "123456",
+                            "name", "marko", "age", 18, "city", "Beijing");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithPrimaryKeyIdStrategy() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .idStrategy(IdStrategy.PRIMARY_KEY)
+              .properties("name", "age", "city")
+              .primaryKeys("name", "age")
+              .create();
+        graph.addVertex(T.label, "programmer", "name", "marko",
+                        "age", 18, "city", "Beijing");
+
+        List<Vertex> vertices = graph.traversal().V("programmer:marko!18")
+                                .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("programmer:marko!18",
+                            vertices.get(0).id().toString());
+        Assert.assertTrue(Utils.contains(vertices,
+                new FakeVertex(T.label, "programmer", "name", "marko",
+                               "age", 18, "city", "Beijing")));
+    }
+
+    @Test
+    public void testAddVertexWithCustomizeIdStrategyAndPassedId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .idStrategy(IdStrategy.CUSTOMIZE)
+              .properties("name", "age", "city")
+              .create();
+        graph.addVertex(T.label, "programmer", T.id, "123456", "name", "marko",
+                        "age", 18, "city", "Beijing");
+
+        List<Vertex> vertices = graph.traversal().V("123456").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("123456", vertices.get(0).id().toString());
+        Assert.assertTrue(Utils.contains(vertices,
+                new FakeVertex(T.label, "programmer", "name", "marko",
+                               "age", 18, "city", "Beijing")));
+    }
+
+    @Test
+    public void testAddVertexWithCustomizeIdStrategyButNotPassedId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .idStrategy(IdStrategy.CUSTOMIZE)
+              .properties("name", "age", "city")
+              .create();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "programmer", "name", "marko",
+                            "age", 18, "city", "Beijing");
         });
     }
 

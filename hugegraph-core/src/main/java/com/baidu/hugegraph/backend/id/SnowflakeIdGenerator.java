@@ -30,7 +30,21 @@ import com.baidu.hugegraph.util.TimeUtil;
 
 public class SnowflakeIdGenerator extends IdGenerator {
 
+    private static volatile SnowflakeIdGenerator instance;
+
     private IdWorker idWorker = null;
+
+    public static SnowflakeIdGenerator instance() {
+        if (instance == null) {
+            synchronized (SnowflakeIdGenerator.class) {
+                if (instance == null) {
+                    // TODO: workerId, datacenterId should read from conf
+                    instance = new SnowflakeIdGenerator(0, 0);
+                }
+            }
+        }
+        return instance;
+    }
 
     public SnowflakeIdGenerator(long workerId, long datacenterId) {
         this.idWorker = new IdWorker(workerId, datacenterId);
@@ -98,7 +112,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
             // Sanity check for workerId
             if (workerId > this.maxWorkerId || workerId < 0) {
                 throw new IllegalArgumentException(String.format(
-                          "Worker id can't be be > %d or < 0",
+                          "Worker id can't > %d or < 0",
                           this.maxWorkerId));
             }
             if (datacenterId > this.maxDatacenterId || datacenterId < 0) {
@@ -146,5 +160,6 @@ public class SnowflakeIdGenerator extends IdGenerator {
                    (this.workerId << this.workerIdShift) |
                    this.sequence;
         }
+
     }
 }

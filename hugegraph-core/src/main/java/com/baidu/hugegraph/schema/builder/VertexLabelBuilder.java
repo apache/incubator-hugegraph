@@ -19,7 +19,11 @@
 
 package com.baidu.hugegraph.schema.builder;
 
+import com.baidu.hugegraph.type.define.IdStrategy;
+
 public interface VertexLabelBuilder extends SchemaBuilder {
+
+    VertexLabelBuilder idStrategy(IdStrategy idStrategy);
 
     VertexLabelBuilder properties(String... propertyNames);
 

@@ -46,6 +46,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -86,16 +87,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 assert this.id == null;
                 List<Object> propValues = primaryValues();
                 E.checkState(!propValues.isEmpty(),
-                        "Primary values must not be empty(has properties %s)",
-                        hasProperties());
+                             "Primary values must not be empty " +
+                             "(has properties %s)", hasProperties());
                 this.name = SplicingIdGenerator.concatValues(propValues);
             }
         }
         return this.name;
-    }
-
-    public void name(String name) {
-        this.name = name;
     }
 
     @Override
@@ -113,12 +110,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return this;
     }
 
-    public void assignId() {
-        assert this.id == null;
+    public void assignId(Id id) {
+        IdStrategy strategy = this.label.idStrategy();
         // Generate an id and assign
-        if (this.id == null) {
-            this.id = IdGeneratorFactory.generator().generate(this);
+        if (strategy == IdStrategy.CUSTOMIZE) {
+            this.id = id;
+        } else {
+            this.id = IdGeneratorFactory.generator(strategy).generate(this);
         }
+        assert this.id != null;
     }
 
     @Override
@@ -128,6 +128,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public VertexLabel vertexLabel() {
         return this.label;
+    }
+
+    public void vertexLabel(VertexLabel label) {
+        this.label = label;
     }
 
     public List<Object> primaryValues() {

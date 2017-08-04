@@ -31,7 +31,6 @@ import org.apache.tinkerpop.shaded.kryo.io.Output;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.serializer.TextSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -77,7 +76,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
         @Override
         public Id read(Kryo kryo, Input input, Class<Id> aClass) {
-            return IdGeneratorFactory.generator().generate(input.readString());
+            return IdGenerator.of(input.readString());
         }
     }
 
@@ -99,7 +98,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
     private static BackendEntry readEntry(Input input) {
         /* Read id */
         int idLen = input.readInt();
-        Id id = IdGeneratorFactory.generator().parse(input.readBytes(idLen));
+        Id id = IdGenerator.of(input.readBytes(idLen));
 
         /* Read columns size and data */
         Collection<BackendEntry.BackendColumn> columns = new ArrayList<>();

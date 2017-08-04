@@ -46,15 +46,31 @@ public abstract class IdGenerator {
 
     public abstract Id generate(HugeEdge entry);
 
+    public static Id of(String id) {
+        return new StringId(id);
+    }
+
+    public static Id of(long id) {
+        return new LongId(id);
+    }
+
+    public static Id of(byte[] id) {
+        return new StringId(id);
+    }
+
+    public static Id of(SchemaElement element) {
+        return SplicingIdGenerator.instance().generate(element);
+    }
+
     /**
      * Generate a string id
      */
     public Id generate(String id) {
         switch (ID_TYPE) {
             case LONG:
-                return new LongId(Long.parseLong(id));
+                return of(Long.parseLong(id));
             case STRING:
-                return new StringId(id);
+                return of(id);
             default:
                 assert false;
                 return null;
@@ -67,9 +83,9 @@ public abstract class IdGenerator {
     public Id generate(long id) {
         switch (ID_TYPE) {
             case LONG:
-                return new LongId(id);
+                return of(id);
             case STRING:
-                return new StringId(String.valueOf(id));
+                return of(String.valueOf(id));
             default:
                 assert false;
                 return null;

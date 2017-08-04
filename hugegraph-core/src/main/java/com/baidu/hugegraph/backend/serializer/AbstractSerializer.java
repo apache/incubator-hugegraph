@@ -24,7 +24,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 
 public abstract class AbstractSerializer
-        implements GraphSerializer, SchemaSerializer {
+                implements GraphSerializer, SchemaSerializer {
 
     protected HugeGraph graph = null;
 

@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.baidu.hugegraph.type.Indexfiable;
-import com.baidu.hugegraph.util.LockUtil;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -43,7 +41,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
@@ -57,14 +55,16 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
-import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeFeatures.HugeVertexFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableList;
 
 public class GraphTransaction extends AbstractTransaction {
@@ -248,17 +248,9 @@ public class GraphTransaction extends AbstractTransaction {
     public Vertex addVertex(Object... keyValues) {
         ElementHelper.legalPropertyKeyValueArray(keyValues);
 
-        Id id = HugeVertex.getIdValue(keyValues);
-        Object label = HugeVertex.getLabelValue(keyValues);
-
         HugeVertexFeatures features = graph().features().vertex();
 
-        // Vertex id must be null now
-        if (!features.supportsUserSuppliedIds() && id != null) {
-            throw new IllegalArgumentException(
-                      "Not support user defined id of Vertex");
-        }
-
+        Object label = HugeVertex.getLabelValue(keyValues);
         // Check Vertex label
         if (label == null && features.supportsDefaultLabel()) {
             label = features.defaultLabel();
@@ -272,25 +264,30 @@ public class GraphTransaction extends AbstractTransaction {
         }
 
         assert (label instanceof VertexLabel);
+        VertexLabel vertexLabel = (VertexLabel) label;
 
-        // Check whether primaryKey exists
-        List<String> primaryKeys = ((VertexLabel) label).primaryKeys();
-        E.checkArgument(
-                CollectionUtil.containsAll(ElementHelper.getKeys(keyValues),
-                                           primaryKeys),
-                "The primary key(s) must be set: '%s'",
-                primaryKeys);
+        IdStrategy strategy = vertexLabel.idStrategy();
+        Id id = HugeVertex.getIdValue(keyValues);
+
+        // Check weather id strategy match with id
+        strategy.checkId(id, vertexLabel.name());
+        if (strategy == IdStrategy.PRIMARY_KEY) {
+            // Check whether primaryKey exists
+            List<String> primaryKeys = vertexLabel.primaryKeys();
+            E.checkArgument(CollectionUtil.containsAll(
+                            ElementHelper.getKeys(keyValues), primaryKeys),
+                            "The primary keys: '%s' of vertex label '%s' " +
+                            "must be set when using '%s' id strategy",
+                            primaryKeys, vertexLabel.name(), strategy);
+        }
 
         // Create HugeVertex
-        HugeVertex vertex = new HugeVertex(this, id, (VertexLabel) label);
+        HugeVertex vertex = new HugeVertex(this, null, vertexLabel);
 
         // Set properties
         ElementHelper.attachProperties(vertex, keyValues);
 
-        // Generate and assign an id if it doesn't exist
-        if (id == null) {
-            vertex.assignId();
-        }
+        vertex.assignId(id);
 
         return this.addVertex(vertex);
     }
@@ -594,42 +591,38 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     protected Query optimizeQuery(ConditionQuery query) {
-        HugeFeatures features = this.graph().features();
+        String label = (String) query.condition(HugeKeys.LABEL);
+        SchemaManager schema = graph().schema();
 
         // Optimize vertex query
-        Object label = query.condition(HugeKeys.LABEL);
-        if (label != null && query.resultType() == HugeType.VERTEX &&
-            !features.vertex().supportsUserSuppliedIds()) {
-
-            // Query vertex by label + primary-values
-            List<String> keys = graph().schema().getVertexLabel(
-                    label.toString()).primaryKeys();
-            if (!keys.isEmpty() && query.matchUserpropKeys(keys)) {
-                String primaryValues = query.userpropValuesString(keys);
-                query.eq(HugeKeys.PRIMARY_VALUES, primaryValues);
-                query.resetUserpropConditions();
-                logger.debug("Query vertices by primaryKeys: {}", query);
-
-                // Convert vertex-label + primary-key to vertex-id
-                if (IdGeneratorFactory.supportSplicing()) {
-                    Id id = SplicingIdGenerator.splicing(label.toString(),
-                                                         primaryValues);
+        if (label != null && query.resultType() == HugeType.VERTEX) {
+            VertexLabel vertexLabel = schema.getVertexLabel(label);
+            if (vertexLabel.idStrategy() == IdStrategy.PRIMARY_KEY) {
+                // Query vertex by label + primary-values
+                List<String> keys = vertexLabel.primaryKeys();
+                if (keys.isEmpty()) {
+                    throw new BackendException(
+                              "The primary keys can't be empty when using " +
+                              "'%s' id strategy for vertex label '%s'",
+                              IdStrategy.PRIMARY_KEY, vertexLabel.name());
+                }
+                if (query.matchUserpropKeys(keys)) {
+                    String primaryValues = query.userpropValuesString(keys);
+                    logger.debug("Query vertices by primaryKeys: {}", query);
+                    // Convert vertex-label + primary-key to vertex-id
+                    Id id = SplicingIdGenerator.splicing(label, primaryValues);
                     query.query(id);
                     query.resetConditions();
-                } else {
-                    // Assert this.store().supportsSysIndex();
-                    logger.warn("Please ensure the backend supports " +
-                                "query by primary-key: {}", query);
+
+                    return query;
                 }
-                return query;
             }
         }
 
         // Optimize edge query
         if (label != null && query.resultType() == HugeType.EDGE) {
             // Query edge by sourceVertex + direction + label + sort-values
-            List<String> keys = graph().schema().getEdgeLabel(
-                    label.toString()).sortKeys();
+            List<String> keys = schema.getEdgeLabel(label).sortKeys();
             if (query.condition(HugeKeys.SOURCE_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&
                 !keys.isEmpty() &&
@@ -699,7 +692,7 @@ public class GraphTransaction extends AbstractTransaction {
 
     public void removeEdges(EdgeLabel edgeLabel) {
         // TODO: Need to change to writeQuery.
-        Id id = this.idGenerator.generate(edgeLabel.name());
+        Id id = IdGenerator.of(edgeLabel);
         boolean autoCommit = this.autoCommit();
         this.autoCommit(false);
         try {

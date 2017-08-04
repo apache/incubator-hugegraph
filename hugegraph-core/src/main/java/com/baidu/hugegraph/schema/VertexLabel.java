@@ -30,15 +30,18 @@ import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.schema.builder.VertexLabelBuilder;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringUtil;
 
 public class VertexLabel extends SchemaLabel {
 
+    private IdStrategy idStrategy;
     private List<String> primaryKeys;
 
     public VertexLabel(String name) {
         super(name);
+        this.idStrategy = IdStrategy.DAFAULT;
         this.primaryKeys = new ArrayList<>();
     }
 
@@ -47,11 +50,34 @@ public class VertexLabel extends SchemaLabel {
         return HugeType.VERTEX_LABEL;
     }
 
+    public IdStrategy idStrategy() {
+        return this.idStrategy;
+    }
+
+    public void idStrategy(IdStrategy idStrategy) {
+        E.checkArgument(this.idStrategy == IdStrategy.DAFAULT ||
+                        this.idStrategy == idStrategy,
+                        "Not allowed to change id strategy for " +
+                        "vertex label '%s'", this.name);
+        this.idStrategy = idStrategy;
+    }
+
     public List<String> primaryKeys() {
         return this.primaryKeys;
     }
 
     public VertexLabel primaryKeys(String... keys) {
+        if (keys.length == 0) {
+            return this;
+        }
+        E.checkArgument(this.idStrategy == IdStrategy.DAFAULT ||
+                        this.idStrategy == IdStrategy.PRIMARY_KEY,
+                        "Not allowed to use id strategy '%s' and call " +
+                        "method 'primaryKeys(...)' at the same time for " +
+                        "vertex label '%s'", this.idStrategy, this.name);
+
+        this.idStrategy = IdStrategy.PRIMARY_KEY;
+
         for (String key : keys) {
             if (!this.primaryKeys.contains(key)) {
                 this.primaryKeys.add(key);
@@ -117,7 +143,7 @@ public class VertexLabel extends SchemaLabel {
             }
 
             this.checkProperties();
-            this.checkPrimaryKeys();
+            this.checkIdStrategy();
 
             this.transaction.addVertexLabel(this.vertexLabel);
             return this.vertexLabel;
@@ -158,6 +184,11 @@ public class VertexLabel extends SchemaLabel {
             this.transaction.rebuildIndex(this.vertexLabel);
         }
 
+        public Builder idStrategy(IdStrategy idStrategy) {
+            this.vertexLabel.idStrategy(idStrategy);
+            return this;
+        }
+
         public Builder properties(String... propertyNames) {
             this.vertexLabel.properties(propertyNames);
             return this;
@@ -184,6 +215,14 @@ public class VertexLabel extends SchemaLabel {
                 E.checkArgumentNotNull(this.transaction.getPropertyKey(pk),
                                        "Undefined property key '%s' in the " +
                                        "vertex label '%s'", pk, name);
+            }
+        }
+
+        private void checkIdStrategy() {
+            if (this.vertexLabel.idStrategy == IdStrategy.DAFAULT) {
+                this.vertexLabel.idStrategy(IdStrategy.AUTOMATIC);
+            } else if (this.vertexLabel.idStrategy == IdStrategy.PRIMARY_KEY) {
+                this.checkPrimaryKeys();
             }
         }
 

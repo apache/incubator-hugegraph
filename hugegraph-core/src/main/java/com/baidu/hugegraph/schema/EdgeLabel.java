@@ -19,8 +19,8 @@
 
 package com.baidu.hugegraph.schema;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -47,7 +47,7 @@ public class EdgeLabel extends SchemaLabel {
         this.sourceLabel = null;
         this.targetLabel = null;
         this.frequency = Frequency.SINGLE;
-        this.sortKeys = new LinkedList<>();
+        this.sortKeys = new ArrayList<>();
     }
 
     @Override
