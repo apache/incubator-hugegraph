@@ -35,6 +35,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
 
 public class SchemaCoreTest extends BaseCoreTest{
@@ -81,6 +82,94 @@ public class SchemaCoreTest extends BaseCoreTest{
     }
 
     @Test
+    public void testAddVertexLabelWithIdStrategy() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                             .properties("name", "age", "city")
+                             .create();
+        Assert.assertEquals(IdStrategy.AUTOMATIC, person.idStrategy());
+
+        VertexLabel person1 = schema.vertexLabel("person1")
+                              .idStrategy(IdStrategy.AUTOMATIC)
+                              .properties("name", "age", "city")
+                              .create();
+        Assert.assertEquals(IdStrategy.AUTOMATIC, person1.idStrategy());
+
+        VertexLabel person2 = schema.vertexLabel("person2")
+                              .idStrategy(IdStrategy.CUSTOMIZE)
+                              .properties("name", "age", "city")
+                              .create();
+        Assert.assertEquals(IdStrategy.CUSTOMIZE, person2.idStrategy());
+
+        VertexLabel person3 = schema.vertexLabel("person3")
+                              .properties("name", "age", "city")
+                              .primaryKeys("name")
+                              .create();
+        Assert.assertEquals(IdStrategy.PRIMARY_KEY, person3.idStrategy());
+
+        VertexLabel person4 = schema.vertexLabel("person4")
+                              .idStrategy(IdStrategy.PRIMARY_KEY)
+                              .properties("name", "age", "city")
+                              .primaryKeys("name")
+                              .create();
+        Assert.assertEquals(IdStrategy.PRIMARY_KEY, person4.idStrategy());
+    }
+
+    @Test
+    public void testAddVertexLabelWithMultiIdStrategy() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .idStrategy(IdStrategy.CUSTOMIZE)
+                  .idStrategy(IdStrategy.AUTOMATIC)
+                  .properties("name", "age", "city")
+                  .create();
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .idStrategy(IdStrategy.CUSTOMIZE)
+                  .idStrategy(IdStrategy.PRIMARY_KEY)
+                  .properties("name", "age", "city")
+                  .create();
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .idStrategy(IdStrategy.PRIMARY_KEY)
+                  .idStrategy(IdStrategy.AUTOMATIC)
+                  .properties("name", "age", "city")
+                  .create();
+        });
+    }
+
+    @Test
+    public void testAddVertexLabelWithoutPKStrategyButCallPrimaryKey() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .idStrategy(IdStrategy.CUSTOMIZE)
+                  .primaryKeys("name")
+                  .properties("name", "age", "city")
+                  .create();
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .idStrategy(IdStrategy.AUTOMATIC)
+                  .primaryKeys("name")
+                  .properties("name", "age", "city")
+                  .create();
+        });
+    }
+
+    @Test
     public void testAddVertexLabelWith2PrimaryKey() {
         initProperties();
         SchemaManager schema = graph().schema();
@@ -108,6 +197,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
+                  .idStrategy(IdStrategy.PRIMARY_KEY)
                   .properties("name", "age", "city")
                   .create();
         });

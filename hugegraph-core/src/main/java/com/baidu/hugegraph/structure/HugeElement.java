@@ -34,7 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -193,11 +193,10 @@ public abstract class HugeElement implements Element, GraphType {
         Object idValue = id.get();
         if (idValue instanceof Number) {
             // Number id
-            return IdGeneratorFactory.generator().generate(
-                    ((Number) idValue).longValue());
+            return IdGenerator.of(((Number) idValue).longValue());
         } else if (idValue instanceof String) {
             // String id
-            return IdGeneratorFactory.generator().generate((String) idValue);
+            return IdGenerator.of((String) idValue);
         } else if (idValue instanceof Id) {
             // Id itself
             return (Id) idValue;

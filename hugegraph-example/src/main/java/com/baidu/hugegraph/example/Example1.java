@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -270,7 +270,7 @@ public class Example1 {
 
         // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
-        q.query(IdGeneratorFactory.generator().generate("author:1"));
+        q.query(IdGenerator.of("author:1"));
         // TODO: remove the PROPERTIES which may just be used by Cassandra
         q.key(HugeKeys.PROPERTIES, "age");
 

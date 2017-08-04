@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
@@ -40,7 +40,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
-import com.datastax.driver.core.querybuilder.Update;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -60,6 +59,7 @@ public class CassandraTables {
         public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
                     HugeKeys.NAME,
+                    HugeKeys.ID_STRATEGY,
                     HugeKeys.PRIMARY_KEYS,
                     HugeKeys.INDEX_NAMES,
                     HugeKeys.PROPERTIES
@@ -160,8 +160,8 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             HugeKeys[] columns = new HugeKeys[] {
+                    HugeKeys.ID,
                     HugeKeys.LABEL,
-                    HugeKeys.PRIMARY_VALUES,
                     HugeKeys.PROPERTIES
             };
 
@@ -172,27 +172,20 @@ public class CassandraTables {
             };
 
             HugeKeys[] partitionKeys = new HugeKeys[] {
-                    HugeKeys.LABEL,
-                    HugeKeys.PRIMARY_VALUES
+                    HugeKeys.ID
             };
 
-            HugeKeys[] clusterKeys = new HugeKeys[] {};
+            HugeKeys[] clusterKeys = new HugeKeys[] {
+            };
 
             super.createTable(session, columns, columnTypes,
                               partitionKeys, clusterKeys);
-            super.createIndex(session, "vertices_label_index", HugeKeys.LABEL);
+            super.createIndex(session, "vertex_label_index", HugeKeys.LABEL);
         }
 
         @Override
         protected List<String> idColumnName() {
-            return ImmutableList.of(formatKey(HugeKeys.LABEL),
-                                    formatKey(HugeKeys.PRIMARY_VALUES));
-        }
-
-        @Override
-        protected List<String> idColumnValue(Id id) {
-            // TODO: improve Id parse()
-            return ImmutableList.copyOf(SplicingIdGenerator.parse(id));
+            return ImmutableList.of(formatKey(HugeKeys.ID));
         }
 
         @Override
@@ -200,10 +193,7 @@ public class CassandraTables {
             // Set id for entries
             for (BackendEntry i : entries) {
                 CassandraBackendEntry entry = (CassandraBackendEntry) i;
-                Id id = SplicingIdGenerator.splicing(
-                        entry.column(HugeKeys.LABEL),
-                        entry.column(HugeKeys.PRIMARY_VALUES));
-                entry.id(id);
+                entry.id(IdGenerator.of(entry.<String>column(HugeKeys.ID)));
             }
             return entries;
         }
@@ -256,7 +246,7 @@ public class CassandraTables {
             };
 
             super.createTable(session, columns, columnTypes, primaryKeys);
-            super.createIndex(session, "edges_label_index", HugeKeys.LABEL);
+            super.createIndex(session, "edge_label_index", HugeKeys.LABEL);
         }
 
         @Override
@@ -341,16 +331,14 @@ public class CassandraTables {
 
             for (BackendEntry i : entries) {
                 CassandraBackendEntry entry = (CassandraBackendEntry) i;
-                Id srcVertexId = IdGeneratorFactory.generator().generate(
+                Id srcVertexId = IdGenerator.of(
                                  entry.<String>column(HugeKeys.SOURCE_VERTEX));
                 if (!vertices.containsKey(srcVertexId)) {
                     CassandraBackendEntry vertex = new CassandraBackendEntry(
                             HugeType.VERTEX, srcVertexId);
-                    // Set vertex label and pv(assume vertex id with a label)
-                    // TODO: improve Id parse()
-                    String[] idParts = SplicingIdGenerator.parse(srcVertexId);
-                    vertex.column(HugeKeys.LABEL, idParts[0]);
-                    vertex.column(HugeKeys.PRIMARY_VALUES, idParts[1]);
+
+                    vertex.column(HugeKeys.ID,
+                                  entry.<String>column(HugeKeys.SOURCE_VERTEX));
                     vertex.column(HugeKeys.PROPERTIES, ImmutableMap.of());
 
                     vertices.put(srcVertexId, vertex);
@@ -395,43 +383,13 @@ public class CassandraTables {
 
         @Override
         protected List<String> idColumnName() {
-            return ImmutableList.of(formatKey(HugeKeys.FIELD_VALUES));
+            return ImmutableList.of(formatKey(HugeKeys.FIELD_VALUES),
+                                    formatKey(HugeKeys.INDEX_LABEL_NAME));
         }
 
         @Override
-        public void append(CassandraSessionPool.Session session,
-                           CassandraBackendEntry.Row entry) {
-            Update update = QueryBuilder.update(table());
-
-            update.with(QueryBuilder.append(
-                        formatKey(HugeKeys.ELEMENT_IDS),
-                        entry.column(HugeKeys.ELEMENT_IDS)));
-            update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.INDEX_LABEL_NAME),
-                         entry.column(HugeKeys.INDEX_LABEL_NAME)));
-            update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.FIELD_VALUES),
-                         entry.column(HugeKeys.FIELD_VALUES)));
-
-            session.add(update);
-        }
-
-        @Override
-        public void eliminate(CassandraSessionPool.Session session,
-                              CassandraBackendEntry.Row entry) {
-            Update update = QueryBuilder.update(table());
-
-            update.with(QueryBuilder.remove(
-                        formatKey(HugeKeys.ELEMENT_IDS),
-                        entry.column(HugeKeys.ELEMENT_IDS)));
-            update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.INDEX_LABEL_NAME),
-                         entry.column(HugeKeys.INDEX_LABEL_NAME)));
-            update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.FIELD_VALUES),
-                         entry.column(HugeKeys.FIELD_VALUES)));
-
-            session.add(update);
+        protected List<HugeKeys> modifiableColumnName() {
+            return ImmutableList.of(HugeKeys.ELEMENT_IDS);
         }
 
         @Override
@@ -509,43 +467,13 @@ public class CassandraTables {
 
         @Override
         protected List<String> idColumnName() {
-            return ImmutableList.of(formatKey(HugeKeys.INDEX_LABEL_NAME));
+            return ImmutableList.of(formatKey(HugeKeys.INDEX_LABEL_NAME),
+                                    formatKey(HugeKeys.FIELD_VALUES));
         }
 
         @Override
-        public void append(CassandraSessionPool.Session session,
-                           CassandraBackendEntry.Row entry) {
-            Update update = QueryBuilder.update(table());
-
-            update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.INDEX_LABEL_NAME),
-                         entry.column(HugeKeys.INDEX_LABEL_NAME)));
-            update.with(QueryBuilder.append(
-                        formatKey(HugeKeys.ELEMENT_IDS),
-                        entry.column(HugeKeys.ELEMENT_IDS)));
-            update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.FIELD_VALUES),
-                         entry.column(HugeKeys.FIELD_VALUES)));
-
-            session.add(update);
-        }
-
-        @Override
-        public void eliminate(CassandraSessionPool.Session session,
-                              CassandraBackendEntry.Row entry) {
-            Update update = QueryBuilder.update(table());
-
-            update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.INDEX_LABEL_NAME),
-                         entry.column(HugeKeys.INDEX_LABEL_NAME)));
-            update.with(QueryBuilder.remove(
-                        formatKey(HugeKeys.ELEMENT_IDS),
-                        entry.column(HugeKeys.ELEMENT_IDS)));
-            update.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.FIELD_VALUES),
-                         entry.column(HugeKeys.FIELD_VALUES)));
-
-            session.add(update);
+        protected List<HugeKeys> modifiableColumnName() {
+            return ImmutableList.of(HugeKeys.ELEMENT_IDS);
         }
 
         @Override

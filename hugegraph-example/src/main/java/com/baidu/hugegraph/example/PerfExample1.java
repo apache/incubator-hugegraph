@@ -37,8 +37,8 @@ import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 
 public class PerfExample1 {

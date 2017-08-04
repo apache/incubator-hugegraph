@@ -27,6 +27,8 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -38,6 +40,7 @@ import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableSet;
 
@@ -257,18 +260,18 @@ public class SchemaTransaction extends AbstractTransaction {
         this.afterWrite();
     }
 
-    protected BackendEntry querySchema(SchemaElement schemaElement) {
-        Id id = this.idGenerator.generate(schemaElement);
+    protected BackendEntry querySchema(SchemaElement element) {
+        Id id = IdGenerator.of(element);
         this.beforeRead();
-        BackendEntry entry = this.query(schemaElement.type(), id);
+        BackendEntry entry = this.query(element.type(), id);
         this.afterRead();
         return entry;
     }
 
-    protected void removeSchema(SchemaElement schemaElement) {
-        Id id = this.idGenerator.generate(schemaElement);
+    protected void removeSchema(SchemaElement element) {
+        Id id = IdGenerator.of(element);
         this.beforeWrite();
-        this.removeEntry(schemaElement.type(), id);
+        this.removeEntry(element.type(), id);
         this.afterWrite();
     }
 

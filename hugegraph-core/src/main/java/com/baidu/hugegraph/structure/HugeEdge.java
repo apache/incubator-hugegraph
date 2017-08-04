@@ -32,7 +32,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -108,9 +107,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     public void assignId() {
         assert this.id == null;
-        // generate an id and assign
+        // Generate an id and assign
         if (this.id == null) {
-            this.id = IdGeneratorFactory.generator().generate(this);
+            this.id = SplicingIdGenerator.instance().generate(this);
         }
     }
 
@@ -148,8 +147,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public <V> Property<V> property(String key, V value) {
         E.checkArgument(this.label.properties().contains(key),
-                "Invalid property '%s' for edge label '%s', expected: %s",
-                key, this.label(), this.edgeLabel().properties());
+                        "Invalid property '%s' for edge label '%s', " +
+                        "expected: %s",
+                        key, this.label(), this.edgeLabel().properties());
         HugeProperty<V> prop = this.addProperty(key, value);
 
         /*

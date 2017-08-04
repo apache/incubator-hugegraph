@@ -23,6 +23,7 @@ import java.util.List;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -94,7 +95,7 @@ public class CachedSchemaTransaction extends SchemaTransaction {
     private Id generateId(HugeType type, String name) {
         // NOTE: it's slower performance to use:
         // String.format("%x-%s", type.code(), name)
-        return this.idGenerator.generate(type.code() + "-" + name);
+        return IdGenerator.of(type.code() + "-" + name);
     }
 
     @Override

@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
@@ -153,7 +154,7 @@ public class InMemoryDBStore implements BackendStore {
         for (Id id : ids) {
             // TODO: improve id split
             String[] parts = SplicingIdGenerator.split(id);
-            Id entryId = IdGeneratorFactory.generator().generate(parts[0]);
+            Id entryId = IdGenerator.of(parts[0]);
 
             String column = null;
             if (parts.length > 1) {

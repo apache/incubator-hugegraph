@@ -28,8 +28,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.Transaction;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
@@ -56,7 +54,6 @@ public abstract class AbstractTransaction implements Transaction {
     private BackendMutation mutation;
 
     protected AbstractSerializer serializer;
-    protected IdGenerator idGenerator;
 
     public AbstractTransaction(HugeGraph graph, BackendStore store) {
         E.checkNotNull(graph, "graph");
@@ -64,7 +61,6 @@ public abstract class AbstractTransaction implements Transaction {
 
         this.graph = graph;
         this.serializer = this.graph.serializer();
-        this.idGenerator = IdGeneratorFactory.generator();
 
         this.store = store;
         this.reset();

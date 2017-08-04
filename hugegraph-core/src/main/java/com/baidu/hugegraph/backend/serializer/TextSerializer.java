@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -52,6 +52,7 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
@@ -164,17 +165,16 @@ public class TextSerializer extends AbstractSerializer {
     protected void parseEdge(String colName, String colValue,
                              HugeVertex vertex) {
         String[] colParts = colName.split(COLUME_SPLITOR);
-        assert colParts.length == 4;
 
         EdgeLabel label = this.graph.schema().getEdgeLabel(colParts[1]);
 
         // TODO: how to construct targetVertex with id
-        Id otherVertexId = IdGeneratorFactory.generator().generate(colParts[3]);
+        Id otherVertexId = IdGenerator.of(colParts[3]);
         HugeVertex otherVertex = new HugeVertex(this.graph, otherVertexId,
                                                 null);
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
-        Id id = IdGeneratorFactory.generator().generate(valParts[0]);
+        Id id = IdGenerator.of(valParts[0]);
 
         HugeEdge edge = new HugeEdge(this.graph, id, label);
 
@@ -387,11 +387,13 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
-        Id id = IdGeneratorFactory.generator().generate(vertexLabel);
+        Id id = IdGenerator.of(vertexLabel);
 
         TextBackendEntry entry = this.writeId(vertexLabel.type(), id);
         entry.column(HugeKeys.NAME.string(),
                      JsonUtil.toJson(vertexLabel.name()));
+        entry.column(HugeKeys.ID_STRATEGY.string(),
+                     JsonUtil.toJson(vertexLabel.idStrategy()));
         entry.column(HugeKeys.PRIMARY_KEYS.string(),
                      JsonUtil.toJson(vertexLabel.primaryKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES.string(),
@@ -402,7 +404,7 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel) {
-        Id id = IdGeneratorFactory.generator().generate(edgeLabel);
+        Id id = IdGenerator.of(edgeLabel);
 
         TextBackendEntry entry = this.writeId(edgeLabel.type(), id);
         entry.column(HugeKeys.NAME.string(),
@@ -423,7 +425,7 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writePropertyKey(PropertyKey propertyKey) {
-        Id id = IdGeneratorFactory.generator().generate(propertyKey);
+        Id id = IdGenerator.of(propertyKey);
 
         TextBackendEntry entry = this.writeId(propertyKey.type(), id);
         entry.column(HugeKeys.NAME.string(),
@@ -458,12 +460,14 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry textEntry = (TextBackendEntry) entry;
         String name = textEntry.column(HugeKeys.NAME.string());
+        String idStrategy = textEntry.column(HugeKeys.ID_STRATEGY.string());
         String properties = textEntry.column(HugeKeys.PROPERTIES.string());
         String primarykeys = textEntry.column(HugeKeys.PRIMARY_KEYS.string());
         String indexNames = textEntry.column(HugeKeys.INDEX_NAMES.string());
 
         VertexLabel vertexLabel = new VertexLabel(
                 JsonUtil.fromJson(name, String.class));
+        vertexLabel.idStrategy(JsonUtil.fromJson(idStrategy, IdStrategy.class));
         vertexLabel.properties(JsonUtil.fromJson(properties, String[].class));
         vertexLabel.primaryKeys(JsonUtil.fromJson(primarykeys, String[].class));
         vertexLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
@@ -527,7 +531,7 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeIndexLabel(IndexLabel indexLabel) {
-        Id id = IdGeneratorFactory.generator().generate(indexLabel);
+        Id id = IdGenerator.of(indexLabel);
         TextBackendEntry entry = this.writeId(indexLabel.type(), id);
 
         entry.column(HugeKeys.NAME.string(),
@@ -615,10 +619,9 @@ public class TextSerializer extends AbstractSerializer {
 
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(indexValues);
-        String[] ids = JsonUtil.fromJson(elementIds,
-                                         String[].class);
+        String[] ids = JsonUtil.fromJson(elementIds, String[].class);
         for (String id : ids) {
-            index.elementIds(IdGeneratorFactory.generator().generate(id));
+            index.elementIds(IdGenerator.of(id));
         }
 
         return index;

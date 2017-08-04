@@ -29,9 +29,10 @@ public enum HugeKeys {
     TIMESTANMP(3, "timestamp"),
 
     /* Column names of schema type (VertexLabel) */
-    PROPERTIES(50, "properties"),
-    PRIMARY_KEYS(51, "primaryKeys"),
-    INDEX_NAMES(52, "indexNames"),
+    ID_STRATEGY(50, "idStrategy"),
+    PROPERTIES(51, "properties"),
+    PRIMARY_KEYS(52, "primaryKeys"),
+    INDEX_NAMES(53, "indexNames"),
 
     /* Column names of schema type (EdgeLabel) */
     LINKS(80, "links"),

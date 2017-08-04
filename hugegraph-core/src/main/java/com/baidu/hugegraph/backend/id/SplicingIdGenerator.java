@@ -28,6 +28,19 @@ import com.baidu.hugegraph.util.StringUtil;
 
 public class SplicingIdGenerator extends IdGenerator {
 
+    private static volatile SplicingIdGenerator instance;
+
+    public static SplicingIdGenerator instance() {
+        if (instance == null) {
+            synchronized (SplicingIdGenerator.class) {
+                if (instance == null) {
+                    instance = new SplicingIdGenerator();
+                }
+            }
+        }
+        return instance;
+    }
+
     /*
      * The following defines can't be java regex special characters:
      * "\^$.|?*+()[{"
@@ -89,7 +102,7 @@ public class SplicingIdGenerator extends IdGenerator {
     public static Id concat(String... ids) {
         // NOTE: must support string id when using this method
         String escaped = StringUtil.escape(IDS_SPLITOR, ESCAPE, ids);
-        return IdGeneratorFactory.generator().generate(escaped);
+        return IdGenerator.of(escaped);
     }
 
     public static String[] split(Id id) {
@@ -110,7 +123,7 @@ public class SplicingIdGenerator extends IdGenerator {
 
     public static Id splicing(String... parts) {
         String escaped = StringUtil.escape(ID_SPLITOR, ESCAPE, parts);
-        return IdGeneratorFactory.generator().generate(escaped);
+        return IdGenerator.of(escaped);
     }
 
     public static String[] parse(Id id) {
