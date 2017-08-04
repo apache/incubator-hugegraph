@@ -13,8 +13,8 @@ abs_path() {
 BIN=`abs_path`
 GSRV_CONFIG_TAG=cassandra-es
 : ${CASSANDRA_SHUTDOWN_TIMEOUT_S:=60}
-: ${HSRV_SHUTDOWN_TIMEOUT_S:=20}
-: ${GSRV_SHUTDOWN_TIMEOUT_S:=20}
+: ${HSRV_SHUTDOWN_TIMEOUT_S:=30}
+: ${GSRV_SHUTDOWN_TIMEOUT_S:=30}
 : ${SLEEP_INTERVAL_S:=2}
 VERBOSE=
 COMMAND=
@@ -67,22 +67,23 @@ status_class() {
 }
 
 kill_class() {
-    local p=`$JPS -l | grep "$2" | awk '{print $1}'`
-    if [ -z "$p" ]; then
-        echo "$1 ($2) not found in the java process table"
-        return
-    fi
-    echo "Killing $1 (pid $p)..." >&2
-    case "`uname`" in
-        CYGWIN*) taskkill /F /PID "$p" ;;
-        *)       kill "$p" ;;
-    esac
+    local pids=`$JPS -l | grep "$2" | awk '{print $1}' | xargs`
+
+    for pid in ${pids[@]}
+    do
+        if [ -z "$pid" ]; then
+            echo "$1 ($2) not found in the java process table"
+            return
+        fi
+        echo "Killing $1 (pid $pid)..." >&2
+        case "`uname`" in
+            CYGWIN*) taskkill /F /PID "$pid" ;;
+            *)       kill "$pid" ;;
+        esac
+    done
 }
 
 kill_class        'HugeGraphServer' com.baidu.hugegraph.dist.HugeGraphServer
 wait_for_shutdown 'HugeGraphServer' com.baidu.hugegraph.dist.HugeGraphServer $HSRV_SHUTDOWN_TIMEOUT_S
 kill_class        'HugeGremlinServer' com.baidu.hugegraph.dist.HugeGremlinServer
 wait_for_shutdown 'HugeGremlinServer' com.baidu.hugegraph.dist.HugeGremlinServer $GSRV_SHUTDOWN_TIMEOUT_S
-#kill_class        Cassandra org.apache.cassandra.service.CassandraDaemon
-#wait_for_shutdown Cassandra org.apache.cassandra.service.CassandraDaemon
-# $CASSANDRA_SHUTDOWN_TIMEOUT_S
