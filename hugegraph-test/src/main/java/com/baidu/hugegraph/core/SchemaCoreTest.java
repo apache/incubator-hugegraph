@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.List;
+
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -26,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -452,6 +455,353 @@ public class SchemaCoreTest extends BaseCoreTest{
         });
     }
 
+    @Test
+    public void testRemoveVertexLabel() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+                .properties("name", "age", "city")
+                .primaryKeys("name")
+                .create();
+
+        Assert.assertNotNull(schema.getVertexLabel("person"));
+
+        schema.vertexLabel("person").remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getVertexLabel("person");
+        });
+    }
+
+    @Test
+    public void testRemoveVertexLabelWithVertex() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+                .properties("name", "age", "city")
+                .primaryKeys("name")
+                .create();
+
+        graph().addVertex(T.label, "person", "name", "marko", "age", 22);
+        graph().addVertex(T.label, "person", "name", "jerry", "age", 5);
+        graph().addVertex(T.label, "person", "name", "tom", "age", 8);
+
+        List<Vertex> vertex = graph().traversal().V().hasLabel("person")
+                                     .toList();
+        Assert.assertNotNull(vertex);
+        Assert.assertEquals(3, vertex.size());
+
+        schema.vertexLabel("person").remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getVertexLabel("person");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph().traversal().V().hasLabel("person").toList();
+        });
+    }
+
+    @Test
+    public void testRemoveVertexLabelWithVertexAndSearchIndex() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+                .properties("name", "age", "city")
+                .primaryKeys("name")
+                .create();
+
+        schema.indexLabel("personByAge").onV("person").by("age").search()
+              .create();
+
+        graph().addVertex(T.label, "person", "name", "marko", "age", 22);
+        graph().addVertex(T.label, "person", "name", "jerry", "age", 5);
+        graph().addVertex(T.label, "person", "name", "tom", "age", 8);
+
+        List<Vertex> vertex = graph().traversal().V().hasLabel("person")
+                                     .has("age", P.inside(4, 10)).toList();
+        Assert.assertNotNull(vertex);
+        Assert.assertEquals(2, vertex.size());
+
+        schema.vertexLabel("person").remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getVertexLabel("person");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getIndexLabel("personByAge");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph().traversal().V().hasLabel("person").toList();
+        });
+    }
+
+    @Test
+    public void testRemoveVertexLabelWithVertexAndSecondaryIndex() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+                .properties("name", "age", "city")
+                .primaryKeys("name")
+                .create();
+
+        schema.indexLabel("personByCity").onV("person").by("city").secondary()
+                .create();
+
+        graph().addVertex(T.label, "person", "name", "marko",
+                          "city", "Beijing");
+        graph().addVertex(T.label, "person", "name", "jerry",
+                          "city", "Beijing");
+        graph().addVertex(T.label, "person", "name", "tom",
+                          "city", "HongKong");
+
+        List<Vertex> vertex = graph().traversal().V().hasLabel("person")
+                                     .has("city", "Beijing").toList();
+        Assert.assertNotNull(vertex);
+        Assert.assertEquals(2, vertex.size());
+
+        schema.vertexLabel("person").remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getVertexLabel("person");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getIndexLabel("personByCity");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph().traversal().V().hasLabel("person").toList();
+        });
+    }
+
+    @Test
+    public void testRemoveEdgeLabel() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+                .properties("name", "age", "city")
+                .primaryKeys("name")
+                .create();
+
+        schema.vertexLabel("book")
+                .properties("name", "contribution")
+                .primaryKeys("name")
+                .create();
+
+        schema.edgeLabel("look").link("person", "book")
+              .properties("time", "city")
+              .create();
+
+        Assert.assertNotNull(schema.getEdgeLabel("look"));
+
+        schema.edgeLabel("look").remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getEdgeLabel("look");
+        });
+    }
+
+    @Test
+    public void testRemoveEdgeLabelWithEdge() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        schema.edgeLabel("write").link("person", "book")
+              .properties("time", "weight")
+              .create();
+
+        Vertex marko = graph().addVertex(T.label, "person", "name", "marko",
+                                         "age", 22);
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "java in action");
+        Vertex hadoop = graph().addVertex(T.label, "book",
+                                          "name", "hadoop mapreduce");
+
+        marko.addEdge("write", java, "time", "2016-12-12",
+                      "weight", 0.3);
+        marko.addEdge("write", hadoop, "time", "2014-2-28",
+                      "weight", 0.5);
+
+        List<Edge> edge = graph().traversal().E().hasLabel("write").toList();
+        Assert.assertNotNull(edge);
+        Assert.assertEquals(2, edge.size());
+
+        schema.edgeLabel("write").remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getEdgeLabel("write");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph().traversal().E().hasLabel("write").toList();
+        });
+    }
+
+    @Test
+    public void testRemoveEdgeLabelWithEdgeWithSearchIndex() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        schema.edgeLabel("write").link("person", "book")
+              .properties("time", "weight")
+              .create();
+
+        schema.indexLabel("writeByWeight").onE("write").by("weight")
+              .search()
+              .create();
+
+        Vertex marko = graph().addVertex(T.label, "person", "name", "marko",
+                                         "age", 22);
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "java in action");
+        Vertex hadoop = graph().addVertex(T.label, "book",
+                                          "name", "hadoop mapreduce");
+
+        marko.addEdge("write", java, "time", "2016-12-12",
+                      "weight", 0.3);
+        marko.addEdge("write", hadoop, "time", "2014-2-28",
+                      "weight", 0.5);
+
+        List<Edge> edge = graph().traversal().E().hasLabel("write")
+                                 .has("weight", 0.5)
+                                 .toList();
+        Assert.assertNotNull(edge);
+        Assert.assertEquals(1, edge.size());
+
+        schema.edgeLabel("write").remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getEdgeLabel("write");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getIndexLabel("writeByWeight");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph().traversal().E().hasLabel("write").toList();
+        });
+    }
+
+    @Test
+    public void testRemoveEdgeLabelWithEdgeWithSecondaryIndex() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        schema.edgeLabel("write").link("person", "book")
+              .properties("time", "weight")
+              .create();
+
+        schema.indexLabel("writeByTime").onE("write").by("time")
+              .secondary()
+              .create();
+
+        Vertex marko = graph().addVertex(T.label, "person", "name", "marko",
+                                         "age", 22);
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "java in action");
+        Vertex hadoop = graph().addVertex(T.label, "book",
+                                          "name", "hadoop mapreduce");
+
+        marko.addEdge("write", java, "time", "2016-12-12",
+                      "weight", 0.3);
+        marko.addEdge("write", hadoop, "time", "2014-2-28",
+                      "weight", 0.5);
+
+        List<Edge> edge = graph().traversal().E().hasLabel("write")
+                                 .has("time", "2016-12-12")
+                                 .toList();
+        Assert.assertNotNull(edge);
+        Assert.assertEquals(1, edge.size());
+
+        schema.edgeLabel("write").remove();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getEdgeLabel("write");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.getIndexLabel("writeByTime");
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            graph().traversal().E().hasLabel("write").toList();
+        });
+    }
+
+    @Test
+    public void testRemoveVertexLabelUsedByEdgeLabel() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        schema.edgeLabel("write").link("person", "book")
+              .properties("time", "weight")
+              .create();
+
+        Vertex marko = graph().addVertex(T.label, "person", "name", "marko",
+                                         "age", 22);
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "java in action");
+
+        marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
+
+        Utils.assertThrows(HugeException.class, () -> {
+            schema.vertexLabel("person").remove();
+        });
+
+        Utils.assertThrows(HugeException.class, () -> {
+            schema.vertexLabel("book").remove();
+        });
+    }
+
     // Indexlabel tests
     @Test
     public void testAddIndexLabelOfVertex() {
@@ -842,5 +1192,6 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.propertyKey("city").asText().create();
         schema.propertyKey("time").asText().create();
         schema.propertyKey("contribution").asText().create();
+        schema.propertyKey("weight").asDouble().create();
     }
 }

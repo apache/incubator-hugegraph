@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -150,6 +151,14 @@ public class CachedGraphTransaction extends GraphTransaction {
         this.edgesCache.clear();
 
         super.removeEdge(edge);
+    }
+
+    @Override
+    public void removeEdges(EdgeLabel edgeLabel) {
+        // TODO: Use a more precise strategy to update the edge cache
+        this.edgesCache.clear();
+
+        super.removeEdges(edgeLabel);
     }
 
     @Override
