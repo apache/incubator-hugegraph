@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
@@ -36,7 +35,6 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.JsonUtil;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.querybuilder.Delete;
@@ -477,21 +475,6 @@ public class CassandraTables {
             throw new BackendException(
                       "SecondaryIndex insertion is not supported.");
         }
-
-        @Override
-        protected CassandraBackendEntry result2Entry(HugeType type, Row row) {
-            CassandraBackendEntry entry = new CassandraBackendEntry(type);
-            Set<String> elemIds = row.getSet(formatKey(HugeKeys.ELEMENT_IDS),
-                                             String.class);
-            entry.column(HugeKeys.FIELD_VALUES,
-                         row.getString(formatKey(HugeKeys.FIELD_VALUES)));
-            entry.column(HugeKeys.INDEX_LABEL_NAME,
-                         row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
-            // TODO: use default result2Entry after remove toJson()
-            entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(elemIds));
-
-            return entry;
-        }
     }
 
     public static class SearchIndex extends CassandraTable {
@@ -591,21 +574,6 @@ public class CassandraTables {
                            CassandraBackendEntry.Row entry) {
             throw new BackendException(
                       "SearchIndex insertion is not supported.");
-        }
-
-        @Override
-        protected CassandraBackendEntry result2Entry(HugeType type, Row row) {
-            CassandraBackendEntry entry = new CassandraBackendEntry(type);
-            Set<String> elemIds = row.getSet(formatKey(HugeKeys.ELEMENT_IDS),
-                                             String.class);
-            entry.column(HugeKeys.INDEX_LABEL_NAME,
-                         row.getString(formatKey(HugeKeys.INDEX_LABEL_NAME)));
-            entry.column(HugeKeys.FIELD_VALUES,
-                         row.getDecimal(formatKey(HugeKeys.FIELD_VALUES)));
-            // TODO: use default result2Entry after remove toJson()
-            entry.column(HugeKeys.ELEMENT_IDS, JsonUtil.toJson(elemIds));
-
-            return entry;
         }
     }
 }
