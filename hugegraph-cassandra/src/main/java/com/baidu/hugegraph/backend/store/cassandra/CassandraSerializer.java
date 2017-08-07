@@ -474,7 +474,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
         Object indexValues = entry.column(HugeKeys.FIELD_VALUES);
         String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
-        String elementIds = entry.column(HugeKeys.ELEMENT_IDS);
+        Set<String> elementIds = entry.column(HugeKeys.ELEMENT_IDS);
 
         IndexLabel indexLabel = this.graph.schema()
                                 .getIndexLabel(indexLabelName);
@@ -482,8 +482,7 @@ public class CassandraSerializer extends AbstractSerializer {
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(indexValues);
 
-        String[] ids = JsonUtil.fromJson(elementIds, String[].class);
-        for (String id : ids) {
+        for (String id : elementIds) {
             index.elementIds(IdGeneratorFactory.generator().generate(id));
         }
 
