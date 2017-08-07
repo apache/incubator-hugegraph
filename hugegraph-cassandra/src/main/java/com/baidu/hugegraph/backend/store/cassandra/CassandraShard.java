@@ -60,8 +60,8 @@ import com.google.common.collect.ImmutableMap;
  */
 public class CassandraShard {
 
-    // The minimal shard size should > 1M, to prevent too many number of shards
-    public static long MIN_SHARD_SIZE = 1024 * 1024;
+    // The minimal shard size should >= 1M to prevent too many number of shards
+    public static int MIN_SHARD_SIZE = 1024 * 1024;
 
     private CassandraSessionPool.Session session;
     private String keyspace;
@@ -91,8 +91,8 @@ public class CassandraShard {
                 0, 128, 60L,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
-        List<Shard> splits = new ArrayList<>();
 
+        List<Shard> splits = new ArrayList<>();
         try {
             List<Future<List<Shard>>> futures = new ArrayList<>();
 
@@ -100,8 +100,10 @@ public class CassandraShard {
             Map<TokenRange, Set<Host>> masterRangeNodes = getRangeMap();
 
             for (TokenRange range : masterRangeNodes.keySet()) {
-                // For each token range, pick a live owner and ask it to
-                // compute bite-sized splits
+                /*
+                 * For each token range, pick a live owner and ask it to
+                 * compute bite-sized splits.
+                 */
                 futures.add(executor.submit(new SplitCallable(
                             range, splitPartitions, splitSize)));
             }
@@ -140,8 +142,8 @@ public class CassandraShard {
                 0, 128, 60L,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
-        List<Shard> splits = new ArrayList<>();
 
+        List<Shard> splits = new ArrayList<>();
         try {
             List<Future<List<Shard>>> futures = new ArrayList<>();
             TokenFactory tokenFactory = this.partitioner.getTokenFactory();
@@ -229,23 +231,25 @@ public class CassandraShard {
                                               tokenRange.getEnd().toString());
         Row row = resultSet.one();
 
-        long meanPartitionSize = 0;
-        long partitionsCount = 0;
-        long splitCount = 0;
+        long meanPartitionSize = 0L;
+        long partitionsCount = 0L;
+        long splitCount = 0L;
 
         if (row != null) {
             meanPartitionSize = row.getLong("mean_partition_size");
             partitionsCount = row.getLong("partitions_count");
-            assert splitSize <= 0 || splitSize >= 1024 * 1024;
+            assert splitSize <= 0 || splitSize >= MIN_SHARD_SIZE;
             splitCount = splitSize > 0 ?
                          (meanPartitionSize * partitionsCount / splitSize) :
                          (partitionsCount / splitPartitions);
         }
 
-        // If we have no data on this split or the size estimate is 0,
-        // return the full split i.e., do not sub-split
-        // Assume smallest granularity of partition count available from
-        // CASSANDRA-7688
+        /*
+         * If we have no data on this split or the size estimate is 0,
+         * return the full split i.e., do not sub-split
+         * Assume smallest granularity of partition count available from
+         * CASSANDRA-7688.
+         */
         if (splitCount == 0) {
             return ImmutableMap.of(tokenRange, (long) 128);
         }
@@ -270,15 +274,15 @@ public class CassandraShard {
         private final long splitSize;
 
         public SplitCallable(TokenRange tokenRange,
-                long splitPartitions, long splitSize) {
-            if (splitSize <= 0) {
-                if (splitPartitions <= 0) {
-                    throw new IllegalArgumentException(String.format(
-                              "The split-partitions must be > 0, but got %s",
-                              splitPartitions));
-                }
-            } else if (splitSize < MIN_SHARD_SIZE) {
-                // splitSize at least 1M if passed
+                             long splitPartitions, long splitSize) {
+            if (splitSize <= 0 && splitPartitions <= 0) {
+                throw new IllegalArgumentException(String.format(
+                          "The split-partitions must be > 0, but got %s",
+                          splitPartitions));
+            }
+
+            if (splitSize > 0 && splitSize < MIN_SHARD_SIZE) {
+                // splitSize should be at least 1M if passed
                 throw new IllegalArgumentException(String.format(
                           "The split-size must be >= %s bytes, but got %s",
                           MIN_SHARD_SIZE, splitSize));
