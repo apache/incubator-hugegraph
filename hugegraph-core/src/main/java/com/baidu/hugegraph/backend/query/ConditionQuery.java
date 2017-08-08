@@ -149,7 +149,7 @@ public class ConditionQuery extends IdQuery {
              iter.hasNext();) {
             Condition c = iter.next();
             if (c.isRelation() && ((Condition.Relation) c).key().equals(key)) {
-               iter.remove();
+                iter.remove();
             }
             // TODO: deal with other Condition
         }
@@ -185,11 +185,11 @@ public class ConditionQuery extends IdQuery {
     }
 
     public void resetUserpropConditions() {
-        Iterator<Condition> iterator = this.conditions.iterator();
-        while (iterator.hasNext()) {
-            Condition c = iterator.next();
+        for (Iterator<Condition> iter = this.conditions.iterator();
+             iter.hasNext();) {
+            Condition c = iter.next();
             if (!c.isSysprop()) {
-                iterator.remove();
+                iter.remove();
             }
         }
     }
