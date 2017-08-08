@@ -145,11 +145,11 @@ public class ConditionQuery extends IdQuery {
     }
 
     public void unsetCondition(Object key) {
-        Iterator<Condition> iterator = this.conditions.iterator();
-        while (iterator.hasNext()) {
-            Condition c = iterator.next();
+        for (Iterator<Condition> iter = this.conditions.iterator();
+             iter.hasNext();) {
+            Condition c = iter.next();
             if (c.isRelation() && ((Condition.Relation) c).key().equals(key)) {
-                iterator.remove();
+               iter.remove();
             }
             // TODO: deal with other Condition
         }
