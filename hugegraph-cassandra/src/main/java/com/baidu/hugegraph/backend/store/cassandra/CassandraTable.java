@@ -320,9 +320,8 @@ public abstract class CassandraTable {
                                                  ResultSet results) {
         List<BackendEntry> entries = new LinkedList<>();
 
-        Iterator<Row> iterator = results.iterator();
-        while (iterator.hasNext()) {
-            Row row = iterator.next();
+        for (Iterator<Row> iter = results.iterator(); iter.hasNext();) {
+            Row row = iter.next();
             entries.add(result2Entry(resultType, row));
         }
 
