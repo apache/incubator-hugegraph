@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -106,7 +105,7 @@ public abstract class CassandraTable {
 
     public Iterable<BackendEntry> query(CassandraSessionPool.Session session,
                                         Query query) {
-        List<BackendEntry> rs = new LinkedList<>();
+        List<BackendEntry> rs = new ArrayList<>();
 
         if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
             logger.debug("Return empty result(limit=0) for query {}", query);
@@ -218,7 +217,7 @@ public abstract class CassandraTable {
              * NOTE: concat with AND relation, like:
              * "pk = id and ck1 = v1 and ck2 = v2"
              */
-            for (int i = 0; i < nameParts.size(); i++) {
+            for (int i = 0, n = nameParts.size(); i < n; i++) {
                 idSelection.where(QueryBuilder.eq(nameParts.get(i),
                                                   id.get(i)));
             }
@@ -318,7 +317,7 @@ public abstract class CassandraTable {
 
     protected List<BackendEntry> results2Entries(HugeType resultType,
                                                  ResultSet results) {
-        List<BackendEntry> entries = new LinkedList<>();
+        List<BackendEntry> entries = new ArrayList<>();
 
         for (Iterator<Row> iter = results.iterator(); iter.hasNext();) {
             Row row = iter.next();
@@ -399,7 +398,7 @@ public abstract class CassandraTable {
             }
         }
 
-        for (int i = 0; i < idNames.size(); i++) {
+        for (int i = 0, n = idNames.size(); i < n; i++) {
             update.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
         }
 
@@ -446,7 +445,7 @@ public abstract class CassandraTable {
             }
         }
 
-        for (int i = 0; i < idNames.size(); i++) {
+        for (int i = 0, n = idNames.size(); i < n; i++) {
             update.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
         }
 
@@ -465,7 +464,7 @@ public abstract class CassandraTable {
             assert idNames.size() == idValues.size();
 
             Delete delete = QueryBuilder.delete().from(this.table);
-            for (int i = 0; i < idNames.size(); i++) {
+            for (int i = 0, n = idNames.size(); i < n; i++) {
                 delete.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
             }
 
