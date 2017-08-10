@@ -128,14 +128,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return propValues;
     }
 
-    public void sortValues(List<Object> propValues) {
-        List<String> sortKeys = this.edgeLabel().sortKeys();
-        int i = 0;
-        for (String k : sortKeys) {
-            this.addProperty(k, propValues.get(i++));
-        }
-    }
-
     @Override
     public void remove() {
         this.removed = true;
@@ -205,7 +197,8 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                 vertices.add(this.targetVertex);
                 break;
             default:
-                break;
+                throw new AssertionError("Unsupported direction: " +
+                                         direction);
         }
 
         for (Vertex vertex : vertices) {
