@@ -184,8 +184,18 @@ public class VertexLabel extends SchemaLabel {
             this.transaction.rebuildIndex(this.vertexLabel);
         }
 
-        public Builder idStrategy(IdStrategy idStrategy) {
-            this.vertexLabel.idStrategy(idStrategy);
+        public Builder useAutomaticId() {
+            this.vertexLabel.idStrategy(IdStrategy.AUTOMATIC);
+            return this;
+        }
+
+        public Builder useCustomizeId() {
+            this.vertexLabel.idStrategy(IdStrategy.CUSTOMIZE);
+            return this;
+        }
+
+        public Builder usePrimaryKeyId() {
+            this.vertexLabel.idStrategy(IdStrategy.PRIMARY_KEY);
             return this;
         }
 
@@ -219,9 +229,32 @@ public class VertexLabel extends SchemaLabel {
         }
 
         private void checkIdStrategy() {
-            if (this.vertexLabel.idStrategy == IdStrategy.DAFAULT) {
-                this.vertexLabel.idStrategy(IdStrategy.AUTOMATIC);
-            } else if (this.vertexLabel.idStrategy == IdStrategy.PRIMARY_KEY) {
+            IdStrategy strategy = this.vertexLabel.idStrategy;
+            boolean hasPrimaryKey = this.vertexLabel.primaryKeys().size() > 0;
+            switch (strategy) {
+                case DAFAULT:
+                    if (hasPrimaryKey) {
+                        this.vertexLabel.idStrategy(IdStrategy.PRIMARY_KEY);
+                    } else {
+                        this.vertexLabel.idStrategy(IdStrategy.AUTOMATIC);
+                    }
+                    break;
+                case AUTOMATIC:
+                case CUSTOMIZE:
+                    E.checkArgument(!hasPrimaryKey,
+                                    "Not allowed to pass primary keys " +
+                                    "when using '%s' id strategy", strategy);
+                    break;
+                case PRIMARY_KEY:
+                    E.checkArgument(hasPrimaryKey,
+                                    "Must pass primary keys when " +
+                                    "using '%s' id strategy", strategy);
+                    break;
+                default:
+                    throw new AssertionError(String.format(
+                              "Unknown id strategy '%s'", strategy));
+            }
+            if (this.vertexLabel.idStrategy == IdStrategy.PRIMARY_KEY) {
                 this.checkPrimaryKeys();
             }
         }
