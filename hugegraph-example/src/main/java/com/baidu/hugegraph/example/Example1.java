@@ -109,7 +109,6 @@ public class Example1 {
         schema.propertyKey("nickname").asText().valueList().create();
         schema.propertyKey("lived").asText().create();
         schema.propertyKey("country").asText().valueSet().create();
-        schema.propertyKey("country").asText().valueSet().create();
         schema.propertyKey("city").asText().create();
         schema.propertyKey("sensor_id").asUuid().create();
 
@@ -152,8 +151,13 @@ public class Example1 {
                 .properties("contribution", "comment")
                 .create();
 
-        schema.edgeLabel("look").multiTimes().properties("time")
+        schema.edgeLabel("write").multiTimes().properties("time")
                 .sourceLabel("author").targetLabel("book")
+                .sortKeys("time")
+                .create();
+
+        schema.edgeLabel("look").multiTimes().properties("time")
+                .sourceLabel("person").targetLabel("book")
                 .sortKeys("time")
                 .create();
 
@@ -174,15 +178,15 @@ public class Example1 {
         graph.addVertex(T.label, "book", "name", "java-3");
 
         graph.addVertex(T.label, "person", "name", "Baby",
-                "city", "Hongkong", "age", 3);
+                        "city", "Hongkong", "age", 3);
         graph.addVertex(T.label, "person", "name", "James",
-                "city", "Beijing", "age", 19);
+                        "city", "Beijing", "age", 19);
         graph.addVertex(T.label, "person", "name", "Tom Cat",
-                "city", "Beijing", "age", 20);
+                        "city", "Beijing", "age", 20);
         graph.addVertex(T.label, "person", "name", "Lisa",
-                "city", "Beijing", "age", 20);
+                        "city", "Beijing", "age", 20);
         graph.addVertex(T.label, "person", "name", "Hebe",
-                "city", "Taipei", "age", 21);
+                        "city", "Taipei", "age", 21);
 
         // Must commit manually
         GraphTransaction tx = graph.openTransaction();
@@ -205,9 +209,9 @@ public class Example1 {
                       "comment", "it's a good book too");
         james.addEdge("authored", book2, "contribution", "2017-4-28");
 
-        james.addEdge("look", book2, "time", "2017-4-28");
-        james.addEdge("look", book3, "time", "2016-1-1");
-        james.addEdge("look", book3, "time", "2017-4-28");
+        james.addEdge("write", book2, "time", "2017-4-28");
+        james.addEdge("write", book3, "time", "2016-1-1");
+        james.addEdge("write", book3, "time", "2017-4-28");
 
         // commit data changes
         try {
@@ -262,7 +266,7 @@ public class Example1 {
 
         // query edge by sort-values
         vertexes = graph.traversal().V("author:1");
-        edgesOfVertex = vertexes.outE("look").has("time", "2017-4-28");
+        edgesOfVertex = vertexes.outE("write").has("time", "2017-4-28");
         edgeList = edgesOfVertex.toList();
         assert edgeList.size() == 2;
         System.out.println(">>>> query edges of vertex by sort-values: " +
@@ -373,8 +377,8 @@ public class Example1 {
         }
 
         // test index remove and index rebuild
-        // personByCity.remove();
-        // personByAge.remove();
+        schema.indexLabel("personByCity").remove();
+        schema.indexLabel("personByAge").remove();
         graph.addVertex(T.label, "person", "name", "Bright",
                         "city", "LuAn", "age", 27);
         personByCity = schema.indexLabel("personByCity").onV("person")
