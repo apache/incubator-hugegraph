@@ -13,8 +13,8 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * License for the specific language governing permissions and limitations
+ * under the License.
  */
 
 package com.baidu.hugegraph.core;
@@ -65,32 +65,32 @@ public class Utils {
         void run() throws Throwable;
     }
 
-    public static void assertThrows(
-            Class<? extends Throwable> throwable,
-            ThrowableRunnable runnable) {
-        assertThrows(throwable, runnable, t -> {
-            t.printStackTrace();
+    public static void assertThrows(Class<? extends Throwable> throwable,
+                                    ThrowableRunnable runnable) {
+        assertThrows(throwable, runnable, e -> {
+            e.printStackTrace();
         });
     }
 
-    public static void assertThrows(
-            Class<? extends Throwable> throwable,
-            ThrowableRunnable runnable,
-            Consumer<Throwable> exceptionConsumer) {
+    public static void assertThrows(Class<? extends Throwable> throwable,
+                                    ThrowableRunnable runnable,
+                                    Consumer<Throwable> exceptionConsumer) {
         boolean fail = false;
         try {
             runnable.run();
             fail = true;
-        } catch (Throwable t) {
-            exceptionConsumer.accept(t);
-            Assert.assertTrue(String.format(
-                    "Bad exception type %s(expect %s)",
-                    t.getClass(), throwable),
-                    throwable.isInstance(t));
+        } catch (Throwable e) {
+            exceptionConsumer.accept(e);
+            if (!throwable.isInstance(e)) {
+                Assert.fail(String.format(
+                            "Bad exception type %s(expect %s)",
+                            e.getClass(), throwable));
+            }
         }
         if (fail) {
-            Assert.fail(String.format("No exception was thrown(expect %s)",
-                    throwable));
+            Assert.fail(String.format(
+                        "No exception was thrown(expect %s)",
+                        throwable));
         }
     }
 }

@@ -13,8 +13,8 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * License for the specific language governing permissions and limitations
+ * under the License.
  */
 
 package com.baidu.hugegraph.core;
@@ -40,8 +40,8 @@ public class BaseCoreTest {
     private static HugeGraph graph = null;
 
     protected static HugeGraph open() {
-        String confFile = BaseCoreTest.class.getClassLoader().getResource(
-                CONF_PATH).getPath();
+        String confFile = BaseCoreTest.class.getClassLoader()
+                          .getResource(CONF_PATH).getPath();
         return HugeFactory.open(confFile);
     }
 
