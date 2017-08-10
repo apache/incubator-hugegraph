@@ -159,15 +159,20 @@ public class VertexAPI extends API {
     @JsonIgnoreProperties(value = {"type"})
     static class CreateVertex {
 
+        public Object id;
         public String label;
         public Map<String, Object> properties;
         public String type;
 
         public Object[] properties() {
             Object[] props = API.properties(this.properties);
-            List<Object> list = new LinkedList<>(Arrays.asList(props));
-            list.add(0, T.label);
-            list.add(1, this.label);
+            List<Object> list = new ArrayList<>(Arrays.asList(props));
+            list.add(T.label);
+            list.add(this.label);
+            if (id != null) {
+                list.add(T.id);
+                list.add(this.id);
+            }
             return list.toArray();
         }
 
