@@ -135,26 +135,21 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public List<Object> primaryValues() {
-        List<String> primaryKeys = this.vertexLabel().primaryKeys();
-        if (primaryKeys.isEmpty()) {
-            return ImmutableList.of();
-        }
-        Iterator<VertexProperty<Object>> props = this.properties(
-                primaryKeys.toArray(new String[0]));
+        E.checkArgument(this.label.idStrategy() == IdStrategy.PRIMARY_KEY,
+                        "The id strategy '%s' don't have primary keys",
+                        this.label.idStrategy());
+        List<String> primaryKeys = this.label.primaryKeys();
+        E.checkArgument(!primaryKeys.isEmpty(),
+                        "Primary key can't be empty for id strategy '%s'",
+                        IdStrategy.PRIMARY_KEY);
+        Iterator<VertexProperty<Object>> props =
+                this.properties(primaryKeys.toArray(new String[0]));
 
         List<Object> propValues = new ArrayList<>(primaryKeys.size());
         while (props.hasNext()) {
             propValues.add(props.next().value());
         }
         return propValues;
-    }
-
-    public void primaryValues(List<Object> propValues) {
-        List<String> primaryKeys = this.vertexLabel().primaryKeys();
-        int i = 0;
-        for (String k : primaryKeys) {
-            this.addProperty(k, propValues.get(i++));
-        }
     }
 
     public boolean existsEdges() {

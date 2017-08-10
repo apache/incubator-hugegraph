@@ -224,6 +224,7 @@ public abstract class HugeElement implements Element, GraphType {
                 if (labelValue instanceof String) {
                     ElementHelper.validateLabel((String) labelValue);
                 }
+                break;
             }
         }
         return labelValue;
