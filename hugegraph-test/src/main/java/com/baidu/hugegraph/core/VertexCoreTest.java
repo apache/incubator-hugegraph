@@ -40,7 +40,6 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.define.IdStrategy;
 import com.google.common.collect.ImmutableList;
 
 public class VertexCoreTest extends BaseCoreTest {
@@ -184,7 +183,7 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .idStrategy(IdStrategy.AUTOMATIC)
+              .useAutomaticId()
               .properties("name", "age", "city")
               .create();
 
@@ -200,7 +199,7 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-                .idStrategy(IdStrategy.AUTOMATIC)
+                .useAutomaticId()
                 .properties("name", "age", "city")
                 .create();
 
@@ -209,9 +208,9 @@ public class VertexCoreTest extends BaseCoreTest {
 
         List<Vertex> vertices = graph.traversal().V().toList();
         Assert.assertEquals(1, vertices.size());
-        Assert.assertTrue(Utils.contains(vertices,
-                new FakeVertex(T.label, "programmer", "name", "marko",
-                               "age", 18, "city", "Beijing")));
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 18, "city", "Beijing");
     }
 
     @Test
@@ -220,7 +219,7 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .idStrategy(IdStrategy.PRIMARY_KEY)
+              .usePrimaryKeyId()
               .properties("name", "age", "city")
               .primaryKeys("name", "age")
               .create();
@@ -237,7 +236,7 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .idStrategy(IdStrategy.PRIMARY_KEY)
+              .usePrimaryKeyId()
               .properties("name", "age", "city")
               .primaryKeys("name", "age")
               .create();
@@ -249,9 +248,9 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals("programmer:marko!18",
                             vertices.get(0).id().toString());
-        Assert.assertTrue(Utils.contains(vertices,
-                new FakeVertex(T.label, "programmer", "name", "marko",
-                               "age", 18, "city", "Beijing")));
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 18, "city", "Beijing");
     }
 
     @Test
@@ -260,7 +259,7 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .idStrategy(IdStrategy.CUSTOMIZE)
+              .useCustomizeId()
               .properties("name", "age", "city")
               .create();
         graph.addVertex(T.label, "programmer", T.id, "123456", "name", "marko",
@@ -269,9 +268,9 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = graph.traversal().V("123456").toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals("123456", vertices.get(0).id().toString());
-        Assert.assertTrue(Utils.contains(vertices,
-                new FakeVertex(T.label, "programmer", "name", "marko",
-                               "age", 18, "city", "Beijing")));
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 18, "city", "Beijing");
     }
 
     @Test
@@ -280,7 +279,7 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .idStrategy(IdStrategy.CUSTOMIZE)
+              .useCustomizeId()
               .properties("name", "age", "city")
               .create();
 
@@ -314,16 +313,13 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Assert.assertEquals(10, vertexes.size());
 
-        Assert.assertTrue(Utils.contains(vertexes,
-                new FakeVertex(T.label, "author", "id", 1,
-                               "name", "James Gosling", "age", 62,
-                               "lived", "Canadian")));
+        assertContains(vertexes,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
 
-        Assert.assertTrue(Utils.contains(vertexes,
-                new FakeVertex(T.label, "language", "name", "java")));
+        assertContains(vertexes, T.label, "language", "name", "java");
 
-        Assert.assertTrue(Utils.contains(vertexes,
-                new FakeVertex(T.label, "book", "name", "java-1")));
+        assertContains(vertexes, T.label, "book", "name", "java-1");
     }
 
     @Test
@@ -782,18 +778,18 @@ public class VertexCoreTest extends BaseCoreTest {
 
         List<Vertex> vertexes = graph.traversal().V().toList();
         Assert.assertEquals(10, vertexes.size());
-        Assert.assertTrue(Utils.contains(vertexes, new FakeVertex(
-                T.label, "author", "id", 1, "name", "James Gosling",
-                "age", 62, "lived", "Canadian")));
+        assertContains(vertexes,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
 
         Vertex vertex = vertex("author", "id", 1);
         vertex.remove();
 
         vertexes = graph.traversal().V().toList();
         Assert.assertEquals(9, vertexes.size());
-        Assert.assertFalse(Utils.contains(vertexes, new FakeVertex(
-                T.label, "author", "id", 1, "name", "James Gosling",
-                "age", 62, "lived", "Canadian")));
+        assertNotContains(vertexes,
+                          T.label, "author", "id", 1, "name", "James Gosling",
+                          "age", 62, "lived", "Canadian");
     }
 
     @Test
@@ -803,18 +799,18 @@ public class VertexCoreTest extends BaseCoreTest {
 
         List<Vertex> vertexes = graph.traversal().V().toList();
         Assert.assertEquals(10, vertexes.size());
-        Assert.assertTrue(Utils.contains(vertexes, new FakeVertex(
-                T.label, "author", "id", 1, "name", "James Gosling",
-                "age", 62, "lived", "Canadian")));
+        assertContains(vertexes,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
 
         Vertex vertex = vertex("author", "id", 1);
         vertex.remove();
 
         vertexes = graph.traversal().V().toList();
         Assert.assertEquals(9, vertexes.size());
-        Assert.assertFalse(Utils.contains(vertexes, new FakeVertex(
-                T.label, "author", "id", 1, "name", "James Gosling",
-                "age", 62, "lived", "Canadian")));
+        assertNotContains(vertexes,
+                          T.label, "author", "id", 1, "name", "James Gosling",
+                          "age", 62, "lived", "Canadian");
 
         vertex.remove(); // remove again
     }
@@ -1201,9 +1197,13 @@ public class VertexCoreTest extends BaseCoreTest {
         return vertexes.get(0);
     }
 
-    private static void assertContains(
-            List<Vertex> vertexes,
-            Object... keyValues) {
+    private static void assertContains(List<Vertex> vertexes,
+                                       Object... keyValues) {
         Assert.assertTrue(Utils.contains(vertexes, new FakeVertex(keyValues)));
+    }
+
+    private static void assertNotContains(List<Vertex> vertexes,
+                                          Object... keyValues) {
+        Assert.assertFalse(Utils.contains(vertexes, new FakeVertex(keyValues)));
     }
 }

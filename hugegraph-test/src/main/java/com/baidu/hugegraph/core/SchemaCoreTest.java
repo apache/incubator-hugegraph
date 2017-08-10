@@ -29,6 +29,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -95,13 +96,13 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertEquals(IdStrategy.AUTOMATIC, person.idStrategy());
 
         VertexLabel person1 = schema.vertexLabel("person1")
-                              .idStrategy(IdStrategy.AUTOMATIC)
+                              .useAutomaticId()
                               .properties("name", "age", "city")
                               .create();
         Assert.assertEquals(IdStrategy.AUTOMATIC, person1.idStrategy());
 
         VertexLabel person2 = schema.vertexLabel("person2")
-                              .idStrategy(IdStrategy.CUSTOMIZE)
+                              .useCustomizeId()
                               .properties("name", "age", "city")
                               .create();
         Assert.assertEquals(IdStrategy.CUSTOMIZE, person2.idStrategy());
@@ -113,7 +114,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertEquals(IdStrategy.PRIMARY_KEY, person3.idStrategy());
 
         VertexLabel person4 = schema.vertexLabel("person4")
-                              .idStrategy(IdStrategy.PRIMARY_KEY)
+                              .usePrimaryKeyId()
                               .properties("name", "age", "city")
                               .primaryKeys("name")
                               .create();
@@ -127,24 +128,24 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
-                  .idStrategy(IdStrategy.CUSTOMIZE)
-                  .idStrategy(IdStrategy.AUTOMATIC)
+                  .useCustomizeId()
+                  .useAutomaticId()
                   .properties("name", "age", "city")
                   .create();
         });
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
-                  .idStrategy(IdStrategy.CUSTOMIZE)
-                  .idStrategy(IdStrategy.PRIMARY_KEY)
+                  .useCustomizeId()
+                  .usePrimaryKeyId()
                   .properties("name", "age", "city")
                   .create();
         });
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
-                  .idStrategy(IdStrategy.PRIMARY_KEY)
-                  .idStrategy(IdStrategy.AUTOMATIC)
+                  .usePrimaryKeyId()
+                  .useAutomaticId()
                   .properties("name", "age", "city")
                   .create();
         });
@@ -157,7 +158,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
-                  .idStrategy(IdStrategy.CUSTOMIZE)
+                  .useCustomizeId()
                   .primaryKeys("name")
                   .properties("name", "age", "city")
                   .create();
@@ -165,9 +166,117 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
-                  .idStrategy(IdStrategy.AUTOMATIC)
+                  .useCustomizeId()
                   .primaryKeys("name")
                   .properties("name", "age", "city")
+                  .create();
+        });
+    }
+
+    @Test
+    public void testAddVertexWithDefaultIdStrategyAndPassedPk() {
+        initProperties();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                             .properties("name", "age")
+                             .primaryKeys("name")
+                             .create();
+        Assert.assertEquals(IdStrategy.PRIMARY_KEY, person.idStrategy());
+    }
+
+    @Test
+    public void testAddVertexWithDefaultIdStrategyAndNotPassedPk() {
+        initProperties();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                             .properties("name", "age")
+                             .create();
+        Assert.assertEquals(IdStrategy.AUTOMATIC, person.idStrategy());
+    }
+
+    @Test
+    public void testAddVertexWithAutomaticIdStrategyButPassedPk() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .useAutomaticId()
+                  .properties("name", "age")
+                  .primaryKeys("name")
+                  .create();
+        });
+    }
+
+    @Test
+    public void testAddVertexWithAutomaticIdStrategyAndNotPassedPk() {
+        initProperties();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                             .useAutomaticId()
+                             .properties("name", "age")
+                             .create();
+        Assert.assertEquals(IdStrategy.AUTOMATIC, person.idStrategy());
+    }
+
+    @Test
+    public void testAddVertexWithCustomizeIdStrategyButPassedPk() {
+        initProperties();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .useCustomizeId()
+                  .properties("name", "age")
+                  .primaryKeys("name")
+                  .create();
+        });
+    }
+
+    @Test
+    public void testAddVertexWithCustomizeIdStrategyAndNotPassedPk() {
+        initProperties();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                             .useCustomizeId()
+                             .properties("name", "age")
+                             .create();
+        Assert.assertEquals(IdStrategy.CUSTOMIZE, person.idStrategy());
+    }
+
+    @Test
+    public void testAddVertexWithPrimaryKeyIdStrategyAndPassedPk() {
+        initProperties();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+
+        VertexLabel person = schema.vertexLabel("person")
+                             .usePrimaryKeyId()
+                             .properties("name", "age")
+                             .primaryKeys("name")
+                             .create();
+        Assert.assertEquals(IdStrategy.PRIMARY_KEY, person.idStrategy());
+    }
+
+    @Test
+    public void testAddVertexWithPrimaryKeyIdStrategyButNotPassedPk() {
+        initProperties();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .usePrimaryKeyId()
+                  .properties("name", "age")
                   .create();
         });
     }
@@ -200,7 +309,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         Utils.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
-                  .idStrategy(IdStrategy.PRIMARY_KEY)
+                  .usePrimaryKeyId()
                   .properties("name", "age", "city")
                   .create();
         });
