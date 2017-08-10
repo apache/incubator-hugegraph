@@ -32,32 +32,32 @@ public class EdgeApiTest extends BaseApiTest {
 
     @BeforeClass
     public static void setup() {
-        // add some edges (NOTE: vertices have been added before)
-        String look2 = "{"
-                + "\"label\":\"look\","
+        // Add some edges (NOTE: vertices have been added before)
+        String write2 = "{"
+                + "\"label\":\"write\","
                 + "\"outV\":\"author:1\","
                 + "\"inV\":\"book:java-2\","
                 + "\"properties\":{"
                 + "\"time\":\"2017-5-18\""
                 + "}}";
-        String look3 = "{"
-                + "\"label\":\"look\","
+        String write3 = "{"
+                + "\"label\":\"write\","
                 + "\"outV\":\"author:1\","
                 + "\"inV\":\"book:java-3\","
                 + "\"properties\":{"
                 + "\"time\":\"2017-5-18\""
                 + "}}";
 
-        Response r = newClient().post(path, look2);
+        Response r = newClient().post(path, write2);
         Assert.assertEquals(r.readEntity(String.class), 201, r.getStatus());
 
-        r = newClient().post(path, look3);
+        r = newClient().post(path, write3);
         Assert.assertEquals(r.readEntity(String.class), 201, r.getStatus());
     }
 
     @AfterClass
     public static void teardown() {
-        newClient().delete(path, "author:1>look>2017-5-18>book:java-3");
+        newClient().delete(path, "author:1>write>2017-5-18>book:java-3");
     }
 
     @Test
@@ -75,14 +75,14 @@ public class EdgeApiTest extends BaseApiTest {
 
     @Test
     public void testGet() {
-        String edge = "author:1>look>2017-5-18>book:java-2";
+        String edge = "author:1>write>2017-5-18>book:java-2";
         Response r = client().get(path, edge);
         Assert.assertEquals(200, r.getStatus());
     }
 
     @Test
     public void testGetNotFound() {
-        String edge = "author:1>look>2017-5-18>book:!not-exists!";
+        String edge = "author:1>write>2017-5-18>book:!not-exists!";
         Response r = client().get(path, edge);
         // TODO: improve to 404 (currently server returns 400 if not found)
         Assert.assertEquals(400, r.getStatus());
@@ -97,7 +97,7 @@ public class EdgeApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() {
-        String edge = "author:1>look>2017-5-18>book:java-3";
+        String edge = "author:1>write>2017-5-18>book:java-3";
         Response r = client().delete(path, edge);
         Assert.assertEquals(204, r.getStatus());
     }
