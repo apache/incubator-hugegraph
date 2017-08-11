@@ -49,7 +49,6 @@ public class Example2 {
         Example2.load(graph);
         showSchema(graph);
         traversal(graph);
-        removeSchema(graph);
         System.exit(0);
     }
 
@@ -76,18 +75,13 @@ public class Example2 {
         System.out.println(">>>> query with AND: " + names);
         assert names.size() == 1 : names.size();
 
-        System.out.println(graph.traversal().V()
-                .has("age", 29)
-                .toList());
+        System.out.println(graph.traversal().V().has("age", 29).toList());
 
-        System.out.println(graph.traversal().V()
-                .has("age", 29)
-                .has("city", "Beijing")
-                .toList());
+        System.out.println(graph.traversal().V().has("age", 29)
+                           .has("city", "Beijing").toList());
 
         System.out.println(graph.traversal().E()
-                .has("city", "Beijing")
-                .toList());
+                           .has("city", "Beijing").toList());
 
         List<Path> paths = graph.traversal().V("person:marko")
                            .out().out().path().by("name").toList();
@@ -145,74 +139,97 @@ public class Example2 {
         schema.propertyKey("date").asText().ifNotExist().create();
         schema.propertyKey("price").asInt().ifNotExist().create();
 
-        VertexLabel person = schema.vertexLabel("person")
-                .properties("name", "age", "city")
-                .primaryKeys("name")
-                .ifNotExist()
-                .create();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
 
-        VertexLabel software = schema.vertexLabel("software")
-                .properties("name", "lang", "price")
-                .primaryKeys("name")
-                .ifNotExist()
-                .create();
+        schema.vertexLabel("software")
+              .properties("name", "lang", "price")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
 
-        schema.indexLabel("personByName").onV("person").by("name")
-                .secondary()
-                .ifNotExist().create();
+        schema.indexLabel("personByName")
+              .onV("person")
+              .by("name")
+              .secondary()
+              .ifNotExist()
+              .create();
 
-        schema.indexLabel("personByAge").onV("person").by("age").search()
-                .ifNotExist().create();
+        schema.indexLabel("personByAge")
+              .onV("person")
+              .by("age")
+              .search()
+              .ifNotExist()
+              .create();
 
-        schema.indexLabel("personByCity").onV("person").by("city").secondary()
-                .ifNotExist().create();
+        schema.indexLabel("personByCity")
+              .onV("person")
+              .by("city")
+              .secondary()
+              .ifNotExist()
+              .create();
 
-        schema.indexLabel("personByAgeAndCityAndName").onV("person")
-                .by("age", "city", "name")
-                .secondary()
-                .ifNotExist().create();
+        schema.indexLabel("personByAgeAndCityAndName")
+              .onV("person")
+              .by("age", "city", "name")
+              .secondary()
+              .ifNotExist().create();
 
-        schema.indexLabel("softwareByPrice").onV("software").by("price")
-                .search().ifNotExist().create();
+        schema.indexLabel("softwareByPrice")
+              .onV("software")
+              .by("price")
+              .search()
+              .ifNotExist()
+              .create();
 
         schema.edgeLabel("knows")
-                .sourceLabel("person").targetLabel("person")
-                .properties("date").create();
+              .sourceLabel("person")
+              .targetLabel("person")
+              .properties("date")
+              .ifNotExist()
+              .create();
 
         schema.edgeLabel("knows").properties("price").append();
 
-        EdgeLabel created = schema.edgeLabel("created")
-                .sourceLabel("person").targetLabel("software")
-                .properties("date", "city")
-                .ifNotExist()
-                .create();
+        schema.edgeLabel("created")
+              .sourceLabel("person").targetLabel("software")
+              .properties("date", "city")
+              .ifNotExist()
+              .create();
 
-        schema.indexLabel("createdByDate").onE("created").by("date")
-                .secondary()
-                .ifNotExist()
-                .create();
+        schema.indexLabel("createdByDate")
+              .onE("created")
+              .by("date")
+              .secondary()
+              .ifNotExist()
+              .create();
 
-        schema.indexLabel("createdByCity").onE("created")
-                .by("city")
-                .secondary()
-                .ifNotExist().create();
+        schema.indexLabel("createdByCity")
+              .onE("created")
+              .by("city")
+              .secondary()
+              .ifNotExist()
+              .create();
 
         schema.desc();
 
         graph.tx().open();
 
-        Vertex marko = graph.addVertex(T.label, "person",
-                "name", "marko", "age", 29, "city", "Beijing");
-        Vertex vadas = graph.addVertex(T.label, "person",
-                "name", "vadas", "age", 27, "city", "Hongkong");
-        Vertex lop = graph.addVertex(T.label, "software",
-                "name", "lop", "lang", "java", "price", 328);
-        Vertex josh = graph.addVertex(T.label, "person",
-                "name", "josh", "age", 32, "city", "Beijing");
-        Vertex ripple = graph.addVertex(T.label, "software",
-                "name", "ripple", "lang", "java", "price", 199);
-        Vertex peter = graph.addVertex(T.label, "person",
-                "name", "peter", "age", 29, "city", "Shanghai");
+        Vertex marko = graph.addVertex(T.label, "person", "name", "marko",
+                                       "age", 29, "city", "Beijing");
+        Vertex vadas = graph.addVertex(T.label, "person", "name", "vadas",
+                                       "age", 27, "city", "Hongkong");
+        Vertex lop = graph.addVertex(T.label, "software", "name", "lop",
+                                     "lang", "java", "price", 328);
+        Vertex josh = graph.addVertex(T.label, "person", "name", "josh",
+                                      "age", 32, "city", "Beijing");
+        Vertex ripple = graph.addVertex(T.label, "software", "name", "ripple",
+                                        "lang", "java", "price", 199);
+        Vertex peter = graph.addVertex(T.label, "person", "name", "peter",
+                                       "age", 29, "city", "Shanghai");
 
         marko.addEdge("knows", vadas, "date", "20160110");
         marko.addEdge("knows", josh, "date", "20130220");
@@ -222,19 +239,5 @@ public class Example2 {
         peter.addEdge("created", lop, "date", "20170324", "city", "Hongkong");
 
         graph.tx().commit();
-    }
-
-    private static void removeSchema(HugeGraph graph) {
-        SchemaManager schema = graph.schema();
-        // Remove edge label
-        schema.edgeLabel("created").remove();
-        // Remove vertex label
-        schema.vertexLabel("software").remove();
-        try {
-            schema.propertyKey("name").remove();
-        } catch (Exception e) {
-            logger.info("Not allowed to remove property key '{}' that is in " +
-                        "using by some vertex or edge label.", "name");
-        }
     }
 }
