@@ -277,19 +277,19 @@ public class VertexLabel extends SchemaLabel {
 
         private void checkStableVars() {
             String name = this.vertexLabel.name();
-            List<String> primaryKeys = this.vertexLabel.primaryKeys();
-            Set<String> indexNames = this.vertexLabel.indexNames();
+            List<String> primaryKeys = this.vertexLabel.primaryKeys;
+            IdStrategy idStrategy = this.vertexLabel.idStrategy;
 
             // Don't allow to append sort keys.
             if (!primaryKeys.isEmpty()) {
-                throw new NotAllowException("Not allowed to append primary " +
-                                            "keys for existed vertex label " +
-                                            "'%s'", name);
+                throw new NotAllowException(
+                          "Not allowed to append primary keys " +
+                          "for existed vertex label '%s'", name);
             }
-            if (!indexNames.isEmpty()) {
-                throw new NotAllowException("Not allowed to append indexes " +
-                                            "for existed vertex label '%s'",
-                                            name);
+            if (idStrategy != IdStrategy.DAFAULT) {
+                throw new NotAllowException(
+                          "Not allowed to change id strategy " +
+                          "for existed vertex label '%s'", name);
             }
         }
     }

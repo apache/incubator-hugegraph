@@ -57,12 +57,10 @@ public class PropertyKey extends SchemaElement {
     }
 
     public Class<?> clazz() {
-        Class<?> dataType = this.dataType().clazz();
-        Class<?> cls = null;
-
-        switch (this.cardinality()) {
+        Class<?> cls;
+        switch (this.cardinality) {
             case SINGLE:
-                cls = dataType;
+                cls = this.dataType().clazz();
                 break;
             // A set of values: Set<DataType>
             case SET:
@@ -73,8 +71,8 @@ public class PropertyKey extends SchemaElement {
                 cls = LinkedList.class;
                 break;
             default:
-                assert false;
-                break;
+                throw new AssertionError(String.format(
+                          "Unsupported cardinality: '%s'", this.cardinality));
         }
         return cls;
     }
@@ -98,9 +96,9 @@ public class PropertyKey extends SchemaElement {
 
     // Check property value valid
     public <V> boolean checkValue(V value) {
-        boolean valid = false;
+        boolean valid;
 
-        switch (this.cardinality()) {
+        switch (this.cardinality) {
             case SINGLE:
                 valid = this.checkDataType(value);
                 break;
@@ -113,8 +111,8 @@ public class PropertyKey extends SchemaElement {
                 valid = valid && this.checkDataType((List<?>) value);
                 break;
             default:
-                assert false;
-                break;
+                throw new AssertionError(String.format(
+                          "Unsupported cardinality: '%s'", this.cardinality));
         }
         return valid;
     }

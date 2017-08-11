@@ -110,10 +110,10 @@ public class SchemaManager {
 
     public List<SchemaElement> desc() {
         List<SchemaElement> elements = new ArrayList<>();
-        elements.addAll(this.transaction.getPropertyKeys());
-        elements.addAll(this.transaction.getVertexLabels());
-        elements.addAll(this.transaction.getEdgeLabels());
-        elements.addAll(this.transaction.getIndexLabels());
+        elements.addAll(this.getPropertyKeys());
+        elements.addAll(this.getVertexLabels());
+        elements.addAll(this.getEdgeLabels());
+        elements.addAll(this.getIndexLabels());
         return elements;
     }
 }

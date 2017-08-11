@@ -46,7 +46,7 @@ public class EdgeLabel extends SchemaLabel {
         super(name);
         this.sourceLabel = null;
         this.targetLabel = null;
-        this.frequency = Frequency.SINGLE;
+        this.frequency = null;
         this.sortKeys = new ArrayList<>();
     }
 
@@ -173,6 +173,10 @@ public class EdgeLabel extends SchemaLabel {
                 }
             }
 
+            if (this.edgeLabel.frequency == null) {
+                this.edgeLabel.frequency = Frequency.SINGLE;
+            }
+
             this.checkLinks();
             this.checkProperties();
             this.checkSortKeys();
@@ -195,8 +199,6 @@ public class EdgeLabel extends SchemaLabel {
                 throw new HugeException("Can't append the edge label '%s' " +
                                         "since it doesn't exist", name);
             }
-
-            this.checkFrequency(edgeLabel.frequency());
 
             edgeLabel.properties().addAll(this.edgeLabel.properties);
 
@@ -224,11 +226,6 @@ public class EdgeLabel extends SchemaLabel {
 
         public Builder sortKeys(String... keys) {
             this.edgeLabel.sortKeys(keys);
-            return this;
-        }
-
-        public Builder indexNames(String... indexNames) {
-            this.edgeLabel.indexNames(indexNames);
             return this;
         }
 
@@ -286,15 +283,15 @@ public class EdgeLabel extends SchemaLabel {
 
             if (frequency == Frequency.SINGLE) {
                 E.checkArgument(sortKeys.isEmpty(),
-                                "EdgeLabelBuilder can't contain sortKeys when the " +
-                                "cardinality property is single");
+                                "EdgeLabelBuilder can't contain sortKeys " +
+                                "when the cardinality property is single");
             } else {
                 E.checkState(sortKeys != null,
                              "The sortKeys can't be null when the " +
                              "cardinality property is multiple");
                 E.checkArgument(!sortKeys.isEmpty(),
-                                "EdgeLabelBuilder must contain sortKeys when the " +
-                                "cardinality property is multiple");
+                                "EdgeLabelBuilder must contain sortKeys " +
+                                "when the cardinality property is multiple");
             }
 
             if (sortKeys != null && !sortKeys.isEmpty()) {
@@ -308,15 +305,6 @@ public class EdgeLabel extends SchemaLabel {
                                     "properties '%s' for edge label '%s'",
                                     key, name, properties);
                 }
-            }
-        }
-
-        private void checkFrequency(Frequency frequency) {
-            // Don't allow to modify frequency.
-            if (this.edgeLabel.frequency() != frequency) {
-                throw new NotAllowException("Not allowed to modify frequency " +
-                                            "for existed edge label '%s'",
-                                            this.edgeLabel.name());
             }
         }
 
@@ -342,7 +330,7 @@ public class EdgeLabel extends SchemaLabel {
             String sourceLabel = this.edgeLabel.sourceLabel();
             String targetLabel = this.edgeLabel.targetLabel();
             List<String> sortKeys = this.edgeLabel.sortKeys();
-            Set<String> indexNames = this.edgeLabel.indexNames();
+            Frequency frequency = this.edgeLabel.frequency();
 
             if (sourceLabel != null || targetLabel != null) {
                 throw new NotAllowException("Not allowd to append source " +
@@ -351,12 +339,12 @@ public class EdgeLabel extends SchemaLabel {
             }
             // Don't allow to append sort keys.
             if (!sortKeys.isEmpty()) {
-                throw new NotAllowException("Not allowed to append sort " +
-                                            "keys for existed edge label " +
-                                            "'%s'", name);
+                throw new NotAllowException("Not allowed to append sort keys " +
+                                            "for existed edge label '%s'",
+                                            name);
             }
-            if (!indexNames.isEmpty()) {
-                throw new NotAllowException("Not allowed to append indexes " +
+            if (frequency != null) {
+                throw new NotAllowException("Not allowed to change frequency " +
                                             "for existed edge label '%s'",
                                             name);
             }
