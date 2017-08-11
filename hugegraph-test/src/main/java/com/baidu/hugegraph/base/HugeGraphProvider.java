@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.baidu.hugegraph.util.E;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -52,7 +53,6 @@ import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 public class HugeGraphProvider extends AbstractGraphProvider {
@@ -76,7 +76,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
                 .getResource(CONF_PATH).getPath();
         File file = new File(confFile);
         PropertiesConfiguration config;
-        Preconditions.checkArgument(
+        E.checkArgument(
                 file.exists() && file.isFile() && file.canRead(),
                 "Need to specify a readable configuration file rather than: %s",
                 file.toString());

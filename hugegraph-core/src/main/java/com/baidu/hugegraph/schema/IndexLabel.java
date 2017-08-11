@@ -31,6 +31,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringUtil;
@@ -91,7 +92,12 @@ public class IndexLabel extends SchemaElement {
             case EDGE_LABEL:
                 return HugeType.EDGE;
             default:
-                return HugeType.UNKNOWN;
+                throw new AssertionError(String.format(
+                          "Query type of index label is either '%s' or '%s', " +
+                          "but '%s' is used",
+                          HugeType.VERTEX_LABEL,
+                          HugeType.EDGE_LABEL,
+                          this.baseType));
         }
     }
 
@@ -168,6 +174,14 @@ public class IndexLabel extends SchemaElement {
             E.checkArgumentNotNull(schemaLabel,
                                    "Can't build index for %s which is not " +
                                    "existed", this.indexLabel.baseType);
+
+            E.checkArgument(CollectionUtil.containsAll(
+                            schemaLabel.properties,
+                            this.indexLabel.indexFields),
+                            "Not all index fields '%s' " +
+                            "are in schema properties '%s'",
+                            this.indexLabel.indexFields,
+                            schemaLabel.properties);
 
             // TODO: should wrap update and add operation in one transaction.
             this.updateSchemaIndexName(schemaLabel);
@@ -252,19 +266,24 @@ public class IndexLabel extends SchemaElement {
 
         private SchemaLabel loadElement() {
             HugeType baseType = this.indexLabel.baseType;
+            E.checkNotNull(baseType, "base type", "index label");
             String baseValue = this.indexLabel.baseValue;
-            if (baseType == HugeType.VERTEX_LABEL) {
-                return this.transaction.getVertexLabel(baseValue);
-            } else if (baseType == HugeType.EDGE_LABEL) {
-                return this.transaction.getEdgeLabel(baseValue);
-            } else {
-                throw new HugeException("Unsupported element type '%s' " +
-                                        "of index label '%s'",
-                                        baseType, this.indexLabel.name);
+            E.checkNotNull(baseValue, "base value", "index label");
+            switch (baseType) {
+                case VERTEX_LABEL:
+                    return this.transaction.getVertexLabel(baseValue);
+                case EDGE_LABEL:
+                    return this.transaction.getEdgeLabel(baseValue);
+                default:
+                    throw new AssertionError(String.format(
+                              "Unsupported base type '%s' of index label '%s'",
+                              baseType, this.indexLabel.name));
             }
         }
 
         private void checkFields() {
+            E.checkNotEmpty(this.indexLabel.indexFields,
+                            "index fields", "index label");
             // search index must build on single numeric column
             if (this.indexLabel.indexType == IndexType.SEARCH) {
                 E.checkArgument(this.indexLabel.indexFields.size() == 1,
@@ -280,7 +299,7 @@ public class IndexLabel extends SchemaElement {
                                 pk.dataType(), pk.name());
             }
 
-            for (String field : this.indexLabel.indexFields()) {
+            for (String field : this.indexLabel.indexFields) {
                 PropertyKey pk = this.transaction.getPropertyKey(field);
                 E.checkArgument(pk.cardinality() == Cardinality.SINGLE,
                                 "Not allowed to build index on property " +
@@ -299,9 +318,9 @@ public class IndexLabel extends SchemaElement {
                     this.transaction.addEdgeLabel((EdgeLabel) schemaLabel);
                     break;
                 default:
-                    throw new HugeException("Can't update index name of " +
-                                            "schema type: %s",
-                                            this.indexLabel.baseType);
+                    throw new AssertionError(String.format(
+                              "Can't update index name of schema type: %s",
+                              this.indexLabel.baseType));
             }
         }
     }
