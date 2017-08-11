@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.schema.VertexLabel;
 
 public class GraphOfTheMoviesExample {
 
@@ -77,33 +76,33 @@ public class GraphOfTheMoviesExample {
         schema.propertyKey("score").asInt().create();
         schema.propertyKey("roles").asText().create();
 
-        VertexLabel person = schema.vertexLabel("person")
-                .properties("name", "born")
-                .primaryKeys("name")
-                .create();
+        schema.vertexLabel("person")
+              .properties("name", "born")
+              .primaryKeys("name")
+              .create();
         schema.vertexLabel("movie")
-                .properties("title", "released")
-                .primaryKeys("title")
-                .create();
+              .properties("title", "released")
+              .primaryKeys("title")
+              .create();
 
         schema.edgeLabel("ACTED_IN").multiTimes().properties("roles")
-                .sourceLabel("person").targetLabel("movie")
-                .sortKeys("roles")
-                .create();
+              .sourceLabel("person").targetLabel("movie")
+              .sortKeys("roles")
+              .create();
         schema.edgeLabel("DIRECTED").properties("score")
-                .sourceLabel("person").targetLabel("movie")
-                .create();
+              .sourceLabel("person").targetLabel("movie")
+              .create();
         schema.edgeLabel("PRODUCED").properties("score")
-                .sourceLabel("person").targetLabel("movie")
-                .create();
+              .sourceLabel("person").targetLabel("movie")
+              .create();
         schema.edgeLabel("WROTE").properties("score")
-                .sourceLabel("person").targetLabel("movie")
-                .create();
+              .sourceLabel("person").targetLabel("movie")
+              .create();
 
         schema.indexLabel("personByName").onV("person").by("name")
-                .secondary().create();
+              .secondary().create();
         schema.indexLabel("personByBorn").onV("person").by("born")
-                .search().create();
+              .search().create();
 
         graph.tx().open();
 
