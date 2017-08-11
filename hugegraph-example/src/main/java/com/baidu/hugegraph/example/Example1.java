@@ -37,9 +37,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
@@ -114,10 +112,10 @@ public class Example1 {
 
         logger.info("===============  vertexLabel  ================");
 
-        VertexLabel person = schema.vertexLabel("person")
-                .properties("name", "age", "city")
-                .primaryKeys("name")
-                .create();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
         schema.vertexLabel("author")
               .properties("id", "name", "age", "lived")
               .primaryKeys("id").create();
@@ -134,10 +132,10 @@ public class Example1 {
               .primaryKeys("city").create();
 
         logger.info("===============  vertexLabel & index  ================");
-        IndexLabel personByCity = schema.indexLabel("personByCity")
-                .onV("person").secondary().by("city").create();
-        IndexLabel personByAge = schema.indexLabel("personByAge")
-                .onV("person").search().by("age").create();
+        schema.indexLabel("personByCity")
+              .onV("person").secondary().by("city").create();
+        schema.indexLabel("personByAge")
+              .onV("person").search().by("age").create();
         // schemaManager.getVertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.getVertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schemaManager.getVertexLabel("meal").index("byMeal").materialized().by("name").add();
@@ -147,27 +145,27 @@ public class Example1 {
         logger.info("===============  edgeLabel  ================");
 
         schema.edgeLabel("authored").singleTime()
-                .sourceLabel("author").targetLabel("book")
-                .properties("contribution", "comment")
-                .create();
+              .sourceLabel("author").targetLabel("book")
+              .properties("contribution", "comment")
+              .create();
 
         schema.edgeLabel("write").multiTimes().properties("time")
-                .sourceLabel("author").targetLabel("book")
-                .sortKeys("time")
-                .create();
+              .sourceLabel("author").targetLabel("book")
+              .sortKeys("time")
+              .create();
 
         schema.edgeLabel("look").multiTimes().properties("time")
-                .sourceLabel("person").targetLabel("book")
-                .sortKeys("time")
-                .create();
+              .sourceLabel("person").targetLabel("book")
+              .sortKeys("time")
+              .create();
 
         schema.edgeLabel("created").singleTime()
-                .sourceLabel("author").targetLabel("language")
-                .create();
+              .sourceLabel("author").targetLabel("language")
+              .create();
 
         schema.edgeLabel("rated")
-                .sourceLabel("reviewer").targetLabel("recipe")
-                .create();
+              .sourceLabel("reviewer").targetLabel("recipe")
+              .create();
 
         logger.info("===============  schemaManager desc  ================");
         schema.desc().forEach(element -> System.out.println(element.schema()));
@@ -375,20 +373,5 @@ public class Example1 {
         } catch (NotFoundException e) {
             assert e.getMessage().contains("Not found the EDGE entry");
         }
-
-        // test index remove and index rebuild
-        schema.indexLabel("personByCity").remove();
-        schema.indexLabel("personByAge").remove();
-        graph.addVertex(T.label, "person", "name", "Bright",
-                        "city", "LuAn", "age", 27);
-        personByCity = schema.indexLabel("personByCity").onV("person")
-                             .secondary().by("city").create();
-        personByAge = schema.indexLabel("personByAge").onV("person")
-                            .search().by("age").create();
-        // insert one person here manually
-        schema.indexLabel("personByCity").rebuild();
-        schema.indexLabel("personByAge").rebuild();
-        schema.vertexLabel("person").rebuildIndex();
-        // insert one person here manually
     }
 }

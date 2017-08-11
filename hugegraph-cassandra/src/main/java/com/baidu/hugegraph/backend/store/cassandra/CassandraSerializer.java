@@ -144,7 +144,6 @@ public class CassandraSerializer extends AbstractSerializer {
      */
     protected HugeEdge parseEdge(CassandraBackendEntry.Row row,
                                  HugeVertex vertex) {
-        @SuppressWarnings("unused")
         String sourceVertexId = row.column(HugeKeys.SOURCE_VERTEX);
         Direction direction = Direction.valueOf(
                               row.column(HugeKeys.DIRECTION));

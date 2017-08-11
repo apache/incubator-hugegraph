@@ -23,7 +23,6 @@ import static com.baidu.hugegraph.config.ServerOptions.MAX_VERTICES_PER_BATCH;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -169,7 +168,7 @@ public class VertexAPI extends API {
             List<Object> list = new ArrayList<>(Arrays.asList(props));
             list.add(T.label);
             list.add(this.label);
-            if (id != null) {
+            if (this.id != null) {
                 list.add(T.id);
                 list.add(this.id);
             }
