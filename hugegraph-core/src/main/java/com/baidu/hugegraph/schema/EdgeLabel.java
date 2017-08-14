@@ -34,7 +34,6 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringUtil;
 
-
 public class EdgeLabel extends SchemaLabel {
 
     private String sourceLabel;
@@ -149,35 +148,34 @@ public class EdgeLabel extends SchemaLabel {
         private SchemaTransaction transaction;
 
         public Builder(String name, SchemaTransaction transaction) {
-            this.edgeLabel = new EdgeLabel(name);
-            this.transaction = transaction;
+            this(new EdgeLabel(name), transaction);
         }
 
         public Builder(EdgeLabel edgeLabel, SchemaTransaction transaction) {
+            E.checkNotNull(edgeLabel, "edgeLabel");
+            E.checkNotNull(transaction, "transaction");
             this.edgeLabel = edgeLabel;
             this.transaction = transaction;
         }
 
+        @Override
         public EdgeLabel create() {
             String name = this.edgeLabel.name();
-
             StringUtil.checkName(name);
-            // Try to read
+
             EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
-            // If edgeLabel exist and checkExist
             if (edgeLabel != null) {
                 if (this.edgeLabel.checkExist) {
                     throw new ExistedException("edge label", name);
-                } else {
-                    return edgeLabel;
                 }
+                return edgeLabel;
             }
 
             if (this.edgeLabel.frequency == null) {
                 this.edgeLabel.frequency = Frequency.SINGLE;
             }
 
-            this.checkLinks();
+            this.checkLink();
             this.checkProperties();
             this.checkSortKeys();
 
@@ -185,15 +183,15 @@ public class EdgeLabel extends SchemaLabel {
             return this.edgeLabel;
         }
 
+        @Override
         public EdgeLabel append() {
             String name = this.edgeLabel.name();
-
             StringUtil.checkName(name);
+
             // Don't allow user to modify some stable properties.
             this.checkStableVars();
             this.checkProperties();
 
-            // Try to read
             EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
             if (edgeLabel == null) {
                 throw new HugeException("Can't append the edge label '%s' " +
@@ -206,11 +204,13 @@ public class EdgeLabel extends SchemaLabel {
             return this.edgeLabel;
         }
 
+        @Override
         public EdgeLabel eliminate() {
             throw new HugeException("Not support eliminate action on " +
                                     "edge label");
         }
 
+        @Override
         public void remove() {
             this.transaction.removeEdgeLabel(this.edgeLabel.name());
         }
@@ -219,37 +219,44 @@ public class EdgeLabel extends SchemaLabel {
             this.transaction.rebuildIndex(this.edgeLabel);
         }
 
+        @Override
         public Builder properties(String... propertyNames) {
             this.edgeLabel.properties(propertyNames);
             return this;
         }
 
+        @Override
         public Builder sortKeys(String... keys) {
             this.edgeLabel.sortKeys(keys);
             return this;
         }
 
+        @Override
         public Builder link(String sourceLabel, String targetLabel) {
             this.edgeLabel.sourceLabel(sourceLabel);
             this.edgeLabel.targetLabel(targetLabel);
             return this;
         }
 
+        @Override
         public Builder sourceLabel(String label) {
             this.edgeLabel.sourceLabel(label);
             return this;
         }
 
+        @Override
         public Builder targetLabel(String label) {
             this.edgeLabel.targetLabel(label);
             return this;
         }
 
+        @Override
         public Builder singleTime() {
             this.edgeLabel.frequency(Frequency.SINGLE);
             return this;
         }
 
+        @Override
         public Builder multiTimes() {
             this.edgeLabel.frequency(Frequency.MULTIPLE);
             return this;
@@ -308,14 +315,14 @@ public class EdgeLabel extends SchemaLabel {
             }
         }
 
-        private void checkLinks() {
+        private void checkLink() {
             String name = this.edgeLabel.name();
             String srcLabel = this.edgeLabel.sourceLabel();
             String tgtLabel = this.edgeLabel.targetLabel();
 
             E.checkArgument(srcLabel != null && tgtLabel != null,
-                            "Must set source and target label for edge " +
-                            "label '%s'", name);
+                            "Must set source and target label " +
+                            "for edge label '%s'", name);
 
             E.checkArgumentNotNull(this.transaction.getVertexLabel(srcLabel),
                                    "Undefined source vertex label '%s' " +
@@ -332,21 +339,26 @@ public class EdgeLabel extends SchemaLabel {
             List<String> sortKeys = this.edgeLabel.sortKeys();
             Frequency frequency = this.edgeLabel.frequency();
 
-            if (sourceLabel != null || targetLabel != null) {
-                throw new NotAllowException("Not allowd to append source " +
-                                            "label or target label for " +
-                                            "existed edge label '%s'", name);
+            if (sourceLabel != null) {
+                throw new NotAllowException(
+                          "Not allowd to append source label " +
+                          "for existed edge label '%s'", name);
+            }
+            if (targetLabel != null) {
+                throw new NotAllowException(
+                          "Not allowd to append target label " +
+                          "for existed edge label '%s'", name);
             }
             // Don't allow to append sort keys.
             if (!sortKeys.isEmpty()) {
-                throw new NotAllowException("Not allowed to append sort keys " +
-                                            "for existed edge label '%s'",
-                                            name);
+                throw new NotAllowException(
+                          "Not allowed to append sort keys " +
+                          "for existed edge label '%s'", name);
             }
             if (frequency != null) {
-                throw new NotAllowException("Not allowed to change frequency " +
-                                            "for existed edge label '%s'",
-                                            name);
+                throw new NotAllowException(
+                          "Not allowed to change frequency " +
+                          "for existed edge label '%s'", name);
             }
         }
     }

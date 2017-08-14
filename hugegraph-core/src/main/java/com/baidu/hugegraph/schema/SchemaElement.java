@@ -27,7 +27,6 @@ import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.Typifiable;
 
-
 public abstract class SchemaElement
                 implements Namifiable, Typifiable, Propfiable {
 
@@ -54,6 +53,7 @@ public abstract class SchemaElement
         this.checkExist = checkExists;
     }
 
+    @Override
     public Set<String> properties() {
         return this.properties;
     }

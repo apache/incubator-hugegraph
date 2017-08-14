@@ -73,8 +73,8 @@ public class VertexLabel extends SchemaLabel {
         E.checkArgument(this.idStrategy == IdStrategy.DAFAULT ||
                         this.idStrategy == IdStrategy.PRIMARY_KEY,
                         "Not allowed to use id strategy '%s' and call " +
-                        "method 'primaryKeys(...)' at the same time for " +
-                        "vertex label '%s'", this.idStrategy, this.name);
+                        "primaryKeys() at the same time for vertex label '%s'",
+                        this.idStrategy, this.name);
 
         this.idStrategy = IdStrategy.PRIMARY_KEY;
 
@@ -118,28 +118,28 @@ public class VertexLabel extends SchemaLabel {
         private SchemaTransaction transaction;
 
         public Builder(String name, SchemaTransaction transaction) {
-            this.vertexLabel = new VertexLabel(name);
-            this.transaction = transaction;
+            this(new VertexLabel(name), transaction);
         }
 
-        public Builder(VertexLabel vertexLabel, SchemaTransaction transaction) {
+        public Builder(VertexLabel vertexLabel,
+                       SchemaTransaction transaction) {
+            E.checkNotNull(vertexLabel, "vertexLabel");
+            E.checkNotNull(transaction, "transaction");
             this.vertexLabel = vertexLabel;
             this.transaction = transaction;
         }
 
+        @Override
         public VertexLabel create() {
             String name = this.vertexLabel.name();
-
             StringUtil.checkName(name);
-            // Try to read
+
             VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
-            // if vertexLabel exist and checkExist
             if (vertexLabel != null) {
                 if (this.vertexLabel.checkExist) {
                     throw new ExistedException("vertex label", name);
-                } else {
-                    return vertexLabel;
                 }
+                return vertexLabel;
             }
 
             this.checkProperties();
@@ -149,16 +149,15 @@ public class VertexLabel extends SchemaLabel {
             return this.vertexLabel;
         }
 
+        @Override
         public VertexLabel append() {
             String name = this.vertexLabel.name();
-
             StringUtil.checkName(name);
+
             // Don't allow user to modify some stable properties.
             this.checkStableVars();
-
             this.checkProperties();
 
-            // Try to read
             VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
             if (vertexLabel == null) {
                 throw new HugeException("Can't append the vertex label '%s' " +
@@ -171,11 +170,13 @@ public class VertexLabel extends SchemaLabel {
             return this.vertexLabel;
         }
 
+        @Override
         public VertexLabel eliminate() {
-            throw new HugeException("Not support eliminate action on " +
-                                    "vertex label");
+            throw new HugeException(
+                      "Not support eliminate action on vertex label");
         }
 
+        @Override
         public void remove() {
             this.transaction.removeVertexLabel(this.vertexLabel.name());
         }
@@ -184,26 +185,31 @@ public class VertexLabel extends SchemaLabel {
             this.transaction.rebuildIndex(this.vertexLabel);
         }
 
+        @Override
         public Builder useAutomaticId() {
             this.vertexLabel.idStrategy(IdStrategy.AUTOMATIC);
             return this;
         }
 
+        @Override
         public Builder useCustomizeId() {
             this.vertexLabel.idStrategy(IdStrategy.CUSTOMIZE);
             return this;
         }
 
+        @Override
         public Builder usePrimaryKeyId() {
             this.vertexLabel.idStrategy(IdStrategy.PRIMARY_KEY);
             return this;
         }
 
+        @Override
         public Builder properties(String... propertyNames) {
             this.vertexLabel.properties(propertyNames);
             return this;
         }
 
+        @Override
         public Builder primaryKeys(String... keys) {
             this.vertexLabel.primaryKeys(keys);
             return this;
