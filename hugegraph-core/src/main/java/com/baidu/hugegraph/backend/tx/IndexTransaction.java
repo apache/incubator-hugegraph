@@ -102,7 +102,7 @@ public class IndexTransaction extends AbstractTransaction {
             propValues.add(property.value());
         }
 
-        for (int i = 0; i < propValues.size(); i++) {
+        for (int i = 0, n = propValues.size(); i < n; i++) {
             List<Object> subPropValues = propValues.subList(0, i + 1);
 
             Object propValue = null;
