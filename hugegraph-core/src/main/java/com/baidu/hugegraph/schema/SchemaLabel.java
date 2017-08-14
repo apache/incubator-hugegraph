@@ -24,7 +24,8 @@ import java.util.Set;
 
 import com.baidu.hugegraph.type.Indexfiable;
 
-public abstract class SchemaLabel extends SchemaElement implements Indexfiable {
+public abstract class SchemaLabel extends SchemaElement
+                                  implements Indexfiable {
 
     protected Set<String> indexNames;
 
@@ -33,6 +34,7 @@ public abstract class SchemaLabel extends SchemaElement implements Indexfiable {
         this.indexNames = new HashSet<>();
     }
 
+    @Override
     public Set<String> indexNames() {
         return this.indexNames;
     }

@@ -36,7 +36,6 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringUtil;
 
-
 public class IndexLabel extends SchemaElement {
 
     private HugeType baseType;
@@ -145,43 +144,41 @@ public class IndexLabel extends SchemaElement {
         private SchemaTransaction transaction;
 
         public Builder(String name, SchemaTransaction transaction) {
-            this.indexLabel = new IndexLabel(name);
-            this.transaction = transaction;
+            this(new IndexLabel(name), transaction);
         }
 
         public Builder(IndexLabel indexLabel, SchemaTransaction transaction) {
+            E.checkNotNull(indexLabel, "indexLabel");
+            E.checkNotNull(transaction, "transaction");
             this.indexLabel = indexLabel;
             this.transaction = transaction;
         }
 
+        @Override
         public IndexLabel create() {
             String name = this.indexLabel.name();
-
             StringUtil.checkName(name);
+
             IndexLabel indexLabel = this.transaction.getIndexLabel(name);
             if (indexLabel != null) {
                 if (this.indexLabel.checkExist) {
                     throw new ExistedException("index label", name);
-                } else {
-                    return indexLabel;
                 }
+                return indexLabel;
             }
 
-            // Check field
             this.checkFields();
 
             SchemaLabel schemaLabel = this.loadElement();
             E.checkArgumentNotNull(schemaLabel,
-                                   "Can't build index for %s which is not " +
-                                   "existed", this.indexLabel.baseType);
+                    "Can't build index for %s which does not exist",
+                    this.indexLabel.baseValue);
 
-            E.checkArgument(CollectionUtil.containsAll(
-                            schemaLabel.properties,
-                            this.indexLabel.indexFields),
-                            "Not all index fields '%s' " +
-                            "are in schema properties '%s'",
-                            this.indexLabel.indexFields,
-                            schemaLabel.properties);
+            E.checkArgument(
+                    CollectionUtil.containsAll(schemaLabel.properties,
+                                               this.indexLabel.indexFields),
+                    "Not all index fields '%s' are in schema properties '%s'",
+                    this.indexLabel.indexFields, schemaLabel.properties);
 
             // TODO: should wrap update and add operation in one transaction.
             this.updateSchemaIndexName(schemaLabel);
@@ -194,15 +191,19 @@ public class IndexLabel extends SchemaElement {
             return this.indexLabel;
         }
 
+        @Override
         public IndexLabel append() {
-            throw new HugeException("Not support append action on index label");
+            throw new HugeException(
+                      "Not support append action on index label");
         }
 
+        @Override
         public IndexLabel eliminate() {
-            throw new HugeException("Not support eliminate action on " +
-                                    "index label");
+            throw new HugeException(
+                      "Not support eliminate action on index label");
         }
 
+        @Override
         public void remove() {
             this.transaction.removeIndexLabel(this.indexLabel.name);
         }
@@ -232,28 +233,33 @@ public class IndexLabel extends SchemaElement {
             this.transaction.rebuildIndex(this.indexLabel);
         }
 
+        @Override
         public Builder onV(String baseValue) {
             this.indexLabel.baseType = HugeType.VERTEX_LABEL;
             this.indexLabel.baseValue = baseValue;
             return this;
         }
 
+        @Override
         public Builder onE(String baseValue) {
             this.indexLabel.baseType = HugeType.EDGE_LABEL;
             this.indexLabel.baseValue = baseValue;
             return this;
         }
 
+        @Override
         public Builder by(String... fields) {
             this.indexLabel.indexFields(fields);
             return this;
         }
 
+        @Override
         public Builder secondary() {
             this.indexLabel.indexType(IndexType.SECONDARY);
             return this;
         }
 
+        @Override
         public Builder search() {
             this.indexLabel.indexType(IndexType.SEARCH);
             return this;
@@ -284,26 +290,26 @@ public class IndexLabel extends SchemaElement {
         private void checkFields() {
             E.checkNotEmpty(this.indexLabel.indexFields,
                             "index fields", "index label");
-            // search index must build on single numeric column
+            // Search index must build on single numeric column
             if (this.indexLabel.indexType == IndexType.SEARCH) {
                 E.checkArgument(this.indexLabel.indexFields.size() == 1,
-                                "Search index can only build on one " +
-                                "property, but got %s properties: '%s'",
+                                "Search index can only build on " +
+                                "one property, but got %s properties: '%s'",
                                 this.indexLabel.indexFields.size(),
                                 this.indexLabel.indexFields);
                 String field = this.indexLabel.indexFields.iterator().next();
                 PropertyKey pk = this.transaction.getPropertyKey(field);
                 E.checkArgument(NumericUtil.isNumber(pk.dataType().clazz()),
-                                "Search index can only build on numeric " +
-                                "property, but got %s(%s)",
+                                "Search index can only build on " +
+                                "numeric property, but got %s(%s)",
                                 pk.dataType(), pk.name());
             }
 
             for (String field : this.indexLabel.indexFields) {
                 PropertyKey pk = this.transaction.getPropertyKey(field);
                 E.checkArgument(pk.cardinality() == Cardinality.SINGLE,
-                                "Not allowed to build index on property " +
-                                "key: '%s' that cardinality is list or set.",
+                                "Not allowed to build index on property key " +
+                                "'%s' that cardinality is list or set.",
                                 pk.name());
             }
         }
