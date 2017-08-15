@@ -114,8 +114,10 @@ public class SplicingIdGenerator extends IdGenerator {
      */
     public static String concatValues(List<?> values) {
         // Convert the object list to string array
-        String[] parts = new String[values.size()];
-        for (int i = 0; i < values.size(); i++) {
+        int valSize = values.size();
+
+        String[] parts = new String[valSize];
+        for (int i = 0; i < valSize; i++) {
             parts[i] = values.get(i).toString();
         }
         return StringUtil.escape(NAME_SPLITOR, ESCAPE, parts);
