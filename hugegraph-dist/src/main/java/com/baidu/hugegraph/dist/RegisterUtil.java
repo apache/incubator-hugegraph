@@ -62,7 +62,7 @@ public class RegisterUtil {
                 registerHBase();
                 break;
             default:
-                throw new HugeException("Unknown backend type '%s'", backend);
+                throw new HugeException("Unsupported backend type '%s'", backend);
         }
     }
 
