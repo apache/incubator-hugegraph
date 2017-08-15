@@ -28,6 +28,15 @@
         </license>
     </licenses>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>Baidu_Local_Snapshots</id>
+            <url>
+                http://maven.hugegraph.com/content/repositories/snapshots
+            </url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <profiles>
         <profile>
             <id>dev</id>
@@ -42,7 +51,7 @@
         <profile>
             <id>test</id>
             <properties>
-                <cassandra.host>yq01-sw-hugegraph01.yq01.baidu.com</cassandra.host>
+                <cassandra.host>127.0.0.1</cassandra.host>
                 <cassandra.port>8042</cassandra.port>
             </properties>
         </profile>
@@ -58,7 +67,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
-        <final.name>hugegraph-bin</final.name>
+        <release.name>hugegraph-release</release.name>
+        <final.name>${release.name}-${project.version}</final.name>
         <tinkerpop.version>3.2.5</tinkerpop.version>
         <junit.version>4.12</junit.version>
         <metrics.version>3.1.0</metrics.version>
