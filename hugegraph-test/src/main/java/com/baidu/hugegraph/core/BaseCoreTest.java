@@ -55,7 +55,6 @@ public class BaseCoreTest {
 
     @AfterClass
     public static void clear() throws Exception {
-        graph.clearBackend();
         graph.close();
     }
 
