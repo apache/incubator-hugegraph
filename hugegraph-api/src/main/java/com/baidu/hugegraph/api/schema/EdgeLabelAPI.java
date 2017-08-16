@@ -25,11 +25,13 @@ import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
@@ -70,17 +72,24 @@ public class EdgeLabelAPI extends API {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String append(@Context GraphManager manager,
+    public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
+                         @QueryParam("action") String action,
                          JsonEdgeLabel jsonEdgeLabel) {
-        logger.debug("Graph [{}] append edge label: {}",
-                     graph, jsonEdgeLabel);
+        logger.debug("Graph [{}] %s edge label: {}",
+                     graph, action, jsonEdgeLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
-        g.schema().edgeLabel(edgeLabel).append();
-
+        if (action.equals("append")) {
+            g.schema().edgeLabel(edgeLabel).append();
+        } else if (action.equals("eliminate")) {
+            g.schema().edgeLabel(edgeLabel).eliminate();
+        } else {
+            throw new NotSupportedException(
+                      String.format("Not support action '%s'", action));
+        }
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
 
