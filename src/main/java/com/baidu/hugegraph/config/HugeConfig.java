@@ -30,17 +30,17 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public class HugeConfig extends PropertiesConfiguration {
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeConfig.class);
+    private static final Logger LOG = Log.logger(HugeConfig.class);
 
     public HugeConfig(Configuration config) {
         if (config == null) {
-            throw new ConfigException("Passed config object is null");
+            throw new ConfigException("The config object is null");
         }
         if (config instanceof AbstractFileConfiguration) {
             File file = ((AbstractFileConfiguration) config).getFile();
@@ -71,34 +71,38 @@ public class HugeConfig extends PropertiesConfiguration {
 
     private static File loadConfigFile(String fileName) {
         E.checkNotNull(fileName, "config file");
-        E.checkArgument(!fileName.isEmpty(), "The config file can't be empty");
+        E.checkArgument(!fileName.isEmpty(),
+                        "The config file can't be empty");
 
         File file = new File(fileName);
         E.checkArgument(file.exists() && file.isFile() && file.canRead(),
-                        "Need to specify a readable config file, " +
-                        "but got: %s", file.toString());
+                        "Need to specify a readable config file, but got: %s",
+                        file.toString());
         return file;
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public void updateDefaultOption() {
         try {
             Iterator<String> keys = this.getKeys();
             while (keys.hasNext()) {
                 String key = keys.next();
+
                 if (!OptionSpace.containKey(key)) {
-                    logger.warn("The option: '{}' is redundant", key);
+                    LOG.warn("The option '{}' is redundant", key);
                     continue;
                 }
                 ConfigOption option = OptionSpace.get(key);
-                Class dataType = option.dataType();
-                String getMethod = "get" + dataType.getSimpleName();
-                Method method = this.getClass()
-                                .getMethod(getMethod, String.class, dataType);
+                Class<?> dataType = option.dataType();
+                String methodGetter = "get" + dataType.getSimpleName();
+                Method method = this.getClass().getMethod(methodGetter,
+                                                          String.class,
+                                                          dataType);
                 option.value(method.invoke(this, key, option.value()));
             }
         } catch (Exception e) {
-            logger.error(e.getMessage());
-            throw new ConfigException(e.getMessage());
+            LOG.error("Failed to update options value: {}", e.getMessage());
+            throw new ConfigException("Failed to update options value");
         }
     }
 
@@ -117,5 +121,4 @@ public class HugeConfig extends PropertiesConfiguration {
         }
         super.addProperty(key, value);
     }
-
 }

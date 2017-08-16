@@ -37,9 +37,9 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.type.TriFunction;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.ReflectionUtil;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
@@ -51,8 +51,7 @@ import javassist.NotFoundException;
 
 public class PerfUtil {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(PerfUtil.class);
+    private static final Logger LOG = Log.logger(PerfUtil.class);
     private static ThreadLocal<PerfUtil> instance = new ThreadLocal<>();
 
     private Map<String, Stopwatch> stopwatches;
@@ -166,7 +165,7 @@ public class PerfUtil {
         // Insert as a finally-statement
         ctMethod.insertAfter(String.format(END, name), true);
 
-        logger.debug("Profiled for: '{}' [{}]", name, ctMethod.getLongName());
+        LOG.debug("Profiled for: '{}' [{}]", name, ctMethod.getLongName());
     }
 
     @Override

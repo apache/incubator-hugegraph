@@ -28,9 +28,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Predicate;
 
-/**
- * Created by liningrui on 2017/3/23.
- */
 public class OptionChecker {
 
     public static final <O> Predicate<O> disallowEmpty(Class<O> clazz) {
@@ -43,12 +40,10 @@ public class OptionChecker {
                 if (o instanceof String) {
                     return StringUtils.isNotBlank((String) o);
                 }
-                if (o.getClass().isArray() && (Array.getLength(o) == 0 ||
-                    Array.get(o, 0) == null)) {
+                if (o.getClass().isArray() && (Array.getLength(o) == 0)) {
                     return false;
                 }
-                if (o instanceof Collection && (((Collection) o).isEmpty() ||
-                    ((Collection) o).iterator().next() == null)) {
+                if (o instanceof Collection && ((Collection<?>) o).isEmpty()) {
                     return false;
                 }
                 return true;

@@ -31,15 +31,14 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.type.ExtendableIterator;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public class EventHub {
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(EventHub.class);
+    private static final Logger LOG = Log.logger(EventHub.class);
 
     public static final String ANY_EVENT = "*";
 
@@ -137,7 +136,7 @@ public class EventHub {
                 try {
                     all.next().event(ev);
                 } catch (Throwable ignored) {
-                    logger.warn("Failed to handle event: {}", ev, ignored);
+                    LOG.warn("Failed to handle event: {}", ev, ignored);
                 }
             }
         });

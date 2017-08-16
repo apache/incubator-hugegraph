@@ -20,39 +20,38 @@
 package com.baidu.hugegraph.config;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.baidu.hugegraph.util.Log;
 
 public class OptionHolder {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(HugeConfig.class);
+    private static final Logger LOG = Log.logger(HugeConfig.class);
 
-    protected Map<String, ConfigOption> options;
+    protected Map<String, ConfigOption<?>> options;
 
     public OptionHolder() {
         this.options = new HashMap<>();
     }
 
     protected void registerOptions() {
-        Field[] fields = this.getClass().getFields();
-        for (Field field : fields) {
+        for (Field field : this.getClass().getFields()) {
             try {
-                ConfigOption option = (ConfigOption) field.get(this);
+                ConfigOption<?> option = (ConfigOption<?>) field.get(this);
                 this.options.put(option.name(), option);
             } catch (Exception e) {
-                String msg = String.format(
-                             "Failed to register option : %s", field);
-                logger.error(msg, e);
-                throw new ConfigException(msg, e);
+                LOG.error("Failed to register option: {}", field, e);
+                throw new ConfigException(String.format(
+                          "Failed to register option: %s", field));
             }
         }
     }
 
-    public Map<String, ConfigOption> options() {
-        return this.options;
+    public Map<String, ConfigOption<?>> options() {
+        return Collections.unmodifiableMap(this.options);
     }
 }

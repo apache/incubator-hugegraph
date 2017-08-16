@@ -22,27 +22,23 @@ package com.baidu.hugegraph.config;
 import java.util.Set;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 
-/**
- * Created by liningrui on 2017/3/23.
- */
 public class ConfigOption<T> {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(ConfigOption.class);
+    private static final Logger LOG = Log.logger(ConfigOption.class);
 
-    private static final Set<Class<?>> ACCEPTED_DATATYPES;
-    private static final String ACCEPTED_DATATYPES_STRING;
+    private static final Set<Class<?>> ACCEPTED_DATA_TYPES;
+    private static final String ACCEPTED_DATA_TYPES_STRING;
 
     static {
-        ACCEPTED_DATATYPES = ImmutableSet.of(
+        ACCEPTED_DATA_TYPES = ImmutableSet.of(
                 Boolean.class,
                 Short.class,
                 Integer.class,
@@ -54,7 +50,7 @@ public class ConfigOption<T> {
                 String[].class
         );
 
-        ACCEPTED_DATATYPES_STRING = Joiner.on(", ").join(ACCEPTED_DATATYPES);
+        ACCEPTED_DATA_TYPES_STRING = Joiner.on(", ").join(ACCEPTED_DATA_TYPES);
     }
 
     private final String name;
@@ -64,8 +60,9 @@ public class ConfigOption<T> {
     private T value;
     private final Predicate<T> checkFunc;
 
-    public ConfigOption(String name, T value, Boolean rewritable, String desc,
-                        Predicate<T> func) {
+    @SuppressWarnings("unchecked")
+    public ConfigOption(String name, T value, Boolean rewritable,
+                        String desc, Predicate<T> func) {
         this(name, (Class<T>) value.getClass(), value, rewritable, desc, func);
     }
 
@@ -75,11 +72,11 @@ public class ConfigOption<T> {
         Preconditions.checkNotNull(dataType);
         Preconditions.checkNotNull(rewritable);
 
-        if (!ACCEPTED_DATATYPES.contains(dataType)) {
-            String msg = String.format("Input datatype: '%s' doesn't belong " +
+        if (!ACCEPTED_DATA_TYPES.contains(dataType)) {
+            String msg = String.format("Input data type '%s' doesn't belong " +
                                        "to acceptable type set: [%s]",
-                                       dataType, ACCEPTED_DATATYPES_STRING);
-            logger.error(msg);
+                                       dataType, ACCEPTED_DATA_TYPES_STRING);
+            LOG.error(msg);
             throw new IllegalArgumentException(msg);
         }
 
@@ -114,21 +111,21 @@ public class ConfigOption<T> {
     public void value(T value) {
         check(value);
         E.checkArgument(this.rewritable,
-                        "Not allowed to modify option: '%s' which " +
-                        "is unrewritable", this.name);
+                        "Not allowed to modify option '%s' " +
+                        "which can't be rewritable", this.name);
         this.value = value;
     }
 
     public void check(Object value) {
         E.checkNotNull(value, "value", this.name);
         E.checkArgument(this.dataType.isInstance(value),
-                        "Invalid class for option '%s'. Expected '%s' but " +
-                        "given '%s'", this.name, this.dataType,
-                        value.getClass());
+                        "Invalid class for option '%s', " +
+                        "expected '%s' but given '%s'",
+                        this.name, this.dataType, value.getClass());
+        @SuppressWarnings("unchecked")
         T result = (T) value;
         E.checkArgument(this.checkFunc.apply(result),
-                        "Invalid option value for [%s]: %s",
+                        "Invalid option value for '%s': %s",
                         this.name, value);
     }
-
 }

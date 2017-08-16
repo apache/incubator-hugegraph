@@ -19,15 +19,15 @@
 
 package com.baidu.hugegraph.concurrent;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.slf4j.Logger;
+
+import com.baidu.hugegraph.util.Log;
 
 public class AtomicLock {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(LockManager.class);
+    private static final Logger LOG = Log.logger(LockManager.class);
 
     private String name;
     private AtomicReference<Thread> sign;
@@ -57,8 +57,8 @@ public class AtomicLock {
         // interval is 2^(retries-1)s. If retries=0, don't retry.
         if (retries < 0 || retries > 10) {
             throw new IllegalArgumentException(String.format(
-                  "Locking retry times should be between 0 and 10, but got %d",
-                  retries));
+                      "Locking retry times should be in [0, 10], but got %d",
+                      retries));
         }
 
         boolean isLocked = false;
@@ -67,7 +67,7 @@ public class AtomicLock {
                 Thread.sleep(1000 * (1L << i));
             }
         } catch (InterruptedException ignored) {
-            logger.info("Thread sleep is interrupted.");
+            LOG.info("Thread sleep is interrupted.");
         }
         return isLocked;
     }

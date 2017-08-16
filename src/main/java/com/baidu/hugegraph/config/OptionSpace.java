@@ -20,32 +20,33 @@
 package com.baidu.hugegraph.config;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.Maps;
+import com.baidu.hugegraph.util.Log;
 
-/**
- * Created by liningrui on 2017/3/27.
- */
-public class OptionSpace {
+public final class OptionSpace {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(OptionSpace.class);
+    private static final Logger LOG = Log.logger(OptionSpace.class);
 
-    private static final Map<String, ConfigOption> options = Maps.newHashMap();
+    private static final Map<String, ConfigOption<?>> options;
+
+    static {
+        options = new ConcurrentHashMap<>();
+    }
 
     public static void register(OptionHolder holder) {
         options.putAll(holder.options());
-        logger.debug("Registered " + holder.getClass().getSimpleName());
+        LOG.debug("Registered options for OptionHolder: {}",
+                  holder.getClass().getSimpleName());
     }
 
     public static void register(ConfigOption<?> element) {
         E.checkArgument(!options.containsKey(element.name()),
-                "The option: '%s' has already been registered",
-                element.name());
+                        "The option '%s' has already been registered",
+                        element.name());
         options.put(element.name(), element);
     }
 
