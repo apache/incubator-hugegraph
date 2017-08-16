@@ -35,6 +35,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
@@ -205,8 +206,8 @@ public abstract class HugeElement implements Element, GraphType {
         }
 
         // Throw if error type
-        throw new UnsupportedOperationException(
-                  "Unsupported id type(must be a number or a string): " +
+        throw new NotSupportException(
+                  "id type(must be a number or a string): %s",
                   idValue.getClass().getSimpleName());
     }
 

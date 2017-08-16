@@ -27,6 +27,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.VertexLabelBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -171,8 +172,7 @@ public class VertexLabel extends SchemaLabel {
 
         @Override
         public VertexLabel eliminate() {
-            throw new HugeException(
-                      "Not support eliminate action on vertex label");
+            throw new NotSupportException("action eliminate on vertex label");
         }
 
         @Override

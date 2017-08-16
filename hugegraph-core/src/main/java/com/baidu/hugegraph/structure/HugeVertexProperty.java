@@ -23,7 +23,7 @@ import java.util.Iterator;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
 
 public class HugeVertexProperty<V> extends HugeProperty<V>
@@ -40,7 +40,7 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
 
     @Override
     public <U> Property<U> property(String key, U value) {
-        throw new HugeException("Not support nested property");
+        throw new NotSupportException("nested property");
     }
 
     @Override
@@ -57,6 +57,6 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
 
     @Override
     public <U> Iterator<Property<U>> properties(String... propertyKeys) {
-        throw new HugeException("Not support nested property");
+        throw new NotSupportException("nested property");
     }
 }

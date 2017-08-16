@@ -31,6 +31,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -212,8 +213,8 @@ public class ConditionQuery extends IdQuery {
             for (Condition c : this.conditions) {
                 if (!c.isRelation()) {
                     // TODO: deal with other Condition like AND/OR
-                    throw new BackendException(
-                              "Not support getting userprop from non relation");
+                    throw new NotSupportException(
+                              "obtaining userprop from non relation");
                 }
                 Relation r = ((Relation) c);
                 if (r.key().equals(field) && !c.isSysprop()) {

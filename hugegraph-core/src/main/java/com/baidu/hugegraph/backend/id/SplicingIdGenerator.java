@@ -98,35 +98,46 @@ public class SplicingIdGenerator extends IdGenerator {
         return splicing(vertex.label(), vertex.name());
     }
 
+    /**
+     * Concat multiple ids into one composite id with IDS_SPLITOR
+     */
     public static Id concat(String... ids) {
         // NOTE: must support string id when using this method
         String escaped = StringUtil.escape(IDS_SPLITOR, ESCAPE, ids);
         return IdGenerator.of(escaped);
     }
 
+    /**
+     * Split a composite id into multiple ids with IDS_SPLITOR
+     */
     public static String[] split(Id id) {
         return StringUtil.unescape(id.asString(), IDS_SPLITOR_STR, ESCAPE_STR);
     }
 
     /**
-     * Concat property values with name splitor
+     * Concat property values with NAME_SPLITOR
      */
     public static String concatValues(List<?> values) {
         // Convert the object list to string array
-        int valSize = values.size();
-
-        String[] parts = new String[valSize];
-        for (int i = 0; i < valSize; i++) {
+        int valuesSize = values.size();
+        String[] parts = new String[valuesSize];
+        for (int i = 0; i < valuesSize; i++) {
             parts[i] = values.get(i).toString();
         }
         return StringUtil.escape(NAME_SPLITOR, ESCAPE, parts);
     }
 
+    /**
+     * Concat multiple parts into a single id with ID_SPLITOR
+     */
     public static Id splicing(String... parts) {
         String escaped = StringUtil.escape(ID_SPLITOR, ESCAPE, parts);
         return IdGenerator.of(escaped);
     }
 
+    /**
+     * Parse a single id into multiple parts with ID_SPLITOR
+     */
     public static String[] parse(Id id) {
         return StringUtil.unescape(id.asString(), ID_SPLITOR_STR, ESCAPE_STR);
     }

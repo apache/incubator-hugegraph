@@ -47,6 +47,7 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -546,8 +547,7 @@ public class GraphTransaction extends AbstractTransaction {
         } else if (edgeLabels.length > 1) {
             // TODO: support query by multi edge labels like:
             // query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
-            throw new BackendException(
-                      "Not support querying by multi edge-labels");
+            throw new NotSupportException("querying by multi edge-labels");
         } else {
             assert edgeLabels.length == 0;
         }
