@@ -25,9 +25,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.PropertyKeyBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
@@ -186,14 +186,12 @@ public class PropertyKey extends SchemaElement {
 
         @Override
         public PropertyKey append() {
-            throw new HugeException(
-                      "Not support append action on property key");
+            throw new NotSupportException("action append on property key");
         }
 
         @Override
         public PropertyKey eliminate() {
-            throw new HugeException(
-                      "Not support eliminate action on property key");
+            throw new NotSupportException("action eliminate on property key");
         }
 
         @Override

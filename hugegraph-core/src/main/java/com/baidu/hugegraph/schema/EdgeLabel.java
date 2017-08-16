@@ -27,6 +27,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.EdgeLabelBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Frequency;
@@ -205,8 +206,7 @@ public class EdgeLabel extends SchemaLabel {
 
         @Override
         public EdgeLabel eliminate() {
-            throw new HugeException("Not support eliminate action on " +
-                                    "edge label");
+            throw new NotSupportException("action eliminate on edge label");
         }
 
         @Override
