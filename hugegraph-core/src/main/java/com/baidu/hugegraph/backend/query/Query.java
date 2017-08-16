@@ -16,6 +16,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+
 package com.baidu.hugegraph.backend.query;
 
 import java.util.Map;
@@ -40,7 +41,7 @@ public class Query implements Cloneable {
     public Query(HugeType resultType) {
         this.resultType = resultType;
         this.orders = new ConcurrentHashMap<>();
-        this.offset = 0;
+        this.offset = 0L;
         this.limit = NO_LIMIT;
     }
 

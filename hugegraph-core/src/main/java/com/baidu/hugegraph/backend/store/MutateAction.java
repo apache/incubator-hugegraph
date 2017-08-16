@@ -16,8 +16,8 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package com.baidu.hugegraph.backend.store;
 
+package com.baidu.hugegraph.backend.store;
 
 public enum MutateAction {
 
@@ -29,8 +29,8 @@ public enum MutateAction {
 
     DELETE(3, "delete");
 
-    private byte code = 0;
-    private String name = null;
+    private final byte code;
+    private final String name;
 
     private MutateAction(int code, String name) {
         assert code < 256;
