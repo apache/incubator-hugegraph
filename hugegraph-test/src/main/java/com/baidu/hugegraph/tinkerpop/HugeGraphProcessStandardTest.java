@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.base;
+package com.baidu.hugegraph.tinkerpop;
 
 import org.apache.tinkerpop.gremlin.GraphProviderClass;
 import org.junit.runner.RunWith;

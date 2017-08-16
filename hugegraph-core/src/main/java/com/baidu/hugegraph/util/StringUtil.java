@@ -37,8 +37,6 @@ public class StringUtil {
                         "The name can't be empty.");
         E.checkArgument(name.length() < 256,
                         "The length of name must less than 256 bytes.");
-        E.checkArgument(!name.startsWith("_"),
-                        "The name can't be started with'_'.");
 
         final char[] filters = {'#', '>', ':', '!'};
         for (char c : filters) {

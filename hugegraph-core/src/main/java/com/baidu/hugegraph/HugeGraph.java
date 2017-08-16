@@ -59,7 +59,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
  * HugeGraph is the entrance of the graph system, you can modify or query
  * the schema/vertex/edge data through this class.
  */
-@Graph.OptIn("com.baidu.hugegraph.base.HugeStructureBasicSuite")
+@Graph.OptIn("com.baidu.hugegraph.tinkerpop.HugeStructureBasicSuite")
 public class HugeGraph implements Graph {
 
     private static final Logger logger = LoggerFactory.getLogger(HugeGraph.class);

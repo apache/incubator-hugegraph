@@ -71,13 +71,6 @@ public class IndexTransaction extends AbstractTransaction {
         }
     }
 
-    public void updateEdgesIndex(HugeVertex vertex, boolean removed) {
-        // Update index of edges in a vertex
-        for (HugeEdge edge : vertex.getEdges()) {
-            updateEdgeIndex(edge, removed);
-        }
-    }
-
     public void updateEdgeIndex(HugeEdge edge, boolean removed) {
         // Update index of an edge
         for (String indexName : edge.edgeLabel().indexNames()) {
@@ -188,7 +181,7 @@ public class IndexTransaction extends AbstractTransaction {
     protected ConditionQuery constructIndexQuery(ConditionQuery query,
                                                  String label) {
         ConditionQuery indexQuery = null;
-        SchemaLabel schemaLabel = null;
+        SchemaLabel schemaLabel;
 
         SchemaTransaction schema = graph().schemaTransaction();
         switch (query.resultType()) {
@@ -199,8 +192,8 @@ public class IndexTransaction extends AbstractTransaction {
                 schemaLabel = schema.getEdgeLabel(label);
                 break;
             default:
-                throw new BackendException(
-                          "Unsupported index query: %s", query.resultType());
+                throw new AssertionError(String.format(
+                          "Unsupported index query: %s", query.resultType()));
         }
 
         E.checkArgumentNotNull(schemaLabel, "Invalid label: '%s'", label);
@@ -223,9 +216,16 @@ public class IndexTransaction extends AbstractTransaction {
 
     private static ConditionQuery matchIndexLabel(IndexLabel indexLabel,
                                                   ConditionQuery query) {
-        ConditionQuery indexQuery = null;
+        ConditionQuery indexQuery;
 
         boolean requireSearch = query.hasSearchCondition();
+        boolean searching = indexLabel.indexType() == IndexType.SEARCH;
+        if (requireSearch && !searching) {
+            logger.debug("There is search condition in '{}'," +
+                         "but the index label '{}' is unable to search",
+                         query, indexLabel.name());
+            return null;
+        }
 
         Set<String> queryKeys = query.userpropKeys();
         List<String> indexFields = indexLabel.indexFields();
@@ -235,14 +235,6 @@ public class IndexTransaction extends AbstractTransaction {
         }
         logger.debug("Matched index fields: {} of index '{}'",
                      indexFields, indexLabel.name());
-
-        boolean searching = indexLabel.indexType() == IndexType.SEARCH;
-        if (requireSearch && !searching) {
-            logger.debug("There is search condition in '{}', but the " +
-                         "index label '{}' is unable to search",
-                         query, indexLabel.name());
-            return null;
-        }
 
         if (indexLabel.indexType() == IndexType.SECONDARY) {
             List<String> joinedKeys = indexFields.subList(0, queryKeys.size());
@@ -325,8 +317,8 @@ public class IndexTransaction extends AbstractTransaction {
                 break;
             default:
                 assert schemaElement.type() == HugeType.PROPERTY_KEY;
-                throw new HugeException("The %s can't rebuild index.",
-                                        schemaElement.type());
+                throw new AssertionError(String.format(
+                          "The %s can't rebuild index.", schemaElement.type()));
         }
     }
 
