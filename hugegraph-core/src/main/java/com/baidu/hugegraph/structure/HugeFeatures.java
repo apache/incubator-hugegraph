@@ -101,11 +101,6 @@ public class HugeFeatures implements Graph.Features {
     public class HugeElementFeatures implements ElementFeatures {
 
         @Override
-        public boolean supportsUserSuppliedIds() {
-            return true;
-        }
-
-        @Override
         public boolean supportsNumericIds() {
             return false;
         }
@@ -317,6 +312,11 @@ public class HugeFeatures implements Graph.Features {
         }
 
         @Override
+        public boolean supportsUserSuppliedIds() {
+            return true;
+        }
+
+        @Override
         public boolean supportsMetaProperties() {
             return false;
         }
@@ -346,6 +346,11 @@ public class HugeFeatures implements Graph.Features {
 
         private final EdgePropertyFeatures edgePropertyFeatures =
                 new HugeEdgePropertyFeatures();
+
+        @Override
+        public boolean supportsUserSuppliedIds() {
+            return false;
+        }
 
         @Override
         public EdgePropertyFeatures properties() {
