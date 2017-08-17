@@ -16,6 +16,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+
 package com.baidu.hugegraph.type;
 
 public interface TriFunction <T1, T2, T3, R> {
