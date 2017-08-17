@@ -19,7 +19,7 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -30,8 +30,7 @@ import com.baidu.hugegraph.util.E;
 
 public class CassandraStoreProvider extends AbstractBackendStoreProvider {
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(CassandraStore.class);
+    private static final Logger LOG = Log.logger(CassandraStore.class);
 
     private String keyspace() {
         return this.name();
@@ -39,7 +38,7 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public BackendStore loadSchemaStore(final String name) {
-        logger.info("CassandraStoreProvider load SchemaStore '{}'", name);
+        LOG.info("CassandraStoreProvider load SchemaStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
             BackendStore s = new CassandraSchemaStore(this, keyspace(), name);
@@ -55,7 +54,7 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public BackendStore loadGraphStore(String name) {
-        logger.info("CassandraStoreProvider load GraphStore '{}'", name);
+        LOG.info("CassandraStoreProvider load GraphStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
             BackendStore s = new CassandraGraphStore(this, keyspace(), name);
@@ -71,7 +70,7 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public BackendStore loadIndexStore(String name) {
-        logger.info("CassandraStoreProvider load IndexStore '{}'", name);
+        LOG.info("CassandraStoreProvider load IndexStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
             BackendStore s = new CassandraIndexStore(this, keyspace(), name);

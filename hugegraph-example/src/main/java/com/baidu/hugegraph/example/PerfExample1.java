@@ -29,7 +29,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.cache.Cache;
@@ -46,7 +46,7 @@ public class PerfExample1 {
     public static final int SOFTWARE_NUM = 30;
     public static final int EDGE_NUM = 1000;
 
-    private static final Logger logger = LoggerFactory.getLogger(PerfExample1.class);
+    private static final Logger LOG = Log.logger(PerfExample1.class);
 
     public static void main(String[] args) throws InterruptedException {
         if (args.length < 3) {
@@ -95,7 +95,7 @@ public class PerfExample1 {
         // total cost (average time of all threads) (ms)
         long cost = (long) rates.stream().mapToLong(i -> i.getRight())
                     .average().getAsDouble();
-        logger.info("Rate with threads: {} edges/s", edges * 1000 / cost);
+        LOG.info("Rate with threads: {} edges/s", edges * 1000 / cost);
     }
 
     public static void initSchema(SchemaManager schema) {
@@ -156,7 +156,7 @@ public class PerfExample1 {
             startTime0 = System.currentTimeMillis();
             int personAge = 0;
             String personName = "";
-            logger.debug("==============random person vertex===============");
+            LOG.debug("==============random person vertex===============");
             for (int i = 0; i < PERSON_NUM; i++) {
                 random = new Random();
                 personAge = random.nextInt(70);
@@ -164,13 +164,13 @@ public class PerfExample1 {
                 Vertex vetex = graph.addVertex(T.label, "person",
                                "name", personName, "age", personAge);
                 personVertexIds.add(vetex.id());
-                logger.debug("Add vertex: {}", vetex);
+                LOG.debug("Add vertex: {}", vetex);
             }
 
             int softwarePrice = 0;
             String softwareName = "";
             String softwareLang = "java";
-            logger.debug("==============random software vertex============");
+            LOG.debug("==============random software vertex============");
             for (int i = 0; i < SOFTWARE_NUM; i++) {
                 random = new Random();
                 softwarePrice = random.nextInt(10000) + 1;
@@ -182,7 +182,7 @@ public class PerfExample1 {
             }
 
             // Random 1000 Edge
-            logger.debug("====================add Edges=================");
+            LOG.debug("====================add Edges=================");
             for (int i = 0; i < EDGE_NUM / 2; i++) {
                 random = new Random();
 
@@ -204,15 +204,14 @@ public class PerfExample1 {
             softwareVertexIds.clear();
             times--;
             endTime0 = System.currentTimeMillis();
-            logger.debug("Adding edges during time: {} ms",
-                         endTime0 - startTime0);
+            LOG.debug("Add edges during time: {} ms", endTime0 - startTime0);
         }
         long endTime = System.currentTimeMillis();
 
         long cost = endTime - startTime;
         long rate = total * 1000 / cost;
-        logger.info("All tests cost time: {} ms, the rate is: {} edges/s",
-                    cost, rate);
+        LOG.info("All tests cost time: {} ms, the rate is: {} edges/s",
+                 cost, rate);
         return Pair.of(total, cost);
     }
 

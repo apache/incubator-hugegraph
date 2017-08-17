@@ -33,7 +33,7 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
@@ -62,7 +62,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.HugeStructureBasicSuite")
 public class HugeGraph implements Graph {
 
-    private static final Logger logger = LoggerFactory.getLogger(HugeGraph.class);
+    private static final Logger LOG = Log.logger(HugeGraph.class);
 
     static {
         TraversalStrategies strategies = null;
@@ -105,7 +105,7 @@ public class HugeGraph implements Graph {
             this.initTransaction();
         } catch (BackendException e) {
             String message = "Failed to init backend store";
-            logger.error("{}: {}", message, e.getMessage());
+            LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
         }
     }
@@ -113,8 +113,9 @@ public class HugeGraph implements Graph {
     private synchronized void initTransaction() throws HugeException {
         if (this.storeProvider == null) {
             String backend = this.configuration.get(CoreOptions.BACKEND);
-            logger.info("Opening backend store: '{}'", backend);
-            this.storeProvider = BackendProviderFactory.open(backend, this.name);
+            LOG.info("Opening backend store: '{}'", backend);
+            this.storeProvider = BackendProviderFactory.open(backend,
+                                                             this.name);
         }
 
         SchemaTransaction schemaTx = this.openSchemaTransaction();
@@ -133,7 +134,7 @@ public class HugeGraph implements Graph {
             try {
                 graphTx.close();
             } catch (Exception e) {
-                logger.error("Failed to close GraphTransaction", e);
+                LOG.error("Failed to close GraphTransaction", e);
             }
         }
 
@@ -142,7 +143,7 @@ public class HugeGraph implements Graph {
             try {
                 schemaTx.close();
             } catch (Exception e) {
-                logger.error("Failed to close SchemaTransaction", e);
+                LOG.error("Failed to close SchemaTransaction", e);
             }
         }
 
@@ -173,7 +174,7 @@ public class HugeGraph implements Graph {
             return new CachedSchemaTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
-            logger.error("{}: {}", message, e.getMessage());
+            LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
         }
     }
@@ -189,7 +190,7 @@ public class HugeGraph implements Graph {
             return new CachedGraphTransaction(this, store, indexStore);
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";
-            logger.error("{}: {}", message, e.getMessage());
+            LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
         }
     }

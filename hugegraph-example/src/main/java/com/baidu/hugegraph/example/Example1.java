@@ -28,7 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -42,10 +42,10 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class Example1 {
 
-    private static final Logger logger = LoggerFactory.getLogger(Example1.class);
+    private static final Logger LOG = Log.logger(Example1.class);
 
     public static void main(String[] args) throws InterruptedException {
-        logger.info("Example1 start!");
+        LOG.info("Example1 start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
 
@@ -78,15 +78,15 @@ public class Example1 {
     }
 
     public static void showFeatures(final HugeGraph graph) {
-        logger.info("SupportsPersistence: {}",
-                    graph.features().graph().supportsPersistence());
+        LOG.info("SupportsPersistence: {}",
+                 graph.features().graph().supportsPersistence());
     }
 
     public static void load(final HugeGraph graph) {
 
         /*********************** schemaManager operating *********************/
         SchemaManager schema = graph.schema();
-        logger.info("===============  propertyKey  ================");
+        LOG.info("===============  propertyKey  ================");
         schema.propertyKey("id").asInt().create();
         schema.propertyKey("~exist").asText().create();
         schema.propertyKey("name").asText().create();
@@ -109,7 +109,7 @@ public class Example1 {
         schema.propertyKey("city").asText().create();
         schema.propertyKey("sensor_id").asUuid().create();
 
-        logger.info("===============  vertexLabel  ================");
+        LOG.info("===============  vertexLabel  ================");
 
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -130,7 +130,7 @@ public class Example1 {
         schema.vertexLabel("FridgeSensor").properties("city")
               .primaryKeys("city").create();
 
-        logger.info("===============  vertexLabel & index  ================");
+        LOG.info("===============  vertexLabel & index  ================");
         schema.indexLabel("personByCity")
               .onV("person").secondary().by("city").create();
         schema.indexLabel("personByAge")
@@ -141,7 +141,7 @@ public class Example1 {
         // schemaManager.getVertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
         // schemaManager.getVertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
 
-        logger.info("===============  edgeLabel  ================");
+        LOG.info("===============  edgeLabel  ================");
 
         schema.edgeLabel("authored").singleTime()
               .sourceLabel("author").targetLabel("book")
@@ -166,7 +166,7 @@ public class Example1 {
               .sourceLabel("reviewer").targetLabel("recipe")
               .create();
 
-        logger.info("===============  schemaManager desc  ================");
+        LOG.info("===============  schemaManager desc  ================");
         schema.desc().forEach(element -> System.out.println(element.schema()));
 
         /************************* data operating *************************/
@@ -188,7 +188,7 @@ public class Example1 {
         // Must commit manually
         GraphTransaction tx = graph.openTransaction();
 
-        logger.info("===============  addVertex  ================");
+        LOG.info("===============  addVertex  ================");
         Vertex james = tx.addVertex(T.label, "author",
                                     "id", 1, "name", "James Gosling",
                                     "age", 62, "lived", "Canadian");

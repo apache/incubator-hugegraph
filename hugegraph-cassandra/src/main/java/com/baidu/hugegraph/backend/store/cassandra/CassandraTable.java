@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -59,8 +59,7 @@ import com.google.common.collect.ImmutableList;
 
 public abstract class CassandraTable {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(CassandraStore.class);
+    private static final Logger LOG = Log.logger(CassandraStore.class);
 
     private interface MetaHandler {
         public Object handle(CassandraSessionPool.Session session,
@@ -107,7 +106,7 @@ public abstract class CassandraTable {
         List<BackendEntry> rs = new ArrayList<>();
 
         if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
-            logger.debug("Return empty result(limit=0) for query {}", query);
+            LOG.debug("Return empty result(limit=0) for query {}", query);
             return rs;
         }
 
@@ -121,7 +120,7 @@ public abstract class CassandraTable {
             throw new BackendException("Failed to query [%s]", e, query);
         }
 
-        logger.debug("Return {} for query {}", rs, query);
+        LOG.debug("Return {} for query {}", rs, query);
         return rs;
     }
 
@@ -136,8 +135,8 @@ public abstract class CassandraTable {
 
         // NOTE: Cassandra does not support query.offset()
         if (query.offset() != 0) {
-            logger.warn("Query offset is not supported currently " +
-                        "on Cassandra strore, it will be ignored");
+            LOG.warn("Query offset is not supported currently " +
+                     "on Cassandra strore, it will be ignored");
         }
 
         // Set order-by
@@ -156,7 +155,7 @@ public abstract class CassandraTable {
 
         if (query.conditions().isEmpty()) {
             // Query only by id
-            logger.debug("Query only by id(s): {}", ids);
+            LOG.debug("Query only by id(s): {}", ids);
             return ids;
         } else {
             List<Select> conds = new ArrayList<Select>(ids.size());
@@ -164,7 +163,7 @@ public abstract class CassandraTable {
                 // Query by condition
                 conds.addAll(this.queryCondition2Select(query, selection));
             }
-            logger.debug("Query by conditions: {}", conds);
+            LOG.debug("Query by conditions: {}", conds);
             return conds;
         }
     }
@@ -587,12 +586,12 @@ public abstract class CassandraTable {
         // Append the end of table declare
         sb.append(");");
 
-        logger.info("Create table: {}", sb);
+        LOG.info("Create table: {}", sb);
         session.execute(sb.toString());
     }
 
     protected void dropTable(CassandraSessionPool.Session session) {
-        logger.info("Drop table: {}", this.table);
+        LOG.info("Drop table: {}", this.table);
         session.execute(SchemaBuilder.dropTable(this.table).ifExists());
     }
 
@@ -609,7 +608,7 @@ public abstract class CassandraTable {
         sb.append(formatKey(column));
         sb.append(");");
 
-        logger.info("create index: {}", sb);
+        LOG.info("create index: {}", sb);
         session.execute(sb.toString());
     }
 

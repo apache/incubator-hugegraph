@@ -26,7 +26,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.concurrent.KeyLock;
@@ -37,7 +37,7 @@ public class RamCache implements Cache {
     public static final int DEFAULT_SIZE = 1 * MB;
     public static final int MAX_INIT_CAP = 100 * MB;
 
-    private static final Logger logger = LoggerFactory.getLogger(Cache.class);
+    private static final Logger LOG = Log.logger(Cache.class);
 
     private volatile long hits = 0L;
     private volatile long miss = 0L;
@@ -95,8 +95,8 @@ public class RamCache implements Cache {
             }
 
             // Ignore concurrent write for hits
-            logger.debug("RamCache cached '{}' (hits={}, miss={})",
-                         id, ++this.hits, this.miss);
+            LOG.debug("RamCache cached '{}' (hits={}, miss={})",
+                      id, ++this.hits, this.miss);
 
             assert id.equals(node.key());
             return node.value();
@@ -133,8 +133,8 @@ public class RamCache implements Cache {
                  * NOTE: it maybe return null if other threads are doing remove
                  */
                 this.map.remove(removed.key());
-                logger.debug("RamCache replaced '{}' with '{}' (capacity={})",
-                             removed.key(), id, this.capacity);
+                LOG.debug("RamCache replaced '{}' with '{}' (capacity={})",
+                          removed.key(), id, this.capacity);
                 /*
                  * Release the object
                  * NOTE: we can't reuse the removed node due to someone else
@@ -183,8 +183,8 @@ public class RamCache implements Cache {
             value = this.access(id);
         }
         if (value == null) {
-            logger.debug("RamCache missed '{}' (miss={}, hits={})",
-                         id, ++this.miss, this.hits);
+            LOG.debug("RamCache missed '{}' (miss={}, hits={})",
+                      id, ++this.miss, this.hits);
         }
         return value;
     }
@@ -197,8 +197,8 @@ public class RamCache implements Cache {
             value = this.access(id);
         }
         if (value == null) {
-            logger.debug("RamCache missed '{}' (miss={}, hits={})",
-                         id, ++this.miss, this.hits);
+            LOG.debug("RamCache missed '{}' (miss={}, hits={})",
+                      id, ++this.miss, this.hits);
             // Do fetch and update the cache
             value = fetcher.apply(id);
             this.update(id, value);
@@ -260,13 +260,13 @@ public class RamCache implements Cache {
             }
         }
 
-        logger.debug("Cache expire items: {} (expire {}ms)",
-                     expireItems.size(), this.expire);
+        LOG.debug("Cache expire items: {} (expire {}ms)",
+                  expireItems.size(), this.expire);
         for (Id id : expireItems) {
             this.remove(id);
         }
-        logger.debug("Cache expired items: {} (size {})",
-                     expireItems.size(), size());
+        LOG.debug("Cache expired items: {} (size {})",
+                  expireItems.size(), size());
     }
 
     @Override

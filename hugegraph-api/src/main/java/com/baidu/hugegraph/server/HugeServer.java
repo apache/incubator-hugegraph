@@ -29,7 +29,7 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -39,8 +39,7 @@ import com.baidu.hugegraph.version.ApiVersion;
 
 public class HugeServer {
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger LOG = Log.logger(HugeServer.class);
 
     private HugeConfig conf = null;
     private HttpServer httpServer = null;
@@ -66,14 +65,14 @@ public class HugeServer {
     }
 
     public static HugeServer start(String[] args) {
-        logger.info("HugeServer starting...");
+        LOG.info("HugeServer starting...");
         ApiVersion.check();
 
         HugeConfig conf = HugeServer.loadConf(args);
         HugeServer server = new HugeServer(conf);
         try {
             server.start();
-            logger.info("HugeServer started");
+            LOG.info("HugeServer started");
         } catch (Exception e) {
             throw new HugeException("Failed to start HugeServer", e);
         }
@@ -97,9 +96,9 @@ public class HugeServer {
             HugeServer.start(args);
             Thread.currentThread().join();
         } catch (Exception e) {
-            logger.error("HugeServer error:", e);
+            LOG.error("HugeServer error:", e);
             throw e;
         }
-        logger.info("HugeServer stopped");
+        LOG.info("HugeServer stopped");
     }
 }

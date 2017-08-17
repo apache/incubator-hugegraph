@@ -199,7 +199,7 @@ public class IndexTransaction extends AbstractTransaction {
         E.checkArgumentNotNull(schemaLabel, "Invalid label: '%s'", label);
 
         Set<String> indexNames = schemaLabel.indexNames();
-        logger.debug("The label '{}' with index names: {}", label, indexNames);
+        LOG.debug("The label '{}' with index names: {}", label, indexNames);
         for (String name : indexNames) {
             IndexLabel indexLabel = schema.getIndexLabel(name);
             indexQuery = matchIndexLabel(indexLabel, query);
@@ -221,9 +221,9 @@ public class IndexTransaction extends AbstractTransaction {
         boolean requireSearch = query.hasSearchCondition();
         boolean searching = indexLabel.indexType() == IndexType.SEARCH;
         if (requireSearch && !searching) {
-            logger.debug("There is search condition in '{}'," +
-                         "but the index label '{}' is unable to search",
-                         query, indexLabel.name());
+            LOG.debug("There is search condition in '{}'," +
+                      "but the index label '{}' is unable to search",
+                      query, indexLabel.name());
             return null;
         }
 
@@ -233,8 +233,8 @@ public class IndexTransaction extends AbstractTransaction {
         if (!matchIndexFields(queryKeys, indexFields)) {
             return null;
         }
-        logger.debug("Matched index fields: {} of index '{}'",
-                     indexFields, indexLabel.name());
+        LOG.debug("Matched index fields: {} of index '{}'",
+                  indexFields, indexLabel.name());
 
         if (indexLabel.indexType() == IndexType.SECONDARY) {
             List<String> joinedKeys = indexFields.subList(0, queryKeys.size());

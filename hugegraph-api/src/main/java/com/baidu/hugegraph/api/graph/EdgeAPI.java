@@ -43,7 +43,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -65,8 +65,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class EdgeAPI extends API {
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger LOG = Log.logger(HugeServer.class);
 
     @POST
     @Status(Status.CREATED)
@@ -75,7 +74,7 @@ public class EdgeAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          CreateEdge edge) {
-        logger.debug("Graph [{}] create edge: {}", graph, edge);
+        LOG.debug("Graph [{}] create edge: {}", graph, edge);
 
         E.checkArgumentNotNull(edge.source, "Expect source vertex id");
         E.checkArgumentNotNull(edge.target, "Expect target vertex id");
@@ -112,7 +111,7 @@ public class EdgeAPI extends API {
                       "the maximum number is '%s'", maxEdges);
         }
 
-        logger.debug("Graph [{}] create edges: {}", graph, edges);
+        LOG.debug("Graph [{}] create edges: {}", graph, edges);
 
         List<String> ids = new ArrayList<>(edges.size());
 
@@ -140,11 +139,11 @@ public class EdgeAPI extends API {
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e1) {
-            logger.error("Failed to add edges", e1);
+            LOG.error("Failed to add edges", e1);
             try {
                 g.tx().rollback();
             } catch (Exception e2) {
-                logger.error("Failed to rollback edges", e2);
+                LOG.error("Failed to rollback edges", e2);
             }
             throw new HugeException("Failed to add edges", e1);
         } finally {
@@ -159,7 +158,7 @@ public class EdgeAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        logger.debug("Graph [{}] get vertices", graph);
+        LOG.debug("Graph [{}] get vertices", graph);
 
         Graph g = graph(manager, graph);
         List<Edge> rs = g.traversal().E().limit(limit).toList();
@@ -172,7 +171,7 @@ public class EdgeAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {
-        logger.debug("Graph [{}] get vertex by id '{}'", graph, id);
+        LOG.debug("Graph [{}] get vertex by id '{}'", graph, id);
 
         Graph g = graph(manager, graph);
         return manager.serializer(g).writeEdge(g.edges(id).next());
@@ -184,7 +183,7 @@ public class EdgeAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("id") String id) {
-        logger.debug("Graph [{}] remove vertex by id '{}'", graph, id);
+        LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
         Graph g = graph(manager, graph);
         // TODO: add removeEdge(id) to improve

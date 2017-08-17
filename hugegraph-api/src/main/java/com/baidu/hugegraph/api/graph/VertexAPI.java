@@ -42,7 +42,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -58,8 +58,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Singleton
 public class VertexAPI extends API {
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger LOG = Log.logger(HugeServer.class);
 
     @POST
     @Status(Status.CREATED)
@@ -68,7 +67,7 @@ public class VertexAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          CreateVertex vertex) {
-        logger.debug("Graph [{}] create vertex: {}", graph, vertex);
+        LOG.debug("Graph [{}] create vertex: {}", graph, vertex);
 
         Graph g = graph(manager, graph);
         Vertex v = g.addVertex(vertex.properties());
@@ -93,7 +92,7 @@ public class VertexAPI extends API {
                       "the maximum number is '%s'", maxVertices);
         }
 
-        logger.debug("Graph [{}] create vertices: {}", graph, vertices);
+        LOG.debug("Graph [{}] create vertices: {}", graph, vertices);
 
         List<String> ids = new ArrayList<>(vertices.size());
         g.tx().open();
@@ -103,11 +102,11 @@ public class VertexAPI extends API {
             }
             g.tx().commit();
         } catch (Exception e1) {
-            logger.error("Failed to add vertices", e1);
+            LOG.error("Failed to add vertices", e1);
             try {
                 g.tx().rollback();
             } catch (Exception e2) {
-                logger.error("Failed to rollback vertices", e2);
+                LOG.error("Failed to rollback vertices", e2);
             }
             throw new HugeException("Failed to add vertices", e1);
         } finally {
@@ -122,7 +121,7 @@ public class VertexAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @DefaultValue("100") @QueryParam("limit") long limit) {
-        logger.debug("Graph [{}] get vertices", graph);
+        LOG.debug("Graph [{}] get vertices", graph);
 
         Graph g = graph(manager, graph);
         List<Vertex> rs = g.traversal().V().limit(limit).toList();
@@ -135,7 +134,7 @@ public class VertexAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {
-        logger.debug("Graph [{}] get vertex by id '{}'", graph, id);
+        LOG.debug("Graph [{}] get vertex by id '{}'", graph, id);
 
         Graph g = graph(manager, graph);
         return manager.serializer(g).writeVertex(g.vertices(id).next());
@@ -147,7 +146,7 @@ public class VertexAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("id") String id) {
-        logger.debug("Graph [{}] remove vertex by id '{}'", graph, id);
+        LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
         Graph g = graph(manager, graph);
         // TODO: add removeVertex(id) to improve

@@ -67,7 +67,7 @@ public class CachedSchemaTransaction extends SchemaTransaction {
                                                Events.STORE_CLEAR);
         super.store().provider().listen(event -> {
             if (events.contains(event.name())) {
-                logger.info("Clear cache on event '{}'", event.name());
+                LOG.info("Clear cache on event '{}'", event.name());
                 this.cache.clear();
                 return true;
             }
@@ -78,7 +78,7 @@ public class CachedSchemaTransaction extends SchemaTransaction {
         EventHub schemaEventHub = super.graph().schemaEventHub();
         if (!schemaEventHub.containsListener(Events.CACHE)) {
             schemaEventHub.listen(Events.CACHE, event -> {
-                logger.debug("Received event: {}", event);
+                LOG.debug("Received event: {}", event);
                 event.checkArgs(String.class, Id.class);
                 Object[] args = event.args();
                 if (args[0].equals("invalid")) {

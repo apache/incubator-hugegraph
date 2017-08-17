@@ -35,7 +35,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
@@ -48,8 +48,7 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 @Singleton
 public class VertexLabelAPI extends API {
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(VertexLabelAPI.class);
+    private static final Logger LOG = Log.logger(VertexLabelAPI.class);
 
     @POST
     @Status(Status.CREATED)
@@ -58,8 +57,8 @@ public class VertexLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertexLabel jsonVertexLabel) {
-        logger.debug("Graph [{}] create vertex label: {}",
-                     graph, jsonVertexLabel);
+        LOG.debug("Graph [{}] create vertex label: {}",
+                  graph, jsonVertexLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -76,8 +75,8 @@ public class VertexLabelAPI extends API {
                          @PathParam("graph") String graph,
                          @QueryParam("action") String action,
                          JsonVertexLabel jsonVertexLabel) {
-        logger.debug("Graph [{}] %s vertex label: {}",
-                     graph, action, jsonVertexLabel);
+        LOG.debug("Graph [{}] %s vertex label: {}",
+                  graph, action, jsonVertexLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -97,7 +96,7 @@ public class VertexLabelAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
-        logger.debug("Graph [{}] get vertex labels", graph);
+        LOG.debug("Graph [{}] get vertex labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         List<VertexLabel> labels = g.schemaTransaction().getVertexLabels();
@@ -111,7 +110,7 @@ public class VertexLabelAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
-        logger.debug("Graph [{}] get vertex label by name '{}'", graph, name);
+        LOG.debug("Graph [{}] get vertex label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         VertexLabel vertexLabel = g.schemaTransaction().getVertexLabel(name);
@@ -125,8 +124,7 @@ public class VertexLabelAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {
-        logger.debug("Graph [{}] remove vertex label by name '{}'",
-                     graph, name);
+        LOG.debug("Graph [{}] remove vertex label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         g.schemaTransaction().removeVertexLabel(name);

@@ -39,7 +39,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -55,8 +55,7 @@ public final class HugeGraphStep<S, E extends Element>
 
     private static final long serialVersionUID = -679873894532085972L;
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(HugeGraphStep.class);
+    private static final Logger LOG = Log.logger(HugeGraphStep.class);
 
     private final List<HasContainer> hasContainers = new ArrayList<>();
     private long limit = Query.NO_LIMIT;
@@ -79,7 +78,7 @@ public final class HugeGraphStep<S, E extends Element>
     }
 
     private Iterator<E> vertices() {
-        logger.debug("HugeGraphStep.vertices(): {}", this);
+        LOG.debug("HugeGraphStep.vertices(): {}", this);
 
         HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
         if (this.ids != null && this.ids.length > 0) {
@@ -104,7 +103,7 @@ public final class HugeGraphStep<S, E extends Element>
     }
 
     private Iterator<E> edges() {
-        logger.debug("HugeGraphStep.edges(): {}", this);
+        LOG.debug("HugeGraphStep.edges(): {}", this);
 
         HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
 

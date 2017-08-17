@@ -50,7 +50,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     public void initSchema() {
         SchemaManager schema = graph().schema();
 
-        logger.info("===============  propertyKey  ================");
+        LOG.info("===============  propertyKey  ================");
 
         schema.propertyKey("id").asInt().create();
         schema.propertyKey("name").asText().create();
@@ -66,7 +66,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.propertyKey("amount").asFloat().create();
         schema.propertyKey("message").asText().create();
 
-        logger.info("===============  vertexLabel  ================");
+        LOG.info("===============  vertexLabel  ================");
 
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -85,14 +85,14 @@ public class EdgeCoreTest extends BaseCoreTest {
               .primaryKeys("name")
               .create();
 
-        logger.info("===============  vertexLabel index  ================");
+        LOG.info("===============  vertexLabel index  ================");
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
         schema.indexLabel("personByAge").onV("person").search()
               .by("age").create();
 
-        logger.info("===============  edgeLabel  ================");
+        LOG.info("===============  edgeLabel  ================");
 
         schema.edgeLabel("transfer")
               .properties("id", "amount", "timestamp", "message")
@@ -127,7 +127,7 @@ public class EdgeCoreTest extends BaseCoreTest {
               .link("author", "language")
               .create();
 
-        logger.info("===============  edgeLabel index  ================");
+        LOG.info("===============  edgeLabel index  ================");
 
         schema.indexLabel("transferByTimestamp").onE("transfer").search()
               .by("timestamp").create();

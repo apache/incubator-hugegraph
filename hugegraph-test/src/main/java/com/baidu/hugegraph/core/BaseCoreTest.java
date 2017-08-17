@@ -24,7 +24,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
@@ -32,8 +32,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 
 public class BaseCoreTest {
 
-    protected static final Logger logger = LoggerFactory.getLogger(
-            BaseCoreTest.class);
+    protected static final Logger LOG = Log.logger(BaseCoreTest.class);
 
     public static String CONF_PATH = "hugegraph.properties";
 

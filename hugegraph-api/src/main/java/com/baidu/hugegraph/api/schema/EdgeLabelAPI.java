@@ -35,7 +35,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
@@ -48,8 +48,7 @@ import com.baidu.hugegraph.type.define.Frequency;
 @Singleton
 public class EdgeLabelAPI extends API {
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(EdgeLabelAPI.class);
+    private static final Logger LOG = Log.logger(EdgeLabelAPI.class);
 
     @POST
     @Status(Status.CREATED)
@@ -58,7 +57,7 @@ public class EdgeLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdgeLabel jsonEdgeLabel) {
-        logger.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
+        LOG.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -75,8 +74,8 @@ public class EdgeLabelAPI extends API {
                          @PathParam("graph") String graph,
                          @QueryParam("action") String action,
                          JsonEdgeLabel jsonEdgeLabel) {
-        logger.debug("Graph [{}] %s edge label: {}",
-                     graph, action, jsonEdgeLabel);
+        LOG.debug("Graph [{}] %s edge label: {}",
+                  graph, action, jsonEdgeLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -96,7 +95,7 @@ public class EdgeLabelAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
-        logger.debug("Graph [{}] get edge labels", graph);
+        LOG.debug("Graph [{}] get edge labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         List<EdgeLabel> labels = g.schemaTransaction().getEdgeLabels();
@@ -110,7 +109,7 @@ public class EdgeLabelAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
-        logger.debug("Graph [{}] get edge label by name '{}'", graph, name);
+        LOG.debug("Graph [{}] get edge label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         EdgeLabel edgeLabel = g.schemaTransaction().getEdgeLabel(name);
@@ -124,7 +123,7 @@ public class EdgeLabelAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {
-        logger.debug("Graph [{}] remove edge label by name '{}'", graph, name);
+        LOG.debug("Graph [{}] remove edge label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         g.schemaTransaction().removeEdgeLabel(name);
