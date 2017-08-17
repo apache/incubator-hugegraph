@@ -16,6 +16,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+
 package com.baidu.hugegraph.api.graph;
 
 import static com.baidu.hugegraph.config.ServerOptions.MAX_VERTICES_PER_BATCH;
