@@ -21,7 +21,7 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.Iterator;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -40,8 +40,7 @@ import com.baidu.hugegraph.util.E;
 
 public abstract class AbstractTransaction implements Transaction {
 
-    protected static final Logger logger =
-              LoggerFactory.getLogger(Transaction.class);
+    protected static final Logger LOG = Log.logger(Transaction.class);
 
     private Thread ownerThread = Thread.currentThread();
     private boolean autoCommit = false;
@@ -82,7 +81,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     public Iterable<BackendEntry> query(Query query) {
-        logger.debug("Transaction query: {}", query);
+        LOG.debug("Transaction query: {}", query);
         /*
          * NOTE: it's dangerous if an IdQuery/ConditionQuery is empty
          * check if the query is empty and its class is not the Query itself
@@ -122,7 +121,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Override
     public void commit() throws BackendException {
-        logger.debug("Transaction commit() [auto: {}]...", this.autoCommit);
+        LOG.debug("Transaction commit() [auto: {}]...", this.autoCommit);
         this.checkOwnerThread();
 
         if (this.closed) {
@@ -133,7 +132,7 @@ public abstract class AbstractTransaction implements Transaction {
 
         BackendMutation mutation = this.mutation();
         if (mutation.isEmpty()) {
-            logger.debug("Transaction has no data to commit({})", this.store());
+            LOG.debug("Transaction has no data to commit({})", this.store());
             return;
         }
 
@@ -146,7 +145,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Override
     public void rollback() throws BackendException {
-        logger.debug("Transaction rollback()...");
+        LOG.debug("Transaction rollback()...");
         this.reset();
         this.store.rollbackTx();
     }
@@ -202,11 +201,11 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected void prepareCommit() {
         // For sub-class preparing data, nothing to do here
-        logger.debug("Transaction prepareCommit()...");
+        LOG.debug("Transaction prepareCommit()...");
     }
 
     protected void commitOrRollback() {
-        logger.debug("Transaction commitOrRollback()");
+        LOG.debug("Transaction commitOrRollback()");
         this.checkOwnerThread();
 
         /*
@@ -219,12 +218,12 @@ public abstract class AbstractTransaction implements Transaction {
             // Do commit
             this.commit();
         } catch (Throwable e1) {
-            logger.error("Failed to commit changes:", e1);
+            LOG.error("Failed to commit changes:", e1);
             // Do rollback
             try {
                 this.rollback();
             } catch (Throwable e2) {
-                logger.error("Failed to rollback changes:\n {}", mutation, e2);
+                LOG.error("Failed to rollback changes:\n {}", mutation, e2);
             }
             // Rethrow the commit exception
             throw new BackendException(
@@ -239,7 +238,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     public void addEntry(BackendEntry entry) {
-        logger.debug("Transaction add entry {}", entry);
+        LOG.debug("Transaction add entry {}", entry);
         E.checkNotNull(entry, "entry");
         E.checkNotNull(entry.id(), "entry id");
 
@@ -247,7 +246,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     public void removeEntry(BackendEntry entry) {
-        logger.debug("Transaction remove entry {}", entry);
+        LOG.debug("Transaction remove entry {}", entry);
         E.checkNotNull(entry, "entry");
         E.checkNotNull(entry.id(), "entry id");
 
@@ -259,7 +258,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     public void appendEntry(BackendEntry entry) {
-        logger.debug("Transaction append entry {}", entry);
+        LOG.debug("Transaction append entry {}", entry);
         E.checkNotNull(entry, "entry");
         E.checkNotNull(entry.id(), "entry id");
 
@@ -267,7 +266,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     public void eliminateEntry(BackendEntry entry) {
-        logger.debug("Transaction eliminate entry {}", entry);
+        LOG.debug("Transaction eliminate entry {}", entry);
         E.checkNotNull(entry, "entry");
         E.checkNotNull(entry.id(), "entry id");
 

@@ -34,7 +34,7 @@ import javax.ws.rs.ext.WriterInterceptor;
 import javax.ws.rs.ext.WriterInterceptorContext;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.server.HugeServer;
 
@@ -45,8 +45,7 @@ public class CompressInterceptor implements WriterInterceptor {
 
     public static final String GZIP = "gzip";
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger LOG = Log.logger(HugeServer.class);
 
     // Set compress output buffer size to 4KB (about 40~600 vertices)
     public static final int BUFFER_SIZE = 1024 * 4;
@@ -59,7 +58,7 @@ public class CompressInterceptor implements WriterInterceptor {
             try {
                 this.compress(context);
             } catch (Throwable e) {
-                logger.warn("Failed to compress response", e);
+                LOG.warn("Failed to compress response", e);
                 /*
                  * FIXME: This will cause java.lang.IllegalStateException:
                  *  Illegal attempt to call getOutputStream() after getWriter()

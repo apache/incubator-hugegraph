@@ -25,17 +25,17 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
 
 public class GraphOfTheMoviesExample {
 
-    private static final Logger logger = LoggerFactory.getLogger(GraphOfTheMoviesExample.class);
+    private static final Logger LOG = Log.logger(GraphOfTheMoviesExample.class);
 
     public static void main(String[] args) {
-        logger.info("ExampleGraphFactory start!");
+        LOG.info("ExampleGraphFactory start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
 

@@ -32,7 +32,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.core.GraphManager;
@@ -43,8 +43,7 @@ import com.google.common.collect.ImmutableMap;
 @Singleton
 public class GraphsAPI extends API {
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(HugeServer.class);
+    private static final Logger LOG = Log.logger(HugeServer.class);
 
     private static final String TOKEN = "162f7848-0b6d-4faf-b557-3a0797869c55";
 
@@ -59,7 +58,7 @@ public class GraphsAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
-        logger.debug("Graphs [{}] get graph by name '{}'", name);
+        LOG.debug("Graphs [{}] get graph by name '{}'", name);
 
         HugeGraph g = (HugeGraph) graph(manager, name);
         return ImmutableMap.of("name", g.name());
@@ -71,7 +70,7 @@ public class GraphsAPI extends API {
     public File getConf(@Context GraphManager manager,
                         @PathParam("name") String name,
                         @QueryParam("token") String token) {
-        logger.debug("Graphs [{}] get graph by name '{}'", name);
+        LOG.debug("Graphs [{}] get graph by name '{}'", name);
 
         if (!verifyToken(token)) {
             throw new NotAuthorizedException("Invalid token");

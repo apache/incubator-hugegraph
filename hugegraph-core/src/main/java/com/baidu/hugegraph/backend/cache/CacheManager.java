@@ -26,11 +26,11 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 public class CacheManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(Cache.class);
+    private static final Logger LOG = Log.logger(Cache.class);
 
     private static CacheManager INSTANCE = new CacheManager();
 
@@ -56,7 +56,7 @@ public class CacheManager {
             @Override
             public void run() {
                 for (Entry<String, Cache> entry : caches().entrySet()) {
-                    logger.debug("Cache '{}' expiration tick", entry.getKey());
+                    LOG.debug("Cache '{}' expiration tick", entry.getKey());
                     entry.getValue().tick();
                 }
             }

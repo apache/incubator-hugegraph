@@ -88,7 +88,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void addPropertyKey(PropertyKey propKey) {
-        logger.debug("SchemaTransaction add property key: {}", propKey);
+        LOG.debug("SchemaTransaction add property key: {}", propKey);
         this.addSchema(propKey, this.serializer.writePropertyKey(propKey));
     }
 
@@ -116,12 +116,12 @@ public class SchemaTransaction extends AbstractTransaction {
                           name, edgeLabel.name());
             }
         }
-        logger.debug("SchemaTransaction remove property key '{}'", name);
+        LOG.debug("SchemaTransaction remove property key '{}'", name);
         this.removeSchema(new PropertyKey(name));
     }
 
     public void addVertexLabel(VertexLabel vertexLabel) {
-        logger.debug("SchemaTransaction add vertex label: {}", vertexLabel);
+        LOG.debug("SchemaTransaction add vertex label: {}", vertexLabel);
         BackendEntry entry = this.serializer.writeVertexLabel(vertexLabel);
         this.addSchema(vertexLabel, entry);
     }
@@ -162,7 +162,7 @@ public class SchemaTransaction extends AbstractTransaction {
             // TODO: use event to replace direct call
             // Deleting a vertex will automatically deletes the held edge
             this.graph().graphTransaction().removeVertices(vertexLabel);
-            logger.debug("SchemaTransaction remove vertex label '{}'", name);
+            LOG.debug("SchemaTransaction remove vertex label '{}'", name);
             this.removeSchema(new VertexLabel(name));
         } finally {
             locks.unlock();
@@ -170,7 +170,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void addEdgeLabel(EdgeLabel edgeLabel) {
-        logger.debug("SchemaTransaction add edge label: {}", edgeLabel);
+        LOG.debug("SchemaTransaction add edge label: {}", edgeLabel);
         this.addSchema(edgeLabel, this.serializer.writeEdgeLabel(edgeLabel));
     }
 
@@ -197,7 +197,7 @@ public class SchemaTransaction extends AbstractTransaction {
             // Remove all edges which has matched label
             this.graph().graphTransaction().removeEdges(edgeLabel);
 
-            logger.debug("SchemaTransaction remove edge label '{}'", name);
+            LOG.debug("SchemaTransaction remove edge label '{}'", name);
             this.removeSchema(new EdgeLabel(name));
         } finally {
             locks.unlock();
@@ -205,7 +205,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void addIndexLabel(IndexLabel indexLabel) {
-        logger.debug("SchemaTransaction add index label: {}", indexLabel);
+        LOG.debug("SchemaTransaction add index label: {}", indexLabel);
         this.addSchema(indexLabel, this.serializer.writeIndexLabel(indexLabel));
     }
 
@@ -215,7 +215,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void removeIndexLabel(String indexName) {
-        logger.debug("SchemaTransaction remove index label '{}'", indexName);
+        LOG.debug("SchemaTransaction remove index label '{}'", indexName);
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL, indexName);
@@ -231,16 +231,16 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void rebuildIndex(IndexLabel indexLabel) {
-        logger.debug("SchemaTransaction rebuild index for '{}' '{}'",
-                     indexLabel.type(), indexLabel.name());
+        LOG.debug("SchemaTransaction rebuild index for '{}' '{}'",
+                  indexLabel.type(), indexLabel.name());
         // Obtain index label from db by name
         indexLabel = this.getIndexLabel(indexLabel.name());
         this.graph().graphTransaction().rebuildIndex(indexLabel);
     }
 
     public void rebuildIndex(SchemaLabel schemaLabel) {
-        logger.debug("SchemaTransaction rebuild index for '{}' '{}'",
-                     schemaLabel.type(), schemaLabel.name());
+        LOG.debug("SchemaTransaction rebuild index for '{}' '{}'",
+                  schemaLabel.type(), schemaLabel.name());
         // Obtain vertex/edge label from db by name
         if (schemaLabel.type() == HugeType.VERTEX_LABEL) {
             schemaLabel = this.getVertexLabel(schemaLabel.name());

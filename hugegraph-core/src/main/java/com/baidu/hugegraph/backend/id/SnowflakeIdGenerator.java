@@ -19,7 +19,7 @@
 package com.baidu.hugegraph.backend.id;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -85,8 +85,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
      */
     static class IdWorker {
 
-        protected static final Logger logger =
-                  LoggerFactory.getLogger(IdWorker.class);
+        protected static final Logger LOG = Log.logger(IdWorker.class);
 
         private long workerId;
         private long datacenterId;
@@ -121,23 +120,23 @@ public class SnowflakeIdGenerator extends IdGenerator {
             }
             this.workerId = workerId;
             this.datacenterId = datacenterId;
-            logger.info("Worker starting. timestamp left shift {}," +
-                        "datacenter id bits {}, worker id bits {}," +
-                        "sequence bits {}, workerid {}",
-                        this.timestampLeftShift,
-                        this.datacenterIdBits,
-                        this.workerIdBits,
-                        this.sequenceBits,
-                        workerId);
+            LOG.info("Worker starting. timestamp left shift {}," +
+                     "datacenter id bits {}, worker id bits {}," +
+                     "sequence bits {}, workerid {}",
+                     this.timestampLeftShift,
+                     this.datacenterIdBits,
+                     this.workerIdBits,
+                     this.sequenceBits,
+                     workerId);
         }
 
         public synchronized long nextId() {
             long timestamp = TimeUtil.timeGen();
 
             if (timestamp < this.lastTimestamp) {
-                logger.error("Clock is moving backwards, " +
-                             "rejecting requests until {}.",
-                             this.lastTimestamp);
+                LOG.error("Clock is moving backwards, " +
+                          "rejecting requests until {}.",
+                          this.lastTimestamp);
                 throw new HugeException("Clock moved backwards. Refusing to " +
                                         "generate id for %d milliseconds",
                                         this.lastTimestamp - timestamp);

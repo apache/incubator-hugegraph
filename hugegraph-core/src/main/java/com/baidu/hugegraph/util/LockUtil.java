@@ -21,7 +21,7 @@ package com.baidu.hugegraph.util;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.concurrent.LockManager;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,8 +31,7 @@ import java.util.concurrent.locks.Lock;
 
 public class LockUtil {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(LockUtil.class);
+    private static final Logger LOG = Log.logger(LockUtil.class);
 
     public static final String WRITE = "write";
     public static final String READ = "read";
@@ -54,23 +53,22 @@ public class LockUtil {
     private static Lock lockRead(String group, String lock) {
         Lock readLock = LockManager.instance().get(group)
                                    .readWriteLock(lock).readLock();
-        logger.debug("Trying to get the read lock '%s' of LockGroup '%s'",
-                     lock, group);
+        LOG.debug("Trying to get the read lock '%s' of LockGroup '%s'",
+                  lock, group);
         if (!readLock.tryLock()) {
             throw new HugeException(
                       "Lock [%s:%s] is locked by other operation",
                       group, lock);
         }
-        logger.debug("Got the read lock '%s' of LockGroup '%s'",
-                     lock, group);
+        LOG.debug("Got the read lock '%s' of LockGroup '%s'", lock, group);
         return readLock;
     }
 
     private static Lock lockWrite(String group, String lock, long time) {
         Lock writeLock = LockManager.instance().get(group)
                                     .readWriteLock(lock).writeLock();
-        logger.debug("Trying to get the write lock '%s' of LockGroup '%s'",
-                     lock, group);
+        LOG.debug("Trying to get the write lock '%s' of LockGroup '%s'",
+                  lock, group);
         while (true) {
             try {
                 if (!writeLock.tryLock(time, TimeUnit.SECONDS)) {
@@ -80,11 +78,10 @@ public class LockUtil {
                 }
                 break;
             } catch (InterruptedException ignore) {
-                logger.info("Trying to lock write of is interrupted!");
+                LOG.info("Trying to lock write of is interrupted!");
             }
         }
-        logger.debug("Got the write lock '%s' of LockGroup '%s'",
-                     lock, group);
+        LOG.debug("Got the write lock '%s' of LockGroup '%s'", lock, group);
         return writeLock;
     }
 

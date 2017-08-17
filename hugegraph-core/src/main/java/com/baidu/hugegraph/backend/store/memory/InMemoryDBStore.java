@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -62,8 +62,7 @@ import com.baidu.hugegraph.util.E;
  */
 public class InMemoryDBStore implements BackendStore {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(InMemoryDBStore.class);
+    private static final Logger LOG = Log.logger(InMemoryDBStore.class);
 
     private final BackendStoreProvider provider;
     private final String name;
@@ -111,8 +110,8 @@ public class InMemoryDBStore implements BackendStore {
             rs = queryByFilter(query.conditions(), rs);
         }
 
-        logger.info("[store {}] return {} for query: {}",
-                    this.name, rs.values(), query);
+        LOG.info("[store {}] return {} for query: {}",
+                 this.name, rs.values(), query);
         return rs.values();
     }
 
@@ -242,7 +241,7 @@ public class InMemoryDBStore implements BackendStore {
         BackendEntry entry = item.entry();
         switch (item.action()) {
             case INSERT:
-                logger.info("[store {}] add entry: {}", this.name, entry);
+                LOG.info("[store {}] add entry: {}", this.name, entry);
                 if (!this.store.containsKey(entry.id())) {
                     this.store.put(entry.id(), entry);
                 } else {
@@ -253,7 +252,7 @@ public class InMemoryDBStore implements BackendStore {
                 }
                 break;
             case DELETE:
-                logger.info("[store {}] remove id: {}", this.name, entry.id());
+                LOG.info("[store {}] remove id: {}", this.name, entry.id());
                 // Remove by id (TODO: support remove by id + condition)
                 this.store.remove(entry.id());
                 break;
@@ -291,12 +290,12 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public void open(HugeConfig config) {
-        logger.info("open()");
+        LOG.info("open()");
     }
 
     @Override
     public void close() throws BackendException {
-        logger.info("close()");
+        LOG.info("close()");
     }
 
     @Override
@@ -306,7 +305,7 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public void clear() {
-        logger.info("clear()");
+        LOG.info("clear()");
         this.store.clear();
     }
 

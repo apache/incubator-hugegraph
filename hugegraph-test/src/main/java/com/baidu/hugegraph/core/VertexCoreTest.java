@@ -47,7 +47,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void initSchema() {
         SchemaManager schema = graph().schema();
 
-        logger.info("===============  propertyKey  ================");
+        LOG.info("===============  propertyKey  ================");
 
         schema.propertyKey("id").asInt().create();
         schema.propertyKey("name").asText().create();
@@ -63,7 +63,7 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("band").asText().create();
         schema.propertyKey("price").asInt().create();
 
-        logger.info("===============  vertexLabel  ================");
+        LOG.info("===============  vertexLabel  ================");
 
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -89,7 +89,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .primaryKeys("name")
               .create();
 
-        logger.info("===============  vertexLabel index  ================");
+        LOG.info("===============  vertexLabel index  ================");
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();

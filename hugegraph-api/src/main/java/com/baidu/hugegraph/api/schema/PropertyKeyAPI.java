@@ -32,7 +32,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
@@ -46,8 +46,7 @@ import com.baidu.hugegraph.type.define.DataType;
 @Singleton
 public class PropertyKeyAPI extends API {
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(PropertyKeyAPI.class);
+    private static final Logger LOG = Log.logger(PropertyKeyAPI.class);
 
     @POST
     @Status(Status.CREATED)
@@ -56,8 +55,8 @@ public class PropertyKeyAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonPropertyKey jsonPropertyKey) {
-        logger.debug("Graph [{}] create property key: {}",
-                     graph, jsonPropertyKey);
+        LOG.debug("Graph [{}] create property key: {}",
+                  graph, jsonPropertyKey);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -71,7 +70,7 @@ public class PropertyKeyAPI extends API {
     @Produces(MediaType.APPLICATION_JSON)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
-        logger.debug("Graph [{}] get property keys", graph);
+        LOG.debug("Graph [{}] get property keys", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         List<PropertyKey> propKeys = g.schemaTransaction().getPropertyKeys();
@@ -85,7 +84,7 @@ public class PropertyKeyAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
-        logger.debug("Graph [{}] get property key by name '{}'", graph, name);
+        LOG.debug("Graph [{}] get property key by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         PropertyKey propertyKey = g.schemaTransaction().getPropertyKey(name);
@@ -99,8 +98,7 @@ public class PropertyKeyAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {
-        logger.debug("Graph [{}] remove property key by name '{}'",
-                     graph, name);
+        LOG.debug("Graph [{}] remove property key by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         g.schemaTransaction().removePropertyKey(name);

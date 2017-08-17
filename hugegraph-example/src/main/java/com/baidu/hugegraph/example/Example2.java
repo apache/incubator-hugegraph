@@ -28,7 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -36,10 +36,10 @@ import com.baidu.hugegraph.schema.SchemaManager;
 
 public class Example2 {
 
-    private static final Logger logger = LoggerFactory.getLogger(Example2.class);
+    private static final Logger LOG = Log.logger(Example2.class);
 
     public static void main(String[] args) {
-        logger.info("Example2 start!");
+        LOG.info("Example2 start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
 
@@ -113,7 +113,7 @@ public class Example2 {
     public static void showSchema(final HugeGraph graph) {
         SchemaManager schemaManager = graph.schema();
 
-        logger.info("===============  show schema  ================");
+        LOG.info("===============  show schema  ================");
 
         List<SchemaElement> elements = schemaManager.desc();
         for (SchemaElement element : elements) {

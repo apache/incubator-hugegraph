@@ -409,7 +409,7 @@ public class GraphTransaction extends AbstractTransaction {
                      */
                     results.put(edge.id(), edge);
                 } else {
-                    logger.debug("Results contains edge: {}", edge);
+                    LOG.debug("Results contains edge: {}", edge);
                 }
             }
         }
@@ -607,7 +607,7 @@ public class GraphTransaction extends AbstractTransaction {
                 }
                 if (query.matchUserpropKeys(keys)) {
                     String primaryValues = query.userpropValuesString(keys);
-                    logger.debug("Query vertices by primaryKeys: {}", query);
+                    LOG.debug("Query vertices by primaryKeys: {}", query);
                     // Convert vertex-label + primary-key to vertex-id
                     Id id = SplicingIdGenerator.splicing(label, primaryValues);
                     query.query(id);
@@ -630,7 +630,7 @@ public class GraphTransaction extends AbstractTransaction {
                 query.eq(HugeKeys.SORT_VALUES,
                          query.userpropValuesString(keys));
                 query.resetUserpropConditions();
-                logger.debug("Query edges by sortKeys: {}", query);
+                LOG.debug("Query edges by sortKeys: {}", query);
                 return query;
             }
         }
@@ -682,7 +682,7 @@ public class GraphTransaction extends AbstractTransaction {
             }
             this.commit();
         } catch (Exception e) {
-            logger.error("Failed to remove vertices", e);
+            LOG.error("Failed to remove vertices", e);
             throw new HugeException("Failed to remove vertices", e);
         } finally {
             this.autoCommit(autoCommit);
@@ -698,7 +698,7 @@ public class GraphTransaction extends AbstractTransaction {
             this.removeEntry(this.serializer.writeId(HugeType.EDGE, id));
             this.commit();
         } catch (Exception e) {
-            logger.error("Failed to remove edges", e);
+            LOG.error("Failed to remove edges", e);
             throw new HugeException("Failed to remove edges", e);
         } finally {
             this.autoCommit(autoCommit);

@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Query;
@@ -45,8 +45,7 @@ import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 
 public abstract class CassandraStore implements BackendStore {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(CassandraStore.class);
+    private static final Logger LOG = Log.logger(CassandraStore.class);
 
     private final String name;
     private final BackendStoreProvider provider;
@@ -70,7 +69,7 @@ public abstract class CassandraStore implements BackendStore {
 
         this.initTableManagers();
 
-        logger.debug("Store loaded: {}", name);
+        LOG.debug("Store loaded: {}", name);
     }
 
     protected abstract void initTableManagers();
@@ -89,7 +88,7 @@ public abstract class CassandraStore implements BackendStore {
     public void open(HugeConfig config) {
         if (this.sessions.opened()) {
             // TODO: maybe we should throw an exception here instead of ignore
-            logger.debug("Store {} has been opened before", this.name);
+            LOG.debug("Store {} has been opened before", this.name);
             this.sessions.useSession();
             return;
         }
@@ -104,7 +103,7 @@ public abstract class CassandraStore implements BackendStore {
 
         // Init a session for current thread
         try {
-            logger.debug("Store connect with keyspace: {}", this.keyspace);
+            LOG.debug("Store connect with keyspace: {}", this.keyspace);
             try {
                 this.sessions.session();
             } catch (InvalidQueryException e) {
@@ -113,31 +112,31 @@ public abstract class CassandraStore implements BackendStore {
                     "Keyspace '%s' does not exist", this.keyspace))) {
                     throw e;
                 }
-                logger.info("Failed to connect keyspace: {}, " +
-                            "try init keyspace later", this.keyspace);
+                LOG.info("Failed to connect keyspace: {}, " +
+                         "try init keyspace later", this.keyspace);
                 this.sessions.closeSession();
             }
         } catch (Exception e) {
             try {
                 this.sessions.close();
             } catch (Exception e2) {
-                logger.warn("Failed to close cluster", e2);
+                LOG.warn("Failed to close cluster", e2);
             }
             throw e;
         }
 
-        logger.debug("Store opened: {}", this.name);
+        LOG.debug("Store opened: {}", this.name);
     }
 
     @Override
     public void close() {
         this.sessions.close();
-        logger.debug("Store closed: {}", this.name);
+        LOG.debug("Store closed: {}", this.name);
     }
 
     @Override
     public void mutate(BackendMutation mutation) {
-        logger.debug("Store {} mutation: {}", this.name, mutation);
+        LOG.debug("Store {} mutation: {}", this.name, mutation);
 
         this.checkSessionConneted();
         CassandraSessionPool.Session session = this.sessions.session();
@@ -222,7 +221,7 @@ public abstract class CassandraStore implements BackendStore {
         this.initKeyspace();
         this.initTables();
 
-        logger.info("Store initialized: {}", this.name);
+        LOG.info("Store initialized: {}", this.name);
     }
 
     @Override
@@ -234,7 +233,7 @@ public abstract class CassandraStore implements BackendStore {
             this.clearKeyspace();
         }
 
-        logger.info("Store cleared: {}", this.name);
+        LOG.info("Store cleared: {}", this.name);
     }
 
     @Override
@@ -249,19 +248,19 @@ public abstract class CassandraStore implements BackendStore {
         // Do update
         CassandraSessionPool.Session session = this.sessions.session();
         if (!session.hasChanged()) {
-            logger.debug("Store {} has nothing to commit", this.name);
+            LOG.debug("Store {} has nothing to commit", this.name);
             return;
         }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Store {} commit statements: {}",
-                         this.name, session.statements());
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Store {} commit statements: {}",
+                      this.name, session.statements());
         }
 
         try {
             session.commit();
         } catch (InvalidQueryException e) {
-            logger.error("Failed to commit statements due to:", e);
+            LOG.error("Failed to commit statements due to:", e);
             assert session.statements().size() > 0;
             throw new BackendException(
                       "Failed to commit %s statements: '%s'...",
@@ -302,7 +301,7 @@ public abstract class CassandraStore implements BackendStore {
                      this.keyspace, strategy, replication);
 
         // Create keyspace with non-keyspace-session
-        logger.info("Create keyspace: {}", cql);
+        LOG.info("Create keyspace: {}", cql);
         Session session = this.cluster().connect();
         try {
             session.execute(cql);
@@ -316,7 +315,7 @@ public abstract class CassandraStore implements BackendStore {
     protected void clearKeyspace() {
         // Drop keyspace with non-keyspace-session
         Statement stmt = SchemaBuilder.dropKeyspace(this.keyspace).ifExists();
-        logger.info("Drop keyspace: {}", stmt);
+        LOG.info("Drop keyspace: {}", stmt);
 
         Session session = this.cluster().connect();
         try {

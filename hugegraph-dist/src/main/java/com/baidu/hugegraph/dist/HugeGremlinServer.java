@@ -23,14 +23,13 @@ import org.apache.tinkerpop.gremlin.server.GraphManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeException;
 
 public class HugeGremlinServer {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(HugeGremlinServer.class);
+    private static final Logger LOG = Log.logger(HugeGremlinServer.class);
 
     private static final String G_PREFIX = "__g_";
 
@@ -49,7 +48,7 @@ public class HugeGremlinServer {
 
     private static void startWithInjectTraversal(String[] args)
                                                  throws Exception {
-        logger.info(GremlinServer.getHeader());
+        LOG.info(GremlinServer.getHeader());
 
         final String file;
         final Settings settings;
@@ -58,20 +57,20 @@ public class HugeGremlinServer {
         try {
             settings = Settings.read(file);
         } catch (Exception ex) {
-            logger.error("Can't found the configuration file at {} or " +
-                         "being parsed properly. [{}]", file, ex.getMessage());
+            LOG.error("Can't found the configuration file at {} or " +
+                      "being parsed properly. [{}]", file, ex.getMessage());
             return;
         }
 
-        logger.info("Configuring Gremlin Server from {}", file);
+        LOG.info("Configuring Gremlin Server from {}", file);
         final GremlinServer server = new GremlinServer(settings);
 
         // Inject customized traversal source
         injectTraversalSource(server);
 
         server.start().exceptionally(t -> {
-            logger.error("Gremlin Server was unable to start and will " +
-                         "shutdown now: {}", t.getMessage());
+            LOG.error("Gremlin Server was unable to start and will " +
+                      "shutdown now: {}", t.getMessage());
             server.stop().join();
             return null;
         }).join();

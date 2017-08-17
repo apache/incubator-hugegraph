@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.util.E;
@@ -34,8 +34,7 @@ import com.datastax.driver.core.Statement;
 
 public class CassandraSessionPool {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(CassandraStore.class);
+    private static final Logger LOG = Log.logger(CassandraStore.class);
 
     private Cluster cluster;
     private String keyspace;
@@ -75,8 +74,8 @@ public class CassandraSessionPool {
             session = new Session(this.cluster.connect(this.keyspace));
             this.threadLocalSession.set(session);
             this.sessionCount.incrementAndGet();
-            logger.debug("Now(after connect()) session count is: {}",
-                         this.sessionCount.get());
+            LOG.debug("Now(after connect()) session count is: {}",
+                      this.sessionCount.get());
         }
         return session;
     }
@@ -109,8 +108,8 @@ public class CassandraSessionPool {
                 this.cluster.close();
             }
         }
-        logger.debug("Now(after close()) session count is: {}",
-                     this.sessionCount.get());
+        LOG.debug("Now(after close()) session count is: {}",
+                  this.sessionCount.get());
     }
 
     public final void checkClusterConneted() {

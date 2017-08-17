@@ -19,23 +19,22 @@
 package com.baidu.hugegraph.backend.store.memory;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(
-            InMemoryDBStoreProvider.class);
+    private static final Logger LOG = Log.logger(InMemoryDBStore.class);
 
     public InMemoryDBStoreProvider(String name) {
         this.open(name);
     }
 
     private BackendStore load(String name) {
-        logger.info("InMemoryDBStoreProvider load '{}'", name);
+        LOG.info("InMemoryDBStoreProvider load '{}'", name);
 
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name, new InMemoryDBStore(this, name));

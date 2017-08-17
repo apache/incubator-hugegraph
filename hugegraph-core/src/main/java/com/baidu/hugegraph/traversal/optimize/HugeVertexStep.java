@@ -34,7 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -48,8 +48,7 @@ public final class HugeVertexStep<E extends Element>
 
     private static final long serialVersionUID = -7850636388424382454L;
 
-    private static final Logger logger =
-                         LoggerFactory.getLogger(HugeVertexStep.class);
+    private static final Logger LOG = Log.logger(HugeVertexStep.class);
 
     private final List<HasContainer> hasContainers = new ArrayList<>();
 
@@ -81,10 +80,10 @@ public final class HugeVertexStep<E extends Element>
 
         Iterator<Edge> edges = this.edges(traverser);
         Iterator<Vertex> vertices = graph.adjacentVertices(edges);
-        if (logger.isDebugEnabled()) {
-            logger.debug("HugeVertexStep.vertices(): is there adjacent " +
-                         "vertices of {}: {}, has={}",
-                         vertex.id(), vertices.hasNext(), this.hasContainers);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("HugeVertexStep.vertices(): is there adjacent " +
+                      "vertices of {}: {}, has={}",
+                      vertex.id(), vertices.hasNext(), this.hasContainers);
         }
 
         // TODO: query by vertex index to optimize
@@ -98,9 +97,9 @@ public final class HugeVertexStep<E extends Element>
         Direction direction = this.getDirection();
         String[] edgeLabels = this.getEdgeLabels();
 
-        logger.debug("HugeVertexStep.edges(): vertex={}, direction={}, " +
-                     "edgeLabels={}, has={}",
-                     vertex.id(), direction, edgeLabels, this.hasContainers);
+        LOG.debug("HugeVertexStep.edges(): vertex={}, direction={}, " +
+                  "edgeLabels={}, has={}",
+                  vertex.id(), direction, edgeLabels, this.hasContainers);
 
         ImmutableSet<Direction> directions = ImmutableSet.of(direction);
         // Deal with direction is BOTH
@@ -122,7 +121,7 @@ public final class HugeVertexStep<E extends Element>
                 // TODO: should check the edge id match this vertex
                 // ignore conditions if query by edge id in has-containers
                 query.resetConditions();
-                logger.warn("It's not recommended to query by has(id)");
+                LOG.warn("It's not recommended to query by has(id)");
             }
 
             // Do query
