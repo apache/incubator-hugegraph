@@ -21,6 +21,7 @@ package com.baidu.hugegraph.structure;
 
 import java.util.Iterator;
 
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
@@ -36,7 +37,8 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
 
     @Override
     public Object id() {
-        return this.key();
+        return SplicingIdGenerator.splicing(this.owner.id().asString(),
+                                            this.key());
     }
 
     @Override
@@ -59,5 +61,14 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
     @Override
     public <U> Iterator<Property<U>> properties(String... propertyKeys) {
         throw new NotSupportException("nested property");
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof VertexProperty)) {
+            return false;
+        }
+        VertexProperty other = (VertexProperty) obj;
+        return this.id().equals(other.id());
     }
 }

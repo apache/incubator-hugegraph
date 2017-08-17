@@ -165,11 +165,11 @@ public abstract class HugeElement implements Element, GraphType {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof HugeElement)) {
+        if (!(obj instanceof Element)) {
             return false;
         }
 
-        HugeElement other = (HugeElement) obj;
+        Element other = (Element) obj;
         if (this.id() == null) {
             return false;
         }
