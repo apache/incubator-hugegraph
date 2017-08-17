@@ -36,6 +36,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -289,34 +290,36 @@ public class CassandraTables {
              * Need to implement the framework that can delete with query
              * which contains id or condition.
              */
-            if (entry.columns().size() > 0) {
+
+            // Let super class do delete if not deleting edge by label
+            List<String> idParts = this.idColumnValue(entry.id());
+            if (idParts.size() > 1 || entry.columns().size() > 0) {
                 super.delete(session, entry);
                 return;
             }
-            List<String> ids = idColumnValue(entry.id());
-            if (ids.size() != 1) {
-                super.delete(session, entry);
-                return;
-            }
+
             // The only element is label
-            String label = ids.get(0);
+            String label = idParts.get(0);
 
             Select select = QueryBuilder.select().from(this.table());
-            select.where(QueryBuilder.eq(formatKey(HugeKeys.LABEL), label));
+            select.where(formatEQ(HugeKeys.LABEL, label));
+            ResultSet rs = session.execute(select);
 
-            Iterator<Row> it = session.execute(select).iterator();
-            while (it.hasNext()) {
+            final String LABEL = formatKey(HugeKeys.LABEL);
+            final String SOURCE_VERTEX = formatKey(HugeKeys.SOURCE_VERTEX);
+            final String DIRECTION = formatKey(HugeKeys.DIRECTION);
+
+            for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 Row row = it.next();
-                String sourceVertex = row.get(formatKey(HugeKeys.SOURCE_VERTEX),
-                                              String.class);
-                String direction = row.get(formatKey(HugeKeys.DIRECTION),
-                                           String.class);
-                Delete delete = QueryBuilder.delete().from(table());
-                delete.where(QueryBuilder.eq(formatKey(HugeKeys.SOURCE_VERTEX),
-                                             sourceVertex));
-                delete.where(QueryBuilder.eq(formatKey(HugeKeys.DIRECTION),
-                                             direction));
-                delete.where(QueryBuilder.eq(formatKey(HugeKeys.LABEL), label));
+
+                assert label.equals(row.get(LABEL, String.class));
+                String sourceVertex = row.get(SOURCE_VERTEX, String.class);
+                String direction = row.get(DIRECTION, String.class);
+
+                Delete delete = QueryBuilder.delete().from(this.table());
+                delete.where(formatEQ(HugeKeys.SOURCE_VERTEX, sourceVertex));
+                delete.where(formatEQ(HugeKeys.DIRECTION, direction));
+                delete.where(formatEQ(HugeKeys.LABEL, label));
 
                 session.add(delete);
             }
@@ -338,7 +341,7 @@ public class CassandraTables {
                             HugeType.VERTEX, srcVertexId);
 
                     vertex.column(HugeKeys.ID,
-                                  entry.<String>column(HugeKeys.SOURCE_VERTEX));
+                                  entry.column(HugeKeys.SOURCE_VERTEX));
                     vertex.column(HugeKeys.PROPERTIES, ImmutableMap.of());
 
                     vertices.put(srcVertexId, vertex);
@@ -395,34 +398,30 @@ public class CassandraTables {
         @Override
         public void delete(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-
-            String propValues = entry.column(HugeKeys.FIELD_VALUES);
-            String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
-            if (propValues != null) {
+            String fieldValues = entry.column(HugeKeys.FIELD_VALUES);
+            if (fieldValues != null) {
                 throw new BackendException("SecondaryIndex deletion " +
-                          "should just have INDEX_LABEL_NAME, but " +
-                          "PROPERTY_VALUES:(%s) is provided.", propValues);
+                          "should just have INDEX_LABEL_NAME, " +
+                          "but FIELD_VALUES(%s) is provided.", fieldValues);
             }
-            if (indexLabelName == null || indexLabelName.isEmpty()) {
-                throw new BackendException("SecondaryIndex deletion needs " +
-                          "INDEX_LABEL_NAME, but not provided.");
+
+            String indexLabel = entry.column(HugeKeys.INDEX_LABEL_NAME);
+            if (indexLabel == null || indexLabel.isEmpty()) {
+                throw new BackendException("SecondaryIndex deletion " +
+                          "needs INDEX_LABEL_NAME, but not provided.");
             }
+
             Select select = QueryBuilder.select().from(this.table());
-            select.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.INDEX_LABEL_NAME),
-                         indexLabelName));
+            select.where(formatEQ(HugeKeys.INDEX_LABEL_NAME, indexLabel));
             select.allowFiltering();
-            Iterator<Row> it = session.execute(select).iterator();
-            while (it.hasNext()) {
-                propValues = it.next().get(formatKey(HugeKeys.FIELD_VALUES),
-                                           String.class);
-                Delete delete = QueryBuilder.delete().from(table());
-                delete.where(QueryBuilder.eq(
-                             formatKey(HugeKeys.INDEX_LABEL_NAME),
-                             indexLabelName));
-                delete.where(QueryBuilder.eq(
-                             formatKey(HugeKeys.FIELD_VALUES),
-                             propValues));
+            ResultSet rs = session.execute(select);
+
+            final String FIELD_VALUES = formatKey(HugeKeys.FIELD_VALUES);
+            for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
+                fieldValues = it.next().get(FIELD_VALUES, String.class);
+                Delete delete = QueryBuilder.delete().from(this.table());
+                delete.where(formatEQ(HugeKeys.INDEX_LABEL_NAME, indexLabel));
+                delete.where(formatEQ(HugeKeys.FIELD_VALUES, fieldValues));
                 session.add(delete);
             }
         }
@@ -479,21 +478,21 @@ public class CassandraTables {
         @Override
         public void delete(CassandraSessionPool.Session session,
                                         CassandraBackendEntry.Row entry) {
-            String propValues = entry.column(HugeKeys.FIELD_VALUES);
-            String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
-            if (propValues != null) {
+            String fieldValues = entry.column(HugeKeys.FIELD_VALUES);
+            if (fieldValues != null) {
                 throw new BackendException("SearchIndex deletion " +
-                          "should just have INDEX_LABEL_NAME, but " +
-                          "PROPERTY_VALUES:(%s) is provided.", propValues);
+                          "should just have INDEX_LABEL_NAME, " +
+                          "but PROPERTY_VALUES(%s) is provided.", fieldValues);
             }
-            if (indexLabelName == null || indexLabelName.isEmpty()) {
-                throw new BackendException("SearchIndex deletion needs " +
-                          "INDEX_LABEL_NAME, but not provided.");
+
+            String indexLabel = entry.column(HugeKeys.INDEX_LABEL_NAME);
+            if (indexLabel == null || indexLabel.isEmpty()) {
+                throw new BackendException("SearchIndex deletion " +
+                          "needs INDEX_LABEL_NAME, but not provided.");
             }
-            Delete delete = QueryBuilder.delete().from(table());
-            delete.where(QueryBuilder.eq(
-                         formatKey(HugeKeys.INDEX_LABEL_NAME),
-                         indexLabelName));
+
+            Delete delete = QueryBuilder.delete().from(this.table());
+            delete.where(formatEQ(HugeKeys.INDEX_LABEL_NAME, indexLabel));
             session.add(delete);
         }
 
