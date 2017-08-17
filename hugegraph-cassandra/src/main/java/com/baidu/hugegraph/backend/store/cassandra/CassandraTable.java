@@ -363,12 +363,16 @@ public abstract class CassandraTable {
         return entries;
     }
 
-    protected final String formatKey(HugeKeys key) {
+    protected static final String formatKey(HugeKeys key) {
         return key.name();
     }
 
-    protected final HugeKeys parseKey(String name) {
+    protected static final HugeKeys parseKey(String name) {
         return HugeKeys.valueOf(name.toUpperCase());
+    }
+
+    protected static final Clause formatEQ(HugeKeys key, Object value) {
+        return QueryBuilder.eq(formatKey(key), value);
     }
 
     /**
@@ -380,7 +384,7 @@ public abstract class CassandraTable {
         Insert insert = QueryBuilder.insertInto(this.table);
 
         for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
-            insert.value(this.formatKey(c.getKey()), c.getValue());
+            insert.value(formatKey(c.getKey()), c.getValue());
         }
 
         session.add(insert);
@@ -490,8 +494,7 @@ public abstract class CassandraTable {
             Delete delete = QueryBuilder.delete().from(this.table);
             for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
                 // TODO: should support other filters (like containsKey)
-                delete.where(QueryBuilder.eq(formatKey(c.getKey()),
-                                             c.getValue()));
+                delete.where(formatEQ(c.getKey(), c.getValue()));
             }
 
             session.add(delete);

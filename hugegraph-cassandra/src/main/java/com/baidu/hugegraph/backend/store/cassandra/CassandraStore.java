@@ -139,7 +139,7 @@ public abstract class CassandraStore implements BackendStore {
     public void mutate(BackendMutation mutation) {
         LOG.debug("Store {} mutation: {}", this.name, mutation);
 
-        this.checkSessionConneted();
+        this.checkSessionConnected();
         CassandraSessionPool.Session session = this.sessions.session();
 
         for (List<MutateItem> items : mutation.mutation().values()) {
@@ -201,7 +201,7 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public Iterable<BackendEntry> query(Query query) {
-        this.checkSessionConneted();
+        this.checkSessionConnected();
 
         CassandraTable table = this.table(query.resultType());
         return table.query(this.sessions.session(), query);
@@ -209,7 +209,7 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public Object metadata(HugeType type, String meta, Object[] args) {
-        this.checkSessionConneted();
+        this.checkSessionConnected();
 
         CassandraTable table = this.table(type);
         return table.metadata(this.sessions.session(), meta, args);
@@ -217,7 +217,7 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void init() {
-        this.checkClusterConneted();
+        this.checkClusterConnected();
 
         this.initKeyspace();
         this.initTables();
@@ -227,7 +227,7 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void clear() {
-        this.checkClusterConneted();
+        this.checkClusterConnected();
 
         if (this.existsKeyspace()) {
             this.clearTables();
@@ -244,7 +244,7 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void commitTx() {
-        this.checkSessionConneted();
+        this.checkSessionConnected();
 
         // Do update
         CassandraSessionPool.Session session = this.sessions.session();
@@ -355,16 +355,16 @@ public abstract class CassandraStore implements BackendStore {
         return table;
     }
 
-    protected final void checkClusterConneted() {
+    protected final void checkClusterConnected() {
         E.checkState(this.sessions != null,
                      "Cassandra store has not been initialized");
-        this.sessions.checkClusterConneted();
+        this.sessions.checkClusterConnected();
     }
 
-    protected final void checkSessionConneted() {
+    protected final void checkSessionConnected() {
         E.checkState(this.sessions != null,
                      "Cassandra store has not been initialized");
-        this.sessions.checkSessionConneted();
+        this.sessions.checkSessionConnected();
     }
 
     protected static final CassandraBackendEntry castBackendEntry(

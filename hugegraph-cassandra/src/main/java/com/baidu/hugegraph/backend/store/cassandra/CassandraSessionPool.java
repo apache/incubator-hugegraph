@@ -113,15 +113,15 @@ public class CassandraSessionPool {
                   this.sessionCount.get());
     }
 
-    public final void checkClusterConneted() {
+    public final void checkClusterConnected() {
         E.checkState(this.cluster != null,
                      "Cassandra cluster has not been initialized");
         E.checkState(!this.cluster.isClosed(),
                      "Cassandra cluster has been closed");
     }
 
-    public final void checkSessionConneted() {
-        this.checkClusterConneted();
+    public final void checkSessionConnected() {
+        this.checkClusterConnected();
 
         E.checkState(this.session() != null,
                      "Cassandra session has not been initialized");
