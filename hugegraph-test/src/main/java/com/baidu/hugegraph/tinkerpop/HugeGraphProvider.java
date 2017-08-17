@@ -19,7 +19,10 @@
 
 package com.baidu.hugegraph.tinkerpop;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -27,6 +30,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -44,11 +48,47 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.google.common.collect.ImmutableSet;
-
+import org.junit.Assert;
+import org.junit.Assume;
+import org.slf4j.Logger;
 
 public class HugeGraphProvider extends AbstractGraphProvider {
 
-    public static String CONF_PATH = "hugegraph.properties";
+    private static final Logger LOG = Log.logger(HugeGraphProvider.class);
+
+    private static String CONF_PATH = "hugegraph.properties";
+    private static String FILETER_FILE = "methods.filter";
+    private static Map<String, String> blackMethods = new HashMap<>();
+
+    public HugeGraphProvider() throws IOException {
+        super();
+        this.initBlackList();
+    }
+
+    private void initBlackList() throws IOException {
+        String blackList = HugeGraphProvider.class.getClassLoader()
+                           .getResource(FILETER_FILE).getPath();
+        File file = new File(blackList);
+        BufferedReader reader = new BufferedReader(new FileReader(file));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.isEmpty() || line.startsWith("#")) {
+                // Empty line or comment line
+                continue;
+            }
+            String[] parts = line.split(":");
+            Assert.assertEquals("methods.filter proper format is: " +
+                                "'testMethodName: ignore reason'",
+                                2, parts.length);
+            Assert.assertTrue(
+                   "Test method name in methods.filter can't be empty",
+                   parts[0] != null && !parts[0].trim().isEmpty());
+            Assert.assertTrue(
+                   "The reason why ignore in methods.filter can't be empty",
+                   parts[1] != null && !parts[1].trim().isEmpty());
+            blackMethods.putIfAbsent(parts[0], parts[1]);
+        }
+    }
 
     @SuppressWarnings("rawtypes")
     private static final Set<Class> IMPLEMENTATIONS = ImmutableSet.of(
@@ -64,6 +104,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
                                String graphName,
                                Class<?> test, String testMethod,
                                LoadGraphWith.GraphData graphData) {
+        // Check if test in blackList
+        String testFullName = test.getCanonicalName() + "." + testMethod;
+        Assume.assumeFalse(
+               String.format("Test %s will be ignored with reason: %s",
+                             testFullName, blackMethods.get(testMethod)),
+               blackMethods.containsKey(testFullName));
+
+        LOG.info("Full name of test is: {}", testFullName);
         HashMap<String, Object> confMap = new HashMap<>();
         String confFile = HugeGraphProvider.class.getClassLoader()
                                            .getResource(CONF_PATH).getPath();
