@@ -333,8 +333,6 @@ public class GraphOfTheMoviesExample {
         Vertex nathan = graph.addVertex(T.label, "person", "name", "nathan Lane", "born", 1956);
 
         tomH.addEdge("ACTED_IN", joeVersustheVolcano, "roles", "Joe Banks");
-        /*megR.addEdge("ACTED_IN", joeVersustheVolcano, "roles", "DeDe", "angelica Graynamore", "Patricia
-         *Graynamore");*/
         megR.addEdge("ACTED_IN", joeVersustheVolcano, "roles", "DeDe, angelica Graynamore, Patricia Graynamore");
         nathan.addEdge("ACTED_IN", joeVersustheVolcano, "roles", "Baw");
         johnS.addEdge("DIRECTED", joeVersustheVolcano, "score", 10);
@@ -481,14 +479,14 @@ public class GraphOfTheMoviesExample {
         Vertex johnG = graph.addVertex(T.label, "person", "name", "John Goodman", "born", 1940);
         Vertex susanS = graph.addVertex(T.label, "person", "name", "Susan Sarandon", "born", 1966);
         Vertex christinaR = graph.addVertex(T.label, "person", "name", "Christina Ricci", "born", 1980);
-        Vertex addVertex = graph.addVertex(T.label, "person", "name", "addVertex", "born", 1982);
+        Vertex rain = graph.addVertex(T.label, "person", "name", "Rain", "born", 1982);
 
         emileH.addEdge("ACTED_IN", speedRacer, "roles", "Speed Racer");
         johnG.addEdge("ACTED_IN", speedRacer, "roles", "Pops");
         susanS.addEdge("ACTED_IN", speedRacer, "roles", "Mom");
         matthewF.addEdge("ACTED_IN", speedRacer, "roles", "Racer X");
         christinaR.addEdge("ACTED_IN", speedRacer, "roles", "Trixie");
-        addVertex.addEdge("ACTED_IN", speedRacer, "roles", "Taejo Togokahn");
+        rain.addEdge("ACTED_IN", speedRacer, "roles", "Taejo Togokahn");
         benM.addEdge("ACTED_IN", speedRacer, "roles", "Kass Jones");
         lillyW.addEdge("DIRECTED", speedRacer, "score", 10);
         lanaW.addEdge("DIRECTED", speedRacer, "score", 10);
@@ -500,7 +498,7 @@ public class GraphOfTheMoviesExample {
 
         Vertex naomieH = graph.addVertex(T.label, "person", "name", "Naomie Harris", "born", 1982);
 
-        addVertex.addEdge("ACTED_IN", ninjaassassin, "roles", "Raizo");
+        rain.addEdge("ACTED_IN", ninjaassassin, "roles", "Raizo");
         naomieH.addEdge("ACTED_IN", ninjaassassin, "roles", "Mika Coretti");
         rickY.addEdge("ACTED_IN", ninjaassassin, "roles", "takeshi");
         benM.addEdge("ACTED_IN", ninjaassassin, "roles", "Ryan Maslow");
