@@ -343,6 +343,27 @@ public class SchemaCoreTest extends BaseCoreTest{
     }
 
     @Test
+    public void testAddVertexLabelWithPrimaryKeyNotInProperty() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .primaryKeys("name", "sex")
+                  .ifNotExist()
+                  .create();
+        });
+
+        Utils.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .primaryKeys("name", "sex")
+                  .ifNotExist()
+                  .create();
+        });
+    }
+
+    @Test
     public void testAddVertexLabelWithNotExistProperty() {
         initProperties();
         SchemaManager schema = graph().schema();

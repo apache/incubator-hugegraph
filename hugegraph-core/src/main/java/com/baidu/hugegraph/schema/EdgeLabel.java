@@ -271,7 +271,6 @@ public class EdgeLabel extends SchemaLabel {
             String name = this.edgeLabel.name();
             Set<String> properties = this.edgeLabel.properties();
 
-            E.checkNotNull(properties, "properties", name);
             // The properties of edge label allowded be empty.
             // If properties is not empty, check all property.
             for (String pk : properties) {

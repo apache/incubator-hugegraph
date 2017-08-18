@@ -264,11 +264,15 @@ public class VertexLabel extends SchemaLabel {
 
         private void checkPrimaryKeys() {
             String name = this.vertexLabel.name();
-            List<String> primaryKeys = this.vertexLabel.primaryKeys();
-            Set<String> properties = this.vertexLabel.properties();
 
-            E.checkNotNull(primaryKeys, "primary keys");
-            E.checkNotEmpty(primaryKeys, "primary keys");
+            Set<String> properties = this.vertexLabel.properties();
+            E.checkArgument(!properties.isEmpty(),
+                            "The properties of vertex label '%s' " +
+                            "can't be empty whose id strategy is '%s'",
+                            name, IdStrategy.PRIMARY_KEY);
+
+            List<String> primaryKeys = this.vertexLabel.primaryKeys();
+            E.checkNotEmpty(primaryKeys, "primary keys", name);
 
             // Use loop instead containAll for more detailed exception info.
             for (String key : primaryKeys) {
