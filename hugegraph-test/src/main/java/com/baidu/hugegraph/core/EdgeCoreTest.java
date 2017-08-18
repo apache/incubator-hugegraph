@@ -28,7 +28,6 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,6 +37,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.core.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -358,7 +358,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("label-not-exists", book, "time", "2017-4-28");
         });
     }
@@ -373,7 +373,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("look", book);
         });
     }
@@ -388,7 +388,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("authored", book, "propkey-not-exists", "value");
         });
     }
@@ -403,7 +403,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("authored", book, "age", 18);
         });
     }
@@ -420,13 +420,13 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         james.addEdge("authored", book, "score", 5);
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("authored", book, "score", 5.1);
         });
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("authored", book, "score", "five");
         });
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("authored", book, "score", "5");
         });
     }
@@ -484,7 +484,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         String id = graph.traversal().E().toList().get(0).id() + "-not-exist";
         // TODO: should let it throw HugeNotFoundException
-        Utils.assertThrows(HugeException.class, () -> {
+        Assert.assertThrows(HugeException.class, () -> {
             graph.traversal().E(id).toList();
         });
     }
@@ -495,7 +495,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         init18Edges();
 
         String id = "invalid-id";
-        Utils.assertThrows(HugeException.class, () -> {
+        Assert.assertThrows(HugeException.class, () -> {
             graph.traversal().E(id).toList();
         });
     }
@@ -533,7 +533,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         ConditionQuery q = new ConditionQuery(HugeType.EDGE);
         q.eq(HugeKeys.DIRECTION, Direction.OUT);
 
-        Utils.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(BackendException.class, () -> {
             graph.edges(q);
         });
     }
@@ -871,7 +871,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     public void testAddEdgePropertyExisted() {
         Edge edge = initEdgeTransfer();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             edge.property("amount", 200.00F);
         });
     }
@@ -880,7 +880,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     public void testAddEdgePropertyNotInEdgeLabel() {
         Edge edge = initEdgeTransfer();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             edge.property("time", "2017-1-1");
         });
     }
@@ -889,7 +889,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     public void testAddEdgePropertyWithNotExistPropKey() {
         Edge edge = initEdgeTransfer();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             edge.property("prop-not-exist", "2017-1-1");
         });
     }
@@ -914,7 +914,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     public void testRemoveEdgePropertyOfSortKey() {
         Edge edge = initEdgeTransfer();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             edge.property("id").remove();
         });
     }

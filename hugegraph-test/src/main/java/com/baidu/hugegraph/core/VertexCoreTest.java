@@ -25,7 +25,6 @@ import java.util.List;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,6 +35,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.core.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -131,7 +131,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testAddVertexWithInvalidVertexLabelType() {
         HugeGraph graph = graph();
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, true);
         });
     }
@@ -139,7 +139,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testAddVertexWithNotExistsVertexLabel() {
         HugeGraph graph = graph();
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "not-exists-label");
         });
     }
@@ -147,7 +147,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testAddVertexWithNotExistsProp() {
         HugeGraph graph = graph();
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "book", "not-exists-porp", "test");
         });
     }
@@ -155,7 +155,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testAddVertexWithNotExistsVertexProp() {
         HugeGraph graph = graph();
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "book", "age", 12);
         });
     }
@@ -163,7 +163,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testAddVertexWithoutPrimaryValues() {
         HugeGraph graph = graph();
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "book");
         });
     }
@@ -171,7 +171,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testAddVertexWithoutVertexLabel() {
         HugeGraph graph = graph();
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex("name", "test");
         });
     }
@@ -186,7 +186,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .properties("name", "age", "city")
               .create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "programmer", T.id, "123456",
                             "name", "marko", "age", 18, "city", "Beijing");
         });
@@ -223,7 +223,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .primaryKeys("name", "age")
               .create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "programmer", T.id, "123456",
                             "name", "marko", "age", 18, "city", "Beijing");
         });
@@ -282,7 +282,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .properties("name", "age", "city")
               .create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "programmer", "name", "marko",
                             "age", 18, "city", "Beijing");
         });
@@ -389,7 +389,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query vertex by id which not exists
         Id id = SplicingIdGenerator.splicing("author", "not-exists-id");
-        Utils.assertThrows(HugeException.class, () -> {
+        Assert.assertThrows(HugeException.class, () -> {
             graph.traversal().V(id).toList();
         });
     }
@@ -423,7 +423,7 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         // Query by not exists vertex label
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().hasLabel("xx").toList();
         });
     }
@@ -883,12 +883,12 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom");
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             vertex.property("name", "Tom2");
         });
 
         vertex.property("age", 10);
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             vertex.property("age", "11");
         });
     }
@@ -898,7 +898,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1);
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             vertex.property("time", "2017-1-1");
         });
     }
@@ -908,7 +908,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1);
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             vertex.property("prop-not-exist", "2017-1-1");
         });
     }
@@ -948,7 +948,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "age", 10,
                                         "lived", "USA");
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             vertex.property("id").remove();
         });
     }
@@ -959,7 +959,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
                                         "city", "Hongkong", "age", 3);
         // TODO: this should be resolved
-        Utils.assertThrows(IllegalStateException.class, () -> {
+        Assert.assertThrows(IllegalStateException.class, () -> {
             vertex.property("age").remove();
         });
     }
@@ -1002,7 +1002,7 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         long splitSize = 1 * 1024 * 1024 - 1;
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.graphTransaction()
                  .metadata(HugeType.VERTEX, "splits", splitSize);
         });
@@ -1014,7 +1014,7 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         String splitSize = "123456";
-        Utils.assertThrows(ClassCastException.class, () -> {
+        Assert.assertThrows(ClassCastException.class, () -> {
             graph.graphTransaction()
                  .metadata(HugeType.VERTEX, "splits", splitSize);
         });
@@ -1025,7 +1025,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.graphTransaction().metadata(HugeType.VERTEX, "splits");
         });
     }

@@ -25,7 +25,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
@@ -36,6 +35,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Frequency;
@@ -144,7 +144,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         SchemaManager schema = graph().schema();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .useCustomizeId()
                   .useAutomaticId()
@@ -152,7 +152,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                   .create();
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .useCustomizeId()
                   .usePrimaryKeyId()
@@ -160,7 +160,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                   .create();
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .usePrimaryKeyId()
                   .useAutomaticId()
@@ -174,7 +174,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         SchemaManager schema = graph().schema();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .useCustomizeId()
                   .primaryKeys("name")
@@ -182,7 +182,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                   .create();
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .useCustomizeId()
                   .primaryKeys("name")
@@ -221,7 +221,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .useAutomaticId()
                   .properties("name", "age")
@@ -249,7 +249,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .useCustomizeId()
                   .properties("name", "age")
@@ -290,7 +290,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .usePrimaryKeyId()
                   .properties("name", "age")
@@ -324,7 +324,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         SchemaManager schema = graph().schema();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .usePrimaryKeyId()
                   .properties("name", "age", "city")
@@ -347,7 +347,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         SchemaManager schema = graph().schema();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .properties("name", "age", "city")
                   .primaryKeys("name", "sex")
@@ -355,7 +355,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                   .create();
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person")
                   .primaryKeys("name", "sex")
                   .ifNotExist()
@@ -368,7 +368,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         SchemaManager schema = graph().schema();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("person").properties("sex").create();
         });
     }
@@ -383,7 +383,7 @@ public class SchemaCoreTest extends BaseCoreTest{
               .primaryKeys("name")
               .create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "person", "name", "Baby",
                               "city", "Hongkong", "age", 3, "sex", "male");
         });
@@ -421,7 +421,7 @@ public class SchemaCoreTest extends BaseCoreTest{
               .primaryKeys("name")
               .create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "person", "name", "Baby",
                               "city", 2, "age", 3);
         });
@@ -520,7 +520,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.edgeLabel("look").multiTimes()
                   .properties("time")
                   .sortKeys("time")
@@ -539,7 +539,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.edgeLabel("look").properties("date")
                   .link("person", "book")
                   .create();
@@ -557,7 +557,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.edgeLabel("look").multiTimes().properties("time")
                   .link("reviewer", "book")
                   .sortKeys("time")
@@ -576,7 +576,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.edgeLabel("look").multiTimes().properties("date")
                   .link("person", "book")
                   .create();
@@ -594,7 +594,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.edgeLabel("look").multiTimes().properties("date")
                   .link("person", "book")
                   .sortKeys("time")
@@ -616,7 +616,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.vertexLabel("person").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getVertexLabel("person");
         });
     }
@@ -642,11 +642,11 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.vertexLabel("person").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getVertexLabel("person");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().traversal().V().hasLabel("person").toList();
         });
     }
@@ -675,15 +675,15 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.vertexLabel("person").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getVertexLabel("person");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getIndexLabel("personByAge");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().traversal().V().hasLabel("person").toList();
         });
     }
@@ -715,15 +715,15 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.vertexLabel("person").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getVertexLabel("person");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getIndexLabel("personByCity");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().traversal().V().hasLabel("person").toList();
         });
     }
@@ -751,7 +751,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.edgeLabel("look").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getEdgeLabel("look");
         });
     }
@@ -793,11 +793,11 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.edgeLabel("write").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getEdgeLabel("write");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().traversal().E().hasLabel("write").toList();
         });
     }
@@ -845,15 +845,15 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.edgeLabel("write").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getEdgeLabel("write");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getIndexLabel("writeByWeight");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().traversal().E().hasLabel("write").toList();
         });
     }
@@ -899,15 +899,15 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.edgeLabel("write").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getEdgeLabel("write");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getIndexLabel("writeByTime");
         });
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().traversal().E().hasLabel("write").toList();
         });
     }
@@ -938,11 +938,11 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
 
-        Utils.assertThrows(HugeException.class, () -> {
+        Assert.assertThrows(HugeException.class, () -> {
             schema.vertexLabel("person").remove();
         });
 
-        Utils.assertThrows(HugeException.class, () -> {
+        Assert.assertThrows(HugeException.class, () -> {
             schema.vertexLabel("book").remove();
         });
     }
@@ -1014,7 +1014,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
 
-        Utils.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().V().hasLabel("person")
                    .has("city", "Hongkong").next();
         });
@@ -1026,7 +1026,7 @@ public class SchemaCoreTest extends BaseCoreTest{
                                .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
 
-        Utils.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().V().hasLabel("person")
                    .has("age", P.inside(2, 4)).next();
         });
@@ -1054,7 +1054,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         Vertex java1 = graph().addVertex(T.label, "book", "name", "java-1");
 
         james.addEdge("authored", java1,"contribution", "test");
-        Utils.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().E().hasLabel("authored")
                    .has("contribution", "test").next();
         });
@@ -1094,7 +1094,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.indexLabel("personByCity").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getIndexLabel("personByCity");
         });
 
@@ -1102,7 +1102,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertTrue(!person.indexNames().contains("personByCity"));
         Assert.assertTrue(person.indexNames().contains("personByAge"));
 
-        Utils.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().V().hasLabel("person")
                    .has("city", "Hongkong").next();
         });
@@ -1112,14 +1112,14 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.indexLabel("personByAge").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getIndexLabel("personByAge");
         });
 
         person = schema.getVertexLabel("person");
         Assert.assertEquals(0, person.indexNames().size());
 
-        Utils.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().V().hasLabel("person")
                    .has("age", P.inside(2, 4)).next();
         });
@@ -1158,13 +1158,13 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.indexLabel("authoredByContri").remove();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.getIndexLabel("authoredByContri");
         });
 
         Assert.assertEquals(0, authored.indexNames().size());
 
-        Utils.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().E().hasLabel("authored")
                    .has("contribution", "test").next();
         });
