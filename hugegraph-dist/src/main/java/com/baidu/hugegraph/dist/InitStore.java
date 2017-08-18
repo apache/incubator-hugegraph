@@ -60,7 +60,6 @@ public class InitStore {
             String graphPropFile = graphName.getValue().toString();
             // get graph property file path
             HugeGraph graph = HugeFactory.open(graphPropFile);
-            graph.clearBackend();
             graph.initBackend();
             graph.close();
         }
