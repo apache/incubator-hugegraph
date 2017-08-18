@@ -223,9 +223,6 @@ public class VertexLabel extends SchemaLabel {
         private void checkProperties() {
             String name = this.vertexLabel.name();
             Set<String> properties = this.vertexLabel.properties();
-
-            E.checkNotNull(properties, "properties", name);
-            E.checkNotEmpty(properties, "properties", name);
             // If properties is not empty, check all property.
             for (String pk : properties) {
                 E.checkArgumentNotNull(this.transaction.getPropertyKey(pk),
@@ -277,7 +274,8 @@ public class VertexLabel extends SchemaLabel {
             for (String key : primaryKeys) {
                 E.checkArgument(properties.contains(key),
                                 "The primary key '%s' of vertex label '%s' " +
-                                "must be contained in properties", key, name);
+                                "must be contained in properties: %s",
+                                key, name, properties);
             }
         }
 
