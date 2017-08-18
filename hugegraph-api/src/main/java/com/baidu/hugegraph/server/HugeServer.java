@@ -42,7 +42,7 @@ public class HugeServer {
 
     private static final Logger LOG = Log.logger(HugeServer.class);
 
-    private HugeConfig conf = null;
+    private final HugeConfig conf;
     private HttpServer httpServer = null;
 
     public HugeServer(HugeConfig conf) {
@@ -65,7 +65,7 @@ public class HugeServer {
         this.httpServer.stop();
     }
 
-    public static HugeServer start(String[] args) {
+    public static HugeServer start(String[] args) throws HugeException {
         LOG.info("HugeServer starting...");
         ApiVersion.check();
 
@@ -81,9 +81,9 @@ public class HugeServer {
         return server;
     }
 
-    protected static HugeConfig loadConf(String[] args) {
+    protected static HugeConfig loadConf(String[] args) throws HugeException {
         E.checkArgument(args.length == 1,
-                        "HugeServer need one config file, but was given %s",
+                        "HugeServer need one config file, but given %s",
                         Arrays.asList(args));
         try {
             return new HugeConfig(args[0]);

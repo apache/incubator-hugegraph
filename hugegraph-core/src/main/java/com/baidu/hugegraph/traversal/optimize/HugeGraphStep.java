@@ -60,7 +60,7 @@ public final class HugeGraphStep<S, E extends Element>
 
     private final List<HasContainer> hasContainers = new ArrayList<>();
     private long limit = Query.NO_LIMIT;
-    private long offset = 0;
+    private long offset = 0L;
 
     public HugeGraphStep(final GraphStep<S, E> originGraphStep) {
         super(originGraphStep.getTraversal(),
@@ -167,7 +167,7 @@ public final class HugeGraphStep<S, E extends Element>
             this.offset = start;
             this.limit = end - start;
         } else {
-            this.offset = 0;
+            this.offset = 0L;
             this.limit = Query.NO_LIMIT;
         }
     }
