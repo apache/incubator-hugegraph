@@ -203,8 +203,7 @@ public class CassandraSerializer extends AbstractSerializer {
     public BackendEntry writeVertex(HugeVertex vertex) {
         CassandraBackendEntry entry = newBackendEntry(vertex);
 
-        entry.selfChanged(vertex.hasProperties() || vertex.removed());
-
+        // Don't delete by id + label, just by entry id
         if (!vertex.removed()) {
             entry.column(HugeKeys.ID, vertex.id().asString());
             entry.column(HugeKeys.LABEL, vertex.label());

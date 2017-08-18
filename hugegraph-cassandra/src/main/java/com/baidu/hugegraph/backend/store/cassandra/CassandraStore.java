@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Query;
@@ -37,6 +36,7 @@ import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
@@ -144,14 +144,19 @@ public abstract class CassandraStore implements BackendStore {
 
         for (List<MutateItem> items : mutation.mutation().values()) {
             for (MutateItem item : items) {
-                mutate(session, item);
+               this.mutate(session, item);
             }
         }
     }
 
     private void mutate(CassandraSessionPool.Session session, MutateItem item) {
-
         CassandraBackendEntry entry = castBackendEntry(item.entry());
+
+        // Check if the entry has no change
+        if (!entry.selfChanged() && entry.subRows().isEmpty()) {
+            LOG.warn("The entry will be ignored due to no change: {}", entry);
+        }
+
         switch (item.action()) {
             case INSERT:
                 // Insert entry
