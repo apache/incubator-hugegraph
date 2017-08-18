@@ -35,7 +35,7 @@ public abstract class IdGenerator {
         STRING;
     }
 
-    // This could be set by conf
+    // This could be set by configurations
     public static IdType ID_TYPE = IdType.STRING;
 
     /****************************** id generate ******************************/
@@ -72,8 +72,8 @@ public abstract class IdGenerator {
             case STRING:
                 return of(id);
             default:
-                assert false;
-                return null;
+                throw new AssertionError(String.format(
+                          "Unknown id type '%s'", ID_TYPE));
         }
     }
 
@@ -87,8 +87,8 @@ public abstract class IdGenerator {
             case STRING:
                 return of(String.valueOf(id));
             default:
-                assert false;
-                return null;
+                throw new AssertionError(String.format(
+                          "Unknown id type '%s'", ID_TYPE));
         }
     }
 
@@ -102,8 +102,8 @@ public abstract class IdGenerator {
             case STRING:
                 return new StringId(bytes);
             default:
-                assert false;
-                return null;
+                throw new AssertionError(String.format(
+                          "Unknown id type '%s'", ID_TYPE));
         }
     }
 
@@ -223,5 +223,4 @@ public abstract class IdGenerator {
             return this.asString();
         }
     }
-
 }
