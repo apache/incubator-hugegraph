@@ -122,6 +122,24 @@ public class SchemaCoreTest extends BaseCoreTest{
     }
 
     @Test
+    public void testAddVertexLabelWithNonPKIdStrategyWithoutProperty() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        VertexLabel person1 = schema.vertexLabel("person1")
+                              .useAutomaticId()
+                              .create();
+        Assert.assertEquals(IdStrategy.AUTOMATIC, person1.idStrategy());
+        Assert.assertTrue(person1.properties().isEmpty());
+
+        VertexLabel person2 = schema.vertexLabel("person2")
+                              .useCustomizeId()
+                              .create();
+        Assert.assertEquals(IdStrategy.CUSTOMIZE, person2.idStrategy());
+        Assert.assertTrue(person2.properties().isEmpty());
+    }
+
+    @Test
     public void testAddVertexLabelWithMultiIdStrategy() {
         initProperties();
         SchemaManager schema = graph().schema();
@@ -259,7 +277,6 @@ public class SchemaCoreTest extends BaseCoreTest{
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
-
         VertexLabel person = schema.vertexLabel("person")
                              .usePrimaryKeyId()
                              .properties("name", "age")
@@ -320,9 +337,9 @@ public class SchemaCoreTest extends BaseCoreTest{
         initProperties();
         SchemaManager schema = graph().schema();
 
-        Utils.assertThrows(IllegalArgumentException.class, () -> {
-            schema.vertexLabel("person").create();
-        });
+        VertexLabel person = schema.vertexLabel("person").create();
+
+        Assert.assertTrue(person.properties().isEmpty());
     }
 
     @Test
