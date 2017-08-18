@@ -106,6 +106,8 @@ public class CassandraBackendEntry implements BackendEntry {
 
     private final Row row;
     private final List<Row> subRows;
+
+    // NOTE: selfChanged is false when the row has not changed but subRows has.
     private boolean selfChanged = true;
 
     public CassandraBackendEntry(Id id) {
