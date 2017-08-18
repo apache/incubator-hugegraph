@@ -287,7 +287,7 @@ public class IndexLabel extends SchemaElement {
 
         private void checkFields() {
             E.checkNotEmpty(this.indexLabel.indexFields,
-                            "index fields", "index label");
+                            "index fields", this.indexLabel.name);
             // Search index must build on single numeric column
             if (this.indexLabel.indexType == IndexType.SEARCH) {
                 E.checkArgument(this.indexLabel.indexFields.size() == 1,
