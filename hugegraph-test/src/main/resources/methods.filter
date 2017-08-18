@@ -1,4 +1,5 @@
 # Proper format is "TestClass.testMethodName: ignore reason"
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedPropertyTest.shouldNotBeEqualPropertiesAsThereIsDifferentKey: Not support property id
+org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest.shouldConstructDetachedVertexAsReference: Not support duplicated property key/value in addVertex
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: Hang the tests with unknown reason now
