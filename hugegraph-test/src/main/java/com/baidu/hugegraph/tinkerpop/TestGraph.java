@@ -53,22 +53,7 @@ public class TestGraph implements Graph {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
-        List<Object> kvs = new ArrayList<>();
-        Optional<Object> idValue = ElementHelper.getIdValue(keyValues);
-        if (!idValue.isPresent()) {
-            kvs.add(this.loadedGraph ? "id" : "__id");
-            kvs.add(this.loadedGraph ? id : String.valueOf(id));
-            id++;
-        }
-
-        for (int i = 0; i < keyValues.length; i += 2) {
-            kvs.add(keyValues[i].equals(T.id) ?
-                    (this.loadedGraph ? "id" : "__id") :
-                    keyValues[i]);
-            kvs.add(keyValues[i + 1]);
-        }
-
-        return this.graph.addVertex(kvs.toArray());
+        return this.graph.addVertex(keyValues);
     }
 
     @Override
@@ -135,9 +120,9 @@ public class TestGraph implements Graph {
 
         schema.vertexLabel("song")
               .properties("id", "name", "songType", "performances")
-              .primaryKeys("id").ifNotExist().create();
+              .ifNotExist().create();
         schema.vertexLabel("artist").properties("id", "name")
-              .primaryKeys("id").ifNotExist().create();
+              .ifNotExist().create();
 
         schema.edgeLabel("followedBy")
               .link("song", "song").properties("weight")
@@ -159,9 +144,12 @@ public class TestGraph implements Graph {
         schema.propertyKey("year").asInt().ifNotExist().create();
 
         schema.vertexLabel("person").properties("id", "name", "age")
-              .primaryKeys("id").ifNotExist().create();
+              .ifNotExist().create();
         schema.vertexLabel("software").properties("id", "name", "lang")
-              .primaryKeys("id").ifNotExist().create();
+              .ifNotExist().create();
+        schema.vertexLabel("dog").properties("name").ifNotExist().create();
+        schema.vertexLabel("v").properties("name", "age")
+              .ifNotExist().create();
 
         schema.edgeLabel("knows").link("person", "person")
               .properties("weight", "year").ifNotExist().create();
@@ -179,7 +167,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("age").asInt().ifNotExist().create();
 
         schema.vertexLabel("vertex").properties("id", "name", "age", "lang")
-              .primaryKeys("id").ifNotExist().create();
+              .ifNotExist().create();
 
         schema.edgeLabel("knows").link("vertex", "vertex")
               .properties("weight").ifNotExist().create();
@@ -223,13 +211,14 @@ public class TestGraph implements Graph {
         schema.propertyKey("uuid").asUuid().ifNotExist().create();
         schema.propertyKey("myId").asInt().ifNotExist().create();
         schema.propertyKey("myEdgeId").asInt().ifNotExist().create();
+        schema.propertyKey("state").ifNotExist().create();
 
         schema.vertexLabel("v").properties(
-                "__id", "oid", "name",
+                "__id", "oid", "name", "state",
                 "some", "that", "any", "this", "communityIndex", "test",
                 "testing", "favoriteColor", "aKey", "age", "boolean", "float",
                 "double", "string", "integer", "long", "myId")
-              .primaryKeys("__id").ifNotExist().create();
+              .ifNotExist().create();
         schema.vertexLabel("person").properties("__id")
               .ifNotExist().create();
 
@@ -244,11 +233,15 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.edgeLabel("test").link("v", "v")
               .properties("test", "xxx", "yyy").ifNotExist().create();
-        // schema.edgeLabel("collaborator").ifNotExist().create();
-        // schema.edgeLabel("knows").ifNotExist().create();
         schema.edgeLabel("friend").link("person", "person")
-              .properties("name", "location", "status", "uuid").ifNotExist()
-              .create();
+              .properties("name", "location", "status", "uuid", "weight")
+              .ifNotExist().create();
+        schema.edgeLabel("pets").link("v", "v").ifNotExist().create();
+        schema.edgeLabel("walks").link("v", "v").properties("location")
+              .ifNotExist().create();
+        schema.edgeLabel("livesWith").link("v", "v").ifNotExist().create();
+        schema.edgeLabel("friends").link("v", "v").ifNotExist().create();
+        // schema.edgeLabel("collaborator").ifNotExist().create();
         // schema.edgeLabel("hate").ifNotExist().create();
         // schema.edgeLabel("test1").ifNotExist().create();
         // schema.edgeLabel("link").ifNotExist().create();
@@ -256,7 +249,6 @@ public class TestGraph implements Graph {
         // schema.edgeLabel("test3").ifNotExist().create();
         // schema.edgeLabel("self").ifNotExist().create();
         // schema.edgeLabel("~systemLabel").ifNotExist().create();
-        // schema.edgeLabel("friends").ifNotExist().create();
         // schema.edgeLabel("l").ifNotExist().create();
         // schema.edgeLabel("created").ifNotExist().create();
     }
