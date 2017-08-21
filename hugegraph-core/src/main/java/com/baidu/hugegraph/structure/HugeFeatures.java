@@ -128,7 +128,7 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean supportsRemoveProperty() {
-            return false;
+            return true;
         }
     }
 
