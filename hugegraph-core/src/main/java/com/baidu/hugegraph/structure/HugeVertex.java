@@ -195,7 +195,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         HugeEdge edge = new HugeEdge(this.graph, id, edgeLabel);
 
         edge.vertices(this, targetVertex);
-        this.addOutEdge(edge);
 
         // Set properties
         ElementHelper.attachProperties(edge, properties);
@@ -205,10 +204,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             edge.assignId();
         }
 
-        // Add to other Vertex
-        if (edge != null) {
-            targetVertex.addInEdge(edge.switchOwner());
-        }
+        // Attach edge to vertex
+        this.addOutEdge(edge);
+        targetVertex.addInEdge(edge.switchOwner());
 
         return this.tx().addEdge(edge);
     }
