@@ -1,3 +1,22 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.baidu.hugegraph.unit;
 
 import java.util.HashMap;
@@ -111,6 +130,66 @@ public class RamCacheTest extends BaseUnitTest {
             cache.update(id, "value-" + i);
         }
         Assert.assertEquals(10, cache.size());
+    }
+
+    @Test
+    public void testExpire() {
+        RamCache cache = new RamCache();
+        cache.update(IdGenerator.of("1"), "value-1");
+        cache.update(IdGenerator.of("2"), "value-2");
+
+        Assert.assertEquals(2, cache.size());
+
+        cache.expire(2); // 2 seconds
+        waitTillNext(2);
+        cache.tick();
+
+        Assert.assertEquals(0, cache.size());
+    }
+
+    @Test
+    public void testExpireWithAddNewItem() {
+        RamCache cache = new RamCache();
+        cache.update(IdGenerator.of("1"), "value-1");
+        cache.update(IdGenerator.of("2"), "value-2");
+
+        Assert.assertEquals(2, cache.size());
+
+        cache.expire(2);
+
+        waitTillNext(1);
+        cache.tick();
+
+        cache.update(IdGenerator.of("3"), "value-3");
+        cache.tick();
+
+        Assert.assertEquals(3, cache.size());
+
+        waitTillNext(1);
+        cache.tick();
+
+        Assert.assertEquals(1, cache.size());
+        Assert.assertNotNull(cache.get(IdGenerator.of("3")));
+
+        waitTillNext(1);
+        cache.tick();
+
+        Assert.assertEquals(0, cache.size());
+    }
+
+    @Test
+    public void testExpireWithZeroSecond() {
+        RamCache cache = new RamCache();
+        cache.update(IdGenerator.of("1"), "value-1");
+        cache.update(IdGenerator.of("2"), "value-2");
+
+        Assert.assertEquals(2, cache.size());
+
+        cache.expire(0);
+        waitTillNext(1);
+        cache.tick();
+
+        Assert.assertEquals(2, cache.size());
     }
 
     private static final int THREADS_NUM = 8;
