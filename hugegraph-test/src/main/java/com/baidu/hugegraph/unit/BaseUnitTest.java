@@ -29,6 +29,8 @@ import java.util.concurrent.Future;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import com.baidu.hugegraph.util.TimeUtil;
+
 public class BaseUnitTest {
 
     @BeforeClass
@@ -41,7 +43,7 @@ public class BaseUnitTest {
         // pass
     }
 
-    protected static void runWithThreads(int threads, Runnable task) {
+    protected static final void runWithThreads(int threads, Runnable task) {
         ExecutorService executor = Executors.newFixedThreadPool(threads);
         List<Future<?>> futures = new ArrayList<>();
         for (int i = 0; i < threads; i++) {
@@ -54,5 +56,9 @@ public class BaseUnitTest {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    protected static final void waitTillNext(long seconds) {
+        TimeUtil.tillNextMillis(TimeUtil.timeGen() + seconds * 1000);
     }
 }
