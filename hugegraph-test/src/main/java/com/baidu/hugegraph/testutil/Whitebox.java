@@ -17,16 +17,24 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit;
+package com.baidu.hugegraph.testutil;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import java.lang.reflect.Field;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    RamCacheTest.class,
-    CacheManagerTest.class,
-    EventHubTest.class
-})
-public class UnitTestSuite {
+import org.junit.Assert;
+
+public class Whitebox extends org.mockito.internal.util.reflection.Whitebox {
+
+    public static void setInternalState(Object target,
+                                        String fieldName,
+                                        Object value) {
+        try {
+            Field field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            Assert.fail("Cannot change value of " + fieldName +
+                        " against target " + target);
+        }
+    }
 }
