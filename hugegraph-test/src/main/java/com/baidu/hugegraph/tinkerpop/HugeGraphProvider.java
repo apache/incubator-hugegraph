@@ -59,6 +59,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     private static String CONF_PATH = "hugegraph.properties";
     private static String FILETER_FILE = "methods.filter";
     private static Map<String, String> blackMethods = new HashMap<>();
+    private Map<String, TestGraph> graphs = new HashMap<>();
 
     public HugeGraphProvider() throws IOException {
         super();
@@ -140,13 +141,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
     @Override
     public Graph openTestGraph(final Configuration config) {
-        HugeGraph graph = (HugeGraph) super.openTestGraph(config);
+        String graphName = config.getString(CoreOptions.STORE.name());
+        if (!this.graphs.containsKey(graphName)) {
+            TestGraph testGraph = this.newTestGraph(config);
+            this.graphs.putIfAbsent(graphName, testGraph);
+        }
 
-        graph.clearBackend();
-        graph.initBackend();
-        graph.tx().open();
+        TestGraph testGraph = this.graphs.get(graphName);
 
-        TestGraph testGraph = new TestGraph(graph);
         // Basic schema is initiated by default once a graph is open
         testGraph.initBasicSchema();
         testGraph.tx().commit();
@@ -154,11 +156,21 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         return testGraph;
     }
 
-    protected void clearSchemaData(TestGraph testGraph) {
-        HugeGraph graph = testGraph.hugeGraph();
+    private TestGraph newTestGraph(final Configuration config) {
+        HugeGraph graph = (HugeGraph) super.openTestGraph(config);
+
+        graph.clearBackend();
+        graph.initBackend();
+        graph.tx().open();
+
+        return new TestGraph(graph);
+    }
+
+    protected void clearSchemaData(Graph graph) {
+        HugeGraph g = ((TestGraph) graph).hugeGraph();
 
         // Clear schema
-        SchemaTransaction schema = graph.schemaTransaction();
+        SchemaTransaction schema = g.schemaTransaction();
 
         schema.getIndexLabels().stream().forEach(elem -> {
             schema.removeIndexLabel(elem.name());
@@ -183,10 +195,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     public void clear(Graph graph, Configuration configuration)
            throws Exception {
         if (graph != null && graph.tx().isOpen()) {
-            HugeGraph hugeGraph = ((TestGraph) graph).hugeGraph();
-            hugeGraph.tx().commit();
-            hugeGraph.clearBackend();
-            hugeGraph.close();
+            graph.tx().commit();
+            this.clearSchemaData(graph);
         }
     }
 
