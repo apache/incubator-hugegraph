@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import org.apache.commons.configuration.Configuration;
@@ -150,7 +151,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         TestGraph testGraph = this.graphs.get(graphName);
 
         // Basic schema is initiated by default once a graph is open
-        testGraph.initBasicSchema();
+        testGraph.initBasicSchema(IdStrategy.AUTOMATIC);
         testGraph.tx().commit();
 
         return testGraph;
@@ -166,37 +167,12 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         return new TestGraph(graph);
     }
 
-    protected void clearSchemaData(Graph graph) {
-        HugeGraph g = ((TestGraph) graph).hugeGraph();
-
-        // Clear schema
-        SchemaTransaction schema = g.schemaTransaction();
-
-        schema.getIndexLabels().stream().forEach(elem -> {
-            schema.removeIndexLabel(elem.name());
-        });
-
-        schema.getEdgeLabels().stream().forEach(elem -> {
-            schema.removeEdgeLabel(elem.name());
-        });
-
-        schema.getVertexLabels().stream().forEach(elem -> {
-            schema.removeVertexLabel(elem.name());
-        });
-
-        schema.getPropertyKeys().stream().forEach(elem -> {
-            schema.removePropertyKey(elem.name());
-        });
-
-        graph.tx().commit();
-    }
-
     @Override
     public void clear(Graph graph, Configuration configuration)
            throws Exception {
         if (graph != null && graph.tx().isOpen()) {
+            ((TestGraph) graph).clearSchema();
             graph.tx().commit();
-            this.clearSchemaData(graph);
         }
     }
 
@@ -213,7 +189,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
         TestGraph testGraph = (TestGraph) graph;
         // Clear basic schema initiated in openTestGraph
-        this.clearSchemaData(testGraph);
+        testGraph.clearSchema();
+        testGraph.tx().commit();
 
         testGraph.loadedGraph(true);
         switch (loadGraphWith.value()) {

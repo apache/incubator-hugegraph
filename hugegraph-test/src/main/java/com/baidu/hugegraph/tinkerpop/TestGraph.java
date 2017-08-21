@@ -20,8 +20,11 @@
 package com.baidu.hugegraph.tinkerpop;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
+import com.baidu.hugegraph.type.define.IdStrategy;
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -51,8 +54,38 @@ public class TestGraph implements Graph {
         return this.graph;
     }
 
+    protected void clearSchema() {
+        // Clear schema and graph data will be cleared at same time
+        SchemaTransaction schema = this.graph.schemaTransaction();
+
+        schema.getIndexLabels().stream().forEach(elem -> {
+            schema.removeIndexLabel(elem.name());
+        });
+
+        schema.getEdgeLabels().stream().forEach(elem -> {
+            schema.removeEdgeLabel(elem.name());
+        });
+
+        schema.getVertexLabels().stream().forEach(elem -> {
+            schema.removeVertexLabel(elem.name());
+        });
+
+        schema.getPropertyKeys().stream().forEach(elem -> {
+            schema.removePropertyKey(elem.name());
+        });
+    }
+
     @Override
     public Vertex addVertex(Object... keyValues) {
+        for (Object obj : keyValues) {
+            if (obj.equals(T.id)) {
+                this.clearSchema();
+                this.tx().commit();
+                this.initBasicSchema(IdStrategy.CUSTOMIZE);
+                this.tx().commit();
+                break;
+            }
+        }
         return this.graph.addVertex(keyValues);
     }
 
@@ -175,7 +208,13 @@ public class TestGraph implements Graph {
               .properties("weight").ifNotExist().create();
     }
 
-    public void initBasicSchema() {
+    public void initBasicSchema(IdStrategy idStrategy) {
+        this.initBasicPropertyKey();
+        this.initBasicVertexLabelV(idStrategy);
+        this.initBasicVertexLabelAndEdgeLabelExceptV();
+    }
+
+    private void initBasicPropertyKey() {
         SchemaManager schema = this.graph.schema();
 
         schema.propertyKey("oid").asInt().ifNotExist().create();
@@ -212,13 +251,40 @@ public class TestGraph implements Graph {
         schema.propertyKey("myId").asInt().ifNotExist().create();
         schema.propertyKey("myEdgeId").asInt().ifNotExist().create();
         schema.propertyKey("state").ifNotExist().create();
+    }
 
-        schema.vertexLabel("v").properties(
-                "__id", "oid", "name", "state",
-                "some", "that", "any", "this", "communityIndex", "test",
-                "testing", "favoriteColor", "aKey", "age", "boolean", "float",
-                "double", "string", "integer", "long", "myId")
-              .ifNotExist().create();
+    private void initBasicVertexLabelV(IdStrategy idStrategy) {
+        SchemaManager schema = this.graph.schema();
+        switch (idStrategy) {
+            case CUSTOMIZE:
+                schema.vertexLabel("v")
+                      .properties("__id", "oid", "name", "state",
+                                  "some", "that", "any", "this",
+                                  "communityIndex", "test", "testing",
+                                  "favoriteColor", "aKey", "age", "boolean",
+                                  "float", "double", "string", "integer",
+                                  "long", "myId")
+                      .useCustomizeId().ifNotExist().create();
+                break;
+            case AUTOMATIC:
+                schema.vertexLabel("v")
+                      .properties("__id", "oid", "name", "state",
+                                  "some", "that", "any", "this",
+                                  "communityIndex", "test", "testing",
+                                  "favoriteColor", "aKey", "age", "boolean",
+                                  "float", "double", "string", "integer",
+                                  "long", "myId")
+                      .ifNotExist().create();
+                break;
+            default:
+                throw new AssertionError("Only customize and automatic " +
+                                         "is legal in tinkerpop tests");
+        }
+    }
+
+    private void initBasicVertexLabelAndEdgeLabelExceptV() {
+        SchemaManager schema = this.graph.schema();
+
         schema.vertexLabel("person").ifNotExist().create();
 
         schema.edgeLabel("self").link("v", "v")
