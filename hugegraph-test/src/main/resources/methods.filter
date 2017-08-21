@@ -2,4 +2,9 @@
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedPropertyTest.shouldNotBeEqualPropertiesAsThereIsDifferentKey: Not support property id
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest.shouldConstructDetachedVertexAsReference: Not support duplicated property key/value in addVertex
+org.apache.tinkerpop.gremlin.structure.io.IoPropertyTest.shouldReadWriteVertexPropertyNoMetaProperties[gryo]: Not registered com.baidu.hugegraph.backend.id.IdGenerator$StringId
+org.apache.tinkerpop.gremlin.structure.util.reference.ReferenceEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
+org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldValidateIdEquality: Not support automatic/custom id for edge
+org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldValidateEquality: Not support automatic/custom id for edge
+org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldNotHaveAConcurrentModificationExceptionWhenIteratingAndRemovingAddingEdges: Not support vertex.edges(Direction.BOTH)
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: Hang the tests with unknown reason now

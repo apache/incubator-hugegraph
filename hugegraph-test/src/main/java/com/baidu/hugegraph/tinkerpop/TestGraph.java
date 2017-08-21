@@ -219,8 +219,7 @@ public class TestGraph implements Graph {
                 "testing", "favoriteColor", "aKey", "age", "boolean", "float",
                 "double", "string", "integer", "long", "myId")
               .ifNotExist().create();
-        schema.vertexLabel("person").properties("__id")
-              .ifNotExist().create();
+        schema.vertexLabel("person").ifNotExist().create();
 
         schema.edgeLabel("self").link("v", "v")
               .properties("__id", "test", "name", "some").ifNotExist().create();
@@ -233,7 +232,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.edgeLabel("test").link("v", "v")
               .properties("test", "xxx", "yyy").ifNotExist().create();
-        schema.edgeLabel("friend").link("person", "person")
+        schema.edgeLabel("friend").link("v", "v")
               .properties("name", "location", "status", "uuid", "weight")
               .ifNotExist().create();
         schema.edgeLabel("pets").link("v", "v").ifNotExist().create();
