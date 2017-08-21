@@ -39,6 +39,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
@@ -341,13 +342,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public String toString() {
-        return String.format("{id=%s, label=%s, source=%s, target=%s, " +
-                             "direction=%s, properties=%s}",
-                             this.id,
-                             this.label.name(),
-                             this.sourceVertex.id(),
-                             this.targetVertex.id(),
-                             this.direction().name(),
-                             this.properties.values());
+        return StringFactory.edgeString(this);
     }
 }

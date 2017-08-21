@@ -49,6 +49,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
@@ -387,8 +388,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public String toString() {
-        return String.format("{id=%s, label=%s, edges=%s, properties=%s}",
-                             this.id, this.label.name(), this.edges,
-                             this.properties.values());
+        return StringFactory.vertexString(this);
     }
 }
