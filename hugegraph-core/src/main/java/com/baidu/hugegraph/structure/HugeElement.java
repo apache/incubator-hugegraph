@@ -36,7 +36,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
@@ -192,10 +191,7 @@ public abstract class HugeElement implements Element, GraphType {
         }
 
         Object idValue = id.get();
-        if (idValue instanceof Number) {
-            // Number id
-            return IdGenerator.of(((Number) idValue).longValue());
-        } else if (idValue instanceof String) {
+        if (idValue instanceof String) {
             // String id
             return IdGenerator.of((String) idValue);
         } else if (idValue instanceof Id) {
@@ -207,9 +203,9 @@ public abstract class HugeElement implements Element, GraphType {
         }
 
         // Throw if error type
-        throw new NotSupportException(
-                  "id type(must be a number or a string): %s",
-                  idValue.getClass().getSimpleName());
+        throw new UnsupportedOperationException(String.format(
+                  "Invalid element id type: %s, must be a string",
+                  idValue.getClass().getSimpleName()));
     }
 
     public static Object getLabelValue(Object... keyValues) {

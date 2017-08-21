@@ -174,8 +174,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... properties) {
-        E.checkNotNull(label, "edge label");
-        E.checkNotNull(vertex, "target vertex");
+        E.checkArgument(label != null && !label.isEmpty(),
+                        "Vertex label can't be null or empty");
+        E.checkArgumentNotNull(vertex, "Target vertex can't be null");
+
 
         HugeVertex targetVertex = (HugeVertex) vertex;
         EdgeLabel edgeLabel = this.graph.schema().getEdgeLabel(label);
@@ -186,12 +188,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 "The sort key(s) must be setted for the edge with label: '%s'",
                 edgeLabel.name());
 
-        E.checkArgument(
-                edgeLabel.checkLinkEqual(this.label(), vertex.label()),
-                "Undefined link of edge label '%s': '%s' -> '%s'",
-                label, this.label(), vertex.label());
+        E.checkArgument(edgeLabel.checkLinkEqual(this.label(), vertex.label()),
+                        "Undefined link of edge label '%s': '%s' -> '%s'",
+                        label, this.label(), vertex.label());
 
         Id id = HugeElement.getIdValue(properties);
+        if (id != null) {
+            throw Edge.Exceptions.userSuppliedIdsNotSupported();
+        }
 
         HugeEdge edge = new HugeEdge(this.graph, id, edgeLabel);
 
