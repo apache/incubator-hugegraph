@@ -42,6 +42,7 @@ public class TestGraph implements Graph {
 
     private HugeGraph graph;
     private boolean loadedGraph = false;
+    private boolean isLastIdCustomized = false;
 
     public TestGraph(HugeGraph graph) {
         this.graph = graph;
@@ -79,12 +80,14 @@ public class TestGraph implements Graph {
         String defaultVL = DEFAULT_VL;
 
         for (int i = 0; i < keyValues.length; i += 2) {
-            if (keyValues[i].equals(T.id)) {
+            if (keyValues[i].equals(T.id) && !isLastIdCustomized) {
                 needRedefinSchema = true;
                 idStrategy = IdStrategy.CUSTOMIZE;
-            } else if (keyValues[i].equals(T.label) &&
-                       "person".equals(keyValues[i + 1]) &&
-                       !loadedGraph) {
+            }
+
+            if (keyValues[i].equals(T.label) &&
+                "person".equals(keyValues[i + 1]) &&
+                !loadedGraph) {
                 needRedefinSchema = true;
                 defaultVL = "person";
             }
@@ -95,6 +98,8 @@ public class TestGraph implements Graph {
             this.tx().commit();
             this.initBasicSchema(idStrategy, defaultVL);
             this.tx().commit();
+
+            isLastIdCustomized = idStrategy == IdStrategy.CUSTOMIZE;
         }
 
         return this.graph.addVertex(keyValues);
@@ -155,8 +160,17 @@ public class TestGraph implements Graph {
         return this.graph.features();
     }
 
+    @Override
+    public String toString() {
+        return this.graph.toString();
+    }
+
     public void loadedGraph(boolean loadedGraph) {
         this.loadedGraph = loadedGraph;
+    }
+
+    public void isLastIdCustomized(boolean isLastIdCustomized) {
+        this.isLastIdCustomized = isLastIdCustomized;
     }
 
     public void initGratefulSchema() {
@@ -334,6 +348,8 @@ public class TestGraph implements Graph {
         schema.edgeLabel("collaborator").link(defaultVL, defaultVL)
               .properties("location").ifNotExist().create();
         schema.edgeLabel("hate").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("hates").link(defaultVL, defaultVL)
               .ifNotExist().create();
         schema.edgeLabel("test1").link(defaultVL, defaultVL)
               .ifNotExist().create();

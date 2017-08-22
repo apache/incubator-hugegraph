@@ -38,6 +38,7 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.LoadGraphWith;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.HugeException;
@@ -152,9 +153,16 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
         TestGraph testGraph = this.graphs.get(graphName);
 
+        // Ensure tx is open
+        if (!testGraph.tx().isOpen()) {
+            testGraph.tx().open();
+        }
         // Basic schema is initiated by default once a graph is open
         testGraph.initBasicSchema(IdStrategy.AUTOMATIC, TestGraph.DEFAULT_VL);
         testGraph.tx().commit();
+
+        testGraph.isLastIdCustomized(false);
+        testGraph.loadedGraph(false);
 
         return testGraph;
     }
@@ -226,5 +234,10 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     @Override
     public GraphTraversalSource traversal(Graph graph) {
         return ((TestGraph) graph).hugeGraph().traversal();
+    }
+
+    @Override
+    public String convertId(Object id, Class<? extends Element> c) {
+        return id.toString();
     }
 }

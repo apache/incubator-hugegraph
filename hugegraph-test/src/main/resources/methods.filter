@@ -9,8 +9,6 @@ org.apache.tinkerpop.gremlin.structure.util.detached.DetachedPropertyTest.should
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest.shouldConstructDetachedVertexAsReference: Not support duplicated property key/value in addVertex
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldOverwriteEarlierKeyValuesWithLaterKeyValuesOnAddVertexIfMultiProperty: Not support duplicated property key/value in addVertex
 
-org.apache.tinkerpop.gremlin.structure.io.IoPropertyTest.shouldReadWriteVertexPropertyNoMetaProperties[gryo]: Not registered com.baidu.hugegraph.backend.id.IdGenerator$StringId
-
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldNotHaveAConcurrentModificationExceptionWhenIteratingAndRemovingAddingEdges: Not support vertex.edges(Direction.BOTH)
 org.apache.tinkerpop.gremlin.structure.util.star.StarGraphTest.shouldHandleSelfLoops: Self loop vertex only have 1 edge, this test expect 2 edges(1 IN and 1 OUT)
 
@@ -30,3 +28,5 @@ org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID 
 
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: Hang the tests with unknown reason now
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionIsolationCommitCheck: Hang the tests with unknown reason now
+
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldHaveExceptionConsistencyWhenAssigningSameIdOnVertex: Assigning the same ID to an Element is accepted(override), but tinkerpop expect throw an exception
