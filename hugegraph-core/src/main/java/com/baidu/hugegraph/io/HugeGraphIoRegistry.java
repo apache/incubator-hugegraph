@@ -47,25 +47,19 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         return INSTANCE;
     }
 
-    private static TextSerializer textSerializer =
-            new TextSerializer(null);
+    private static TextSerializer textSerializer = new TextSerializer(null);
 
     public HugeGraphIoRegistry() {
-        register(GryoIo.class,
-                 IdGenerator.StringId.class,
-                 new IdSerializer());
-        register(GryoIo.class,
-                 PropertyKey.class,
+        register(GryoIo.class, IdGenerator.StringId.class, new IdSerializer());
+        register(GryoIo.class, IdGenerator.LongId.class, new IdSerializer());
+        register(GryoIo.class, PropertyKey.class,
                  new PropertyKeyKryoSerializer());
-        register(GryoIo.class,
-                 VertexLabel.class,
+        register(GryoIo.class, VertexLabel.class,
                  new VertexLabelKryoSerializer());
-        register(GryoIo.class,
-                 EdgeLabel.class,
+        register(GryoIo.class, EdgeLabel.class,
                  new EdgeLabelKryoSerializer());
 
-        register(GraphSONIo.class,
-                 null,
+        register(GraphSONIo.class, null,
                  HugeGraphSONModule.getInstance());
     }
 
@@ -120,8 +114,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
     private class PropertyKeyKryoSerializer extends
             Serializer<PropertyKey> {
         @Override
-        public void write(Kryo kryo, Output output,
-                          PropertyKey propertyKey) {
+        public void write(Kryo kryo, Output output, PropertyKey propertyKey) {
             BackendEntry entry = textSerializer.writePropertyKey(propertyKey);
             writeEntry(output, entry);
         }
@@ -136,8 +129,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
     private class VertexLabelKryoSerializer extends
             Serializer<VertexLabel> {
         @Override
-        public void write(Kryo kryo, Output output,
-                          VertexLabel vertexLabel) {
+        public void write(Kryo kryo, Output output, VertexLabel vertexLabel) {
             BackendEntry entry = textSerializer.writeVertexLabel(vertexLabel);
             writeEntry(output, entry);
         }

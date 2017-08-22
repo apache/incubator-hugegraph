@@ -19,11 +19,8 @@
 
 package com.baidu.hugegraph.tinkerpop;
 
-import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.structure.HugeFeatures;
-import com.baidu.hugegraph.type.define.IdStrategy;
+import java.util.Iterator;
+
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -31,8 +28,13 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.io.Io;
 
-import java.util.Iterator;
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.structure.HugeFeatures;
+import com.baidu.hugegraph.type.define.IdStrategy;
 
 public class TestGraph implements Graph {
 
@@ -107,6 +109,12 @@ public class TestGraph implements Graph {
     @Override
     public GraphComputer compute() throws IllegalArgumentException {
         return this.graph.compute();
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public <I extends Io> I io(final Io.Builder<I> builder) {
+        return this.graph.io(builder);
     }
 
     @Override
