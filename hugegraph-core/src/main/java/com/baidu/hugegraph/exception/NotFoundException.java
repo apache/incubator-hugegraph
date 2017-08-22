@@ -19,13 +19,13 @@
 
 package com.baidu.hugegraph.exception;
 
-import com.baidu.hugegraph.HugeException;
+import java.util.NoSuchElementException;
 
-public class NotFoundException extends HugeException {
+public class NotFoundException extends NoSuchElementException {
 
     private static final long serialVersionUID = 5152465646323494849L;
 
     public NotFoundException(String message, Object... args) {
-        super(message, args);
+        super(String.format(message, args));
     }
 }
