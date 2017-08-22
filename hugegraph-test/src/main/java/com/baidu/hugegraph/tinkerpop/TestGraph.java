@@ -21,7 +21,6 @@ package com.baidu.hugegraph.tinkerpop;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -32,19 +31,14 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
 
 public class TestGraph implements Graph {
 
-    private static int id = 0;
-
     private HugeGraph graph;
     private boolean loadedGraph = false;
+    public String defaultVL = "vertex";
 
     public TestGraph(HugeGraph graph) {
         this.graph = graph;
@@ -77,6 +71,7 @@ public class TestGraph implements Graph {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
+
         for (Object obj : keyValues) {
             if (obj.equals(T.id)) {
                 this.clearSchema();
@@ -86,6 +81,7 @@ public class TestGraph implements Graph {
                 break;
             }
         }
+
         return this.graph.addVertex(keyValues);
     }
 
@@ -181,7 +177,7 @@ public class TestGraph implements Graph {
         schema.vertexLabel("software").properties("id", "name", "lang")
               .ifNotExist().create();
         schema.vertexLabel("dog").properties("name").ifNotExist().create();
-        schema.vertexLabel("v").properties("name", "age")
+        schema.vertexLabel("vertex").properties("name", "age")
               .ifNotExist().create();
 
         schema.edgeLabel("knows").link("person", "person")
@@ -251,29 +247,31 @@ public class TestGraph implements Graph {
         schema.propertyKey("myId").asInt().ifNotExist().create();
         schema.propertyKey("myEdgeId").asInt().ifNotExist().create();
         schema.propertyKey("state").ifNotExist().create();
+        schema.propertyKey("acl").ifNotExist().create();
+
     }
 
     private void initBasicVertexLabelV(IdStrategy idStrategy) {
         SchemaManager schema = this.graph.schema();
         switch (idStrategy) {
             case CUSTOMIZE:
-                schema.vertexLabel("v")
-                      .properties("__id", "oid", "name", "state",
+                schema.vertexLabel(defaultVL)
+                      .properties("__id", "oid", "name", "state", "status",
                                   "some", "that", "any", "this",
                                   "communityIndex", "test", "testing",
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
-                                  "long", "myId")
+                                  "long", "myId", "location")
                       .useCustomizeId().ifNotExist().create();
                 break;
             case AUTOMATIC:
-                schema.vertexLabel("v")
-                      .properties("__id", "oid", "name", "state",
+                schema.vertexLabel(defaultVL)
+                      .properties("__id", "oid", "name", "state", "status",
                                   "some", "that", "any", "this",
                                   "communityIndex", "test", "testing",
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
-                                  "long", "myId")
+                                  "long", "myId", "location")
                       .ifNotExist().create();
                 break;
             default:
@@ -285,33 +283,43 @@ public class TestGraph implements Graph {
     private void initBasicVertexLabelAndEdgeLabelExceptV() {
         SchemaManager schema = this.graph.schema();
 
-        schema.vertexLabel("person").ifNotExist().create();
+        schema.vertexLabel("person").properties("name")
+              .ifNotExist().create();
 
-        schema.edgeLabel("self").link("v", "v")
-              .properties("__id", "test", "name", "some").ifNotExist().create();
-        schema.edgeLabel("aTOa").link("v", "v").ifNotExist().create();
-        schema.edgeLabel("connectsTo").link("v", "v").ifNotExist().create();
-        schema.edgeLabel("knows").link("v", "v")
+        schema.edgeLabel("self").link(defaultVL, defaultVL)
+              .properties("__id", "test", "name", "some", "acl")
+              .ifNotExist().create();
+        schema.edgeLabel("aTOa").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("connectsTo").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("knows").link(defaultVL, defaultVL)
               .properties("data", "test", "year", "boolean", "float",
                           "double", "string", "integer", "long",
                           "myEdgeId", "since")
               .ifNotExist().create();
-        schema.edgeLabel("test").link("v", "v")
+        schema.edgeLabel("test").link(defaultVL, defaultVL)
               .properties("test", "xxx", "yyy").ifNotExist().create();
-        schema.edgeLabel("friend").link("v", "v")
+        schema.edgeLabel("friend").link(defaultVL, defaultVL)
               .properties("name", "location", "status", "uuid", "weight")
               .ifNotExist().create();
-        schema.edgeLabel("pets").link("v", "v").ifNotExist().create();
-        schema.edgeLabel("walks").link("v", "v").properties("location")
+        schema.edgeLabel("pets").link(defaultVL, defaultVL).ifNotExist().create();
+        schema.edgeLabel("walks").link(defaultVL, defaultVL).properties("location")
               .ifNotExist().create();
-        schema.edgeLabel("livesWith").link("v", "v").ifNotExist().create();
-        schema.edgeLabel("friends").link("v", "v").ifNotExist().create();
-        // schema.edgeLabel("collaborator").ifNotExist().create();
-        // schema.edgeLabel("hate").ifNotExist().create();
-        // schema.edgeLabel("test1").ifNotExist().create();
-        // schema.edgeLabel("link").ifNotExist().create();
-        // schema.edgeLabel("test2").ifNotExist().create();
-        // schema.edgeLabel("test3").ifNotExist().create();
+        schema.edgeLabel("livesWith").link(defaultVL, defaultVL).ifNotExist().create();
+        schema.edgeLabel("friends").link(defaultVL, defaultVL).ifNotExist().create();
+        schema.edgeLabel("collaborator").link(defaultVL, defaultVL)
+              .properties("location").ifNotExist().create();
+        schema.edgeLabel("hate").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("test1").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("link").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("test2").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("test3").link(defaultVL, defaultVL)
+              .ifNotExist().create();
         // schema.edgeLabel("self").ifNotExist().create();
         // schema.edgeLabel("~systemLabel").ifNotExist().create();
         // schema.edgeLabel("l").ifNotExist().create();
