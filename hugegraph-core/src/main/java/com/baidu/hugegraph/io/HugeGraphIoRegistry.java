@@ -70,7 +70,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         }
 
         @Override
-        public Id read(Kryo kryo, Input input, Class<Id> aClass) {
+        public Id read(Kryo kryo, Input input, Class<Id> clazz) {
             return IdGenerator.of(input.readString());
         }
     }
@@ -111,8 +111,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         return backendEntry;
     }
 
-    private class PropertyKeyKryoSerializer extends
-            Serializer<PropertyKey> {
+    private class PropertyKeyKryoSerializer extends Serializer<PropertyKey> {
         @Override
         public void write(Kryo kryo, Output output, PropertyKey propertyKey) {
             BackendEntry entry = textSerializer.writePropertyKey(propertyKey);
@@ -121,13 +120,12 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
         @Override
         public PropertyKey read(Kryo kryo, Input input,
-                                Class<PropertyKey> aClass) {
+                                Class<PropertyKey> clazz) {
             return textSerializer.readPropertyKey(readEntry(input));
         }
     }
 
-    private class VertexLabelKryoSerializer extends
-            Serializer<VertexLabel> {
+    private class VertexLabelKryoSerializer extends Serializer<VertexLabel> {
         @Override
         public void write(Kryo kryo, Output output, VertexLabel vertexLabel) {
             BackendEntry entry = textSerializer.writeVertexLabel(vertexLabel);
@@ -136,7 +134,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
         @Override
         public VertexLabel read(Kryo kryo, Input input,
-                                Class<VertexLabel> aClass) {
+                                Class<VertexLabel> clazz) {
             return textSerializer.readVertexLabel(readEntry(input));
         }
     }
@@ -149,8 +147,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         }
 
         @Override
-        public EdgeLabel read(Kryo kryo, Input input,
-                              Class<EdgeLabel> aClass) {
+        public EdgeLabel read(Kryo kryo, Input input, Class<EdgeLabel> clazz) {
             return textSerializer.readEdgeLabel(readEntry(input));
         }
     }

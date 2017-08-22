@@ -94,7 +94,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public Direction direction() {
-        if (!this.label.isDirected()) {
+        if (!this.label.directed()) {
             return Direction.BOTH;
         }
 

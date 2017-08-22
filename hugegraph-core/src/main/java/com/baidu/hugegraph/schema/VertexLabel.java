@@ -102,6 +102,7 @@ public class VertexLabel extends SchemaLabel {
     public String schema() {
         StringBuilder sb = new StringBuilder();
         sb.append("schema.vertexLabel(\"").append(this.name).append("\")");
+        sb.append(this.idStrategy.schema());
         sb.append(this.propertiesSchema());
         sb.append(this.primaryKeysSchema());
         sb.append(".ifNotExist()");

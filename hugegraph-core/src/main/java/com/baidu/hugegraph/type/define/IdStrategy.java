@@ -64,4 +64,23 @@ public enum IdStrategy {
         }
     }
 
+    public String schema() {
+        String schema;
+        switch (this) {
+            case AUTOMATIC:
+                schema = "useAutomaticId()";
+                break;
+            case CUSTOMIZE:
+                schema = "useCustomizeId()";
+                break;
+            case PRIMARY_KEY:
+                schema = "usePrimaryKeyId()";
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown id strategy '%s'", this));
+
+        }
+        return String.format(".%s()", schema);
+    }
 }
