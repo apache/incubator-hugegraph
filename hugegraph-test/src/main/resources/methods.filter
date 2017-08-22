@@ -1,10 +1,32 @@
 # Proper format is "TestClass.testMethodName: ignore reason"
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
-org.apache.tinkerpop.gremlin.structure.util.detached.DetachedPropertyTest.shouldNotBeEqualPropertiesAsThereIsDifferentKey: Not support property id
-org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest.shouldConstructDetachedVertexAsReference: Not support duplicated property key/value in addVertex
-org.apache.tinkerpop.gremlin.structure.io.IoPropertyTest.shouldReadWriteVertexPropertyNoMetaProperties[gryo]: Not registered com.baidu.hugegraph.backend.id.IdGenerator$StringId
 org.apache.tinkerpop.gremlin.structure.util.reference.ReferenceEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldValidateIdEquality: Not support automatic/custom id for edge
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldValidateEquality: Not support automatic/custom id for edge
+
+org.apache.tinkerpop.gremlin.structure.util.detached.DetachedPropertyTest.shouldNotBeEqualPropertiesAsThereIsDifferentKey: Not support property id
+
+org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest.shouldConstructDetachedVertexAsReference: Not support duplicated property key/value in addVertex
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldOverwriteEarlierKeyValuesWithLaterKeyValuesOnAddVertexIfMultiProperty: Not support duplicated property key/value in addVertex
+
+org.apache.tinkerpop.gremlin.structure.io.IoPropertyTest.shouldReadWriteVertexPropertyNoMetaProperties[gryo]: Not registered com.baidu.hugegraph.backend.id.IdGenerator$StringId
+
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldNotHaveAConcurrentModificationExceptionWhenIteratingAndRemovingAddingEdges: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.util.star.StarGraphTest.shouldHandleSelfLoops: Self loop vertex only have 1 edge, this test expect 2 edges(1 IN and 1 OUT)
+
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringSupportUsingStarVertex: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingStringRepresentations: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldAddVertexWithUserSuppliedStringId: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingVertexId: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingVertices: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringSupportUsingReferenceVertex: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingVertexIds: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingStringRepresentation: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingVertex: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringSupportUsingDetachedVertex: addVertex with T.id, then addVertex without T.id
+
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
+
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: Hang the tests with unknown reason now
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionIsolationCommitCheck: Hang the tests with unknown reason now
