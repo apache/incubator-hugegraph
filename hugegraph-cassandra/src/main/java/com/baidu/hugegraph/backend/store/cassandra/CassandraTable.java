@@ -26,9 +26,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
 import com.baidu.hugegraph.util.Log;
@@ -111,8 +113,8 @@ public abstract class CassandraTable {
             return rs;
         }
 
+        List<Select> selections = query2Select(query);
         try {
-            List<Select> selections = query2Select(query);
             for (Select selection : selections) {
                 ResultSet results = session.execute(selection);
                 rs.addAll(this.results2Entries(query.resultType(), results));
@@ -181,7 +183,7 @@ public abstract class CassandraTable {
         for (Id id : query.ids()) {
             List<String> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
-                throw new BackendException(
+                throw new NotFoundException(
                           "Unsupported ID format: '%s' (should contain %s)",
                           id, nameParts);
             }

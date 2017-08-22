@@ -22,6 +22,7 @@ package com.baidu.hugegraph.core;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -389,8 +390,9 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query vertex by id which not exists
         Id id = SplicingIdGenerator.splicing("author", "not-exists-id");
-        Assert.assertThrows(HugeException.class, () -> {
-            graph.traversal().V(id).toList();
+        Assert.assertTrue(graph.traversal().V(id).toList().isEmpty());
+        Assert.assertThrows(NotFoundException.class, () -> {
+            graph.traversal().V(id).next();
         });
     }
 

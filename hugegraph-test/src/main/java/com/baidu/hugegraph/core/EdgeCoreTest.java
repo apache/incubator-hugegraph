@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -483,9 +484,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         init18Edges();
 
         String id = graph.traversal().E().toList().get(0).id() + "-not-exist";
-        // TODO: should let it throw HugeNotFoundException
-        Assert.assertThrows(HugeException.class, () -> {
-            graph.traversal().E(id).toList();
+        Assert.assertTrue(graph.traversal().E(id).toList().isEmpty());
+        Assert.assertThrows(NotFoundException.class, () -> {
+            graph.traversal().E(id).next();
         });
     }
 
@@ -495,8 +496,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         init18Edges();
 
         String id = "invalid-id";
-        Assert.assertThrows(HugeException.class, () -> {
-            graph.traversal().E(id).toList();
+        Assert.assertTrue(graph.traversal().E(id).toList().isEmpty());
+        Assert.assertThrows(NotFoundException.class, () -> {
+            graph.traversal().E(id).next();
         });
     }
 
