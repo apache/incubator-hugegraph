@@ -95,7 +95,7 @@ public class CoreOptions extends OptionHolder {
 
     public static final ConfigOption<String> DEFAULT_VERTEX_LABEL =  new ConfigOption<>(
             "vertex.default_label",
-            "v",
+            "vertex",
             true,
             "The default vertex label.",
             disallowEmpty(String.class));
