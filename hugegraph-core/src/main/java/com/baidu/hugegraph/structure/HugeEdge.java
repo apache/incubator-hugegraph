@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -39,7 +40,6 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
-import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
@@ -119,12 +119,10 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         if (sortKeys.isEmpty()) {
             return ImmutableList.of();
         }
-        Iterator<Property<Object>> props = this.properties(
-                sortKeys.toArray(new String[0]));
 
         List<Object> propValues = new ArrayList<>(sortKeys.size());
-        while (props.hasNext()) {
-            propValues.add(props.next().value());
+        for (String sk : sortKeys) {
+            propValues.add(this.property(sk).value());
         }
         return propValues;
     }
