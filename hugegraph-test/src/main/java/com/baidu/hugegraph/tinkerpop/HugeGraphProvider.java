@@ -136,6 +136,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
             confMap.put(key, config.getProperty(key));
         }
         confMap.put(CoreOptions.STORE.name(), graphName);
+        confMap.put("gremlin.graph",
+                    "com.baidu.hugegraph.tinkerpop.TestGraphFactory");
 
         return confMap;
     }
@@ -158,13 +160,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     }
 
     private TestGraph newTestGraph(final Configuration config) {
-        HugeGraph graph = (HugeGraph) super.openTestGraph(config);
+        TestGraph testGraph = ((TestGraph) super.openTestGraph(config));
 
+        HugeGraph graph = testGraph.hugeGraph();
         graph.clearBackend();
         graph.initBackend();
         graph.tx().open();
 
-        return new TestGraph(graph);
+        return testGraph;
     }
 
     @Override
