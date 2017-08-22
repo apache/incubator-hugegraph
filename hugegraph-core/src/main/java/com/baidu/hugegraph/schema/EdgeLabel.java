@@ -69,7 +69,7 @@ public class EdgeLabel extends SchemaLabel {
         this.frequency = frequency;
     }
 
-    public boolean isDirected() {
+    public boolean directed() {
         // TODO: implement (do we need this method?)
         return true;
     }

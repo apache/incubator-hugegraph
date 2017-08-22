@@ -126,7 +126,12 @@ public class IndexLabel extends SchemaElement {
 
     // TODO: Print the element name instead of object may lead custom confused.
     private String baseLabelSchema() {
-        return String.format(".on(%s)", this.baseValue);
+        if (this.baseType == HugeType.VERTEX_LABEL) {
+            return String.format(".onV(\"%s\")", this.baseValue);
+        } else {
+            assert this.baseType == HugeType.EDGE_LABEL;
+            return String.format(".onE(\"%s\")", this.baseValue);
+        }
     }
 
     private String indexFieldsSchema() {
