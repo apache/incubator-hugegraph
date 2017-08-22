@@ -36,9 +36,10 @@ import java.util.Iterator;
 
 public class TestGraph implements Graph {
 
+    public static final String DEFAULT_VL = "vertex";
+
     private HugeGraph graph;
     private boolean loadedGraph = false;
-    public String defaultVL = "vertex";
 
     public TestGraph(HugeGraph graph) {
         this.graph = graph;
@@ -71,15 +72,27 @@ public class TestGraph implements Graph {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
+        boolean needRedefinSchema = false;
+        IdStrategy idStrategy = IdStrategy.AUTOMATIC;
+        String defaultVL = DEFAULT_VL;
 
-        for (Object obj : keyValues) {
-            if (obj.equals(T.id)) {
-                this.clearSchema();
-                this.tx().commit();
-                this.initBasicSchema(IdStrategy.CUSTOMIZE);
-                this.tx().commit();
-                break;
+        for (int i = 0; i < keyValues.length; i += 2) {
+            if (keyValues[i].equals(T.id)) {
+                needRedefinSchema = true;
+                idStrategy = IdStrategy.CUSTOMIZE;
+            } else if (keyValues[i].equals(T.label) &&
+                       "person".equals(keyValues[i + 1]) &&
+                       !loadedGraph) {
+                needRedefinSchema = true;
+                defaultVL = "person";
             }
+        }
+
+        if (needRedefinSchema) {
+            this.clearSchema();
+            this.tx().commit();
+            this.initBasicSchema(idStrategy, defaultVL);
+            this.tx().commit();
         }
 
         return this.graph.addVertex(keyValues);
@@ -177,13 +190,14 @@ public class TestGraph implements Graph {
         schema.vertexLabel("software").properties("id", "name", "lang")
               .ifNotExist().create();
         schema.vertexLabel("dog").properties("name").ifNotExist().create();
-        schema.vertexLabel("vertex").properties("name", "age")
-              .ifNotExist().create();
 
         schema.edgeLabel("knows").link("person", "person")
               .properties("weight", "year").ifNotExist().create();
         schema.edgeLabel("created").link("person", "software")
               .properties("weight").ifNotExist().create();
+
+        schema.vertexLabel(DEFAULT_VL).properties("name", "age")
+              .ifNotExist().create();
     }
 
     public void initClassicSchema() {
@@ -204,10 +218,10 @@ public class TestGraph implements Graph {
               .properties("weight").ifNotExist().create();
     }
 
-    public void initBasicSchema(IdStrategy idStrategy) {
+    public void initBasicSchema(IdStrategy idStrategy, String defaultVL) {
         this.initBasicPropertyKey();
-        this.initBasicVertexLabelV(idStrategy);
-        this.initBasicVertexLabelAndEdgeLabelExceptV();
+        this.initBasicVertexLabelV(idStrategy, defaultVL);
+        this.initBasicVertexLabelAndEdgeLabelExceptV(defaultVL);
     }
 
     private void initBasicPropertyKey() {
@@ -251,7 +265,8 @@ public class TestGraph implements Graph {
 
     }
 
-    private void initBasicVertexLabelV(IdStrategy idStrategy) {
+    private void initBasicVertexLabelV(IdStrategy idStrategy,
+                                       String defaultVL) {
         SchemaManager schema = this.graph.schema();
         switch (idStrategy) {
             case CUSTOMIZE:
@@ -280,7 +295,7 @@ public class TestGraph implements Graph {
         }
     }
 
-    private void initBasicVertexLabelAndEdgeLabelExceptV() {
+    private void initBasicVertexLabelAndEdgeLabelExceptV(String defaultVL) {
         SchemaManager schema = this.graph.schema();
 
         schema.vertexLabel("person").properties("name")

@@ -153,7 +153,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         TestGraph testGraph = this.graphs.get(graphName);
 
         // Basic schema is initiated by default once a graph is open
-        testGraph.initBasicSchema(IdStrategy.AUTOMATIC);
+        testGraph.initBasicSchema(IdStrategy.AUTOMATIC, TestGraph.DEFAULT_VL);
         testGraph.tx().commit();
 
         return testGraph;
