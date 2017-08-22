@@ -34,6 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -49,7 +50,6 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
@@ -142,12 +142,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         E.checkArgument(!primaryKeys.isEmpty(),
                         "Primary key can't be empty for id strategy '%s'",
                         IdStrategy.PRIMARY_KEY);
-        Iterator<VertexProperty<Object>> props =
-                this.properties(primaryKeys.toArray(new String[0]));
 
         List<Object> propValues = new ArrayList<>(primaryKeys.size());
-        while (props.hasNext()) {
-            propValues.add(props.next().value());
+        for (String pk : primaryKeys) {
+            propValues.add(this.property(pk).value());
         }
         return propValues;
     }

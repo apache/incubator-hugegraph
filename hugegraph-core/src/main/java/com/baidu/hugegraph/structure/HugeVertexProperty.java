@@ -21,10 +21,10 @@ package com.baidu.hugegraph.structure;
 
 import java.util.Iterator;
 
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
 
@@ -68,7 +68,8 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
         if (!(obj instanceof VertexProperty)) {
             return false;
         }
-        VertexProperty other = (VertexProperty) obj;
+        @SuppressWarnings("unchecked")
+        VertexProperty<V> other = (VertexProperty<V>) obj;
         return this.id().equals(other.id());
     }
 }
