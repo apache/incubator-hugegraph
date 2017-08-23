@@ -51,7 +51,7 @@ public final class HugeVertexStep<E extends Element>
 
     private static final Logger LOG = Log.logger(HugeVertexStep.class);
 
-    private final List<HasContainer> hasContainers = new ArrayList<>();
+    private final List<HasContainer> hasContainers;
 
     public HugeVertexStep(final VertexStep<E> originVertexStep) {
         super(originVertexStep.getTraversal(),
@@ -59,6 +59,7 @@ public final class HugeVertexStep<E extends Element>
               originVertexStep.getDirection(),
               originVertexStep.getEdgeLabels());
         originVertexStep.getLabels().forEach(this::addLabel);
+        hasContainers = new ArrayList<>();
     }
 
     @SuppressWarnings("unchecked")
