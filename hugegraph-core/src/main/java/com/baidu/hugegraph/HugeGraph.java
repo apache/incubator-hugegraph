@@ -89,7 +89,7 @@ public class HugeGraph implements Graph {
     private HugeConfig configuration;
 
     // Store provider like Cassandra
-    private BackendStoreProvider storeProvider = null;
+    private BackendStoreProvider storeProvider;
 
     // Default transactions
     private ThreadLocal<GraphTransaction> graphTransaction;
@@ -105,6 +105,8 @@ public class HugeGraph implements Graph {
 
         this.graphTransaction = new ThreadLocal<>();
         this.schemaTransaction = new ThreadLocal<>();
+
+        this.storeProvider = null;
 
         try {
             this.initTransaction();

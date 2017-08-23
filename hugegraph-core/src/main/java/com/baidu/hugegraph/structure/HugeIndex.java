@@ -33,13 +33,14 @@ import com.baidu.hugegraph.type.define.IndexType;
 
 public class HugeIndex implements GraphType {
 
-    private Object fieldValues = null;
+    private Object fieldValues;
     private final IndexLabel label;
     private final Set<Id> elementIds;
 
     public HugeIndex(IndexLabel indexLabel) {
         this.label = indexLabel;
         this.elementIds = new LinkedHashSet<>();
+        this.fieldValues = null;
     }
 
     @Override

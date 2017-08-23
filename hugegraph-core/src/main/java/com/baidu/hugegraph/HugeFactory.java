@@ -29,7 +29,6 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
 
-
 public class HugeFactory {
 
     public static HugeGraph open(Configuration config) {

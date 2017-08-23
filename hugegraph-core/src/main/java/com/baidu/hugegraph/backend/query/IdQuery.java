@@ -37,7 +37,7 @@ public class IdQuery extends Query {
 
     public IdQuery(HugeType resultType, Set<Id> ids) {
         super(resultType);
-        this.ids = ids;
+        this.ids = new LinkedHashSet<>(ids);
     }
 
     public IdQuery(HugeType resultType, Id id) {

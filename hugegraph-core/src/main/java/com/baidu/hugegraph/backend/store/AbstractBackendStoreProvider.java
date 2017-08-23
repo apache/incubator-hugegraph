@@ -31,10 +31,15 @@ import com.baidu.hugegraph.util.Events;
 public abstract class AbstractBackendStoreProvider
                 implements BackendStoreProvider {
 
-    protected String name;
-    protected Map<String, BackendStore> stores;
+    protected String name = null;
+    protected Map<String, BackendStore> stores = null;
 
     private EventHub storeEventHub = new EventHub("store");
+
+    protected void checkOpened() {
+        E.checkState(this.name != null && this.stores != null,
+                     "The BackendStoreProvider has not been opened");
+    }
 
     @Override
     public void listen(EventListener listener) {
@@ -43,12 +48,14 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public String name() {
+        this.checkOpened();
         return this.name;
     }
 
     @Override
     public void open(String name) {
-        E.checkNotNull(name, "store name");
+        E.checkArgumentNotNull(name, "The store name can't be null");
+        E.checkArgument(!name.isEmpty(), "The store name can't be empty");
 
         this.name = name;
         this.stores = new ConcurrentHashMap<>();
@@ -58,6 +65,7 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void close() throws BackendException {
+        this.checkOpened();
         for (BackendStore store : this.stores.values()) {
             // TODO: catch exceptions here
             store.close();
@@ -67,6 +75,7 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void init() {
+        this.checkOpened();
         for (BackendStore store : this.stores.values()) {
             store.init();
         }
@@ -75,6 +84,7 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void clear() throws BackendException {
+        this.checkOpened();
         for (BackendStore store : this.stores.values()) {
             store.clear();
         }

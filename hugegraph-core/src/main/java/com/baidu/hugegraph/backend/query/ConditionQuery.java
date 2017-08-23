@@ -37,11 +37,12 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableSet;
 
 public class ConditionQuery extends IdQuery {
 
     // Conditions will be concated with `and` by default
-    private Set<Condition> conditions;
+    private Set<Condition> conditions = null;
 
     public ConditionQuery(HugeType resultType) {
         super(resultType);
@@ -101,6 +102,9 @@ public class ConditionQuery extends IdQuery {
 
     @Override
     public Set<Condition> conditions() {
+        if (this.conditions == null) {
+            return ImmutableSet.of();
+        }
         return Collections.unmodifiableSet(this.conditions);
     }
 

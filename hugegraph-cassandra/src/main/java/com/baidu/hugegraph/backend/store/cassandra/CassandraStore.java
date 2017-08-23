@@ -44,19 +44,18 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 
-
 public abstract class CassandraStore implements BackendStore {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
 
     private final String name;
-    private final BackendStoreProvider provider;
     private final String keyspace;
+
+    private final BackendStoreProvider provider;
+
     private CassandraSessionPool sessions;
-
-    private Map<HugeType, CassandraTable> tables = null;
-
-    private HugeConfig conf = null;
+    private Map<HugeType, CassandraTable> tables;
+    private HugeConfig conf;
 
     public CassandraStore(final BackendStoreProvider provider,
                           final String keyspace, final String name) {
@@ -64,10 +63,14 @@ public abstract class CassandraStore implements BackendStore {
         E.checkNotNull(name, "name");
 
         this.provider = provider;
+
         this.keyspace = keyspace;
         this.name = name;
+
         this.sessions = new CassandraSessionPool(this.keyspace);
         this.tables = new ConcurrentHashMap<>();
+
+        this.conf = null;
 
         this.initTableManagers();
 
@@ -88,13 +91,14 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void open(HugeConfig config) {
+        E.checkNotNull(config, "config");
+
         if (this.sessions.opened()) {
             // TODO: maybe we should throw an exception here instead of ignore
             LOG.debug("Store {} has been opened before", this.name);
             this.sessions.useSession();
             return;
         }
-        assert config != null;
         this.conf = config;
 
         String hosts = config.get(CassandraOptions.CASSANDRA_HOST);

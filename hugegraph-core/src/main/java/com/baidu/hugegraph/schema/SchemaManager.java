@@ -25,12 +25,14 @@ import java.util.List;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 
 public class SchemaManager {
 
     private final SchemaTransaction transaction;
 
     public SchemaManager(SchemaTransaction transaction) {
+        E.checkNotNull(transaction, "transaction");
         this.transaction = transaction;
     }
 

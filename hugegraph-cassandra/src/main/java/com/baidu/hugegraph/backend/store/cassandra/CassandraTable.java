@@ -62,12 +62,12 @@ import com.google.common.collect.ImmutableList;
 
 public abstract class CassandraTable {
 
-    private static final Logger LOG = Log.logger(CassandraStore.class);
-
     private interface MetaHandler {
         public Object handle(CassandraSessionPool.Session session,
                              String meta, Object... args);
     }
+
+    private static final Logger LOG = Log.logger(CassandraStore.class);
 
     private final String table;
 

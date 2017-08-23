@@ -19,14 +19,13 @@
 
 package com.baidu.hugegraph.schema;
 
-import static com.baidu.hugegraph.config.CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -38,7 +37,6 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
-import com.baidu.hugegraph.util.StringUtil;
 
 public class IndexLabel extends SchemaElement {
 
@@ -167,7 +165,7 @@ public class IndexLabel extends SchemaElement {
         public IndexLabel create() {
             String name = this.indexLabel.name();
             HugeConfig config = this.transaction.graph().configuration();
-            checkName(name, config.get(SCHEMA_ILLEGAL_NAME_REGEX));
+            checkName(name, config.get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX));
 
             IndexLabel indexLabel = this.transaction.getIndexLabel(name);
             if (indexLabel != null) {

@@ -43,7 +43,8 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected static final Logger LOG = Log.logger(Transaction.class);
 
-    private Thread ownerThread = Thread.currentThread();
+    private final Thread ownerThread = Thread.currentThread();
+
     private boolean autoCommit = false;
     private boolean closed = false;
 
@@ -52,7 +53,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     private BackendMutation mutation;
 
-    protected AbstractSerializer serializer;
+    protected final AbstractSerializer serializer;
 
     public AbstractTransaction(HugeGraph graph, BackendStore store) {
         E.checkNotNull(graph, "graph");
