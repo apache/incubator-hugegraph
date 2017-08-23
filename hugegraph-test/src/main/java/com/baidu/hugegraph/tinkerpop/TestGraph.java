@@ -19,7 +19,10 @@
 
 package com.baidu.hugegraph.tinkerpop;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -43,6 +46,7 @@ public class TestGraph implements Graph {
     private HugeGraph graph;
     private boolean loadedGraph = false;
     private boolean isLastIdCustomized = false;
+    private static volatile int id = 666;
 
     public TestGraph(HugeGraph graph) {
         this.graph = graph;
@@ -75,31 +79,41 @@ public class TestGraph implements Graph {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
-        boolean needRedefinSchema = false;
+        boolean needRedefineSchema = false;
+        boolean hasId = false;
         IdStrategy idStrategy = IdStrategy.AUTOMATIC;
         String defaultVL = DEFAULT_VL;
 
         for (int i = 0; i < keyValues.length; i += 2) {
-            if (keyValues[i].equals(T.id) && !isLastIdCustomized) {
-                needRedefinSchema = true;
-                idStrategy = IdStrategy.CUSTOMIZE;
+            if (keyValues[i].equals(T.id)) {
+                hasId = true;
+                if (!this.isLastIdCustomized) {
+                    needRedefineSchema = true;
+                    idStrategy = IdStrategy.CUSTOMIZE;
+                }
             }
 
             if (keyValues[i].equals(T.label) &&
                 "person".equals(keyValues[i + 1]) &&
-                !loadedGraph) {
-                needRedefinSchema = true;
+                !this.loadedGraph) {
+                needRedefineSchema = true;
                 defaultVL = "person";
             }
         }
 
-        if (needRedefinSchema) {
+        if (needRedefineSchema) {
             this.clearSchema();
             this.tx().commit();
             this.initBasicSchema(idStrategy, defaultVL);
             this.tx().commit();
 
-            isLastIdCustomized = idStrategy == IdStrategy.CUSTOMIZE;
+            this.isLastIdCustomized = idStrategy == IdStrategy.CUSTOMIZE;
+        }
+        if (!hasId && this.isLastIdCustomized) {
+            List<Object> kvs = new ArrayList<>(Arrays.asList(keyValues));
+            kvs.add(T.id);
+            kvs.add(String.valueOf(id++));
+            keyValues = kvs.toArray();
         }
 
         return this.graph.addVertex(keyValues);
