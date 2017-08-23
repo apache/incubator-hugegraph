@@ -39,8 +39,11 @@ public final class HugeGraphStepStrategy
 
     private static final long serialVersionUID = -2952498905649139719L;
 
-    private static final HugeGraphStepStrategy INSTANCE =
-                                               new HugeGraphStepStrategy();
+    private static final HugeGraphStepStrategy INSTANCE;
+
+    static {
+        INSTANCE = new HugeGraphStepStrategy();
+    }
 
     private HugeGraphStepStrategy() {
         // pass

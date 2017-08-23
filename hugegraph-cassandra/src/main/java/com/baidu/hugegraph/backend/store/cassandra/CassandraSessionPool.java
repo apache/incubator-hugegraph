@@ -23,10 +23,10 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Metadata;
@@ -44,6 +44,7 @@ public class CassandraSessionPool {
     private AtomicInteger sessionCount;
 
     public CassandraSessionPool(String keyspace) {
+        this.cluster = null;
         this.keyspace = keyspace;
 
         this.threadLocalSession = new ThreadLocal<>();
@@ -55,6 +56,7 @@ public class CassandraSessionPool {
             throw new BackendException("Please close the old SessionPool " +
                                        "before opening a new one");
         }
+        assert this.cluster == null;
         this.cluster = Cluster.builder()
                        .addContactPoints(hosts.split(","))
                        .withPort(port)
@@ -66,12 +68,16 @@ public class CassandraSessionPool {
     }
 
     public final synchronized Cluster cluster() {
+        E.checkState(this.cluster != null,
+                     "Cassandra cluster has not been initialized");
         return this.cluster;
     }
 
     public final synchronized Session session() {
         Session session = this.threadLocalSession.get();
         if (session == null) {
+            E.checkState(this.cluster != null,
+                         "Cassandra cluster has not been initialized");
             session = new Session(this.cluster.connect(this.keyspace));
             this.threadLocalSession.set(session);
             this.sessionCount.incrementAndGet();

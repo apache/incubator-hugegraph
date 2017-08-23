@@ -68,9 +68,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
         super(graph, id);
-        this.tx = null;
         this.label = label;
         this.edges = new LinkedHashSet<>();
+        this.tx = null;
+        this.name = null;
     }
 
     @Override

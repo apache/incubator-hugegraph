@@ -59,6 +59,7 @@ public final class HugeGraphStep<S, E extends Element>
     private static final Logger LOG = Log.logger(HugeGraphStep.class);
 
     private final List<HasContainer> hasContainers = new ArrayList<>();
+
     private long limit = Query.NO_LIMIT;
     private long offset = 0L;
 

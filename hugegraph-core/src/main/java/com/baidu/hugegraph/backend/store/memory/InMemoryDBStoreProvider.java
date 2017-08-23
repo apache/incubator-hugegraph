@@ -37,6 +37,7 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
     private BackendStore load(String name) {
         LOG.info("InMemoryDBStoreProvider load '{}'", name);
 
+        this.checkOpened();
         if (!this.stores.containsKey(name)) {
             this.stores.putIfAbsent(name, new InMemoryDBStore(this, name));
         }

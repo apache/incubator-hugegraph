@@ -38,8 +38,11 @@ public final class HugeVertexStepStrategy
 
     private static final long serialVersionUID = 491355700217483162L;
 
-    private static final HugeVertexStepStrategy INSTANCE =
-                                                new HugeVertexStepStrategy();
+    private static final HugeVertexStepStrategy INSTANCE;
+
+    static {
+        INSTANCE = new HugeVertexStepStrategy();
+    }
 
     private HugeVertexStepStrategy() {
         // pass

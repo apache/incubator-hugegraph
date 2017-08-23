@@ -34,13 +34,17 @@ public class HugeFeatures implements Graph.Features {
 
     protected final HugeGraph graph;
     protected final boolean supportsPersistence;
-    protected final HugeGraphFeatures graphFeatures = new HugeGraphFeatures();
-    protected final HugeVertexFeatures vertexFeatures = new HugeVertexFeatures();
-    protected final HugeEdgeFeatures edgeFeatures = new HugeEdgeFeatures();
+    protected final HugeGraphFeatures graphFeatures;
+    protected final HugeVertexFeatures vertexFeatures;
+    protected final HugeEdgeFeatures edgeFeatures;
 
     public HugeFeatures(HugeGraph graph, boolean supportsPersistence) {
         this.graph = graph;
         this.supportsPersistence = supportsPersistence;
+
+        this.graphFeatures = new HugeGraphFeatures();
+        this.vertexFeatures = new HugeVertexFeatures();
+        this.edgeFeatures = new HugeEdgeFeatures();
     }
 
     @Override
