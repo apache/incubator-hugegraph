@@ -44,7 +44,6 @@ public class ConditionQuery extends IdQuery {
 
     public ConditionQuery(HugeType resultType) {
         super(resultType);
-        this.conditions = new LinkedHashSet<>();
     }
 
     public ConditionQuery query(Condition condition) {
@@ -59,6 +58,9 @@ public class ConditionQuery extends IdQuery {
             }
         }
 
+        if (this.conditions == null) {
+            this.conditions = new LinkedHashSet<>();
+        }
         this.conditions.add(condition);
         return this;
     }
