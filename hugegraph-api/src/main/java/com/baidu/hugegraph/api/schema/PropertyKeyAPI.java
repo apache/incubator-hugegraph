@@ -62,7 +62,7 @@ public class PropertyKeyAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         PropertyKey propertyKey = jsonPropertyKey.convert2PropertyKey();
-        g.schema().propertyKey(propertyKey).create();
+        propertyKey = g.schema().propertyKey(propertyKey).create();
 
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
