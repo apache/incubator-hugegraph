@@ -85,6 +85,10 @@ public class TestGraph implements Graph {
         String defaultVL = DEFAULT_VL;
 
         for (int i = 0; i < keyValues.length; i += 2) {
+            if(keyValues[i] == null){
+                continue;
+            }
+
             if (keyValues[i].equals(T.id)) {
                 hasId = true;
                 if (!this.isLastIdCustomized) {
@@ -94,6 +98,7 @@ public class TestGraph implements Graph {
             }
 
             if (keyValues[i].equals(T.label) &&
+                i + 1 < keyValues.length &&
                 "person".equals(keyValues[i + 1]) &&
                 !this.loadedGraph) {
                 needRedefineSchema = true;
@@ -185,6 +190,60 @@ public class TestGraph implements Graph {
 
     public void isLastIdCustomized(boolean isLastIdCustomized) {
         this.isLastIdCustomized = isLastIdCustomized;
+    }
+
+    public void initPropertyKey(String key, String type) {
+        SchemaManager schema = this.graph.schema();
+
+        switch (type) {
+            case "Boolean":
+                schema.propertyKey(key).asBoolean().ifNotExist().create();
+                break;
+            case "Integer":
+                schema.propertyKey(key).asInt().ifNotExist().create();
+                break;
+            case "Long":
+                schema.propertyKey(key).asLong().ifNotExist().create();
+                break;
+            case "Float":
+                schema.propertyKey(key).asFloat().ifNotExist().create();
+                break;
+            case "Double":
+                schema.propertyKey(key).asDouble().ifNotExist().create();
+                break;
+            case "String":
+                schema.propertyKey(key).ifNotExist().create();
+                break;
+            case "IntegerArray":
+                schema.propertyKey(key).asInt().valueList()
+                      .ifNotExist().create();
+                break;
+            case "LongArray":
+                schema.propertyKey(key).asLong().valueList()
+                      .ifNotExist().create();
+                break;
+            case "FloatArray":
+                schema.propertyKey(key).asFloat().valueList()
+                      .ifNotExist().create();
+                break;
+            case "DoubleArray":
+                schema.propertyKey(key).asDouble().valueList()
+                      .ifNotExist().create();
+                break;
+            case "StringArray":
+                schema.propertyKey(key).valueList().ifNotExist().create();
+                break;
+            case "UniformList":
+                schema.propertyKey(key).valueList().ifNotExist().create();
+                break;
+            case "MixedList":
+            case "Map":
+            case "Serializable":
+            default:
+                throw new RuntimeException(
+                          String.format("Wrong type %s for %s", type, key));
+        }
+
     }
 
     public void initGratefulSchema() {
@@ -281,7 +340,6 @@ public class TestGraph implements Graph {
         schema.propertyKey("long").asLong().ifNotExist().create();
         schema.propertyKey("x").asInt().ifNotExist().create();
         schema.propertyKey("y").asInt().ifNotExist().create();
-        schema.propertyKey("aKey").asDouble().ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
         schema.propertyKey("lang").ifNotExist().create();
         schema.propertyKey("weight").asDouble().ifNotExist().create();
@@ -298,7 +356,8 @@ public class TestGraph implements Graph {
         schema.propertyKey("myEdgeId").asInt().ifNotExist().create();
         schema.propertyKey("state").ifNotExist().create();
         schema.propertyKey("acl").ifNotExist().create();
-
+        schema.propertyKey("stars").asInt().ifNotExist().create();
+        schema.propertyKey("aKey").ifNotExist().create();
     }
 
     private void initBasicVertexLabelV(IdStrategy idStrategy,
@@ -347,7 +406,7 @@ public class TestGraph implements Graph {
         schema.edgeLabel("knows").link(defaultVL, defaultVL)
               .properties("data", "test", "year", "boolean", "float",
                           "double", "string", "integer", "long",
-                          "myEdgeId", "since")
+                          "myEdgeId", "since", "acl", "stars", "aKey")
               .ifNotExist().create();
         schema.edgeLabel("test").link(defaultVL, defaultVL)
               .properties("test", "xxx", "yyy").ifNotExist().create();
