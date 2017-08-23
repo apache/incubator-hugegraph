@@ -21,3 +21,16 @@ org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetin
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionIsolationCommitCheck: Hang the tests with unknown reason now
 
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldHaveExceptionConsistencyWhenAssigningSameIdOnVertex: Assigning the same ID to an Element is accepted(override), but tinkerpop expect throw an exception
+
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsMapValues({testInteger=123, testString=try})]: Not support map data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsMapValues({testInteger=123, testString=try})]: Not support map data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsMapValues({testInteger=123, testString=try})]: Not support map data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsMapValues({testInteger=123, testString=try})]: Not support map data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable@c267ef4)]: Not support serializable data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable@c267ef4)]: Not support serializable data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable@c267ef4)]: Not support serializable data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable@c267ef4)]: Not support serializable data type of property key
