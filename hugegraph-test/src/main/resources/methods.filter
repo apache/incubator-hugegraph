@@ -12,16 +12,7 @@ org.apache.tinkerpop.gremlin.structure.GraphTest.shouldOverwriteEarlierKeyValues
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldNotHaveAConcurrentModificationExceptionWhenIteratingAndRemovingAddingEdges: Not support vertex.edges(Direction.BOTH)
 org.apache.tinkerpop.gremlin.structure.util.star.StarGraphTest.shouldHandleSelfLoops: Self loop vertex only have 1 edge, this test expect 2 edges(1 IN and 1 OUT)
 
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringSupportUsingStarVertex: addVertex with T.id, then addVertex without T.id
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingStringRepresentations: addVertex with T.id, then addVertex without T.id
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldAddVertexWithUserSuppliedStringId: addVertex with T.id, then addVertex without T.id
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingVertexId: addVertex with T.id, then addVertex without T.id
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingVertices: addVertex with T.id, then addVertex without T.id
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringSupportUsingReferenceVertex: addVertex with T.id, then addVertex without T.id
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingVertexIds: addVertex with T.id, then addVertex without T.id
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingStringRepresentation: addVertex with T.id, then addVertex without T.id
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringIdSupportUsingVertex: addVertex with T.id, then addVertex without T.id
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldIterateVerticesWithStringSupportUsingDetachedVertex: addVertex with T.id, then addVertex without T.id
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldAddVertexWithUserSuppliedStringId: expect vertex.id is String type
 
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
