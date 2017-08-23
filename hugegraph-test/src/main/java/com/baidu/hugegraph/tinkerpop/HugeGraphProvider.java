@@ -62,6 +62,9 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     private static String FILETER_FILE = "methods.filter";
     private static Map<String, String> blackMethods = new HashMap<>();
     private Map<String, TestGraph> graphs = new HashMap<>();
+    private static final String AKEY_CLASS_PREFIX =
+            "org.apache.tinkerpop.gremlin.structure." +
+            "PropertyTest.PropertyFeatureSupportTest";
 
     public HugeGraphProvider() throws IOException {
         super();
@@ -139,8 +142,19 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         confMap.put(CoreOptions.STORE.name(), graphName);
         confMap.put("gremlin.graph",
                     "com.baidu.hugegraph.tinkerpop.TestGraphFactory");
+        confMap.put("testClass", test.getCanonicalName());
+        confMap.put("testMethod", testMethod);
 
         return confMap;
+    }
+
+    private static String getAKeyType(String clazz, String method) {
+        if (clazz.startsWith(AKEY_CLASS_PREFIX)) {
+            String type = method.substring(method.indexOf('[') + 9,
+                                           method.indexOf('(') - 6);
+            return type;
+        }
+        return null;
     }
 
     @Override
@@ -157,8 +171,17 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         if (!testGraph.tx().isOpen()) {
             testGraph.tx().open();
         }
+
+        // Define property key 'aKey' based on specified type in test name
+        String aKeyType = getAKeyType(config.getString("testClass"),
+                                      config.getString("testMethod"));
+        if (aKeyType != null) {
+            testGraph.initPropertyKey("aKey", aKeyType);
+        }
+
         // Basic schema is initiated by default once a graph is open
-        testGraph.initBasicSchema(IdStrategy.AUTOMATIC, TestGraph.DEFAULT_VL);
+        testGraph.initBasicSchema(IdStrategy.AUTOMATIC,
+                                  TestGraph.DEFAULT_VL);
         testGraph.tx().commit();
 
         testGraph.isLastIdCustomized(false);
