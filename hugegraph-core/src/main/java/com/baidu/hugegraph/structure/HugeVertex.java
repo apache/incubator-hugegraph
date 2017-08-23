@@ -172,6 +172,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... properties) {
+        ElementHelper.legalPropertyKeyValueArray(properties);
         E.checkArgument(label != null && !label.isEmpty(),
                         "Vertex label can't be null or empty");
         E.checkArgumentNotNull(vertex, "Target vertex can't be null");
