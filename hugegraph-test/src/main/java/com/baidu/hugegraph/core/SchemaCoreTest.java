@@ -1068,6 +1068,68 @@ public class SchemaCoreTest extends BaseCoreTest{
     }
 
     @Test
+    public void testAddIndexlabelOnUndefinedSchemaLabel() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorByName").onV("undefined-vertex-label")
+                  .by("name").secondary().create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authoredByContri").onE("undefined-edge-label")
+                  .by("contribution").secondary().create();
+        });
+    }
+
+    @Test
+    public void testAddIndexlabelByUndefinedProperty() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("author").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.vertexLabel("book").properties("name")
+              .primaryKeys("name").create();
+        schema.edgeLabel("authored").singleTime().link("author", "book")
+              .properties("contribution").create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorByData").onV("author")
+                  .by("undefined-property").secondary().create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authoredByData").onE("authored")
+                  .by("undefined-property").secondary().create();
+        });
+    }
+
+    @Test
+    public void testAddIndexlabelByUnbelongedProperty() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("author").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.vertexLabel("book").properties("name")
+              .primaryKeys("name").create();
+        schema.edgeLabel("authored").singleTime().link("author", "book")
+              .properties("contribution").create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("bookById").onV("book")
+                  .by("id").secondary().create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authoredByName").onE("authored")
+                  .by("name").secondary().create();
+        });
+    }
+
+    @Test
     public void testRemoveIndexLabelOfVertex() {
         initProperties();
         SchemaManager schema = graph().schema();
