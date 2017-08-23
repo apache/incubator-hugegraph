@@ -21,6 +21,7 @@ package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -172,18 +173,12 @@ public class IndexLabel extends SchemaElement {
                 return indexLabel;
             }
 
-            this.checkFields();
-
             SchemaLabel schemaLabel = this.loadElement();
             E.checkArgumentNotNull(schemaLabel,
                     "Can't build index for %s which does not exist",
                     this.indexLabel.baseValue);
 
-            E.checkArgument(
-                    CollectionUtil.containsAll(schemaLabel.properties,
-                                               this.indexLabel.indexFields),
-                    "Not all index fields '%s' are in schema properties '%s'",
-                    this.indexLabel.indexFields, schemaLabel.properties);
+            this.checkFields(schemaLabel.properties);
 
             // TODO: should wrap update and add operation in one transaction.
             this.updateSchemaIndexName(schemaLabel);
@@ -290,30 +285,39 @@ public class IndexLabel extends SchemaElement {
             }
         }
 
-        private void checkFields() {
-            E.checkNotEmpty(this.indexLabel.indexFields,
-                            "index fields", this.indexLabel.name);
+        private void checkFields(Set<String> properties) {
+            List<String> fields = this.indexLabel.indexFields;
+            E.checkNotEmpty(fields, "index fields", this.indexLabel.name);
+
+            E.checkArgument(CollectionUtil.containsAll(properties, fields),
+                            "Not all index fields '%s' are contained in " +
+                            "schema properties '%s'", fields, properties);
+
+            for (String field : fields) {
+                PropertyKey pk = this.transaction.getPropertyKey(field);
+                // In general this will not happen
+                E.checkArgumentNotNull(pk, "Can't build index on undefined " +
+                                       "property key '%s' for '%s': '%s'",
+                                       field, this.indexLabel.baseType,
+                                       this.indexLabel.baseValue);
+                E.checkArgument(pk.cardinality() == Cardinality.SINGLE,
+                                "Not allowed to build index on property key " +
+                                "'%s' whose cardinality is list or set.",
+                                pk.name());
+            }
+
             // Search index must build on single numeric column
             if (this.indexLabel.indexType == IndexType.SEARCH) {
-                E.checkArgument(this.indexLabel.indexFields.size() == 1,
+                E.checkArgument(fields.size() == 1,
                                 "Search index can only build on " +
                                 "one property, but got %s properties: '%s'",
-                                this.indexLabel.indexFields.size(),
-                                this.indexLabel.indexFields);
-                String field = this.indexLabel.indexFields.iterator().next();
+                                fields.size(), fields);
+                String field = fields.iterator().next();
                 PropertyKey pk = this.transaction.getPropertyKey(field);
                 E.checkArgument(NumericUtil.isNumber(pk.dataType().clazz()),
                                 "Search index can only build on " +
                                 "numeric property, but got %s(%s)",
                                 pk.dataType(), pk.name());
-            }
-
-            for (String field : this.indexLabel.indexFields) {
-                PropertyKey pk = this.transaction.getPropertyKey(field);
-                E.checkArgument(pk.cardinality() == Cardinality.SINGLE,
-                                "Not allowed to build index on property key " +
-                                "'%s' that cardinality is list or set.",
-                                pk.name());
             }
         }
 
