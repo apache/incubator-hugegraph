@@ -33,7 +33,6 @@ public class BinaryBackendEntry implements BackendEntry {
 
     public BinaryBackendEntry(Id id) {
         this.id = id;
-        this.columns = new ArrayList<>();
     }
 
     @Override
@@ -61,6 +60,9 @@ public class BinaryBackendEntry implements BackendEntry {
     }
 
     public void column(BackendColumn column) {
+        if (this.columns == null) {
+            this.columns = new ArrayList<>();
+        }
         this.columns.add(column);
     }
 
