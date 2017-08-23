@@ -63,7 +63,7 @@ public class EdgeLabelAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
-        g.schema().edgeLabel(edgeLabel).create();
+        edgeLabel = g.schema().edgeLabel(edgeLabel).create();
 
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
