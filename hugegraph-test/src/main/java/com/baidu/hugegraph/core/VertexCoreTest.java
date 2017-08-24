@@ -22,25 +22,25 @@ package com.baidu.hugegraph.core;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.core.FakeObjects.FakeVertex;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class VertexCoreTest extends BaseCoreTest {
 
@@ -55,7 +55,7 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("dynamic").asBoolean().create();
         schema.propertyKey("time").asText().create();
         schema.propertyKey("age").asInt().valueSingle().create();
-        schema.propertyKey("comment").asText().valueSet().create();
+        schema.propertyKey("comment").asText().valueList().create();
         schema.propertyKey("contribution").asText().valueSet().create();
         schema.propertyKey("lived").asText().create();
         schema.propertyKey("city").asText().create();
@@ -70,13 +70,11 @@ public class VertexCoreTest extends BaseCoreTest {
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-
         schema.vertexLabel("computer")
               .properties("name", "band", "cpu", "ram", "price")
               .primaryKeys("name", "band")
               .ifNotExist()
               .create();
-
         schema.vertexLabel("author")
               .properties("id", "name", "age", "lived")
               .primaryKeys("id")
@@ -88,6 +86,10 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.vertexLabel("book")
               .properties("name")
               .primaryKeys("name")
+              .create();
+        schema.vertexLabel("review")
+              .properties("id", "comment", "contribution")
+              .primaryKeys("id")
               .create();
 
         LOG.info("===============  vertexLabel index  ================");
@@ -127,6 +129,102 @@ public class VertexCoreTest extends BaseCoreTest {
 
         long count = graph.traversal().V().count().next();
         Assert.assertEquals(6, count);
+    }
+
+    @Test
+    public void testAddVertexWithInvalidPropertyType() {
+        HugeGraph graph = graph();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "book", "name", 18);
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "person", "name", "Baby",
+                            "city", "Hongkong", "age", "should-be-int");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithPropertyList() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "review", "id", 1,
+                                        "comment", "looks good!",
+                                        "comment", "LGTM!");
+        vertex = vertex("review", "id", 1);
+        Assert.assertEquals(ImmutableList.of("looks good!", "LGTM!"),
+                            vertex.property("comment").value());
+
+        vertex = graph.addVertex(T.label, "review", "id", 2,
+                                 "comment",
+                                 ImmutableList.of("looks good 2!", "LGTM!"));
+        vertex = vertex("review", "id", 2);
+        Assert.assertEquals(ImmutableList.of("looks good 2!", "LGTM!"),
+                            vertex.property("comment").value());
+
+        vertex = graph.addVertex(T.label, "review", "id", 3,
+                                 "comment",
+                                 new String[]{"looks good 3!", "LGTM!"});
+        vertex = vertex("review", "id", 3);
+        Assert.assertEquals(ImmutableList.of("looks good 3!", "LGTM!"),
+                            vertex.property("comment").value());
+    }
+
+    @Test
+    public void testAddVertexWithInvalidPropertyList() {
+        HugeGraph graph = graph();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "review", "id", 1,
+                            "comment", "looks good!",
+                            "comment", 18);
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "review", "id", 2,
+                            "comment", ImmutableList.of("looks good 2!", 18));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Object[] comments = new Object[]{"looks good 3!", "3"};
+            comments[1] = 3;
+            graph.addVertex(T.label, "review", "id", 3,
+                            "comment", comments);
+        });
+    }
+
+    @Test
+    public void testAddVertexWithPropertySet() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "review", "id", 1,
+                                        "contribution", "+1",
+                                        "contribution", "+2");
+        vertex = vertex("review", "id", 1);
+        Assert.assertEquals(ImmutableSet.of("+1", "+2"),
+                            vertex.property("contribution").value());
+
+        vertex = graph.addVertex(T.label, "review", "id", 2,
+                                 "contribution", ImmutableSet.of("+1", "+2"));
+        vertex = vertex("review", "id", 2);
+        Assert.assertEquals(ImmutableSet.of("+1", "+2"),
+                            vertex.property("contribution").value());
+    }
+
+    @Test
+    public void testAddVertexWithInvalidPropertySet() {
+        HugeGraph graph = graph();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "review", "id", 1,
+                            "contribution", "+1",
+                            "contribution", 2);
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "review", "id", 2,
+                            "contribution", ImmutableSet.of("+1", 2));
+        });
     }
 
     @Test
