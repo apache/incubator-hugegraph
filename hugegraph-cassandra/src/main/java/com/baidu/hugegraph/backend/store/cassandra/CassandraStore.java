@@ -307,7 +307,7 @@ public abstract class CassandraStore implements BackendStore {
                      this.keyspace, strategy, replication);
 
         // Create keyspace with non-keyspace-session
-        LOG.info("Create keyspace: {}", cql);
+        LOG.debug("Create keyspace: {}", cql);
         Session session = this.cluster().connect();
         try {
             session.execute(cql);
@@ -321,7 +321,7 @@ public abstract class CassandraStore implements BackendStore {
     protected void clearKeyspace() {
         // Drop keyspace with non-keyspace-session
         Statement stmt = SchemaBuilder.dropKeyspace(this.keyspace).ifExists();
-        LOG.info("Drop keyspace: {}", stmt);
+        LOG.debug("Drop keyspace: {}", stmt);
 
         Session session = this.cluster().connect();
         try {
