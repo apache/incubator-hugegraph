@@ -358,6 +358,8 @@ public class TestGraph implements Graph {
         schema.propertyKey("acl").ifNotExist().create();
         schema.propertyKey("stars").asInt().ifNotExist().create();
         schema.propertyKey("aKey").ifNotExist().create();
+        schema.propertyKey("b").asBoolean().ifNotExist().create();
+
     }
 
     private void initBasicVertexLabelV(IdStrategy idStrategy,
@@ -367,21 +369,21 @@ public class TestGraph implements Graph {
             case CUSTOMIZE:
                 schema.vertexLabel(defaultVL)
                       .properties("__id", "oid", "name", "state", "status",
-                                  "some", "that", "any", "this",
-                                  "communityIndex", "test", "testing",
+                                  "some", "that", "any", "this", "lang", "b",
+                                  "communityIndex", "test", "testing", "acl",
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
-                                  "long", "myId", "location")
+                                  "long", "myId", "location", "x", "y")
                       .useCustomizeId().ifNotExist().create();
                 break;
             case AUTOMATIC:
                 schema.vertexLabel(defaultVL)
                       .properties("__id", "oid", "name", "state", "status",
-                                  "some", "that", "any", "this",
-                                  "communityIndex", "test", "testing",
+                                  "some", "that", "any", "this", "lang", "b",
+                                  "communityIndex", "test", "testing", "acl",
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
-                                  "long", "myId", "location")
+                                  "long", "myId", "location", "x", "y")
                       .ifNotExist().create();
                 break;
             default:
@@ -397,7 +399,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
 
         schema.edgeLabel("self").link(defaultVL, defaultVL)
-              .properties("__id", "test", "name", "some", "acl")
+              .properties("__id", "test", "name", "some", "acl", "weight")
               .ifNotExist().create();
         schema.edgeLabel("aTOa").link(defaultVL, defaultVL)
               .ifNotExist().create();
@@ -405,19 +407,20 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.edgeLabel("knows").link(defaultVL, defaultVL)
               .properties("data", "test", "year", "boolean", "float",
-                          "double", "string", "integer", "long",
+                          "double", "string", "integer", "long", "weight",
                           "myEdgeId", "since", "acl", "stars", "aKey")
               .ifNotExist().create();
         schema.edgeLabel("test").link(defaultVL, defaultVL)
               .properties("test", "xxx", "yyy").ifNotExist().create();
         schema.edgeLabel("friend").link(defaultVL, defaultVL)
-              .properties("name", "location", "status", "uuid", "weight")
+              .properties("name", "location", "status", "uuid", "weight", "acl")
               .ifNotExist().create();
         schema.edgeLabel("pets").link(defaultVL, defaultVL).ifNotExist().create();
         schema.edgeLabel("walks").link(defaultVL, defaultVL).properties("location")
               .ifNotExist().create();
         schema.edgeLabel("livesWith").link(defaultVL, defaultVL).ifNotExist().create();
-        schema.edgeLabel("friends").link(defaultVL, defaultVL).ifNotExist().create();
+        schema.edgeLabel("friends").link(defaultVL, defaultVL)
+              .properties("weight").ifNotExist().create();
         schema.edgeLabel("collaborator").link(defaultVL, defaultVL)
               .properties("location").ifNotExist().create();
         schema.edgeLabel("hate").link(defaultVL, defaultVL)
@@ -432,9 +435,16 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.edgeLabel("test3").link(defaultVL, defaultVL)
               .ifNotExist().create();
-        // schema.edgeLabel("self").ifNotExist().create();
+        schema.edgeLabel("l").link(defaultVL, defaultVL).properties("name")
+              .ifNotExist().create();
+        schema.edgeLabel("CONTROL").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("SELFLOOP").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("edge").link(defaultVL, defaultVL)
+              .properties("weight").ifNotExist().create();
+        schema.edgeLabel("created").link(defaultVL, defaultVL)
+              .properties("weight").ifNotExist().create();
         // schema.edgeLabel("~systemLabel").ifNotExist().create();
-        // schema.edgeLabel("l").ifNotExist().create();
-        // schema.edgeLabel("created").ifNotExist().create();
     }
 }
