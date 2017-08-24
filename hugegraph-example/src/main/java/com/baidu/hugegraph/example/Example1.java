@@ -355,7 +355,7 @@ public class Example1 {
         System.out.println(">>>> remove vertex: " + vertex);
         vertex.remove();
         try {
-            graph.traversal().V(vertex.id()).toList();
+            graph.traversal().V(vertex.id()).next();
             assert false;
         } catch (NotFoundException e) {
             assert e.getMessage().contains("Not found the VERTEX entry");
@@ -368,7 +368,7 @@ public class Example1 {
         System.out.println(">>>> remove edge: " + edge);
         edge.remove();
         try {
-            graph.traversal().E(id).toList();
+            graph.traversal().E(id).next();
             assert false;
         } catch (NotFoundException e) {
             assert e.getMessage().contains("Not found the EDGE entry");
