@@ -212,7 +212,7 @@ public abstract class HugeElement implements Element, GraphType {
         if (this.id() == null) {
             return super.hashCode();
         }
-        return this.id().hashCode();
+        return ElementHelper.hashCode(this);
     }
 
     public static Id getIdValue(Object... keyValues) {
