@@ -22,6 +22,7 @@ package com.baidu.hugegraph.structure;
 import java.util.NoSuchElementException;
 
 import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -95,7 +96,7 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
 
     @Override
     public int hashCode() {
-        return this.owner.hashCode() ^ this.key.hashCode();
+        return ElementHelper.hashCode(this);
     }
 
     @Override
