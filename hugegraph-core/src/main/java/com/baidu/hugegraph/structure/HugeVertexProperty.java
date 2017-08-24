@@ -37,8 +37,8 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
 
     @Override
     public Object id() {
-        return SplicingIdGenerator.splicing(this.owner.id().asString(),
-                                            this.key());
+        return SplicingIdGenerator.concat(this.owner.id().asString(),
+                                          this.key());
     }
 
     @Override
