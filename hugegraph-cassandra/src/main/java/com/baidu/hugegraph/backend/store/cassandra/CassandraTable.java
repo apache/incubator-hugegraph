@@ -26,14 +26,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -42,10 +39,12 @@ import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.Query.Order;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
@@ -547,8 +546,7 @@ public abstract class CassandraTable {
                                DataType[] columnTypes,
                                HugeKeys[] pKeys,
                                HugeKeys[] cKeys) {
-
-        assert (columns.length == columnTypes.length);
+        assert columns.length == columnTypes.length;
 
         StringBuilder sb = new StringBuilder(128 + columns.length * 64);
 
@@ -592,20 +590,20 @@ public abstract class CassandraTable {
         // Append the end of table declare
         sb.append(");");
 
-        LOG.info("Create table: {}", sb);
+        LOG.debug("Create table: {}", sb);
         session.execute(sb.toString());
     }
 
     protected void dropTable(CassandraSessionPool.Session session) {
-        LOG.info("Drop table: {}", this.table);
+        LOG.debug("Drop table: {}", this.table);
         session.execute(SchemaBuilder.dropTable(this.table).ifExists());
     }
 
     protected void createIndex(CassandraSessionPool.Session session,
                                String indexName,
                                HugeKeys column) {
-
         StringBuilder sb = new StringBuilder();
+
         sb.append("CREATE INDEX IF NOT EXISTS ");
         sb.append(indexName);
         sb.append(" ON ");
@@ -614,7 +612,7 @@ public abstract class CassandraTable {
         sb.append(formatKey(column));
         sb.append(");");
 
-        LOG.info("create index: {}", sb);
+        LOG.debug("Create index: {}", sb);
         session.execute(sb.toString());
     }
 
