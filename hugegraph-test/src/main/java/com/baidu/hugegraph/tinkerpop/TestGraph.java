@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -44,7 +45,7 @@ public class TestGraph implements Graph {
     public static final String DEFAULT_VL = "vertex";
 
     private HugeGraph graph;
-    private boolean loadedGraph = false;
+    private String loadedGraph = null;
     private boolean isLastIdCustomized = false;
     private static volatile int id = 666;
 
@@ -100,13 +101,13 @@ public class TestGraph implements Graph {
             if (keyValues[i].equals(T.label) &&
                 i + 1 < keyValues.length &&
                 "person".equals(keyValues[i + 1]) &&
-                !this.loadedGraph) {
+                this.loadedGraph == null) {
                 needRedefineSchema = true;
                 defaultVL = "person";
             }
         }
 
-        if (needRedefineSchema) {
+        if (needRedefineSchema && this.loadedGraph == null) {
             this.clearSchema();
             this.tx().commit();
             this.initBasicSchema(idStrategy, defaultVL);
@@ -114,7 +115,8 @@ public class TestGraph implements Graph {
 
             this.isLastIdCustomized = idStrategy == IdStrategy.CUSTOMIZE;
         }
-        if (!hasId && this.isLastIdCustomized) {
+
+        if (!hasId && (this.isLastIdCustomized || needAddIdToLoadGraph())) {
             List<Object> kvs = new ArrayList<>(Arrays.asList(keyValues));
             kvs.add(T.id);
             kvs.add(String.valueOf(id++));
@@ -122,23 +124,6 @@ public class TestGraph implements Graph {
         }
 
         return this.graph.addVertex(keyValues);
-    }
-
-    @Override
-    public <C extends GraphComputer> C compute(Class<C> graphComputerClass)
-            throws IllegalArgumentException {
-        return this.graph.compute(graphComputerClass);
-    }
-
-    @Override
-    public GraphComputer compute() throws IllegalArgumentException {
-        return this.graph.compute();
-    }
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    @Override
-    public <I extends Io> I io(final Io.Builder<I> builder) {
-        return this.graph.io(builder);
     }
 
     @Override
@@ -165,6 +150,25 @@ public class TestGraph implements Graph {
     }
 
     @Override
+    public <C extends GraphComputer> C compute(Class<C> graphComputerClass)
+            throws IllegalArgumentException {
+        return this.graph.compute(graphComputerClass);
+    }
+
+    @Override
+    public GraphComputer compute() throws IllegalArgumentException {
+        return this.graph.compute();
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public <I extends Io> I io(final Io.Builder<I> builder) {
+        return (I) builder.graph(this).onMapper(mapper ->
+               mapper.addRegistry(HugeGraphIoRegistry.getInstance()))
+               .create();
+    }
+
+    @Override
     public Variables variables() {
         return this.graph.variables();
     }
@@ -184,12 +188,34 @@ public class TestGraph implements Graph {
         return this.graph.toString();
     }
 
-    public void loadedGraph(boolean loadedGraph) {
+    public void loadedGraph(String loadedGraph) {
         this.loadedGraph = loadedGraph;
+    }
+
+    public String loadedGraph() {
+        return this.loadedGraph;
     }
 
     public void isLastIdCustomized(boolean isLastIdCustomized) {
         this.isLastIdCustomized = isLastIdCustomized;
+    }
+
+    private boolean needAddIdToLoadGraph() {
+        if (this.graph.name().equals("standard") || this.loadedGraph == null) {
+            return false;
+        }
+        switch (this.loadedGraph) {
+            case "gryo":
+            case "graphsonv2d0":
+                return true;
+            case "graphml":
+            case "graphsonv1d0":
+            case "regularLoad":
+                return false;
+            default:
+                throw new AssertionError(String.format(
+                          "Wrong IO type %s", this.loadedGraph));
+        }
     }
 
     public void initPropertyKey(String key, String type) {
@@ -255,11 +281,27 @@ public class TestGraph implements Graph {
         schema.propertyKey("songType").asText().ifNotExist().create();
         schema.propertyKey("performances").asInt().ifNotExist().create();
 
-        schema.vertexLabel("song")
-              .properties("id", "name", "songType", "performances")
-              .ifNotExist().create();
-        schema.vertexLabel("artist").properties("id", "name")
-              .ifNotExist().create();
+        IdStrategy idStrategy = this.graph.name().equals("standard") ?
+                                IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
+        switch (idStrategy) {
+            case AUTOMATIC:
+                schema.vertexLabel("song")
+                      .properties("id", "name", "songType", "performances")
+                      .ifNotExist().create();
+                schema.vertexLabel("artist").properties("id", "name")
+                      .ifNotExist().create();
+                break;
+            case CUSTOMIZE:
+                schema.vertexLabel("song")
+                      .properties("id", "name", "songType", "performances")
+                      .useCustomizeId().ifNotExist().create();
+                schema.vertexLabel("artist").properties("id", "name")
+                      .useCustomizeId().ifNotExist().create();
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Id strategy must be customize or automatic"));
+        }
 
         schema.edgeLabel("followedBy")
               .link("song", "song").properties("weight")
@@ -273,26 +315,43 @@ public class TestGraph implements Graph {
     public void initModernSchema() {
         SchemaManager schema = this.graph.schema();
 
-        schema.propertyKey("id").asInt().ifNotExist().create();
         schema.propertyKey("weight").asDouble().ifNotExist().create();
         schema.propertyKey("name").ifNotExist().create();
         schema.propertyKey("lang").ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
         schema.propertyKey("year").asInt().ifNotExist().create();
 
-        schema.vertexLabel("person").properties("id", "name", "age")
-              .ifNotExist().create();
-        schema.vertexLabel("software").properties("id", "name", "lang")
-              .ifNotExist().create();
-        schema.vertexLabel("dog").properties("name").ifNotExist().create();
-
+        IdStrategy idStrategy = this.graph.name().equals("standard") ?
+                                IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
+        switch (idStrategy) {
+            case AUTOMATIC:
+                schema.vertexLabel("person").properties("name", "age")
+                      .ifNotExist().create();
+                schema.vertexLabel("software").properties("name", "lang")
+                      .ifNotExist().create();
+                schema.vertexLabel("dog").properties("name")
+                      .ifNotExist().create();
+                schema.vertexLabel(DEFAULT_VL).properties("name", "age")
+                      .ifNotExist().create();
+                break;
+            case CUSTOMIZE:
+                schema.vertexLabel("person").properties("name", "age")
+                      .useCustomizeId().ifNotExist().create();
+                schema.vertexLabel("software").properties("name", "lang")
+                      .useCustomizeId().ifNotExist().create();
+                schema.vertexLabel("dog").properties("name")
+                      .useCustomizeId().ifNotExist().create();
+                schema.vertexLabel(DEFAULT_VL).properties("name", "age")
+                      .useCustomizeId().ifNotExist().create();
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Id strategy must be customize or automatic"));
+        }
         schema.edgeLabel("knows").link("person", "person")
               .properties("weight", "year").ifNotExist().create();
         schema.edgeLabel("created").link("person", "software")
               .properties("weight").ifNotExist().create();
-
-        schema.vertexLabel(DEFAULT_VL).properties("name", "age")
-              .ifNotExist().create();
     }
 
     public void initClassicSchema() {
@@ -304,8 +363,21 @@ public class TestGraph implements Graph {
         schema.propertyKey("lang").ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
 
-        schema.vertexLabel("vertex").properties("id", "name", "age", "lang")
-              .ifNotExist().create();
+        IdStrategy idStrategy = this.graph.name().equals("standard") ?
+                                IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
+        switch (idStrategy) {
+            case AUTOMATIC:
+                schema.vertexLabel("vertex").properties("id", "name", "age", "lang")
+                      .ifNotExist().create();
+                break;
+            case CUSTOMIZE:
+                schema.vertexLabel("vertex").properties("id", "name", "age", "lang")
+                      .useCustomizeId().ifNotExist().create();
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Id strategy must be customize or automatic"));
+        }
 
         schema.edgeLabel("knows").link("vertex", "vertex")
               .properties("weight").ifNotExist().create();
@@ -357,7 +429,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("state").ifNotExist().create();
         schema.propertyKey("acl").ifNotExist().create();
         schema.propertyKey("stars").asInt().ifNotExist().create();
-        schema.propertyKey("aKey").ifNotExist().create();
+        schema.propertyKey("aKey").asDouble().ifNotExist().create();
         schema.propertyKey("b").asBoolean().ifNotExist().create();
 
     }
@@ -445,6 +517,5 @@ public class TestGraph implements Graph {
               .properties("weight").ifNotExist().create();
         schema.edgeLabel("created").link(defaultVL, defaultVL)
               .properties("weight").ifNotExist().create();
-        // schema.edgeLabel("~systemLabel").ifNotExist().create();
     }
 }

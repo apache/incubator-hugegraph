@@ -28,7 +28,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -38,6 +37,7 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.LoadGraphWith;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.strategy.optimization.LazyBarrierStrategy;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
@@ -58,13 +58,17 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
     private static final Logger LOG = Log.logger(HugeGraphProvider.class);
 
-    private static String CONF_PATH = "hugegraph.properties";
-    private static String FILETER_FILE = "methods.filter";
-    private static Map<String, String> blackMethods = new HashMap<>();
-    private Map<String, TestGraph> graphs = new HashMap<>();
+    private static final String CONF_PATH = "hugegraph.properties";
+    private static final String FILTER_FILE = "methods.filter";
     private static final String AKEY_CLASS_PREFIX =
             "org.apache.tinkerpop.gremlin.structure." +
             "PropertyTest.PropertyFeatureSupportTest";
+    private static final String IO_CLASS_PREFIX =
+            "org.apache.tinkerpop.gremlin.structure.io.IoGraphTest";
+
+    private static Map<String, String> blackMethods = new HashMap<>();
+    private Map<String, TestGraph> graphs = new HashMap<>();
+
 
     public HugeGraphProvider() throws IOException {
         super();
@@ -73,7 +77,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
     private void initBlackList() throws IOException {
         String blackList = HugeGraphProvider.class.getClassLoader()
-                           .getResource(FILETER_FILE).getPath();
+                           .getResource(FILTER_FILE).getPath();
         File file = new File(blackList);
         BufferedReader reader = new BufferedReader(new FileReader(file));
         String line;
@@ -112,10 +116,13 @@ public class HugeGraphProvider extends AbstractGraphProvider {
                                LoadGraphWith.GraphData graphData) {
         // Check if test in blackList
         String testFullName = test.getCanonicalName() + "." + testMethod;
+        int index = testFullName.indexOf('@') == -1 ?
+                    testFullName.length() : testFullName.indexOf('@');
+
         Assume.assumeFalse(
                String.format("Test %s will be ignored with reason: %s",
                              testFullName, blackMethods.get(testMethod)),
-               blackMethods.containsKey(testFullName));
+               blackMethods.containsKey(testFullName.substring(0, index)));
 
         LOG.info("Full name of test is: {}", testFullName);
         HashMap<String, Object> confMap = new HashMap<>();
@@ -142,16 +149,26 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         confMap.put(CoreOptions.STORE.name(), graphName);
         confMap.put("gremlin.graph",
                     "com.baidu.hugegraph.tinkerpop.TestGraphFactory");
-        confMap.put("testClass", test.getCanonicalName());
+        confMap.put("testClass", test);
         confMap.put("testMethod", testMethod);
+        confMap.put("loadGraph", graphData);
 
         return confMap;
     }
 
-    private static String getAKeyType(String clazz, String method) {
-        if (clazz.startsWith(AKEY_CLASS_PREFIX)) {
+    private static String getAKeyType(Class clazz, String method) {
+        if (clazz.getCanonicalName().startsWith(AKEY_CLASS_PREFIX)) {
             String type = method.substring(method.indexOf('[') + 9,
                                            method.indexOf('(') - 6);
+            return type;
+        }
+        return null;
+    }
+
+    private static String getIoType(Class clazz, String method) {
+        if (clazz.getCanonicalName().startsWith(IO_CLASS_PREFIX)) {
+            String type = method.substring(method.indexOf('[') + 1,
+                    method.indexOf(']'));
             return type;
         }
         return null;
@@ -173,11 +190,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         }
 
         // Define property key 'aKey' based on specified type in test name
-        String aKeyType = getAKeyType(config.getString("testClass"),
+        String aKeyType = getAKeyType((Class) config.getProperty("testClass"),
                                       config.getString("testMethod"));
         if (aKeyType != null) {
             testGraph.initPropertyKey("aKey", aKeyType);
         }
+
+        String ioType = getIoType((Class) config.getProperty("testClass"),
+                                  config.getString("testMethod"));
 
         // Basic schema is initiated by default once a graph is open
         testGraph.initBasicSchema(IdStrategy.AUTOMATIC,
@@ -185,7 +205,13 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         testGraph.tx().commit();
 
         testGraph.isLastIdCustomized(false);
-        testGraph.loadedGraph(false);
+        testGraph.loadedGraph(ioType);
+
+        Object loadGraph = config.getProperty("loadGraph");
+        if (loadGraph != null && !graphName.equals("standard")) {
+            this.loadGraphData(testGraph,
+                               (LoadGraphWith.GraphData) loadGraph);
+        }
 
         return testGraph;
     }
@@ -221,13 +247,24 @@ public class HugeGraphProvider extends AbstractGraphProvider {
             return;
         }
 
+        loadGraphData(graph, loadGraphWith.value());
+
+        super.loadGraphData(graph, loadGraphWith, testClass, testName);
+    }
+
+    public void loadGraphData(final Graph graph,
+                              final LoadGraphWith.GraphData loadGraphWith) {
         TestGraph testGraph = (TestGraph) graph;
+
         // Clear basic schema initiated in openTestGraph
         testGraph.clearSchema();
         testGraph.tx().commit();
 
-        testGraph.loadedGraph(true);
-        switch (loadGraphWith.value()) {
+        if (testGraph.loadedGraph() == null) {
+            testGraph.loadedGraph("regularLoad");
+        }
+
+        switch (loadGraphWith) {
             case GRATEFUL:
                 testGraph.initGratefulSchema();
                 break;
@@ -237,16 +274,17 @@ public class HugeGraphProvider extends AbstractGraphProvider {
             case CLASSIC:
                 testGraph.initClassicSchema();
                 break;
+            case CREW:
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Only support GRATEFUL, MODERN and CLASSIC " +
                           "for @LoadGraphWith(), but '%s' is used ",
-                          loadGraphWith.value()));
+                          loadGraphWith));
         }
-
         testGraph.tx().commit();
-        super.loadGraphData(graph, loadGraphWith, testClass, testName);
     }
+
 
     @SuppressWarnings("rawtypes")
     @Override
@@ -256,7 +294,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
     @Override
     public GraphTraversalSource traversal(Graph graph) {
-        return ((TestGraph) graph).hugeGraph().traversal();
+        return ((TestGraph) graph).hugeGraph().traversal()
+                                  .withoutStrategies(LazyBarrierStrategy.class);
     }
 
     @Override
