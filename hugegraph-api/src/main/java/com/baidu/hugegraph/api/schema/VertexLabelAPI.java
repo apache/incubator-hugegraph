@@ -83,9 +83,9 @@ public class VertexLabelAPI extends API {
 
         VertexLabel vertexLabel = jsonVertexLabel.convert2VertexLabel();
         if (action.equals("append")) {
-            g.schema().vertexLabel(vertexLabel).append();
+            vertexLabel = g.schema().vertexLabel(vertexLabel).append();
         } else if (action.equals("eliminate")) {
-            g.schema().vertexLabel(vertexLabel).eliminate();
+            vertexLabel = g.schema().vertexLabel(vertexLabel).eliminate();
         } else {
             throw new NotSupportedException(
                       String.format("Not support action '%s'", action));

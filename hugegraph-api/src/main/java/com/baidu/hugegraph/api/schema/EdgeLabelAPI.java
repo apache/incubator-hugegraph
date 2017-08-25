@@ -82,9 +82,9 @@ public class EdgeLabelAPI extends API {
 
         EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
         if (action.equals("append")) {
-            g.schema().edgeLabel(edgeLabel).append();
+            edgeLabel = g.schema().edgeLabel(edgeLabel).append();
         } else if (action.equals("eliminate")) {
-            g.schema().edgeLabel(edgeLabel).eliminate();
+            edgeLabel = g.schema().edgeLabel(edgeLabel).eliminate();
         } else {
             throw new NotSupportedException(
                       String.format("Not support action '%s'", action));
