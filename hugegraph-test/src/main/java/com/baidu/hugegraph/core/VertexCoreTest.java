@@ -207,6 +207,11 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.addVertex(T.label, "review", "id", 3,
                             "comment", comments);
         });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "review", "id", 3,
+                            "comment", new int[]{1, 2});
+        });
     }
 
     @Test
@@ -214,13 +219,15 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "review", "id", 1,
                                         "contribution", "+1",
+                                        "contribution", "+2",
                                         "contribution", "+2");
         vertex = vertex("review", "id", 1);
         Assert.assertEquals(ImmutableSet.of("+1", "+2"),
                             IteratorUtils.set(vertex.values("contribution")));
 
         vertex = graph.addVertex(T.label, "review", "id", 2,
-                                 "contribution", ImmutableSet.of("+1", "+2"));
+                                 "contribution",
+                                 ImmutableSet.of("+1", "+1", "+2"));
         vertex = vertex("review", "id", 2);
         Assert.assertEquals(ImmutableSet.of("+1", "+2"),
                             IteratorUtils.set(vertex.values("contribution")));
