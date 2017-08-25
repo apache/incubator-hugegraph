@@ -17,6 +17,31 @@ org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackPropertyAut
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldCommitPropertyAutoTransactionByDefault: Not support duplicated property key/value in addVertex or update property
 
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldNotHaveAConcurrentModificationExceptionWhenIteratingAndRemovingAddingEdges: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModernToFileWithHelpers[graphml]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphml]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModern[graphml]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphml]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateModernGraph[graphml]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphml]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModernToFileWithHelpers[graphsonv1d0]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModern[graphsonv1d0]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateModernGraph[graphsonv1d0]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModernToFileWithHelpers[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModern[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateModernGraph[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModernToFileWithHelpers[gryo]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[gryo]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModern[gryo]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[gryo]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateModernGraph[gryo]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[gryo]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv1d0]: weight property have both Float and Double value
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphsonv1d0]: weight property have both Float and Double value
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphsonv1d0]: weight property have both Float and Double value
+
 org.apache.tinkerpop.gremlin.structure.util.star.StarGraphTest.shouldHandleSelfLoops: Self loop vertex only have 1 edge, this test expect 2 edges(1 IN and 1 OUT)
 
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldAddVertexWithUserSuppliedStringId: expect vertex.id is String type
@@ -37,10 +62,10 @@ org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.s
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable@c267ef4)]: Not support serializable data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable@c267ef4)]: Not support serializable data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable@c267ef4)]: Not support serializable data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable@c267ef4)]: Not support serializable data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable: Not support serializable data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable: Not support serializable data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable: Not support serializable data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable: Not support serializable data type of property key
 
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowJustRollbackOnlyWithAutoTransaction: Unsupported rollback operation by Cassandra
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
