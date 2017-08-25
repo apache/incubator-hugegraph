@@ -46,7 +46,7 @@ public class EdgeLabel extends SchemaLabel {
         super(name);
         this.sourceLabel = null;
         this.targetLabel = null;
-        this.frequency = null;
+        this.frequency = Frequency.DEFAULT;
         this.sortKeys = new ArrayList<>();
     }
 
@@ -172,7 +172,7 @@ public class EdgeLabel extends SchemaLabel {
                 return edgeLabel;
             }
 
-            if (this.edgeLabel.frequency == null) {
+            if (this.edgeLabel.frequency == Frequency.DEFAULT) {
                 this.edgeLabel.frequency = Frequency.SINGLE;
             }
 
@@ -354,7 +354,7 @@ public class EdgeLabel extends SchemaLabel {
                           "Not allowed to append sort keys " +
                           "for existed edge label '%s'", name);
             }
-            if (frequency != null) {
+            if (frequency != Frequency.DEFAULT) {
                 throw new NotAllowException(
                           "Not allowed to change frequency " +
                           "for existed edge label '%s'", name);

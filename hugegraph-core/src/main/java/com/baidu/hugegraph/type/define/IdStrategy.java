@@ -24,7 +24,7 @@ import com.baidu.hugegraph.util.E;
 
 public enum IdStrategy {
 
-    DAFAULT(0, "default"),
+    DEFAULT(0, "default"),
 
     AUTOMATIC(1, "automatic"),
 
