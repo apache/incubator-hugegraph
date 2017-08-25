@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.structure;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +38,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 
 public abstract class HugeElement implements Element, GraphType {
@@ -159,7 +159,7 @@ public abstract class HugeElement implements Element, GraphType {
                             value, pkey.name());
             propList.value().addAll((List) value);
         } else if (value.getClass().isArray()) {
-            List<V> valueList = Arrays.asList((V[]) value);
+            List<V> valueList = CollectionUtil.toList(value);
             E.checkArgument(pkey.checkDataType(valueList),
                             "Invalid type of property values %s for key '%s'",
                             valueList, pkey.name());
