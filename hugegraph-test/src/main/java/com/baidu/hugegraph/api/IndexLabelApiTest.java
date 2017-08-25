@@ -25,56 +25,57 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class VertexApiTest extends BaseApiTest {
+public class IndexLabelApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/graph/vertices/";
+    private static String path = "/graphs/hugegraph/schema/indexlabels/";
 
     @Before
     public void prepareSchema() {
         super.initPropertyKey();
         super.initVertexLabel();
+        super.initEdgeLabel();
     }
 
     @Test
     public void testCreate() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
+        String indexLabel = "{"
+                + "\"name\": \"personByAge\","
+                + "\"baseType\": \"VERTEX_LABEL\","
+                + "\"baseValue\": \"person\","
+                + "\"indexType\": \"SEARCH\","
+                + "\"fields\":[\"age\"]"
                 + "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(path, indexLabel);
         Assert.assertEquals(201, r.getStatus());
     }
 
     @Test
     public void testGet() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
+        String indexLabel = "{"
+                + "\"name\": \"personByAge\","
+                + "\"baseType\": \"VERTEX_LABEL\","
+                + "\"baseValue\": \"person\","
+                + "\"indexType\": \"SEARCH\","
+                + "\"fields\":[\"age\"]"
                 + "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(path, indexLabel);
         Assert.assertEquals(201, r.getStatus());
 
-        String id = "person:James";
-        r = client().get(path, id);
+        String name = "personByAge";
+        r = client().get(path, name);
         Assert.assertEquals(200, r.getStatus());
     }
 
     @Test
     public void testList() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
+        String indexLabel = "{"
+                + "\"name\": \"personByAge\","
+                + "\"baseType\": \"VERTEX_LABEL\","
+                + "\"baseValue\": \"person\","
+                + "\"indexType\": \"SEARCH\","
+                + "\"fields\":[\"age\"]"
                 + "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(path, indexLabel);
         Assert.assertEquals(201, r.getStatus());
 
         r = client().get(path);
@@ -83,18 +84,18 @@ public class VertexApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
+        String indexLabel = "{"
+                + "\"name\": \"personByAge\","
+                + "\"baseType\": \"VERTEX_LABEL\","
+                + "\"baseValue\": \"person\","
+                + "\"indexType\": \"SEARCH\","
+                + "\"fields\":[\"age\"]"
                 + "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(path, indexLabel);
         Assert.assertEquals(201, r.getStatus());
 
-        String id = "person:James";
-        r = client().delete(path, id);
+        String name = "personByAge";
+        r = client().delete(path, name);
         Assert.assertEquals(204, r.getStatus());
     }
 }

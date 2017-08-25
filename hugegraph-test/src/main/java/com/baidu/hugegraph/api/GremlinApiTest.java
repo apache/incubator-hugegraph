@@ -38,13 +38,14 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"gremlin\":\"g.V()\","
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{}}";
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         Assert.assertEquals(200, client().post(path, body).getStatus());
     }
 
     @Test
     public void testGet() {
-        Map<String, Object> params = ImmutableMap.of("gremlin", "g.V()");
+        Map<String, Object> params = ImmutableMap.of("gremlin",
+                                     "hugegraph.traversal().V()");
         Response r = client().get(path, params);
         Assert.assertEquals(r.readEntity(String.class), 200, r.getStatus());
     }
