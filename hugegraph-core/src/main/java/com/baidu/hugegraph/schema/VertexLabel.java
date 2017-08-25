@@ -42,7 +42,7 @@ public class VertexLabel extends SchemaLabel {
 
     public VertexLabel(String name) {
         super(name);
-        this.idStrategy = IdStrategy.DAFAULT;
+        this.idStrategy = IdStrategy.DEFAULT;
         this.primaryKeys = new ArrayList<>();
     }
 
@@ -56,7 +56,7 @@ public class VertexLabel extends SchemaLabel {
     }
 
     public void idStrategy(IdStrategy idStrategy) {
-        E.checkArgument(this.idStrategy == IdStrategy.DAFAULT ||
+        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
                         this.idStrategy == idStrategy,
                         "Not allowed to change id strategy for " +
                         "vertex label '%s'", this.name);
@@ -71,7 +71,7 @@ public class VertexLabel extends SchemaLabel {
         if (keys.length == 0) {
             return this;
         }
-        E.checkArgument(this.idStrategy == IdStrategy.DAFAULT ||
+        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
                         this.idStrategy == IdStrategy.PRIMARY_KEY,
                         "Not allowed to use id strategy '%s' and call " +
                         "primaryKeys() at the same time for vertex label '%s'",
@@ -236,7 +236,7 @@ public class VertexLabel extends SchemaLabel {
             IdStrategy strategy = this.vertexLabel.idStrategy;
             boolean hasPrimaryKey = this.vertexLabel.primaryKeys().size() > 0;
             switch (strategy) {
-                case DAFAULT:
+                case DEFAULT:
                     if (hasPrimaryKey) {
                         this.vertexLabel.idStrategy(IdStrategy.PRIMARY_KEY);
                     } else {
@@ -295,7 +295,7 @@ public class VertexLabel extends SchemaLabel {
                           "Not allowed to append primary keys " +
                           "for existed vertex label '%s'", name);
             }
-            if (idStrategy != IdStrategy.DAFAULT) {
+            if (idStrategy != IdStrategy.DEFAULT) {
                 throw new NotAllowException(
                           "Not allowed to change id strategy " +
                           "for existed vertex label '%s'", name);

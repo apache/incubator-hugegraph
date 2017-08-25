@@ -22,6 +22,8 @@ package com.baidu.hugegraph.type.define;
 
 public enum Frequency {
 
+    DEFAULT(0, "default"),
+
     SINGLE(1, "single"),
 
     MULTIPLE(2, "multiple");
