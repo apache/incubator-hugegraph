@@ -22,59 +22,49 @@ package com.baidu.hugegraph.api;
 import javax.ws.rs.core.Response;
 
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
-public class VertexApiTest extends BaseApiTest {
+public class PropertyKeyApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/graph/vertices/";
-
-    @Before
-    public void prepareSchema() {
-        super.initPropertyKey();
-        super.initVertexLabel();
-    }
+    private static String path = "/graphs/hugegraph/schema/propertykeys/";
 
     @Test
     public void testCreate() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
+        String propertyKey = "{"
+                + "\"name\": \"id\","
+                + "\"dataType\": \"TEXT\","
+                + "\"cardinality\": \"SINGLE\","
+                + "\"properties\":[]"
                 + "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(path, propertyKey);
         Assert.assertEquals(201, r.getStatus());
     }
 
     @Test
     public void testGet() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
+        String propertyKey = "{"
+                + "\"name\": \"id\","
+                + "\"dataType\": \"TEXT\","
+                + "\"cardinality\": \"SINGLE\","
+                + "\"properties\":[]"
                 + "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(path, propertyKey);
         Assert.assertEquals(201, r.getStatus());
 
-        String id = "person:James";
-        r = client().get(path, id);
+        String name = "id";
+        r = client().get(path, name);
         Assert.assertEquals(200, r.getStatus());
     }
 
     @Test
     public void testList() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
+        String propertyKey = "{"
+                + "\"name\": \"id\","
+                + "\"dataType\": \"TEXT\","
+                + "\"cardinality\": \"SINGLE\","
+                + "\"properties\":[]"
                 + "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(path, propertyKey);
         Assert.assertEquals(201, r.getStatus());
 
         r = client().get(path);
@@ -83,18 +73,17 @@ public class VertexApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
+        String propertyKey = "{"
+                + "\"name\": \"id\","
+                + "\"dataType\": \"TEXT\","
+                + "\"cardinality\": \"SINGLE\","
+                + "\"properties\":[]"
                 + "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(path, propertyKey);
         Assert.assertEquals(201, r.getStatus());
 
-        String id = "person:James";
-        r = client().delete(path, id);
+        String name = "id";
+        r = client().delete(path, name);
         Assert.assertEquals(204, r.getStatus());
     }
 }

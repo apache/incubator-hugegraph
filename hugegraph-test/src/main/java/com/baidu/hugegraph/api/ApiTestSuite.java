@@ -19,14 +19,27 @@
 
 package com.baidu.hugegraph.api;
 
+import org.apache.commons.configuration.ConfigurationException;
+import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import com.baidu.hugegraph.dist.RegisterUtil;
+
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    PropertyKeyApiTest.class,
+    VertexLabelApiTest.class,
+    EdgeLabelApiTest.class,
+    IndexLabelApiTest.class,
     VertexApiTest.class,
     EdgeApiTest.class,
     GremlinApiTest.class
 })
 public class ApiTestSuite {
+
+    @BeforeClass
+    public static void initEnv() throws ConfigurationException {
+        RegisterUtil.registerBackends();
+    }
 }

@@ -21,83 +21,94 @@ package com.baidu.hugegraph.api;
 
 import javax.ws.rs.core.Response;
 
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 public class EdgeApiTest extends BaseApiTest {
 
     private static String path = "/graphs/hugegraph/graph/edges/";
 
-    @BeforeClass
-    public static void setup() {
-        // Add some edges (NOTE: vertices have been added before)
-        String write2 = "{"
-                + "\"label\":\"write\","
-                + "\"outV\":\"author:1\","
-                + "\"inV\":\"book:java-2\","
-                + "\"properties\":{"
-                + "\"time\":\"2017-5-18\""
-                + "}}";
-        String write3 = "{"
-                + "\"label\":\"write\","
-                + "\"outV\":\"author:1\","
-                + "\"inV\":\"book:java-3\","
-                + "\"properties\":{"
-                + "\"time\":\"2017-5-18\""
-                + "}}";
-
-        Response r = newClient().post(path, write2);
-        Assert.assertEquals(r.readEntity(String.class), 201, r.getStatus());
-
-        r = newClient().post(path, write3);
-        Assert.assertEquals(r.readEntity(String.class), 201, r.getStatus());
-    }
-
-    @AfterClass
-    public static void teardown() {
-        newClient().delete(path, "author:1>write>2017-5-18>book:java-3");
+    @Before
+    public void prepareSchema() {
+        super.initPropertyKey();
+        super.initVertexLabel();
+        super.initEdgeLabel();
+        super.initVertex();
     }
 
     @Test
     public void testCreate() {
         String edge = "{"
-                + "\"label\":\"authored\","
-                + "\"outV\":\"author:1\","
-                + "\"inV\":\"book:java-1\","
+                + "\"label\": \"created\","
+                + "\"outVLabel\": \"person\","
+                + "\"inVLabel\": \"software\","
+                + "\"outV\": \"person:peter\","
+                + "\"inV\": \"software:lop\","
                 + "\"properties\":{"
-                + "\"contribution\":\"2017-5-18\""
-                + "}}";
-        System.out.println(client().post(path, edge).readEntity(String.class));
-        Assert.assertEquals(201, client().post(path, edge).getStatus());
+                + "\"date\": \"20170324\","
+                + "\"city\": \"Hongkong\"}"
+                + "}";
+        Response r = client().post(path, edge);
+        Assert.assertEquals(201, r.getStatus());
     }
 
     @Test
     public void testGet() {
-        String edge = "author:1>write>2017-5-18>book:java-2";
-        Response r = client().get(path, edge);
+        String edge = "{"
+                + "\"label\": \"created\","
+                + "\"outVLabel\": \"person\","
+                + "\"inVLabel\": \"software\","
+                + "\"outV\": \"person:peter\","
+                + "\"inV\": \"software:lop\","
+                + "\"properties\":{"
+                + "\"date\": \"20170324\","
+                + "\"city\": \"Hongkong\"}"
+                + "}";
+        Response r = client().post(path, edge);
+        Assert.assertEquals(201, r.getStatus());
+
+        String id = "person:peter>created>>software:lop";
+        r = client().get(path, id);
         Assert.assertEquals(200, r.getStatus());
     }
 
     @Test
-    public void testGetNotFound() {
-        String edge = "author:1>write>2017-5-18>book:!not-exists!";
-        Response r = client().get(path, edge);
-        Assert.assertEquals(404, r.getStatus());
-    }
-
-    @Test
     public void testList() {
-        Response r = client().get(path);
-        System.out.println("testList(): " + r.readEntity(String.class));
+        String edge = "{"
+                + "\"label\": \"created\","
+                + "\"outVLabel\": \"person\","
+                + "\"inVLabel\": \"software\","
+                + "\"outV\": \"person:peter\","
+                + "\"inV\": \"software:lop\","
+                + "\"properties\":{"
+                + "\"date\": \"20170324\","
+                + "\"city\": \"Hongkong\"}"
+                + "}";
+        Response r = client().post(path, edge);
+        Assert.assertEquals(201, r.getStatus());
+
+        r = client().get(path);
         Assert.assertEquals(200, r.getStatus());
     }
 
     @Test
     public void testDelete() {
-        String edge = "author:1>write>2017-5-18>book:java-3";
-        Response r = client().delete(path, edge);
+        String edge = "{"
+                + "\"label\": \"created\","
+                + "\"outVLabel\": \"person\","
+                + "\"inVLabel\": \"software\","
+                + "\"outV\": \"person:peter\","
+                + "\"inV\": \"software:lop\","
+                + "\"properties\":{"
+                + "\"date\": \"20170324\","
+                + "\"city\": \"Hongkong\"}"
+                + "}";
+        Response r = client().post(path, edge);
+        Assert.assertEquals(201, r.getStatus());
+
+        String id = "person:peter>created>>software:lop";
+        r = client().delete(path, id);
         Assert.assertEquals(204, r.getStatus());
     }
 }

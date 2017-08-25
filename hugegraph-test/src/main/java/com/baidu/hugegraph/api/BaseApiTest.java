@@ -25,28 +25,33 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.glassfish.jersey.client.filter.EncodingFilter;
 import org.glassfish.jersey.message.GZipEncoder;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
-public class BaseApiTest {
+import com.baidu.hugegraph.core.BaseCoreTest;
+import com.baidu.hugegraph.schema.SchemaManager;
+
+public class BaseApiTest extends BaseCoreTest {
 
     public static String BASE_URL = "http://127.0.0.1:8080";
 
-    private RestClient client;
+    private static RestClient client;
 
-    @Before
-    public void init() {
-        this.client = newClient();
+    @BeforeClass
+    public static void init() {
+        BaseCoreTest.init();
+        client = newClient();
     }
 
-    @After
-    public void clear() {
-        this.client.close();
+    @AfterClass
+    public static void clear() throws Exception {
+        BaseCoreTest.clear();
+        client.close();
     }
 
     public RestClient client() {
@@ -82,40 +87,105 @@ public class BaseApiTest {
         }
 
         public Response get(String path) {
-            return this.target.path(path)
-                    .request()
-                    .get();
+            return this.target.path(path).request().get();
         }
 
         public Response get(String path, String id) {
-            return this.target.path(path).path(id)
-                    .request()
-                    .get();
+            return this.target.path(path).path(id).request().get();
         }
 
         public Response get(String path, Map<String, Object> params) {
-            WebTarget t = this.target.path(path);
+            WebTarget target = this.target.path(path);
             for (Map.Entry<String, Object> i : params.entrySet()) {
-                t = t.queryParam(i.getKey(), i.getValue());
+                target = target.queryParam(i.getKey(), i.getValue());
             }
-            return t.request().get();
+            return target.request().get();
         }
 
         public Response post(String path, String content) {
-            return this.post(path,
-                    Entity.entity(content, MediaType.APPLICATION_JSON));
+            return this.post(path, Entity.json(content));
         }
 
         public Response post(String path, Entity<?> entity) {
-            return this.target.path(path)
-                    .request()
-                    .post(entity);
+            return this.target.path(path).request().post(entity);
+        }
+
+        public Response put(String path, String content,
+                            Map<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                target = target.queryParam(i.getKey(), i.getValue());
+            }
+            return target.request().put(Entity.json(content));
         }
 
         public Response delete(String path, String id) {
-            return this.target.path(path).path(id)
-                    .request()
-                    .delete();
+            return this.target.path(path).path(id).request().delete();
         }
+    }
+
+    /**
+     * Utils method to init some properties
+     */
+    protected void initPropertyKey() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("name").asText().ifNotExist().create();
+        schema.propertyKey("age").asInt().ifNotExist().create();
+        schema.propertyKey("city").asText().ifNotExist().create();
+        schema.propertyKey("lang").asText().ifNotExist().create();
+        schema.propertyKey("date").asText().ifNotExist().create();
+        schema.propertyKey("price").asInt().ifNotExist().create();
+    }
+
+    protected void initVertexLabel() {
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+
+        schema.vertexLabel("software")
+              .properties("name", "lang", "price")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+    }
+
+    protected void initEdgeLabel() {
+        SchemaManager schema = graph().schema();
+
+        schema.edgeLabel("knows")
+              .sourceLabel("person")
+              .targetLabel("person")
+              .properties("date")
+              .ifNotExist()
+              .create();
+
+        schema.edgeLabel("created")
+              .sourceLabel("person").targetLabel("software")
+              .properties("date", "city")
+              .ifNotExist()
+              .create();
+    }
+
+    protected void initVertex() {
+        graph().tx().open();
+
+        graph().addVertex(T.label, "person", "name", "marko",
+                          "age", 29, "city", "Beijing");
+        graph().addVertex(T.label, "person", "name", "vadas",
+                          "age", 27, "city", "Hongkong");
+        graph().addVertex(T.label, "software", "name", "lop",
+                          "lang", "java", "price", 328);
+        graph().addVertex(T.label, "person", "name", "josh",
+                          "age", 32, "city", "Beijing");
+        graph().addVertex(T.label, "software", "name", "ripple",
+                          "lang", "java", "price", 199);
+        graph().addVertex(T.label, "person", "name", "peter",
+                          "age", 29, "city", "Shanghai");
+
+        graph().tx().commit();
     }
 }
