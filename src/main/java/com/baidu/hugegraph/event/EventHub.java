@@ -35,12 +35,15 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.type.ExtendableIterator;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.collect.ImmutableList;
 
 public class EventHub {
 
     private static final Logger LOG = Log.logger(EventHub.class);
 
     public static final String ANY_EVENT = "*";
+
+    private static final List<EventListener> EMPTY = ImmutableList.of();
 
     // Event executor
     private static ExecutorService executor = null;
@@ -53,6 +56,8 @@ public class EventHub {
     }
 
     public EventHub(String name) {
+        LOG.debug("Create new EventHub: {}", name);
+
         this.name = name;
         this.listeners = new ConcurrentHashMap<>();
         EventHub.init(1);
@@ -62,11 +67,13 @@ public class EventHub {
         if (executor != null) {
             return;
         }
+        LOG.debug("Init pool(size {}) for EventHub", poolSize);
         executor = Executors.newFixedThreadPool(poolSize);
     }
 
     public static synchronized boolean destroy(long timeout)
                                                throws InterruptedException {
+        LOG.debug("Destroy pool for EventHub");
         executor.shutdown();
         return executor.awaitTermination(timeout, TimeUnit.SECONDS);
     }
@@ -82,11 +89,13 @@ public class EventHub {
     }
 
     public boolean containsListener(String event) {
-        return this.listeners.containsKey(event);
+        List<EventListener> ls = this.listeners.get(event);
+        return ls != null && ls.size() > 0;
     }
 
     public List<EventListener> listeners(String event) {
-        return Collections.unmodifiableList(this.listeners.get(event));
+        List<EventListener> ls = this.listeners.get(event);
+        return ls == null ? EMPTY : Collections.unmodifiableList(ls);
     }
 
     public void listen(String event, EventListener listener) {
@@ -102,15 +111,21 @@ public class EventHub {
     }
 
     public List<EventListener> unlisten(String event) {
-        return Collections.unmodifiableList(this.listeners.remove(event));
+        List<EventListener> ls = this.listeners.remove(event);
+        return ls == null ? EMPTY : Collections.unmodifiableList(ls);
     }
 
-    public boolean unlisten(String event, EventListener listener) {
+    public int unlisten(String event, EventListener listener) {
         List<EventListener> ls = this.listeners.get(event);
         if (ls == null) {
-            return false;
+            return 0;
         }
-        return ls.remove(listener);
+
+        int count = 0;
+        while (ls.remove(listener)) {
+            count++;
+        }
+        return count;
     }
 
     public void notify(String event, @Nullable Object... args) {
@@ -130,6 +145,8 @@ public class EventHub {
         }
 
         Event ev = new Event(this, event, args);
+
+        // The submit will catch params: `all`(Listeners) and `ev`(Event)
         executor().submit(() -> {
             // Notify all listeners, and ignore the results
             while (all.hasNext()) {
