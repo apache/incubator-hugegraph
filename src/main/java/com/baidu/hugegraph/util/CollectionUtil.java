@@ -19,15 +19,30 @@
 
 package com.baidu.hugegraph.util;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
-/**
- * Created by liningrui on 2017/3/30.
- */
 public final class CollectionUtil {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static boolean containsAll(Collection a, Collection b) {
         return a.containsAll(b);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> toList(Object array) {
+        E.checkNotNull(array, "array");
+        E.checkArgument(array.getClass().isArray(),
+                        "The parameter of toList() must be an array: '%s'",
+                        array.getClass().getSimpleName());
+
+        int length = Array.getLength(array);
+        List<T> list = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            list.add((T) Array.get(array, i));
+        }
+        return list;
     }
 }

@@ -23,9 +23,6 @@ import java.nio.charset.Charset;
 
 import com.google.common.hash.Hashing;
 
-/**
- * Created by jishilei on 2017/3/26.
- */
 public final class HashUtil {
 
     public static byte[] hash(byte[] bytes) {

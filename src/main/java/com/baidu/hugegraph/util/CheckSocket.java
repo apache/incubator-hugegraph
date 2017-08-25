@@ -34,7 +34,7 @@ public final class CheckSocket {
     private static final int E_USAGE = 1;
     private static final int E_FAILED = 2;
     private static final String MSG_USAGE =
-        "Usage: " + CheckSocket.class.getSimpleName() + " hostname port";
+            "Usage: " + CheckSocket.class.getSimpleName() + " hostname port";
 
     public static void main(String args[]) {
         if (args.length != 2) {

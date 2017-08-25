@@ -25,9 +25,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 
-/**
- * Created by liningrui on 2017/5/26.
- */
 public final class E {
 
     public static void checkNotNull(Object object, String elem) {
