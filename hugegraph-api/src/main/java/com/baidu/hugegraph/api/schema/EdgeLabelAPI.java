@@ -33,10 +33,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
@@ -44,6 +42,7 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.util.Log;
 
 @Path("graphs/{graph}/schema/edgelabels")
 @Singleton
@@ -53,8 +52,8 @@ public class EdgeLabelAPI extends API {
 
     @POST
     @Status(Status.CREATED)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdgeLabel jsonEdgeLabel) {
@@ -69,8 +68,8 @@ public class EdgeLabelAPI extends API {
     }
 
     @PUT
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @QueryParam("action") String action,
@@ -93,7 +92,7 @@ public class EdgeLabelAPI extends API {
     }
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get edge labels", graph);
@@ -106,7 +105,7 @@ public class EdgeLabelAPI extends API {
 
     @GET
     @Path("{name}")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
@@ -120,7 +119,7 @@ public class EdgeLabelAPI extends API {
 
     @DELETE
     @Path("{name}")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {

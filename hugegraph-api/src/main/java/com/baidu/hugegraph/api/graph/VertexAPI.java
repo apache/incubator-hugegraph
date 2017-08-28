@@ -37,13 +37,11 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -53,6 +51,7 @@ import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Path("graphs/{graph}/graph/vertices")
@@ -63,8 +62,8 @@ public class VertexAPI extends API {
 
     @POST
     @Status(Status.CREATED)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          CreateVertex vertex) {
@@ -79,8 +78,8 @@ public class VertexAPI extends API {
     @Decompress
     @Path("batch")
     @Status(Status.CREATED)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public List<String> create(@Context GraphManager manager,
                                @PathParam("graph") String graph,
                                List<CreateVertex> vertices) {
@@ -118,7 +117,7 @@ public class VertexAPI extends API {
 
     @GET
     @Compress
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @DefaultValue("100") @QueryParam("limit") long limit) {
@@ -131,7 +130,7 @@ public class VertexAPI extends API {
 
     @GET
     @Path("{id}")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {
@@ -143,7 +142,7 @@ public class VertexAPI extends API {
 
     @DELETE
     @Path("{id}")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("id") String id) {

@@ -22,12 +22,17 @@ package com.baidu.hugegraph.api;
 import java.util.Map;
 
 import javax.ws.rs.NotFoundException;
+import javax.ws.rs.core.MediaType;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.core.GraphManager;
 
 public class API {
+
+    public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
+    public static final String APPLICATION_JSON_WITH_UTF8 = APPLICATION_JSON +
+                                                            ";charset=UTF-8";
 
     public static Graph graph(GraphManager manager, String graph) {
         Graph g = manager.graph(graph);

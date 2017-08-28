@@ -104,7 +104,7 @@ public class ApplicationConfig extends ResourceConfig {
                 @Override
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
-                        manager = new GraphManager(graphConfs);
+                        GraphManagerFactory.this.manager = new GraphManager(graphConfs);
                     }
                 }
 
@@ -122,7 +122,8 @@ public class ApplicationConfig extends ResourceConfig {
 
         @Override
         public GraphManager provide() {
-            E.checkNotNull(this.manager, "manager");
+            E.checkState(this.manager != null,
+                         "Please wait for the server to initialize");
             return this.manager;
         }
 
