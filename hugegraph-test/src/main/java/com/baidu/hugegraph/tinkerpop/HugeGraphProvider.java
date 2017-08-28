@@ -119,12 +119,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         int index = testFullName.indexOf('@') == -1 ?
                     testFullName.length() : testFullName.indexOf('@');
 
+        testFullName = testFullName.substring(0, index);
         Assume.assumeFalse(
                String.format("Test %s will be ignored with reason: %s",
-                             testFullName, blackMethods.get(testMethod)),
-               blackMethods.containsKey(testFullName.substring(0, index)));
+                             testFullName, blackMethods.get(testFullName)),
+               blackMethods.containsKey(testFullName));
 
         LOG.info("Full name of test is: {}", testFullName);
+        LOG.info("prefix is: {}", testFullName.substring(0, index));
         HashMap<String, Object> confMap = new HashMap<>();
         String confFile = HugeGraphProvider.class.getClassLoader()
                                            .getResource(CONF_PATH).getPath();

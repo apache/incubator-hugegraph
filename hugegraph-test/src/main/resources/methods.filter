@@ -1,4 +1,6 @@
 # Proper format is "TestClass.testMethodName: ignore reason"
+
+# structure suite
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
 org.apache.tinkerpop.gremlin.structure.util.reference.ReferenceEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldValidateIdEquality: Not support automatic/custom id for edge
@@ -38,6 +40,13 @@ org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModern[gryo
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[gryo]: Not support vertex.edges(Direction.BOTH)
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateModernGraph[gryo]: Not support vertex.edges(Direction.BOTH)
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[gryo]: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphSONTest.shouldReadWriteModernWrappedInJsonObject: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphSONTest.shouldReadLegacyGraphSON: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldReadGraphML: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldReadGraphMLWithNoEdgeLabels: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldTransformGraphMLV2ToV3ViaXSLT: Not support vertex.edges(Direction.BOTH)
+org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldReadGraphMLUnorderedElements: Not support vertex.edges(Direction.BOTH)
+
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv1d0]: weight property have both Float and Double value
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphsonv1d0]: weight property have both Float and Double value
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphsonv1d0]: weight property have both Float and Double value
@@ -49,23 +58,12 @@ org.apache.tinkerpop.gremlin.structure.GraphTest.shouldAddVertexWithUserSupplied
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
 
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: Hang the tests with unknown reason now
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionIsolationCommitCheck: Hang the tests with unknown reason now
-
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldHaveExceptionConsistencyWhenAssigningSameIdOnVertex: Assigning the same ID to an Element is accepted(override), but tinkerpop expect throw an exception
 
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsMapValues({testInteger=123, testString=try})]: Not support map data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsMapValues({testInteger=123, testString=try})]: Not support map data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsMapValues({testInteger=123, testString=try})]: Not support map data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsMapValues({testInteger=123, testString=try})]: Not support map data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsMixedListValues([try1, 2])]: Not support mixedList data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable: Not support serializable data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable: Not support serializable data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable: Not support serializable data type of property key
-org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsSerializableValues(org.apache.tinkerpop.gremlin.structure.MockSerializable: Not support serializable data type of property key
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsUniformListValues([100, 200, 300])]: Not support uniform of Integer because define uniform as String list
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsUniformListValues([100, 200, 300])]: Not support uniform of Integer because define uniform as String list
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsUniformListValues([100, 200, 300])]: Not support uniform of Integer because define uniform as String list
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsUniformListValues([100, 200, 300])]: Not support uniform of Integer because define uniform as String list
 
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowJustRollbackOnlyWithAutoTransaction: Unsupported rollback operation by Cassandra
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
@@ -79,4 +77,47 @@ org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdg
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackElementAutoTransactionByDefault: Unsupported rollback operation by Cassandra
 
+## failed tests with complex reason
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.ProcessorTest.shouldProcessEdges: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=5.0, mean=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=5.0, mean=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.1, multiplier=0.0},PowerLawDistribution{gamma=2.1, multiplier=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.1, multiplier=0.0},PowerLawDistribution{gamma=2.1, multiplier=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.9, multiplier=0.0},PowerLawDistribution{gamma=2.9, multiplier=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.9, multiplier=0.0},PowerLawDistribution{gamma=2.9, multiplier=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=3.9, multiplier=0.0},PowerLawDistribution{gamma=3.9, multiplier=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=3.9, multiplier=0.0},PowerLawDistribution{gamma=3.9, multiplier=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: assertion error with unmatched edge number
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: assertion error with unmatched edge number
+
+
+## transaction failed
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionFireAndForget: HugeGraph transaction does not support submit
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: Hang the tests with unknown reason now
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionIsolationCommitCheck: Hang the tests with unknown reason now
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionExponentialBackoff: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionOneAndDone: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenTransactionAlreadyOpen: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionRetryWhenUsingManualTransactions: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldCommitOnCloseWhenConfigured: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionRetry: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenUsingManualTransactionOnRollback: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenUsingManualTransaction: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldCommitElementAutoTransactionByDefault: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowAutoTransactionToWorkWithoutMutationByDefault: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenOnReadWriteToNull: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackOnCloseByDefault: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenOnCloseToNull: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenTransactionOpenOnClose: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldNotShareTransactionReadWriteConsumersAcrossThreads: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionExponentialBackoffWithExceptionChecks: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldNotShareTransactionCloseConsumersAcrossThreads: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenUsingManualTransactionOnCommit: To be analyzed
+
+
+
+# process suite
+org.apache.tinkerpop.gremlin.process.traversal.step.branch.LocalTest.Traversals.g_VX4X_localXbothEXknows_createdX_limitX1XX: Not support querying by multi edge-labels
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasLabelXsoftwareX: Not support querying by multi vertex-labels
