@@ -25,7 +25,6 @@ import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 import com.baidu.hugegraph.version.ApiVersion;
 import com.baidu.hugegraph.version.CoreVersion;
@@ -36,7 +35,7 @@ import com.google.common.collect.ImmutableMap;
 public class VersionAPI extends API {
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public Object list() {
         Map<String, String> versions = ImmutableMap.of("version", "v1",
                                        "core", CoreVersion.VERSION.toString(),

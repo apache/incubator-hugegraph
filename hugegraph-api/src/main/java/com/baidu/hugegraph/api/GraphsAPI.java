@@ -30,14 +30,13 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 
 @Path("graphs")
@@ -49,14 +48,14 @@ public class GraphsAPI extends API {
     private static final String TOKEN = "162f7848-0b6d-4faf-b557-3a0797869c55";
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public Object list(@Context GraphManager manager) {
         return ImmutableMap.of("graphs", manager.graphs().keySet());
     }
 
     @GET
     @Path("{name}")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
         LOG.debug("Graphs [{}] get graph by name '{}'", name);
@@ -67,7 +66,7 @@ public class GraphsAPI extends API {
 
     @GET
     @Path("{name}/conf")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public File getConf(@Context GraphManager manager,
                         @PathParam("name") String name,
                         @QueryParam("token") String token) {

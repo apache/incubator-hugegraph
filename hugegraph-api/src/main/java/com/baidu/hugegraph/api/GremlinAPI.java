@@ -31,6 +31,7 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
@@ -46,19 +47,29 @@ public class GremlinAPI extends API {
     private Client client = ClientBuilder.newClient();
 
     private Response doGetRequest(String location, String query) {
-        return this.client.target(String.format("%s?%s", location, query))
-                   .request()
-                   .accept(MediaType.APPLICATION_JSON)
-                   .acceptEncoding("gzip")
-                   .get();
+        String url = String.format("%s?%s", location, query);
+        Response r = this.client.target(url)
+                                .request()
+                                .accept(MediaType.APPLICATION_JSON)
+                                .acceptEncoding("gzip")
+                                .get();
+        assert MediaType.APPLICATION_JSON_TYPE.equals(r.getMediaType());
+        r.getHeaders().putSingle(HttpHeaders.CONTENT_TYPE,
+                                 r.getMediaType().withCharset("utf-8"));
+        return r;
     }
 
     private Response doPostRequest(String location, Object request) {
-        return this.client.target(location)
-                   .request()
-                   .accept(MediaType.APPLICATION_JSON)
-                   .acceptEncoding("gzip")
-                   .post(Entity.entity(request, MediaType.APPLICATION_JSON));
+        Entity<?> body = Entity.entity(request, MediaType.APPLICATION_JSON);
+        Response r = this.client.target(location)
+                                .request()
+                                .accept(MediaType.APPLICATION_JSON)
+                                .acceptEncoding("gzip")
+                                .post(body);
+        assert MediaType.APPLICATION_JSON_TYPE.equals(r.getMediaType());
+        r.getHeaders().putSingle(HttpHeaders.CONTENT_TYPE,
+                                 r.getMediaType().withCharset("utf-8"));
+        return r;
     }
 
     private Response doPostRequest(String location, String request) {
@@ -67,8 +78,8 @@ public class GremlinAPI extends API {
 
     @POST
     @Compress
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public Response post(@Context HugeConfig conf, String request) {
         /* The following code is reserved for forwarding request */
         // context.getRequestDispatcher(location).forward(request, response);
@@ -82,11 +93,12 @@ public class GremlinAPI extends API {
 
     @GET
     @Compress(buffer=(1024 * 40))
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_UTF8)
     public Response get(@Context HugeConfig conf,
                         @Context UriInfo uriInfo) {
         String location = conf.get(ServerOptions.GREMLIN_SERVER_URL);
-        return doGetRequest(location, uriInfo.getRequestUri().getRawQuery());
+        String query = uriInfo.getRequestUri().getRawQuery();
+        return doGetRequest(location, query);
     }
 
     static class GremlinRequest {
