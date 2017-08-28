@@ -29,12 +29,13 @@ import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.exception.NotFoundException;
 
 public class ExceptionFilter {
 
     @Provider
     public static class HugeExceptionMapper
-            implements ExceptionMapper<HugeException> {
+                  implements ExceptionMapper<HugeException> {
 
         @Override
         public Response toResponse(HugeException exception) {
@@ -47,7 +48,7 @@ public class ExceptionFilter {
 
     @Provider
     public static class IllegalArgumentExceptionMapper
-            implements ExceptionMapper<IllegalArgumentException> {
+                  implements ExceptionMapper<IllegalArgumentException> {
 
         @Override
         public Response toResponse(IllegalArgumentException exception) {
@@ -59,8 +60,21 @@ public class ExceptionFilter {
     }
 
     @Provider
+    public static class NotFoundExceptionMapper
+                  implements ExceptionMapper<NotFoundException> {
+
+        @Override
+        public Response toResponse(NotFoundException exception) {
+            return Response.status(404)
+                           .type(MediaType.APPLICATION_JSON)
+                           .entity(formatException(exception))
+                           .build();
+        }
+    }
+
+    @Provider
     public static class WebApplicationExceptionMapper
-            implements ExceptionMapper<WebApplicationException> {
+                  implements ExceptionMapper<WebApplicationException> {
 
         private static final int INTERNAL_SERVER_ERROR =
                 Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
@@ -83,7 +97,7 @@ public class ExceptionFilter {
 
     @Provider
     public static class UnknownExceptionMapper
-            implements ExceptionMapper<Exception> {
+                  implements ExceptionMapper<Exception> {
 
         @Override
         public Response toResponse(Exception exception) {

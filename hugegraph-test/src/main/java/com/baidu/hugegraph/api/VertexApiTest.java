@@ -82,8 +82,7 @@ public class VertexApiTest extends BaseApiTest {
     public void testGetNotFound() {
         String vertex = "person:!not-exists-this-vertex!";
         Response r = client().get(path, vertex);
-        // TODO: improve to 404 (currently server returns 400 if not found)
-        Assert.assertEquals(400, r.getStatus());
+        Assert.assertEquals(404, r.getStatus());
     }
 
     @Test
