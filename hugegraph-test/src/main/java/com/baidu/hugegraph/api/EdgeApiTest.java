@@ -84,8 +84,7 @@ public class EdgeApiTest extends BaseApiTest {
     public void testGetNotFound() {
         String edge = "author:1>write>2017-5-18>book:!not-exists!";
         Response r = client().get(path, edge);
-        // TODO: improve to 404 (currently server returns 400 if not found)
-        Assert.assertEquals(400, r.getStatus());
+        Assert.assertEquals(404, r.getStatus());
     }
 
     @Test
