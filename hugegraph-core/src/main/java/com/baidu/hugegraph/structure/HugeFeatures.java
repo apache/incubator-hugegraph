@@ -239,22 +239,22 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean supportsRemoveProperty() {
-            return false;
+            return true;
         }
 
         @Override
         public boolean supportsMapValues() {
-            return true;
+            return false;
         }
 
         @Override
         public boolean supportsMixedListValues() {
-            return true;
+            return false;
         }
 
         @Override
         public boolean supportsSerializableValues() {
-            return true;
+            return false;
         }
 
         @Override
@@ -282,17 +282,17 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean supportsMapValues() {
-            return true;
+            return false;
         }
 
         @Override
         public boolean supportsMixedListValues() {
-            return true;
+            return false;
         }
 
         @Override
         public boolean supportsSerializableValues() {
-            return true;
+            return false;
         }
 
         @Override
@@ -304,8 +304,9 @@ public class HugeFeatures implements Graph.Features {
 
     public class HugeVertexFeatures extends HugeElementFeatures
                                     implements VertexFeatures {
+
         private final VertexPropertyFeatures vertexPropertyFeatures =
-                new HugeVertexPropertyFeatures();
+                                             new HugeVertexPropertyFeatures();
 
         @Override
         public VertexPropertyFeatures properties() {
@@ -318,13 +319,21 @@ public class HugeFeatures implements Graph.Features {
         }
 
         @Override
-        public boolean supportsMetaProperties() {
-            return false;
+        public boolean supportsMultiProperties() {
+            // Regard as a set (actually can also be a list)
+            return true;
         }
 
         @Override
-        public boolean supportsMultiProperties() {
+        public boolean supportsDuplicateMultiProperties() {
+            // Regard as a list
             return true;
+        }
+
+        @Override
+        public boolean supportsMetaProperties() {
+            // Nested property
+            return false;
         }
 
         @Override
@@ -346,7 +355,7 @@ public class HugeFeatures implements Graph.Features {
                                   implements EdgeFeatures {
 
         private final EdgePropertyFeatures edgePropertyFeatures =
-                new HugeEdgePropertyFeatures();
+                                           new HugeEdgePropertyFeatures();
 
         @Override
         public boolean supportsUserSuppliedIds() {
@@ -362,6 +371,12 @@ public class HugeFeatures implements Graph.Features {
     public class HugeDataTypeFeatures implements DataTypeFeatures {
 
         @Override
+        @FeatureDescriptor(name = FEATURE_STRING_VALUES)
+        public boolean supportsStringValues() {
+            return true;
+        }
+
+        @Override
         @FeatureDescriptor(name = FEATURE_BOOLEAN_VALUES)
         public boolean supportsBooleanValues() {
             return true;
@@ -374,14 +389,14 @@ public class HugeFeatures implements Graph.Features {
         }
 
         @Override
-        @FeatureDescriptor(name = FEATURE_DOUBLE_VALUES)
-        public boolean supportsDoubleValues() {
+        @FeatureDescriptor(name = FEATURE_FLOAT_VALUES)
+        public boolean supportsFloatValues() {
             return true;
         }
 
         @Override
-        @FeatureDescriptor(name = FEATURE_FLOAT_VALUES)
-        public boolean supportsFloatValues() {
+        @FeatureDescriptor(name = FEATURE_DOUBLE_VALUES)
+        public boolean supportsDoubleValues() {
             return true;
         }
 
@@ -398,9 +413,13 @@ public class HugeFeatures implements Graph.Features {
         }
 
         @Override
-        @FeatureDescriptor(name = FEATURE_MAP_VALUES)
-        public boolean supportsMapValues() {
-            return false;
+        @FeatureDescriptor(name = FEATURE_UNIFORM_LIST_VALUES)
+        public boolean supportsUniformListValues() {
+            /*
+             * NOTE: must use cardinality list if use LIST property value,
+             * can't support a LIST property value with cardinality single
+             */
+            return true;
         }
 
         @Override
@@ -410,20 +429,31 @@ public class HugeFeatures implements Graph.Features {
         }
 
         @Override
-        @FeatureDescriptor(name = FEATURE_BOOLEAN_ARRAY_VALUES)
-        public boolean supportsBooleanArrayValues() {
+        @FeatureDescriptor(name = FEATURE_MAP_VALUES)
+        public boolean supportsMapValues() {
             return false;
         }
 
         @Override
+        @FeatureDescriptor(name = FEATURE_SERIALIZABLE_VALUES)
+        public boolean supportsSerializableValues() {
+            return false;
+        }
+
+        /**
+         * All these supportsXxArrayValues() must be used with cardinality list
+         * we can't support array values with cardinality single like tinkerpop
+         */
+        @Override
         @FeatureDescriptor(name = FEATURE_BYTE_ARRAY_VALUES)
         public boolean supportsByteArrayValues() {
+            // Regard as blob
             return true;
         }
 
         @Override
-        @FeatureDescriptor(name = FEATURE_DOUBLE_ARRAY_VALUES)
-        public boolean supportsDoubleArrayValues() {
+        @FeatureDescriptor(name = FEATURE_BOOLEAN_ARRAY_VALUES)
+        public boolean supportsBooleanArrayValues() {
             return false;
         }
 
@@ -434,14 +464,14 @@ public class HugeFeatures implements Graph.Features {
         }
 
         @Override
-        @FeatureDescriptor(name = FEATURE_INTEGER_ARRAY_VALUES)
-        public boolean supportsIntegerArrayValues() {
+        @FeatureDescriptor(name = FEATURE_DOUBLE_ARRAY_VALUES)
+        public boolean supportsDoubleArrayValues() {
             return false;
         }
 
         @Override
-        @FeatureDescriptor(name = FEATURE_STRING_ARRAY_VALUES)
-        public boolean supportsStringArrayValues() {
+        @FeatureDescriptor(name = FEATURE_INTEGER_ARRAY_VALUES)
+        public boolean supportsIntegerArrayValues() {
             return false;
         }
 
@@ -452,20 +482,8 @@ public class HugeFeatures implements Graph.Features {
         }
 
         @Override
-        @FeatureDescriptor(name = FEATURE_SERIALIZABLE_VALUES)
-        public boolean supportsSerializableValues() {
-            return false;
-        }
-
-        @Override
-        @FeatureDescriptor(name = FEATURE_STRING_VALUES)
-        public boolean supportsStringValues() {
-            return true;
-        }
-
-        @Override
-        @FeatureDescriptor(name = FEATURE_UNIFORM_LIST_VALUES)
-        public boolean supportsUniformListValues() {
+        @FeatureDescriptor(name = FEATURE_STRING_ARRAY_VALUES)
+        public boolean supportsStringArrayValues() {
             return false;
         }
     }
