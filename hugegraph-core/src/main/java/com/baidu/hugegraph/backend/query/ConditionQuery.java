@@ -26,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.T;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -220,11 +221,23 @@ public class ConditionQuery extends IdQuery {
                               "obtaining userprop from non relation");
                 }
                 Relation r = ((Relation) c);
-                if (r.key().equals(field) && !c.isSysprop()) {
-                    assert r.relation() == Condition.RelationType.EQ;
-                    values.add(r.value());
-                    got = true;
+                if (!r.key().equals(field) || c.isSysprop()) {
+                    continue;
                 }
+                if (r.relation() == Condition.RelationType.IN) {
+                    List<?> fieldValues = (List<?>) r.value();
+                    E.checkArgument(
+                            fieldValues.size() == 1,
+                            "Only support one element IN index query");
+                    values.addAll(fieldValues);
+                } else {
+                    E.checkArgument(
+                            r.relation() == Condition.RelationType.EQ,
+                            "Must be IN or EQ index query, but got %s",
+                            r.relation());
+                    values.add(r.value());
+                }
+                got = true;
             }
             if (!got) {
                 throw new BackendException(
