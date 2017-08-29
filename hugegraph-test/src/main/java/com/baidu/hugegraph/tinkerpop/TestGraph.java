@@ -47,6 +47,8 @@ public class TestGraph implements Graph {
     private HugeGraph graph;
     private String loadedGraph = null;
     private boolean isLastIdCustomized = false;
+    private boolean autoPerson = false;
+    private boolean ioTest = false;
     private static volatile int id = 666;
 
     public TestGraph(HugeGraph graph) {
@@ -101,7 +103,8 @@ public class TestGraph implements Graph {
             if (keyValues[i].equals(T.label) &&
                 i + 1 < keyValues.length &&
                 "person".equals(keyValues[i + 1]) &&
-                this.loadedGraph == null) {
+                this.loadedGraph == null &&
+                !this.autoPerson) {
                 needRedefineSchema = true;
                 defaultVL = "person";
             }
@@ -112,6 +115,11 @@ public class TestGraph implements Graph {
             this.tx().commit();
             this.initBasicSchema(idStrategy, defaultVL);
             this.tx().commit();
+            if (!this.autoPerson &&
+                defaultVL.equals("person") &&
+                idStrategy == IdStrategy.AUTOMATIC) {
+                this.autoPerson = true;
+            }
 
             this.isLastIdCustomized = idStrategy == IdStrategy.CUSTOMIZE;
         }
@@ -196,6 +204,14 @@ public class TestGraph implements Graph {
         return this.loadedGraph;
     }
 
+    public void autoPerson(Boolean autoPerson) {
+        this.autoPerson = autoPerson;
+    }
+
+    public void ioTest(Boolean ioTest) {
+        this.ioTest = ioTest;
+    }
+
     public void isLastIdCustomized(boolean isLastIdCustomized) {
         this.isLastIdCustomized = isLastIdCustomized;
     }
@@ -265,6 +281,7 @@ public class TestGraph implements Graph {
             case "MixedList":
             case "Map":
             case "Serializable":
+                break;
             default:
                 throw new RuntimeException(
                           String.format("Wrong type %s for %s", type, key));
@@ -320,6 +337,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("lang").ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
         schema.propertyKey("year").asInt().ifNotExist().create();
+        schema.propertyKey("acl").ifNotExist().create();
 
         IdStrategy idStrategy = this.graph.name().equals("standard") ?
                                 IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
@@ -352,6 +370,30 @@ public class TestGraph implements Graph {
               .properties("weight", "year").ifNotExist().create();
         schema.edgeLabel("created").link("person", "software")
               .properties("weight").ifNotExist().create();
+        schema.edgeLabel("codeveloper").link("person", "person")
+              .properties("year").ifNotExist().create();
+        schema.edgeLabel("createdBy").link("software", "person")
+              .properties("weight", "year", "acl").ifNotExist().create();
+
+        // When index field can be null, uncomment these indexLabel define
+        /*schema.indexLabel("personByName").onV("person").by("name")
+              .ifNotExist().create();
+        schema.indexLabel("personByAge").onV("person").by("age").search()
+              .ifNotExist().create();
+        schema.indexLabel("softwareByName").onV("software").by("name")
+              .ifNotExist().create();
+        schema.indexLabel("softwareByLang").onV("software").by("lang")
+              .ifNotExist().create();
+        schema.indexLabel("dogByName").onV("dog").by("name")
+              .ifNotExist().create();
+        schema.indexLabel("vertexByName").onV("vertex").by("name")
+              .ifNotExist().create();
+        schema.indexLabel("vertexByAge").onV("vertex").by("age").search()
+              .ifNotExist().create();
+        schema.indexLabel("knowsByWeight").onE("knows").by("weight").search()
+              .ifNotExist().create();
+        schema.indexLabel("createdByWeight").onE("created").by("weight")
+              .search().ifNotExist().create();*/
     }
 
     public void initClassicSchema() {
@@ -383,6 +425,10 @@ public class TestGraph implements Graph {
               .properties("weight").ifNotExist().create();
         schema.edgeLabel("created").link("vertex", "vertex")
               .properties("weight").ifNotExist().create();
+
+        // When index field can be null, uncomment these indexLabel define
+        /*schema.indexLabel("vertexByAge").onV("vertex").by("age").search()
+              .ifNotExist().create();*/
     }
 
     public void initBasicSchema(IdStrategy idStrategy, String defaultVL) {
@@ -394,8 +440,8 @@ public class TestGraph implements Graph {
     private void initBasicPropertyKey() {
         SchemaManager schema = this.graph.schema();
 
+        schema.propertyKey("__id").ifNotExist().create();
         schema.propertyKey("oid").asInt().ifNotExist().create();
-        schema.propertyKey("__id").asText().ifNotExist().create();
         schema.propertyKey("communityIndex").asInt().ifNotExist().create();
         schema.propertyKey("test").ifNotExist().create();
         schema.propertyKey("testing").ifNotExist().create();
@@ -414,7 +460,6 @@ public class TestGraph implements Graph {
         schema.propertyKey("y").asInt().ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
         schema.propertyKey("lang").ifNotExist().create();
-        schema.propertyKey("weight").asDouble().ifNotExist().create();
         schema.propertyKey("some").ifNotExist().create();
         schema.propertyKey("that").ifNotExist().create();
         schema.propertyKey("any").ifNotExist().create();
@@ -431,7 +476,18 @@ public class TestGraph implements Graph {
         schema.propertyKey("stars").asInt().ifNotExist().create();
         schema.propertyKey("aKey").asDouble().ifNotExist().create();
         schema.propertyKey("b").asBoolean().ifNotExist().create();
+        schema.propertyKey("s").ifNotExist().create();
+        schema.propertyKey("n").ifNotExist().create();
+        schema.propertyKey("d").asDouble().ifNotExist().create();
+        schema.propertyKey("f").asFloat().ifNotExist().create();
+        schema.propertyKey("i").asInt().ifNotExist().create();
+        schema.propertyKey("l").asLong().ifNotExist().create();
 
+        if (this.ioTest) {
+            schema.propertyKey("weight").asFloat().ifNotExist().create();
+        } else {
+            schema.propertyKey("weight").asDouble().ifNotExist().create();
+        }
     }
 
     private void initBasicVertexLabelV(IdStrategy idStrategy,
@@ -445,7 +501,8 @@ public class TestGraph implements Graph {
                                   "communityIndex", "test", "testing", "acl",
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
-                                  "long", "myId", "location", "x", "y")
+                                  "long", "myId", "location", "x", "y", "s",
+                                  "n", "d", "f", "i", "l")
                       .useCustomizeId().ifNotExist().create();
                 break;
             case AUTOMATIC:
@@ -455,13 +512,20 @@ public class TestGraph implements Graph {
                                   "communityIndex", "test", "testing", "acl",
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
-                                  "long", "myId", "location", "x", "y")
+                                  "long", "myId", "location", "x", "y", "s",
+                                  "n", "d", "f", "i", "l")
                       .ifNotExist().create();
                 break;
             default:
                 throw new AssertionError("Only customize and automatic " +
                                          "is legal in tinkerpop tests");
         }
+
+        // When index field can be null, uncomment these indexLabel define
+        /*schema.indexLabel("defaultVLBy__id").onV(defaultVL).by("__id")
+              .ifNotExist().create();
+        schema.indexLabel("defaultVLByName").onV(defaultVL).by("name")
+              .ifNotExist().create();*/
     }
 
     private void initBasicVertexLabelAndEdgeLabelExceptV(String defaultVL) {
@@ -517,5 +581,13 @@ public class TestGraph implements Graph {
               .properties("weight").ifNotExist().create();
         schema.edgeLabel("created").link(defaultVL, defaultVL)
               .properties("weight").ifNotExist().create();
+        schema.edgeLabel("next").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+
+        // When index field can be null, uncomment these indexLabel define
+        /*schema.indexLabel("selfByName").onE("self").by("name")
+              .ifNotExist().create();
+        schema.indexLabel("selfBy__id").onE("self").by("__id")
+              .ifNotExist().create();*/
     }
 }
