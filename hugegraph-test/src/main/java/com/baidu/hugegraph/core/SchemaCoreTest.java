@@ -47,6 +47,67 @@ public class SchemaCoreTest extends BaseCoreTest{
 
     // PropertyKey tests
     @Test
+    public void testAddPropertyKeyWithValidName() {
+        SchemaManager schema = graph().schema();
+
+        // One space and single char
+        schema.propertyKey(" s").create();
+        schema.propertyKey("s ").create();
+        schema.propertyKey(" s ").create();
+        schema.propertyKey("s s").create();
+
+        schema.propertyKey(" .").create();
+        schema.propertyKey(". ").create();
+        schema.propertyKey(" . ").create();
+        schema.propertyKey(". .").create();
+
+        schema.propertyKey("~@$%^&*()_+`-={}|[]\"<?;',./\\").create();
+        schema.propertyKey("azAZ0123456789").create();
+
+        schema.propertyKey("姓名").create();
+        schema.propertyKey(" 姓名").create();
+        schema.propertyKey("姓名 ").create();
+        schema.propertyKey(" 姓名 ").create();
+        schema.propertyKey("姓 名").create();
+    }
+
+    @Test
+    public void testAddPropertyKeyWithIllegalName() {
+        SchemaManager schema = graph().schema();
+
+        // Empty string
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey("").create();
+        });
+        // One space
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey(" ").create();
+        });
+        // Two spaces
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey("  ").create();
+        });
+        // Multi spaces
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey("    ").create();
+        });
+
+        // Internal characters
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey("#").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey(">").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey(":").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey("!").create();
+        });
+    }
+
+    @Test
     public void testAddPropertyKeyWithoutDataType() {
         SchemaManager schema = graph().schema();
         PropertyKey id = schema.propertyKey("id").create();
@@ -84,6 +145,28 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertTrue(person.properties().contains("city"));
         Assert.assertEquals(1, person.primaryKeys().size());
         Assert.assertTrue(person.primaryKeys().contains("name"));
+    }
+
+    @Test
+    public void testAddVertexLabelWithIllegalName() {
+        SchemaManager schema = graph().schema();
+
+        // Empty string
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("").create();
+        });
+        // One space
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel(" ").create();
+        });
+        // Two spaces
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("  ").create();
+        });
+        // Multi spaces
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("    ").create();
+        });
     }
 
     @Test
@@ -457,6 +540,35 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertEquals(1, look.sortKeys().size());
         Assert.assertTrue(look.sortKeys().contains("time"));
         Assert.assertEquals(Frequency.MULTIPLE, look.frequency());
+    }
+
+    @Test
+    public void testAddEdgeLabelWithIllegalName() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("author").properties("id", "name")
+              .primaryKeys("id").create();
+
+        // Empty string
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("").link("person", "author").create();
+        });
+        // One space
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel(" ").link("person", "author").create();
+        });
+        // Two spaces
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("  ").link("person", "author").create();
+        });
+        // Multi spaces
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("    ").link("person", "author").create();
+        });
     }
 
     @Test
@@ -975,6 +1087,31 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertEquals("person", personByAge.baseValue());
         Assert.assertEquals(IndexType.SECONDARY, personByCity.indexType());
         Assert.assertEquals(IndexType.SEARCH, personByAge.indexType());
+    }
+
+    @Test
+    public void testAddIndexLabelWithIllegalName() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+
+        // Empty string
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("").onV("person").by("name").create();
+        });
+        // One space
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel(" ").onV("person").by("name").create();
+        });
+        // Two spaces
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("  ").onV("person").by("name").create();
+        });
+        // Multi spaces
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("    ").onV("person").by("name").create();
+        });
     }
 
     @Test

@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.schema;
 
+import static com.baidu.hugegraph.config.CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,6 +28,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -162,7 +165,8 @@ public class EdgeLabel extends SchemaLabel {
         @Override
         public EdgeLabel create() {
             String name = this.edgeLabel.name();
-            StringUtil.checkName(name);
+            HugeConfig config = this.transaction.graph().configuration();
+            checkName(name, config.get(SCHEMA_ILLEGAL_NAME_REGEX));
 
             EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
             if (edgeLabel != null) {
@@ -187,8 +191,6 @@ public class EdgeLabel extends SchemaLabel {
         @Override
         public EdgeLabel append() {
             String name = this.edgeLabel.name();
-            StringUtil.checkName(name);
-
             // Don't allow user to modify some stable properties.
             this.checkStableVars();
             this.checkProperties();
