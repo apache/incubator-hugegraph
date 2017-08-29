@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.structure;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -47,6 +49,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
@@ -329,19 +332,41 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
-        List<VertexProperty<V>> props = new ArrayList<>(propertyKeys.length);
+        // Capacity should be about the following size
+        int propsCapacity = propertyKeys.length == 0 ?
+                            this.sizeOfProperties() :
+                            propertyKeys.length;
+        List<VertexProperty<V>> props = new ArrayList<>(propsCapacity);
+
+        Consumer<HugeProperty<?>> addProps = (prop) -> {
+            Cardinality cardinality = prop.propertyKey().cardinality();
+            if (cardinality == Cardinality.SINGLE) {
+                props.add((VertexProperty<V>) prop);
+            } else {
+                assert cardinality == Cardinality.LIST ||
+                       cardinality == Cardinality.SET;
+                assert prop.value() instanceof Collection;
+                // Construct a property for each property value
+                for (V value : (Collection<V>) prop.value()) {
+                    props.add(this.newProperty(prop.propertyKey(), value));
+                }
+            }
+        };
 
         if (propertyKeys.length == 0) {
             for (HugeProperty<?> prop : this.getProperties().values()) {
-                props.add((VertexProperty<V>) prop);
+                assert prop instanceof VertexProperty;
+                addProps.accept(prop);
             }
         } else {
             for (String pk : propertyKeys) {
                 HugeProperty<? extends Object> prop = this.getProperty(pk);
-                if (prop != null) {
-                    assert prop instanceof VertexProperty;
-                    props.add((VertexProperty<V>) prop);
-                } // else not found
+                if (prop == null) {
+                    // Not found
+                    continue;
+                }
+                assert prop instanceof VertexProperty;
+                addProps.accept(prop);
             }
         }
 

@@ -19,12 +19,15 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -154,21 +157,33 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "comment", "LGTM!");
         vertex = vertex("review", "id", 1);
         Assert.assertEquals(ImmutableList.of("looks good!", "LGTM!"),
-                            vertex.property("comment").value());
+                            IteratorUtils.list(vertex.values("comment")));
+        Iterator<VertexProperty<Object>> props = vertex.properties("comment");
+        Assert.assertEquals("looks good!", props.next().value());
+        Assert.assertEquals("LGTM!", props.next().value());
+        Assert.assertFalse(props.hasNext());
 
         vertex = graph.addVertex(T.label, "review", "id", 2,
                                  "comment",
                                  ImmutableList.of("looks good 2!", "LGTM!"));
         vertex = vertex("review", "id", 2);
         Assert.assertEquals(ImmutableList.of("looks good 2!", "LGTM!"),
-                            vertex.property("comment").value());
+                            IteratorUtils.list(vertex.values("comment")));
+        props = vertex.properties("comment");
+        Assert.assertEquals("looks good 2!", props.next().value());
+        Assert.assertEquals("LGTM!", props.next().value());
+        Assert.assertFalse(props.hasNext());
 
         vertex = graph.addVertex(T.label, "review", "id", 3,
                                  "comment",
                                  new String[]{"looks good 3!", "LGTM!"});
         vertex = vertex("review", "id", 3);
         Assert.assertEquals(ImmutableList.of("looks good 3!", "LGTM!"),
-                            vertex.property("comment").value());
+                            IteratorUtils.list(vertex.values("comment")));
+        props = vertex.properties("comment");
+        Assert.assertEquals("looks good 3!", props.next().value());
+        Assert.assertEquals("LGTM!", props.next().value());
+        Assert.assertFalse(props.hasNext());
     }
 
     @Test
@@ -202,13 +217,13 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "contribution", "+2");
         vertex = vertex("review", "id", 1);
         Assert.assertEquals(ImmutableSet.of("+1", "+2"),
-                            vertex.property("contribution").value());
+                            IteratorUtils.set(vertex.values("contribution")));
 
         vertex = graph.addVertex(T.label, "review", "id", 2,
                                  "contribution", ImmutableSet.of("+1", "+2"));
         vertex = vertex("review", "id", 2);
         Assert.assertEquals(ImmutableSet.of("+1", "+2"),
-                            vertex.property("contribution").value());
+                            IteratorUtils.set(vertex.values("contribution")));
     }
 
     @Test
