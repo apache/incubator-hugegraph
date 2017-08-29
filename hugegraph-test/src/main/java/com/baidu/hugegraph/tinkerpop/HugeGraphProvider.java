@@ -65,6 +65,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
             "PropertyTest.PropertyFeatureSupportTest";
     private static final String IO_CLASS_PREFIX =
             "org.apache.tinkerpop.gremlin.structure.io.IoGraphTest";
+    private static final String IO_TEST_PREFIX =
+            "org.apache.tinkerpop.gremlin.structure.io.IoTest";
 
     private static Map<String, String> blackMethods = new HashMap<>();
     private Map<String, TestGraph> graphs = new HashMap<>();
@@ -176,6 +178,10 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         return null;
     }
 
+    private static boolean ioTest(Class clazz) {
+        return clazz.getCanonicalName().startsWith(IO_TEST_PREFIX);
+    }
+
     @Override
     public Graph openTestGraph(final Configuration config) {
         String graphName = config.getString(CoreOptions.STORE.name());
@@ -208,6 +214,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
         testGraph.isLastIdCustomized(false);
         testGraph.loadedGraph(ioType);
+        testGraph.autoPerson(false);
+        testGraph.ioTest(ioTest((Class) config.getProperty("testClass")));
 
         Object loadGraph = config.getProperty("loadGraph");
         if (loadGraph != null && !graphName.equals("standard")) {
