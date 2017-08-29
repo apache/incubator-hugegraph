@@ -230,7 +230,8 @@ public class HugeFeatures implements Graph.Features {
         }
     }
 
-    public class HugeVertexPropertyFeatures implements VertexPropertyFeatures {
+    public class HugeVertexPropertyFeatures extends HugeDataTypeFeatures
+                                            implements VertexPropertyFeatures {
 
         @Override
         public boolean supportsAddProperty() {
@@ -278,7 +279,8 @@ public class HugeFeatures implements Graph.Features {
         }
     }
 
-    public class HugeEdgePropertyFeatures implements EdgePropertyFeatures {
+    public class HugeEdgePropertyFeatures extends HugeDataTypeFeatures
+                                          implements EdgePropertyFeatures {
 
         @Override
         public boolean supportsMapValues() {
