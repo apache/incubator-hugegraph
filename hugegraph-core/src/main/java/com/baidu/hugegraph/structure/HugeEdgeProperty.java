@@ -20,6 +20,8 @@
 package com.baidu.hugegraph.structure;
 
 import com.baidu.hugegraph.schema.PropertyKey;
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 public class HugeEdgeProperty<V> extends HugeProperty<V> {
 
@@ -37,5 +39,13 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
     public void remove() {
         this.owner.removeProperty(this.key());
         this.owner.tx().removeEdgeProperty(this);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Property)) {
+            return false;
+        }
+        return ElementHelper.areEqual(this, obj);
     }
 }
