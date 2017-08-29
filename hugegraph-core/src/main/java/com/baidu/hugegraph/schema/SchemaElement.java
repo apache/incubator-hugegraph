@@ -26,6 +26,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.Typifiable;
+import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaElement
                 implements Namifiable, Typifiable, Propfiable {
@@ -83,4 +84,19 @@ public abstract class SchemaElement
     }
 
     public abstract String schema();
+
+    public static void checkName(String name, String illegalRegex) {
+        E.checkNotNull(name, "name");
+        E.checkArgument(!name.isEmpty(), "The name can't be empty.");
+        E.checkArgument(name.length() < 256,
+                        "The length of name must less than 256 bytes.");
+        E.checkArgument(!name.matches(illegalRegex),
+                        String.format("Illegal schema name '%s'", name));
+
+        final char[] filters = {'#', '>', ':', '!'};
+        for (char c : filters) {
+            E.checkArgument(name.indexOf(c) == -1,
+                            "The name can't contain character '%s'.", c);
+        }
+    }
 }

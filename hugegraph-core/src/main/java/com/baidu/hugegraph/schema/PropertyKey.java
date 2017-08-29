@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.schema;
 
+import static com.baidu.hugegraph.config.CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.PropertyKeyBuilder;
@@ -34,7 +37,6 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.StringUtil;
 
 public class PropertyKey extends SchemaElement {
 
@@ -171,7 +173,8 @@ public class PropertyKey extends SchemaElement {
         @Override
         public PropertyKey create() {
             String name = this.propertyKey.name();
-            StringUtil.checkName(name);
+            HugeConfig config = this.transaction.graph().configuration();
+            checkName(name, config.get(SCHEMA_ILLEGAL_NAME_REGEX));
 
             PropertyKey propertyKey = this.transaction.getPropertyKey(name);
             if (propertyKey != null) {
