@@ -43,12 +43,14 @@ import com.baidu.hugegraph.util.E;
 
 public abstract class HugeElement implements Element, GraphType {
 
-    protected final HugeGraph graph;
-    protected boolean removed;
+    private final HugeGraph graph;
+
     protected Id id;
     protected Map<String, HugeProperty<?>> properties;
+    protected boolean removed;
 
-    public HugeElement(final HugeGraph graph, final Id id) {
+    public HugeElement(final HugeGraph graph, Id id) {
+        E.checkArgument(graph != null, "HugeElement graph can't be null");
         this.graph = graph;
         this.id = id;
         this.properties = new HashMap<>();
