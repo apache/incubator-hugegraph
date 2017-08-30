@@ -41,6 +41,7 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.Log;
 
@@ -114,7 +115,7 @@ public class VertexLabelAPI extends API {
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         VertexLabel vertexLabel = g.schemaTransaction().getVertexLabel(name);
-        checkExists(vertexLabel, name);
+        checkExists(HugeType.VERTEX_LABEL, vertexLabel, name);
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
 

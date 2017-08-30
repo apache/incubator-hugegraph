@@ -115,7 +115,7 @@ public abstract class HugeElement implements Element, GraphType {
 
     public <V> HugeProperty<V> addProperty(String key, V value) {
         HugeProperty<V> prop = null;
-        PropertyKey pkey = this.graph.schema().getPropertyKey(key);
+        PropertyKey pkey = this.graph.propertyKey(key);
         switch (pkey.cardinality()) {
             case SINGLE:
                 /*

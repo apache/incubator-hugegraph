@@ -30,6 +30,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -616,7 +617,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.vertexLabel("person").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getVertexLabel("person");
         });
     }
@@ -642,7 +643,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.vertexLabel("person").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getVertexLabel("person");
         });
 
@@ -675,11 +676,11 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.vertexLabel("person").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getVertexLabel("person");
         });
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getIndexLabel("personByAge");
         });
 
@@ -715,11 +716,11 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.vertexLabel("person").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getVertexLabel("person");
         });
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getIndexLabel("personByCity");
         });
 
@@ -751,7 +752,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.edgeLabel("look").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getEdgeLabel("look");
         });
     }
@@ -793,7 +794,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.edgeLabel("write").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getEdgeLabel("write");
         });
 
@@ -845,11 +846,11 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.edgeLabel("write").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getEdgeLabel("write");
         });
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getIndexLabel("writeByWeight");
         });
 
@@ -899,11 +900,11 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.edgeLabel("write").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getEdgeLabel("write");
         });
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getIndexLabel("writeByTime");
         });
 
@@ -1156,7 +1157,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.indexLabel("personByCity").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getIndexLabel("personByCity");
         });
 
@@ -1174,7 +1175,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.indexLabel("personByAge").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getIndexLabel("personByAge");
         });
 
@@ -1220,7 +1221,7 @@ public class SchemaCoreTest extends BaseCoreTest{
 
         schema.indexLabel("authoredByContri").remove();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        Assert.assertThrows(NotFoundException.class, () -> {
             schema.getIndexLabel("authoredByContri");
         });
 

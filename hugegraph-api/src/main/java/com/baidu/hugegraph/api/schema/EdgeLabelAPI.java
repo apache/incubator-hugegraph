@@ -41,6 +41,7 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.Log;
 
@@ -113,7 +114,7 @@ public class EdgeLabelAPI extends API {
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         EdgeLabel edgeLabel = g.schemaTransaction().getEdgeLabel(name);
-        checkExists(edgeLabel, name);
+        checkExists(HugeType.EDGE_LABEL, edgeLabel, name);
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
 
