@@ -36,7 +36,6 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
-import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -93,7 +92,7 @@ public class CassandraSerializer extends AbstractSerializer {
     protected void parseProperty(String colName, String colValue,
                                  HugeElement owner) {
         // Get PropertyKey by PropertyKey name
-        PropertyKey pkey = this.graph.schema().getPropertyKey(colName);
+        PropertyKey pkey = this.graph.propertyKey(colName);
 
         // Parse value
         Object value = JsonUtil.fromJson(colValue, pkey.clazz());
@@ -152,16 +151,15 @@ public class CassandraSerializer extends AbstractSerializer {
         String targetVertexId = row.column(HugeKeys.TARGET_VERTEX);
 
         boolean isOutEdge = direction == Direction.OUT;
-        EdgeLabel edgeLabel = this.graph.schema().getEdgeLabel(labelName);
+        EdgeLabel edgeLabel = this.graph.edgeLabel(labelName);
 
         if (vertex == null) {
             Id id = IdGenerator.of(sourceVertexId);
             vertex = new HugeVertex(this.graph, id, null);
         }
 
-        SchemaManager schema = this.graph.schema();
-        VertexLabel srcLabel = schema.getVertexLabel(edgeLabel.sourceLabel());
-        VertexLabel tgtLabel = schema.getVertexLabel(edgeLabel.targetLabel());
+        VertexLabel srcLabel = this.graph.vertexLabel(edgeLabel.sourceLabel());
+        VertexLabel tgtLabel = this.graph.vertexLabel(edgeLabel.targetLabel());
 
         Id vertexId = IdGenerator.of(targetVertexId);
         HugeVertex otherVertex;
@@ -480,8 +478,7 @@ public class CassandraSerializer extends AbstractSerializer {
         String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
         Set<String> elementIds = entry.column(HugeKeys.ELEMENT_IDS);
 
-        IndexLabel indexLabel = this.graph.schema()
-                                .getIndexLabel(indexLabelName);
+        IndexLabel indexLabel = this.graph.indexLabel(indexLabelName);
 
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(indexValues);

@@ -38,6 +38,7 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.Log;
@@ -88,7 +89,7 @@ public class PropertyKeyAPI extends API {
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         PropertyKey propertyKey = g.schemaTransaction().getPropertyKey(name);
-        checkExists(propertyKey, name);
+        checkExists(HugeType.PROPERTY_KEY, propertyKey, name);
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
 

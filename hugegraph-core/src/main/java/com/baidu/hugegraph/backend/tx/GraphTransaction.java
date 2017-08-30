@@ -51,7 +51,6 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
-import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
@@ -260,8 +259,7 @@ public class GraphTransaction extends AbstractTransaction {
         if (label == null) {
             throw Element.Exceptions.labelCanNotBeNull();
         } else if (label instanceof String) {
-            SchemaManager schema = graph().schema();
-            label = schema.getVertexLabel((String) label);
+            label = this.graph().vertexLabel((String) label);
         }
 
         assert (label instanceof VertexLabel);
@@ -514,11 +512,10 @@ public class GraphTransaction extends AbstractTransaction {
 
     private Set<String> relatedIndexNames(String prop,
                                           Indexfiable indexfiable) {
-        SchemaManager schema = graph().schema();
-        Set<String> result = indexfiable.indexNames().stream().filter(index ->
-                    schema.getIndexLabel(index).indexFields().contains(prop))
-                    .collect(Collectors.toSet());
-        return result;
+        Set<String> rs = indexfiable.indexNames().stream().filter(index -> {
+            return this.graph().indexLabel(index).indexFields().contains(prop);
+        }).collect(Collectors.toSet());
+        return rs;
     }
 
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,
@@ -592,11 +589,10 @@ public class GraphTransaction extends AbstractTransaction {
 
     protected Query optimizeQuery(ConditionQuery query) {
         String label = (String) query.condition(HugeKeys.LABEL);
-        SchemaManager schema = graph().schema();
 
         // Optimize vertex query
         if (label != null && query.resultType() == HugeType.VERTEX) {
-            VertexLabel vertexLabel = schema.getVertexLabel(label);
+            VertexLabel vertexLabel = this.graph().vertexLabel(label);
             if (vertexLabel.idStrategy() == IdStrategy.PRIMARY_KEY) {
                 // Query vertex by label + primary-values
                 List<String> keys = vertexLabel.primaryKeys();
@@ -622,7 +618,7 @@ public class GraphTransaction extends AbstractTransaction {
         // Optimize edge query
         if (label != null && query.resultType() == HugeType.EDGE) {
             // Query edge by sourceVertex + direction + label + sort-values
-            List<String> keys = schema.getEdgeLabel(label).sortKeys();
+            List<String> keys = this.graph().edgeLabel(label).sortKeys();
             if (query.condition(HugeKeys.SOURCE_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&
                 !keys.isEmpty() &&

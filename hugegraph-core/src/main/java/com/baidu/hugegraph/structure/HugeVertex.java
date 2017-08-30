@@ -182,7 +182,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
 
         HugeVertex targetVertex = (HugeVertex) vertex;
-        EdgeLabel edgeLabel = this.graph.schema().getEdgeLabel(label);
+        EdgeLabel edgeLabel = this.graph.edgeLabel(label);
 
         E.checkArgument(
                 CollectionUtil.containsAll(ElementHelper.getKeys(properties),

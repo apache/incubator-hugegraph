@@ -87,7 +87,7 @@ public class IndexLabelAPI extends API {
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         IndexLabel indexLabel = g.schemaTransaction().getIndexLabel(name);
-        checkExists(indexLabel, name);
+        checkExists(HugeType.INDEX_LABEL, indexLabel, name);
         return manager.serializer(g).writeIndexlabel(indexLabel);
     }
 

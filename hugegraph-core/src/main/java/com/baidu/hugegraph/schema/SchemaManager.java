@@ -23,7 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.type.HugeType;
 
 public class SchemaManager {
 
@@ -67,29 +68,25 @@ public class SchemaManager {
 
     public PropertyKey getPropertyKey(String name) {
         PropertyKey propertyKey = this.transaction.getPropertyKey(name);
-        E.checkArgument(propertyKey != null,
-                        "Undefined property key:'%s'", name);
+        checkExists(HugeType.PROPERTY_KEY, propertyKey, name);
         return propertyKey;
     }
 
     public VertexLabel getVertexLabel(String name) {
         VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
-        E.checkArgument(vertexLabel != null,
-                        "Undefined vertexlabel: '%s'", name);
+        checkExists(HugeType.VERTEX_LABEL, vertexLabel, name);
         return vertexLabel;
     }
 
     public EdgeLabel getEdgeLabel(String name) {
         EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
-        E.checkArgument(edgeLabel != null,
-                        "Undefined edge label: '%s'", name);
+        checkExists(HugeType.EDGE_LABEL, edgeLabel, name);
         return edgeLabel;
     }
 
     public IndexLabel getIndexLabel(String name) {
         IndexLabel indexLabel = this.transaction.getIndexLabel(name);
-        E.checkArgument(indexLabel != null,
-                        "Undefined index label: '%s'", name);
+        checkExists(HugeType.INDEX_LABEL, indexLabel, name);
         return indexLabel;
     }
 
@@ -116,5 +113,12 @@ public class SchemaManager {
         elements.addAll(this.getEdgeLabels());
         elements.addAll(this.getIndexLabels());
         return elements;
+    }
+
+    public static void checkExists(HugeType type, Object object, String name) {
+        if (object == null) {
+            throw new NotFoundException("Not found the %s with name '%s'",
+                                        type, name);
+        }
     }
 }

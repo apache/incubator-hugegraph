@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.baidu.hugegraph.util.LockUtil;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -34,7 +33,6 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
@@ -51,10 +49,17 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.LockUtil;
+import com.baidu.hugegraph.util.Log;
 
 /**
  * HugeGraph is the entrance of the graph system, you can modify or query
@@ -281,6 +286,30 @@ public class HugeGraph implements Graph {
 
     public Iterator<Edge> edges(Query query) {
         return this.graphTransaction().queryEdges(query).iterator();
+    }
+
+    public PropertyKey propertyKey(String name) {
+        PropertyKey pk = this.schemaTransaction().getPropertyKey(name);
+        E.checkArgument(pk != null, "Undefined property key:'%s'", name);
+        return pk;
+    }
+
+    public VertexLabel vertexLabel(String name) {
+        VertexLabel vl = this.schemaTransaction().getVertexLabel(name);
+        E.checkArgument(vl != null, "Undefined vertexlabel: '%s'", name);
+        return vl;
+    }
+
+    public EdgeLabel edgeLabel(String name) {
+        EdgeLabel el = this.schemaTransaction().getEdgeLabel(name);
+        E.checkArgument(el != null, "Undefined edge label: '%s'", name);
+        return el;
+    }
+
+    public IndexLabel indexLabel(String name) {
+        IndexLabel il = this.schemaTransaction().getIndexLabel(name);
+        E.checkArgument(il != null, "Undefined index label: '%s'", name);
+        return il;
     }
 
     @Override
