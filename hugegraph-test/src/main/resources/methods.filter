@@ -1,13 +1,17 @@
 # Proper format is "TestClass.testMethodName: ignore reason"
 
 # structure suite
+
+## automatic ID for edges
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
 org.apache.tinkerpop.gremlin.structure.util.reference.ReferenceEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldValidateIdEquality: Not support automatic/custom id for edge
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldValidateEquality: Not support automatic/custom id for edge
 
+## property ID
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedPropertyTest.shouldNotBeEqualPropertiesAsThereIsDifferentKey: Not support property id
 
+## property update
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest.shouldConstructDetachedVertexAsReference: Not support duplicated property key/value in addVertex or update property
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldOverwriteEarlierKeyValuesWithLaterKeyValuesOnAddVertexIfMultiProperty: Not support duplicated property key/value in addVertex or update property
 org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyRemoval.shouldRemoveMultiPropertiesWhenVerticesAreRemoved: Not support duplicated property key/value in addVertex or update property
@@ -18,6 +22,7 @@ org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyAddition
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackPropertyAutoTransactionByDefault: Not support duplicated property key/value in addVertex or update property
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldCommitPropertyAutoTransactionByDefault: Not support duplicated property key/value in addVertex or update property
 
+## vertex.edge(Both)
 org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldNotHaveAConcurrentModificationExceptionWhenIteratingAndRemovingAddingEdges: Not support vertex.edges(Direction.BOTH)
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModernToFileWithHelpers[graphml]: Not support vertex.edges(Direction.BOTH)
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphml]: Not support vertex.edges(Direction.BOTH)
@@ -47,37 +52,24 @@ org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldReadGraphMLWi
 org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldTransformGraphMLV2ToV3ViaXSLT: Not support vertex.edges(Direction.BOTH)
 org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldReadGraphMLUnorderedElements: Not support vertex.edges(Direction.BOTH)
 
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv1d0]: weight property have both Float and Double value
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphsonv1d0]: weight property have both Float and Double value
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphsonv1d0]: weight property have both Float and Double value
-
+## self loop should treated as 2 edges
 org.apache.tinkerpop.gremlin.structure.util.star.StarGraphTest.shouldHandleSelfLoops: Self loop vertex only have 1 edge, this test expect 2 edges(1 IN and 1 OUT)
 
+## id should be String type
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldAddVertexWithUserSuppliedStringId: expect vertex.id is String type
 
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
-
+## same id for element
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldHaveExceptionConsistencyWhenAssigningSameIdOnVertex: Assigning the same ID to an Element is accepted(override), but tinkerpop expect throw an exception
 
+## uniform list
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsUniformListValues([100, 200, 300])]: Not support uniform of Integer because define uniform as String list
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdgeOnAdd[supportsUniformListValues([100, 200, 300])]: Not support uniform of Integer because define uniform as String list
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsUniformListValues([100, 200, 300])]: Not support uniform of Integer because define uniform as String list
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsUniformListValues([100, 200, 300])]: Not support uniform of Integer because define uniform as String list
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsUniformListValues([try1, try2])]: Uniform list can't be accessed by vertex.property() which is supposed right by tinkerpop
+org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsUniformListValues([try1, try2])]: Uniform list can't be accessed by vertex.property() which is supposed right by tinkerpop
 
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowJustRollbackOnlyWithAutoTransaction: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexIdOutsideOfOriginalThreadAuto: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldNotifyTransactionListenersOnRollbackSuccess: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexIdOutsideOfOriginalThreadManual: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexOutsideOfOriginalTransactionalContextManual: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeIdOutsideOfOriginalThreadAuto: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeIdOutsideOfOriginalThreadManual: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextManual: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackElementAutoTransactionByDefault: Unsupported rollback operation by Cassandra
-
-## failed tests with complex reason
+## failed tests with wrong edge number
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.ProcessorTest.shouldProcessEdges: assertion error with unmatched edge number
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: assertion error with unmatched edge number
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: assertion error with unmatched edge number
@@ -91,7 +83,6 @@ org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.Diffe
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=3.9, multiplier=0.0},PowerLawDistribution{gamma=3.9, multiplier=0.0})]: assertion error with unmatched edge number
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: assertion error with unmatched edge number
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: assertion error with unmatched edge number
-
 
 ## transaction failed
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionFireAndForget: HugeGraph transaction does not support submit
@@ -115,8 +106,24 @@ org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldNotShareTransaction
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionExponentialBackoffWithExceptionChecks: To be analyzed
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldNotShareTransactionCloseConsumersAcrossThreads: To be analyzed
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenUsingManualTransactionOnCommit: To be analyzed
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowJustRollbackOnlyWithAutoTransaction: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexIdOutsideOfOriginalThreadAuto: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldNotifyTransactionListenersOnRollbackSuccess: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexIdOutsideOfOriginalThreadManual: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexOutsideOfOriginalTransactionalContextManual: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeIdOutsideOfOriginalThreadAuto: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeIdOutsideOfOriginalThreadManual: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextManual: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackElementAutoTransactionByDefault: Unsupported rollback operation by Cassandra
 
-
+## not bugs
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv1d0]: weight property have both Float and Double value
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphsonv1d0]: weight property have both Float and Double value
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphsonv1d0]: weight property have both Float and Double value
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
 
 # process suite
 org.apache.tinkerpop.gremlin.process.traversal.step.branch.LocalTest.Traversals.g_VX4X_localXbothEXknows_createdX_limitX1XX: Not support querying by multi edge-labels
