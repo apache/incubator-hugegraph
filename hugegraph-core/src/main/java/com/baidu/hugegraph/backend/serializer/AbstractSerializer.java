@@ -22,13 +22,15 @@ package com.baidu.hugegraph.backend.serializer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.util.E;
 
 public abstract class AbstractSerializer
                 implements GraphSerializer, SchemaSerializer {
 
-    protected HugeGraph graph = null;
+    protected final HugeGraph graph;
 
-    public AbstractSerializer(HugeGraph graph) {
+    public AbstractSerializer(final HugeGraph graph) {
+        E.checkArgument(graph != null, "Serializer graph can't be null");
         this.graph = graph;
     }
 

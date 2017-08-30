@@ -182,7 +182,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
 
         HugeVertex targetVertex = (HugeVertex) vertex;
-        EdgeLabel edgeLabel = this.graph.edgeLabel(label);
+        EdgeLabel edgeLabel = this.graph().edgeLabel(label);
 
         E.checkArgument(
                 CollectionUtil.containsAll(ElementHelper.getKeys(properties),
@@ -199,7 +199,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             throw Edge.Exceptions.userSuppliedIdsNotSupported();
         }
 
-        HugeEdge edge = new HugeEdge(this.graph, id, edgeLabel);
+        HugeEdge edge = new HugeEdge(this.graph(), id, edgeLabel);
 
         edge.vertices(this, targetVertex);
 
@@ -228,7 +228,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
         E.checkState(edge.type() == HugeType.EDGE_OUT,
                      "The owner vertex('%s') of OUT edge '%s' should be '%s'",
-                     edge.owner().id, edge, this.id());
+                     edge.owner().id(), edge, this.id());
         this.edges.add(edge);
     }
 
@@ -276,7 +276,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         Query query = GraphTransaction.constructEdgesQuery(
-                      this.id, direction, edgeLabels);
+                      this.id(), direction, edgeLabels);
         return this.tx().queryEdges(query).iterator();
     }
 
