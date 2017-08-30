@@ -81,24 +81,31 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         String blackList = HugeGraphProvider.class.getClassLoader()
                            .getResource(FILTER_FILE).getPath();
         File file = new File(blackList);
-        BufferedReader reader = new BufferedReader(new FileReader(file));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.isEmpty() || line.startsWith("#")) {
-                // Empty line or comment line
-                continue;
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(file));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isEmpty() || line.startsWith("#")) {
+                    // Empty line or comment line
+                    continue;
+                }
+                String[] parts = line.split(":");
+                Assert.assertEquals("methods.filter proper format is: " +
+                                    "'testMethodName: ignore reason'",
+                                    2, parts.length);
+                Assert.assertTrue(
+                        "Test method name in methods.filter can't be empty",
+                        parts[0] != null && !parts[0].trim().isEmpty());
+                Assert.assertTrue(
+                        "Reason why ignore in methods.filter can't be empty",
+                        parts[1] != null && !parts[1].trim().isEmpty());
+                blackMethods.putIfAbsent(parts[0], parts[1]);
             }
-            String[] parts = line.split(":");
-            Assert.assertEquals("methods.filter proper format is: " +
-                                "'testMethodName: ignore reason'",
-                                2, parts.length);
-            Assert.assertTrue(
-                   "Test method name in methods.filter can't be empty",
-                   parts[0] != null && !parts[0].trim().isEmpty());
-            Assert.assertTrue(
-                   "The reason why ignore in methods.filter can't be empty",
-                   parts[1] != null && !parts[1].trim().isEmpty());
-            blackMethods.putIfAbsent(parts[0], parts[1]);
+        } finally {
+            if (reader != null) {
+                reader.close();
+            }
         }
     }
 
