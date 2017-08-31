@@ -28,9 +28,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import com.baidu.hugegraph.type.define.IdStrategy;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -40,6 +37,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.optimization.LazyBarrierStrategy;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -49,10 +49,10 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
+import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableSet;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.slf4j.Logger;
 
 public class HugeGraphProvider extends AbstractGraphProvider {
 
@@ -80,10 +80,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     private void initBlackList() throws IOException {
         String blackList = HugeGraphProvider.class.getClassLoader()
                            .getResource(FILTER_FILE).getPath();
-        File file = new File(blackList);
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new FileReader(file));
+        try (FileReader fr = new FileReader(new File(blackList));
+             BufferedReader reader = new BufferedReader(fr)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.isEmpty() || line.startsWith("#")) {
@@ -101,10 +99,6 @@ public class HugeGraphProvider extends AbstractGraphProvider {
                         "Reason why ignore in methods.filter can't be empty",
                         parts[1] != null && !parts[1].trim().isEmpty());
                 blackMethods.putIfAbsent(parts[0], parts[1]);
-            }
-        } finally {
-            if (reader != null) {
-                reader.close();
             }
         }
     }
@@ -142,7 +136,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         File file = new File(confFile);
         E.checkArgument(
                 file.exists() && file.isFile() && file.canRead(),
-                "Need to specify a readable configuration file rather than: %s",
+                "Need to specify a readable config file rather than: %s",
                 file.toString());
 
         PropertiesConfiguration config;
@@ -167,7 +161,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         return confMap;
     }
 
-    private static String getAKeyType(Class clazz, String method) {
+    private static String getAKeyType(Class<?> clazz, String method) {
         if (clazz.getCanonicalName().startsWith(AKEY_CLASS_PREFIX)) {
             String type = method.substring(method.indexOf('[') + 9,
                                            method.indexOf('(') - 6);
@@ -176,7 +170,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         return null;
     }
 
-    private static String getIoType(Class clazz, String method) {
+    private static String getIoType(Class<?> clazz, String method) {
         if (clazz.getCanonicalName().startsWith(IO_CLASS_PREFIX)) {
             String type = method.substring(method.indexOf('[') + 1,
                     method.indexOf(']'));
@@ -185,7 +179,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         return null;
     }
 
-    private static boolean ioTest(Class clazz) {
+    private static boolean ioTest(Class<?> clazz) {
         return clazz.getCanonicalName().startsWith(IO_TEST_PREFIX);
     }
 
@@ -205,13 +199,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         }
 
         // Define property key 'aKey' based on specified type in test name
-        String aKeyType = getAKeyType((Class) config.getProperty("testClass"),
-                                      config.getString("testMethod"));
+        String aKeyType = getAKeyType(
+                          (Class<?>) config.getProperty("testClass"),
+                          config.getString("testMethod"));
         if (aKeyType != null) {
             testGraph.initPropertyKey("aKey", aKeyType);
         }
 
-        String ioType = getIoType((Class) config.getProperty("testClass"),
+        String ioType = getIoType((Class<?>) config.getProperty("testClass"),
                                   config.getString("testMethod"));
 
         // Basic schema is initiated by default once a graph is open
@@ -222,7 +217,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         testGraph.isLastIdCustomized(false);
         testGraph.loadedGraph(ioType);
         testGraph.autoPerson(false);
-        testGraph.ioTest(ioTest((Class) config.getProperty("testClass")));
+        testGraph.ioTest(ioTest((Class<?>) config.getProperty("testClass")));
 
         Object loadGraph = config.getProperty("loadGraph");
         if (loadGraph != null && !graphName.equals("standard")) {
@@ -309,10 +304,12 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         return IMPLEMENTATIONS;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public GraphTraversalSource traversal(Graph graph) {
-        return ((TestGraph) graph).hugeGraph().traversal()
-                                  .withoutStrategies(LazyBarrierStrategy.class);
+        HugeGraph hugegraph = ((TestGraph) graph).hugeGraph();
+        return hugegraph.traversal()
+                        .withoutStrategies(LazyBarrierStrategy.class);
     }
 
     @Override

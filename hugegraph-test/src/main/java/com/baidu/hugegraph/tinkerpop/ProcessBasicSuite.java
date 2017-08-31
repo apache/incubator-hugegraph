@@ -99,7 +99,7 @@ import com.baidu.hugegraph.dist.RegisterUtil;
  *
  * @author Stephen Mallette (http://stephen.genoprime.com)
  */
-public class HugeProcessBasicSuite extends AbstractGremlinSuite {
+public class ProcessBasicSuite extends AbstractGremlinSuite {
     /**
      * This list of tests in the suite that will be executed
      * as part of this suite.
@@ -262,11 +262,12 @@ public class HugeProcessBasicSuite extends AbstractGremlinSuite {
      * This constructor is used by JUnit and will run this suite with
      * its concrete implementations of the {@code testsToEnforce}.
      */
-    public HugeProcessBasicSuite(final Class<?> klass,
-                                 final RunnerBuilder builder)
-            throws InitializationError, ConfigurationException {
+    public ProcessBasicSuite(final Class<?> klass,
+                             final RunnerBuilder builder)
+                             throws InitializationError,
+                                    ConfigurationException {
         super(klass, builder, allTests, testsToEnforce, true,
-                TraversalEngine.Type.STANDARD);
+              TraversalEngine.Type.STANDARD);
         RegisterUtil.registerBackends();
     }
 
@@ -274,12 +275,13 @@ public class HugeProcessBasicSuite extends AbstractGremlinSuite {
      * This constructor is used by Gremlin flavor implementers
      * who supply their own implementations of the {@code testsToEnforce}.
      */
-    public HugeProcessBasicSuite(final Class<?> klass,
-                                 final RunnerBuilder builder,
-                                 final Class<?>[] testsToExecute)
-            throws InitializationError, ConfigurationException {
-        super(klass, builder, testsToExecute, testsToEnforce,
-                true, TraversalEngine.Type.STANDARD);
+    public ProcessBasicSuite(final Class<?> klass,
+                             final RunnerBuilder builder,
+                             final Class<?>[] testsToExecute)
+                             throws InitializationError,
+                                    ConfigurationException {
+        super(klass, builder, testsToExecute, testsToEnforce, true,
+              TraversalEngine.Type.STANDARD);
         RegisterUtil.registerBackends();
     }
 }

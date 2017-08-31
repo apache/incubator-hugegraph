@@ -55,7 +55,7 @@ public class BaseApiTest extends BaseCoreTest {
     }
 
     public RestClient client() {
-        return this.client;
+        return client;
     }
 
     public static RestClient newClient() {
