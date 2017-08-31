@@ -27,8 +27,9 @@ parse_yaml() {
 }
 
 BIN=`abs_path`
+TOP="$(cd $BIN/../ && pwd)"
 
-eval $(parse_yaml "$BIN/../conf/gremlin-server.yaml")
+eval $(parse_yaml "$TOP/conf/gremlin-server.yaml")
 
 GSRV_HOST=$host
 GSRV_PORT=$port
@@ -68,10 +69,10 @@ function wait_for_startup() {
 
 echo "Starting GremlinServer..."
 if [ -n "$VERBOSE" ]; then
-    "$BIN"/gremlin-server.sh "$BIN"/../conf/gremlin-server.yaml &
+    "$BIN"/gremlin-server.sh "$TOP"/conf/gremlin-server.yaml &
 else
-    "$BIN"/gremlin-server.sh "$BIN"/../conf/gremlin-server.yaml >/dev/null 2>&1 &
+    "$BIN"/gremlin-server.sh "$TOP"/conf/gremlin-server.yaml >/dev/null 2>&1 &
 fi
 wait_for_startup 'GremlinServer' $GSRV_HOST $GSRV_PORT $GSRV_STARTUP_TIMEOUT_S || {
-    echo "See $BIN/../logs/gremlin-server.log for GremlinServer log output."  >&2
+    echo "See $TOP/logs/hugegremlin-server.log for GremlinServer log output." >&2
 }
