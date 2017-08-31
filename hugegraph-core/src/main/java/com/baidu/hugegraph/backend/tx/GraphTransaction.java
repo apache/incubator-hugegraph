@@ -305,7 +305,7 @@ public class GraphTransaction extends AbstractTransaction {
         for (Object vertexId : vertexIds) {
             Id id = HugeElement.getIdValue(T.id, vertexId);
             BackendEntry entry = this.get(HugeType.VERTEX, id);
-            Vertex vertex = this.serializer.readVertex(entry);
+            Vertex vertex = this.serializer.readVertex(entry, this.graph());
             assert vertex != null;
             list.add(vertex);
         }
@@ -325,7 +325,8 @@ public class GraphTransaction extends AbstractTransaction {
 
         Iterator<BackendEntry> entries = this.query(query).iterator();
         while (entries.hasNext()) {
-            Vertex vertex = this.serializer.readVertex(entries.next());
+            BackendEntry entry = entries.next();
+            Vertex vertex = this.serializer.readVertex(entry, graph());
             assert vertex != null;
             list.add(vertex);
         }
@@ -378,7 +379,7 @@ public class GraphTransaction extends AbstractTransaction {
         for (Object edgeId : edgeIds) {
             Id id = HugeElement.getIdValue(T.id, edgeId);
             BackendEntry entry = this.get(HugeType.EDGE, id);
-            HugeVertex vertex = this.serializer.readVertex(entry);
+            HugeVertex vertex = this.serializer.readVertex(entry, graph());
             assert vertex != null;
             list.addAll(ImmutableList.copyOf(vertex.getEdges()));
         }

@@ -38,13 +38,10 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public class BinarySerializer extends AbstractSerializer {
-
-    public BinarySerializer(final HugeGraph graph) {
-        super(graph);
-    }
 
     @Override
     public BackendEntry newBackendEntry(Id id) {
@@ -73,9 +70,9 @@ public class BinarySerializer extends AbstractSerializer {
         return col;
     }
 
-    private VertexLabel parseLabel(BackendColumn col) {
+    private VertexLabel parseLabel(BackendColumn col, HugeGraph graph) {
         String label = StringEncoding.decodeString(col.value);
-        return this.graph.vertexLabel(label);
+        return graph.vertexLabel(label);
     }
 
     private byte[] formatPropertyName(HugeProperty<?> prop) {
@@ -143,15 +140,16 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeVertex readVertex(BackendEntry bytesEntry) {
+    public HugeVertex readVertex(BackendEntry bytesEntry, HugeGraph graph) {
+        E.checkNotNull(graph, "serializer graph");
         assert bytesEntry instanceof BinaryBackendEntry;
         BinaryBackendEntry entry = (BinaryBackendEntry) bytesEntry;
 
         // Parse label
         byte[] labelCol = this.formatSystemPropertyName(HugeKeys.LABEL);
-        VertexLabel label = this.parseLabel(entry.column(labelCol));
+        VertexLabel label = this.parseLabel(entry.column(labelCol), graph);
 
-        HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
+        HugeVertex vertex = new HugeVertex(graph, entry.id(), label);
 
         // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {
@@ -237,7 +235,8 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeIndex readIndex(BackendEntry entry) {
+    public HugeIndex readIndex(BackendEntry entry, HugeGraph graph) {
+        E.checkNotNull(graph, "serializer graph");
         return null;
     }
 
@@ -248,7 +247,8 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeEdge readEdge(BackendEntry entry) {
+    public HugeEdge readEdge(BackendEntry entry, HugeGraph graph) {
+        E.checkNotNull(graph, "serializer graph");
         // TODO Auto-generated method stub
         return null;
     }

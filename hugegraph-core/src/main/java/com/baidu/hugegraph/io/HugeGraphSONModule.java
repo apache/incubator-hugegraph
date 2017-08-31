@@ -49,7 +49,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     private static final String TYPE_NAMESPACE = "hugegraph";
 
-    private static TextSerializer textSerializer = new TextSerializer(null);
+    private static TextSerializer textSerializer = new TextSerializer();
 
     @SuppressWarnings("rawtypes")
     private static final Map<Class, String> TYPE_DEFINITIONS;
@@ -122,6 +122,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
 
     }
+
     @SuppressWarnings("serial")
     private class IdDeserializer extends StdDeserializer<Id> {
 

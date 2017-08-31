@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.Iterator;
 
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -38,6 +37,7 @@ import com.baidu.hugegraph.backend.store.MutateAction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public abstract class AbstractTransaction implements Transaction {
 

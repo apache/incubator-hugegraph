@@ -55,6 +55,7 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -62,10 +63,6 @@ public class TextSerializer extends AbstractSerializer {
 
     private static final String COLUME_SPLITOR = TextBackendEntry.COLUME_SPLITOR;
     private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
-
-    public TextSerializer(final HugeGraph graph) {
-        super(graph);
-    }
 
     @Override
     public BackendEntry newBackendEntry(Id id) {
@@ -113,7 +110,7 @@ public class TextSerializer extends AbstractSerializer {
         assert colParts.length == 2 : colName;
 
         // Get PropertyKey by PropertyKey name
-        PropertyKey pkey = this.graph.propertyKey(colParts[1]);
+        PropertyKey pkey = owner.graph().propertyKey(colParts[1]);
 
         // Parse value
         Object value = JsonUtil.fromJson(colValue, pkey.clazz());
@@ -167,17 +164,17 @@ public class TextSerializer extends AbstractSerializer {
                              HugeVertex vertex) {
         String[] colParts = colName.split(COLUME_SPLITOR);
 
-        EdgeLabel label = this.graph.edgeLabel(colParts[1]);
+        HugeGraph graph = vertex.graph();
+        EdgeLabel label = graph.edgeLabel(colParts[1]);
 
         // TODO: how to construct targetVertex with id
         Id otherVertexId = IdGenerator.of(colParts[3]);
-        HugeVertex otherVertex = new HugeVertex(this.graph, otherVertexId,
-                                                null);
+        HugeVertex otherVertex = new HugeVertex(graph, otherVertexId, null);
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
         Id id = IdGenerator.of(valParts[0]);
 
-        HugeEdge edge = new HugeEdge(this.graph, id, label);
+        HugeEdge edge = new HugeEdge(graph, id, label);
 
         boolean isOutEdge = colParts[0].equals(HugeType.EDGE_OUT.name());
         if (isOutEdge) {
@@ -229,7 +226,8 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeVertex readVertex(BackendEntry bytesEntry) {
+    public HugeVertex readVertex(BackendEntry bytesEntry, HugeGraph graph) {
+        E.checkNotNull(graph, "serializer graph");
         if (bytesEntry == null) {
             return null;
         }
@@ -241,10 +239,10 @@ public class TextSerializer extends AbstractSerializer {
         String labelName = entry.column(this.formatSyspropName(HugeKeys.LABEL));
         VertexLabel label = null;
         if (labelName != null) {
-            label = this.graph.vertexLabel(labelName);
+            label = graph.vertexLabel(labelName);
         }
 
-        HugeVertex vertex = new HugeVertex(this.graph, entry.id(), label);
+        HugeVertex vertex = new HugeVertex(graph, entry.id(), label);
 
         // Parse all properties or edges of a Vertex
         for (String name : entry.columnNames()) {
@@ -262,9 +260,64 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeEdge readEdge(BackendEntry entry) {
+    public HugeEdge readEdge(BackendEntry entry, HugeGraph graph) {
+        E.checkNotNull(graph, "serializer graph");
         // TODO: implement
         throw new NotImplementedException("Unsupport readEdge()");
+    }
+
+    @Override
+    public BackendEntry writeIndex(HugeIndex index) {
+        TextBackendEntry entry = new TextBackendEntry(index.id());
+        /*
+         * When field-values is null and elementIds size is 0, it is
+         * meaningful for deletion of index data in secondary/search index.
+         */
+        if (index.fieldValues() == null && index.elementIds().size() == 0) {
+            entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
+                         index.indexLabelName());
+        } else {
+            // TODO: field-values may be a number (SEARCH index)
+            entry.column(formatSyspropName(HugeKeys.FIELD_VALUES),
+                         index.fieldValues().toString());
+            entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
+                         index.indexLabelName());
+            Set<String> ids = index.elementIds().stream().map(id ->
+                              id.asString()).collect(Collectors.toSet());
+            entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
+                         JsonUtil.toJson(ids));
+        }
+        return entry;
+    }
+
+    @Override
+    public HugeIndex readIndex(BackendEntry backendEntry, HugeGraph graph) {
+        E.checkNotNull(graph, "serializer graph");
+        if (backendEntry == null) {
+            return null;
+        }
+
+        backendEntry = convertEntry(backendEntry);
+        assert backendEntry instanceof TextBackendEntry;
+        TextBackendEntry entry = (TextBackendEntry) backendEntry;
+
+        String indexValues = entry.column(
+                formatSyspropName(HugeKeys.FIELD_VALUES));
+        String indexLabelName = entry.column(
+                formatSyspropName(HugeKeys.INDEX_LABEL_NAME));
+        String elementIds = entry.column(
+                formatSyspropName(HugeKeys.ELEMENT_IDS));
+
+        IndexLabel indexLabel = graph.indexLabel(indexLabelName);
+
+        HugeIndex index = new HugeIndex(indexLabel);
+        index.fieldValues(indexValues);
+        String[] ids = JsonUtil.fromJson(elementIds, String[].class);
+        for (String id : ids) {
+            index.elementIds(IdGenerator.of(id));
+        }
+
+        return index;
     }
 
     @Override
@@ -572,59 +625,5 @@ public class TextSerializer extends AbstractSerializer {
         indexLabel.indexFields(JsonUtil.fromJson(indexFields, String[].class));
 
         return indexLabel;
-    }
-
-    @Override
-    public BackendEntry writeIndex(HugeIndex index) {
-        TextBackendEntry entry = new TextBackendEntry(index.id());
-        /*
-         * When field-values is null and elementIds size is 0, it is
-         * meaningful for deletion of index data in secondary/search index.
-         */
-        if (index.fieldValues() == null && index.elementIds().size() == 0) {
-            entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
-                         index.indexLabelName());
-        } else {
-            // TODO: field-values may be a number (SEARCH index)
-            entry.column(formatSyspropName(HugeKeys.FIELD_VALUES),
-                         index.fieldValues().toString());
-            entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
-                         index.indexLabelName());
-            Set<String> ids = index.elementIds().stream().map(id ->
-                              id.asString()).collect(Collectors.toSet());
-            entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
-                         JsonUtil.toJson(ids));
-        }
-        return entry;
-    }
-
-    @Override
-    public HugeIndex readIndex(BackendEntry backendEntry) {
-        if (backendEntry == null) {
-            return null;
-        }
-
-        backendEntry = convertEntry(backendEntry);
-        assert backendEntry instanceof TextBackendEntry;
-        TextBackendEntry entry = (TextBackendEntry) backendEntry;
-
-        String indexValues = entry.column(
-                formatSyspropName(HugeKeys.FIELD_VALUES));
-        String indexLabelName = entry.column(
-                formatSyspropName(HugeKeys.INDEX_LABEL_NAME));
-        String elementIds = entry.column(
-                formatSyspropName(HugeKeys.ELEMENT_IDS));
-
-        IndexLabel indexLabel = this.graph.schemaTransaction()
-                                    .getIndexLabel(indexLabelName);
-
-        HugeIndex index = new HugeIndex(indexLabel);
-        index.fieldValues(indexValues);
-        String[] ids = JsonUtil.fromJson(elementIds, String[].class);
-        for (String id : ids) {
-            index.elementIds(IdGenerator.of(id));
-        }
-
-        return index;
     }
 }

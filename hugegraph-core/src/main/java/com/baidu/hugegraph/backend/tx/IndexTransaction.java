@@ -152,7 +152,8 @@ public class IndexTransaction extends AbstractTransaction {
         // Entry => Id
         Set<Id> ids = new LinkedHashSet<>();
         while (entries.hasNext()) {
-            HugeIndex index = this.serializer.readIndex(entries.next());
+            BackendEntry entry = entries.next();
+            HugeIndex index = this.serializer.readIndex(entry, graph());
             ids.addAll(index.elementIds());
         }
         return new IdQuery(query.resultType(), ids);

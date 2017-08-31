@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -30,13 +31,13 @@ import com.baidu.hugegraph.type.HugeType;
 public interface GraphSerializer {
 
     public BackendEntry writeVertex(HugeVertex vertex);
-    public HugeVertex readVertex(BackendEntry entry);
+    public HugeVertex readVertex(BackendEntry entry, HugeGraph graph);
 
     public BackendEntry writeEdge(HugeEdge edge);
-    public HugeEdge readEdge(BackendEntry entry);
+    public HugeEdge readEdge(BackendEntry entry, HugeGraph graph);
 
     public BackendEntry writeIndex(HugeIndex index);
-    public HugeIndex readIndex(BackendEntry entry);
+    public HugeIndex readIndex(BackendEntry entry, HugeGraph graph);
 
     public BackendEntry writeId(HugeType type, Id id);
     public Query writeQuery(Query query);

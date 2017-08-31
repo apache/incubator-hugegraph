@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.serializer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 
 public class SerializerFactory {
@@ -33,11 +32,11 @@ public class SerializerFactory {
         serializers = new ConcurrentHashMap<>();
     }
 
-    public static AbstractSerializer serializer(String name, HugeGraph graph) {
+    public static AbstractSerializer serializer(String name) {
         if (name.equalsIgnoreCase("binary")) {
-            return new BinarySerializer(graph);
+            return new BinarySerializer();
         } else if (name.equalsIgnoreCase("text")) {
-            return new TextSerializer(graph);
+            return new TextSerializer();
         }
 
         Class<? extends AbstractSerializer> clazz = serializers.get(name);
@@ -47,7 +46,7 @@ public class SerializerFactory {
 
         assert AbstractSerializer.class.isAssignableFrom(clazz);
         try {
-            return clazz.getConstructor(HugeGraph.class).newInstance(graph);
+            return clazz.getConstructor().newInstance();
         } catch (Exception e) {
             throw new BackendException(e);
         }
@@ -56,7 +55,7 @@ public class SerializerFactory {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public static void register(String name, String classPath) {
         ClassLoader classLoader = SerializerFactory.class.getClassLoader();
-        Class<?> clazz = null;
+        Class<?> clazz;
         try {
             clazz = classLoader.loadClass(classPath);
         } catch (Exception e) {
@@ -65,9 +64,8 @@ public class SerializerFactory {
 
         // Check subclass
         if (!AbstractSerializer.class.isAssignableFrom(clazz)) {
-            throw new BackendException(
-                    "Class '%s' is not a subclass of class AbstractSerializer",
-                    classPath);
+            throw new BackendException("Class '%s' is not a subclass of " +
+                                       "class AbstractSerializer", classPath);
         }
 
         // Check exists

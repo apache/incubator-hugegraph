@@ -49,14 +49,11 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
 
 public class CassandraSerializer extends AbstractSerializer {
-
-    public CassandraSerializer(final HugeGraph graph) {
-        super(graph);
-    }
 
     public CassandraBackendEntry newBackendEntry(HugeType type, Id id) {
         return new CassandraBackendEntry(type, id);
@@ -92,7 +89,7 @@ public class CassandraSerializer extends AbstractSerializer {
     protected void parseProperty(String colName, String colValue,
                                  HugeElement owner) {
         // Get PropertyKey by PropertyKey name
-        PropertyKey pkey = this.graph.propertyKey(colName);
+        PropertyKey pkey = owner.graph().propertyKey(colName);
 
         // Parse value
         Object value = JsonUtil.fromJson(colValue, pkey.clazz());
@@ -142,7 +139,7 @@ public class CassandraSerializer extends AbstractSerializer {
      * @return the source vertex
      */
     protected HugeEdge parseEdge(CassandraBackendEntry.Row row,
-                                 HugeVertex vertex) {
+                                 HugeVertex vertex, HugeGraph graph) {
         String sourceVertexId = row.column(HugeKeys.SOURCE_VERTEX);
         Direction direction = Direction.valueOf(
                               row.column(HugeKeys.DIRECTION));
@@ -150,28 +147,28 @@ public class CassandraSerializer extends AbstractSerializer {
         String sortValues = row.column(HugeKeys.SORT_VALUES);
         String targetVertexId = row.column(HugeKeys.TARGET_VERTEX);
 
-        boolean isOutEdge = direction == Direction.OUT;
-        EdgeLabel edgeLabel = this.graph.edgeLabel(labelName);
 
         if (vertex == null) {
             Id id = IdGenerator.of(sourceVertexId);
-            vertex = new HugeVertex(this.graph, id, null);
+            vertex = new HugeVertex(graph, id, null);
         }
 
-        VertexLabel srcLabel = this.graph.vertexLabel(edgeLabel.sourceLabel());
-        VertexLabel tgtLabel = this.graph.vertexLabel(edgeLabel.targetLabel());
+        EdgeLabel edgeLabel = graph.edgeLabel(labelName);
+        VertexLabel srcLabel = graph.vertexLabel(edgeLabel.sourceLabel());
+        VertexLabel tgtLabel = graph.vertexLabel(edgeLabel.targetLabel());
 
         Id vertexId = IdGenerator.of(targetVertexId);
+        boolean isOutEdge = direction == Direction.OUT;
         HugeVertex otherVertex;
         if (isOutEdge) {
             vertex.vertexLabel(srcLabel);
-            otherVertex = new HugeVertex(this.graph, vertexId, tgtLabel);
+            otherVertex = new HugeVertex(graph, vertexId, tgtLabel);
         } else {
             vertex.vertexLabel(tgtLabel);
-            otherVertex = new HugeVertex(this.graph, vertexId, srcLabel);
+            otherVertex = new HugeVertex(graph, vertexId, srcLabel);
         }
 
-        HugeEdge edge = new HugeEdge(this.graph, null, edgeLabel);
+        HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
 
         if (isOutEdge) {
             edge.sourceVertex(vertex);
@@ -217,7 +214,8 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeVertex readVertex(BackendEntry bytesEntry) {
+    public HugeVertex readVertex(BackendEntry bytesEntry, HugeGraph graph) {
+        E.checkNotNull(graph, "serializer graph");
         if (bytesEntry == null) {
             return null;
         }
@@ -230,9 +228,9 @@ public class CassandraSerializer extends AbstractSerializer {
 
         VertexLabel label = null;
         if (labelName != null) {
-            label = this.graph.schemaTransaction().getVertexLabel(labelName);
+            label = graph.vertexLabel(labelName);
         }
-        HugeVertex vertex = new HugeVertex(this.graph, id, label);
+        HugeVertex vertex = new HugeVertex(graph, id, label);
 
         // Parse all properties of a Vertex
         Map<String, String> props = entry.column(HugeKeys.PROPERTIES);
@@ -242,7 +240,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
         // Parse all edges of a Vertex
         for (CassandraBackendEntry.Row edge : entry.subRows()) {
-            this.parseEdge(edge, vertex);
+            this.parseEdge(edge, vertex, graph);
         }
         return vertex;
     }
@@ -253,7 +251,8 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeEdge readEdge(BackendEntry bytesEntry) {
+    public HugeEdge readEdge(BackendEntry bytesEntry, HugeGraph graph) {
+        E.checkNotNull(graph, "serializer graph");
         if (bytesEntry == null) {
             return null;
         }
@@ -261,7 +260,54 @@ public class CassandraSerializer extends AbstractSerializer {
         assert bytesEntry instanceof CassandraBackendEntry;
         CassandraBackendEntry entry = (CassandraBackendEntry) bytesEntry;
 
-        return this.parseEdge(entry.row(), null);
+        return this.parseEdge(entry.row(), null, graph);
+    }
+
+    @Override
+    public BackendEntry writeIndex(HugeIndex index) {
+        CassandraBackendEntry entry = newBackendEntry(index);
+        /*
+         * When field-values is null and elementIds size is 0, it is
+         * meaningful for deletion of index data in secondary/search index.
+         */
+        if (index.fieldValues() == null && index.elementIds().size() == 0) {
+            entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
+        } else {
+            entry.column(HugeKeys.FIELD_VALUES, index.fieldValues());
+            entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
+            // TODO: try to make these code more clear.
+            Id[] ids = index.elementIds().toArray(new Id[0]);
+            assert ids.length == 1;
+            entry.column(HugeKeys.ELEMENT_IDS, ids[0].asString());
+        }
+        return entry;
+    }
+
+    @Override
+    public HugeIndex readIndex(BackendEntry backendEntry, HugeGraph graph) {
+        E.checkNotNull(graph, "serializer graph");
+        if (backendEntry == null) {
+            return null;
+        }
+
+        backendEntry = convertEntry(backendEntry);
+        assert backendEntry instanceof CassandraBackendEntry;
+        CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
+
+        Object indexValues = entry.column(HugeKeys.FIELD_VALUES);
+        String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
+        Set<String> elementIds = entry.column(HugeKeys.ELEMENT_IDS);
+
+        IndexLabel indexLabel = graph.indexLabel(indexLabelName);
+
+        HugeIndex index = new HugeIndex(indexLabel);
+        index.fieldValues(indexValues);
+
+        for (String id : elementIds) {
+            index.elementIds(IdGenerator.of(id));
+        }
+
+        return index;
     }
 
     @Override
@@ -442,51 +488,5 @@ public class CassandraSerializer extends AbstractSerializer {
         indexLabel.indexFields(JsonUtil.fromJson(indexFields, String[].class));
 
         return indexLabel;
-    }
-
-    @Override
-    public BackendEntry writeIndex(HugeIndex index) {
-        CassandraBackendEntry entry = newBackendEntry(index);
-        /*
-         * When field-values is null and elementIds size is 0, it is
-         * meaningful for deletion of index data in secondary/search index.
-         */
-        if (index.fieldValues() == null && index.elementIds().size() == 0) {
-            entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
-        } else {
-            entry.column(HugeKeys.FIELD_VALUES, index.fieldValues());
-            entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
-            // TODO: try to make these code more clear.
-            Id[] ids = index.elementIds().toArray(new Id[0]);
-            assert ids.length == 1;
-            entry.column(HugeKeys.ELEMENT_IDS, ids[0].asString());
-        }
-        return entry;
-    }
-
-    @Override
-    public HugeIndex readIndex(BackendEntry backendEntry) {
-        if (backendEntry == null) {
-            return null;
-        }
-
-        backendEntry = convertEntry(backendEntry);
-        assert backendEntry instanceof CassandraBackendEntry;
-        CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
-
-        Object indexValues = entry.column(HugeKeys.FIELD_VALUES);
-        String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
-        Set<String> elementIds = entry.column(HugeKeys.ELEMENT_IDS);
-
-        IndexLabel indexLabel = this.graph.indexLabel(indexLabelName);
-
-        HugeIndex index = new HugeIndex(indexLabel);
-        index.fieldValues(indexValues);
-
-        for (String id : elementIds) {
-            index.elementIds(IdGenerator.of(id));
-        }
-
-        return index;
     }
 }
