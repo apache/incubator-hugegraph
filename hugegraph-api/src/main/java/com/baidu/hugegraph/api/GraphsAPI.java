@@ -48,14 +48,14 @@ public class GraphsAPI extends API {
     private static final String TOKEN = "162f7848-0b6d-4faf-b557-3a0797869c55";
 
     @GET
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Object list(@Context GraphManager manager) {
         return ImmutableMap.of("graphs", manager.graphs().keySet());
     }
 
     @GET
     @Path("{name}")
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
         LOG.debug("Graphs [{}] get graph by name '{}'", name);
@@ -66,7 +66,7 @@ public class GraphsAPI extends API {
 
     @GET
     @Path("{name}/conf")
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public File getConf(@Context GraphManager manager,
                         @PathParam("name") String name,
                         @QueryParam("token") String token) {

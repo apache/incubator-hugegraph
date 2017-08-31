@@ -27,6 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONWriter;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -44,25 +45,23 @@ public class JsonSerializer implements Serializer {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             this.writer.writeObject(out, object);
+            return out.toString(API.CHARSET);
         } catch (Exception e) {
             throw new HugeException("Failed to serialize %s", e,
                                     object.getClass().getSimpleName());
         }
-
-        return out.toString();
     }
 
     private String writeList(String label, Object object) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            out.write(String.format("{\"%s\": ", label).getBytes());
+            out.write(String.format("{\"%s\": ", label).getBytes(API.CHARSET));
             this.writer.writeObject(out, object);
-            out.write("}".getBytes());
+            out.write("}".getBytes(API.CHARSET));
+            return out.toString(API.CHARSET);
         } catch (Exception e) {
             throw new HugeException("Failed to serialize %s", e, label);
         }
-
-        return out.toString();
     }
 
     @Override

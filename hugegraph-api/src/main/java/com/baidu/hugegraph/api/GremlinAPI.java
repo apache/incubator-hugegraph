@@ -79,7 +79,7 @@ public class GremlinAPI extends API {
     @POST
     @Compress
     @Consumes(APPLICATION_JSON)
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Response post(@Context HugeConfig conf, String request) {
         /* The following code is reserved for forwarding request */
         // context.getRequestDispatcher(location).forward(request, response);
@@ -93,7 +93,7 @@ public class GremlinAPI extends API {
 
     @GET
     @Compress(buffer=(1024 * 40))
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Response get(@Context HugeConfig conf,
                         @Context UriInfo uriInfo) {
         String location = conf.get(ServerOptions.GREMLIN_SERVER_URL);

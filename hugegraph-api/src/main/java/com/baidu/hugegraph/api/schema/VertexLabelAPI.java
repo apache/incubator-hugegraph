@@ -54,7 +54,7 @@ public class VertexLabelAPI extends API {
     @POST
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertexLabel jsonVertexLabel) {
@@ -71,7 +71,7 @@ public class VertexLabelAPI extends API {
 
     @PUT
     @Consumes(APPLICATION_JSON)
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @QueryParam("action") String action,
@@ -94,7 +94,7 @@ public class VertexLabelAPI extends API {
     }
 
     @GET
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get vertex labels", graph);
@@ -107,7 +107,7 @@ public class VertexLabelAPI extends API {
 
     @GET
     @Path("{name}")
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {

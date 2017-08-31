@@ -31,9 +31,11 @@ import com.baidu.hugegraph.type.HugeType;
 
 public class API {
 
+    public static final String CHARSET = "UTF-8";
+
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
-    public static final String APPLICATION_JSON_WITH_UTF8 = APPLICATION_JSON +
-                                                            ";charset=UTF-8";
+    public static final String APPLICATION_JSON_WITH_CHARSET =
+                               APPLICATION_JSON + ";charset=" + CHARSET;;
 
     public static Graph graph(GraphManager manager, String graph) {
         Graph g = manager.graph(graph);
