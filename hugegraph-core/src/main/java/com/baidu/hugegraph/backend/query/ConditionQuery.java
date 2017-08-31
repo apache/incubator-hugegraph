@@ -26,7 +26,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.baidu.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.T;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -37,6 +36,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 
 public class ConditionQuery extends IdQuery {
 
@@ -119,15 +119,6 @@ public class ConditionQuery extends IdQuery {
                              this.conditions.toString());
     }
 
-    public boolean allSysprop() {
-        for (Condition c : this.conditions) {
-            if (!c.isSysprop()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     public List<Condition.Relation> relations() {
         List<Condition.Relation> relations = new ArrayList<>();
         for (Condition c : this.conditions) {
@@ -177,6 +168,25 @@ public class ConditionQuery extends IdQuery {
 
     public boolean containsScanCondition() {
         return this.containsCondition(Condition.RelationType.SCAN);
+    }
+
+    public boolean allSysprop() {
+        for (Condition c : this.conditions) {
+            if (!c.isSysprop()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public List<Condition> syspropConditions() {
+        List<Condition> conds = new ArrayList<>();
+        for (Condition c : this.conditions) {
+            if (c.isSysprop()) {
+                conds.add(c);
+            }
+        }
+        return conds;
     }
 
     public List<Condition> userpropConditions() {
@@ -268,7 +278,6 @@ public class ConditionQuery extends IdQuery {
             conditionKeys.containsAll(keys)) {
             return true;
         }
-
         return false;
     }
 }

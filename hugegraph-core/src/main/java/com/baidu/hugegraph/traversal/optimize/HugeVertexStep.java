@@ -35,13 +35,13 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.ExtendableIterator;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableSet;
 
 public final class HugeVertexStep<E extends Element>
@@ -59,7 +59,7 @@ public final class HugeVertexStep<E extends Element>
               originVertexStep.getDirection(),
               originVertexStep.getEdgeLabels());
         originVertexStep.getLabels().forEach(this::addLabel);
-        hasContainers = new ArrayList<>();
+        this.hasContainers = new ArrayList<>();
     }
 
     @SuppressWarnings("unchecked")
@@ -82,10 +82,15 @@ public final class HugeVertexStep<E extends Element>
 
         Iterator<Edge> edges = this.edges(traverser);
         Iterator<Vertex> vertices = graph.adjacentVertices(edges);
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("HugeVertexStep.vertices(): is there adjacent " +
                       "vertices of {}: {}, has={}",
                       vertex.id(), vertices.hasNext(), this.hasContainers);
+        }
+
+        if (this.hasContainers.isEmpty()) {
+            return vertices;
         }
 
         // TODO: query by vertex index to optimize
@@ -94,6 +99,11 @@ public final class HugeVertexStep<E extends Element>
 
     private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
         HugeGraph graph = (HugeGraph) traverser.get().graph();
+        List<HasContainer> conditions = this.hasContainers;
+
+        // Query for edge with conditions(else conditions for vertex)
+        boolean withEdgeCond = Edge.class.isAssignableFrom(getReturnClass()) &&
+                               !conditions.isEmpty();
 
         Vertex vertex = traverser.get();
         Direction direction = this.getDirection();
@@ -114,20 +124,35 @@ public final class HugeVertexStep<E extends Element>
             ConditionQuery query = GraphTransaction.constructEdgesQuery(
                                    (Id) vertex.id(), dir, edgeLabels);
 
-            // Enable conditions if query for edge else conditions for vertex
-            if (Edge.class.isAssignableFrom(getReturnClass())) {
-                HugeGraphStep.fillConditionQuery(this.hasContainers, query);
+            // Query by sort-keys
+            boolean bySortKeys = false;
+            if (withEdgeCond && edgeLabels.length > 0) {
+                HugeGraphStep.fillConditionQuery(conditions, query);
+                if (GraphTransaction.matchEdgeSortKeys(query, graph)) {
+                    bySortKeys = true;
+                } else {
+                    // Can't query by sysprop and by index(HugeGraph-749)
+                    query.resetUserpropConditions();
+                }
             }
 
+            // Query by has(id)
             if (!query.ids().isEmpty()) {
-                // TODO: should check the edge id match this vertex
-                // ignore conditions if query by edge id in has-containers
+                // Ignore conditions if query by edge id in has-containers
+                // FIXME: should check that the edge id matches the `vertex`
                 query.resetConditions();
                 LOG.warn("It's not recommended to query by has(id)");
             }
 
             // Do query
-            results.extend(graph.edges(query));
+            Iterator<Edge> edges = graph.edges(query);
+
+            // Do filter by edge conditions
+            if (withEdgeCond && !bySortKeys) {
+                edges = HugeGraphStep.filterResult(this.hasContainers, edges);
+            }
+
+            results.extend(edges);
         }
         return results;
     }
@@ -159,5 +184,18 @@ public final class HugeVertexStep<E extends Element>
     @Override
     public int hashCode() {
         return super.hashCode() ^ this.hasContainers.hashCode();
+    }
+
+    public static Iterator<Edge> filterResult(Vertex vertex, Direction dir,
+                                              Iterator<Edge> edges) {
+        final List<Edge> list = new ArrayList<>();
+        while (edges.hasNext()) {
+            Edge edge = edges.next();
+            if (dir == Direction.OUT && vertex.equals(edge.outVertex()) ||
+                dir == Direction.IN && vertex.equals(edge.inVertex())) {
+                list.add(edge);
+            }
+        }
+        return list.iterator();
     }
 }

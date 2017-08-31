@@ -26,11 +26,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -58,6 +56,7 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.NumericUtil;
+import com.google.common.collect.ImmutableSet;
 
 public class IndexTransaction extends AbstractTransaction {
 
@@ -122,19 +121,23 @@ public class IndexTransaction extends AbstractTransaction {
     }
 
     public Query query(ConditionQuery query) {
-
         SchemaTransaction schema = graph().schemaTransaction();
 
-        List<IndexLabel> indexLabels = schema.getIndexLabels();
         // Get user applied label or collect all qualified labels
+        List<IndexLabel> indexLabels = schema.getIndexLabels();
         Set<String> labels = collectQueryLabels(query, indexLabels);
-
         if (labels.isEmpty()) {
-            throw new HugeException("Don't accept query based on properties: " +
-                                    "'%s' that are not indexed",
-                                    query.userpropKeys());
+            throw noIndexException(query, "<any label>");
         }
 
+        // Can't query by index and by non-label sysprop at the same time
+        List<Condition> conds = query.syspropConditions();
+        if (conds.size() > 1 ||
+            (conds.size() == 1 && !query.containsCondition(HugeKeys.LABEL))) {
+            throw new BackendException("Can't do index query with %s", conds);
+        }
+
+        // Do index query
         ExtendableIterator<BackendEntry> entries = new ExtendableIterator<>();
         for (String label : labels) {
             LockUtil.Locks locks = new LockUtil.Locks();
@@ -142,7 +145,7 @@ public class IndexTransaction extends AbstractTransaction {
                 locks.lockReads(LockUtil.INDEX_LABEL, label);
                 locks.lockReads(LockUtil.INDEX_REBUILD, label);
                 // Condition => Entry
-                ConditionQuery indexQuery = this.constructIndexQuery(query, label);
+                ConditionQuery indexQuery = this.makeIndexQuery(query, label);
                 entries.extend(super.query(indexQuery).iterator());
             } finally {
                 locks.unlock();
@@ -172,7 +175,6 @@ public class IndexTransaction extends AbstractTransaction {
                 List<String> indexFields = indexLabel.indexFields();
                 if (query.resultType() == indexLabel.queryType() &&
                     matchIndexFields(queryKeys, indexFields)) {
-
                     labels.add(indexLabel.baseValue());
                 }
             }
@@ -180,8 +182,7 @@ public class IndexTransaction extends AbstractTransaction {
         return labels;
     }
 
-    protected ConditionQuery constructIndexQuery(ConditionQuery query,
-                                                 String label) {
+    private ConditionQuery makeIndexQuery(ConditionQuery query, String label) {
         ConditionQuery indexQuery = null;
         SchemaLabel schemaLabel;
 
@@ -199,27 +200,25 @@ public class IndexTransaction extends AbstractTransaction {
         }
 
         E.checkArgumentNotNull(schemaLabel, "Invalid label: '%s'", label);
-
         Set<String> indexNames = schemaLabel.indexNames();
         LOG.debug("The label '{}' with index names: {}", label, indexNames);
+
         for (String name : indexNames) {
             IndexLabel indexLabel = schema.getIndexLabel(name);
-            indexQuery = matchIndexLabel(indexLabel, query);
+            indexQuery = matchIndexLabel(query, indexLabel);
             if (indexQuery != null) {
                 break;
             }
         }
 
         if (indexQuery == null) {
-            throw new BackendException("No matching index for query: " + query);
+            throw noIndexException(query, label);
         }
         return indexQuery;
     }
 
-    private static ConditionQuery matchIndexLabel(IndexLabel indexLabel,
-                                                  ConditionQuery query) {
-        ConditionQuery indexQuery;
-
+    private static ConditionQuery matchIndexLabel(ConditionQuery query,
+                                                  IndexLabel indexLabel) {
         boolean requireSearch = query.hasSearchCondition();
         boolean searching = indexLabel.indexType() == IndexType.SEARCH;
         if (requireSearch && !searching) {
@@ -238,6 +237,7 @@ public class IndexTransaction extends AbstractTransaction {
         LOG.debug("Matched index fields: {} of index '{}'",
                   indexFields, indexLabel.name());
 
+        ConditionQuery indexQuery;
         if (indexLabel.indexType() == IndexType.SECONDARY) {
             List<String> joinedKeys = indexFields.subList(0, queryKeys.size());
             String joinedValues = query.userpropValuesString(joinedKeys);
@@ -282,6 +282,13 @@ public class IndexTransaction extends AbstractTransaction {
         return true;
     }
 
+    private static BackendException noIndexException(ConditionQuery query,
+                                                     String label) {
+        return new BackendException("Don't accept query based on properties " +
+                                    "%s that are not indexed in label '%s'",
+                                    query.userpropKeys(), label);
+    }
+
     public void removeIndex(String indexName) {
         SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(indexName);
@@ -297,35 +304,34 @@ public class IndexTransaction extends AbstractTransaction {
         }
     }
 
-    public void rebuildIndex(SchemaElement schemaElement) {
-        switch (schemaElement.type()) {
+    public void rebuildIndex(SchemaElement schema) {
+        switch (schema.type()) {
             case INDEX_LABEL:
-                IndexLabel indexLabel = (IndexLabel) schemaElement;
+                IndexLabel indexLabel = (IndexLabel) schema;
                 this.rebuildIndex(indexLabel.baseType(),
                                   indexLabel.baseValue(),
                                   ImmutableSet.of(indexLabel.name()));
                 break;
             case VERTEX_LABEL:
-                VertexLabel vertexLabel = (VertexLabel) schemaElement;
+                VertexLabel vertexLabel = (VertexLabel) schema;
                 this.rebuildIndex(vertexLabel.type(),
                                   vertexLabel.name(),
                                   vertexLabel.indexNames());
                 break;
             case EDGE_LABEL:
-                EdgeLabel edgeLabel = (EdgeLabel) schemaElement;
+                EdgeLabel edgeLabel = (EdgeLabel) schema;
                 this.rebuildIndex(edgeLabel.type(),
                                   edgeLabel.name(),
                                   edgeLabel.indexNames());
                 break;
             default:
-                assert schemaElement.type() == HugeType.PROPERTY_KEY;
+                assert schema.type() == HugeType.PROPERTY_KEY;
                 throw new AssertionError(String.format(
-                          "The %s can't rebuild index.", schemaElement.type()));
+                          "The %s can't rebuild index.", schema.type()));
         }
     }
 
-    public void rebuildIndex(HugeType type,
-                             String label,
+    public void rebuildIndex(HugeType type, String label,
                              Collection<String> indexNames) {
         GraphTransaction graphTransaction = graph().graphTransaction();
         // Manually commit avoid deletion override add/update

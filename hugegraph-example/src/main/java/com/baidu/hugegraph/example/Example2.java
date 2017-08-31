@@ -24,16 +24,17 @@ import java.util.List;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.util.Log;
 
 public class Example2 {
 
@@ -52,37 +53,57 @@ public class Example2 {
 
     public static void traversal(final HugeGraph graph) {
 
-        GraphTraversal<Vertex, Vertex> vertexs = graph.traversal().V();
+        GraphTraversalSource g = graph.traversal();
+
+        GraphTraversal<Vertex, Vertex> vertexs = g.V();
         System.out.println(">>>> query all vertices: size=" +
                            vertexs.toList().size());
 
-        GraphTraversal<Edge, Edge> edges = graph.traversal().E();
+        List<Edge> edges = g.E().toList();
         System.out.println(">>>> query all edges: size=" +
-                           edges.toList().size());
+                           edges.size());
 
-        List<Object> names = graph.traversal().V().inE("knows").limit(2)
-                             .outV().values("name").toList();
+        List<Object> names = g.V().inE("knows").limit(2)
+                              .outV().values("name").toList();
         System.out.println(">>>> query vertex(with props) of edges: " + names);
         assert names.size() == 2 : names.size();
 
-        names = graph.traversal().V().as("a")
-                .out("knows")
-                .and()
-                .out("created").in("created").as("a").values("name")
-                .toList();
+        names = g.V().as("a")
+                 .out("knows")
+                 .and()
+                 .out("created").in("created").as("a").values("name")
+                 .toList();
         System.out.println(">>>> query with AND: " + names);
         assert names.size() == 1 : names.size();
 
-        System.out.println(graph.traversal().V().has("age", 29).toList());
+        List<Vertex> vertex = g.V().has("age", 29).toList();
+        System.out.println(">>>> age = 29: " + vertex);
+        assert vertex.size() == 1 &&
+               vertex.get(0).value("name").equals("marko");
 
-        System.out.println(graph.traversal().V().has("age", 29)
-                           .has("city", "Beijing").toList());
+        vertex = g.V()
+                  .has("age", 29)
+                  .has("city", "Beijing")
+                  .toList();
+        System.out.println(">>>> age = 29 and city is Beijing: " + vertex);
+        assert vertex.size() == 1 &&
+               vertex.get(0).value("name").equals("marko");
 
-        System.out.println(graph.traversal().E()
-                           .has("city", "Beijing").toList());
+        edges = g.E().has("weight", P.lt(1.0)).toList();
+        System.out.println(">>>> edges with weight < 1.0: " + edges);
+        assert edges.size() == 4;
 
-        List<Path> paths = graph.traversal().V("person:marko")
-                           .out().out().path().by("name").toList();
+        vertex = g.V("person:josh")
+                  .bothE("created")
+                  .has("weight", P.lt(1.0))
+                  .otherV()
+                  .toList();
+        System.out.println(">>>> josh's both edges with weight < 1.0: " +
+                           vertex);
+        assert vertex.size() == 1 && vertex.get(0).value("name").equals("lop");
+
+        List<Path> paths = g.V("person:marko")
+                            .out().out().path().by("name").toList();
         System.out.println(">>>> test out path: " + paths);
         assert paths.size() == 2;
         assert paths.get(0).get(0).equals("marko");
@@ -133,6 +154,7 @@ public class Example2 {
         schema.propertyKey("name").asText().ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
         schema.propertyKey("city").asText().ifNotExist().create();
+        schema.propertyKey("weight").asDouble().ifNotExist().create();
         schema.propertyKey("lang").asText().ifNotExist().create();
         schema.propertyKey("date").asText().ifNotExist().create();
         schema.propertyKey("price").asInt().ifNotExist().create();
@@ -156,13 +178,6 @@ public class Example2 {
               .ifNotExist()
               .create();
 
-        schema.indexLabel("personByAge")
-              .onV("person")
-              .by("age")
-              .search()
-              .ifNotExist()
-              .create();
-
         schema.indexLabel("personByCity")
               .onV("person")
               .by("city")
@@ -170,9 +185,9 @@ public class Example2 {
               .ifNotExist()
               .create();
 
-        schema.indexLabel("personByAgeAndCityAndName")
+        schema.indexLabel("personByAgeAndCity")
               .onV("person")
-              .by("age", "city", "name")
+              .by("age", "city")
               .secondary()
               .ifNotExist().create();
 
@@ -186,7 +201,7 @@ public class Example2 {
         schema.edgeLabel("knows")
               .sourceLabel("person")
               .targetLabel("person")
-              .properties("date")
+              .properties("date", "weight")
               .ifNotExist()
               .create();
 
@@ -194,7 +209,7 @@ public class Example2 {
 
         schema.edgeLabel("created")
               .sourceLabel("person").targetLabel("software")
-              .properties("date", "city")
+              .properties("date", "weight")
               .ifNotExist()
               .create();
 
@@ -205,10 +220,17 @@ public class Example2 {
               .ifNotExist()
               .create();
 
-        schema.indexLabel("createdByCity")
+        schema.indexLabel("createdByWeight")
               .onE("created")
-              .by("city")
-              .secondary()
+              .by("weight")
+              .search()
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("knowsByWeight")
+              .onE("knows")
+              .by("weight")
+              .search()
               .ifNotExist()
               .create();
 
@@ -227,14 +249,14 @@ public class Example2 {
         Vertex ripple = graph.addVertex(T.label, "software", "name", "ripple",
                                         "lang", "java", "price", 199);
         Vertex peter = graph.addVertex(T.label, "person", "name", "peter",
-                                       "age", 29, "city", "Shanghai");
+                                       "age", 35, "city", "Shanghai");
 
-        marko.addEdge("knows", vadas, "date", "20160110");
-        marko.addEdge("knows", josh, "date", "20130220");
-        marko.addEdge("created", lop, "date", "20171210", "city", "Shanghai");
-        josh.addEdge("created", ripple, "date", "20171210", "city", "Beijing");
-        josh.addEdge("created", lop, "date", "20091111", "city", "Beijing");
-        peter.addEdge("created", lop, "date", "20170324", "city", "Hongkong");
+        marko.addEdge("knows", vadas, "date", "20160110", "weight", 0.5);
+        marko.addEdge("knows", josh, "date", "20130220", "weight", 1.0);
+        marko.addEdge("created", lop, "date", "20171210", "weight", 0.4);
+        josh.addEdge("created", lop, "date", "20091111", "weight", 0.4);
+        josh.addEdge("created", ripple, "date", "20171210", "weight", 1.0);
+        peter.addEdge("created", lop, "date", "20170324", "weight", 0.2);
 
         graph.tx().commit();
     }

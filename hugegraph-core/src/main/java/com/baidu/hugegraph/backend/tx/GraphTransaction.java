@@ -554,7 +554,21 @@ public class GraphTransaction extends AbstractTransaction {
         return query;
     }
 
+    public static boolean matchEdgeSortKeys(ConditionQuery query,
+                                            HugeGraph graph) {
+        assert query.resultType() == HugeType.EDGE;
+
+        String label = (String) query.condition(HugeKeys.LABEL);
+        if (label == null) {
+            return false;
+        }
+        List<String> keys = graph.edgeLabel(label).sortKeys();
+        return !keys.isEmpty() && query.matchUserpropKeys(keys);
+    }
+
     public static void verifyEdgesConditionQuery(ConditionQuery query) {
+        assert query.resultType() == HugeType.EDGE;
+
         final HugeKeys[] keys = new HugeKeys[] {
                 HugeKeys.SOURCE_VERTEX,
                 HugeKeys.DIRECTION,
@@ -562,7 +576,6 @@ public class GraphTransaction extends AbstractTransaction {
                 HugeKeys.SORT_VALUES,
                 HugeKeys.TARGET_VERTEX
         };
-        assert query.resultType() == HugeType.EDGE;
 
         int total = query.conditions().size();
         if (total == 1) {
@@ -595,7 +608,6 @@ public class GraphTransaction extends AbstractTransaction {
         if (label != null && query.resultType() == HugeType.VERTEX) {
             VertexLabel vertexLabel = this.graph().vertexLabel(label);
             if (vertexLabel.idStrategy() == IdStrategy.PRIMARY_KEY) {
-                // Query vertex by label + primary-values
                 List<String> keys = vertexLabel.primaryKeys();
                 if (keys.isEmpty()) {
                     throw new BackendException(
@@ -604,9 +616,10 @@ public class GraphTransaction extends AbstractTransaction {
                               IdStrategy.PRIMARY_KEY, vertexLabel.name());
                 }
                 if (query.matchUserpropKeys(keys)) {
+                    // Query vertex by label + primary-values
                     String primaryValues = query.userpropValuesString(keys);
                     LOG.debug("Query vertices by primaryKeys: {}", query);
-                    // Convert vertex-label + primary-key to vertex-id
+                    // Convert {vertex-label + primary-key} to vertex-id
                     Id id = SplicingIdGenerator.splicing(label, primaryValues);
                     query.query(id);
                     query.resetConditions();
@@ -618,13 +631,11 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Optimize edge query
         if (label != null && query.resultType() == HugeType.EDGE) {
-            // Query edge by sourceVertex + direction + label + sort-values
             List<String> keys = this.graph().edgeLabel(label).sortKeys();
             if (query.condition(HugeKeys.SOURCE_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&
-                !keys.isEmpty() &&
-                query.matchUserpropKeys(keys)) {
-
+                !keys.isEmpty() && query.matchUserpropKeys(keys)) {
+                // Query edge by sourceVertex + direction + label + sort-values
                 query.eq(HugeKeys.SORT_VALUES,
                          query.userpropValuesString(keys));
                 query.resetUserpropConditions();
@@ -645,7 +656,11 @@ public class GraphTransaction extends AbstractTransaction {
             return query;
         }
 
-        // Optimize by index-query
+        /*
+         * Optimize by index-query
+         * It will return a list of id(maybe empty) if success,
+         * or throw exception if there is no any index for query properties.
+         */
         return this.indexTx.query(query);
     }
 
@@ -658,12 +673,12 @@ public class GraphTransaction extends AbstractTransaction {
         this.afterWrite();
     }
 
-    public void rebuildIndex(SchemaElement schemaElement) {
+    public void rebuildIndex(SchemaElement schema) {
         // TODO: use event to replace direct call
         this.checkOwnerThread();
 
         this.beforeWrite();
-        this.indexTx.rebuildIndex(schemaElement);
+        this.indexTx.rebuildIndex(schema);
         this.afterWrite();
     }
 
@@ -688,11 +703,11 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public void removeEdges(EdgeLabel edgeLabel) {
-        // TODO: Need to change to writeQuery.
         Id id = IdGenerator.of(edgeLabel);
         boolean autoCommit = this.autoCommit();
         this.autoCommit(false);
         try {
+            // TODO: Need to change to writeQuery.
             this.removeEntry(this.serializer.writeId(HugeType.EDGE, id));
             this.commit();
         } catch (Exception e) {
