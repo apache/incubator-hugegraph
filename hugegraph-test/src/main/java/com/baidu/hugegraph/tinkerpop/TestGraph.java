@@ -338,6 +338,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("age").asInt().ifNotExist().create();
         schema.propertyKey("year").asInt().ifNotExist().create();
         schema.propertyKey("acl").ifNotExist().create();
+        schema.propertyKey("temp").ifNotExist().create();
 
         IdStrategy idStrategy = this.graph.name().equals("standard") ?
                                 IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
@@ -345,11 +346,14 @@ public class TestGraph implements Graph {
             case AUTOMATIC:
                 schema.vertexLabel("person").properties("name", "age")
                       .ifNotExist().create();
-                schema.vertexLabel("software").properties("name", "lang")
+                schema.vertexLabel("software")
+                      .properties("name", "lang", "temp")
                       .ifNotExist().create();
                 schema.vertexLabel("dog").properties("name")
                       .ifNotExist().create();
                 schema.vertexLabel(DEFAULT_VL).properties("name", "age")
+                      .ifNotExist().create();
+                schema.vertexLabel("animal").properties("name", "age")
                       .ifNotExist().create();
                 break;
             case CUSTOMIZE:
@@ -361,11 +365,14 @@ public class TestGraph implements Graph {
                       .useCustomizeId().ifNotExist().create();
                 schema.vertexLabel(DEFAULT_VL).properties("name", "age")
                       .useCustomizeId().ifNotExist().create();
+                schema.vertexLabel("animal").properties("name", "age")
+                      .useCustomizeId().ifNotExist().create();
                 break;
             default:
                 throw new AssertionError(String.format(
                           "Id strategy must be customize or automatic"));
         }
+
         schema.edgeLabel("knows").link("person", "person")
               .properties("weight", "year").ifNotExist().create();
         schema.edgeLabel("created").link("person", "software")
@@ -374,9 +381,17 @@ public class TestGraph implements Graph {
               .properties("year").ifNotExist().create();
         schema.edgeLabel("createdBy").link("software", "person")
               .properties("weight", "year", "acl").ifNotExist().create();
+        schema.edgeLabel("uses").link("person", "software")
+              .ifNotExist().create();
+        schema.edgeLabel("likes").link("person", "software")
+              .ifNotExist().create();
+        schema.edgeLabel("foo").link("person", "software")
+              .ifNotExist().create();
+        schema.edgeLabel("bar").link("person", "software")
+              .ifNotExist().create();
 
         // When index field can be null, uncomment these indexLabel define
-        /*schema.indexLabel("personByName").onV("person").by("name")
+        schema.indexLabel("personByName").onV("person").by("name")
               .ifNotExist().create();
         schema.indexLabel("personByAge").onV("person").by("age").search()
               .ifNotExist().create();
@@ -393,7 +408,9 @@ public class TestGraph implements Graph {
         schema.indexLabel("knowsByWeight").onE("knows").by("weight").search()
               .ifNotExist().create();
         schema.indexLabel("createdByWeight").onE("created").by("weight")
-              .search().ifNotExist().create();*/
+              .search().ifNotExist().create();
+        schema.indexLabel("personByNameAge").onV("person").by("name", "age")
+              .ifNotExist().create();
     }
 
     public void initClassicSchema() {
@@ -482,6 +499,15 @@ public class TestGraph implements Graph {
         schema.propertyKey("f").asFloat().ifNotExist().create();
         schema.propertyKey("i").asInt().ifNotExist().create();
         schema.propertyKey("l").asLong().ifNotExist().create();
+        schema.propertyKey("here").ifNotExist().create();
+        schema.propertyKey("to-change").ifNotExist().create();
+        schema.propertyKey("to-remove").ifNotExist().create();
+        schema.propertyKey("to-keep").ifNotExist().create();
+        schema.propertyKey("to-drop").ifNotExist().create();
+        schema.propertyKey("dropped").ifNotExist().create();
+        schema.propertyKey("not-dropped").ifNotExist().create();
+        schema.propertyKey("old").ifNotExist().create();
+        schema.propertyKey("new").ifNotExist().create();
 
         if (this.ioTest) {
             schema.propertyKey("weight").asFloat().ifNotExist().create();
@@ -502,7 +528,8 @@ public class TestGraph implements Graph {
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
                                   "long", "myId", "location", "x", "y", "s",
-                                  "n", "d", "f", "i", "l")
+                                  "n", "d", "f", "i", "l", "to-change",
+                                  "to-remove", "to-keep", "old", "new")
                       .useCustomizeId().ifNotExist().create();
                 break;
             case AUTOMATIC:
@@ -513,7 +540,8 @@ public class TestGraph implements Graph {
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
                                   "long", "myId", "location", "x", "y", "s",
-                                  "n", "d", "f", "i", "l")
+                                  "n", "d", "f", "i", "l", "to-change",
+                                  "to-remove", "to-keep", "old", "new")
                       .ifNotExist().create();
                 break;
             default:
@@ -533,9 +561,13 @@ public class TestGraph implements Graph {
 
         schema.vertexLabel("person").properties("name")
               .ifNotExist().create();
+        schema.vertexLabel("thing").properties("here")
+              .ifNotExist().create();
 
         schema.edgeLabel("self").link(defaultVL, defaultVL)
-              .properties("__id", "test", "name", "some", "acl", "weight")
+              .properties("__id", "test", "name", "some", "acl", "weight",
+                          "here", "to-change", "dropped", "not-dropped", "new",
+                          "to-drop")
               .ifNotExist().create();
         schema.edgeLabel("aTOa").link(defaultVL, defaultVL)
               .ifNotExist().create();
