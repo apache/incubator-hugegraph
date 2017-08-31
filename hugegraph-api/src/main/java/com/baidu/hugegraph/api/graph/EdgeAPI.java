@@ -70,7 +70,7 @@ public class EdgeAPI extends API {
     @POST
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          CreateEdge edge) {
@@ -93,7 +93,7 @@ public class EdgeAPI extends API {
     @Path("batch")
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public List<String> create(
             @Context GraphManager manager,
             @PathParam("graph") String graph,
@@ -154,7 +154,7 @@ public class EdgeAPI extends API {
 
     @GET
     @Compress
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
@@ -167,7 +167,7 @@ public class EdgeAPI extends API {
 
     @GET
     @Path("{id}")
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {

@@ -52,7 +52,7 @@ public class PropertyKeyAPI extends API {
     @POST
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonPropertyKey jsonPropertyKey) {
@@ -68,7 +68,7 @@ public class PropertyKeyAPI extends API {
     }
 
     @GET
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get property keys", graph);
@@ -81,7 +81,7 @@ public class PropertyKeyAPI extends API {
 
     @GET
     @Path("{name}")
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {

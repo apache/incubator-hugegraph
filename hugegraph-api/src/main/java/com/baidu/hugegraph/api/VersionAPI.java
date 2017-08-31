@@ -35,7 +35,7 @@ import com.google.common.collect.ImmutableMap;
 public class VersionAPI extends API {
 
     @GET
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Object list() {
         Map<String, String> versions = ImmutableMap.of("version", "v1",
                                        "core", CoreVersion.VERSION.toString(),

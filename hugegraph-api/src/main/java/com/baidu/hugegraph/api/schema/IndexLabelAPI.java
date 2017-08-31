@@ -51,7 +51,7 @@ public class IndexLabelAPI extends API {
     @POST
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          IndexLabelAPI.JsonIndexLabel jsonIndexLabel) {
@@ -66,7 +66,7 @@ public class IndexLabelAPI extends API {
     }
 
     @GET
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get edge labels", graph);
@@ -79,7 +79,7 @@ public class IndexLabelAPI extends API {
 
     @GET
     @Path("{name}")
-    @Produces(APPLICATION_JSON_WITH_UTF8)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
