@@ -65,7 +65,6 @@ import com.baidu.hugegraph.util.Log;
  * HugeGraph is the entrance of the graph system, you can modify or query
  * the schema/vertex/edge data through this class.
  */
-@Graph.OptIn("com.baidu.hugegraph.tinkerpop.HugeStructureBasicSuite")
 public class HugeGraph implements Graph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);

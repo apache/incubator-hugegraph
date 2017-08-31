@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -36,20 +35,24 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.type.define.IdStrategy;
 
+@Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructureBasicSuite")
+@Graph.OptIn("com.baidu.hugegraph.tinkerpop.ProcessStandardTest")
 public class TestGraph implements Graph {
 
     public static final String DEFAULT_VL = "vertex";
+
+    private static volatile int id = 666;
 
     private HugeGraph graph;
     private String loadedGraph = null;
     private boolean isLastIdCustomized = false;
     private boolean autoPerson = false;
     private boolean ioTest = false;
-    private static volatile int id = 666;
 
     public TestGraph(HugeGraph graph) {
         this.graph = graph;
@@ -172,8 +175,8 @@ public class TestGraph implements Graph {
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         return (I) builder.graph(this).onMapper(mapper ->
-               mapper.addRegistry(HugeGraphIoRegistry.getInstance()))
-               .create();
+            mapper.addRegistry(HugeGraphIoRegistry.getInstance())
+        ).create();
     }
 
     @Override
