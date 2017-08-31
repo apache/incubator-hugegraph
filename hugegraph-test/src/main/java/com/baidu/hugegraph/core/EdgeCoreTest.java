@@ -107,7 +107,7 @@ public class EdgeCoreTest extends BaseCoreTest {
               .multiTimes().sortKeys("time")
               .link("author", "book")
               .create();
-        schema.edgeLabel("look").properties("time")
+        schema.edgeLabel("look").properties("time", "score")
               .multiTimes().sortKeys("time")
               .link("person", "book")
               .create();
@@ -651,6 +651,30 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryInEdgesOfVertexByLabelAndFilter() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Vertex java3 = vertex("book", "name", "java-3");
+
+        List<Edge> edges = graph.traversal().V(java3.id())
+                           .inE().has("score", 3).toList();
+        Assert.assertEquals(3, edges.size());
+
+        edges = graph.traversal().V(java3.id())
+                .inE("look").has("score", 3).toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V(java3.id())
+                .inE("look").has("score", 4).toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(java3.id())
+                .inE("look").has("score", 0).toList();
+        Assert.assertEquals(1, edges.size());
+    }
+
+    @Test
     public void testQueryInEdgesOfVertexBySortValues() {
         HugeGraph graph = graph();
         init18Edges();
@@ -954,15 +978,15 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         james.addEdge("authored", java1);
         james.addEdge("authored", java2);
-        james.addEdge("authored", java3);
+        james.addEdge("authored", java3, "score", 3);
 
         louise.addEdge("look", java1, "time", "2017-5-1");
         louise.addEdge("look", java1, "time", "2017-5-27");
         louise.addEdge("look", java2, "time", "2017-5-27");
-        louise.addEdge("look", java3, "time", "2017-5-1");
-        jeff.addEdge("look", java3, "time", "2017-5-27");
-        sean.addEdge("look", java3, "time", "2017-5-27");
-        selina.addEdge("look", java3, "time", "2017-5-27");
+        louise.addEdge("look", java3, "time", "2017-5-1", "score", 3);
+        jeff.addEdge("look", java3, "time", "2017-5-27", "score", 3);
+        sean.addEdge("look", java3, "time", "2017-5-27", "score", 4);
+        selina.addEdge("look", java3, "time", "2017-5-27", "score", 0);
 
         louise.addEdge("friend", jeff);
         louise.addEdge("friend", sean);

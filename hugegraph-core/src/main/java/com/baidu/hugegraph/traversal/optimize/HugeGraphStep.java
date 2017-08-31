@@ -40,7 +40,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -50,6 +49,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.Log;
 
 public final class HugeGraphStep<S, E extends Element>
              extends GraphStep<S, E> implements HasContainerHolder {
@@ -180,6 +180,7 @@ public final class HugeGraphStep<S, E extends Element>
     public static ConditionQuery fillConditionQuery(
             List<HasContainer> hasContainers,
             ConditionQuery query) {
+
         for (HasContainer has : hasContainers) {
             BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
             if (bp instanceof Compare) {
@@ -296,7 +297,7 @@ public final class HugeGraphStep<S, E extends Element>
         throw newUnsupportedPredicate(has.getPredicate());
     }
 
-    private static BackendException newUnsupportedPredicate(P<?> predicate) {
+    public static BackendException newUnsupportedPredicate(P<?> predicate) {
         return new BackendException("Unsupported predicate: '%s'", predicate);
     }
 
