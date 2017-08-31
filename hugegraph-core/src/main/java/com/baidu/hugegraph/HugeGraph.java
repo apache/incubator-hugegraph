@@ -229,7 +229,7 @@ public class HugeGraph implements Graph {
 
     public AbstractSerializer serializer() {
         String name = this.configuration.get(CoreOptions.SERIALIZER);
-        AbstractSerializer serializer = SerializerFactory.serializer(name, this);
+        AbstractSerializer serializer = SerializerFactory.serializer(name);
         if (serializer == null) {
             throw new HugeException("Can't load serializer with name " + name);
         }

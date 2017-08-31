@@ -47,7 +47,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         return INSTANCE;
     }
 
-    private static TextSerializer textSerializer = new TextSerializer(null);
+    private static TextSerializer textSerializer = new TextSerializer();
 
     public HugeGraphIoRegistry() {
         register(GryoIo.class, IdGenerator.StringId.class, new IdSerializer());
