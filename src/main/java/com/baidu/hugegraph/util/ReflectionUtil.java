@@ -38,6 +38,16 @@ import javassist.NotFoundException;
 
 public final class ReflectionUtil {
 
+    public static boolean isSimpleType(Class<?> type) {
+        if (type.isPrimitive() ||
+            type.equals(String.class) ||
+            type.equals(Boolean.class) ||
+            NumericUtil.isNumber(type)) {
+            return true;
+        }
+        return false;
+    }
+
     public static List<Method> getMethodsAnnotatedWith(
             Class<?> type,
             Class<? extends Annotation> annotation,
