@@ -203,7 +203,7 @@ public class EdgeLabel extends SchemaLabel {
             edgeLabel.properties().addAll(this.edgeLabel.properties);
 
             this.transaction.addEdgeLabel(edgeLabel);
-            return this.edgeLabel;
+            return edgeLabel;
         }
 
         @Override
