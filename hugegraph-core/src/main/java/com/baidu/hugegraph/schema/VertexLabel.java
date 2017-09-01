@@ -170,7 +170,7 @@ public class VertexLabel extends SchemaLabel {
             vertexLabel.properties().addAll(this.vertexLabel.properties);
 
             this.transaction.addVertexLabel(vertexLabel);
-            return this.vertexLabel;
+            return vertexLabel;
         }
 
         @Override
