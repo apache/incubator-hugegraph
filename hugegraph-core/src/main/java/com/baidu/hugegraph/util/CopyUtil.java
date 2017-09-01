@@ -26,17 +26,6 @@ import com.baidu.hugegraph.HugeException;
 
 public class CopyUtil {
 
-    public static boolean isSimpleType(Class<?> type) {
-        if (type.isPrimitive() ||
-            type.equals(String.class) ||
-            type.equals(Boolean.class) ||
-            NumericUtil.isNumber(type)) {
-            return true;
-        }
-
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     public static <T> T cloneObject(T o, T clone) throws Exception {
         if (clone == null) {
@@ -51,7 +40,8 @@ public class CopyUtil {
 
             Class<?> declareType = field.getType();
             Class<?> valueType = childObj.getClass();
-            if (isSimpleType(declareType) || isSimpleType(valueType)) {
+            if (ReflectionUtil.isSimpleType(declareType) ||
+                ReflectionUtil.isSimpleType(valueType)) {
                 field.set(clone, field.get(o));
             } else {
                 if (childObj == o) {
