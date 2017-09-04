@@ -925,6 +925,20 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryWithMultiLayerConditions() {
+        HugeGraph graph = graph();
+        init5Persons();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("person").has(
+                    "age",
+                    P.not(P.lte(10).and(P.not(P.between(11, 20))))
+                     .and(P.lt(29).or(P.eq(35))))
+                    .values("name").next();
+        });
+    }
+
+    @Test
     public void testRemoveVertex() {
         HugeGraph graph = graph();
         init10Vertices();
