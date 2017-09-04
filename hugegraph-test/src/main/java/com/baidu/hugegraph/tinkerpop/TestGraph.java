@@ -330,6 +330,17 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.edgeLabel("writtenBy").link("song", "artist")
               .ifNotExist().create();
+
+        schema.indexLabel("songByName").onV("song").by("name")
+              .ifNotExist().create();
+        schema.indexLabel("songBySongType").onV("song").by("songType")
+              .ifNotExist().create();
+        schema.indexLabel("songByPerf").onV("song").by("performances")
+              .ifNotExist().create();
+        schema.indexLabel("artistByName").onV("artist").by("name")
+              .ifNotExist().create();
+        schema.indexLabel("followedByByWeight").onE("followedBy").by("weight")
+              .search().ifNotExist().create();
     }
 
     public void initModernSchema() {
@@ -393,7 +404,6 @@ public class TestGraph implements Graph {
         schema.edgeLabel("bar").link("person", "software")
               .ifNotExist().create();
 
-        // When index field can be null, uncomment these indexLabel define
         schema.indexLabel("personByName").onV("person").by("name")
               .ifNotExist().create();
         schema.indexLabel("personByAge").onV("person").by("age").search()
