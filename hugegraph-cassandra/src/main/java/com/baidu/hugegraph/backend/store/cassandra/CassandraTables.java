@@ -38,6 +38,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -303,7 +304,14 @@ public class CassandraTables {
 
             Select select = QueryBuilder.select().from(this.table());
             select.where(formatEQ(HugeKeys.LABEL, label));
-            ResultSet rs = session.execute(select);
+
+            ResultSet rs;
+            try {
+                rs = session.execute(select);
+            } catch (DriverException e) {
+                throw new BackendException("Failed to query edges with " +
+                          "label '%s' for deleting", label, e);
+            }
 
             final String LABEL = formatKey(HugeKeys.LABEL);
             final String SOURCE_VERTEX = formatKey(HugeKeys.SOURCE_VERTEX);
@@ -414,7 +422,15 @@ public class CassandraTables {
             Select select = QueryBuilder.select().from(this.table());
             select.where(formatEQ(HugeKeys.INDEX_LABEL_NAME, indexLabel));
             select.allowFiltering();
-            ResultSet rs = session.execute(select);
+
+            ResultSet rs;
+            try {
+                rs = session.execute(select);
+            } catch (DriverException e) {
+                throw new BackendException("Failed to query secondary " +
+                          "indexes with index label '%s' for deleting",
+                          indexLabel, e);
+            }
 
             final String FIELD_VALUES = formatKey(HugeKeys.FIELD_VALUES);
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
