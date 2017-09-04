@@ -1,6 +1,6 @@
 # Proper format is "TestClass.testMethodName: ignore reason"
 
-# structure suite
+####################    structure suite    ####################
 
 ## automatic ID for edges
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedEdgeTest.shouldNotEvaluateToEqualDifferentId: Not support automatic/custom id for edge
@@ -69,7 +69,7 @@ org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.s
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsUniformListValues([try1, try2])]: Uniform list can't be accessed by vertex.property() which is supposed right by tinkerpop
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsUniformListValues([try1, try2])]: Uniform list can't be accessed by vertex.property() which is supposed right by tinkerpop
 
-## failed tests with wrong edge number
+## failed tests with wrong edge number, reason may be: self edges exist, therefore number of edges is wrong
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.ProcessorTest.shouldProcessEdges: assertion error with unmatched edge number
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: assertion error with unmatched edge number
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: assertion error with unmatched edge number
@@ -125,13 +125,17 @@ org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
 
-# process suite
+
+####################    process suite    ####################
+
 # multi label
 org.apache.tinkerpop.gremlin.process.traversal.step.branch.LocalTest.Traversals.g_VX4X_localXbothEXknows_createdX_limitX1XX: Not support querying by multi edge-labels
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasLabelXsoftwareX: Not support querying by multi vertex-labels
 org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1X_outEXknows_createdX_inV: Not support querying by multi edge-labels
 org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1X_outXknows_createdX: Not support querying by multi edge-labels
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterEdgeCriterion: Not support querying by multi edge-labels
+org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.playlistPaths: Don't accept query based on properties '[name]' that are not indexed
+
 
 # unsupported rollback
 org.apache.tinkerpop.gremlin.process.traversal.CoreTraversalTest.shouldTraverseIfAutoTxEnabledAndOriginalTxIsClosed: Unsupported rollback operation by Cassandra
@@ -172,10 +176,6 @@ org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStra
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldGenerateDefaultIdOnGraphAddVWithGeneratedCustomId: Element ID strategy(__id/name in basic mode not have index)
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldGenerateDefaultIdOnGraphAddVWithSpecifiedId: Element ID strategy(__id/name in basic mode not have index)
 
-# HugeGraph-749
-org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX4X_bothE_hasXweight_lt_1X_otherV: HugeGraph-749
-org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_V_outE_hasXweight_1X_outV: HugeGraph-749
-
 # index field may be null
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.DropTest.Traversals.g_V_properties_drop: index field has null value
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXpersonX_propertyXname_stephenX: Index field may be null
@@ -186,33 +186,23 @@ org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategy
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddVertexPropertyAdded: Index field may be null
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddVertexWithPropertyThenPropertyAdded: Index field may be null
 
-# pass, long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_repeatXoutX_timesX5X_asXaX_outXwrittenByX_asXbX_selectXa_bX_count: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.CountMatchTraversals.g_V_matchXa_followedBy_count_isXgtX10XX_b__a_0followedBy_count_isXgtX10XX_bX_count: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.CountMatchTraversals.g_V_hasLabelXsongsX_matchXa_name_b__a_performances_cX_selectXb_cX_count: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.CountMatchTraversals.g_V_matchXa_0sungBy_b__a_0sungBy_c__b_writtenBy_d__c_writtenBy_e__d_hasXname_George_HarisonX__e_hasXname_Bob_MarleyXX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.CountMatchTraversals.g_V_matchXa_0sungBy_b__a_0writtenBy_c__b_writtenBy_dX_whereXc_sungBy_dX_whereXd_hasXname_GarciaXX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.CountMatchTraversals.g_V_matchXa_0sungBy_b__a_0writtenBy_c__b_writtenBy_d__c_sungBy_d__d_hasXname_GarciaXX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.GreedyMatchTraversals.g_V_matchXa_followedBy_count_isXgtX10XX_b__a_0followedBy_count_isXgtX10XX_bX_count: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.GreedyMatchTraversals.g_V_hasLabelXsongsX_matchXa_name_b__a_performances_cX_selectXb_cX_count: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.GreedyMatchTraversals.g_V_matchXa_0sungBy_b__a_0sungBy_c__b_writtenBy_d__c_writtenBy_e__d_hasXname_George_HarisonX__e_hasXname_Bob_MarleyXX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.GreedyMatchTraversals.g_V_matchXa_0sungBy_b__a_0writtenBy_c__b_writtenBy_dX_whereXc_sungBy_dX_whereXd_hasXname_GarciaXX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.OrderTest.Traversals.g_V_hasLabelXsongX_order_byXperfomances_decrX_byXnameX_rangeX110_120X_name: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTest.Traversals.g_V_hasLabelXsongX_group_byXnameX_byXproperties_groupCount_byXlabelXX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTest.Traversals.g_V_outXfollowedByX_group_byXsongTypeX_byXbothE_group_byXlabelX_byXweight_sumXX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTest.Traversals.g_V_hasLabelXsongX_groupXaX_byXnameX_byXproperties_groupCount_byXlabelXX_out_capXaX: long time
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_V)]: long time
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_V_out)]: long time
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_V_outE)]: long time
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_V_in)]: long time
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_V_inE)]: long time(7 min)
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_V_properties)]: long time
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_E)]: long time
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_E_outV)]: long time
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_E_inV)]: long time
-org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest.shouldRespectThreadInterruptionInVertexStep[expectInterruption(g_E_properties)]: long time
+# unsupported OrP
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasXage_notXlteX10X_andXnotXbetweenX11_20XXXX_andXltX29X_orXeqX35XXXX_name: Unsupported OrP
 
-# assert, long time
+# no such element exceptions are caught and ignored in hasNext
+org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1_2_3_4X_name: No such element exceptions are caught and ignored in hasNext
+
+# unsupported automatic edge id, therefore number of edge is wrong
+org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdge: Unsupported automatic edge id, therefore number of edge is wrong
+org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdgeByPath: Unsupported automatic edge id, therefore number of edge is wrong
+
+# tinkerpop expect vertex.properties() fetching data from db, but hugegraph not
+org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachVertexPropertyWhenRemoved: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
+org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachPropertyOfEdgeWhenNew: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
+org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachPropertyOfEdgeWhenRemoved: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
+org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachVertexPropertyWhenNew: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
+
+# assert error, long time, reason may be: self edges exist, therefore number of edges is wrong
 org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_both_both_count: long time
 org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_repeatXoutX_timesX3X_count: long time
 org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_repeatXoutX_timesX8X_count: long time
@@ -222,30 +212,6 @@ org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTest.Travers
 org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTest.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_groupXaX_byXsongTypeX_byXcountX_capXaX: long time
 org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTestV3d0.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_group_byXsongTypeX_byXcountX: long time
 org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTestV3d0.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_groupXaX_byXsongTypeX_byXcountX_capXaX: long time
-
-# failed, long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphTest.Traversals.g_V_hasXname_GarciaX_inXsungByX_asXsongX_V_hasXname_Willie_DixonX_inXwrittenByX_whereXeqXsongXX_name: No matching index for query VERTEX id in [] and [LABEL == artist, name == Garcia]
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.CountMatchTraversals.g_V_matchXa_hasXname_GarciaX__a_0writtenBy_b__a_0sungBy_bX: Don't accept query based on properties '[name]' that are not indexed
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.CountMatchTraversals.g_V_matchXa_hasXname_GarciaX__a_0writtenBy_b__b_followedBy_c__c_writtenBy_d__whereXd_neqXaXXX: Don't accept query based on properties '[name]' that are not indexed
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.GreedyMatchTraversals.g_V_matchXa_hasXname_GarciaX__a_0writtenBy_b__a_0sungBy_bX: Don't accept query based on properties '[name]' that are not indexed
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.GreedyMatchTraversals.g_V_matchXa_hasXname_GarciaX__a_0writtenBy_b__b_followedBy_c__c_writtenBy_d__whereXd_neqXaXXX: Don't accept query based on properties '[name]' that are not indexed
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest.GreedyMatchTraversals.g_V_matchXa_0sungBy_b__a_0writtenBy_c__b_writtenBy_d__c_sungBy_d__d_hasXname_GarciaXX: Failed to remove edges
-org.apache.tinkerpop.gremlin.process.traversal.step.map.OrderTest.Traversals.g_V_hasXsong_name_OHBOYX_outXfollowedByX_outXfollowedByX_order_byXperformancesX_byXsongType_incrX: No matching index for query VERTEX id in [] and [LABEL == song, name == OH BOY]
-org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.classicRecommendation: Don't accept query based on properties '[name]' that are not indexed
-org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.playlistPaths: Don't accept query based on properties '[name]' that are not indexed
-org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.TreeTest.Traversals.g_V_out_out_treeXaX_capXaX: Failed to remove edges(27 min)
-
-# assert, short time
-org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_EX11X_outV_outE_hasXid_10AsStringX: may be bug
-org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_EX11X_outV_outE_hasXid_10X: may be bug
-org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasXage_notXlteX10X_andXnotXbetweenX11_20XXXX_andXltX29X_orXeqX35XXXX_name: may be bug
-org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1_2_3_4X_name: may be bug
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdge: may be bug
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdgeByPath: may be bug
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachVertexPropertyWhenRemoved: may be bug
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachPropertyOfEdgeWhenNew: may be bug
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachPropertyOfEdgeWhenRemoved: may be bug
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachVertexPropertyWhenNew: may be bug
 
 # can't solve, but not bug
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddEdgeTest.Traversals.g_V_aggregateXxX_asXaX_selectXxX_unfold_addEXexistsWithX_toXaX_propertyXtime_nowX: Using edge label 'existWith' connect all vertices
