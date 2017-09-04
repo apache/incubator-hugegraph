@@ -226,7 +226,11 @@ public final class HugeGraphStep<S, E extends Element>
 
     public static Relation convCompare2Relation(HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
-        assert bp instanceof Compare;
+
+        if (!(bp instanceof Compare)) {
+            throw new IllegalArgumentException("Not support three layers or " +
+                                               "more logical conditions");
+        }
 
         try {
             HugeKeys key = string2HugeKey(has.getKey());
