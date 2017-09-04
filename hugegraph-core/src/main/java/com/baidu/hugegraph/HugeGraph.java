@@ -295,7 +295,7 @@ public class HugeGraph implements Graph {
 
     public VertexLabel vertexLabel(String name) {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(name);
-        E.checkArgument(vl != null, "Undefined vertexlabel: '%s'", name);
+        E.checkArgument(vl != null, "Undefined vertex label: '%s'", name);
         return vl;
     }
 
