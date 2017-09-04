@@ -40,6 +40,7 @@ import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 
@@ -117,10 +118,10 @@ public abstract class CassandraStore implements BackendStore {
                          "try init keyspace later", this.keyspace);
                 this.sessions.closeSession();
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             try {
                 this.sessions.close();
-            } catch (Exception e2) {
+            } catch (Throwable e2) {
                 LOG.warn("Failed to close cluster", e2);
             }
             throw e;
@@ -265,7 +266,7 @@ public abstract class CassandraStore implements BackendStore {
 
         try {
             session.commit();
-        } catch (InvalidQueryException e) {
+        } catch (DriverException e) {
             LOG.error("Failed to commit statements due to:", e);
             assert session.statements().size() > 0;
             throw new BackendException(
@@ -369,7 +370,11 @@ public abstract class CassandraStore implements BackendStore {
     protected final void checkSessionConnected() {
         E.checkState(this.sessions != null,
                      "Cassandra store has not been initialized");
-        this.sessions.checkSessionConnected();
+        try {
+            this.sessions.checkSessionConnected();
+        } catch (DriverException e) {
+            throw new BackendException("Can't connect to cassandra", e);
+        }
     }
 
     protected static final CassandraBackendEntry castBackendEntry(

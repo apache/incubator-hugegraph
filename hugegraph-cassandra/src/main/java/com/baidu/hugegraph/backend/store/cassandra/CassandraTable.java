@@ -49,6 +49,7 @@ import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Clauses;
 import com.datastax.driver.core.querybuilder.Delete;
@@ -118,7 +119,7 @@ public abstract class CassandraTable {
                 ResultSet results = session.execute(selection);
                 rs.addAll(this.results2Entries(query.resultType(), results));
             }
-        } catch (Exception e) {
+        } catch (DriverException e) {
             throw new BackendException("Failed to query [%s]", e, query);
         }
 
