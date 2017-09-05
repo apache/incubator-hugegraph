@@ -59,7 +59,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     private static final Logger LOG = Log.logger(HugeGraphProvider.class);
 
     private static final String CONF_PATH = "hugegraph.properties";
-    private static final String FILTER_FILE = "methods.filter";
+    private static final String FILTER = "test.tinkerpop.filter";
+    private static final String DEFAULT_FILTER = "methods.filter";
     private static final String AKEY_CLASS_PREFIX =
             "org.apache.tinkerpop.gremlin.structure." +
             "PropertyTest.PropertyFeatureSupportTest";
@@ -78,9 +79,19 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     }
 
     private void initBlackList() throws IOException {
+        String filter = (String) getConf().getProperty(FILTER);
+        if (filter == null || filter.isEmpty()) {
+            filter = DEFAULT_FILTER;
+        }
+
         String blackList = HugeGraphProvider.class.getClassLoader()
-                           .getResource(FILTER_FILE).getPath();
-        try (FileReader fr = new FileReader(new File(blackList));
+                           .getResource(filter).getPath();
+        File file = new File(blackList);
+        E.checkArgument(
+                file.exists() && file.isFile() && file.canRead(),
+                "Need to specify a readable filter file rather than: %s",
+                file.toString());
+        try (FileReader fr = new FileReader(file);
              BufferedReader reader = new BufferedReader(fr)) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -112,6 +123,25 @@ public class HugeGraphProvider extends AbstractGraphProvider {
             HugeVertex.class,
             HugeVertexProperty.class);
 
+    public PropertiesConfiguration getConf() {
+        String confFile = HugeGraphProvider.class.getClassLoader()
+                                           .getResource(CONF_PATH).getPath();
+        File file = new File(confFile);
+        E.checkArgument(
+                file.exists() && file.isFile() && file.canRead(),
+                "Need to specify a readable config file rather than: %s",
+                file.toString());
+
+        PropertiesConfiguration config;
+        try {
+            config = new PropertiesConfiguration(file);
+        } catch (ConfigurationException e) {
+            throw new HugeException("Unable to load config file: %s",
+                                    e, confFile);
+        }
+        return config;
+    }
+
     @Override
     public Map<String, Object> getBaseConfiguration(
                                String graphName,
@@ -131,21 +161,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         LOG.info("Full name of test is: {}", testFullName);
         LOG.info("prefix is: {}", testFullName.substring(0, index));
         HashMap<String, Object> confMap = new HashMap<>();
-        String confFile = HugeGraphProvider.class.getClassLoader()
-                                           .getResource(CONF_PATH).getPath();
-        File file = new File(confFile);
-        E.checkArgument(
-                file.exists() && file.isFile() && file.canRead(),
-                "Need to specify a readable config file rather than: %s",
-                file.toString());
-
-        PropertiesConfiguration config;
-        try {
-            config = new PropertiesConfiguration(file);
-        } catch (ConfigurationException e) {
-            throw new HugeException("Unable to load config file: %s",
-                                    e, confFile);
-        }
+        PropertiesConfiguration config = getConf();
         Iterator<String> keys = config.getKeys();
         while (keys.hasNext()) {
             String key = keys.next();
@@ -296,7 +312,6 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         }
         testGraph.tx().commit();
     }
-
 
     @SuppressWarnings("rawtypes")
     @Override
