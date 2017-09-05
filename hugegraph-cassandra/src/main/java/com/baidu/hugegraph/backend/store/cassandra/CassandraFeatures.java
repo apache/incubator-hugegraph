@@ -32,4 +32,14 @@ public class CassandraFeatures implements BackendFeatures {
     public boolean supportsScan() {
         return true;
     }
+
+    @Override
+    public boolean supportsQueryByContains() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsQueryByContainsKey() {
+        return true;
+    }
 }

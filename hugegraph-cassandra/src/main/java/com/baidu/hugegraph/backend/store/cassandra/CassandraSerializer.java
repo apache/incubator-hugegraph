@@ -116,11 +116,11 @@ public class CassandraSerializer extends AbstractSerializer {
         CassandraBackendEntry.Row row = new CassandraBackendEntry.Row(
                                         HugeType.EDGE, edge.idWithDirection());
         // sourceVertex + direction + edge-label + sortValues + targetVertex
-        row.column(HugeKeys.SOURCE_VERTEX, edge.owner().id().asString());
+        row.column(HugeKeys.OWNER_VERTEX, edge.ownerVertex().id().asString());
         row.column(HugeKeys.DIRECTION, edge.direction().name());
         row.column(HugeKeys.LABEL, edge.label());
         row.column(HugeKeys.SORT_VALUES, edge.name());
-        row.column(HugeKeys.TARGET_VERTEX, edge.otherVertex().id().asString());
+        row.column(HugeKeys.OTHER_VERTEX, edge.otherVertex().id().asString());
 
         if (!edge.hasProperties() && !edge.removed()) {
             row.column(HugeKeys.PROPERTIES, ImmutableMap.of());
@@ -143,12 +143,12 @@ public class CassandraSerializer extends AbstractSerializer {
      */
     protected HugeEdge parseEdge(CassandraBackendEntry.Row row,
                                  HugeVertex vertex, HugeGraph graph) {
-        String sourceVertexId = row.column(HugeKeys.SOURCE_VERTEX);
+        String sourceVertexId = row.column(HugeKeys.OWNER_VERTEX);
         Direction direction = Direction.valueOf(
                               row.column(HugeKeys.DIRECTION));
         String labelName = row.column(HugeKeys.LABEL);
         String sortValues = row.column(HugeKeys.SORT_VALUES);
-        String targetVertexId = row.column(HugeKeys.TARGET_VERTEX);
+        String targetVertexId = row.column(HugeKeys.OTHER_VERTEX);
 
 
         if (vertex == null) {
@@ -204,11 +204,8 @@ public class CassandraSerializer extends AbstractSerializer {
     public BackendEntry writeVertex(HugeVertex vertex) {
         CassandraBackendEntry entry = newBackendEntry(vertex);
 
-        // Don't delete by id + label, just by entry id
-        if (!vertex.removed()) {
-            entry.column(HugeKeys.ID, vertex.id().asString());
-            entry.column(HugeKeys.LABEL, vertex.label());
-        }
+        entry.column(HugeKeys.ID, vertex.id().asString());
+        entry.column(HugeKeys.LABEL, vertex.label());
 
         // Add all properties of a Vertex
         for (HugeProperty<?> prop : vertex.getProperties().values()) {

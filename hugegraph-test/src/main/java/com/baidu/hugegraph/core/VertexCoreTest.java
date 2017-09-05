@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
@@ -626,9 +627,12 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryFilterByPropName() {
         HugeGraph graph = graph();
+        BackendFeatures features = graph.graphTransaction().store().features();
+        Assume.assumeTrue("Not support CONTAINS_KEY query",
+                          features.supportsQueryByContainsKey());
         init10Vertices();
 
-        // Query vertex by condition (filter by property name)
+        // Query vertex by condition (does contain the property name?)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
         q.eq(HugeKeys.LABEL, "language");
         q.key(HugeKeys.PROPERTIES, "dynamic");
@@ -642,6 +646,9 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByHasKey() {
         HugeGraph graph = graph();
+        BackendFeatures features = graph.graphTransaction().store().features();
+        Assume.assumeTrue("Not support CONTAINS_KEY query",
+                          features.supportsQueryByContainsKey());
         init10Vertices();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -678,6 +685,9 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByHasValue() {
         HugeGraph graph = graph();
+        BackendFeatures features = graph.graphTransaction().store().features();
+        Assume.assumeTrue("Not support CONTAINS query",
+                          features.supportsQueryByContains());
         init10Vertices();
 
         List<Vertex> vertexes = graph.traversal().V()

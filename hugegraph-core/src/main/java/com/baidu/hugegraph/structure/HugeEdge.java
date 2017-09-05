@@ -48,14 +48,14 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     protected String name;
 
     // The Vertex who owned me
-    protected HugeVertex owner;
+    protected HugeVertex ownerVertex;
     protected HugeVertex sourceVertex;
     protected HugeVertex targetVertex;
 
     public HugeEdge(final HugeVertex owner, Id id, EdgeLabel label) {
         this(owner.graph(), id, label);
 
-        this.owner = owner;
+        this.ownerVertex = owner;
         this.fresh = true;
     }
 
@@ -65,7 +65,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.label = label;
 
         this.name = null;
-        this.owner = null;
+        this.ownerVertex = null;
         this.sourceVertex = null;
         this.targetVertex = null;
     }
@@ -73,17 +73,17 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public HugeType type() {
         // NOTE: we optimize the edge type that let it include direction
-        return this.owner == this.sourceVertex ?
-                             HugeType.EDGE_OUT :
-                             HugeType.EDGE_IN;
+        return this.ownerVertex == this.sourceVertex ?
+                                   HugeType.EDGE_OUT :
+                                   HugeType.EDGE_IN;
     }
 
     @Override
     public GraphTransaction tx() {
-        if (this.owner() == null) {
+        if (this.ownerVertex() == null) {
             return null;
         }
-        return this.owner().tx();
+        return this.ownerVertex().tx();
     }
 
     @Override
@@ -232,35 +232,56 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                 vertices.add(this.targetVertex);
                 break;
             default:
-                throw new AssertionError("Unsupported direction: " +
-                                         direction);
+                throw new AssertionError("Unsupported direction: " + direction);
         }
 
         return vertices.iterator();
     }
 
+    @Override
+    public Vertex outVertex() {
+        return this.sourceVertex;
+    }
+
+    @Override
+    public Vertex inVertex() {
+        return this.targetVertex;
+    }
+
     public void vertices(HugeVertex source, HugeVertex target) {
-        this.owner = source; // The default owner is the source vertex
+        // The default owner is the source vertex
+        this.ownerVertex = source;
+
         this.sourceVertex = source;
         this.targetVertex = target;
 
-        // TODO: it should be improved that currently we just clone the
-        // target to support self-to-self edge.
-        // edge from V to V(the vertex itself)
-        if (source == target) {
-            this.targetVertex = target.clone();
+        this.cloneTargetIfSelfToSelfEdge();
+    }
+
+    protected void cloneTargetIfSelfToSelfEdge() {
+        /*
+         * Edge from V to V(the vertex itself)
+         * TODO: it should be improved that currently we just clone the
+         * target vertex to support self-to-self edge.
+         */
+        if (this.sourceVertex == this.targetVertex) {
+            this.targetVertex = this.targetVertex.clone();
         }
     }
 
     public HugeEdge switchOwner() {
-        HugeEdge edge = this.clone();
-
-        E.checkState(edge.sourceVertex != edge.targetVertex,
+        /*
+         * They wont be equal due to targetVertex has been cloned if
+         * it's a self-to-self edge
+         */
+        E.checkState(this.sourceVertex != this.targetVertex,
                      "Can't switch owner of self-to-self edge");
-        if (edge.owner == edge.sourceVertex) {
-            edge.owner = edge.targetVertex;
+
+        HugeEdge edge = this.clone();
+        if (edge.ownerVertex == edge.sourceVertex) {
+            edge.ownerVertex = edge.targetVertex;
         } else {
-            edge.owner = edge.sourceVertex;
+            edge.ownerVertex = edge.sourceVertex;
         }
 
         return edge;
@@ -273,12 +294,14 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this;
     }
 
-    public HugeVertex owner() {
-        return this.owner;
+    public HugeVertex ownerVertex() {
+        return this.ownerVertex;
     }
 
-    public void owner(HugeVertex owner) {
-        this.owner = owner;
+    public void ownerVertex(HugeVertex owner) {
+        E.checkState(owner == this.sourceVertex || owner == this.targetVertex,
+                     "The owner vertex must be sourceVertex or targetVertex");
+        this.ownerVertex = owner;
     }
 
     public HugeVertex sourceVertex() {
@@ -287,6 +310,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     public void sourceVertex(HugeVertex sourceVertex) {
         this.sourceVertex = sourceVertex;
+        this.cloneTargetIfSelfToSelfEdge();
     }
 
     public HugeVertex targetVertex() {
@@ -295,6 +319,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     public void targetVertex(HugeVertex targetVertex) {
         this.targetVertex = targetVertex;
+        this.cloneTargetIfSelfToSelfEdge();
     }
 
     public boolean belongToLabels(String... edgeLabels) {
@@ -325,7 +350,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeVertex otherVertex() {
-        return this.otherVertex(this.owner);
+        return this.otherVertex(this.ownerVertex);
     }
 
     /**

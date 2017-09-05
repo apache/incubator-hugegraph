@@ -76,12 +76,12 @@ public abstract class CassandraStore implements BackendStore {
 
         this.conf = null;
 
-        this.initTableManagers();
-
         LOG.debug("Store loaded: {}", name);
     }
 
-    protected abstract void initTableManagers();
+    protected void registerTableManager(HugeType type, CassandraTable table) {
+        this.tables.put(type, table);
+    }
 
     @Override
     public String name() {
@@ -270,8 +270,8 @@ public abstract class CassandraStore implements BackendStore {
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Store {} commit statements: {}",
-                      this.name, session.statements());
+            LOG.debug("Store {} commit {} statements: {}", this.name,
+                      session.statements().size(), session.statements());
         }
 
         try {
@@ -407,18 +407,15 @@ public abstract class CassandraStore implements BackendStore {
         public CassandraSchemaStore(BackendStoreProvider provider,
                                     String keyspace, String name) {
             super(provider, keyspace, name);
-        }
 
-        @Override
-        protected void initTableManagers() {
-            super.tables.put(HugeType.VERTEX_LABEL,
-                             new CassandraTables.VertexLabel());
-            super.tables.put(HugeType.EDGE_LABEL,
-                             new CassandraTables.EdgeLabel());
-            super.tables.put(HugeType.PROPERTY_KEY,
-                             new CassandraTables.PropertyKey());
-            super.tables.put(HugeType.INDEX_LABEL,
-                             new CassandraTables.IndexLabel());
+            registerTableManager(HugeType.VERTEX_LABEL,
+                                 new CassandraTables.VertexLabel());
+            registerTableManager(HugeType.EDGE_LABEL,
+                                 new CassandraTables.EdgeLabel());
+            registerTableManager(HugeType.PROPERTY_KEY,
+                                 new CassandraTables.PropertyKey());
+            registerTableManager(HugeType.INDEX_LABEL,
+                                 new CassandraTables.IndexLabel());
         }
     }
 
@@ -427,12 +424,11 @@ public abstract class CassandraStore implements BackendStore {
         public CassandraGraphStore(BackendStoreProvider provider,
                                    String keyspace, String name) {
             super(provider, keyspace, name);
-        }
 
-        @Override
-        protected void initTableManagers() {
-            super.tables.put(HugeType.VERTEX, new CassandraTables.Vertex());
-            super.tables.put(HugeType.EDGE, new CassandraTables.Edge());
+            registerTableManager(HugeType.VERTEX,
+                                 new CassandraTables.Vertex());
+            registerTableManager(HugeType.EDGE,
+                                 new CassandraTables.Edge());
         }
     }
 
@@ -441,14 +437,11 @@ public abstract class CassandraStore implements BackendStore {
         public CassandraIndexStore(BackendStoreProvider provider,
                                    String keyspace, String name) {
             super(provider, keyspace, name);
-        }
 
-        @Override
-        protected void initTableManagers() {
-            super.tables.put(HugeType.SECONDARY_INDEX,
-                             new CassandraTables.SecondaryIndex());
-            super.tables.put(HugeType.SEARCH_INDEX,
-                             new CassandraTables.SearchIndex());
+            registerTableManager(HugeType.SECONDARY_INDEX,
+                                 new CassandraTables.SecondaryIndex());
+            registerTableManager(HugeType.SEARCH_INDEX,
+                                 new CassandraTables.SearchIndex());
         }
     }
 }
