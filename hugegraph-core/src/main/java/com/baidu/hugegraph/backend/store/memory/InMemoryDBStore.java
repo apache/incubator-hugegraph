@@ -410,5 +410,15 @@ public class InMemoryDBStore implements BackendStore {
         public boolean supportsScan() {
             return false;
         }
+
+        @Override
+        public boolean supportsQueryByContains() {
+            return true;
+        }
+
+        @Override
+        public boolean supportsQueryByContainsKey() {
+            return true;
+        }
     };
 }

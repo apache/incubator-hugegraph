@@ -243,13 +243,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
      * Add edge with direction OUT
      */
     public void addOutEdge(HugeEdge edge) {
-        if (edge.owner() == null) {
-            edge.owner(this);
+        if (edge.ownerVertex() == null) {
+            edge.ownerVertex(this);
             edge.sourceVertex(this);
         }
         E.checkState(edge.type() == HugeType.EDGE_OUT,
                      "The owner vertex('%s') of OUT edge '%s' should be '%s'",
-                     edge.owner().id(), edge, this.id());
+                     edge.ownerVertex().id(), edge, this.id());
         this.edges.add(edge);
     }
 
@@ -257,13 +257,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
      * Add edge with direction IN
      */
     public void addInEdge(HugeEdge edge) {
-        if (edge.owner() == null) {
-            edge.owner(this);
+        if (edge.ownerVertex() == null) {
+            edge.ownerVertex(this);
             edge.targetVertex(this);
         }
         E.checkState(edge.type() == HugeType.EDGE_IN,
                      "The owner vertex('%s') of IN edge '%s' should be '%s'",
-                     edge.owner().id(), edge, this.id());
+                     edge.ownerVertex().id(), edge, this.id());
         this.edges.add(edge);
     }
 

@@ -309,11 +309,11 @@ public class Example1 {
 
         // query edge by condition
         q = new ConditionQuery(HugeType.EDGE);
-        q.eq(HugeKeys.SOURCE_VERTEX, "author:1");
+        q.eq(HugeKeys.OWNER_VERTEX, "author:1");
         q.eq(HugeKeys.DIRECTION, Direction.OUT);
         q.eq(HugeKeys.LABEL, "authored");
         q.eq(HugeKeys.SORT_VALUES, "");
-        q.eq(HugeKeys.TARGET_VERTEX, "book:java-1");
+        q.eq(HugeKeys.OTHER_VERTEX, "book:java-1");
         // NOTE: query edge by has-key just supported by Cassandra
         // q.hasKey(HugeKeys.PROPERTIES, "contribution");
 

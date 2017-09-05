@@ -23,5 +23,9 @@ public interface BackendFeatures {
 
     public boolean supportsScan();
 
+    public boolean supportsQueryByContains();
+
+    public boolean supportsQueryByContainsKey();
+
     public boolean supportsDeleteEdgeByLabel();
 }

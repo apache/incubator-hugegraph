@@ -29,44 +29,44 @@ public enum HugeKeys {
     TIMESTANMP(3, "timestamp"),
 
     /* Column names of schema type (VertexLabel) */
-    ID_STRATEGY(50, "idStrategy"),
+    ID_STRATEGY(50, "id_strategy"),
     PROPERTIES(51, "properties"),
-    PRIMARY_KEYS(52, "primaryKeys"),
-    INDEX_NAMES(53, "indexNames"),
-    NULLABLE_KEYS(54, "nullableKeys"),
+    PRIMARY_KEYS(52, "primary_keys"),
+    INDEX_NAMES(53, "index_names"),
+    NULLABLE_KEYS(54, "nullable_keys"),
 
     /* Column names of schema type (EdgeLabel) */
     LINKS(80, "links"),
     FREQUENCY(81, "frequency"),
-    SOURCE_LABEL(82, "sourceLabel"),
-    TARGET_LABEL(83, "targetLabel"),
-    SORT_KEYS(84, "sortKeys"),
+    SOURCE_LABEL(82, "source_label"),
+    TARGET_LABEL(83, "target_label"),
+    SORT_KEYS(84, "sort_keys"),
 
     /* Column names of schema type (PropertyKey) */
-    DATA_TYPE(120, "dataType"),
+    DATA_TYPE(120, "data_type"),
     CARDINALITY(121, "cardinality"),
 
     /* Column names of schema type (IndexLabel) */
-    BASE_TYPE(150, "baseType"),
-    BASE_VALUE(151, "baseValue"),
-    INDEX_TYPE(152, "indexType"),
+    BASE_TYPE(150, "base_type"),
+    BASE_VALUE(151, "base_value"),
+    INDEX_TYPE(152, "index_type"),
     FIELDS(153, "fields"),
 
     /* Column names of index data */
-    INDEX_NAME(180, "indexName"),
-    FIELD_VALUES(181, "fieldValues"),
-    INDEX_LABEL_NAME(182, "indexLabelName"),
-    ELEMENT_IDS(183, "elementIds"),
+    INDEX_NAME(180, "index_name"),
+    FIELD_VALUES(181, "field_values"),
+    INDEX_LABEL_NAME(182, "index_label_name"),
+    ELEMENT_IDS(183, "element_ids"),
 
     /* Column names of data type (Vertex/Edge) */
     LABEL(200, "label"),
-    SOURCE_VERTEX(201, "sourceVertex"),
-    TARGET_VERTEX(202, "targetVertex"),
-    PROPERTY_KEY(203, "propertyKey"),
-    PROPERTY_VALUE(204, "propertyValue"),
+    OWNER_VERTEX(201, "owner_vertex"),
+    OTHER_VERTEX(202, "other_vertex"),
+    PROPERTY_KEY(203, "property_key"),
+    PROPERTY_VALUE(204, "property_value"),
     DIRECTION(205, "direction"),
-    SORT_VALUES(206, "sortValues"),
-    PRIMARY_VALUES(207, "primaryValues");
+    SORT_VALUES(206, "sort_values"),
+    PRIMARY_VALUES(207, "primary_values");
 
     /* HugeKeys define */
     private byte code = 0;

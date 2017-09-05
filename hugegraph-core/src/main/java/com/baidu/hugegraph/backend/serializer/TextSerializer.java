@@ -268,7 +268,7 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeEdge(HugeEdge edge) {
-        TextBackendEntry entry = new TextBackendEntry(edge.owner().id());
+        TextBackendEntry entry = new TextBackendEntry(edge.ownerVertex().id());
         entry.column(this.formatEdgeName(edge), this.formatEdgeValue(edge));
         return entry;
     }
@@ -416,11 +416,11 @@ public class TextSerializer extends AbstractSerializer {
         List<String> condParts = new ArrayList<>(query.conditions().size());
 
         HugeKeys[] keys = new HugeKeys[] {
-                HugeKeys.SOURCE_VERTEX,
+                HugeKeys.OWNER_VERTEX,
                 HugeKeys.DIRECTION,
                 HugeKeys.LABEL,
                 HugeKeys.SORT_VALUES,
-                HugeKeys.TARGET_VERTEX
+                HugeKeys.OTHER_VERTEX
         };
 
         for (HugeKeys key : keys) {

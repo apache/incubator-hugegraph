@@ -607,7 +607,7 @@ public class GraphTransaction extends AbstractTransaction {
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
 
         // Edge source vertex
-        query.eq(HugeKeys.SOURCE_VERTEX, sourceVertex);
+        query.eq(HugeKeys.OWNER_VERTEX, sourceVertex);
 
         // Edge direction
         if (direction != null) {
@@ -645,11 +645,11 @@ public class GraphTransaction extends AbstractTransaction {
         assert query.resultType() == HugeType.EDGE;
 
         final HugeKeys[] keys = new HugeKeys[] {
-                HugeKeys.SOURCE_VERTEX,
+                HugeKeys.OWNER_VERTEX,
                 HugeKeys.DIRECTION,
                 HugeKeys.LABEL,
                 HugeKeys.SORT_VALUES,
-                HugeKeys.TARGET_VERTEX
+                HugeKeys.OTHER_VERTEX
         };
 
         int total = query.conditions().size();
@@ -707,7 +707,7 @@ public class GraphTransaction extends AbstractTransaction {
         // Optimize edge query
         if (label != null && query.resultType() == HugeType.EDGE) {
             List<String> keys = this.graph().edgeLabel(label).sortKeys();
-            if (query.condition(HugeKeys.SOURCE_VERTEX) != null &&
+            if (query.condition(HugeKeys.OWNER_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&
                 !keys.isEmpty() && query.matchUserpropKeys(keys)) {
                 // Query edge by sourceVertex + direction + label + sort-values

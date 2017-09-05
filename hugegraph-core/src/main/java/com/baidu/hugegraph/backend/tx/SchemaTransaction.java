@@ -51,7 +51,7 @@ public class SchemaTransaction extends AbstractTransaction {
     public List<PropertyKey> getPropertyKeys() {
         List<PropertyKey> propertyKeys = new ArrayList<>();
         Query q = new Query(HugeType.PROPERTY_KEY);
-        Iterable<BackendEntry> entries = query(q);
+        Iterable<BackendEntry> entries = this.query(q);
         entries.forEach(entry -> {
             propertyKeys.add(this.serializer.readPropertyKey(entry));
         });
@@ -61,7 +61,7 @@ public class SchemaTransaction extends AbstractTransaction {
     public List<VertexLabel> getVertexLabels() {
         List<VertexLabel> vertexLabels = new ArrayList<>();
         Query q = new Query(HugeType.VERTEX_LABEL);
-        Iterable<BackendEntry> entries = query(q);
+        Iterable<BackendEntry> entries = this.query(q);
         entries.forEach(entry -> {
             vertexLabels.add(this.serializer.readVertexLabel(entry));
         });
@@ -71,7 +71,7 @@ public class SchemaTransaction extends AbstractTransaction {
     public List<EdgeLabel> getEdgeLabels() {
         List<EdgeLabel> edgeLabels = new ArrayList<>();
         Query q = new Query(HugeType.EDGE_LABEL);
-        Iterable<BackendEntry> entries = query(q);
+        Iterable<BackendEntry> entries = this.query(q);
         entries.forEach(entry -> {
             edgeLabels.add(this.serializer.readEdgeLabel(entry));
         });
@@ -81,7 +81,7 @@ public class SchemaTransaction extends AbstractTransaction {
     public List<IndexLabel> getIndexLabels() {
         List<IndexLabel> indexLabels = new ArrayList<>();
         Query q = new Query(HugeType.INDEX_LABEL);
-        Iterable<BackendEntry> entries = query(q);
+        Iterable<BackendEntry> entries = this.query(q);
         entries.forEach(entry -> {
             indexLabels.add(this.serializer.readIndexLabel(entry));
         });
@@ -114,6 +114,7 @@ public class SchemaTransaction extends AbstractTransaction {
                           name, vertexLabel.name());
             }
         }
+
         List<EdgeLabel> edgeLabels = this.getEdgeLabels();
         for (EdgeLabel edgeLabel : edgeLabels) {
             if (edgeLabel.properties().contains(name)) {
@@ -123,6 +124,7 @@ public class SchemaTransaction extends AbstractTransaction {
                           name, edgeLabel.name());
             }
         }
+
         LOG.debug("SchemaTransaction remove property key '{}'", name);
         this.removeSchema(new PropertyKey(name));
     }
@@ -154,9 +156,10 @@ public class SchemaTransaction extends AbstractTransaction {
                                         name, edgeLabel.name());
             }
         }
+
         /*
-         *  Copy index names because removeIndexLabel will mutate
-         *  vertexLabel.indexNames()
+         * Copy index names because removeIndexLabel will mutate
+         * vertexLabel.indexNames()
          */
         Set<String> indexNames = ImmutableSet.copyOf(vertexLabel.indexNames());
         LockUtil.Locks locks = new LockUtil.Locks();
@@ -291,12 +294,12 @@ public class SchemaTransaction extends AbstractTransaction {
         String baseValue = label.baseValue();
         if (baseType == HugeType.VERTEX_LABEL) {
             VertexLabel vertexLabel = this.getVertexLabel(baseValue);
-            vertexLabel.indexNames().remove(indexName);
+            vertexLabel.removeIndexName(indexName);
             addVertexLabel(vertexLabel);
         } else {
             assert baseType == HugeType.EDGE_LABEL;
             EdgeLabel edgeLabel = this.getEdgeLabel(baseValue);
-            edgeLabel.indexNames().remove(indexName);
+            edgeLabel.removeIndexName(indexName);
             addEdgeLabel(edgeLabel);
         }
     }

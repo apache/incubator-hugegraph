@@ -53,19 +53,20 @@ public abstract class SchemaLabel extends SchemaElement
         return this;
     }
 
-    /**
-     * Note: SchemaTransaction has called this method to remove,
-     * `vertexLabel.indexNames().remove(indexName);`
-     */
     @Override
     public Set<String> indexNames() {
-        return this.indexNames;
+        return Collections.unmodifiableSet(this.indexNames);
     }
 
     public SchemaLabel indexNames(String... names) {
         this.indexNames.addAll(Arrays.asList(names));
         return this;
     }
+
+    public void removeIndexName(String name) {
+        this.indexNames.remove(name);
+    }
+
 
     public String nullableKeysSchema() {
         return StringUtil.desc("nullableKeys", this.nullableKeys);

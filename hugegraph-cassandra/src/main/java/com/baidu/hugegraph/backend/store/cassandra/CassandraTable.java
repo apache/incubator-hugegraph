@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
 
@@ -61,6 +60,7 @@ import com.datastax.driver.core.schemabuilder.Create;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import com.datastax.driver.core.schemabuilder.SchemaStatement;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public abstract class CassandraTable {
 
@@ -179,7 +179,7 @@ public abstract class CassandraTable {
             return ImmutableList.of(select);
         }
 
-        List<String> nameParts = this.idColumnName();
+        List<HugeKeys> nameParts = this.idColumnName();
 
         List<List<String>> ids = new ArrayList<>(query.ids().size());
         for (Id id : query.ids()) {
@@ -199,7 +199,7 @@ public abstract class CassandraTable {
                 assert id.size() == 1;
                 idList.add(id.get(0));
             }
-            select.where(QueryBuilder.in(nameParts.get(0), idList));
+            select.where(QueryBuilder.in(formatKey(nameParts.get(0)), idList));
             return ImmutableList.of(select);
         }
 
@@ -221,8 +221,7 @@ public abstract class CassandraTable {
              * "pk = id and ck1 = v1 and ck2 = v2"
              */
             for (int i = 0, n = nameParts.size(); i < n; i++) {
-                idSelection.where(QueryBuilder.eq(nameParts.get(i),
-                                                  id.get(i)));
+                idSelection.where(formatEQ(nameParts.get(i), id.get(i)));
             }
             selections.add(idSelection);
         }
@@ -291,7 +290,9 @@ public abstract class CassandraTable {
             case CONTAINS_KEY:
                 return QueryBuilder.containsKey(key, value);
             case SCAN:
-                String[] col = pkColumnName().toArray(new String[0]);
+                String[] col = pkColumnName().stream()
+                                             .map(pk -> formatKey(pk))
+                                             .toArray(String[]::new);
                 Object start = QueryBuilder.raw(key);
                 Object end = QueryBuilder.raw((String) value);
                 return Clauses.and(
@@ -352,12 +353,12 @@ public abstract class CassandraTable {
         return entry;
     }
 
-    protected List<String> pkColumnName() {
+    protected List<HugeKeys> pkColumnName() {
         return idColumnName();
     }
 
-    protected List<String> idColumnName() {
-        return ImmutableList.of(HugeKeys.NAME.name());
+    protected List<HugeKeys> idColumnName() {
+        return ImmutableList.of(HugeKeys.NAME);
     }
 
     protected List<String> idColumnValue(Id id) {
@@ -376,15 +377,15 @@ public abstract class CassandraTable {
         return entries;
     }
 
-    protected static final String formatKey(HugeKeys key) {
+    public static final String formatKey(HugeKeys key) {
         return key.name();
     }
 
-    protected static final HugeKeys parseKey(String name) {
+    public static final HugeKeys parseKey(String name) {
         return HugeKeys.valueOf(name.toUpperCase());
     }
 
-    protected static final Clause formatEQ(HugeKeys key, Object value) {
+    public static final Clause formatEQ(HugeKeys key, Object value) {
         return QueryBuilder.eq(formatKey(key), value);
     }
 
@@ -409,7 +410,7 @@ public abstract class CassandraTable {
     public void append(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
 
-        List<String> idNames = this.idColumnName();
+        List<HugeKeys> idNames = this.idColumnName();
         List<HugeKeys> colNames = this.modifiableColumnName();
 
         Map<HugeKeys, Object> columns = entry.columns();
@@ -433,10 +434,9 @@ public abstract class CassandraTable {
             }
         }
 
-        for (String idName : idNames) {
-            HugeKeys key = parseKey(idName);
-            assert columns.containsKey(key);
-            update.where(QueryBuilder.eq(idName, columns.get(key)));
+        for (HugeKeys idName : idNames) {
+            assert columns.containsKey(idName);
+            update.where(formatEQ(idName, columns.get(idName)));
         }
 
         session.add(update);
@@ -448,7 +448,7 @@ public abstract class CassandraTable {
     public void eliminate(CassandraSessionPool.Session session,
                           CassandraBackendEntry.Row entry) {
 
-        List<String> idNames = this.idColumnName();
+        List<HugeKeys> idNames = this.idColumnName();
         List<HugeKeys> colNames = this.modifiableColumnName();
 
         Map<HugeKeys, Object> columns = entry.columns();
@@ -484,10 +484,9 @@ public abstract class CassandraTable {
             }
         }
 
-        for (String idName : idNames) {
-            HugeKeys key = parseKey(idName);
-            assert columns.containsKey(key);
-            update.where(QueryBuilder.eq(idName, columns.get(key)));
+        for (HugeKeys idName : idNames) {
+            assert columns.containsKey(idName);
+            update.where(formatEQ(idName, columns.get(idName)));
         }
 
         session.add(update);
@@ -498,55 +497,52 @@ public abstract class CassandraTable {
      */
     public void delete(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
+        List<HugeKeys> idNames = this.idColumnName();
+        Delete delete = QueryBuilder.delete().from(this.table);
+
         if (entry.columns().isEmpty()) {
             // Delete just by id
-            List<String> idNames = this.idColumnName();
             List<String> idValues = this.idColumnValue(entry);
             assert idNames.size() == idValues.size();
 
-            Delete delete = QueryBuilder.delete().from(this.table);
             for (int i = 0, n = idNames.size(); i < n; i++) {
-                delete.where(QueryBuilder.eq(idNames.get(i), idValues.get(i)));
+                delete.where(formatEQ(idNames.get(i), idValues.get(i)));
             }
-
-            session.add(delete);
         } else {
-            // Delete just by column keys
-            // TODO: delete by id + keys(like index element-ids))
-
-            // NOTE: there are multi deletions if delete by id + keys
-            Delete delete = QueryBuilder.delete().from(this.table);
-            for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
+            // Delete just by column keys(must be id columns)
+            for (HugeKeys idName : idNames) {
                 // TODO: should support other filters (like containsKey)
-                delete.where(formatEQ(c.getKey(), c.getValue()));
+                delete.where(formatEQ(idName, entry.column(idName)));
             }
-
-            session.add(delete);
+            /*
+             * TODO: delete by id + keys(like index element-ids -- it seems
+             * has been replaced by eliminate() method)
+             */
         }
+
+        session.add(delete);
     }
 
     protected void createTable(CassandraSessionPool.Session session,
-                               ImmutableMap<HugeKeys, DataType> partitionCols,
-                               ImmutableMap<HugeKeys, DataType> clusteringCols,
+                               ImmutableMap<HugeKeys, DataType> partitionKeys,
+                               ImmutableMap<HugeKeys, DataType> clusteringKeys,
                                ImmutableMap<HugeKeys, DataType> columns) {
 
-        Create createTable = SchemaBuilder.createTable(this.table)
-                                          .ifNotExists();
-        for (Map.Entry<HugeKeys, DataType> entry : partitionCols.entrySet()) {
-            createTable.addPartitionKey(formatKey(entry.getKey()),
-                                        entry.getValue());
+        Create table = SchemaBuilder.createTable(this.table).ifNotExists();
+
+        for (Map.Entry<HugeKeys, DataType> entry : partitionKeys.entrySet()) {
+            table.addPartitionKey(formatKey(entry.getKey()), entry.getValue());
         }
-        for (Map.Entry<HugeKeys, DataType> entry : clusteringCols.entrySet()) {
-            createTable.addClusteringColumn(formatKey(entry.getKey()),
-                                            entry.getValue());
+        for (Map.Entry<HugeKeys, DataType> entry : clusteringKeys.entrySet()) {
+            table.addClusteringColumn(formatKey(entry.getKey()),
+                                      entry.getValue());
         }
         for (Map.Entry<HugeKeys, DataType> entry : columns.entrySet()) {
-            createTable.addColumn(formatKey(entry.getKey()),
-                                  entry.getValue());
+            table.addColumn(formatKey(entry.getKey()), entry.getValue());
         }
 
-        LOG.debug("Create table: {}", createTable);
-        session.execute(createTable);
+        LOG.debug("Create table: {}", table);
+        session.execute(table);
     }
 
     protected void dropTable(CassandraSessionPool.Session session) {

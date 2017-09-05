@@ -157,6 +157,20 @@ public class ConditionQuery extends IdQuery {
         return this.condition(key) != null;
     }
 
+    public boolean containsCondition(HugeKeys key,
+                                     Condition.RelationType type) {
+        for (Condition c : this.conditions) {
+            if (c.isRelation()) {
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.key().equals(key) && r.relation().equals(type)) {
+                    return true;
+                }
+            }
+            // TODO: deal with other Condition
+        }
+        return false;
+    }
+
     public boolean containsCondition(Condition.RelationType type) {
         for (Condition c : this.conditions) {
             if (c.isRelation() &&

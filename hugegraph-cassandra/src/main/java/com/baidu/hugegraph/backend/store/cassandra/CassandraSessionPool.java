@@ -157,7 +157,7 @@ public class CassandraSessionPool {
      * The Session class is a wrapper of driver Session
      * Expect every thread hold a its own session(wrapper)
      */
-    protected final class Session {
+    public final class Session {
 
         private com.datastax.driver.core.Session session;
         private BatchStatement batch;
