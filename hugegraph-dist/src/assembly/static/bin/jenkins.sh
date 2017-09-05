@@ -36,6 +36,7 @@ fi
 # Fetch code from repo if necessary
 if [ -n "$BRANCH_REF" ]; then
     echo "Fetch code from repo: ${BRANCH_REF}..."
+    git checkout hugegraph-test/src/main/resources/hugegraph.properties
     git fetch ssh://$USER@$REPO_URL ${BRANCH_REF} && git checkout FETCH_HEAD
     if [ $? -ne 0 ]; then
         echo "Failed to fetch code."
