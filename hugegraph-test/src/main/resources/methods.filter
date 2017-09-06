@@ -118,13 +118,20 @@ org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdg
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackElementAutoTransactionByDefault: Unsupported rollback operation by Cassandra
 
+# index field may be null
+org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest.shouldCreateVertex: Index field may be null
+org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGraphSONManual[graphson-v1]: Index field may be null
+org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGraphSONManual[graphson-v1-embedded]: Index field may be null
+org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGraphSONManual[graphson-v2]: Index field may be null
+org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGraphSONManual[graphson-v2-embedded]: Index field may be null
+org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGryoManual[gryo]: Index field may be null
+
 ## not bugs
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv1d0]: weight property have both Float and Double value
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphsonv1d0]: weight property have both Float and Double value
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphsonv1d0]: weight property have both Float and Double value
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
-
 
 ####################    process suite    ####################
 
@@ -135,7 +142,6 @@ org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_
 org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1X_outXknows_createdX: Not support querying by multi edge-labels
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterEdgeCriterion: Not support querying by multi edge-labels
 org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.playlistPaths: Don't accept query based on properties '[name]' that are not indexed
-
 
 # unsupported rollback
 org.apache.tinkerpop.gremlin.process.traversal.CoreTraversalTest.shouldTraverseIfAutoTxEnabledAndOriginalTxIsClosed: Unsupported rollback operation by Cassandra
