@@ -105,88 +105,87 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
      * as part of this suite.
      */
     private static final Class<?>[] allTests = new Class<?>[] {
-            // 605 test, 137 failed, 33 ignore
             // branch
             BranchTest.Traversals.class,
-            ChooseTest.Traversals.class, // 0+1+0
+            ChooseTest.Traversals.class,
             OptionalTest.Traversals.class,
-            LocalTest.Traversals.class, // 0+5+1
-            RepeatTest.Traversals.class, // 0+1+0
+            LocalTest.Traversals.class,
+            RepeatTest.Traversals.class,
             UnionTest.Traversals.class,
 
             // filter
             AndTest.Traversals.class,
             CoinTest.Traversals.class,
             CyclicPathTest.Traversals.class,
-            DedupTest.Traversals.class, // 0+10+0
-            DropTest.Traversals.class, // 0+0+1
+            DedupTest.Traversals.class,
+            DropTest.Traversals.class,
             FilterTest.Traversals.class,
-            HasTest.Traversals.class, // 0+2+4
+            HasTest.Traversals.class,
             IsTest.Traversals.class,
             OrTest.Traversals.class,
-            RangeTest.Traversals.class, // 0+1+0
-            SampleTest.Traversals.class, // 0+2+0
-            SimplePathTest.Traversals.class, // 0+1+0
-            TailTest.Traversals.class, // 0+1+0
-            WhereTest.Traversals.class, // 0+3+0
+            RangeTest.Traversals.class,
+            SampleTest.Traversals.class,
+            SimplePathTest.Traversals.class,
+            TailTest.Traversals.class,
+            WhereTest.Traversals.class,
 
             // map
-            AddEdgeTest.Traversals.class, // 9+0+1
-            AddVertexTest.Traversals.class, // 7+4+2
-            CoalesceTest.Traversals.class, // 2+0+0
+            AddEdgeTest.Traversals.class,
+            AddVertexTest.Traversals.class,
+            CoalesceTest.Traversals.class,
             ConstantTest.Traversals.class,
-            CountTest.Traversals.class, // 0+3+0
+            CountTest.Traversals.class,
             FlatMapTest.Traversals.class,
             FoldTest.Traversals.class,
-            GraphTest.Traversals.class, // 1+0+0
-            LoopsTest.Traversals.class, // 0+3+0
+            GraphTest.Traversals.class,
+            LoopsTest.Traversals.class,
             MapTest.Traversals.class,
             MapKeysTest.Traversals.class,
             MapValuesTest.Traversals.class,
-            MatchTest.CountMatchTraversals.class, // 0+3+0
-            MatchTest.GreedyMatchTraversals.class, // 0+3+0
-            MaxTest.Traversals.class, // 0+2+0
-            MeanTest.Traversals.class, // 0+1+0
-            MinTest.Traversals.class, // 0+2+0
-            SumTest.Traversals.class, // 0+1+0
-            OrderTest.Traversals.class, // 0+4+1
-            PathTest.Traversals.class, // 0+1+0
-            ProfileTest.Traversals.class, // 2+8+1
+            MatchTest.CountMatchTraversals.class,
+            MatchTest.GreedyMatchTraversals.class,
+            MaxTest.Traversals.class,
+            MeanTest.Traversals.class,
+            MinTest.Traversals.class,
+            SumTest.Traversals.class,
+            OrderTest.Traversals.class,
+            PathTest.Traversals.class,
+            ProfileTest.Traversals.class,
             ProjectTest.Traversals.class,
-            PropertiesTest.Traversals.class, // 0+3+0
-            SelectTest.Traversals.class, // 0+1+1
-            VertexTest.Traversals.class, // 3+5+0
-            UnfoldTest.Traversals.class, // 0+2+0
-            ValueMapTest.Traversals.class, // 0+2+0
+            PropertiesTest.Traversals.class,
+            SelectTest.Traversals.class,
+            VertexTest.Traversals.class,
+            UnfoldTest.Traversals.class,
+            ValueMapTest.Traversals.class,
 
             // sideEffect
             AggregateTest.Traversals.class,
             ExplainTest.Traversals.class,
-            GroupTest.Traversals.class, // (assertError)7
-            GroupTestV3d0.Traversals.class, // (assertError)2
-            GroupCountTest.Traversals.class, // (assertError)3
+            GroupTest.Traversals.class,
+            GroupTestV3d0.Traversals.class,
+            GroupCountTest.Traversals.class,
             InjectTest.Traversals.class,
-            SackTest.Traversals.class, // (assertError)2
+            SackTest.Traversals.class,
             SideEffectCapTest.Traversals.class,
             SideEffectTest.Traversals.class,
-            StoreTest.Traversals.class, // (assertError)1
-            SubgraphTest.Traversals.class, // (ignore)3
-            TreeTest.Traversals.class, // (assertError)1
+            StoreTest.Traversals.class,
+            SubgraphTest.Traversals.class,
+            TreeTest.Traversals.class,
 
             // compliance
             ComplexTest.Traversals.class,
-            CoreTraversalTest.class, // (exception)4+0+1(ignore)
-            TraversalInterruptionTest.class, // (assertError)4
+            CoreTraversalTest.class,
+            TraversalInterruptionTest.class,
 
             // creations
             TranslationStrategyProcessTest.class,
 
             // decorations
             ElementIdStrategyProcessTest.class,
-            EventStrategyProcessTest.class, // (exceptions)1+3+4
+            EventStrategyProcessTest.class,
             ReadOnlyStrategyProcessTest.class,
-            PartitionStrategyProcessTest.class, // (exceptions)6+0+12
-            SubgraphStrategyProcessTest.class // (assertError)
+            PartitionStrategyProcessTest.class,
+            SubgraphStrategyProcessTest.class
     };
 
     /**
