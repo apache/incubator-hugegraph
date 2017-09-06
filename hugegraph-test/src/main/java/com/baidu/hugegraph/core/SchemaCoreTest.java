@@ -716,6 +716,12 @@ public class SchemaCoreTest extends BaseCoreTest{
     }
 
     @Test
+    public void testRemoveNotExistPropertyKey() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("not-exist-pk").remove();
+    }
+
+    @Test
     public void testRemoveVertexLabel() {
         initProperties();
         SchemaManager schema = graph().schema();
@@ -732,6 +738,12 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertThrows(NotFoundException.class, () -> {
             schema.getVertexLabel("person");
         });
+    }
+
+    @Test
+    public void testRemoveNotExistVertexLabel() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("not-exist-vl").remove();
     }
 
     @Test
@@ -867,6 +879,12 @@ public class SchemaCoreTest extends BaseCoreTest{
         Assert.assertThrows(NotFoundException.class, () -> {
             schema.getEdgeLabel("look");
         });
+    }
+
+    @Test
+    public void testRemoveNotExistEdgeLabel() {
+        SchemaManager schema = graph().schema();
+        schema.edgeLabel("not-exist-el").remove();
     }
 
     @Test
@@ -1265,6 +1283,12 @@ public class SchemaCoreTest extends BaseCoreTest{
             schema.indexLabel("authoredByName").onE("authored")
                   .by("name").secondary().create();
         });
+    }
+
+    @Test
+    public void testRemoveNotExistIndexLabel() {
+        SchemaManager schema = graph().schema();
+        schema.indexLabel("not-exist-il").remove();
     }
 
     @Test
