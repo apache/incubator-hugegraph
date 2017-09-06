@@ -179,18 +179,16 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
     private static String getAKeyType(Class<?> clazz, String method) {
         if (clazz.getCanonicalName().startsWith(AKEY_CLASS_PREFIX)) {
-            String type = method.substring(method.indexOf('[') + 9,
-                                           method.indexOf('(') - 6);
-            return type;
+            return method.substring(method.indexOf('[') + 9,
+                                    method.indexOf('(') - 6);
         }
         return null;
     }
 
     private static String getIoType(Class<?> clazz, String method) {
         if (clazz.getCanonicalName().startsWith(IO_CLASS_PREFIX)) {
-            String type = method.substring(method.indexOf('[') + 1,
-                    method.indexOf(']'));
-            return type;
+            return method.substring(method.indexOf('[') + 1,
+                                    method.indexOf(']'));
         }
         return null;
     }
