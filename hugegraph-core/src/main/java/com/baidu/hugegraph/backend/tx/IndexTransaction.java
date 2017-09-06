@@ -289,18 +289,23 @@ public class IndexTransaction extends AbstractTransaction {
                                     query.userpropKeys(), label);
     }
 
-    public void removeIndex(String indexName) {
-        SchemaTransaction schema = graph().schemaTransaction();
-        IndexLabel indexLabel = schema.getIndexLabel(indexName);
-        E.checkArgumentNotNull(indexLabel,
-                               "Not exist index label: '%s'", indexName);
+    public void removeIndex(IndexLabel indexLabel) {
         HugeIndex index = new HugeIndex(indexLabel);
         this.removeEntry(this.serializer.writeIndex(index));
     }
 
     public void removeIndex(Collection<String> indexNames) {
-        for (String index : indexNames) {
-            removeIndex(index);
+        SchemaTransaction schema = graph().schemaTransaction();
+        for (String name : indexNames) {
+            IndexLabel indexLabel = schema.getIndexLabel(name);
+            if (indexLabel == null) {
+                /*
+                 * TODO: When incoming non-existent index name,
+                 * should continue or throw exception.
+                 */
+                continue;
+            }
+            this.removeIndex(indexLabel);
         }
     }
 

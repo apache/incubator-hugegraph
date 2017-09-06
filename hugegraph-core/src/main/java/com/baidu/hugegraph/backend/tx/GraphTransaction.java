@@ -50,6 +50,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -664,12 +665,12 @@ public class GraphTransaction extends AbstractTransaction {
         return this.indexTx.query(query);
     }
 
-    public void removeIndex(String indexName) {
+    public void removeIndex(IndexLabel indexLabel) {
         // TODO: use event to replace direct call
         this.checkOwnerThread();
 
         this.beforeWrite();
-        this.indexTx.removeIndex(indexName);
+        this.indexTx.removeIndex(indexLabel);
         this.afterWrite();
     }
 

@@ -99,6 +99,12 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public void removePropertyKey(String name) {
+        PropertyKey propertyKey = this.getPropertyKey(name);
+        // If the property key does not exist, return directly
+        if (propertyKey == null) {
+            return;
+        }
+
         List<VertexLabel> vertexLabels = this.getVertexLabels();
         for (VertexLabel vertexLabel : vertexLabels) {
             if (vertexLabel.properties().contains(name)) {
@@ -215,17 +221,23 @@ public class SchemaTransaction extends AbstractTransaction {
         return this.serializer.readIndexLabel(entry);
     }
 
-    public void removeIndexLabel(String indexName) {
-        LOG.debug("SchemaTransaction remove index label '{}'", indexName);
+    public void removeIndexLabel(String name) {
+        IndexLabel indexLabel = this.getIndexLabel(name);
+        // If the index label does not exist, return directly
+        if (indexLabel == null) {
+            return;
+        }
+
+        LOG.debug("SchemaTransaction remove index label '{}'", name);
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockWrites(LockUtil.INDEX_LABEL, indexName);
+            locks.lockWrites(LockUtil.INDEX_LABEL, name);
             // Remove index data
             // TODO: use event to replace direct call
-            this.graph().graphTransaction().removeIndex(indexName);
+            this.graph().graphTransaction().removeIndex(indexLabel);
             // Remove indexName from indexNames of vertex label or edge label
-            this.removeIndexNames(indexName);
-            this.removeSchema(new IndexLabel(indexName));
+            this.removeIndexNames(name);
+            this.removeSchema(new IndexLabel(name));
         } finally {
             locks.unlock();
         }
