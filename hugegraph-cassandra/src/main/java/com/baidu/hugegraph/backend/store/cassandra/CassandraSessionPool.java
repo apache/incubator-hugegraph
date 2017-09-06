@@ -56,7 +56,7 @@ public class CassandraSessionPool {
             throw new BackendException("Please close the old SessionPool " +
                                        "before opening a new one");
         }
-        assert this.cluster == null;
+        assert this.cluster == null || this.cluster.isClosed();
         this.cluster = Cluster.builder()
                        .addContactPoints(hosts.split(","))
                        .withPort(port)
@@ -111,7 +111,9 @@ public class CassandraSessionPool {
         try {
             this.closeSession();
         } finally {
-            if (this.sessionCount.get() == 0 && !this.cluster.isClosed()) {
+            if (this.sessionCount.get() == 0 &&
+                this.cluster != null &&
+                !this.cluster.isClosed()) {
                 this.cluster.close();
             }
         }
