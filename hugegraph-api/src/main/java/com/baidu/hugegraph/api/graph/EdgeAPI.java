@@ -52,6 +52,7 @@ import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.HugeServer;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -80,9 +81,12 @@ public class EdgeAPI extends API {
         E.checkArgumentNotNull(edge.target, "Expect target vertex id");
 
         Graph g = graph(manager, graph);
-
-        Vertex srcVertex = g.traversal().V(edge.source).next();
-        Vertex tgtVertex = g.traversal().V(edge.target).next();
+        /*
+         * NOTE: If the vertex id is correct but label is null or incorrect,
+         * we allow to create it here
+         */
+        Vertex srcVertex = getVertex((HugeGraph) g, edge.source, null);
+        Vertex tgtVertex = getVertex((HugeGraph) g, edge.target, null);
         Edge e = srcVertex.addEdge(edge.label, tgtVertex, edge.properties());
 
         return manager.serializer(g).writeEdge(e);
@@ -191,16 +195,19 @@ public class EdgeAPI extends API {
     }
 
     private static Vertex getVertex(HugeGraph graph, String id, String label) {
-        return graph.traversal().V(id).next();
+        try {
+            return graph.traversal().V(id).next();
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException(
+                      String.format("Invalid vertex id '%s'", id));
+        }
     }
 
     private static Vertex newVertex(HugeGraph graph, String id, String label) {
-        VertexLabel vertexLabel = graph.schemaTransaction()
-                                       .getVertexLabel(label);
-        E.checkState(vertexLabel != null,
-                     "Not found the vertex label '%s'", label);
+        VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
+        E.checkArgumentNotNull(vl, "Invalid vertex label '%s'", label);
         Id idValue = HugeElement.getIdValue(T.id, id);
-        Vertex vertex = new HugeVertex(graph, idValue, vertexLabel);
+        Vertex vertex = new HugeVertex(graph, idValue, vl);
         return vertex;
     }
 
