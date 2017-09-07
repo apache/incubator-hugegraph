@@ -685,6 +685,7 @@ public class GraphTransaction extends AbstractTransaction {
 
     public void removeVertices(VertexLabel vertexLabel) {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        // TODO: use query.capacity(Query.NO_LIMIT);
         query.eq(HugeKeys.LABEL, vertexLabel.name());
         Iterator<Vertex> vertices = this.queryVertices(query).iterator();
 
