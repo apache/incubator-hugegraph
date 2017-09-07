@@ -29,6 +29,23 @@
                 </dependency>
             </dependencies>
         </profile>
+        <profile>
+            <id>scylladb</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <backend>scylladb</backend>
+                <serializer>scylladb</serializer>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>com.baidu.hugegraph</groupId>
+                    <artifactId>hugegraph-scylladb</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
     </profiles>
 
     <properties>
