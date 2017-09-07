@@ -58,6 +58,9 @@ public class RegisterUtil {
             case "cassandra":
                 registerCassandra();
                 break;
+            case "scylladb":
+                registerScyllaDB();
+                break;
             case "hbase":
                 registerHBase();
                 break;
@@ -67,14 +70,25 @@ public class RegisterUtil {
     }
 
     public static void registerCassandra() {
-        // register config
+        // Register config
         OptionSpace.register(CassandraOptions.Instance());
-        // register serializer
+        // Register serializer
         SerializerFactory.register("cassandra",
                 "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
-        // register backend
+        // Register backend
         BackendProviderFactory.register("cassandra",
                 "com.baidu.hugegraph.backend.store.cassandra.CassandraStoreProvider");
+    }
+
+    public static void registerScyllaDB() {
+        // Register config
+        OptionSpace.register(CassandraOptions.Instance());
+        // Register serializer
+        SerializerFactory.register("scylladb",
+                "com.baidu.hugegraph.backend.store.scylladb.ScyllaDBSerializer");
+        // Register backend
+        BackendProviderFactory.register("scylladb",
+                "com.baidu.hugegraph.backend.store.scylladb.ScyllaDBStoreProvider");
     }
 
     public static void registerHBase() {
