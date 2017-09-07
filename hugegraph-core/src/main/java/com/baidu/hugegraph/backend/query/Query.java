@@ -33,16 +33,21 @@ public class Query implements Cloneable {
 
     public static final long NO_LIMIT = Long.MAX_VALUE;
 
+    public static final long NO_CAPACITY = -1L;
+    public static final long DEFAULT_CAPACITY = 100000L; // HugeGraph-777
+
     private HugeType resultType;
     private Map<HugeKeys, Order> orders;
     private long offset;
     private long limit;
+    private long capacity;
 
     public Query(HugeType resultType) {
         this.resultType = resultType;
         this.orders = new ConcurrentHashMap<>();
         this.offset = 0L;
         this.limit = NO_LIMIT;
+        this.capacity = DEFAULT_CAPACITY;
     }
 
     public HugeType resultType() {
@@ -75,6 +80,14 @@ public class Query implements Cloneable {
 
     public void limit(long limit) {
         this.limit = limit;
+    }
+
+    public long capacity() {
+        return this.capacity;
+    }
+
+    public void capacity(long capacity) {
+        this.capacity = capacity;
     }
 
     public Set<Id> ids() {

@@ -117,7 +117,7 @@ public abstract class CassandraTable {
         try {
             for (Select selection : selections) {
                 ResultSet results = session.execute(selection);
-                rs.addAll(this.results2Entries(query.resultType(), results));
+                rs.addAll(this.results2Entries(query, results));
             }
         } catch (DriverException e) {
             throw new BackendException("Failed to query [%s]", e, query);
@@ -316,13 +316,20 @@ public abstract class CassandraTable {
         return value;
     }
 
-    protected List<BackendEntry> results2Entries(HugeType resultType,
+    protected List<BackendEntry> results2Entries(Query query,
                                                  ResultSet results) {
-        List<BackendEntry> entries = new ArrayList<>();
+        final int atLeastSize = results.getAvailableWithoutFetching();
+        List<BackendEntry> entries = new ArrayList<>(atLeastSize);
 
+        long total = query.capacity();
         for (Iterator<Row> iter = results.iterator(); iter.hasNext();) {
+            if (total-- == 0) {
+                throw new BackendException(
+                          "Too many records(must <=%s) for a query",
+                          query.capacity());
+            }
             Row row = iter.next();
-            entries.add(result2Entry(resultType, row));
+            entries.add(result2Entry(query.resultType(), row));
         }
 
         return this.mergeEntries(entries);
