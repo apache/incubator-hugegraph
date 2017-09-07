@@ -85,7 +85,7 @@ public abstract class IdGenerator {
             case LONG:
                 return of(id);
             case STRING:
-                return of(String.valueOf(id));
+                return of(Long.toHexString(id));
             default:
                 throw new AssertionError(String.format(
                           "Unknown id type '%s'", ID_TYPE));

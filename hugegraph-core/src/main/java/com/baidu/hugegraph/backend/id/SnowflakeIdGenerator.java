@@ -20,12 +20,12 @@
 package com.baidu.hugegraph.backend.id;
 
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.TimeUtil;
 
 public class SnowflakeIdGenerator extends IdGenerator {
@@ -39,7 +39,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
             synchronized (SnowflakeIdGenerator.class) {
                 if (instance == null) {
                     // TODO: workerId, datacenterId should read from conf
-                    instance = new SnowflakeIdGenerator(0, 0);
+                    instance = new SnowflakeIdGenerator(1, 1);
                 }
             }
         }
@@ -54,7 +54,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
         if (this.idWorker == null) {
             throw new HugeException("Please initialize before using it");
         }
-        return generate(this.idWorker.nextId());
+        return this.generate(this.idWorker.nextId());
     }
 
     @Override
@@ -91,43 +91,42 @@ public class SnowflakeIdGenerator extends IdGenerator {
         private long workerId;
         private long datacenterId;
         private long sequence = 0L;
-
-        private long workerIdBits = 5L;
-        private long datacenterIdBits = 5L;
-        private long maxWorkerId = -1L ^ (-1L << this.workerIdBits);
-        private long maxDatacenterId = -1L ^ (-1L << this.datacenterIdBits);
-        private long sequenceBits = 12L;
-
-        private long workerIdShift = this.sequenceBits;
-        private long datacenterIdShift = this.sequenceBits + this.workerIdBits;
-        private long timestampLeftShift = this.sequenceBits +
-                                          this.workerIdBits +
-                                          this.datacenterIdBits;
-        private long sequenceMask = -1L ^ (-1L << this.sequenceBits);
-
         private long lastTimestamp = -1L;
+
+        private static final long WORKER_BIT = 5L;
+        private static final long MAX_WORKER_ID = -1L ^ (-1L << WORKER_BIT);
+
+        private static final long DC_BIT = 5L;
+        private static final long MAX_DC_ID = -1L ^ (-1L << DC_BIT);
+
+        private static final long SEQUENCE_BIT = 12L;
+        private static final long SEQUENCE_MASK = -1L ^ (-1L << SEQUENCE_BIT);
+
+        private static final long WORKER_SHIFT = SEQUENCE_BIT;
+        private static final long DC_SHIFT = WORKER_SHIFT + WORKER_BIT;
+        private static final long TIMESTAMP_SHIFT = DC_SHIFT + DC_BIT;
 
         public IdWorker(long workerId, long datacenterId) {
             // Sanity check for workerId
-            if (workerId > this.maxWorkerId || workerId < 0) {
+            if (workerId > MAX_WORKER_ID || workerId < 0) {
                 throw new IllegalArgumentException(String.format(
                           "Worker id can't > %d or < 0",
-                          this.maxWorkerId));
+                          MAX_WORKER_ID));
             }
-            if (datacenterId > this.maxDatacenterId || datacenterId < 0) {
+            if (datacenterId > MAX_DC_ID || datacenterId < 0) {
                 throw new IllegalArgumentException(String.format(
                           "Datacenter id can't > %d or < 0",
-                          this.maxDatacenterId));
+                          MAX_DC_ID));
             }
             this.workerId = workerId;
             this.datacenterId = datacenterId;
             LOG.info("Worker starting. timestamp left shift {}," +
                      "datacenter id bits {}, worker id bits {}," +
                      "sequence bits {}, workerid {}",
-                     this.timestampLeftShift,
-                     this.datacenterIdBits,
-                     this.workerIdBits,
-                     this.sequenceBits,
+                     TIMESTAMP_SHIFT,
+                     DC_BIT,
+                     WORKER_BIT,
+                     SEQUENCE_BIT,
                      workerId);
         }
 
@@ -141,10 +140,8 @@ public class SnowflakeIdGenerator extends IdGenerator {
                 throw new HugeException("Clock moved backwards. Refusing to " +
                                         "generate id for %d milliseconds",
                                         this.lastTimestamp - timestamp);
-            }
-
-            if (this.lastTimestamp == timestamp) {
-                this.sequence = (this.sequence + 1) & this.sequenceMask;
+            } else if (timestamp == this.lastTimestamp) {
+                this.sequence = (this.sequence + 1) & SEQUENCE_MASK;
                 if (this.sequence == 0) {
                     timestamp = TimeUtil.tillNextMillis(this.lastTimestamp);
                 }
@@ -154,11 +151,10 @@ public class SnowflakeIdGenerator extends IdGenerator {
 
             this.lastTimestamp = timestamp;
 
-            return (timestamp << this.timestampLeftShift) |
-                   (this.datacenterId << this.datacenterIdShift) |
-                   (this.workerId << this.workerIdShift) |
-                   this.sequence;
+            return (timestamp << TIMESTAMP_SHIFT) |
+                   (this.datacenterId << DC_SHIFT) |
+                   (this.workerId << WORKER_SHIFT) |
+                   (this.sequence);
         }
-
     }
 }
