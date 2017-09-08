@@ -50,7 +50,7 @@ fi
 
 # Set Java options
 if [ "$JAVA_OPTIONS" = "" ] ; then
-    JAVA_OPTIONS="-Xms32m -Xmx512m -javaagent:$LIB/jamm-0.3.0.jar"
+    JAVA_OPTIONS="-Xms256m -Xmx2048m -javaagent:$LIB/jamm-0.3.0.jar"
 fi
 
 # Execute the application and return its exit code
