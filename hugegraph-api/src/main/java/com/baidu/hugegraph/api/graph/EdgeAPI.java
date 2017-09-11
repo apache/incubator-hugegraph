@@ -206,7 +206,7 @@ public class EdgeAPI extends API {
     private static Vertex newVertex(HugeGraph graph, String id, String label) {
         VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
         E.checkArgumentNotNull(vl, "Invalid vertex label '%s'", label);
-        Id idValue = HugeElement.getIdValue(T.id, id);
+        Id idValue = HugeElement.getIdValue(id);
         Vertex vertex = new HugeVertex(graph, idValue, vl);
         return vertex;
     }

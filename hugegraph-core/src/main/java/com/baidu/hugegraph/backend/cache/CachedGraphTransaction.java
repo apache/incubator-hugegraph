@@ -70,7 +70,7 @@ public class CachedGraphTransaction extends GraphTransaction {
     public Iterable<Vertex> queryVertices(Object... vertexIds) {
         List<Vertex> vertices = new ArrayList<>(vertexIds.length);
         for (Object i : vertexIds) {
-            Id vid = HugeElement.getIdValue(T.id, i);
+            Id vid = HugeElement.getIdValue(i);
             Object v = this.verticesCache.getOrFetch(vid, id -> {
                 return super.queryVertices(id).iterator().next();
             });

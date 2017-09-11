@@ -30,10 +30,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
@@ -247,38 +247,37 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public Vertex addVertex(Object... keyValues) {
-        ElementHelper.legalPropertyKeyValueArray(keyValues);
+        HugeElement.ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
 
-        HugeVertexFeatures features = graph().features().vertex();
-
-        Object label = HugeVertex.getLabelValue(keyValues);
-        // Check Vertex label
-        if (label == null && features.supportsDefaultLabel()) {
-            label = features.defaultLabel();
-        }
-
-        if (label == null) {
-            throw Element.Exceptions.labelCanNotBeNull();
-        } else if (label instanceof String) {
-            label = this.graph().vertexLabel((String) label);
-        }
-
-        assert (label instanceof VertexLabel);
-        VertexLabel vertexLabel = (VertexLabel) label;
+        VertexLabel vertexLabel = this.getVertexLabel(elemKeys.label());
+        Id id = HugeElement.getIdValue(elemKeys.id());
+        Set<String> keys = elemKeys.keys();
 
         IdStrategy strategy = vertexLabel.idStrategy();
-        Id id = HugeVertex.getIdValue(keyValues);
 
         // Check weather id strategy match with id
         strategy.checkId(id, vertexLabel.name());
+
+        // Check id strategy
         if (strategy == IdStrategy.PRIMARY_KEY) {
             // Check whether primaryKey exists
             List<String> primaryKeys = vertexLabel.primaryKeys();
-            E.checkArgument(CollectionUtil.containsAll(
-                            ElementHelper.getKeys(keyValues), primaryKeys),
+            E.checkArgument(CollectionUtil.containsAll(keys, primaryKeys),
                             "The primary keys: '%s' of vertex label '%s' " +
                             "must be set when using '%s' id strategy",
                             primaryKeys, vertexLabel.name(), strategy);
+        }
+
+        // Check weather passed all not-nullable-props
+        Collection<?> notNullableKeys = CollectionUtils.subtract(
+                                        vertexLabel.properties(),
+                                        vertexLabel.nullableKeys());
+        if (!keys.containsAll(notNullableKeys)) {
+            E.checkArgument(false, "All not-nullable property keys: '%s' " +
+                            "of vertex label '%s' must be setted, " +
+                            "but missed keys: '%s'",
+                            notNullableKeys, vertexLabel.name(),
+                            CollectionUtils.subtract(notNullableKeys, keys));
         }
 
         // Create HugeVertex
@@ -304,7 +303,7 @@ public class GraphTransaction extends AbstractTransaction {
         List<Vertex> list = new ArrayList<Vertex>(vertexIds.length);
 
         for (Object vertexId : vertexIds) {
-            Id id = HugeElement.getIdValue(T.id, vertexId);
+            Id id = HugeElement.getIdValue(vertexId);
             BackendEntry entry = this.get(HugeType.VERTEX, id);
             Vertex vertex = this.serializer.readVertex(entry, this.graph());
             assert vertex != null;
@@ -378,7 +377,7 @@ public class GraphTransaction extends AbstractTransaction {
         List<Edge> list = new ArrayList<Edge>(edgeIds.length);
 
         for (Object edgeId : edgeIds) {
-            Id id = HugeElement.getIdValue(T.id, edgeId);
+            Id id = HugeElement.getIdValue(edgeId);
             BackendEntry entry = this.get(HugeType.EDGE, id);
             HugeVertex vertex = this.serializer.readVertex(entry, graph());
             assert vertex != null;
@@ -510,14 +509,6 @@ public class GraphTransaction extends AbstractTransaction {
         } finally {
             locks.unlock();
         }
-    }
-
-    private Set<String> relatedIndexNames(String prop,
-                                          Indexfiable indexfiable) {
-        Set<String> rs = indexfiable.indexNames().stream().filter(index -> {
-            return this.graph().indexLabel(index).indexFields().contains(prop);
-        }).collect(Collectors.toSet());
-        return rs;
     }
 
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,
@@ -663,6 +654,40 @@ public class GraphTransaction extends AbstractTransaction {
          * or throw exception if there is no any index for query properties.
          */
         return this.indexTx.query(query);
+    }
+
+    private VertexLabel getVertexLabel(Object label) {
+        HugeVertexFeatures features = graph().features().vertex();
+
+        // Check Vertex label
+        if (label == null && features.supportsDefaultLabel()) {
+            label = features.defaultLabel();
+        }
+
+        if (label == null) {
+            throw Element.Exceptions.labelCanNotBeNull();
+        }
+
+        E.checkArgument(label instanceof String ||
+                        label instanceof VertexLabel,
+                        "Expect a string or a VertexLabel object " +
+                        "as the vertex label argument, but got: '%s'", label);
+        // The label must be an instance of String or VertexLabel
+        if (label instanceof String) {
+            ElementHelper.validateLabel((String) label);
+            label = this.graph().vertexLabel((String) label);
+        }
+
+        assert (label instanceof VertexLabel);
+        return (VertexLabel) label;
+    }
+
+    private Set<String> relatedIndexNames(String prop,
+                                          Indexfiable indexfiable) {
+        Set<String> rs = indexfiable.indexNames().stream().filter(index -> {
+            return this.graph().indexLabel(index).indexFields().contains(prop);
+        }).collect(Collectors.toSet());
+        return rs;
     }
 
     public void removeIndex(IndexLabel indexLabel) {

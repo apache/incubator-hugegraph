@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -61,8 +62,16 @@ public class TextBackendEntry implements BackendEntry {
         return this.columns.keySet();
     }
 
+    public void column(HugeKeys column, String value) {
+        this.columns.put(column.string(), value);
+    }
+
     public void column(String column, String value) {
         this.columns.put(column, value);
+    }
+
+    public String column(HugeKeys colume) {
+        return this.columns.get(colume.string());
     }
 
     public String column(String colume) {

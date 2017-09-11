@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.schema;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -27,11 +28,27 @@ import com.baidu.hugegraph.type.Indexfiable;
 public abstract class SchemaLabel extends SchemaElement
                                   implements Indexfiable {
 
+    protected Set<String> nullableKeys;
     protected Set<String> indexNames;
 
     public SchemaLabel(String name) {
         super(name);
         this.indexNames = new HashSet<>();
+        this.nullableKeys = new HashSet<>();
+    }
+
+    public SchemaLabel properties(String... keys) {
+        this.properties.addAll(Arrays.asList(keys));
+        return this;
+    }
+
+    public Set<String> nullableKeys() {
+        return this.nullableKeys;
+    }
+
+    public SchemaLabel nullableKeys(String... keys) {
+        this.nullableKeys.addAll(Arrays.asList(keys));
+        return this;
     }
 
     @Override
@@ -39,5 +56,8 @@ public abstract class SchemaLabel extends SchemaElement
         return this.indexNames;
     }
 
-    public abstract SchemaLabel indexNames(String... names);
+    public SchemaLabel indexNames(String... names) {
+        this.indexNames.addAll(Arrays.asList(names));
+        return this;
+    }
 }

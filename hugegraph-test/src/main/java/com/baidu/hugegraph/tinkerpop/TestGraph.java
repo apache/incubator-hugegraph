@@ -307,15 +307,21 @@ public class TestGraph implements Graph {
             case AUTOMATIC:
                 schema.vertexLabel("song")
                       .properties("id", "name", "songType", "performances")
+                      .nullableKeys("id", "name", "songType", "performances")
                       .ifNotExist().create();
-                schema.vertexLabel("artist").properties("id", "name")
+                schema.vertexLabel("artist")
+                      .properties("id", "name")
+                      .nullableKeys("id", "name")
                       .ifNotExist().create();
                 break;
             case CUSTOMIZE:
                 schema.vertexLabel("song")
                       .properties("id", "name", "songType", "performances")
+                      .nullableKeys("id", "name", "songType", "performances")
                       .useCustomizeId().ifNotExist().create();
-                schema.vertexLabel("artist").properties("id", "name")
+                schema.vertexLabel("artist")
+                      .properties("id", "name")
+                      .nullableKeys("id", "name")
                       .useCustomizeId().ifNotExist().create();
                 break;
             default:
@@ -324,7 +330,9 @@ public class TestGraph implements Graph {
         }
 
         schema.edgeLabel("followedBy")
-              .link("song", "song").properties("weight")
+              .link("song", "song")
+              .properties("weight")
+              .nullableKeys("weight")
               .ifNotExist().create();
         schema.edgeLabel("sungBy").link("song", "artist")
               .ifNotExist().create();
@@ -358,28 +366,47 @@ public class TestGraph implements Graph {
                                 IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
         switch (idStrategy) {
             case AUTOMATIC:
-                schema.vertexLabel("person").properties("name", "age")
+                schema.vertexLabel("person")
+                      .properties("name", "age")
+                      .nullableKeys("name", "age")
                       .ifNotExist().create();
                 schema.vertexLabel("software")
                       .properties("name", "lang", "temp")
+                      .nullableKeys("name", "lang", "temp")
                       .ifNotExist().create();
-                schema.vertexLabel("dog").properties("name")
+                schema.vertexLabel("dog")
+                      .properties("name")
+                      .nullableKeys("name")
                       .ifNotExist().create();
-                schema.vertexLabel(DEFAULT_VL).properties("name", "age")
+                schema.vertexLabel(DEFAULT_VL)
+                      .properties("name", "age")
+                      .nullableKeys("name", "age")
                       .ifNotExist().create();
-                schema.vertexLabel("animal").properties("name", "age")
+                schema.vertexLabel("animal")
+                      .properties("name", "age")
+                      .nullableKeys("name", "age")
                       .ifNotExist().create();
                 break;
             case CUSTOMIZE:
-                schema.vertexLabel("person").properties("name", "age")
+                schema.vertexLabel("person")
+                      .properties("name", "age")
+                      .nullableKeys("name", "age")
                       .useCustomizeId().ifNotExist().create();
-                schema.vertexLabel("software").properties("name", "lang")
+                schema.vertexLabel("software")
+                      .properties("name", "lang")
+                      .nullableKeys("name", "lang")
                       .useCustomizeId().ifNotExist().create();
-                schema.vertexLabel("dog").properties("name")
+                schema.vertexLabel("dog")
+                      .properties("name")
+                      .nullableKeys("name")
                       .useCustomizeId().ifNotExist().create();
-                schema.vertexLabel(DEFAULT_VL).properties("name", "age")
+                schema.vertexLabel(DEFAULT_VL)
+                      .properties("name", "age")
+                      .nullableKeys("name", "age")
                       .useCustomizeId().ifNotExist().create();
-                schema.vertexLabel("animal").properties("name", "age")
+                schema.vertexLabel("animal")
+                      .properties("name", "age")
+                      .nullableKeys("name", "age")
                       .useCustomizeId().ifNotExist().create();
                 break;
             default:
@@ -388,13 +415,21 @@ public class TestGraph implements Graph {
         }
 
         schema.edgeLabel("knows").link("person", "person")
-              .properties("weight", "year").ifNotExist().create();
+              .properties("weight", "year")
+              .nullableKeys("weight", "year")
+              .ifNotExist().create();
         schema.edgeLabel("created").link("person", "software")
-              .properties("weight").ifNotExist().create();
+              .properties("weight")
+              .nullableKeys("weight")
+              .ifNotExist().create();
         schema.edgeLabel("codeveloper").link("person", "person")
-              .properties("year").ifNotExist().create();
+              .properties("year")
+              .nullableKeys("year")
+              .ifNotExist().create();
         schema.edgeLabel("createdBy").link("software", "person")
-              .properties("weight", "year", "acl").ifNotExist().create();
+              .properties("weight", "year", "acl")
+              .nullableKeys("weight", "year", "acl")
+              .ifNotExist().create();
         schema.edgeLabel("uses").link("person", "software")
               .ifNotExist().create();
         schema.edgeLabel("likes").link("person", "software")
@@ -439,11 +474,15 @@ public class TestGraph implements Graph {
                                 IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
         switch (idStrategy) {
             case AUTOMATIC:
-                schema.vertexLabel("vertex").properties("id", "name", "age", "lang")
+                schema.vertexLabel("vertex")
+                      .properties("id", "name", "age", "lang")
+                      .nullableKeys("id", "name", "age", "lang")
                       .ifNotExist().create();
                 break;
             case CUSTOMIZE:
-                schema.vertexLabel("vertex").properties("id", "name", "age", "lang")
+                schema.vertexLabel("vertex")
+                      .properties("id", "name", "age", "lang")
+                      .nullableKeys("id", "name", "age", "lang")
                       .useCustomizeId().ifNotExist().create();
                 break;
             default:
@@ -452,9 +491,13 @@ public class TestGraph implements Graph {
         }
 
         schema.edgeLabel("knows").link("vertex", "vertex")
-              .properties("weight").ifNotExist().create();
+              .properties("weight")
+              .nullableKeys("weight")
+              .ifNotExist().create();
         schema.edgeLabel("created").link("vertex", "vertex")
-              .properties("weight").ifNotExist().create();
+              .properties("weight")
+              .nullableKeys("weight")
+              .ifNotExist().create();
 
         // When index field can be null, uncomment these indexLabel define
         /*schema.indexLabel("vertexByAge").onV("vertex").by("age").search()
@@ -543,6 +586,14 @@ public class TestGraph implements Graph {
                                   "long", "myId", "location", "x", "y", "s",
                                   "n", "d", "f", "i", "l", "to-change",
                                   "to-remove", "to-keep", "old", "new")
+                      .nullableKeys("__id", "oid", "name", "state", "status",
+                                    "some", "that", "any", "this", "lang", "b",
+                                    "communityIndex", "test", "testing", "acl",
+                                    "favoriteColor", "aKey", "age", "boolean",
+                                    "float", "double", "string", "integer",
+                                    "long", "myId", "location", "x", "y", "s",
+                                    "n", "d", "f", "i", "l", "to-change",
+                                    "to-remove", "to-keep", "old", "new")
                       .useCustomizeId().ifNotExist().create();
                 break;
             case AUTOMATIC:
@@ -555,6 +606,14 @@ public class TestGraph implements Graph {
                                   "long", "myId", "location", "x", "y", "s",
                                   "n", "d", "f", "i", "l", "to-change",
                                   "to-remove", "to-keep", "old", "new")
+                      .nullableKeys("__id", "oid", "name", "state", "status",
+                                    "some", "that", "any", "this", "lang", "b",
+                                    "communityIndex", "test", "testing", "acl",
+                                    "favoriteColor", "aKey", "age", "boolean",
+                                    "float", "double", "string", "integer",
+                                    "long", "myId", "location", "x", "y", "s",
+                                    "n", "d", "f", "i", "l", "to-change",
+                                    "to-remove", "to-keep", "old", "new")
                       .ifNotExist().create();
                 break;
             default:
@@ -572,15 +631,22 @@ public class TestGraph implements Graph {
     private void initBasicVertexLabelAndEdgeLabelExceptV(String defaultVL) {
         SchemaManager schema = this.graph.schema();
 
-        schema.vertexLabel("person").properties("name")
+        schema.vertexLabel("person")
+              .properties("name")
+              .nullableKeys("name")
               .ifNotExist().create();
-        schema.vertexLabel("thing").properties("here")
+        schema.vertexLabel("thing")
+              .properties("here")
+              .nullableKeys("here")
               .ifNotExist().create();
 
         schema.edgeLabel("self").link(defaultVL, defaultVL)
               .properties("__id", "test", "name", "some", "acl", "weight",
                           "here", "to-change", "dropped", "not-dropped", "new",
                           "to-drop")
+              .nullableKeys("__id", "test", "name", "some", "acl", "weight",
+                            "here", "to-change", "dropped", "not-dropped",
+                            "new", "to-drop")
               .ifNotExist().create();
         schema.edgeLabel("aTOa").link(defaultVL, defaultVL)
               .ifNotExist().create();
@@ -590,20 +656,33 @@ public class TestGraph implements Graph {
               .properties("data", "test", "year", "boolean", "float",
                           "double", "string", "integer", "long", "weight",
                           "myEdgeId", "since", "acl", "stars", "aKey")
+              .nullableKeys("data", "test", "year", "boolean", "float",
+                            "double", "string", "integer", "long", "weight",
+                            "myEdgeId", "since", "acl", "stars", "aKey")
               .ifNotExist().create();
         schema.edgeLabel("test").link(defaultVL, defaultVL)
-              .properties("test", "xxx", "yyy").ifNotExist().create();
+              .properties("test", "xxx", "yyy")
+              .nullableKeys("test", "xxx", "yyy")
+              .ifNotExist().create();
         schema.edgeLabel("friend").link(defaultVL, defaultVL)
               .properties("name", "location", "status", "uuid", "weight", "acl")
+              .nullableKeys("name", "location", "status", "uuid", "weight",
+                            "acl")
               .ifNotExist().create();
         schema.edgeLabel("pets").link(defaultVL, defaultVL).ifNotExist().create();
-        schema.edgeLabel("walks").link(defaultVL, defaultVL).properties("location")
+        schema.edgeLabel("walks").link(defaultVL, defaultVL)
+              .properties("location")
+              .nullableKeys("location")
               .ifNotExist().create();
         schema.edgeLabel("livesWith").link(defaultVL, defaultVL).ifNotExist().create();
         schema.edgeLabel("friends").link(defaultVL, defaultVL)
-              .properties("weight").ifNotExist().create();
+              .properties("weight")
+              .nullableKeys("weight")
+              .ifNotExist().create();
         schema.edgeLabel("collaborator").link(defaultVL, defaultVL)
-              .properties("location").ifNotExist().create();
+              .properties("location")
+              .nullableKeys("location")
+              .ifNotExist().create();
         schema.edgeLabel("hate").link(defaultVL, defaultVL)
               .ifNotExist().create();
         schema.edgeLabel("hates").link(defaultVL, defaultVL)
@@ -616,16 +695,22 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.edgeLabel("test3").link(defaultVL, defaultVL)
               .ifNotExist().create();
-        schema.edgeLabel("l").link(defaultVL, defaultVL).properties("name")
+        schema.edgeLabel("l").link(defaultVL, defaultVL)
+              .properties("name")
+              .nullableKeys("name")
               .ifNotExist().create();
         schema.edgeLabel("CONTROL").link(defaultVL, defaultVL)
               .ifNotExist().create();
         schema.edgeLabel("SELFLOOP").link(defaultVL, defaultVL)
               .ifNotExist().create();
         schema.edgeLabel("edge").link(defaultVL, defaultVL)
-              .properties("weight").ifNotExist().create();
+              .properties("weight")
+              .nullableKeys("weight")
+              .ifNotExist().create();
         schema.edgeLabel("created").link(defaultVL, defaultVL)
-              .properties("weight").ifNotExist().create();
+              .properties("weight")
+              .nullableKeys("weight")
+              .ifNotExist().create();
         schema.edgeLabel("next").link(defaultVL, defaultVL)
               .ifNotExist().create();
 

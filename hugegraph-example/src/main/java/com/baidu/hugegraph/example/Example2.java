@@ -205,8 +205,6 @@ public class Example2 {
               .ifNotExist()
               .create();
 
-        schema.edgeLabel("knows").properties("price").append();
-
         schema.edgeLabel("created")
               .sourceLabel("person").targetLabel("software")
               .properties("date", "weight")

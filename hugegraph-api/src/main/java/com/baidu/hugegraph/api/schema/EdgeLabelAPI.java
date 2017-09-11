@@ -137,18 +137,20 @@ public class EdgeLabelAPI extends API {
         public String targetLabel;
         public Frequency frequency;
         public String[] sortKeys;
+        public String[] nullableKeys;
         public String[] indexNames;
         public String[] properties;
         public boolean checkExist;
 
         @Override
         public String toString() {
-            return String.format(
-                   "JsonEdgeLabel{name=%s, sourceLabel=%s, targetLabel=%s " +
-                   "frequency=%s, sortKeys=%s, indexNames=%s, properties=%s}",
+            return String.format("JsonEdgeLabel{" +
+                   "name=%s, sourceLabel=%s, targetLabel=%s, frequency=%s, " +
+                   "sortKeys=%s, nullableKeys=%s, indexNames=%s, " +
+                   "properties=%s}",
                    this.name, this.sourceLabel, this.targetLabel,
-                   this.frequency, this.sortKeys, this.indexNames,
-                   this.properties);
+                   this.frequency, this.sortKeys, this.nullableKeys,
+                   this.indexNames, this.properties);
         }
 
         public EdgeLabel convert2EdgeLabel() {
@@ -157,6 +159,7 @@ public class EdgeLabelAPI extends API {
             edgeLabel.targetLabel(this.targetLabel);
             edgeLabel.frequency(this.frequency);
             edgeLabel.sortKeys(this.sortKeys);
+            edgeLabel.nullableKeys(this.nullableKeys);
             edgeLabel.indexNames(this.indexNames);
             edgeLabel.properties(this.properties);
             edgeLabel.checkExist(this.checkExist);

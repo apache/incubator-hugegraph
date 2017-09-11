@@ -63,6 +63,7 @@ public class CassandraTables {
                     HugeKeys.NAME,
                     HugeKeys.ID_STRATEGY,
                     HugeKeys.PRIMARY_KEYS,
+                    HugeKeys.NULLABLE_KEYS,
                     HugeKeys.INDEX_NAMES,
                     HugeKeys.PROPERTIES
             };
@@ -89,6 +90,7 @@ public class CassandraTables {
                     HugeKeys.TARGET_LABEL,
                     HugeKeys.FREQUENCY,
                     HugeKeys.SORT_KEYS,
+                    HugeKeys.NULLABLE_KEYS,
                     HugeKeys.INDEX_NAMES,
                     HugeKeys.PROPERTIES
             };

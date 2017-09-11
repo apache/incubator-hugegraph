@@ -78,10 +78,12 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.vertexLabel("author")
               .properties("id", "name", "age", "lived")
               .primaryKeys("id")
+              .nullableKeys("name", "age", "lived")
               .create();
         schema.vertexLabel("language")
               .properties("name", "dynamic")
               .primaryKeys("name")
+              .nullableKeys("dynamic")
               .create();
         schema.vertexLabel("book")
               .properties("name")
@@ -90,6 +92,7 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.vertexLabel("review")
               .properties("id", "comment", "contribution")
               .primaryKeys("id")
+              .nullableKeys("comment", "contribution")
               .create();
 
         LOG.info("===============  vertexLabel index  ================");

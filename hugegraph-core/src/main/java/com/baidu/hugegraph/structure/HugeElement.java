@@ -25,10 +25,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
@@ -228,13 +228,40 @@ public abstract class HugeElement implements Element, GraphType {
         return ElementHelper.hashCode(this);
     }
 
-    public static Id getIdValue(Object... keyValues) {
-        Optional<Object> id = ElementHelper.getIdValue(keyValues);
-        if (!id.isPresent()) {
+    public static ElementKeys classifyKeys(Object... keyValues) {
+        ElementKeys elemKeys = new ElementKeys();
+
+        if ((keyValues.length & 1) == 1) {
+            throw Element.Exceptions.providedKeyValuesMustBeAMultipleOfTwo();
+        }
+        for (int i = 0; i < keyValues.length; i = i + 2) {
+            Object key = keyValues[i];
+            Object val = keyValues[i + 1];
+
+            if (!(key instanceof String) && !(key instanceof T)) {
+                throw Element.Exceptions
+                      .providedKeyValuesMustHaveALegalKeyOnEvenIndices();
+            }
+            if (val == null) {
+                throw Property.Exceptions.propertyValueCanNotBeNull();
+            }
+
+            if (key.equals(T.id)) {
+                elemKeys.id = val;
+            } else if (key.equals(T.label)) {
+                elemKeys.label = val;
+            } else {
+                elemKeys.keys.add(key.toString());
+            }
+        }
+        return elemKeys;
+    }
+
+    public static Id getIdValue(Object idValue) {
+        if (idValue == null) {
             return null;
         }
 
-        Object idValue = id.get();
         if (idValue instanceof String) {
             // String id
             return IdGenerator.of((String) idValue);
@@ -261,7 +288,7 @@ public abstract class HugeElement implements Element, GraphType {
                                 labelValue instanceof VertexLabel,
                                 "Expect a string or a VertexLabel object " +
                                 "as the vertex label argument, but got: '%s'",
-                                labelValue);
+                        labelValue);
                 if (labelValue instanceof String) {
                     ElementHelper.validateLabel((String) labelValue);
                 }
@@ -269,5 +296,36 @@ public abstract class HugeElement implements Element, GraphType {
             }
         }
         return labelValue;
+    }
+
+    public static class ElementKeys {
+
+        private Object label = null;
+        private Object id = null;
+        private Set<String> keys = new HashSet<>();
+
+        public Object label() {
+            return this.label;
+        }
+
+        public void label(Object label) {
+            this.label = label;
+        }
+
+        public Object id() {
+            return this.id;
+        }
+
+        public void id(Object id) {
+            this.id = id;
+        }
+
+        public Set<String> keys() {
+            return this.keys;
+        }
+
+        public void keys(Set<String> keys) {
+            this.keys = keys;
+        }
     }
 }

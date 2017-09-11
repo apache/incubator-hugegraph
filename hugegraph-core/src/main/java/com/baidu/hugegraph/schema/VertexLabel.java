@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -86,17 +85,6 @@ public class VertexLabel extends SchemaLabel {
                 this.primaryKeys.add(key);
             }
         }
-        return this;
-    }
-
-    @Override
-    public VertexLabel indexNames(String... names) {
-        this.indexNames.addAll(Arrays.asList(names));
-        return this;
-    }
-
-    public VertexLabel properties(String... propertyNames) {
-        this.properties.addAll(Arrays.asList(propertyNames));
         return this;
     }
 
@@ -214,6 +202,12 @@ public class VertexLabel extends SchemaLabel {
         @Override
         public Builder primaryKeys(String... keys) {
             this.vertexLabel.primaryKeys(keys);
+            return this;
+        }
+
+        @Override
+        public Builder nullableKeys(String... keys) {
+            this.vertexLabel.nullableKeys(keys);
             return this;
         }
 
