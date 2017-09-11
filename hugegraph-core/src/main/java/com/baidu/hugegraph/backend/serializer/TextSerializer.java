@@ -70,13 +70,13 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    protected BackendEntry convertEntry(BackendEntry entry) {
-        if (entry instanceof TextBackendEntry) {
-            return entry;
+    protected BackendEntry convertEntry(BackendEntry backendEntry) {
+        if (backendEntry instanceof TextBackendEntry) {
+            return backendEntry;
         }
 
-        TextBackendEntry text = new TextBackendEntry(entry.id());
-        text.columns(entry.columns());
+        TextBackendEntry text = new TextBackendEntry(backendEntry.id());
+        text.columns(backendEntry.columns());
         return text;
     }
 
@@ -260,7 +260,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeEdge readEdge(BackendEntry entry, HugeGraph graph) {
+    public HugeEdge readEdge(BackendEntry backendEntry, HugeGraph graph) {
         E.checkNotNull(graph, "serializer graph");
         // TODO: implement
         throw new NotImplementedException("Unsupport readEdge()");
@@ -444,13 +444,14 @@ public class TextSerializer extends AbstractSerializer {
         Id id = IdGenerator.of(vertexLabel);
 
         TextBackendEntry entry = this.writeId(vertexLabel.type(), id);
-        entry.column(HugeKeys.NAME.string(),
-                     JsonUtil.toJson(vertexLabel.name()));
-        entry.column(HugeKeys.ID_STRATEGY.string(),
+        entry.column(HugeKeys.NAME, JsonUtil.toJson(vertexLabel.name()));
+        entry.column(HugeKeys.ID_STRATEGY, 
                      JsonUtil.toJson(vertexLabel.idStrategy()));
-        entry.column(HugeKeys.PRIMARY_KEYS.string(),
+        entry.column(HugeKeys.PRIMARY_KEYS,
                      JsonUtil.toJson(vertexLabel.primaryKeys().toArray()));
-        entry.column(HugeKeys.INDEX_NAMES.string(),
+        entry.column(HugeKeys.NULLABLE_KEYS,
+                     JsonUtil.toJson(vertexLabel.nullableKeys().toArray()));
+        entry.column(HugeKeys.INDEX_NAMES,
                      JsonUtil.toJson(vertexLabel.indexNames().toArray()));
         writeProperties(vertexLabel, entry);
         return entry;
@@ -461,17 +462,18 @@ public class TextSerializer extends AbstractSerializer {
         Id id = IdGenerator.of(edgeLabel);
 
         TextBackendEntry entry = this.writeId(edgeLabel.type(), id);
-        entry.column(HugeKeys.NAME.string(),
-                     JsonUtil.toJson(edgeLabel.name()));
-        entry.column(HugeKeys.SOURCE_LABEL.string(),
+        entry.column(HugeKeys.NAME, JsonUtil.toJson(edgeLabel.name()));
+        entry.column(HugeKeys.SOURCE_LABEL,
                      JsonUtil.toJson(edgeLabel.sourceLabel()));
-        entry.column(HugeKeys.TARGET_LABEL.string(),
+        entry.column(HugeKeys.TARGET_LABEL,
                      JsonUtil.toJson(edgeLabel.targetLabel()));
-        entry.column(HugeKeys.FREQUENCY.string(),
+        entry.column(HugeKeys.FREQUENCY,
                      JsonUtil.toJson(edgeLabel.frequency()));
-        entry.column(HugeKeys.SORT_KEYS.string(),
+        entry.column(HugeKeys.SORT_KEYS,
                      JsonUtil.toJson(edgeLabel.sortKeys().toArray()));
-        entry.column(HugeKeys.INDEX_NAMES.string(),
+        entry.column(HugeKeys.NULLABLE_KEYS,
+                     JsonUtil.toJson(edgeLabel.nullableKeys().toArray()));
+        entry.column(HugeKeys.INDEX_NAMES,
                      JsonUtil.toJson(edgeLabel.indexNames().toArray()));
         writeProperties(edgeLabel, entry);
         return entry;
@@ -482,11 +484,10 @@ public class TextSerializer extends AbstractSerializer {
         Id id = IdGenerator.of(propertyKey);
 
         TextBackendEntry entry = this.writeId(propertyKey.type(), id);
-        entry.column(HugeKeys.NAME.string(),
-                     JsonUtil.toJson(propertyKey.name()));
-        entry.column(HugeKeys.DATA_TYPE.string(),
+        entry.column(HugeKeys.NAME, JsonUtil.toJson(propertyKey.name()));
+        entry.column(HugeKeys.DATA_TYPE,
                      JsonUtil.toJson(propertyKey.dataType()));
-        entry.column(HugeKeys.CARDINALITY.string(),
+        entry.column(HugeKeys.CARDINALITY,
                      JsonUtil.toJson(propertyKey.cardinality()));
         writeProperties(propertyKey, entry);
         return entry;
@@ -496,85 +497,90 @@ public class TextSerializer extends AbstractSerializer {
                                 TextBackendEntry entry) {
         Set<String> properties = schemaElement.properties();
         if (properties == null) {
-            entry.column(HugeKeys.PROPERTIES.string(), "[]");
+            entry.column(HugeKeys.PROPERTIES, "[]");
         } else {
-            entry.column(HugeKeys.PROPERTIES.string(),
+            entry.column(HugeKeys.PROPERTIES,
                          JsonUtil.toJson(properties.toArray()));
         }
     }
 
     @Override
-    public VertexLabel readVertexLabel(BackendEntry entry) {
-        if (entry == null) {
+    public VertexLabel readVertexLabel(BackendEntry backendEntry) {
+        if (backendEntry == null) {
             return null;
         }
 
-        entry = convertEntry(entry);
-        assert entry instanceof TextBackendEntry;
+        backendEntry = convertEntry(backendEntry);
+        assert backendEntry instanceof TextBackendEntry;
 
-        TextBackendEntry textEntry = (TextBackendEntry) entry;
-        String name = textEntry.column(HugeKeys.NAME.string());
-        String idStrategy = textEntry.column(HugeKeys.ID_STRATEGY.string());
-        String properties = textEntry.column(HugeKeys.PROPERTIES.string());
-        String primarykeys = textEntry.column(HugeKeys.PRIMARY_KEYS.string());
-        String indexNames = textEntry.column(HugeKeys.INDEX_NAMES.string());
+        TextBackendEntry entry = (TextBackendEntry) backendEntry;
+        String name = entry.column(HugeKeys.NAME);
+        String idStrategy = entry.column(HugeKeys.ID_STRATEGY);
+        String properties = entry.column(HugeKeys.PROPERTIES);
+        String primarykeys = entry.column(HugeKeys.PRIMARY_KEYS);
+        String nullablekeys = entry.column(HugeKeys.NULLABLE_KEYS);
+        String indexNames = entry.column(HugeKeys.INDEX_NAMES);
 
-        VertexLabel vertexLabel = new VertexLabel(
-                JsonUtil.fromJson(name, String.class));
+        VertexLabel vertexLabel = new VertexLabel(JsonUtil.fromJson(
+                                                  name, String.class));
         vertexLabel.idStrategy(JsonUtil.fromJson(idStrategy, IdStrategy.class));
         vertexLabel.properties(JsonUtil.fromJson(properties, String[].class));
         vertexLabel.primaryKeys(JsonUtil.fromJson(primarykeys, String[].class));
+        vertexLabel.nullableKeys(JsonUtil.fromJson(nullablekeys,
+                                                   String[].class));
         vertexLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
 
         return vertexLabel;
     }
 
     @Override
-    public EdgeLabel readEdgeLabel(BackendEntry entry) {
-        if (entry == null) {
+    public EdgeLabel readEdgeLabel(BackendEntry backendEntry) {
+        if (backendEntry == null) {
             return null;
         }
 
-        entry = convertEntry(entry);
-        assert entry instanceof TextBackendEntry;
+        backendEntry = convertEntry(backendEntry);
+        assert backendEntry instanceof TextBackendEntry;
 
-        TextBackendEntry textEntry = (TextBackendEntry) entry;
-        String name = textEntry.column(HugeKeys.NAME.string());
-        String sourceLabel = textEntry.column(HugeKeys.SOURCE_LABEL.string());
-        String targetLabel = textEntry.column(HugeKeys.TARGET_LABEL.string());
-        String frequency = textEntry.column(HugeKeys.FREQUENCY.string());
-        String sortKeys = textEntry.column(HugeKeys.SORT_KEYS.string());
-        String properties = textEntry.column(HugeKeys.PROPERTIES.string());
-        String indexNames = textEntry.column(HugeKeys.INDEX_NAMES.string());
+        TextBackendEntry entry = (TextBackendEntry) backendEntry;
+        String name = entry.column(HugeKeys.NAME);
+        String sourceLabel = entry.column(HugeKeys.SOURCE_LABEL);
+        String targetLabel = entry.column(HugeKeys.TARGET_LABEL);
+        String frequency = entry.column(HugeKeys.FREQUENCY);
+        String sortKeys = entry.column(HugeKeys.SORT_KEYS);
+        String nullablekeys = entry.column(HugeKeys.NULLABLE_KEYS);
+        String properties = entry.column(HugeKeys.PROPERTIES);
+        String indexNames = entry.column(HugeKeys.INDEX_NAMES);
 
-        EdgeLabel edgeLabel = new EdgeLabel(
-                JsonUtil.fromJson(name, String.class));
+        EdgeLabel edgeLabel = new EdgeLabel(JsonUtil.fromJson(
+                                            name, String.class));
         edgeLabel.sourceLabel(JsonUtil.fromJson(sourceLabel, String.class));
         edgeLabel.targetLabel(JsonUtil.fromJson(targetLabel, String.class));
         edgeLabel.frequency(JsonUtil.fromJson(frequency, Frequency.class));
         edgeLabel.properties(JsonUtil.fromJson(properties, String[].class));
         edgeLabel.sortKeys(JsonUtil.fromJson(sortKeys, String[].class));
+        edgeLabel.nullableKeys(JsonUtil.fromJson(nullablekeys, String[].class));
         edgeLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
         return edgeLabel;
     }
 
     @Override
-    public PropertyKey readPropertyKey(BackendEntry entry) {
-        if (entry == null) {
+    public PropertyKey readPropertyKey(BackendEntry backendEntry) {
+        if (backendEntry == null) {
             return null;
         }
 
-        entry = convertEntry(entry);
-        assert entry instanceof TextBackendEntry;
+        backendEntry = convertEntry(backendEntry);
+        assert backendEntry instanceof TextBackendEntry;
 
-        TextBackendEntry textEntry = (TextBackendEntry) entry;
-        String name = textEntry.column(HugeKeys.NAME.string());
-        String dataType = textEntry.column(HugeKeys.DATA_TYPE.string());
-        String cardinality = textEntry.column(HugeKeys.CARDINALITY.string());
-        String properties = textEntry.column(HugeKeys.PROPERTIES.string());
+        TextBackendEntry entry = (TextBackendEntry) backendEntry;
+        String name = entry.column(HugeKeys.NAME);
+        String dataType = entry.column(HugeKeys.DATA_TYPE);
+        String cardinality = entry.column(HugeKeys.CARDINALITY);
+        String properties = entry.column(HugeKeys.PROPERTIES);
 
-        PropertyKey propertyKey = new PropertyKey(
-                JsonUtil.fromJson(name, String.class));
+        PropertyKey propertyKey = new PropertyKey(JsonUtil.fromJson(
+                                                  name, String.class));
         propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
         propertyKey.cardinality(JsonUtil.fromJson(cardinality,
                                 Cardinality.class));
@@ -588,37 +594,37 @@ public class TextSerializer extends AbstractSerializer {
         Id id = IdGenerator.of(indexLabel);
         TextBackendEntry entry = this.writeId(indexLabel.type(), id);
 
-        entry.column(HugeKeys.NAME.string(),
+        entry.column(HugeKeys.NAME,
                      JsonUtil.toJson(indexLabel.name()));
-        entry.column(HugeKeys.BASE_TYPE.string(),
+        entry.column(HugeKeys.BASE_TYPE,
                      JsonUtil.toJson(indexLabel.baseType()));
-        entry.column(HugeKeys.BASE_VALUE.string(),
+        entry.column(HugeKeys.BASE_VALUE,
                      JsonUtil.toJson(indexLabel.baseValue()));
-        entry.column(HugeKeys.INDEX_TYPE.string(),
+        entry.column(HugeKeys.INDEX_TYPE,
                      JsonUtil.toJson(indexLabel.indexType()));
-        entry.column(HugeKeys.FIELDS.string(),
+        entry.column(HugeKeys.FIELDS,
                      JsonUtil.toJson(indexLabel.indexFields().toArray()));
         return entry;
     }
 
     @Override
-    public IndexLabel readIndexLabel(BackendEntry entry) {
-        if (entry == null) {
+    public IndexLabel readIndexLabel(BackendEntry backendEntry) {
+        if (backendEntry == null) {
             return null;
         }
 
-        entry = convertEntry(entry);
-        assert entry instanceof TextBackendEntry;
+        backendEntry = convertEntry(backendEntry);
+        assert backendEntry instanceof TextBackendEntry;
 
-        TextBackendEntry textEntry = (TextBackendEntry) entry;
-        String name = JsonUtil.fromJson(
-                textEntry.column(HugeKeys.NAME.string()), String.class);
-        HugeType baseType = JsonUtil.fromJson(
-                textEntry.column(HugeKeys.BASE_TYPE.string()), HugeType.class);
-        String baseValue = JsonUtil.fromJson(
-                textEntry.column(HugeKeys.BASE_VALUE.string()), String.class);
-        String indexType = textEntry.column(HugeKeys.INDEX_TYPE.string());
-        String indexFields = textEntry.column(HugeKeys.FIELDS.string());
+        TextBackendEntry entry = (TextBackendEntry) backendEntry;
+        String name = JsonUtil.fromJson(entry.column(HugeKeys.NAME),
+                                        String.class);
+        HugeType baseType = JsonUtil.fromJson(entry.column(HugeKeys.BASE_TYPE),
+                                              HugeType.class);
+        String baseValue = JsonUtil.fromJson(entry.column(HugeKeys.BASE_VALUE),
+                                             String.class);
+        String indexType = entry.column(HugeKeys.INDEX_TYPE);
+        String indexFields = entry.column(HugeKeys.FIELDS);
 
         IndexLabel indexLabel = new IndexLabel(name, baseType, baseValue);
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));

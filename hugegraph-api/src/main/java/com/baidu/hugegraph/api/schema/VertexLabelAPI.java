@@ -136,6 +136,7 @@ public class VertexLabelAPI extends API {
         public String name;
         public IdStrategy idStrategy;
         public String[] primaryKeys;
+        public String[] nullableKeys;
         public String[] indexNames;
         public String[] properties;
         public boolean checkExist;
@@ -143,16 +144,17 @@ public class VertexLabelAPI extends API {
         @Override
         public String toString() {
             return String.format("JsonVertexLabel{" +
-                                 "name=%s, idStrategy=%s, primaryKeys=%s, " +
-                                 "indexNames=%s, properties=%s}",
-                                 this.name, this.idStrategy, this.primaryKeys,
-                                 this.indexNames, this.properties);
+                   "name=%s, idStrategy=%s, primaryKeys=%s, " +
+                   "nullableKeys=%s, indexNames=%s, properties=%s}",
+                   this.name, this.idStrategy, this.primaryKeys,
+                   this.nullableKeys, this.indexNames, this.properties);
         }
 
         public VertexLabel convert2VertexLabel() {
             VertexLabel vertexLabel = new VertexLabel(this.name);
             vertexLabel.idStrategy(this.idStrategy);
             vertexLabel.primaryKeys(this.primaryKeys);
+            vertexLabel.nullableKeys(this.nullableKeys);
             vertexLabel.indexNames(this.indexNames);
             vertexLabel.properties(this.properties);
             vertexLabel.checkExist(this.checkExist);

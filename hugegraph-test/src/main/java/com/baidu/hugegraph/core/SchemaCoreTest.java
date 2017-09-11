@@ -480,6 +480,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         VertexLabel person = schema.vertexLabel("person")
                              .properties("name", "age", "city")
                              .primaryKeys("name")
+                             .nullableKeys("age")
                              .create();
 
         graph().addVertex(T.label, "person", "name", "Baby",
@@ -510,6 +511,64 @@ public class SchemaCoreTest extends BaseCoreTest{
                               "city", 2, "age", 3);
         });
 
+    }
+
+    @Test
+    public void testAddVertexLabelWithNullableKeys() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                             .properties("name", "age", "city")
+                             .primaryKeys("name")
+                             .nullableKeys("city")
+                             .create();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals("person", person.name());
+        Assert.assertEquals(3, person.properties().size());
+        Assert.assertTrue(person.properties().contains("name"));
+        Assert.assertTrue(person.properties().contains("age"));
+        Assert.assertTrue(person.properties().contains("city"));
+        Assert.assertEquals(1, person.primaryKeys().size());
+        Assert.assertTrue(person.primaryKeys().contains("name"));
+        Assert.assertEquals(1, person.nullableKeys().size());
+        Assert.assertTrue(person.nullableKeys().contains("city"));
+    }
+
+    @Test
+    public void testAddVertexLabelNewVertexWithNullableKeysAbsent() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        Vertex vertex = graph().addVertex(T.label, "person", "name", "Baby",
+                                          "age", 3);
+        Assert.assertEquals("Baby", vertex.value("name"));
+        Assert.assertEquals(3, vertex.property("age").value());
+    }
+
+    @Test
+    public void testAddVertexLabelNewVertexWithNotNullableKeysAbsent() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Absent 'age'
+            graph().addVertex(T.label, "person", "name", "Baby",
+                              "city", "Beijing");
+        });
     }
 
     // Edgelabel tests
@@ -716,6 +775,88 @@ public class SchemaCoreTest extends BaseCoreTest{
     }
 
     @Test
+    public void testAddEdgeLabelWithNullableKeys() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("author").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id").create();
+        EdgeLabel look = schema.edgeLabel("look")
+                         .properties("time", "weight")
+                         .nullableKeys("weight")
+                         .link("person", "book")
+                         .create();
+
+        Assert.assertNotNull(look);
+        Assert.assertEquals("look", look.name());
+        Assert.assertTrue(look.sourceLabel().equals("person"));
+        Assert.assertTrue(look.targetLabel().equals("book"));
+        Assert.assertEquals(2, look.properties().size());
+        Assert.assertTrue(look.properties().contains("time"));
+        Assert.assertTrue(look.properties().contains("weight"));
+        Assert.assertEquals(1, look.nullableKeys().size());
+        Assert.assertTrue(look.nullableKeys().contains("weight"));
+    }
+
+    @Test
+    public void testAddEdgeLabelNewEdgeWithNullableKeysAbsent() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.edgeLabel("look")
+              .properties("time", "weight")
+              .nullableKeys("weight")
+              .link("person", "book")
+              .create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book", "id", 123456,
+                                        "name", "Java in action");
+
+        Edge edge = baby.addEdge("look", java, "time", "2017-09-09");
+        Assert.assertEquals("look", edge.label());
+        Assert.assertEquals("2017-09-09", edge.value("time"));
+    }
+
+    @Test
+    public void testAddEdgeLabelNewVertexWithNotNullableKeysAbsent() {
+        initProperties();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.edgeLabel("look")
+              .properties("time", "weight")
+              .nullableKeys("weight")
+              .link("person", "book")
+              .create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book", "id", 123456,
+                                        "name", "Java in action");
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Absent 'time'
+            baby.addEdge("look", java, "weight", 0.5);
+        });
+    }
+
+    @Test
     public void testRemoveNotExistPropertyKey() {
         SchemaManager schema = graph().schema();
         schema.propertyKey("not-exist-pk").remove();
@@ -754,6 +895,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
+              .nullableKeys("city")
               .create();
 
         graph().addVertex(T.label, "person", "name", "marko", "age", 22);
@@ -784,6 +926,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
+              .nullableKeys("city")
               .create();
 
         schema.indexLabel("personByAge").onV("person").by("age").search()
@@ -821,6 +964,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
+              .nullableKeys("age")
               .create();
 
         schema.indexLabel("personByCity").onV("person").by("city").secondary()
@@ -895,6 +1039,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
+              .nullableKeys("city")
               .create();
 
         schema.vertexLabel("book")
@@ -941,6 +1086,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
+              .nullableKeys("city")
               .create();
 
         schema.vertexLabel("book")
@@ -997,6 +1143,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
+              .nullableKeys("city")
               .create();
 
         schema.vertexLabel("book")
@@ -1051,6 +1198,7 @@ public class SchemaCoreTest extends BaseCoreTest{
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
+              .nullableKeys("city")
               .create();
 
         schema.vertexLabel("book")

@@ -30,4 +30,6 @@ public interface VertexLabelBuilder extends SchemaBuilder {
     VertexLabelBuilder properties(String... propertyNames);
 
     VertexLabelBuilder primaryKeys(String... keys);
+
+    VertexLabelBuilder nullableKeys(String... keys);
 }

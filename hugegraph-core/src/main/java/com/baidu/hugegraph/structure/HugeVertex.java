@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -172,29 +173,45 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Override
-    public Edge addEdge(String label, Vertex vertex, Object... properties) {
-        ElementHelper.legalPropertyKeyValueArray(properties);
-        E.checkArgument(label != null && !label.isEmpty(),
-                        "Vertex label can't be null or empty");
+    public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
+        ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
+        Id id = HugeElement.getIdValue(elemKeys.id());
+        Set<String> keys = elemKeys.keys();
+
+        // Check id (must be null)
+        if (id != null) {
+            throw Edge.Exceptions.userSuppliedIdsNotSupported();
+        }
+
+        // Check target vertex
         E.checkArgumentNotNull(vertex, "Target vertex can't be null");
-
-
+        E.checkArgument(vertex instanceof HugeVertex,
+                        "Target vertex must be an instance of HugeVertex");
         HugeVertex targetVertex = (HugeVertex) vertex;
+
+        // Check label
+        E.checkArgument(label != null && !label.isEmpty(),
+                        "Edge label can't be null or empty");
         EdgeLabel edgeLabel = this.graph().edgeLabel(label);
-
-        E.checkArgument(
-                CollectionUtil.containsAll(ElementHelper.getKeys(properties),
-                                           edgeLabel.sortKeys()),
-                "The sort key(s) must be setted for the edge with label: '%s'",
-                edgeLabel.name());
-
+        // Check link
         E.checkArgument(edgeLabel.checkLinkEqual(this.label(), vertex.label()),
                         "Undefined link of edge label '%s': '%s' -> '%s'",
                         label, this.label(), vertex.label());
+        // Check sortKeys
+        E.checkArgument(CollectionUtil.containsAll(keys, edgeLabel.sortKeys()),
+                        "The sort key(s) must be setted for the edge " +
+                        "with label: '%s'", edgeLabel.name());
 
-        Id id = HugeElement.getIdValue(properties);
-        if (id != null) {
-            throw Edge.Exceptions.userSuppliedIdsNotSupported();
+        // Check weather passed all not-nullable-props
+        Collection<?> notNullableKeys = CollectionUtils.subtract(
+                                        edgeLabel.properties(),
+                                        edgeLabel.nullableKeys());
+        if (!keys.containsAll(notNullableKeys)) {
+            E.checkArgument(false, "All not-nullable property keys: '%s' " +
+                            "of edge label '%s' must be setted, " +
+                            "but missed keys: '%s'",
+                            notNullableKeys, edgeLabel.name(),
+                            CollectionUtils.subtract(notNullableKeys, keys));
         }
 
         HugeEdge edge = new HugeEdge(this.graph(), id, edgeLabel);
@@ -202,7 +219,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         edge.vertices(this, targetVertex);
 
         // Set properties
-        ElementHelper.attachProperties(edge, properties);
+        ElementHelper.attachProperties(edge, keyValues);
 
         // Set id if it not exists
         if (id == null) {

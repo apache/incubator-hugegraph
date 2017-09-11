@@ -34,4 +34,6 @@ public interface EdgeLabelBuilder extends SchemaBuilder {
     EdgeLabelBuilder sortKeys(String... keys);
 
     EdgeLabelBuilder properties(String... propertyNames);
+
+    EdgeLabelBuilder nullableKeys(String... keys);
 }

@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -55,12 +54,6 @@ public class EdgeLabel extends SchemaLabel {
     @Override
     public HugeType type() {
         return HugeType.EDGE_LABEL;
-    }
-
-    @Override
-    public EdgeLabel indexNames(String... names) {
-        this.indexNames.addAll(Arrays.asList(names));
-        return this;
     }
 
     public Frequency frequency() {
@@ -119,11 +112,6 @@ public class EdgeLabel extends SchemaLabel {
                 this.sortKeys.add(key);
             }
         }
-        return this;
-    }
-
-    public EdgeLabel properties(String... propertyNames) {
-        this.properties.addAll(Arrays.asList(propertyNames));
         return this;
     }
 
@@ -223,6 +211,12 @@ public class EdgeLabel extends SchemaLabel {
         @Override
         public Builder properties(String... propertyNames) {
             this.edgeLabel.properties(propertyNames);
+            return this;
+        }
+
+        @Override
+        public Builder nullableKeys(String... keys) {
+            this.edgeLabel.nullableKeys(keys);
             return this;
         }
 

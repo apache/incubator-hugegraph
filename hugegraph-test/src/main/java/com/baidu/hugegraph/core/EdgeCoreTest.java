@@ -79,6 +79,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.vertexLabel("language")
               .properties("name", "dynamic")
               .primaryKeys("name")
+              .nullableKeys("dynamic")
               .create();
         schema.vertexLabel("book")
               .properties("name")
@@ -96,11 +97,13 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         schema.edgeLabel("transfer")
               .properties("id", "amount", "timestamp", "message")
+              .nullableKeys("message")
               .multiTimes().sortKeys("id")
               .link("person", "person")
               .create();
         schema.edgeLabel("authored").singleTime()
               .properties("contribution", "comment", "score")
+              .nullableKeys("score", "contribution", "comment")
               .link("author", "book")
               .create();
         schema.edgeLabel("write").properties("time")
@@ -108,6 +111,7 @@ public class EdgeCoreTest extends BaseCoreTest {
               .link("author", "book")
               .create();
         schema.edgeLabel("look").properties("time", "score")
+              .nullableKeys("score")
               .multiTimes().sortKeys("time")
               .link("person", "book")
               .create();
