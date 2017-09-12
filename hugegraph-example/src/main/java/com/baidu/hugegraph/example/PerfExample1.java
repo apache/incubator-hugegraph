@@ -133,12 +133,14 @@ public class PerfExample1 {
         EdgeLabel knows = schema.edgeLabel("knows")
                 .sourceLabel("person").targetLabel("person")
                 .properties("date")
+                .nullableKeys("date")
                 .ifNotExist()
                 .create();
 
         EdgeLabel created = schema.edgeLabel("created")
                 .sourceLabel("person").targetLabel("software")
                 .properties("date")
+                .nullableKeys("date")
                 .ifNotExist()
                 .create();
     }
