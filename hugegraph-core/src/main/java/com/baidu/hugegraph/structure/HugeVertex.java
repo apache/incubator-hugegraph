@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.structure;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;

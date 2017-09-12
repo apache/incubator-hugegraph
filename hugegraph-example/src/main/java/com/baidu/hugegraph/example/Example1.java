@@ -147,6 +147,7 @@ public class Example1 {
         schema.edgeLabel("authored").singleTime()
               .sourceLabel("author").targetLabel("book")
               .properties("contribution", "comment")
+              .nullableKeys("comment")
               .create();
 
         schema.edgeLabel("write").multiTimes().properties("time")
