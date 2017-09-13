@@ -110,10 +110,6 @@ public class TextBackendEntry implements BackendEntry {
         return list;
     }
 
-    public void merge(TextBackendEntry other) {
-        this.columns.putAll(other.columns);
-    }
-
     public void append(TextBackendEntry entry) {
         for (Entry<String, String> col : entry.columns.entrySet()) {
             String newValue = col.getValue();
@@ -179,5 +175,11 @@ public class TextBackendEntry implements BackendEntry {
             this.columns.put(StringEncoding.decodeString(column.name),
                              StringEncoding.decodeString(column.value));
         }
+    }
+
+    @Override
+    public void merge(BackendEntry other) {
+        TextBackendEntry text = (TextBackendEntry) other;
+        this.columns.putAll(text.columns);
     }
 }

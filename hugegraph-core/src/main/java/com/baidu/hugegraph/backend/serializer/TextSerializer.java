@@ -175,6 +175,7 @@ public class TextSerializer extends AbstractSerializer {
         Id id = IdGenerator.of(valParts[0]);
 
         HugeEdge edge = new HugeEdge(graph, id, label);
+        edge.name(colParts[2]);
 
         boolean isOutEdge = colParts[0].equals(HugeType.EDGE_OUT.name());
         if (isOutEdge) {
@@ -447,7 +448,7 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.writeId(vertexLabel.type(), id);
         entry.column(HugeKeys.NAME, JsonUtil.toJson(vertexLabel.name()));
-        entry.column(HugeKeys.ID_STRATEGY, 
+        entry.column(HugeKeys.ID_STRATEGY,
                      JsonUtil.toJson(vertexLabel.idStrategy()));
         entry.column(HugeKeys.PRIMARY_KEYS,
                      JsonUtil.toJson(vertexLabel.primaryKeys().toArray()));
