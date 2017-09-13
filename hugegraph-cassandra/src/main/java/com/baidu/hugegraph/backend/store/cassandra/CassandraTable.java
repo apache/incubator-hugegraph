@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.datastax.driver.core.schemabuilder.Create;
+import com.datastax.driver.core.schemabuilder.SchemaStatement;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
 
@@ -523,94 +524,55 @@ public abstract class CassandraTable {
 
     protected void createTable(CassandraSessionPool.Session session,
                                HugeKeys[] columns,
-                               HugeKeys[] primaryKeys) {
+                               int columnStart) {
         DataType[] columnTypes = new DataType[columns.length];
         for (int i = 0; i < columns.length; i++) {
             columnTypes[i] = DataType.text();
         }
-        this.createTable(session, columns, columnTypes, primaryKeys);
+        this.createTable(session, columns, columnTypes, columnStart);
     }
 
     protected void createTable(CassandraSessionPool.Session session,
                                HugeKeys[] columns,
                                DataType[] columnTypes,
-                               HugeKeys[] primaryKeys) {
-        // TODO: to make it more clear.
-        assert (primaryKeys.length > 0);
-        HugeKeys[] partitionKeys = new HugeKeys[] {primaryKeys[0]};
-        HugeKeys[] clusterKeys = null;
-        if (primaryKeys.length > 1) {
-            clusterKeys = Arrays.copyOfRange(
-                          primaryKeys, 1, primaryKeys.length);
-        } else {
-            clusterKeys = new HugeKeys[] {};
+                               int columnStart) {
+        assert (columnStart > 0);
+        this.createTable(session, columns, columnTypes, 1, columnStart);
+    }
+
+    protected void createTable(CassandraSessionPool.Session session,
+                               HugeKeys[] columns,
+                               int clusteringStart,
+                               int columnStart) {
+        DataType[] columnTypes = new DataType[columns.length];
+        for (int i = 0; i < columns.length; i++) {
+            columnTypes[i] = DataType.text();
         }
         this.createTable(session, columns, columnTypes,
-                         partitionKeys, clusterKeys);
-    }
-
-    protected void createTable(CassandraSessionPool.Session session,
-                               HugeKeys[] columns,
-                               HugeKeys[] pKeys,
-                               HugeKeys[] cKeys) {
-        DataType[] columnTypes = new DataType[columns.length];
-        for (int i = 0; i < columns.length; i++) {
-            columnTypes[i] = DataType.text();
-        }
-        this.createTable(session, columns, columnTypes, pKeys, cKeys);
+                         clusteringStart, columnStart);
     }
 
     protected void createTable(CassandraSessionPool.Session session,
                                HugeKeys[] columns,
                                DataType[] columnTypes,
-                               HugeKeys[] pKeys,
-                               HugeKeys[] cKeys) {
+                               int clusteringStart,
+                               int columnStart) {
         assert columns.length == columnTypes.length;
 
-        StringBuilder sb = new StringBuilder(128 + columns.length * 64);
-
-        // Append table
-        sb.append("CREATE TABLE IF NOT EXISTS ");
-        sb.append(this.table);
-        sb.append("(");
-
-        // Append columns
-        for (int i = 0; i < columns.length; i++) {
-            // Append column name
-            sb.append(formatKey(columns[i]));
-            sb.append(" ");
-            // Append column type
-            sb.append(columnTypes[i].asFunctionParameterString());
-            sb.append(", ");
+        Create createTable = SchemaBuilder.createTable(this.table)
+                                          .ifNotExists();
+        for (int i = 0; i < clusteringStart; i++) {
+            createTable.addPartitionKey(formatKey(columns[i]), columnTypes[i]);
+        }
+        for (int i = clusteringStart; i < columnStart; i++) {
+            createTable.addClusteringColumn(formatKey(columns[i]), columnTypes[i]);
+        }
+        for (int i = columnStart; i < columns.length; i++) {
+            createTable.addColumn(formatKey(columns[i]), columnTypes[i]);
         }
 
-        // Append primary keys
-        sb.append("PRIMARY KEY (");
-
-        // Append partition keys
-        sb.append("(");
-        for (HugeKeys i : pKeys) {
-            if (i != pKeys[0]) {
-                sb.append(", ");
-            }
-            sb.append(formatKey(i));
-        }
-        sb.append(")");
-
-        // Append clustering keys
-        for (HugeKeys i : cKeys) {
-            sb.append(", ");
-            sb.append(formatKey(i));
-        }
-
-        // Append the end of primary keys
-        sb.append(")");
-
-        // Append the end of table declare
-        sb.append(");");
-
-        LOG.debug("Create table: {}", sb);
-        session.execute(sb.toString());
+        LOG.debug("Create table: {}", createTable);
+        session.execute(createTable);
     }
 
     protected void dropTable(CassandraSessionPool.Session session) {
@@ -621,18 +583,12 @@ public abstract class CassandraTable {
     protected void createIndex(CassandraSessionPool.Session session,
                                String indexName,
                                HugeKeys column) {
-        StringBuilder sb = new StringBuilder();
+        SchemaStatement createIndex = SchemaBuilder.createIndex(indexName)
+                                      .ifNotExists().onTable(this.table)
+                                      .andColumn(formatKey(column));
 
-        sb.append("CREATE INDEX IF NOT EXISTS ");
-        sb.append(indexName);
-        sb.append(" ON ");
-        sb.append(this.table);
-        sb.append("(");
-        sb.append(formatKey(column));
-        sb.append(");");
-
-        LOG.debug("Create index: {}", sb);
-        session.execute(sb.toString());
+        LOG.debug("Create index: {}", createIndex);
+        session.execute(createIndex);
     }
 
     /*************************** abstract methods ***************************/
