@@ -30,7 +30,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.cache.Cache;
@@ -40,6 +39,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.util.Log;
 
 public class PerfExample1 {
 
@@ -51,12 +51,12 @@ public class PerfExample1 {
 
     public static void main(String[] args) throws InterruptedException {
         if (args.length < 3) {
-            System.out.println("Usage: times threadno");
+            System.out.println("Usage: url times threadno");
             return;
         }
 
         int times = Integer.parseInt(args[1]);
-        int threadno = Integer.parseInt(args[2]);;
+        int threadno = Integer.parseInt(args[2]);
 
         // NOTE: this test with HugeGraph is for local, change it into
         // client if test with restful server from remote
@@ -243,5 +243,3 @@ public class PerfExample1 {
         }
     }
 }
-
-
