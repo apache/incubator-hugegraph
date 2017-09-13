@@ -68,9 +68,7 @@ public class CassandraTables {
                     HugeKeys.PROPERTIES
             };
 
-            HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
-
-            super.createTable(session, columns, primaryKeys);
+            super.createTable(session, columns, 1);
         }
     }
 
@@ -95,9 +93,7 @@ public class CassandraTables {
                     HugeKeys.PROPERTIES
             };
 
-            HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
-
-            super.createTable(session, columns, primaryKeys);
+            super.createTable(session, columns, 1);
         }
     }
 
@@ -118,9 +114,7 @@ public class CassandraTables {
                     HugeKeys.PROPERTIES
             };
 
-            HugeKeys[] primaryKeys = new HugeKeys[] {HugeKeys.NAME};
-
-            super.createTable(session, columns, primaryKeys);
+            super.createTable(session, columns, 1);
         }
     }
 
@@ -143,13 +137,7 @@ public class CassandraTables {
             };
 
             // The base-type and base-value as clustering key
-            HugeKeys[] primaryKeys = new HugeKeys[] {
-                    HugeKeys.NAME,
-                    HugeKeys.BASE_TYPE,
-                    HugeKeys.BASE_VALUE
-            };
-
-            super.createTable(session, columns, primaryKeys);
+            super.createTable(session, columns, 3);
         }
     }
 
@@ -175,15 +163,7 @@ public class CassandraTables {
                     DataType.map(DataType.text(), DataType.text())
             };
 
-            HugeKeys[] partitionKeys = new HugeKeys[] {
-                    HugeKeys.ID
-            };
-
-            HugeKeys[] clusterKeys = new HugeKeys[] {
-            };
-
-            super.createTable(session, columns, columnTypes,
-                              partitionKeys, clusterKeys);
+            super.createTable(session, columns, columnTypes, 1);
             super.createIndex(session, "vertex_label_index", HugeKeys.LABEL);
         }
 
@@ -241,15 +221,7 @@ public class CassandraTables {
                     DataType.map(DataType.text(), DataType.text())
             };
 
-            HugeKeys[] primaryKeys = new HugeKeys[] {
-                    HugeKeys.SOURCE_VERTEX,
-                    HugeKeys.DIRECTION,
-                    HugeKeys.LABEL,
-                    HugeKeys.SORT_VALUES,
-                    HugeKeys.TARGET_VERTEX
-            };
-
-            super.createTable(session, columns, columnTypes, primaryKeys);
+            super.createTable(session, columns, columnTypes, 5);
             super.createIndex(session, "edge_label_index", HugeKeys.LABEL);
         }
 
@@ -380,18 +352,13 @@ public class CassandraTables {
                     HugeKeys.ELEMENT_IDS
             };
 
-            HugeKeys[] primaryKeys = new HugeKeys[] {
-                    HugeKeys.FIELD_VALUES,
-                    HugeKeys.INDEX_LABEL_NAME
-            };
-
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
                     DataType.text(),
                     DataType.set(DataType.text())
             };
 
-            super.createTable(session, columns, columnTypes, primaryKeys);
+            super.createTable(session, columns, columnTypes, 2);
         }
 
         @Override
@@ -468,18 +435,13 @@ public class CassandraTables {
                     HugeKeys.ELEMENT_IDS
             };
 
-            HugeKeys[] primaryKeys = new HugeKeys[] {
-                    HugeKeys.INDEX_LABEL_NAME,
-                    HugeKeys.FIELD_VALUES
-            };
-
             DataType[] columnTypes = new DataType[] {
                     DataType.text(),
                     DataType.decimal(),
                     DataType.set(DataType.text())
             };
 
-            super.createTable(session, columns, columnTypes, primaryKeys);
+            super.createTable(session, columns, columnTypes, 2);
         }
 
         @Override

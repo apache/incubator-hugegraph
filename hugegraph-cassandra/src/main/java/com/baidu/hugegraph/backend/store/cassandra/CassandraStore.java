@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.cassandra;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -305,17 +306,20 @@ public abstract class CassandraStore implements BackendStore {
         String strategy = this.conf.get(CassandraOptions.CASSANDRA_STRATEGY);
 
         // Replication factor
-        int replication = this.conf.get(CassandraOptions.CASSANDRA_REPLICATION);
+        int factor = this.conf.get(CassandraOptions.CASSANDRA_REPLICATION);
 
-        String cql = String.format("CREATE KEYSPACE IF NOT EXISTS %s " +
-                     "WITH replication={'class':'%s','replication_factor':%d}",
-                     this.keyspace, strategy, replication);
+        Map<String, Object> replication = new HashMap<>();
+        replication.putIfAbsent("class", strategy);
+        replication.putIfAbsent("replication_factor", factor);
+
+        Statement stmt = SchemaBuilder.createKeyspace(this.keyspace)
+                         .ifNotExists().with().replication(replication);
 
         // Create keyspace with non-keyspace-session
-        LOG.debug("Create keyspace: {}", cql);
+        LOG.debug("Create keyspace: {}", stmt);
         Session session = this.cluster().connect();
         try {
-            session.execute(cql);
+            session.execute(stmt);
         } finally {
             if (!session.isClosed()) {
                 session.close();
