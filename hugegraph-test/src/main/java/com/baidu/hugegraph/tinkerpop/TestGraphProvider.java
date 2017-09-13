@@ -54,13 +54,22 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableSet;
 
-public class HugeGraphProvider extends AbstractGraphProvider {
+public class TestGraphProvider extends AbstractGraphProvider {
 
-    private static final Logger LOG = Log.logger(HugeGraphProvider.class);
+    private static final Logger LOG = Log.logger(TestGraphProvider.class);
 
     private static final String CONF_PATH = "hugegraph.properties";
     private static final String FILTER = "test.tinkerpop.filter";
     private static final String DEFAULT_FILTER = "methods.filter";
+    private static final String TEST_CLASS = "testClass";
+    private static final String TEST_METHOD = "testMethod";
+    private static final String LOAD_GRAPH = "loadGraph";
+    private static final String AKEY = "aKey";
+    private static final String STANDARD = "standard";
+    private static final String REGULAR_LOAD = "regularLoad";
+    private static final String GREMLIN_GRAPH_KEY = "gremlin.graph";
+    private static final String GREMLIN_GRAPH_VALUE =
+            "com.baidu.hugegraph.tinkerpop.TestGraphFactory";
     private static final String AKEY_CLASS_PREFIX =
             "org.apache.tinkerpop.gremlin.structure." +
             "PropertyTest.PropertyFeatureSupportTest";
@@ -69,13 +78,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
     private static final String IO_TEST_PREFIX =
             "org.apache.tinkerpop.gremlin.structure.io.IoTest";
 
-    private static Map<String, String> blackMethods = new HashMap<>();
+    private Map<String, String> blackMethods = new HashMap<>();
     private Map<String, TestGraph> graphs = new HashMap<>();
+    private final String suite;
 
-
-    public HugeGraphProvider() throws IOException {
+    public TestGraphProvider(String suite) throws IOException {
         super();
         this.initBlackList();
+        this.suite = suite;
     }
 
     private void initBlackList() throws IOException {
@@ -84,7 +94,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
             filter = DEFAULT_FILTER;
         }
 
-        String blackList = HugeGraphProvider.class.getClassLoader()
+        String blackList = TestGraphProvider.class.getClassLoader()
                            .getResource(filter).getPath();
         File file = new File(blackList);
         E.checkArgument(
@@ -124,7 +134,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
             HugeVertexProperty.class);
 
     public PropertiesConfiguration getConf() {
-        String confFile = HugeGraphProvider.class.getClassLoader()
+        String confFile = TestGraphProvider.class.getClassLoader()
                                            .getResource(CONF_PATH).getPath();
         File file = new File(confFile);
         E.checkArgument(
@@ -158,8 +168,8 @@ public class HugeGraphProvider extends AbstractGraphProvider {
                              testFullName, blackMethods.get(testFullName)),
                blackMethods.containsKey(testFullName));
 
-        LOG.info("Full name of test is: {}", testFullName);
-        LOG.info("prefix is: {}", testFullName.substring(0, index));
+        LOG.debug("Full name of test is: {}", testFullName);
+        LOG.debug("Prefix of test is: {}", testFullName.substring(0, index));
         HashMap<String, Object> confMap = new HashMap<>();
         PropertiesConfiguration config = getConf();
         Iterator<String> keys = config.getKeys();
@@ -167,12 +177,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
             String key = keys.next();
             confMap.put(key, config.getProperty(key));
         }
-        confMap.put(CoreOptions.STORE.name(), graphName);
-        confMap.put("gremlin.graph",
-                    "com.baidu.hugegraph.tinkerpop.TestGraphFactory");
-        confMap.put("testClass", test);
-        confMap.put("testMethod", testMethod);
-        confMap.put("loadGraph", graphData);
+        String storePrefix = (String) config.getProperty(
+                                      CoreOptions.STORE.name());
+        confMap.put(CoreOptions.STORE.name(),
+                    storePrefix + "_" + this.suite + "_" + graphName);
+        confMap.put(GREMLIN_GRAPH_KEY, GREMLIN_GRAPH_VALUE);
+        confMap.put(TEST_CLASS, test);
+        confMap.put(TEST_METHOD, testMethod);
+        confMap.put(LOAD_GRAPH, graphData);
 
         return confMap;
     }
@@ -214,14 +226,14 @@ public class HugeGraphProvider extends AbstractGraphProvider {
 
         // Define property key 'aKey' based on specified type in test name
         String aKeyType = getAKeyType(
-                          (Class<?>) config.getProperty("testClass"),
-                          config.getString("testMethod"));
+                          (Class<?>) config.getProperty(TEST_CLASS),
+                          config.getString(TEST_METHOD));
         if (aKeyType != null) {
-            testGraph.initPropertyKey("aKey", aKeyType);
+            testGraph.initPropertyKey(AKEY, aKeyType);
         }
 
-        String ioType = getIoType((Class<?>) config.getProperty("testClass"),
-                                  config.getString("testMethod"));
+        String ioType = getIoType((Class<?>) config.getProperty(TEST_CLASS),
+                                  config.getString(TEST_METHOD));
 
         // Basic schema is initiated by default once a graph is open
         testGraph.initBasicSchema(IdStrategy.AUTOMATIC,
@@ -231,10 +243,10 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         testGraph.isLastIdCustomized(false);
         testGraph.loadedGraph(ioType);
         testGraph.autoPerson(false);
-        testGraph.ioTest(ioTest((Class<?>) config.getProperty("testClass")));
+        testGraph.ioTest(ioTest((Class<?>) config.getProperty(TEST_CLASS)));
 
-        Object loadGraph = config.getProperty("loadGraph");
-        if (loadGraph != null && !graphName.equals("standard")) {
+        Object loadGraph = config.getProperty(LOAD_GRAPH);
+        if (loadGraph != null && !graphName.endsWith(STANDARD)) {
             this.loadGraphData(testGraph,
                                (LoadGraphWith.GraphData) loadGraph);
         }
@@ -287,7 +299,7 @@ public class HugeGraphProvider extends AbstractGraphProvider {
         testGraph.tx().commit();
 
         if (testGraph.loadedGraph() == null) {
-            testGraph.loadedGraph("regularLoad");
+            testGraph.loadedGraph(REGULAR_LOAD);
         }
 
         switch (loadGraphWith) {
