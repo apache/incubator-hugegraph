@@ -75,4 +75,16 @@ public class BinaryBackendEntry implements BackendEntry {
     public void columns(Collection<BackendColumn> bytesColumns) {
         this.columns = bytesColumns;
     }
+
+    @Override
+    public void merge(BackendEntry other) {
+        for (BackendColumn col : other.columns()) {
+            BackendColumn origin = this.column(col.name);
+            if (origin != null) {
+                origin.value = col.value;
+            } else {
+                this.column(col);
+            }
+        }
+    }
 }

@@ -202,4 +202,9 @@ public class CassandraBackendEntry implements BackendEntry {
     public void columns(Collection<BackendColumn> bytesColumns) {
         throw new RuntimeException("Not supported by Cassandra");
     }
+
+    @Override
+    public void merge(BackendEntry other) {
+        throw new RuntimeException("Not supported by Cassandra");
+    }
 }

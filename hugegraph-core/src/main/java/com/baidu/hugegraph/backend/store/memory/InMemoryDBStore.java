@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -47,6 +46,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 /**
  * NOTE:
@@ -172,9 +172,15 @@ public class InMemoryDBStore implements BackendStore {
                     rs.put(entryId, entry);
                 } else if (textEntry.containsPrefix(column)) {
                     // An edge in the vertex
-                    TextBackendEntry result = new TextBackendEntry(entryId);
-                    result.columns(textEntry.columnsWithPrefix(column));
-                    rs.put(entryId, result);
+                    TextBackendEntry edges = new TextBackendEntry(entryId);
+                    edges.columns(textEntry.columnsWithPrefix(column));
+
+                    BackendEntry result = rs.get(entryId);
+                    if (result == null) {
+                        rs.put(entryId, edges);
+                    } else {
+                        result.merge(edges);
+                    }
                 }
             }
         }
@@ -247,9 +253,9 @@ public class InMemoryDBStore implements BackendStore {
                     this.store.put(entry.id(), entry);
                 } else {
                     // Merge columns if the entry exists
-                    BackendEntry old =  this.store.get(entry.id());
+                    BackendEntry origin =  this.store.get(entry.id());
                     // TODO: Compatible with BackendEntry
-                    ((TextBackendEntry) old).merge((TextBackendEntry) entry);
+                    origin.merge(entry);
                 }
                 break;
             case DELETE:

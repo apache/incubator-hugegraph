@@ -43,4 +43,6 @@ public interface BackendEntry {
 
     public Collection<BackendColumn> columns();
     public void columns(Collection<BackendColumn> columns);
+
+    public void merge(BackendEntry other);
 }
