@@ -208,14 +208,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                         "The sort key(s) must be setted for the edge " +
                         "with label: '%s'", edgeLabel.name());
 
-        // Check weather passed all not-nullable-props
+        // Check weather passed all non-null props
         Collection<?> notNullableKeys = CollectionUtils.subtract(
                                         edgeLabel.properties(),
                                         edgeLabel.nullableKeys());
         if (!keys.containsAll(notNullableKeys)) {
-            E.checkArgument(false, "All not-nullable property keys: '%s' " +
+            E.checkArgument(false, "All non-null property keys: %s " +
                             "of edge label '%s' must be setted, " +
-                            "but missed keys: '%s'",
+                            "but missed keys: %s",
                             notNullableKeys, edgeLabel.name(),
                             CollectionUtils.subtract(notNullableKeys, keys));
         }

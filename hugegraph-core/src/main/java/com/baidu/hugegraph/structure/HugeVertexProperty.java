@@ -21,6 +21,8 @@ package com.baidu.hugegraph.structure;
 
 import java.util.Iterator;
 
+import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -56,6 +58,10 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
 
     @Override
     public void remove() {
+        assert super.element() instanceof HugeVertex;
+        VertexLabel vertexLabel = ((HugeVertex) super.element()).vertexLabel();
+        E.checkArgument(vertexLabel.nullableKeys().contains(this.key()),
+                        "Can't remove non-null vertex property '%s'", this);
         this.owner.tx().removeVertexProperty(this);
     }
 
