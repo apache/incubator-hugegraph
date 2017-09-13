@@ -220,7 +220,8 @@ public class TestGraph implements Graph {
     }
 
     private boolean needAddIdToLoadGraph() {
-        if (this.graph.name().equals("standard") || this.loadedGraph == null) {
+        if (this.graph.name().endsWith("standard") ||
+            this.loadedGraph == null) {
             return false;
         }
         switch (this.loadedGraph) {
@@ -301,7 +302,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("songType").asText().ifNotExist().create();
         schema.propertyKey("performances").asInt().ifNotExist().create();
 
-        IdStrategy idStrategy = this.graph.name().equals("standard") ?
+        IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
                                 IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
         switch (idStrategy) {
             case AUTOMATIC:
@@ -362,7 +363,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("acl").ifNotExist().create();
         schema.propertyKey("temp").ifNotExist().create();
 
-        IdStrategy idStrategy = this.graph.name().equals("standard") ?
+        IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
                                 IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
         switch (idStrategy) {
             case AUTOMATIC:
@@ -470,7 +471,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("lang").ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
 
-        IdStrategy idStrategy = this.graph.name().equals("standard") ?
+        IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
                                 IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
         switch (idStrategy) {
             case AUTOMATIC:

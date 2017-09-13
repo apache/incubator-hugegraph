@@ -23,6 +23,7 @@ import org.apache.tinkerpop.gremlin.GraphProviderClass;
 import org.junit.runner.RunWith;
 
 @RunWith(ProcessBasicSuite.class)
-@GraphProviderClass(provider = HugeGraphProvider.class, graph = TestGraph.class)
+@GraphProviderClass(provider = ProcessTestGraphProvider.class,
+                    graph = TestGraph.class)
 public class ProcessStandardTest {
 }
