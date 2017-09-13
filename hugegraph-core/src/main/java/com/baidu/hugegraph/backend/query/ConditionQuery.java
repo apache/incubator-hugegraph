@@ -26,8 +26,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.tinkerpop.gremlin.structure.T;
-
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition.Relation;

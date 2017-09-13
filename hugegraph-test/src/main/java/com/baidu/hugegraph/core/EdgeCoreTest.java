@@ -551,7 +551,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         // Query edges of a vertex
         Vertex james = vertex("author", "id", 1);
         List<Edge> edges = graph.traversal().V(james.id()).bothE().toList();
+        Assert.assertEquals(6, edges.size());
 
+        edges = ImmutableList.copyOf(james.edges(Direction.BOTH));
         Assert.assertEquals(6, edges.size());
     }
 
@@ -564,6 +566,10 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         List<Vertex> vertices = graph.traversal().V(jeff.id())
                                 .both("friend").toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = ImmutableList.copyOf(
+                   jeff.vertices(Direction.BOTH, "friend"));
         Assert.assertEquals(2, vertices.size());
     }
 

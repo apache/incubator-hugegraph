@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.graph;
 
-import static com.baidu.hugegraph.config.ServerOptions.MAX_EDGES_PER_BATCH;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +37,6 @@ import javax.ws.rs.core.Context;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.slf4j.Logger;
@@ -51,6 +48,7 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -108,7 +106,8 @@ public class EdgeAPI extends API {
         TriFunction<HugeGraph, String, String, Vertex> getVertex =
                     checkV ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
-        final int maxEdges = g.configuration().get(MAX_EDGES_PER_BATCH);
+        final int maxEdges = g.configuration()
+                              .get(ServerOptions.MAX_EDGES_PER_BATCH);
         if (edges.size() > maxEdges) {
             throw new HugeException(
                       "Too many counts of edges for one time post, " +

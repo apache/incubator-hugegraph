@@ -48,11 +48,13 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.type.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableSet;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
@@ -293,9 +295,19 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             return this.getEdges(direction, edgeLabels);
         }
 
-        Query query = GraphTransaction.constructEdgesQuery(
-                      this.id(), direction, edgeLabels);
-        return this.tx().queryEdges(query).iterator();
+        // Deal with direction is BOTH
+        ImmutableSet<Direction> directions = ImmutableSet.of(direction);
+        if (direction == Direction.BOTH) {
+            directions = ImmutableSet.of(Direction.OUT, Direction.IN);
+        }
+
+        ExtendableIterator<Edge> results = new ExtendableIterator<>();
+        for (Direction dir : directions) {
+            Query query = GraphTransaction.constructEdgesQuery(
+                          this.id(), dir, edgeLabels);
+            results.extend(this.tx().queryEdges(query).iterator());
+        }
+        return results;
     }
 
     @Override
