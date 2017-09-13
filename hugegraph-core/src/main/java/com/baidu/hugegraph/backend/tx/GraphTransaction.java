@@ -271,12 +271,12 @@ public class GraphTransaction extends AbstractTransaction {
                             primaryKeys, vertexLabel.name(), strategy);
         }
 
-        // Check weather passed all not-nullable-props
+        // Check weather passed all non-null props
         Collection<?> notNullableKeys = CollectionUtils.subtract(
                                         vertexLabel.properties(),
                                         vertexLabel.nullableKeys());
         if (!keys.containsAll(notNullableKeys)) {
-            E.checkArgument(false, "All not-nullable property keys: '%s' " +
+            E.checkArgument(false, "All non-null property keys: '%s' " +
                             "of vertex label '%s' must be setted, " +
                             "but missed keys: '%s'",
                             notNullableKeys, vertexLabel.name(),

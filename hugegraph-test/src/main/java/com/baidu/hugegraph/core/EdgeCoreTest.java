@@ -65,6 +65,11 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.propertyKey("city").asText().create();
         schema.propertyKey("amount").asFloat().create();
         schema.propertyKey("message").asText().create();
+        schema.propertyKey("place").asText().create();
+        schema.propertyKey("tool").asText().create();
+        schema.propertyKey("reason").asText().create();
+        schema.propertyKey("hurt").asBoolean().create();
+        schema.propertyKey("arrested").asBoolean().create();
 
         LOG.info("===============  vertexLabel  ================");
 
@@ -130,12 +135,24 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.edgeLabel("created").singleTime()
               .link("author", "language")
               .create();
+        schema.edgeLabel("strike").link("person", "person")
+              .properties("id", "timestamp", "place", "tool", "reason",
+                          "hurt", "arrested")
+              .multiTimes().sortKeys("id")
+              .nullableKeys("tool", "reason", "hurt")
+              .ifNotExist().create();
 
         LOG.info("===============  edgeLabel index  ================");
 
         schema.indexLabel("transferByTimestamp").onE("transfer").search()
               .by("timestamp").create();
 
+        schema.indexLabel("strikeByTimestamp").onE("strike").search()
+                .by("timestamp").create();
+        schema.indexLabel("strikeByPlace").onE("strike").secondary()
+              .by("tool").create();
+        schema.indexLabel("strikeByPlaceToolReason").onE("strike").secondary()
+              .by("place", "tool", "reason").create();
         // TODO: add edge index test
         // schema.indexLabel("authoredByScore").on(authored).secondary()
         //       .by("score").create();
@@ -922,7 +939,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Edge edge = initEdgeTransfer();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            edge.property("time", "2017-1-1");
+            edge.property("age", 18);
         });
     }
 
@@ -969,6 +986,240 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             edge.property("id").remove();
         });
+    }
+
+    @Test
+    public void testRemoveEdgePropertyNullableWithIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("strike", sean, "id", 1,
+                                   "timestamp", current, "place", "park",
+                                   "tool", "shovel", "reason", "jeer",
+                                   "arrested", false);
+        edge.property("tool").remove();
+    }
+
+    @Test
+    public void testRemoveEdgePropertyNonNullWithIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("strike", sean, "id", 1,
+                                   "timestamp", current, "place", "park",
+                                   "tool", "shovel", "reason", "jeer",
+                                   "arrested", false);
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("timestamp").remove();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("place").remove();
+        });
+    }
+
+    @Test
+    public void testRemoveEdgePropertyNullableWithoutIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("strike", sean, "id", 1,
+                                   "timestamp", current, "place", "park",
+                                   "tool", "shovel", "reason", "jeer",
+                                   "hurt", true, "arrested", false);
+        edge.property("hurt").remove();
+    }
+
+    @Test
+    public void testRemoveEdgePropertyNonNullWithoutIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("strike", sean, "id", 1,
+                                   "timestamp", current, "place", "park",
+                                   "tool", "shovel", "reason", "jeer",
+                                   "arrested", false);
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("arrested").remove();
+        });
+    }
+
+    @Test
+    public void testAddEdgePropertyWithIllegalValueForIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        Assert.assertThrows(BackendException.class, () -> {
+            louise.addEdge("strike", sean, "id", 1,
+                           "timestamp", current, "place", "park",
+                           "tool", "\u0000", "reason", "jeer",
+                           "arrested", false);
+        }, (e) -> {
+            Assert.assertTrue(e.getMessage().contains(
+                    "Illegal value of text property: '\u0000'"));
+        });
+    }
+
+    @Test
+    public void testQueryEdgeByPropertyWithEmptyString() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        louise.addEdge("strike", sean, "id", 1,
+                       "timestamp", current, "place", "park",
+                       "tool", "", "reason", "jeer",
+                       "arrested", false);
+        Edge edge = graph.traversal().E().has("tool", "").next();
+        Assert.assertEquals(1, (int) edge.value("id"));
+        Assert.assertEquals("", edge.value("tool"));
+
+        edge = graph.traversal().E().has("tool", "").has("place", "park")
+               .has("reason", "jeer").next();
+        Assert.assertEquals(1, (int) edge.value("id"));
+    }
+
+    // TODO: uncomment this test case after hugegraph-801 fixed
+    /*
+    @Test
+    public void testQueryEdgeBeforeAfterUpdateMultiPropertyWithIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("strike", sean, "id", 1,
+                                   "timestamp", current, "place", "park",
+                                   "tool", "shovel", "reason", "jeer",
+                                   "arrested", false);
+
+        List<Edge> vl = graph.traversal().E().has("tool", "shovel").toList();
+        Assert.assertEquals(1, vl.size());
+        Assert.assertEquals(1, (int) vl.get(0).value("id"));
+        vl = graph.traversal().E().has("timestamp", current).toList();
+        Assert.assertEquals(1, vl.size());
+        Assert.assertEquals(1, (int) vl.get(0).value("id"));
+        vl = graph.traversal().E().has("tool", "knife").toList();
+        Assert.assertEquals(0, vl.size());
+        vl = graph.traversal().E().has("timestamp", 666L).toList();
+        Assert.assertEquals(0, vl.size());
+
+        edge.property("tool", "knife");
+        edge.property("timestamp", 666L);
+
+        vl = graph.traversal().E().has("tool", "shovel").toList();
+        Assert.assertEquals(0, vl.size());
+        vl = graph.traversal().E().has("timestamp", current).toList();
+        Assert.assertEquals(0, vl.size());
+        vl = graph.traversal().E().has("tool", "knife").toList();
+        Assert.assertEquals(1, vl.size());
+        Assert.assertEquals(1, (int) vl.get(0).value("id"));
+        vl = graph.traversal().E().has("timestamp", 666L).toList();
+        Assert.assertEquals(1, vl.size());
+        Assert.assertEquals(1, (int) vl.get(0).value("id"));
+    }*/
+
+    @Test
+    public void testQueryEdgeBeforeAfterUpdatePropertyWithSecondaryIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("strike", sean, "id", 1,
+                                   "timestamp", current, "place", "park",
+                                   "tool", "shovel", "reason", "jeer",
+                                   "arrested", false);
+
+        List<Edge> el = graph.traversal().E().has("tool", "shovel")
+                        .toList();
+        Assert.assertEquals(1, el.size());
+        Assert.assertEquals(1, (int) el.get(0).value("id"));
+        el = graph.traversal().E().has("tool", "knife").toList();
+        Assert.assertEquals(0, el.size());
+
+        edge.property("tool", "knife");
+
+        el = graph.traversal().E().has("tool", "shovel").toList();
+        Assert.assertEquals(0, el.size());
+        el = graph.traversal().E().has("tool", "knife").toList();
+        Assert.assertEquals(1, el.size());
+        Assert.assertEquals(1, (int) el.get(0).value("id"));
+    }
+
+    @Test
+    public void testQueryEdgeBeforeAfterUpdatePropertyWithSearchIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("strike", sean, "id", 1,
+                                   "timestamp", current, "place", "park",
+                                   "tool", "shovel", "reason", "jeer",
+                                   "arrested", false);
+
+        List<Edge> el = graph.traversal().E().has("timestamp", current)
+                        .toList();
+        Assert.assertEquals(1, el.size());
+        Assert.assertEquals(1, (int) el.get(0).value("id"));
+        el = graph.traversal().E().has("timestamp", 666L).toList();
+        Assert.assertEquals(0, el.size());
+
+        edge.property("timestamp", 666L);
+
+        el = graph.traversal().E().has("timestamp", current).toList();
+        Assert.assertEquals(0, el.size());
+        el = graph.traversal().E().has("timestamp", 666L).toList();
+        Assert.assertEquals(1, el.size());
+        Assert.assertEquals(1, (int) el.get(0).value("id"));
+    }
+
+    @Test
+    public void testQueryEdgeWithNullablePropertyInJointIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+        long current = System.currentTimeMillis();
+        louise.addEdge("strike", sean, "id", 1,
+                       "timestamp", current, "place", "park",
+                       "tool", "shovel", "arrested", false);
+
+        List<Edge> el = graph.traversal().E().has("place", "park")
+                        .toList();
+        Assert.assertEquals(1, el.size());
+        Assert.assertEquals(1, (int) el.get(0).value("id"));
+        el = graph.traversal().E().has("place", "park")
+             .has("tool", "shovel").toList();
+        Assert.assertEquals(1, el.size());
+        Assert.assertEquals(1, (int) el.get(0).value("id"));
     }
 
     private void init18Edges() {

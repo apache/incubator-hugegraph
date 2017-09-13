@@ -60,6 +60,8 @@ import com.google.common.collect.ImmutableSet;
 
 public class IndexTransaction extends AbstractTransaction {
 
+    private static final String INDEX_EMPTY_SYM = "\u0000";
+
     public IndexTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
     }
@@ -78,6 +80,17 @@ public class IndexTransaction extends AbstractTransaction {
         }
     }
 
+    private static boolean hasNullableProp(HugeElement element, String key) {
+        Set<String> nullableKeys;
+        if (element instanceof HugeVertex) {
+            nullableKeys = ((HugeVertex) element).vertexLabel().nullableKeys();
+        } else {
+            assert element instanceof HugeEdge;
+            nullableKeys = ((HugeEdge) element).edgeLabel().nullableKeys();
+        }
+        return nullableKeys.contains(key);
+    }
+
     protected void updateIndex(String indexName,
                                HugeElement element,
                                boolean removed) {
@@ -89,18 +102,30 @@ public class IndexTransaction extends AbstractTransaction {
         List<Object> propValues = new ArrayList<>();
         for (String field : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(field);
-            E.checkState(property != null,
-                         "Not exist property '%s' in %s '%s'",
-                         field, element.type(), element.id());
+            if (property == null) {
+                E.checkState(hasNullableProp(element, field),
+                             "Non-null property '%s'is null for '%s'",
+                             field, element);
+                // Not build index for record with nullable field
+                break;
+            }
             propValues.add(property.value());
         }
 
         for (int i = 0, n = propValues.size(); i < n; i++) {
             List<Object> subPropValues = propValues.subList(0, i + 1);
 
-            Object propValue = null;
+            Object propValue;
             if (indexLabel.indexType() == IndexType.SECONDARY) {
                 propValue = SplicingIdGenerator.concatValues(subPropValues);
+                // Use \u0000 as escape for empty String and treat it as
+                // illegal value for text property
+                E.checkArgument(!propValue.equals(INDEX_EMPTY_SYM),
+                                "Illegal value of text property: '%s'",
+                                INDEX_EMPTY_SYM);
+                if (((String) propValue).isEmpty()) {
+                    propValue = INDEX_EMPTY_SYM;
+                }
             } else {
                 assert indexLabel.indexType() == IndexType.SEARCH;
                 E.checkState(subPropValues.size() == 1,
@@ -242,6 +267,10 @@ public class IndexTransaction extends AbstractTransaction {
             List<String> joinedKeys = indexFields.subList(0, queryKeys.size());
             String joinedValues = query.userpropValuesString(joinedKeys);
 
+            // Escape empty String to "\u0000"
+            if (joinedValues.isEmpty()) {
+                joinedValues = INDEX_EMPTY_SYM;
+            }
             indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
             indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
             indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);

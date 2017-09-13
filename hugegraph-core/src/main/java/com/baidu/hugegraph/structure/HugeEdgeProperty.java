@@ -19,10 +19,11 @@
 
 package com.baidu.hugegraph.structure;
 
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-
-import com.baidu.hugegraph.schema.PropertyKey;
 
 public class HugeEdgeProperty<V> extends HugeProperty<V> {
 
@@ -38,6 +39,10 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
 
     @Override
     public void remove() {
+        assert super.element() instanceof HugeEdge;
+        EdgeLabel edgeLabel = ((HugeEdge) super.element()).edgeLabel();
+        E.checkArgument(edgeLabel.nullableKeys().contains(this.key()),
+                        "Can't remove non-null edge property '%s'", this);
         this.owner.tx().removeEdgeProperty(this);
     }
 
