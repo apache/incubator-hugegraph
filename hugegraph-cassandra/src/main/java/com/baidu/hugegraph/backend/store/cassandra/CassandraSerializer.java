@@ -182,6 +182,9 @@ public class CassandraSerializer extends AbstractSerializer {
             otherVertex.addOutEdge(edge.switchOwner());
         }
 
+        vertex.propLoaded(false);
+        otherVertex.propLoaded(false);
+
         // Parse edge properties
         Map<String, String> props = row.column(HugeKeys.PROPERTIES);
         for (Map.Entry<String, String> prop : props.entrySet()) {

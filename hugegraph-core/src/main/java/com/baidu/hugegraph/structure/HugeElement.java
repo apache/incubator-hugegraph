@@ -50,6 +50,7 @@ public abstract class HugeElement implements Element, GraphType {
     protected Map<String, HugeProperty<?>> properties;
     protected boolean removed;
     protected boolean fresh;
+    protected boolean propLoaded;
 
     public HugeElement(final HugeGraph graph, Id id) {
         E.checkArgument(graph != null, "HugeElement graph can't be null");
@@ -58,6 +59,7 @@ public abstract class HugeElement implements Element, GraphType {
         this.properties = new HashMap<>();
         this.removed = false;
         this.fresh = false;
+        this.propLoaded = true;
     }
 
     protected abstract GraphTransaction tx();
@@ -85,16 +87,20 @@ public abstract class HugeElement implements Element, GraphType {
         return this.fresh;
     }
 
+    public boolean propLoaded() {
+        return this.propLoaded;
+    }
+
+    public void propLoaded(boolean loaded) {
+        this.propLoaded = loaded;
+    }
+
     public void committed() {
         this.fresh = false;
     }
 
     public Map<String, HugeProperty<?>> getProperties() {
         return Collections.unmodifiableMap(this.properties);
-    }
-
-    public void setProperties(Map<String, HugeProperty<?>> properties) {
-        this.properties = properties;
     }
 
     @SuppressWarnings("unchecked")
@@ -230,6 +236,12 @@ public abstract class HugeElement implements Element, GraphType {
 
     public void resetProperties() {
         this.properties = new HashMap<>();
+        this.propLoaded = false;
+    }
+
+    public void copyProperties(HugeElement element) {
+        this.properties = new HashMap<>(element.properties);
+        this.propLoaded = true;
     }
 
     @Override

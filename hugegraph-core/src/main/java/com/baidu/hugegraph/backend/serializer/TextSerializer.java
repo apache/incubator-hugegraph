@@ -185,6 +185,8 @@ public class TextSerializer extends AbstractSerializer {
             vertex.addInEdge(edge);
         }
 
+        otherVertex.propLoaded(false);
+
         // Edge properties
         for (int i = 1; i < valParts.length; i += 2) {
             this.parseProperty(valParts[i], valParts[i + 1], edge);

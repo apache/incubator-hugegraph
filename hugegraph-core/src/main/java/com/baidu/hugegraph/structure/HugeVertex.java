@@ -84,6 +84,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public String name() {
+        assert this.label.idStrategy() == IdStrategy.PRIMARY_KEY;
         if (this.name == null) {
             if (this.id != null) {
                 String[] parts = SplicingIdGenerator.parse(this.id);
@@ -225,6 +226,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         // Set properties
         ElementHelper.attachProperties(edge, keyValues);
+        edge.propLoaded(true);
 
         // Set id if it not exists
         if (id == null) {
@@ -358,10 +360,22 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
     }
 
+    protected void ensureVertexProperties() {
+        if (this.propLoaded) {
+            return;
+        }
+
+        Iterator<Vertex> vertices = tx().queryVertices(this.id()).iterator();
+        assert vertices.hasNext();
+        this.copyProperties((HugeVertex) vertices.next());
+    }
+
     @Override
     @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
         // TODO: Compatible with TinkerPop properties() (HugeGraph-742)
+
+        this.ensureVertexProperties();
 
         // Capacity should be about the following size
         int propsCapacity = propertyKeys.length == 0 ?
