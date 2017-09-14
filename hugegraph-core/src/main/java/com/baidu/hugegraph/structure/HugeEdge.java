@@ -173,9 +173,21 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
     }
 
+    protected void ensureEdgeProperties() {
+        if (this.propLoaded) {
+            return;
+        }
+
+        Iterator<Edge> edges = tx().queryEdges(this.id()).iterator();
+        assert edges.hasNext();
+        this.copyProperties((HugeEdge) edges.next());
+    }
+
     @Override
     @SuppressWarnings("unchecked") // (Property<V>) prop
     public <V> Iterator<Property<V>> properties(String... propertyKeys) {
+        this.ensureEdgeProperties();
+
         // Capacity should be about the following size
         int propsCapacity = propertyKeys.length == 0 ?
                             this.sizeOfProperties() :
@@ -220,21 +232,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                                          direction);
         }
 
-        for (Vertex vertex : vertices) {
-            this.ensureVertexProperties((HugeVertex) vertex);
-        }
         return vertices.iterator();
-    }
-
-    protected void ensureVertexProperties(HugeVertex vertex) {
-        if (vertex.hasProperties()) {
-            return;
-        }
-
-        Iterator<Vertex> vertices = tx().queryVertices(vertex.id()).iterator();
-        assert vertices.hasNext();
-        HugeVertex fetched = (HugeVertex) vertices.next();
-        vertex.setProperties(fetched.getProperties());
     }
 
     public void vertices(HugeVertex source, HugeVertex target) {
