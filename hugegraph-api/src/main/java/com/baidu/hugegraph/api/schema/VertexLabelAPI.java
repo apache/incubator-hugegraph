@@ -43,6 +43,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 @Path("graphs/{graph}/schema/vertexlabels")
@@ -58,6 +59,9 @@ public class VertexLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertexLabel jsonVertexLabel) {
+        E.checkArgumentNotNull(jsonVertexLabel, "The request json body to " +
+                               "create VertexLabel can't be null or empty");
+
         LOG.debug("Graph [{}] create vertex label: {}",
                   graph, jsonVertexLabel);
 
@@ -76,6 +80,9 @@ public class VertexLabelAPI extends API {
                          @PathParam("graph") String graph,
                          @QueryParam("action") String action,
                          JsonVertexLabel jsonVertexLabel) {
+        E.checkArgumentNotNull(jsonVertexLabel, "The request json body to " +
+                               "update VertexLabel can't be null or empty");
+
         LOG.debug("Graph [{}] %s vertex label: {}",
                   graph, action, jsonVertexLabel);
 

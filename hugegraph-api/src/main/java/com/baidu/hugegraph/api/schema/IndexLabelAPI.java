@@ -40,6 +40,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 @Path("graphs/{graph}/schema/indexlabels")
@@ -55,6 +56,9 @@ public class IndexLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          IndexLabelAPI.JsonIndexLabel jsonIndexLabel) {
+        E.checkArgumentNotNull(jsonIndexLabel, "The request json body to " +
+                               "create IndexLabel can't be null or empty");
+
         LOG.debug("Graph [{}] create index label: {}", graph, jsonIndexLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);

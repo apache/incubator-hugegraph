@@ -43,6 +43,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 @Path("graphs/{graph}/schema/edgelabels")
@@ -58,6 +59,9 @@ public class EdgeLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdgeLabel jsonEdgeLabel) {
+        E.checkArgumentNotNull(jsonEdgeLabel, "The request json body to " +
+                               "create EdgeLabel can't be null or empty");
+
         LOG.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
@@ -75,6 +79,9 @@ public class EdgeLabelAPI extends API {
                          @PathParam("graph") String graph,
                          @QueryParam("action") String action,
                          JsonEdgeLabel jsonEdgeLabel) {
+        E.checkArgumentNotNull(jsonEdgeLabel, "The request json body to " +
+                               "create EdgeLabel can't be null or empty");
+
         LOG.debug("Graph [{}] %s edge label: {}",
                   graph, action, jsonEdgeLabel);
 

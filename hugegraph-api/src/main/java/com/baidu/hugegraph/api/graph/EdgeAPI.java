@@ -72,22 +72,26 @@ public class EdgeAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         CreateEdge edge) {
-        LOG.debug("Graph [{}] create edge: {}", graph, edge);
+                         JsonEdge jsonEdge) {
+        E.checkArgumentNotNull(jsonEdge, "The request json body to " +
+                               "create Edge can't be null or empty");
 
-        E.checkArgumentNotNull(edge.source, "Expect source vertex id");
-        E.checkArgumentNotNull(edge.target, "Expect target vertex id");
+        LOG.debug("Graph [{}] create edge: {}", graph, jsonEdge);
+
+        E.checkArgumentNotNull(jsonEdge.source, "Expect source vertex id");
+        E.checkArgumentNotNull(jsonEdge.target, "Expect target vertex id");
 
         Graph g = graph(manager, graph);
         /*
          * NOTE: If the vertex id is correct but label is null or incorrect,
          * we allow to create it here
          */
-        Vertex srcVertex = getVertex((HugeGraph) g, edge.source, null);
-        Vertex tgtVertex = getVertex((HugeGraph) g, edge.target, null);
-        Edge e = srcVertex.addEdge(edge.label, tgtVertex, edge.properties());
+        Vertex srcVertex = getVertex((HugeGraph) g, jsonEdge.source, null);
+        Vertex tgtVertex = getVertex((HugeGraph) g, jsonEdge.target, null);
+        Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex,
+                                      jsonEdge.properties());
 
-        return manager.serializer(g).writeEdge(e);
+        return manager.serializer(g).writeEdge(edge);
     }
 
     @POST
@@ -100,7 +104,10 @@ public class EdgeAPI extends API {
             @Context GraphManager manager,
             @PathParam("graph") String graph,
             @QueryParam("checkVertex") @DefaultValue("true") boolean checkV,
-            List<CreateEdge> edges) {
+            List<JsonEdge> jsonEdges) {
+        E.checkArgumentNotNull(jsonEdges, "The request json body to " +
+                               "create Edges can't be null or empty");
+
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         TriFunction<HugeGraph, String, String, Vertex> getVertex =
@@ -108,19 +115,19 @@ public class EdgeAPI extends API {
 
         final int maxEdges = g.configuration()
                               .get(ServerOptions.MAX_EDGES_PER_BATCH);
-        if (edges.size() > maxEdges) {
+        if (jsonEdges.size() > maxEdges) {
             throw new HugeException(
                       "Too many counts of edges for one time post, " +
                       "the maximum number is '%s'", maxEdges);
         }
 
-        LOG.debug("Graph [{}] create edges: {}", graph, edges);
+        LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
 
-        List<String> ids = new ArrayList<>(edges.size());
+        List<String> ids = new ArrayList<>(jsonEdges.size());
 
         g.tx().open();
         try {
-            for (CreateEdge edge : edges) {
+            for (JsonEdge edge : jsonEdges) {
                 E.checkArgumentNotNull(edge.source,
                                        "Expect source vertex id");
                 E.checkArgumentNotNull(edge.sourceLabel,
@@ -211,7 +218,7 @@ public class EdgeAPI extends API {
     }
 
     @JsonIgnoreProperties(value = {"type"})
-    static class CreateEdge {
+    static class JsonEdge {
 
         @JsonProperty("outV")
         public String source;
@@ -231,7 +238,7 @@ public class EdgeAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("CreateEdge{label=%s, " +
+            return String.format("JsonEdge{label=%s, " +
                                  "source-vertex=%s, source-vertex-label=%s, " +
                                  "target-vertex=%s, target-vertex-label=%s, " +
                                  "properties=%s}",
