@@ -209,15 +209,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                         "with label: '%s'", edgeLabel.name());
 
         // Check weather passed all non-null props
-        Collection<?> notNullableKeys = CollectionUtils.subtract(
-                                        edgeLabel.properties(),
-                                        edgeLabel.nullableKeys());
-        if (!keys.containsAll(notNullableKeys)) {
+        Collection<?> nonNullKeys = CollectionUtils.subtract(
+                                    edgeLabel.properties(),
+                                    edgeLabel.nullableKeys());
+        if (!keys.containsAll(nonNullKeys)) {
             E.checkArgument(false, "All non-null property keys: %s " +
                             "of edge label '%s' must be setted, " +
                             "but missed keys: %s",
-                            notNullableKeys, edgeLabel.name(),
-                            CollectionUtils.subtract(notNullableKeys, keys));
+                            nonNullKeys, edgeLabel.name(),
+                            CollectionUtils.subtract(nonNullKeys, keys));
         }
 
         HugeEdge edge = new HugeEdge(this, id, edgeLabel);
