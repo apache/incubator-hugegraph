@@ -20,8 +20,11 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.commons.collections.CollectionUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -35,6 +38,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringUtil;
+import com.google.common.collect.ImmutableSet;
 
 public class EdgeLabel extends SchemaLabel {
 
@@ -170,6 +174,7 @@ public class EdgeLabel extends SchemaLabel {
             this.checkLink();
             this.checkProperties();
             this.checkSortKeys();
+            this.checkNullableKeys();
 
             this.transaction.addEdgeLabel(this.edgeLabel);
             return this.edgeLabel;
@@ -178,18 +183,18 @@ public class EdgeLabel extends SchemaLabel {
         @Override
         public EdgeLabel append() {
             String name = this.edgeLabel.name();
-            // Don't allow user to modify some stable properties.
-            this.checkStableVars();
-            this.checkProperties();
-
             EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
             if (edgeLabel == null) {
                 throw new HugeException("Can't append the edge label '%s' " +
                                         "since it doesn't exist", name);
             }
 
-            edgeLabel.properties().addAll(this.edgeLabel.properties);
+            this.checkStableVars();
+            this.checkProperties();
+            this.checkNullableKeys();
 
+            edgeLabel.properties.addAll(this.edgeLabel.properties);
+            edgeLabel.nullableKeys.addAll(this.edgeLabel.nullableKeys);
             this.transaction.addEdgeLabel(edgeLabel);
             return edgeLabel;
         }
@@ -269,43 +274,72 @@ public class EdgeLabel extends SchemaLabel {
             // The properties of edge label allowded be empty.
             // If properties is not empty, check all property.
             for (String pk : properties) {
-                E.checkArgumentNotNull(
-                        this.transaction.getPropertyKey(pk),
-                        "Undefined property key '%s' in the edge label '%s'",
-                        pk, name);
+                E.checkArgumentNotNull(this.transaction.getPropertyKey(pk),
+                                       "Undefined property key '%s' in " +
+                                       "the edge label '%s'", pk, name);
             }
+        }
+
+        @SuppressWarnings("unchecked")
+        private void checkNullableKeys() {
+            String name = this.edgeLabel.name();
+
+            EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
+            // The originProps is empty when firstly create edge label
+            Set<String> originProps = edgeLabel == null ?
+                                      ImmutableSet.of() :
+                                      edgeLabel.properties();
+            Set<String> appendProps = this.edgeLabel.properties();
+
+            Set<String> nullableKeys = this.edgeLabel.nullableKeys();
+            E.checkArgument(CollectionUtils.union(originProps, appendProps)
+                            .containsAll(nullableKeys),
+                            "The nullableKeys: %s to be created or appended " +
+                            "must belong to the origin/new properties: %s/%s ",
+                            nullableKeys, originProps, appendProps);
+
+            List<String> sortKeys = this.edgeLabel.sortKeys();
+            Collection<?> intersecKeys = CollectionUtils.intersection(
+                                         sortKeys, nullableKeys);
+            E.checkArgument(intersecKeys.isEmpty(),
+                            "The nullableKeys: %s are not allowed to " +
+                            "belong to sortKeys: %s of edge label '%s'",
+                            nullableKeys, sortKeys, name);
         }
 
         private void checkSortKeys() {
             String name = this.edgeLabel.name();
-            Set<String> properties = this.edgeLabel.properties();
             List<String> sortKeys = this.edgeLabel.sortKeys();
             Frequency frequency = this.edgeLabel.frequency();
 
             if (frequency == Frequency.SINGLE) {
                 E.checkArgument(sortKeys.isEmpty(),
-                                "EdgeLabelBuilder can't contain sortKeys " +
+                                "EdgeLabel can't contain sortKeys " +
                                 "when the cardinality property is single");
             } else {
                 E.checkState(sortKeys != null,
                              "The sortKeys can't be null when the " +
                              "cardinality property is multiple");
                 E.checkArgument(!sortKeys.isEmpty(),
-                                "EdgeLabelBuilder must contain sortKeys " +
+                                "EdgeLabel must contain sortKeys " +
                                 "when the cardinality property is multiple");
             }
 
-            if (sortKeys != null && !sortKeys.isEmpty()) {
-                // Check whether the properties contains the specified keys
-                E.checkArgument(!properties.isEmpty(),
-                                "The properties can't be empty when exist " +
-                                "sort keys for edge label '%s'", name);
-                for (String key : sortKeys) {
-                    E.checkArgument(properties.contains(key),
-                                    "The sort key '%s' must be contained in " +
-                                    "properties '%s' for edge label '%s'",
-                                    key, name, properties);
-                }
+            if (sortKeys.isEmpty()) {
+                return;
+            }
+
+            Set<String> properties = this.edgeLabel.properties();
+            // Check whether the properties contains the specified keys
+            E.checkArgument(!properties.isEmpty(),
+                            "The properties can't be empty when exist " +
+                            "sort keys for edge label '%s'", name);
+
+            for (String key : sortKeys) {
+                E.checkArgument(properties.contains(key),
+                                "The sort key '%s' must be contained in " +
+                                "properties '%s' for edge label '%s'",
+                                key, name, properties);
             }
         }
 

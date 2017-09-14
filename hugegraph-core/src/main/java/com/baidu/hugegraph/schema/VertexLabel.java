@@ -20,8 +20,11 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.commons.collections.CollectionUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -35,6 +38,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringUtil;
+import com.google.common.collect.ImmutableSet;
 
 public class VertexLabel extends SchemaLabel {
 
@@ -137,6 +141,7 @@ public class VertexLabel extends SchemaLabel {
 
             this.checkProperties();
             this.checkIdStrategy();
+            this.checkNullableKeys();
 
             this.transaction.addVertexLabel(this.vertexLabel);
             return this.vertexLabel;
@@ -145,18 +150,18 @@ public class VertexLabel extends SchemaLabel {
         @Override
         public VertexLabel append() {
             String name = this.vertexLabel.name();
-            // Don't allow user to modify some stable properties.
-            this.checkStableVars();
-            this.checkProperties();
-
             VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
             if (vertexLabel == null) {
                 throw new HugeException("Can't append the vertex label '%s' " +
                                         "since it doesn't exist", name);
             }
 
-            vertexLabel.properties().addAll(this.vertexLabel.properties);
+            this.checkStableVars();
+            this.checkProperties();
+            this.checkNullableKeys();
 
+            vertexLabel.properties.addAll(this.vertexLabel.properties);
+            vertexLabel.nullableKeys.addAll(this.vertexLabel.nullableKeys);
             this.transaction.addVertexLabel(vertexLabel);
             return vertexLabel;
         }
@@ -222,9 +227,36 @@ public class VertexLabel extends SchemaLabel {
             // If properties is not empty, check all property.
             for (String pk : properties) {
                 E.checkArgumentNotNull(this.transaction.getPropertyKey(pk),
-                                       "Undefined property key '%s' in the " +
-                                       "vertex label '%s'", pk, name);
+                                       "Undefined property key '%s' in " +
+                                       "the vertex label '%s'", pk, name);
             }
+        }
+
+        @SuppressWarnings("unchecked")
+        private void checkNullableKeys() {
+            String name = this.vertexLabel.name();
+
+            VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
+            // The originProps is empty when firstly create vertex label
+            Set<String> originProps = vertexLabel == null ?
+                                      ImmutableSet.of() :
+                                      vertexLabel.properties();
+            Set<String> appendProps = this.vertexLabel.properties();
+
+            Set<String> nullableKeys = this.vertexLabel.nullableKeys();
+            E.checkArgument(CollectionUtils.union(originProps, appendProps)
+                            .containsAll(nullableKeys),
+                            "The nullableKeys: %s to be created or appended " +
+                            "must belong to the origin/new properties: %s/%s",
+                            nullableKeys, originProps, appendProps);
+
+            List<String> primaryKeys = this.vertexLabel.primaryKeys();
+            Collection<?> intersecKeys = CollectionUtils.intersection(
+                                         primaryKeys, nullableKeys);
+            E.checkArgument(intersecKeys.isEmpty(),
+                            "The nullableKeys: %s are not allowed to " +
+                            "belong to primaryKeys: %s of vertex label '%s'",
+                            nullableKeys, primaryKeys, name);
         }
 
         private void checkIdStrategy() {
@@ -241,13 +273,13 @@ public class VertexLabel extends SchemaLabel {
                 case AUTOMATIC:
                 case CUSTOMIZE:
                     E.checkArgument(!hasPrimaryKey,
-                                    "Not allowed to pass primary keys " +
+                                    "Not allowed to assign primary keys " +
                                     "when using '%s' id strategy", strategy);
                     break;
                 case PRIMARY_KEY:
                     E.checkArgument(hasPrimaryKey,
-                                    "Must pass primary keys when " +
-                                    "using '%s' id strategy", strategy);
+                                    "Must assign some primary keys " +
+                                    "when using '%s' id strategy", strategy);
                     break;
                 default:
                     throw new AssertionError(String.format(
@@ -264,7 +296,7 @@ public class VertexLabel extends SchemaLabel {
             Set<String> properties = this.vertexLabel.properties();
             E.checkArgument(!properties.isEmpty(),
                             "The properties of vertex label '%s' " +
-                            "can't be empty whose id strategy is '%s'",
+                            "can't be empty when id strategy is '%s'",
                             name, IdStrategy.PRIMARY_KEY);
 
             List<String> primaryKeys = this.vertexLabel.primaryKeys();

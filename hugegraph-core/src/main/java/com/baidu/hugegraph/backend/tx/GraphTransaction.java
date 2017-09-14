@@ -266,21 +266,21 @@ public class GraphTransaction extends AbstractTransaction {
             // Check whether primaryKey exists
             List<String> primaryKeys = vertexLabel.primaryKeys();
             E.checkArgument(CollectionUtil.containsAll(keys, primaryKeys),
-                            "The primary keys: '%s' of vertex label '%s' " +
+                            "The primary keys: %s of vertex label '%s' " +
                             "must be set when using '%s' id strategy",
                             primaryKeys, vertexLabel.name(), strategy);
         }
 
         // Check weather passed all non-null props
-        Collection<?> notNullableKeys = CollectionUtils.subtract(
-                                        vertexLabel.properties(),
-                                        vertexLabel.nullableKeys());
-        if (!keys.containsAll(notNullableKeys)) {
-            E.checkArgument(false, "All non-null property keys: '%s' " +
+        Collection<?> nonNullKeys = CollectionUtils.subtract(
+                                    vertexLabel.properties(),
+                                    vertexLabel.nullableKeys());
+        if (!keys.containsAll(nonNullKeys)) {
+            E.checkArgument(false, "All non-null property keys: %s " +
                             "of vertex label '%s' must be setted, " +
-                            "but missed keys: '%s'",
-                            notNullableKeys, vertexLabel.name(),
-                            CollectionUtils.subtract(notNullableKeys, keys));
+                            "but missed keys: %s",
+                            nonNullKeys, vertexLabel.name(),
+                            CollectionUtils.subtract(nonNullKeys, keys));
         }
 
         // Create HugeVertex
