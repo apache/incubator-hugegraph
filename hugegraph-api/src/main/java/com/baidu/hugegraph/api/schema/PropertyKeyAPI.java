@@ -41,6 +41,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 @Path("graphs/{graph}/schema/propertykeys")
@@ -56,6 +57,9 @@ public class PropertyKeyAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonPropertyKey jsonPropertyKey) {
+        E.checkArgumentNotNull(jsonPropertyKey, "The request json body to " +
+                               "create PropertyKey can't be null or empty");
+
         LOG.debug("Graph [{}] create property key: {}",
                   graph, jsonPropertyKey);
 

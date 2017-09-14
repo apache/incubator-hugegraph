@@ -51,6 +51,7 @@ import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -66,12 +67,15 @@ public class VertexAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         CreateVertex vertex) {
-        LOG.debug("Graph [{}] create vertex: {}", graph, vertex);
+                         JsonVertex jsonVertex) {
+        E.checkArgumentNotNull(jsonVertex, "The request json body to " +
+                               "create Vertex can't be null or empty");
+
+        LOG.debug("Graph [{}] create vertex: {}", graph, jsonVertex);
 
         Graph g = graph(manager, graph);
-        Vertex v = g.addVertex(vertex.properties());
-        return manager.serializer(g).writeVertex(v);
+        Vertex vertex = g.addVertex(jsonVertex.properties());
+        return manager.serializer(g).writeVertex(vertex);
     }
 
     @POST
@@ -82,22 +86,25 @@ public class VertexAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public List<String> create(@Context GraphManager manager,
                                @PathParam("graph") String graph,
-                               List<CreateVertex> vertices) {
+                               List<JsonVertex> jsonVertices) {
+        E.checkArgumentNotNull(jsonVertices, "The request json body to " +
+                               "create Vertices can't be null or empty");
+
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         final int maxVertices = g.configuration().get(MAX_VERTICES_PER_BATCH);
-        if (vertices.size() > maxVertices) {
+        if (jsonVertices.size() > maxVertices) {
             throw new HugeException(
                       "Too many counts of vertices for one time post, " +
                       "the maximum number is '%s'", maxVertices);
         }
 
-        LOG.debug("Graph [{}] create vertices: {}", graph, vertices);
+        LOG.debug("Graph [{}] create vertices: {}", graph, jsonVertices);
 
-        List<String> ids = new ArrayList<>(vertices.size());
+        List<String> ids = new ArrayList<>(jsonVertices.size());
         g.tx().open();
         try {
-            for (CreateVertex vertex : vertices) {
+            for (JsonVertex vertex : jsonVertices) {
                 ids.add(g.addVertex(vertex.properties()).id().toString());
             }
             g.tx().commit();
@@ -154,7 +161,7 @@ public class VertexAPI extends API {
     }
 
     @JsonIgnoreProperties(value = {"type"})
-    static class CreateVertex {
+    static class JsonVertex {
 
         public Object id;
         public String label;
@@ -175,7 +182,7 @@ public class VertexAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("CreateVertex{label=%s, properties=%s}",
+            return String.format("JsonVertex{label=%s, properties=%s}",
                                  this.label, this.properties);
         }
     }
