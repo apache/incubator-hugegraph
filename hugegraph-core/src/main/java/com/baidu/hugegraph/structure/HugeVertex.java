@@ -226,7 +226,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         // Set properties
         ElementHelper.attachProperties(edge, keyValues);
-        edge.propLoaded(true);
 
         // Set id if it not exists
         if (id == null) {

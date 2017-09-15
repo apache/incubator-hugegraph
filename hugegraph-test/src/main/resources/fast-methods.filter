@@ -11,47 +11,6 @@ org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldValidateEqua
 ## property ID
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedPropertyTest.shouldNotBeEqualPropertiesAsThereIsDifferentKey: Not support property id
 
-## property update
-org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest.shouldConstructDetachedVertexAsReference: Not support duplicated property key/value in addVertex or update property
-org.apache.tinkerpop.gremlin.structure.GraphTest.shouldOverwriteEarlierKeyValuesWithLaterKeyValuesOnAddVertexIfMultiProperty: Not support duplicated property key/value in addVertex or update property
-org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyRemoval.shouldRemoveMultiPropertiesWhenVerticesAreRemoved: Not support duplicated property key/value in addVertex or update property
-org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyRemoval.shouldSupportIdempotentVertexPropertyRemoval: Not support duplicated property key/value in addVertex or update property
-org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyRemoval.shouldRemoveMultiProperties: Not support duplicated property key/value in addVertex or update property
-org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyRemoval.shouldAllowIteratingAndRemovingVertexPropertyProperties: Not support duplicated property key/value in addVertex or update property
-org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyAddition.shouldAllowIdenticalValuedMultiProperties: Not support duplicated property key/value in addVertex or update property
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackPropertyAutoTransactionByDefault: Not support duplicated property key/value in addVertex or update property
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldCommitPropertyAutoTransactionByDefault: Not support duplicated property key/value in addVertex or update property
-
-## vertex.edge(Both)
-org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldNotHaveAConcurrentModificationExceptionWhenIteratingAndRemovingAddingEdges: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModernToFileWithHelpers[graphml]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphml]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModern[graphml]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphml]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateModernGraph[graphml]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphml]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModernToFileWithHelpers[graphsonv1d0]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModern[graphsonv1d0]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateModernGraph[graphsonv1d0]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModernToFileWithHelpers[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModern[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateModernGraph[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphsonv2d0]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModernToFileWithHelpers[gryo]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[gryo]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteModern[gryo]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[gryo]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateModernGraph[gryo]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[gryo]: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphSONTest.shouldReadWriteModernWrappedInJsonObject: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphSONTest.shouldReadLegacyGraphSON: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldReadGraphML: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldReadGraphMLWithNoEdgeLabels: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldTransformGraphMLV2ToV3ViaXSLT: Not support vertex.edges(Direction.BOTH)
-org.apache.tinkerpop.gremlin.structure.io.IoTest.GraphMLTest.shouldReadGraphMLUnorderedElements: Not support vertex.edges(Direction.BOTH)
-
 ## self loop should treated as 2 edges
 org.apache.tinkerpop.gremlin.structure.util.star.StarGraphTest.shouldHandleSelfLoops: Self loop vertex only have 1 edge, this test expect 2 edges(1 IN and 1 OUT)
 
@@ -68,6 +27,15 @@ org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.s
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnEdge[supportsUniformListValues([100, 200, 300])]: Not support uniform of Integer because define uniform as String list
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertexOnAdd[supportsUniformListValues([try1, try2])]: Uniform list can't be accessed by vertex.property() which is supposed right by tinkerpop
 org.apache.tinkerpop.gremlin.structure.PropertyTest.PropertyFeatureSupportTest.shouldSetValueOnVertex[supportsUniformListValues([try1, try2])]: Uniform list can't be accessed by vertex.property() which is supposed right by tinkerpop
+
+# expect multi properties after setting single property multi times
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldOverwriteEarlierKeyValuesWithLaterKeyValuesOnAddVertexIfMultiProperty: Expect multi properties after setting single property multi times
+org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyRemoval.shouldRemoveMultiProperties: Expect multi properties after setting single property multi times
+org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyRemoval.shouldRemoveMultiPropertiesWhenVerticesAreRemoved: Expect multi properties after setting single property multi times
+org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyAddition.shouldAllowIdenticalValuedMultiProperties: Expect multi properties after setting single property multi times
+
+# not support nested property
+org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyRemoval.shouldAllowIteratingAndRemovingVertexPropertyProperties: Not support nested property
 
 ## failed tests with wrong edge number, reason may be: self edges exist, therefore number of edges is wrong
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.ProcessorTest.shouldProcessEdges: assertion error with unmatched edge number
@@ -117,14 +85,7 @@ org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdg
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextManual: Unsupported rollback operation by Cassandra
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackElementAutoTransactionByDefault: Unsupported rollback operation by Cassandra
-
-# index field may be null
-org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexTest.shouldCreateVertex: Index field may be null
-org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGraphSONManual[graphson-v1]: Index field may be null
-org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGraphSONManual[graphson-v1-embedded]: Index field may be null
-org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGraphSONManual[graphson-v2]: Index field may be null
-org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGraphSONManual[graphson-v2-embedded]: Index field may be null
-org.apache.tinkerpop.gremlin.structure.io.IoVertexTest.shouldReadWriteVerticesNoEdgesToGryoManual[gryo]: Index field may be null
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackPropertyAutoTransactionByDefault: Unsupported rollback operation by Cassandra
 
 ## not bugs
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv1d0]: weight property have both Float and Double value
@@ -147,16 +108,6 @@ org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.playl
 org.apache.tinkerpop.gremlin.process.traversal.CoreTraversalTest.shouldTraverseIfAutoTxEnabledAndOriginalTxIsClosed: Unsupported rollback operation by Cassandra
 org.apache.tinkerpop.gremlin.process.traversal.CoreTraversalTest.shouldTraverseIfManualTxEnabledAndOriginalTxIsClosed: Unsupported rollback operation by Cassandra
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldResetAfterRollback: Unsupported rollback operation by Cassandra
-
-# update property
-org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXpersonX_propertyXname_stephenX_propertyXname_stephenmX: Not support updating property value
-org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXpersonX_propertyXsingle_name_stephenX_propertyXsingle_name_stephenmX: Not support updating property value
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddVertexPropertyChanged: Not support updating property value
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerEdgePropertyChanged: Not support updating property value
-org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_V_addVXanimalX_propertyXname_valuesXnameXX_propertyXname_an_animalX_propertyXvaluesXnameX_labelX: Not support updating property value
-org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXanimalX_propertyXname_mateoX_propertyXname_gateoX_propertyXname_cateoX_propertyXage_5X: Not support updating property value
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachVertexPropertyWhenChanged: Not support updating property value
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachPropertyOfEdgeWhenChanged: Not support updating property value
 
 # unsupported IN index query
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterMixedCriteria: Unsupported IN index query
@@ -181,16 +132,6 @@ org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStra
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldSetIdOnAddVWithIdPropertyKeySpecifiedAndIdSuppliedAsProperty: Element ID strategy(__id/name in basic mode not have index)
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldGenerateDefaultIdOnGraphAddVWithGeneratedCustomId: Element ID strategy(__id/name in basic mode not have index)
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldGenerateDefaultIdOnGraphAddVWithSpecifiedId: Element ID strategy(__id/name in basic mode not have index)
-
-# index field may be null
-org.apache.tinkerpop.gremlin.process.traversal.step.filter.DropTest.Traversals.g_V_properties_drop: index field has null value
-org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXpersonX_propertyXname_stephenX: Index field may be null
-org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXlabel_person_name_stephenX: Index field may be null
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdgePropertyAdded: Index field may be null
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddVertexFromStart: Index field may be null
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddVertex: Index field may be null
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddVertexPropertyAdded: Index field may be null
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddVertexWithPropertyThenPropertyAdded: Index field may be null
 
 # unsupported OrP
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasXage_notXlteX10X_andXnotXbetweenX11_20XXXX_andXltX29X_orXeqX35XXXX_name: Unsupported OrP
@@ -221,6 +162,11 @@ org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTestV3d0.Tra
 
 # can't solve, but not bug
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddEdgeTest.Traversals.g_V_aggregateXxX_asXaX_selectXxX_unfold_addEXexistsWithX_toXaX_propertyXtime_nowX: Using edge label 'existWith' connect all vertices
+
+# expect multi properties after setting single property multi times
+org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXpersonX_propertyXname_stephenX_propertyXname_stephenmX: Expect multi properties after setting single property multi times
+org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXanimalX_propertyXname_mateoX_propertyXname_gateoX_propertyXname_cateoX_propertyXage_5X: Expect multi properties after setting single property multi times
+org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_V_addVXanimalX_propertyXname_valuesXnameXX_propertyXname_an_animalX_propertyXvaluesXnameX_labelX: Expect multi properties after setting single property multi times
 
 # pass, long time
 org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_repeatXoutX_timesX5X_asXaX_outXwrittenByX_asXbX_selectXa_bX_count: long time
