@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -43,7 +44,7 @@ public abstract class SchemaLabel extends SchemaElement
     }
 
     public Set<String> nullableKeys() {
-        return this.nullableKeys;
+        return Collections.unmodifiableSet(this.nullableKeys);
     }
 
     public SchemaLabel nullableKeys(String... keys) {
@@ -51,6 +52,10 @@ public abstract class SchemaLabel extends SchemaElement
         return this;
     }
 
+    /**
+     * Note: SchemaTransaction has called this method to remove,
+     * `vertexLabel.indexNames().remove(indexName);`
+     */
     @Override
     public Set<String> indexNames() {
         return this.indexNames;

@@ -21,6 +21,7 @@ package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -107,7 +108,7 @@ public class EdgeLabel extends SchemaLabel {
     }
 
     public List<String> sortKeys() {
-        return this.sortKeys;
+        return Collections.unmodifiableList(this.sortKeys);
     }
 
     public EdgeLabel sortKeys(String... keys) {
