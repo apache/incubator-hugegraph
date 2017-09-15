@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -103,7 +104,7 @@ public class IndexLabel extends SchemaElement {
     }
 
     public List<String> indexFields() {
-        return this.indexFields;
+        return Collections.unmodifiableList(this.indexFields);
     }
 
     public void indexFields(String... indexFields) {

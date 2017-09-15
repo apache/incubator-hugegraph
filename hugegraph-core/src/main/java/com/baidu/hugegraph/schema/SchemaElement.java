@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.schema;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -56,7 +57,7 @@ public abstract class SchemaElement
 
     @Override
     public Set<String> properties() {
-        return this.properties;
+        return Collections.unmodifiableSet(this.properties);
     }
 
     protected String propertiesSchema() {
