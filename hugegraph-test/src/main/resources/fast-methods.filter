@@ -37,20 +37,20 @@ org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyAddition
 # not support nested property
 org.apache.tinkerpop.gremlin.structure.VertexPropertyTest.VertexPropertyRemoval.shouldAllowIteratingAndRemovingVertexPropertyProperties: Not support nested property
 
-## failed tests with wrong edge number, reason may be: self edges exist, therefore number of edges is wrong
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.ProcessorTest.shouldProcessEdges: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=5.0, mean=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=5.0, mean=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.1, multiplier=0.0},PowerLawDistribution{gamma=2.1, multiplier=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.1, multiplier=0.0},PowerLawDistribution{gamma=2.1, multiplier=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.9, multiplier=0.0},PowerLawDistribution{gamma=2.9, multiplier=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.9, multiplier=0.0},PowerLawDistribution{gamma=2.9, multiplier=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=3.9, multiplier=0.0},PowerLawDistribution{gamma=3.9, multiplier=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=3.9, multiplier=0.0},PowerLawDistribution{gamma=3.9, multiplier=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: assertion error with unmatched edge number
-org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: assertion error with unmatched edge number
+## failed tests with wrong edge number, reason: replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.ProcessorTest.shouldProcessEdges: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=2.0, mean=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=5.0, mean=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(NormalDistribution{stdDeviation=2.0, mean=0.0},NormalDistribution{stdDeviation=5.0, mean=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.1, multiplier=0.0},PowerLawDistribution{gamma=2.1, multiplier=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.1, multiplier=0.0},PowerLawDistribution{gamma=2.1, multiplier=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.9, multiplier=0.0},PowerLawDistribution{gamma=2.9, multiplier=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.9, multiplier=0.0},PowerLawDistribution{gamma=2.9, multiplier=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=3.9, multiplier=0.0},PowerLawDistribution{gamma=3.9, multiplier=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=3.9, multiplier=0.0},PowerLawDistribution{gamma=3.9, multiplier=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: Replicated edges treated as one
 
 ## transaction failed
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionFireAndForget: HugeGraph transaction does not support submit
@@ -113,25 +113,8 @@ org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategy
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterMixedCriteria: Unsupported IN index query
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterVertexCriterion: Unsupported IN index query
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterVertexCriterionAndKeepLabels: Unsupported IN index query
-
-# partition strategy
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldWriteToMultiplePartitions: Partition strategy not handled currently
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldAppendPartitionToVertex: Partition strategy not handled currently
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldWriteVerticesToMultiplePartitions: Partition strategy not handled currently
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldAppendPartitionToEdge: Partition strategy not handled currently
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldThrowExceptionOnVInDifferentPartition: Partition strategy not handled currently
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldThrowExceptionOnEInDifferentPartition: Partition strategy not handled currently
-
-# element ID strategy(__id/name in basic mode not have index)
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldGenerateDefaultIdOnAddVWithSpecifiedId: Element ID strategy(__id/name in basic mode not have index)
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldGenerateDefaultIdOnAddEWithSpecifiedId: Element ID strategy(__id/name in basic mode not have index)
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldGenerateDefaultIdOnAddVWithGeneratedCustomId: Element ID strategy(__id/name in basic mode not have index)
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldSetIdOnAddEWithNamePropertyKeySpecifiedAndNameSuppliedAsProperty: Element ID strategy(__id/name in basic mode not have index)
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldSetIdOnAddEWithIdPropertyKeySpecifiedAndNameSuppliedAsProperty: Element ID strategy(__id/name in basic mode not have index)
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldSetIdOnAddVWithIdPropertyKeySpecifiedAndNameSuppliedAsProperty: Element ID strategy(__id/name in basic mode not have index)
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldSetIdOnAddVWithIdPropertyKeySpecifiedAndIdSuppliedAsProperty: Element ID strategy(__id/name in basic mode not have index)
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldGenerateDefaultIdOnGraphAddVWithGeneratedCustomId: Element ID strategy(__id/name in basic mode not have index)
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.ElementIdStrategyProcessTest.shouldGenerateDefaultIdOnGraphAddVWithSpecifiedId: Element ID strategy(__id/name in basic mode not have index)
+org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldWriteVerticesToMultiplePartitions: Only support one element IN index query
+org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldWriteToMultiplePartitions: Only support one element IN index query
 
 # unsupported OrP
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasXage_notXlteX10X_andXnotXbetweenX11_20XXXX_andXltX29X_orXeqX35XXXX_name: Unsupported OrP
@@ -149,16 +132,16 @@ org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategy
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachPropertyOfEdgeWhenRemoved: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachVertexPropertyWhenNew: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
 
-# assert error, long time, reason may be: self edges exist, therefore number of edges is wrong
-org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_both_both_count: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_repeatXoutX_timesX3X_count: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_repeatXoutX_timesX8X_count: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.ProfileTest.Traversals.grateful_V_out_out_profileXmetricsX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.map.ProfileTest.Traversals.grateful_V_out_out_profile: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTest.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_group_byXsongTypeX_byXcountX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTest.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_groupXaX_byXsongTypeX_byXcountX_capXaX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTestV3d0.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_group_byXsongTypeX_byXcountX: long time
-org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTestV3d0.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_groupXaX_byXsongTypeX_byXcountX_capXaX: long time
+# assert error, long time, reason: replicated edges treated as one
+org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_both_both_count: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_repeatXoutX_timesX3X_count: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_repeatXoutX_timesX8X_count: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.process.traversal.step.map.ProfileTest.Traversals.grateful_V_out_out_profileXmetricsX: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.process.traversal.step.map.ProfileTest.Traversals.grateful_V_out_out_profile: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTest.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_group_byXsongTypeX_byXcountX: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTest.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_groupXaX_byXsongTypeX_byXcountX_capXaX: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTestV3d0.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_group_byXsongTypeX_byXcountX: Replicated edges treated as one
+org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupTestV3d0.Traversals.g_V_repeatXbothXfollowedByXX_timesX2X_groupXaX_byXsongTypeX_byXcountX_capXaX: Replicated edges treated as one
 
 # can't solve, but not bug
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddEdgeTest.Traversals.g_V_aggregateXxX_asXaX_selectXxX_unfold_addEXexistsWithX_toXaX_propertyXtime_nowX: Using edge label 'existWith' connect all vertices

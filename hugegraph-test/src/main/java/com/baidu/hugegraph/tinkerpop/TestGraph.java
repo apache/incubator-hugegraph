@@ -574,6 +574,10 @@ public class TestGraph implements Graph {
         schema.propertyKey("old").ifNotExist().create();
         schema.propertyKey("new").ifNotExist().create();
         schema.propertyKey("color").ifNotExist().create();
+        schema.propertyKey("every").ifNotExist().create();
+        schema.propertyKey("gremlin.partitionGraphStrategy.partition")
+              .ifNotExist().create();
+
 
         if (this.ioTest) {
             schema.propertyKey("weight").asFloat().ifNotExist().create();
@@ -595,7 +599,8 @@ public class TestGraph implements Graph {
                                   "float", "double", "string", "integer",
                                   "long", "myId", "location", "x", "y", "s",
                                   "n", "d", "f", "i", "l", "to-change",
-                                  "to-remove", "to-keep", "old", "new", "color")
+                                  "to-remove", "to-keep", "old", "new", "color",
+                                  "gremlin.partitionGraphStrategy.partition")
                       .nullableKeys("__id", "oid", "name", "state", "status",
                                     "some", "that", "any", "this", "lang", "b",
                                     "communityIndex", "test", "testing", "acl",
@@ -604,6 +609,7 @@ public class TestGraph implements Graph {
                                     "long", "myId", "location", "x", "y", "s",
                                     "n", "d", "f", "i", "l", "to-change",
                                     "to-remove", "to-keep", "old", "new",
+                                    "gremlin.partitionGraphStrategy.partition",
                                     "color")
                       .useCustomizeId().ifNotExist().create();
                 break;
@@ -616,7 +622,8 @@ public class TestGraph implements Graph {
                                   "float", "double", "string", "integer",
                                   "long", "myId", "location", "x", "y", "s",
                                   "n", "d", "f", "i", "l", "to-change",
-                                  "to-remove", "to-keep", "old", "new", "color")
+                                  "to-remove", "to-keep", "old", "new", "color",
+                                  "gremlin.partitionGraphStrategy.partition")
                       .nullableKeys("__id", "oid", "name", "state", "status",
                                     "some", "that", "any", "this", "lang", "b",
                                     "communityIndex", "test", "testing", "acl",
@@ -625,6 +632,7 @@ public class TestGraph implements Graph {
                                     "long", "myId", "location", "x", "y", "s",
                                     "n", "d", "f", "i", "l", "to-change",
                                     "to-remove", "to-keep", "old", "new",
+                                    "gremlin.partitionGraphStrategy.partition",
                                     "color")
                       .ifNotExist().create();
                 break;
@@ -660,16 +668,34 @@ public class TestGraph implements Graph {
                             "new", "to-drop")
               .ifNotExist().create();
         schema.edgeLabel("aTOa").link(defaultVL, defaultVL)
+              .properties("gremlin.partitionGraphStrategy.partition")
+              .nullableKeys("gremlin.partitionGraphStrategy.partition")
+              .ifNotExist().create();
+        schema.edgeLabel("aTOb").link(defaultVL, defaultVL)
+              .properties("gremlin.partitionGraphStrategy.partition")
+              .nullableKeys("gremlin.partitionGraphStrategy.partition")
+              .ifNotExist().create();
+        schema.edgeLabel("bTOc").link(defaultVL, defaultVL)
+              .properties("gremlin.partitionGraphStrategy.partition")
+              .nullableKeys("gremlin.partitionGraphStrategy.partition")
+              .ifNotExist().create();
+        schema.edgeLabel("aTOc").link(defaultVL, defaultVL)
+              .properties("gremlin.partitionGraphStrategy.partition")
+              .nullableKeys("gremlin.partitionGraphStrategy.partition")
               .ifNotExist().create();
         schema.edgeLabel("connectsTo").link(defaultVL, defaultVL)
+              .properties("gremlin.partitionGraphStrategy.partition", "every")
+              .nullableKeys("gremlin.partitionGraphStrategy.partition", "every")
               .ifNotExist().create();
         schema.edgeLabel("knows").link(defaultVL, defaultVL)
               .properties("data", "test", "year", "boolean", "float",
                           "double", "string", "integer", "long", "weight",
-                          "myEdgeId", "since", "acl", "stars", "aKey")
+                          "myEdgeId", "since", "acl", "stars", "aKey",
+                          "gremlin.partitionGraphStrategy.partition")
               .nullableKeys("data", "test", "year", "boolean", "float",
                             "double", "string", "integer", "long", "weight",
-                            "myEdgeId", "since", "acl", "stars", "aKey")
+                            "myEdgeId", "since", "acl", "stars", "aKey",
+                            "gremlin.partitionGraphStrategy.partition")
               .ifNotExist().create();
         schema.edgeLabel("test").link(defaultVL, defaultVL)
               .properties("test", "xxx", "yyy")
@@ -734,6 +760,9 @@ public class TestGraph implements Graph {
         schema.indexLabel("selfByThis").onV(defaultVL).by("this")
               .ifNotExist().create();
         schema.indexLabel("selfByAny").onV(defaultVL).by("any")
+              .ifNotExist().create();
+        schema.indexLabel("selfByGremlinPartition").onV(defaultVL)
+              .by("gremlin.partitionGraphStrategy.partition")
               .ifNotExist().create();
     }
 }
