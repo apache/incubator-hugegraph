@@ -34,7 +34,7 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
     private static final Logger LOG = Log.logger(CassandraStore.class);
 
     private String keyspace() {
-        return this.name();
+        return this.name().toLowerCase();
     }
 
     @Override
