@@ -22,7 +22,6 @@ package com.baidu.hugegraph.config;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
-
 public class CassandraOptions extends OptionHolder {
 
     private CassandraOptions() {
@@ -59,7 +58,25 @@ public class CassandraOptions extends OptionHolder {
             rangeInt(1024, 10000)
     );
 
-    public static final ConfigOption<String> CASSANDRA_STRATEGY = new ConfigOption<String>(
+    public static final ConfigOption<Integer> CASSANDRA_CONN_TIMEOUT =
+            new ConfigOption<>(
+                "cassandra.connect_time_out",
+                5,
+                true,
+                "The cassandra driver connect server time out(seconds).",
+                rangeInt(1, 30)
+    );
+
+    public static final ConfigOption<Integer> CASSANDRA_READ_TIMEOUT =
+            new ConfigOption<>(
+                "cassandra.read_time_out",
+                20,
+                true,
+                "The cassandra driver read from server time out(seconds).",
+                rangeInt(1, 120)
+            );
+
+    public static final ConfigOption<String> CASSANDRA_STRATEGY = new ConfigOption<>(
             "cassandra.keyspace.strategy",
             "SimpleStrategy",
             true,
@@ -67,7 +84,7 @@ public class CassandraOptions extends OptionHolder {
             disallowEmpty(String.class)
     );
 
-    public static final ConfigOption<Integer> CASSANDRA_REPLICATION = new ConfigOption<Integer>(
+    public static final ConfigOption<Integer> CASSANDRA_REPLICATION = new ConfigOption<>(
             "cassandra.keyspace.replication",
             3,
             true,

@@ -102,11 +102,8 @@ public abstract class CassandraStore implements BackendStore {
         }
         this.conf = config;
 
-        String hosts = config.get(CassandraOptions.CASSANDRA_HOST);
-        int port = config.get(CassandraOptions.CASSANDRA_PORT);
-
         // Init cluster
-        this.sessions.open(hosts, port);
+        this.sessions.open(config);
 
         // Init a session for current thread
         try {

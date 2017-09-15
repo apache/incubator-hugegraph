@@ -25,17 +25,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.config.CassandraOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.Statement;
 
 public class CassandraSessionPool {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
+
+    private static final int SECOND = 1000;
 
     private Cluster cluster;
     private String keyspace;
@@ -51,15 +56,26 @@ public class CassandraSessionPool {
         this.sessionCount = new AtomicInteger(0);
     }
 
-    public synchronized void open(String hosts, int port) {
+    public synchronized void open(HugeConfig config) {
         if (this.opened()) {
             throw new BackendException("Please close the old SessionPool " +
                                        "before opening a new one");
         }
+
+        String hosts = config.get(CassandraOptions.CASSANDRA_HOST);
+        int port = config.get(CassandraOptions.CASSANDRA_PORT);
+        int connTimeout = config.get(CassandraOptions.CASSANDRA_CONN_TIMEOUT);
+        int readTimeout = config.get(CassandraOptions.CASSANDRA_READ_TIMEOUT);
+
+        SocketOptions socketOptions = new SocketOptions();
+        socketOptions.setConnectTimeoutMillis(connTimeout * SECOND);
+        socketOptions.setReadTimeoutMillis(readTimeout * SECOND);
+
         assert this.cluster == null || this.cluster.isClosed();
         this.cluster = Cluster.builder()
                        .addContactPoints(hosts.split(","))
                        .withPort(port)
+                       .withSocketOptions(socketOptions)
                        .build();
     }
 
