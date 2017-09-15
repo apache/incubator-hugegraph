@@ -362,6 +362,13 @@ public class TestGraph implements Graph {
         schema.propertyKey("year").asInt().ifNotExist().create();
         schema.propertyKey("acl").ifNotExist().create();
         schema.propertyKey("temp").ifNotExist().create();
+        schema.propertyKey("peter").ifNotExist().create();
+        schema.propertyKey("vadas").ifNotExist().create();
+        schema.propertyKey("josh").ifNotExist().create();
+        schema.propertyKey("marko").ifNotExist().create();
+        schema.propertyKey("ripple").ifNotExist().create();
+        schema.propertyKey("lop").ifNotExist().create();
+
 
         IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
                                 IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
@@ -384,8 +391,10 @@ public class TestGraph implements Graph {
                       .nullableKeys("name", "age")
                       .ifNotExist().create();
                 schema.vertexLabel("animal")
-                      .properties("name", "age")
-                      .nullableKeys("name", "age")
+                      .properties("name", "age", "peter", "josh", "marko",
+                                  "vadas", "ripple", "lop")
+                      .nullableKeys("name", "age", "peter", "josh", "marko",
+                                    "vadas", "ripple", "lop")
                       .ifNotExist().create();
                 break;
             case CUSTOMIZE:
@@ -500,9 +509,8 @@ public class TestGraph implements Graph {
               .nullableKeys("weight")
               .ifNotExist().create();
 
-        // When index field can be null, uncomment these indexLabel define
-        /*schema.indexLabel("vertexByAge").onV("vertex").by("age").search()
-              .ifNotExist().create();*/
+        schema.indexLabel("vertexByAge").onV("vertex").by("age").search()
+              .ifNotExist().create();
     }
 
     public void initBasicSchema(IdStrategy idStrategy, String defaultVL) {
@@ -565,6 +573,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("not-dropped").ifNotExist().create();
         schema.propertyKey("old").ifNotExist().create();
         schema.propertyKey("new").ifNotExist().create();
+        schema.propertyKey("color").ifNotExist().create();
 
         if (this.ioTest) {
             schema.propertyKey("weight").asFloat().ifNotExist().create();
@@ -586,7 +595,7 @@ public class TestGraph implements Graph {
                                   "float", "double", "string", "integer",
                                   "long", "myId", "location", "x", "y", "s",
                                   "n", "d", "f", "i", "l", "to-change",
-                                  "to-remove", "to-keep", "old", "new")
+                                  "to-remove", "to-keep", "old", "new", "color")
                       .nullableKeys("__id", "oid", "name", "state", "status",
                                     "some", "that", "any", "this", "lang", "b",
                                     "communityIndex", "test", "testing", "acl",
@@ -594,7 +603,8 @@ public class TestGraph implements Graph {
                                     "float", "double", "string", "integer",
                                     "long", "myId", "location", "x", "y", "s",
                                     "n", "d", "f", "i", "l", "to-change",
-                                    "to-remove", "to-keep", "old", "new")
+                                    "to-remove", "to-keep", "old", "new",
+                                    "color")
                       .useCustomizeId().ifNotExist().create();
                 break;
             case AUTOMATIC:
@@ -606,7 +616,7 @@ public class TestGraph implements Graph {
                                   "float", "double", "string", "integer",
                                   "long", "myId", "location", "x", "y", "s",
                                   "n", "d", "f", "i", "l", "to-change",
-                                  "to-remove", "to-keep", "old", "new")
+                                  "to-remove", "to-keep", "old", "new", "color")
                       .nullableKeys("__id", "oid", "name", "state", "status",
                                     "some", "that", "any", "this", "lang", "b",
                                     "communityIndex", "test", "testing", "acl",
@@ -614,7 +624,8 @@ public class TestGraph implements Graph {
                                     "float", "double", "string", "integer",
                                     "long", "myId", "location", "x", "y", "s",
                                     "n", "d", "f", "i", "l", "to-change",
-                                    "to-remove", "to-keep", "old", "new")
+                                    "to-remove", "to-keep", "old", "new",
+                                    "color")
                       .ifNotExist().create();
                 break;
             default:
@@ -622,11 +633,10 @@ public class TestGraph implements Graph {
                                          "is legal in tinkerpop tests");
         }
 
-        // When index field can be null, uncomment these indexLabel define
-        /*schema.indexLabel("defaultVLBy__id").onV(defaultVL).by("__id")
+        schema.indexLabel("defaultVLBy__id").onV(defaultVL).by("__id")
               .ifNotExist().create();
         schema.indexLabel("defaultVLByName").onV(defaultVL).by("name")
-              .ifNotExist().create();*/
+              .ifNotExist().create();
     }
 
     private void initBasicVertexLabelAndEdgeLabelExceptV(String defaultVL) {
@@ -715,10 +725,15 @@ public class TestGraph implements Graph {
         schema.edgeLabel("next").link(defaultVL, defaultVL)
               .ifNotExist().create();
 
-        // When index field can be null, uncomment these indexLabel define
-        /*schema.indexLabel("selfByName").onE("self").by("name")
+        schema.indexLabel("selfByName").onE("self").by("name")
               .ifNotExist().create();
         schema.indexLabel("selfBy__id").onE("self").by("__id")
-              .ifNotExist().create();*/
+              .ifNotExist().create();
+        schema.indexLabel("selfBySome").onE("self").by("some")
+              .ifNotExist().create();
+        schema.indexLabel("selfByThis").onV(defaultVL).by("this")
+              .ifNotExist().create();
+        schema.indexLabel("selfByAny").onV(defaultVL).by("any")
+              .ifNotExist().create();
     }
 }
