@@ -682,7 +682,10 @@ public class GraphTransaction extends AbstractTransaction {
          * It will return a list of id(maybe empty) if success,
          * or throw exception if there is no any index for query properties.
          */
-        return this.indexTx.query(query);
+        this.beforeRead();
+        Query result = this.indexTx.query(query);
+        this.afterRead();
+        return result;
     }
 
     private VertexLabel getVertexLabel(Object label) {
