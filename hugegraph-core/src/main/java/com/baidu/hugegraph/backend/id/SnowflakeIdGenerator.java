@@ -58,17 +58,17 @@ public class SnowflakeIdGenerator extends IdGenerator {
     }
 
     @Override
-    public Id generate(SchemaElement entry) {
+    public Id generate(SchemaElement schema) {
         return this.generate();
     }
 
     @Override
-    public Id generate(HugeVertex entry) {
+    public Id generate(HugeVertex vertex) {
         return this.generate();
     }
 
     @Override
-    public Id generate(HugeEdge entry) {
+    public Id generate(HugeEdge edge, boolean directed) {
         return this.generate();
     }
 

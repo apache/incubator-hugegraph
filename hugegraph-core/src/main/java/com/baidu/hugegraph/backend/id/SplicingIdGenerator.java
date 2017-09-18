@@ -77,11 +77,19 @@ public class SplicingIdGenerator extends IdGenerator {
      * to 2 vertex)
      */
     @Override
-    public Id generate(HugeEdge edge) {
-        return concat(edge.sourceVertex().id().asString(),
-                      edge.label(),
-                      edge.name(),
-                      edge.targetVertex().id().asString());
+    public Id generate(HugeEdge edge, boolean directed) {
+        if (directed) {
+            return concat(edge.sourceVertex().id().asString(),
+                          edge.direction().name(),
+                          edge.label(),
+                          edge.name(),
+                          edge.targetVertex().id().asString());
+        } else {
+            return concat(edge.sourceVertex().id().asString(),
+                          edge.label(),
+                          edge.name(),
+                          edge.targetVertex().id().asString());
+        }
     }
 
     /**

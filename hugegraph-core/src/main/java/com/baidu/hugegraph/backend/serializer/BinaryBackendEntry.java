@@ -87,4 +87,22 @@ public class BinaryBackendEntry implements BackendEntry {
             }
         }
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof BinaryBackendEntry)) {
+            return false;
+        }
+        BinaryBackendEntry other = (BinaryBackendEntry) obj;
+        if (this.id() != other.id() && !this.id().equals(other.id())) {
+            return false;
+        }
+        if (this.columns.size() != other.columns.size()) {
+            return false;
+        }
+        if (!this.columns.containsAll(other.columns)) {
+            return false;
+        }
+        return true;
+    }
 }

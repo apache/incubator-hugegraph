@@ -40,11 +40,11 @@ public abstract class IdGenerator {
 
     /****************************** id generate ******************************/
 
-    public abstract Id generate(SchemaElement entry);
+    public abstract Id generate(SchemaElement schema);
 
-    public abstract Id generate(HugeVertex entry);
+    public abstract Id generate(HugeVertex vertex);
 
-    public abstract Id generate(HugeEdge entry);
+    public abstract Id generate(HugeEdge edge, boolean directed);
 
     public static Id of(String id) {
         return new StringId(id);

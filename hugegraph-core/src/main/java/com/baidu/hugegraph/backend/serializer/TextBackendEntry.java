@@ -186,4 +186,29 @@ public class TextBackendEntry implements BackendEntry {
         TextBackendEntry text = (TextBackendEntry) other;
         this.columns.putAll(text.columns);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof TextBackendEntry)) {
+            return false;
+        }
+        TextBackendEntry other = (TextBackendEntry) obj;
+        if (this.id() != other.id() && !this.id().equals(other.id())) {
+            return false;
+        }
+        if (this.columns().size() != other.columns().size()) {
+            return false;
+        }
+        for (String key : this.columns.keySet()) {
+            String value = this.columns.get(key);
+            String otherValue = other.columns.get(key);
+            if (otherValue == null) {
+                return false;
+            }
+            if (value.equals(otherValue)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

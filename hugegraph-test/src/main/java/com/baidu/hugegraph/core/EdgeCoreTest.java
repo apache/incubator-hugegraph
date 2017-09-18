@@ -1247,8 +1247,6 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, (int) edge.value("id"));
     }
 
-    // TODO: uncomment this test case after hugegraph-801 fixed
-    /*
     @Test
     public void testQueryEdgeBeforeAfterUpdateMultiPropertyWithIndex() {
         HugeGraph graph = graph();
@@ -1286,7 +1284,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         vl = graph.traversal().E().has("timestamp", 666L).toList();
         Assert.assertEquals(1, vl.size());
         Assert.assertEquals(1, (int) vl.get(0).value("id"));
-    }*/
+    }
 
     @Test
     public void testQueryEdgeBeforeAfterUpdatePropertyWithSecondaryIndex() {

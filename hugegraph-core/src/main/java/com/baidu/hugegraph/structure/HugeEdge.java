@@ -124,8 +124,12 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         assert this.id == null;
         // Generate an id and assign
         if (this.id == null) {
-            this.id = SplicingIdGenerator.instance().generate(this);
+            this.id = SplicingIdGenerator.instance().generate(this, false);
         }
+    }
+
+    public Id idWithDirection() {
+        return SplicingIdGenerator.instance().generate(this, true);
     }
 
     public List<Object> sortValues() {
