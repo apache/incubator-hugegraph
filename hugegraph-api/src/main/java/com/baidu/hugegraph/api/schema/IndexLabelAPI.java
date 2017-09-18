@@ -114,7 +114,29 @@ public class IndexLabelAPI extends API {
         public String baseValue;
         public IndexType indexType;
         public String[] fields;
-        public boolean checkExist;
+        public Boolean checkExist;
+
+        private IndexLabel convert2IndexLabel() {
+            E.checkArgumentNotNull(this.name, "The name of index label " +
+                                   "can't be null");
+            IndexLabel indexLabel = new IndexLabel(this.name);
+            if (this.baseType != null) {
+                indexLabel.baseType(this.baseType);
+            }
+            if (this.baseValue != null) {
+                indexLabel.baseValue(this.baseValue);
+            }
+            if (this.indexType != null) {
+                indexLabel.indexType(this.indexType);
+            }
+            if (this.fields != null) {
+                indexLabel.indexFields(this.fields);
+            }
+            if (this.checkExist != null) {
+                indexLabel.checkExist(this.checkExist);
+            }
+            return indexLabel;
+        }
 
         @Override
         public String toString() {
@@ -122,16 +144,6 @@ public class IndexLabelAPI extends API {
                                  "baseValue=%s, indexType=%s, fields=%s}",
                                  this.name, this.baseType, this.baseValue,
                                  this.indexType, this.fields);
-        }
-
-        public IndexLabel convert2IndexLabel() {
-            IndexLabel indexLabel = new IndexLabel(this.name);
-            indexLabel.baseType(this.baseType);
-            indexLabel.baseValue(this.baseValue);
-            indexLabel.indexType(this.indexType);
-            indexLabel.indexFields(this.fields);
-            indexLabel.checkExist(this.checkExist);
-            return indexLabel;
         }
     }
 }

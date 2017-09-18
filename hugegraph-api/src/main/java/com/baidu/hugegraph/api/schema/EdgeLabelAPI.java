@@ -147,7 +147,38 @@ public class EdgeLabelAPI extends API {
         public String[] nullableKeys;
         public String[] indexNames;
         public String[] properties;
-        public boolean checkExist;
+        public Boolean checkExist;
+
+        private EdgeLabel convert2EdgeLabel() {
+            E.checkArgumentNotNull(this.name, "The name of edge label " +
+                                   "can't be null");
+            EdgeLabel edgeLabel = new EdgeLabel(this.name);
+            if (this.sourceLabel != null) {
+                edgeLabel.sourceLabel(this.sourceLabel);
+            }
+            if (this.targetLabel != null) {
+                edgeLabel.targetLabel(this.targetLabel);
+            }
+            if (this.frequency != null) {
+                edgeLabel.frequency(this.frequency);
+            }
+            if (this.sortKeys != null) {
+                edgeLabel.sortKeys(this.sortKeys);
+            }
+            if (this.nullableKeys != null) {
+                edgeLabel.nullableKeys(this.nullableKeys);
+            }
+            if (this.indexNames != null) {
+                edgeLabel.indexNames(this.indexNames);
+            }
+            if (this.properties != null) {
+                edgeLabel.properties(this.properties);
+            }
+            if (this.checkExist != null) {
+                edgeLabel.checkExist(this.checkExist);
+            }
+            return edgeLabel;
+        }
 
         @Override
         public String toString() {
@@ -158,19 +189,6 @@ public class EdgeLabelAPI extends API {
                    this.name, this.sourceLabel, this.targetLabel,
                    this.frequency, this.sortKeys, this.nullableKeys,
                    this.indexNames, this.properties);
-        }
-
-        public EdgeLabel convert2EdgeLabel() {
-            EdgeLabel edgeLabel = new EdgeLabel(this.name);
-            edgeLabel.sourceLabel(this.sourceLabel);
-            edgeLabel.targetLabel(this.targetLabel);
-            edgeLabel.frequency(this.frequency);
-            edgeLabel.sortKeys(this.sortKeys);
-            edgeLabel.nullableKeys(this.nullableKeys);
-            edgeLabel.indexNames(this.indexNames);
-            edgeLabel.properties(this.properties);
-            edgeLabel.checkExist(this.checkExist);
-            return edgeLabel;
         }
     }
 }

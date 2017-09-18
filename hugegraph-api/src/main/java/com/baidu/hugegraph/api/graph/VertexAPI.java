@@ -161,7 +161,7 @@ public class VertexAPI extends API {
     }
 
     @JsonIgnoreProperties(value = {"type"})
-    static class JsonVertex {
+    private static class JsonVertex {
 
         public Object id;
         public String label;
@@ -169,6 +169,10 @@ public class VertexAPI extends API {
         public String type;
 
         public Object[] properties() {
+            E.checkArgumentNotNull(this.label, "The label of vertex " +
+                                   "can't be null");
+            E.checkArgumentNotNull(this.properties, "The properties of " +
+                                   "vertex can't be null");
             Object[] props = API.properties(this.properties);
             List<Object> list = new ArrayList<>(Arrays.asList(props));
             list.add(T.label);

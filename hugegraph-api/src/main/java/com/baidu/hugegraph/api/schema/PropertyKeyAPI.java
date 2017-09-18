@@ -109,13 +109,33 @@ public class PropertyKeyAPI extends API {
         g.schemaTransaction().removePropertyKey(name);
     }
 
-    static class JsonPropertyKey {
+    private static class JsonPropertyKey {
 
         public String name;
         public Cardinality cardinality;
         public DataType dataType;
         public String[] properties;
-        public boolean checkExist;
+        public Boolean checkExist;
+
+        private PropertyKey convert2PropertyKey() {
+            E.checkArgumentNotNull(this.name, "The name of property key " +
+                                   "can't be null");
+            PropertyKey propertyKey = new PropertyKey(this.name);
+            // Weather it can be replacee by java 8 function or consumer
+            if (this.cardinality != null) {
+                propertyKey.cardinality(this.cardinality);
+            }
+            if (this.dataType != null) {
+                propertyKey.dataType(this.dataType);
+            }
+            if (this.properties != null) {
+                propertyKey.properties(this.properties);
+            }
+            if (this.checkExist != null) {
+                propertyKey.checkExist(this.checkExist);
+            }
+            return propertyKey;
+        }
 
         @Override
         public String toString() {
@@ -123,15 +143,6 @@ public class PropertyKeyAPI extends API {
                                  "dataType=%s, properties=%s}",
                                  this.name, this.cardinality,
                                  this.dataType, this.properties);
-        }
-
-        public PropertyKey convert2PropertyKey() {
-            PropertyKey propertyKey = new PropertyKey(this.name);
-            propertyKey.cardinality(this.cardinality);
-            propertyKey.dataType(this.dataType);
-            propertyKey.properties(this.properties);
-            propertyKey.checkExist(this.checkExist);
-            return propertyKey;
         }
     }
 }
