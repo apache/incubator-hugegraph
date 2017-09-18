@@ -78,6 +78,7 @@ public class EdgeAPI extends API {
 
         LOG.debug("Graph [{}] create edge: {}", graph, jsonEdge);
 
+        E.checkArgumentNotNull(jsonEdge.label, "Expect the label of edge");
         E.checkArgumentNotNull(jsonEdge.source, "Expect source vertex id");
         E.checkArgumentNotNull(jsonEdge.target, "Expect target vertex id");
 
@@ -128,6 +129,7 @@ public class EdgeAPI extends API {
         g.tx().open();
         try {
             for (JsonEdge edge : jsonEdges) {
+                E.checkArgumentNotNull(edge.label, "Expect the label of edge");
                 E.checkArgumentNotNull(edge.source,
                                        "Expect source vertex id");
                 E.checkArgumentNotNull(edge.sourceLabel,
@@ -218,7 +220,7 @@ public class EdgeAPI extends API {
     }
 
     @JsonIgnoreProperties(value = {"type"})
-    static class JsonEdge {
+    private static class JsonEdge {
 
         @JsonProperty("outV")
         public String source;
@@ -233,6 +235,8 @@ public class EdgeAPI extends API {
         public String type;
 
         public Object[] properties() {
+            E.checkArgumentNotNull(this.properties, "The properties of " +
+                                   "edge can't be null");
             return API.properties(this.properties);
         }
 

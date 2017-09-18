@@ -146,7 +146,32 @@ public class VertexLabelAPI extends API {
         public String[] nullableKeys;
         public String[] indexNames;
         public String[] properties;
-        public boolean checkExist;
+        public Boolean checkExist;
+
+        private VertexLabel convert2VertexLabel() {
+            E.checkArgumentNotNull(this.name, "The name of vertex label " +
+                                   "can't be null");
+            VertexLabel vertexLabel = new VertexLabel(this.name);
+            if (this.idStrategy != null) {
+                vertexLabel.idStrategy(this.idStrategy);
+            }
+            if (this.primaryKeys != null) {
+                vertexLabel.primaryKeys(this.primaryKeys);
+            }
+            if (this.nullableKeys != null) {
+                vertexLabel.nullableKeys(this.nullableKeys);
+            }
+            if (this.indexNames != null) {
+                vertexLabel.indexNames(this.indexNames);
+            }
+            if (this.properties != null) {
+                vertexLabel.properties(this.properties);
+            }
+            if (this.checkExist != null) {
+                vertexLabel.checkExist(this.checkExist);
+            }
+            return vertexLabel;
+        }
 
         @Override
         public String toString() {
@@ -155,17 +180,6 @@ public class VertexLabelAPI extends API {
                    "nullableKeys=%s, indexNames=%s, properties=%s}",
                    this.name, this.idStrategy, this.primaryKeys,
                    this.nullableKeys, this.indexNames, this.properties);
-        }
-
-        public VertexLabel convert2VertexLabel() {
-            VertexLabel vertexLabel = new VertexLabel(this.name);
-            vertexLabel.idStrategy(this.idStrategy);
-            vertexLabel.primaryKeys(this.primaryKeys);
-            vertexLabel.nullableKeys(this.nullableKeys);
-            vertexLabel.indexNames(this.indexNames);
-            vertexLabel.properties(this.properties);
-            vertexLabel.checkExist(this.checkExist);
-            return vertexLabel;
         }
     }
 }
