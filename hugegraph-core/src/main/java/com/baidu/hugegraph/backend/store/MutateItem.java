@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.store;
 
-
 public class MutateItem {
 
     private BackendEntry entry;

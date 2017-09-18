@@ -98,6 +98,27 @@ public class CassandraBackendEntry implements BackendEntry {
         }
 
         @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof Row)) {
+                return false;
+            }
+            Row other = (Row) obj;
+            if (this.type != other.type) {
+                return false;
+            }
+            if (this.id != other.id && !this.id.equals(other.id)) {
+                return false;
+            }
+            for (HugeKeys key : this.columns.keySet()) {
+                Object value = other.columns.get(key);
+                if (value == null || !this.columns.get(key).equals(value)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
         public String toString() {
             return String.format("Row{type=%s, id=%s, columns=%s}",
                                  this.type, this.id, this.columns);
@@ -206,5 +227,25 @@ public class CassandraBackendEntry implements BackendEntry {
     @Override
     public void merge(BackendEntry other) {
         throw new RuntimeException("Not supported by Cassandra");
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof CassandraBackendEntry)) {
+            return false;
+        }
+        CassandraBackendEntry other = (CassandraBackendEntry) obj;
+        if (!this.row.equals(other.row)) {
+            return false;
+        }
+        if (this.subRows.size() != other.subRows.size()) {
+            return false;
+        }
+        for (int i = 0; i < this.subRows.size(); i++) {
+            if (!this.subRows.get(i).equals(other.subRows.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

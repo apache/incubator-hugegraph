@@ -20,20 +20,25 @@
 package com.baidu.hugegraph.backend.store;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public class BackendMutation {
+
+    private static final Logger LOG = Log.logger(BackendMutation.class);
 
     private final Map<Id, List<MutateItem>> updates;
 
     public BackendMutation() {
-        this.updates = new LinkedHashMap<>();
+        this.updates = new HashMap<>();
     }
 
     /**
@@ -51,15 +56,38 @@ public class BackendMutation {
         }
 
         /*
-         * TODO: Should do some optimize when seperate edges from vertex
          * The Optimized scenes include but are not limited to：
          * 1.If you want to delete an entry, the other mutations previously
-         *  can be ignored.
-         * 2.As similar to the item No. one, If you want to insert an entry,
-         *  the other mutations previously also can be ignored.
-         * 3.To be added.
+         *   can be ignored.
+         * 2.As similar to the item No.1, If you want to insert an entry,
+         *   the other mutations previously also can be ignored.
+         * 3.If you append an entry and then eliminate it, the new action
+         *   can override the old one.
          */
-        items.add(MutateItem.of(entry, action));
+        this.optimizeUpdates(entry, action);
+    }
+
+    private void optimizeUpdates(BackendEntry entry, MutateAction action) {
+        Id id = entry.id();
+        List<MutateItem> items = this.updates.get(id);
+        switch (action) {
+            case INSERT:
+            case DELETE:
+                // Override all actions of this id
+                items.clear();
+                items.add(MutateItem.of(entry, action));
+                break;
+            case APPEND:
+            case ELIMINATE:
+                // Counteract the items with oppsite action and same value
+                items.removeIf(item -> action.oppsite(item.action()) &&
+                                       entry.equals(item.entry()));
+                items.add(MutateItem.of(entry, action));
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown mutate action: %s", action));
+        }
     }
 
     /**

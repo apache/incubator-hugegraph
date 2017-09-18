@@ -377,6 +377,15 @@ public class IndexTransaction extends AbstractTransaction {
             locks.lockWrites(LockUtil.INDEX_REBUILD, indexNames);
             locks.lockWrites(LockUtil.INDEX_LABEL, indexNames);
             this.removeIndex(indexNames);
+            /**
+             * Note: Here must commit index transaction firstly.
+             * Because remove index convert to (id like <?>:personByCity):
+             * `delete from index table where label = ?`,
+             * But append index will convert to (id like Beijing:personByCity):
+             * `update index element_ids += xxx where field_value = ?
+             * and index_label_name = ?`,
+             * They have different id lead to it can't compare and optimize
+             */
             this.commit();
             if (type == HugeType.VERTEX_LABEL) {
                 ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
@@ -386,7 +395,6 @@ public class IndexTransaction extends AbstractTransaction {
                         updateIndex(indexName, (HugeVertex) vertex, false);
                     }
                 }
-                this.commit();
             } else {
                 assert type == HugeType.EDGE_LABEL;
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
@@ -396,8 +404,9 @@ public class IndexTransaction extends AbstractTransaction {
                         updateIndex(indexName, (HugeEdge) edge, false);
                     }
                 }
-                this.commit();
+
             }
+            this.commit();
         } finally {
             this.autoCommit(autoCommit);
             locks.unlock();

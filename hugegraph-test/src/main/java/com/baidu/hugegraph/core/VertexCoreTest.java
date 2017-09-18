@@ -1286,8 +1286,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals("", vertex.value("city"));
     }
 
-    // TODO: uncomment this test case after hugegraph-801 fixed
-    /*@Test
+    @Test
     public void testQueryVertexBeforeAfterUpdateMultiPropertyWithIndex() {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
@@ -1317,7 +1316,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vl = graph.traversal().V().has("city", "Shanghai").toList();
         Assert.assertEquals(1, vl.size());
         Assert.assertEquals("Baby", vl.get(0).value("name"));
-    }*/
+    }
 
     @Test
     public void testQueryVertexBeforeAfterUpdatePropertyWithSecondaryIndex() {

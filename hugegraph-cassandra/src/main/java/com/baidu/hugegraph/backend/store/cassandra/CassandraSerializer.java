@@ -114,7 +114,7 @@ public class CassandraSerializer extends AbstractSerializer {
 
     protected CassandraBackendEntry.Row formatEdge(HugeEdge edge) {
         CassandraBackendEntry.Row row = new CassandraBackendEntry.Row(
-                                        HugeType.EDGE, edge.id());
+                                        HugeType.EDGE, edge.idWithDirection());
         // sourceVertex + direction + edge-label + sortValues + targetVertex
         row.column(HugeKeys.SOURCE_VERTEX, edge.owner().id().asString());
         row.column(HugeKeys.DIRECTION, edge.direction().name());

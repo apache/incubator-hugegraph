@@ -46,4 +46,10 @@ public enum MutateAction {
         return this.name;
     }
 
+    public boolean oppsite(MutateAction action) {
+        return (this == INSERT && action == DELETE) ||
+               (this == DELETE && action == INSERT) ||
+               (this == APPEND && action == ELIMINATE) ||
+               (this == ELIMINATE && action == APPEND);
+    }
 }
