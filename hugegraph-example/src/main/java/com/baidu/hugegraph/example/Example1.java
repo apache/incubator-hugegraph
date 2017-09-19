@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.example;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -26,6 +28,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -109,6 +112,8 @@ public class Example1 {
         schema.propertyKey("country").asText().valueSet().create();
         schema.propertyKey("city").asText().create();
         schema.propertyKey("sensor_id").asUuid().create();
+        schema.propertyKey("listKey").asInt().valueList().create();
+
 
         LOG.info("===============  vertexLabel  ================");
 
@@ -374,5 +379,24 @@ public class Example1 {
         } catch (NotFoundException e) {
             assert e.getMessage().contains("Not found the EDGE entry");
         }
+
+        // variables test
+        Graph.Variables variables = graph.variables();
+        variables.set("owner", "zhangyi");
+        variables.set("time", 3);
+        variables.set("owner", "zhangyi1");
+        variables.keys();
+        variables.remove("time");
+        variables.get("time");
+        variables.get("owner");
+        variables.remove("owner");
+        variables.get("owner");
+        variables.get("owner");
+
+        // number list tests
+        schema.vertexLabel("test").properties("listKey").create();
+        Vertex vertex1 = graph.addVertex(T.label,"test",
+               "listKey", new ArrayList<>(Arrays.asList(1, 2,3)));
+        graph.vertices(vertex1.id()).next();
     }
 }
