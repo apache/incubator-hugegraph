@@ -120,14 +120,14 @@ public class SnowflakeIdGenerator extends IdGenerator {
             }
             this.workerId = workerId;
             this.datacenterId = datacenterId;
-            LOG.info("Worker starting. timestamp left shift {}," +
-                     "datacenter id bits {}, worker id bits {}," +
-                     "sequence bits {}, workerid {}",
-                     TIMESTAMP_SHIFT,
-                     DC_BIT,
-                     WORKER_BIT,
-                     SEQUENCE_BIT,
-                     workerId);
+            LOG.debug("Worker starting. timestamp left shift {}," +
+                      "datacenter id bits {}, worker id bits {}," +
+                      "sequence bits {}, workerid {}",
+                      TIMESTAMP_SHIFT,
+                      DC_BIT,
+                      WORKER_BIT,
+                      SEQUENCE_BIT,
+                      workerId);
         }
 
         public synchronized long nextId() {
