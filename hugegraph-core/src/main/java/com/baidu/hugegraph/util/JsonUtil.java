@@ -40,4 +40,20 @@ public class JsonUtil {
         return gson.fromJson(json, type);
     }
 
+    // Collection<Number> will be parsed to Collection<Double> by fromJson,
+    // this method used to cast element in collection to original number type
+    public static Object castCollectionNumber(Object object, Class<?> clazz) {
+        if (object instanceof Double) {
+            if (clazz == Byte.class) {
+                object = ((Double) object).byteValue();
+            } else if (clazz == Integer.class) {
+                object = ((Double) object).intValue();
+            } else if (clazz == Long.class) {
+                object = ((Double) object).longValue();
+            } else if (clazz == Float.class) {
+                object = ((Double) object).floatValue();
+            }
+        }
+        return object;
+    }
 }
