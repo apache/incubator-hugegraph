@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import com.baidu.hugegraph.variables.HugeVariables;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -87,6 +88,7 @@ public class HugeGraph implements Graph {
     private EventHub schemaEventHub;
     private HugeFeatures features;
     private HugeConfig configuration;
+    private HugeVariables veriables;
 
     // Store provider like Cassandra
     private BackendStoreProvider storeProvider;
@@ -105,6 +107,8 @@ public class HugeGraph implements Graph {
 
         this.graphTransaction = new ThreadLocal<>();
         this.schemaTransaction = new ThreadLocal<>();
+
+        this.veriables = null;
 
         this.storeProvider = null;
 
@@ -337,7 +341,10 @@ public class HugeGraph implements Graph {
 
     @Override
     public Variables variables() {
-        throw Graph.Exceptions.variablesNotSupported();
+        if (this.veriables == null) {
+            return new HugeVariables(this);
+        }
+        return this.veriables;
     }
 
     @Override
