@@ -193,7 +193,7 @@ public class HugeVariables implements Graph.Variables {
         if (key.isEmpty()) {
             throw Graph.Variables.Exceptions.variableKeyCanNotBeEmpty();
         }
-        return Optional.of((R) this.variables.get(key));
+        return Optional.ofNullable((R) this.variables.get(key));
     }
 
     @Override
