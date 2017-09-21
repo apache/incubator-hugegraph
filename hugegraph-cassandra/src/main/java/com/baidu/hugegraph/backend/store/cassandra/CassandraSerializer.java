@@ -104,7 +104,7 @@ public class CassandraSerializer extends AbstractSerializer {
                           colValue));
             }
             for (Object v : (Collection<?>) value) {
-                v = JsonUtil.castCollectionNumber(v, pkey.dataType().clazz());
+                v = JsonUtil.castNumber(v, pkey.dataType().clazz());
                 owner.addProperty(pkey.name(), v);
             }
         }
