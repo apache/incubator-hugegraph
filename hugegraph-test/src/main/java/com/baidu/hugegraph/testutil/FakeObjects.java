@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.core;
+package com.baidu.hugegraph.testutil;
 
 import java.util.Map;
 
