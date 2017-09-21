@@ -28,9 +28,12 @@ import com.baidu.hugegraph.dist.RegisterUtil;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    PropertyKeyCoreTest.class,
+    VertexLabelCoreTest.class,
+    EdgeLabelCoreTest.class,
+    IndexLabelCoreTest.class,
     VertexCoreTest.class,
-    EdgeCoreTest.class,
-    SchemaCoreTest.class
+    EdgeCoreTest.class
 })
 public class CoreTestSuite {
 

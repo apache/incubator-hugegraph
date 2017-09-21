@@ -22,7 +22,6 @@ package com.baidu.hugegraph.core;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.baidu.hugegraph.backend.BackendException;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -30,13 +29,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.core.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
+import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -273,6 +274,46 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "book", "not-exists-porp", "test");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithNullableKeyAbsent() {
+        Vertex vertex = graph().addVertex(T.label, "person", "name", "Baby",
+                                          "city", "Hongkong");
+        Assert.assertEquals("Baby", vertex.value("name"));
+        Assert.assertEquals("Hongkong", vertex.value("city"));
+    }
+
+    @Test
+    public void testAddVertexLabelNewVertexWithNonNullKeysAbsent() {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Absent 'city'
+            graph().addVertex(T.label, "person", "name", "Baby", "age", 18);
+        });
+    }
+
+    @Test
+    public void testAddVertexWithAppendedNullableKeysAbsent() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").nullableKeys("city").append();
+        // Absent 'age' and 'city'
+        Vertex vertex = graph().addVertex(T.label, "person", "name", "Baby");
+        Assert.assertEquals("Baby", vertex.value("name"));
+    }
+
+    @Test
+    public void testAddVertexWithAppendedNonNullKeysAbsent() {
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("id")
+              .nullableKeys("city")
+              .append();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Absent 'id'
+            graph().addVertex(T.label, "person", "name", "Baby");
         });
     }
 

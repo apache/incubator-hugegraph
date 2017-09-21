@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.core;
+package com.baidu.hugegraph.testutil;
 
 import java.util.List;
 
@@ -25,8 +25,8 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.core.FakeObjects.FakeEdge;
-import com.baidu.hugegraph.core.FakeObjects.FakeVertex;
+import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
+import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 
 public class Utils {
 

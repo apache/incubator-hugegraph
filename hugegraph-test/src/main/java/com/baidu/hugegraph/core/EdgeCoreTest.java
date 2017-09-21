@@ -34,10 +34,11 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.core.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
+import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -426,6 +427,30 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("authored", book, "age", 18);
+        });
+    }
+
+    @Test
+    public void testAddEdgeWithNullableKeysAbsent() {
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+
+        Edge edge = baby.addEdge("look", java, "time", "2017-09-09");
+        Assert.assertEquals("2017-09-09", edge.value("time"));
+    }
+
+    @Test
+    public void testAddEdgeWithNonNullKeysAbsent() {
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Absent 'time'
+            baby.addEdge("look", java, "score", 99);
         });
     }
 
