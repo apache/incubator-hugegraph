@@ -100,6 +100,7 @@ public class VertexLabel extends SchemaLabel {
         sb.append(this.idStrategy.schema());
         sb.append(this.propertiesSchema());
         sb.append(this.primaryKeysSchema());
+        sb.append(this.nullableKeysSchema());
         sb.append(".ifNotExist()");
         sb.append(".create();");
         return sb.toString();
