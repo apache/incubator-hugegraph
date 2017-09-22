@@ -25,8 +25,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
-import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -39,19 +39,23 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.ExtendableIterator;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableSet;
 
 public final class HugeVertexStep<E extends Element>
-             extends VertexStep<E> implements HasContainerHolder {
+             extends VertexStep<E> implements QueryHolder {
 
     private static final long serialVersionUID = -7850636388424382454L;
 
     private static final Logger LOG = Log.logger(HugeVertexStep.class);
 
     private final List<HasContainer> hasContainers = new ArrayList<>();;
+
+    // Store limit/order-by
+    private final Query queryInfo = new Query(null);
 
     public HugeVertexStep(final VertexStep<E> originVertexStep) {
         super(originVertexStep.getTraversal(),
@@ -93,7 +97,7 @@ public final class HugeVertexStep<E extends Element>
         }
 
         // TODO: query by vertex index to optimize
-        return HugeGraphStep.filterResult(this.hasContainers, vertices);
+        return TraversalUtil.filterResult(this.hasContainers, vertices);
     }
 
     private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
@@ -126,7 +130,7 @@ public final class HugeVertexStep<E extends Element>
             // Query by sort-keys
             boolean bySortKeys = false;
             if (withEdgeCond && edgeLabels.length > 0) {
-                HugeGraphStep.fillConditionQuery(conditions, query);
+                TraversalUtil.fillConditionQuery(conditions, query);
                 if (GraphTransaction.matchEdgeSortKeys(query, graph)) {
                     bySortKeys = true;
                 } else {
@@ -143,12 +147,16 @@ public final class HugeVertexStep<E extends Element>
                 LOG.warn("It's not recommended to query by has(id)");
             }
 
+            query.orders(this.queryInfo.orders());
+            query.offset(this.queryInfo.offset());
+            query.limit(this.queryInfo.limit());
+
             // Do query
             Iterator<Edge> edges = graph.edges(query);
 
             // Do filter by edge conditions
             if (withEdgeCond && !bySortKeys) {
-                edges = HugeGraphStep.filterResult(this.hasContainers, edges);
+                edges = TraversalUtil.filterResult(this.hasContainers, edges);
             }
 
             results.extend(edges);
@@ -181,20 +189,29 @@ public final class HugeVertexStep<E extends Element>
     }
 
     @Override
-    public int hashCode() {
-        return super.hashCode() ^ this.hasContainers.hashCode();
+    public void orderBy(String key, Order order) {
+        this.queryInfo.order(TraversalUtil.string2HugeKey(key),
+                             TraversalUtil.convOrder(order));
     }
 
-    public static Iterator<Edge> filterResult(Vertex vertex, Direction dir,
-                                              Iterator<Edge> edges) {
-        final List<Edge> list = new ArrayList<>();
-        while (edges.hasNext()) {
-            Edge edge = edges.next();
-            if (dir == Direction.OUT && vertex.equals(edge.outVertex()) ||
-                dir == Direction.IN && vertex.equals(edge.inVertex())) {
-                list.add(edge);
-            }
+
+    @Override
+    public void setRange(long start, long end) {
+        // NOTE: use the min range one
+        start = Math.max(start, this.queryInfo.offset());
+        end = Math.min(end, this.queryInfo.limit());
+        if (end == -1) {
+            end = Query.NO_LIMIT;
         }
-        return list.iterator();
+
+        this.queryInfo.offset(start);
+        this.queryInfo.limit(end - start);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode() ^
+               this.queryInfo.hashCode() ^
+               this.hasContainers.hashCode();
     }
 }

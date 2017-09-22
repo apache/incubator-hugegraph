@@ -29,6 +29,8 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -323,6 +325,23 @@ public class CassandraSerializer extends AbstractSerializer {
     @Override
     public Query writeQuery(Query query) {
         // NOTE: Cassandra does not need to add type prefix for id
+
+        // Serialize query value for CONTAINS VALUE query
+        if ((query.resultType() == HugeType.VERTEX ||
+             query.resultType() == HugeType.EDGE) &&
+            !query.conditions().isEmpty() && query instanceof ConditionQuery) {
+            ConditionQuery result = (ConditionQuery) query;
+            // No user-prop when serialize
+            assert result.allSysprop();
+            if (result.containsCondition(Condition.RelationType.CONTAINS)) {
+                for (Condition.Relation r : result.relations()) {
+                    // Serialize has-value
+                    if (r.relation() == Condition.RelationType.CONTAINS) {
+                        r.value(JsonUtil.toJson(r.value()));
+                    }
+                }
+            }
+        }
         return query;
     }
 

@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -505,12 +506,132 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryEdgesWithOrderBy() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().V()
+                           .hasLabel("person").has("name", "Louise")
+                           .outE("look").order().by("time")
+                           .toList();
+        Assert.assertEquals(4, edges.size());
+        Assert.assertEquals("2017-5-1", edges.get(0).value("time"));
+        Assert.assertEquals("2017-5-1", edges.get(1).value("time"));
+        Assert.assertEquals("2017-5-27", edges.get(2).value("time"));
+        Assert.assertEquals("2017-5-27", edges.get(3).value("time"));
+    }
+
+    @Test
+    public void testQueryEdgesWithOrderByAndIncidentToAdjacentStrategy() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Vertex> vertices = graph.traversal().V()
+                                .hasLabel("person").has("name", "Louise")
+                                .outE("look").inV().toList();
+        /*
+         * This should be 4 vertices, but the gremlin:
+         * ".outE("look").inV()" will be replaced with ".out("look")",
+         * then the duplicate edges would be removed by core.
+         * For more details see IncidentToAdjacentStrategy.
+         */
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V()
+                   .hasLabel("person").has("name", "Louise")
+                   .outE("look").order().by("time").inV().toList();
+        Assert.assertEquals(4, vertices.size());
+    }
+
+    @Test
     public void testQueryEdgesWithLimit() {
         HugeGraph graph = graph();
         init18Edges();
-        List<Edge> edges = graph.traversal().E().limit(10).toList();
 
+        List<Edge> edges = graph.traversal().E().limit(10).toList();
         Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().E().limit(12).limit(10).toList();
+        Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().E().limit(10).limit(12).toList();
+        Assert.assertEquals(10, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesWithLimitOnMultiLevel() {
+        HugeGraph graph = graph();
+        init18Edges();
+        Vertex james = vertex("author", "id", 1);
+
+        List<Edge> edges = graph.traversal().V()
+                           .hasLabel("person").has("name", "Louise")
+                           .outE("look").inV()
+                           .inE("authored")
+                           .toList();
+        Assert.assertEquals(3, edges.size());
+        Assert.assertEquals(james, edges.get(0).outVertex());
+        Assert.assertEquals(james, edges.get(1).outVertex());
+        Assert.assertEquals(james, edges.get(2).outVertex());
+
+        edges = graph.traversal().V()
+                .hasLabel("person").has("name", "Louise")
+                .outE("look").limit(2).inV()
+                .inE("authored").limit(3)
+                .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V()
+                .hasLabel("person").has("name", "Louise")
+                .outE("look").limit(2).inV()
+                .inE("authored").limit(2)
+                .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V()
+                .hasLabel("person").has("name", "Louise")
+                .outE("look").limit(2).inV()
+                .inE("authored").limit(1)
+                .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V()
+                .hasLabel("person").has("name", "Louise")
+                .outE("look").limit(1).inV()
+                .inE("authored").limit(2)
+                .toList();
+        Assert.assertEquals(1, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesWithLimitAndOrderBy() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().V()
+                           .hasLabel("person").has("name", "Louise")
+                           .outE("look").order().by("time")
+                           .limit(2).toList();
+        Assert.assertEquals(2, edges.size());
+        Assert.assertEquals("2017-5-1", edges.get(0).value("time"));
+        Assert.assertEquals("2017-5-1", edges.get(1).value("time"));
+
+        edges = graph.traversal().V()
+                .hasLabel("person").has("name", "Louise")
+                .outE("look").order().by("time", Order.decr)
+                .limit(2).toList();
+        Assert.assertEquals(2, edges.size());
+        Assert.assertEquals("2017-5-27", edges.get(0).value("time"));
+        Assert.assertEquals("2017-5-27", edges.get(1).value("time"));
+
+        edges = graph.traversal().V()
+                .hasLabel("person").has("name", "Louise")
+                .outE("look").limit(2)
+                .order().by("time", Order.decr)
+                .toList();
+        Assert.assertEquals(2, edges.size());
+        Assert.assertEquals("2017-5-1", edges.get(0).value("time"));
+        Assert.assertEquals("2017-5-1", edges.get(1).value("time"));
     }
 
     @Test

@@ -19,14 +19,16 @@
 
 package com.baidu.hugegraph.backend.query;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
@@ -44,7 +46,7 @@ public class Query implements Cloneable {
 
     public Query(HugeType resultType) {
         this.resultType = resultType;
-        this.orders = new ConcurrentHashMap<>();
+        this.orders = new LinkedHashMap<>();
         this.offset = 0L;
         this.limit = NO_LIMIT;
         this.capacity = DEFAULT_CAPACITY;
@@ -59,7 +61,11 @@ public class Query implements Cloneable {
     }
 
     public Map<HugeKeys, Order> orders() {
-        return this.orders;
+        return Collections.unmodifiableMap(this.orders);
+    }
+
+    public void orders(Map<HugeKeys, Order> orders) {
+        this.orders = new LinkedHashMap<>(orders);
     }
 
     public void order(HugeKeys key, Order order) {
@@ -71,6 +77,9 @@ public class Query implements Cloneable {
     }
 
     public void offset(long offset) {
+        E.checkArgument(offset <= this.limit,
+                        "Invalid offset %s due to > limit %s",
+                        offset, this.limit);
         this.offset = offset;
     }
 
@@ -79,6 +88,9 @@ public class Query implements Cloneable {
     }
 
     public void limit(long limit) {
+        E.checkArgument(limit >= this.offset,
+                        "Invalid limit %s due to < offset %s",
+                        limit, this.offset);
         this.limit = limit;
     }
 
@@ -144,7 +156,7 @@ public class Query implements Cloneable {
                              this.orders.toString());
     }
 
-    public enum Order {
+    public static enum Order {
         ASC,
         DESC;
     }

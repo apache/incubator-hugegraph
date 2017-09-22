@@ -49,6 +49,7 @@ public abstract class Condition {
         NEQ("!=", (v1, v2) -> { return compare(v1, v2) != 0; }),
         IN("in", (v1, v2) -> { return ((List<?>) v2).contains(v1); }),
         NOT_IN("notin", (v1, v2) -> { return !((List<?>) v2).contains(v1); }),
+        CONTAINS("contains", null),
         CONTAINS_KEY("containskey", null),
         SCAN("scan", null);
 
@@ -195,6 +196,10 @@ public abstract class Condition {
 
     public static Condition nin(HugeKeys key, List<?> value) {
         return new SyspropRelation(key, RelationType.NOT_IN, value);
+    }
+
+    public static Condition contains(HugeKeys key, Object value) {
+        return new SyspropRelation(key, RelationType.CONTAINS, value);
     }
 
     public static Condition containsKey(HugeKeys key, Object value) {

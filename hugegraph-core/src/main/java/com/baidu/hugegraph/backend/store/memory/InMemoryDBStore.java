@@ -227,6 +227,8 @@ public class InMemoryDBStore implements BackendStore {
         // TODO: deal with others Relation like: <, >=, ...
         if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
             return entry.contains(r.value().toString());
+        } else if (r.relation() == Condition.RelationType.CONTAINS) {
+            return entry.containsValue(r.value().toString());
         } else if (r.relation() == Condition.RelationType.EQ) {
             return entry.contains(key, r.value().toString());
         } else if (entry.contains(key)) {

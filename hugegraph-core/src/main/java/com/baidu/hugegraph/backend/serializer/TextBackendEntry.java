@@ -96,6 +96,10 @@ public class TextBackendEntry implements BackendEntry {
         return false;
     }
 
+    public boolean containsValue(String value) {
+        return this.columns.values().contains(value);
+    }
+
     public Collection<BackendColumn> columnsWithPrefix(String column) {
         List<BackendColumn> list = new ArrayList<>();
         for (String c : this.columns.keySet()) {
