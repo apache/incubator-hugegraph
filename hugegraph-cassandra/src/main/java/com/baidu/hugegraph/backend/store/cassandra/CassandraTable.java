@@ -28,8 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.datastax.driver.core.schemabuilder.Create;
-import com.datastax.driver.core.schemabuilder.SchemaStatement;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
 
@@ -58,7 +56,9 @@ import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.driver.core.schemabuilder.Create;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
+import com.datastax.driver.core.schemabuilder.SchemaStatement;
 import com.google.common.collect.ImmutableList;
 
 public abstract class CassandraTable {
@@ -285,6 +285,8 @@ public abstract class CassandraTable {
                     serializedValues.add(serializeValue(v));
                 }
                 return QueryBuilder.in(key, serializedValues);
+            case CONTAINS:
+                return QueryBuilder.contains(key, value);
             case CONTAINS_KEY:
                 return QueryBuilder.containsKey(key, value);
             case SCAN:

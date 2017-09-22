@@ -639,6 +639,74 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByHasKey() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                                .hasLabel("language").hasKey("dynamic")
+                                .toList();
+        Assert.assertEquals(1, vertexes.size());
+        assertContains(vertexes,
+                       T.label, "language", "name", "python",
+                       "dynamic", true);
+
+        vertexes = graph.traversal().V().hasKey("age").toList();
+        Assert.assertEquals(2, vertexes.size());
+        assertContains(vertexes,
+                       T.label, "author", "id", 1,
+                       "name", "James Gosling", "age", 62,
+                       "lived", "Canadian");
+        assertContains(vertexes,
+                       T.label, "author", "id", 2,
+                       "name", "Guido van Rossum", "age", 61,
+                       "lived", "California");
+    }
+
+    @Test
+    public void testQueryByHasKeys() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("language")
+                 .hasKey("dynamic", "name").toList();
+        });
+    }
+
+    @Test
+    public void testQueryByHasValue() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                                .hasLabel("language").hasValue(true)
+                                .toList();
+        Assert.assertEquals(1, vertexes.size());
+        assertContains(vertexes,
+                       T.label, "language", "name", "python",
+                       "dynamic", true);
+
+        vertexes = graph.traversal().V().hasValue(62).toList();
+        Assert.assertEquals(1, vertexes.size());
+        assertContains(vertexes,
+                       T.label, "author", "id", 1,
+                       "name", "James Gosling", "age", 62,
+                       "lived", "Canadian");
+    }
+
+    @Test
+    public void testQueryByHasValues() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("language")
+                 .hasValue("python", true).toList();
+        });
+    }
+
+    @Test
     public void testQueryByStringPropWithOneResult() {
         // city is "Taipei"
         HugeGraph graph = graph();

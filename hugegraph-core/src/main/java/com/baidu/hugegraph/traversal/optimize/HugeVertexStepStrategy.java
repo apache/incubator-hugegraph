@@ -21,14 +21,9 @@ package com.baidu.hugegraph.traversal.optimize;
 
 import java.util.List;
 
-import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy.ProviderOptimizationStrategy;
-import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
-import org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasStep;
-import org.apache.tinkerpop.gremlin.process.traversal.step.map.NoOpBarrierStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
-import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversalStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 
@@ -56,24 +51,11 @@ public final class HugeVertexStepStrategy
         for (VertexStep originStep : steps) {
             HugeVertexStep<?> newStep = new HugeVertexStep<>(originStep);
             TraversalHelper.replaceStep(originStep, newStep, traversal);
-            extractHasContainer(newStep, traversal);
+            TraversalUtil.extractHasContainer(newStep, traversal);
+            // TODO: support order-by optimize
+            // TraversalUtil.extractOrder(newStep, traversal);
+            TraversalUtil.extractRange(newStep, traversal);
         }
-    }
-
-    protected static void extractHasContainer(HugeVertexStep<?> newStep,
-                                              Traversal.Admin<?, ?> traversal) {
-        Step<?, ?> step = newStep;
-        do {
-            if (step instanceof HasStep) {
-                HasContainerHolder holder = (HasContainerHolder) step;
-                for (HasContainer has : holder.getHasContainers()) {
-                    newStep.addHasContainer(has);
-                }
-                TraversalHelper.copyLabels(step, step.getPreviousStep(), false);
-                traversal.removeStep(step);
-            }
-            step = step.getNextStep();
-        } while (step instanceof HasStep || step instanceof NoOpBarrierStep);
     }
 
     public static HugeVertexStepStrategy instance() {
