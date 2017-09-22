@@ -129,6 +129,7 @@ public class EdgeLabel extends SchemaLabel {
         sb.append(this.frequency.schema());
         sb.append(this.propertiesSchema());
         sb.append(this.sortKeysSchema());
+        sb.append(this.nullableKeysSchema());
         sb.append(".ifNotExist()");
         sb.append(".create();");
         return sb.toString();

@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph.type.Indexfiable;
+import com.baidu.hugegraph.util.StringUtil;
 
 public abstract class SchemaLabel extends SchemaElement
                                   implements Indexfiable {
@@ -64,5 +65,9 @@ public abstract class SchemaLabel extends SchemaElement
     public SchemaLabel indexNames(String... names) {
         this.indexNames.addAll(Arrays.asList(names));
         return this;
+    }
+
+    public String nullableKeysSchema() {
+        return StringUtil.desc("nullableKeys", this.nullableKeys);
     }
 }
