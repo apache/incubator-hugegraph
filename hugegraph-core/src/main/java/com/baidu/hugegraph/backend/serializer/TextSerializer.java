@@ -167,9 +167,21 @@ public class TextSerializer extends AbstractSerializer {
         HugeGraph graph = vertex.graph();
         EdgeLabel label = graph.edgeLabel(colParts[1]);
 
+        VertexLabel sourceLabel = graph.vertexLabel(label.sourceLabel());
+        VertexLabel targetLabel = graph.vertexLabel(label.targetLabel());
+
         // TODO: how to construct targetVertex with id
         Id otherVertexId = IdGenerator.of(colParts[3]);
-        HugeVertex otherVertex = new HugeVertex(graph, otherVertexId, null);
+
+        boolean isOutEdge = colParts[0].equals(HugeType.EDGE_OUT.name());
+        HugeVertex otherVertex;
+        if (isOutEdge) {
+            vertex.vertexLabel(sourceLabel);
+            otherVertex = new HugeVertex(graph, otherVertexId, targetLabel);
+        } else {
+            vertex.vertexLabel(targetLabel);
+            otherVertex = new HugeVertex(graph, otherVertexId, sourceLabel);
+        }
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
         Id id = IdGenerator.of(valParts[0]);
@@ -177,7 +189,6 @@ public class TextSerializer extends AbstractSerializer {
         HugeEdge edge = new HugeEdge(graph, id, label);
         edge.name(colParts[2]);
 
-        boolean isOutEdge = colParts[0].equals(HugeType.EDGE_OUT.name());
         if (isOutEdge) {
             edge.targetVertex(otherVertex);
             vertex.addOutEdge(edge);

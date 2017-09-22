@@ -21,11 +21,13 @@ package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 
 public class SchemaManager {
 
@@ -93,19 +95,27 @@ public class SchemaManager {
     }
 
     public List<PropertyKey> getPropertyKeys() {
-        return this.transaction.getPropertyKeys();
+        return this.transaction.getPropertyKeys().stream()
+                   .filter(pk -> !Graph.Hidden.isHidden(pk.name()))
+                   .collect(Collectors.toList());
     }
 
     public List<VertexLabel> getVertexLabels() {
-        return this.transaction.getVertexLabels();
+        return this.transaction.getVertexLabels().stream()
+                   .filter(vl -> !Graph.Hidden.isHidden(vl.name()))
+                   .collect(Collectors.toList());
     }
 
     public List<EdgeLabel> getEdgeLabels() {
-        return this.transaction.getEdgeLabels();
+        return this.transaction.getEdgeLabels().stream()
+                   .filter(el -> !Graph.Hidden.isHidden(el.name()))
+                   .collect(Collectors.toList());
     }
 
     public List<IndexLabel> getIndexLabels() {
-        return this.transaction.getIndexLabels();
+        return this.transaction.getIndexLabels().stream()
+                   .filter(il -> !Graph.Hidden.isHidden(il.name()))
+                   .collect(Collectors.toList());
     }
 
     public List<SchemaElement> desc() {

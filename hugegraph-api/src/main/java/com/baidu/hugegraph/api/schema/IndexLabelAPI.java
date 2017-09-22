@@ -47,7 +47,7 @@ import com.baidu.hugegraph.util.Log;
 @Singleton
 public class IndexLabelAPI extends API {
 
-    private static final Logger LOG = Log.logger(VertexLabelAPI.class);
+    private static final Logger LOG = Log.logger(IndexLabelAPI.class);
 
     @POST
     @Status(Status.CREATED)
@@ -76,7 +76,7 @@ public class IndexLabelAPI extends API {
         LOG.debug("Graph [{}] get edge labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<IndexLabel> labels = g.schemaTransaction().getIndexLabels();
+        List<IndexLabel> labels = g.schema().getIndexLabels();
 
         return manager.serializer(g).writeIndexlabels(labels);
     }
@@ -90,7 +90,7 @@ public class IndexLabelAPI extends API {
         LOG.debug("Graph [{}] get edge label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        IndexLabel indexLabel = g.schemaTransaction().getIndexLabel(name);
+        IndexLabel indexLabel = g.schema().getIndexLabel(name);
         checkExists(HugeType.INDEX_LABEL, indexLabel, name);
         return manager.serializer(g).writeIndexlabel(indexLabel);
     }
@@ -104,7 +104,7 @@ public class IndexLabelAPI extends API {
         LOG.debug("Graph [{}] remove index label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        g.schemaTransaction().removeIndexLabel(name);
+        g.schema().indexLabel(name).remove();
     }
 
     private static class JsonIndexLabel {

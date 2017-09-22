@@ -21,13 +21,21 @@ package com.baidu.hugegraph.variables;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.Log;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
@@ -35,16 +43,17 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import org.slf4j.Logger;
 
 public class HugeVariables implements Graph.Variables {
+
+    private static final Logger LOG = Log.logger(HugeVariables.class);
 
     // Variables vertex label
     private static final String VARIABLES = "variables";
@@ -89,111 +98,97 @@ public class HugeVariables implements Graph.Variables {
             Hidden.hide(STRING_VALUE + SET)
     };
 
-    // TODO: remove it
-    private Map<String, Object> variables;
     private HugeGraph graph;
 
     public HugeVariables(HugeGraph graph) {
         this.graph = graph;
-        this.variables = new HashMap<>();
-
-        this.init(graph);
     }
 
-    private void init(HugeGraph graph) {
-        // Create schema if needed
-        this.initSchema();
-
-        // Init key/value Map using variable vertices
-        this.initVariables();
-    }
-
-    private void initSchema() {
+    public void initSchema() {
         SchemaManager schema = this.graph.schema();
-        schema.propertyKey(Hidden.hide(VARIABLE_KEY))
-              .ifNotExist().create();
-        schema.propertyKey(Hidden.hide(VARIABLE_TYPE))
-              .ifNotExist().create();
-        schema.propertyKey(Hidden.hide(BYTE_VALUE))
-              .asByte().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(BOOLEAN_VALUE))
-              .asBoolean().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(INTEGER_VALUE))
-              .asInt().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(LONG_VALUE))
-              .asLong().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(FLOAT_VALUE))
-              .asFloat().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(DOUBLE_VALUE))
-              .asDouble().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(STRING_VALUE))
-              .ifNotExist().create();
-        schema.propertyKey(Hidden.hide(BYTE_VALUE + UNIFORM_LIST))
-              .asByte().valueList().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(BOOLEAN_VALUE + UNIFORM_LIST))
-              .asBoolean().valueList().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(INTEGER_VALUE + UNIFORM_LIST))
-              .asInt().valueList().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(LONG_VALUE + UNIFORM_LIST))
-              .asLong().valueList().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(FLOAT_VALUE + UNIFORM_LIST))
-              .asFloat().valueList().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(DOUBLE_VALUE + UNIFORM_LIST))
-              .asDouble().valueList().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(STRING_VALUE + UNIFORM_LIST))
-              .valueList().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(BYTE_VALUE + SET))
-              .asByte().valueSet().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(BOOLEAN_VALUE + SET))
-              .asBoolean().valueSet().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(INTEGER_VALUE + SET))
-              .asInt().valueSet().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(LONG_VALUE + SET))
-              .asLong().valueSet().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(FLOAT_VALUE + SET))
-              .asFloat().valueSet().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(DOUBLE_VALUE + SET))
-              .asDouble().valueSet().ifNotExist().create();
-        schema.propertyKey(Hidden.hide(STRING_VALUE + SET))
-              .valueSet().ifNotExist().create();
+        try {
+            schema.getVertexLabel(Hidden.hide(VARIABLES));
+            return;
+        } catch (NotFoundException e) {
+            LOG.info("Variables schema not exist, create them");
+        }
+        createPropertyKey(Hidden.hide(VARIABLE_KEY), DataType.TEXT,
+                          Cardinality.SINGLE);
+        createPropertyKey(Hidden.hide(VARIABLE_TYPE), DataType.TEXT,
+                          Cardinality.SINGLE);
+        createPropertyKey(Hidden.hide(BYTE_VALUE), DataType.BYTE,
+                          Cardinality.SINGLE);
+        createPropertyKey(Hidden.hide(BOOLEAN_VALUE), DataType.BOOLEAN,
+                          Cardinality.SINGLE);
+        createPropertyKey(Hidden.hide(INTEGER_VALUE), DataType.INT,
+                          Cardinality.SINGLE);
+        createPropertyKey(Hidden.hide(LONG_VALUE), DataType.LONG,
+                          Cardinality.SINGLE);
+        createPropertyKey(Hidden.hide(FLOAT_VALUE), DataType.FLOAT,
+                          Cardinality.SINGLE);
+        createPropertyKey(Hidden.hide(DOUBLE_VALUE), DataType.DOUBLE,
+                          Cardinality.SINGLE);
+        createPropertyKey(Hidden.hide(STRING_VALUE), DataType.TEXT,
+                          Cardinality.SINGLE);
+        createPropertyKey(Hidden.hide(BYTE_VALUE + UNIFORM_LIST),
+                          DataType.BYTE, Cardinality.LIST);
+        createPropertyKey(Hidden.hide(BOOLEAN_VALUE + UNIFORM_LIST),
+                          DataType.BOOLEAN, Cardinality.LIST);
+        createPropertyKey(Hidden.hide(INTEGER_VALUE + UNIFORM_LIST),
+                          DataType.INT, Cardinality.LIST);
+        createPropertyKey(Hidden.hide(LONG_VALUE + UNIFORM_LIST),
+                          DataType.LONG, Cardinality.LIST);
+        createPropertyKey(Hidden.hide(FLOAT_VALUE + UNIFORM_LIST),
+                          DataType.FLOAT, Cardinality.LIST);
+        createPropertyKey(Hidden.hide(DOUBLE_VALUE + UNIFORM_LIST),
+                          DataType.DOUBLE, Cardinality.LIST);
+        createPropertyKey(Hidden.hide(STRING_VALUE + UNIFORM_LIST),
+                          DataType.TEXT, Cardinality.LIST);
+        createPropertyKey(Hidden.hide(BYTE_VALUE + SET),
+                          DataType.BYTE, Cardinality.SET);
+        createPropertyKey(Hidden.hide(BOOLEAN_VALUE + SET),
+                          DataType.BOOLEAN, Cardinality.SET);
+        createPropertyKey(Hidden.hide(INTEGER_VALUE + SET),
+                          DataType.INT, Cardinality.SET);
+        createPropertyKey(Hidden.hide(LONG_VALUE + SET),
+                          DataType.LONG, Cardinality.SET);
+        createPropertyKey(Hidden.hide(FLOAT_VALUE + SET),
+                          DataType.FLOAT, Cardinality.SET);
+        createPropertyKey(Hidden.hide(DOUBLE_VALUE + SET),
+                          DataType.DOUBLE, Cardinality.SET);
+        createPropertyKey(Hidden.hide(STRING_VALUE + SET),
+                          DataType.TEXT, Cardinality.SET);
 
         String[] properties = {Hidden.hide(VARIABLE_KEY),
                                Hidden.hide(VARIABLE_TYPE)};
         properties = ArrayUtils.addAll(properties, TYPES);
 
-        schema.vertexLabel(Hidden.hide(VARIABLES))
-              .properties(properties)
-              .primaryKeys(Hidden.hide(VARIABLE_KEY))
-              .nullableKeys(TYPES)
-              .ifNotExist().create();
+        VertexLabel vertexLabel = new VertexLabel(Hidden.hide(VARIABLES));
+        vertexLabel.properties(properties);
+        vertexLabel.primaryKeys(Hidden.hide(VARIABLE_KEY));
+        vertexLabel.nullableKeys(TYPES);
+        this.graph.schemaTransaction().addVertexLabel(vertexLabel);
+        LOG.info("Variables schema created");
     }
 
-    private void initVariables() {
-        // Get all variable vertices
-        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        query.eq(HugeKeys.LABEL, Hidden.hide(VARIABLES));
-        Iterator<Vertex> vertices = this.graph.vertices(query);
-
-        vertices.forEachRemaining(vertex -> initVariable(vertex));
-    }
-
-    private void initVariable(Vertex vertex) {
-        String key = vertex.value(Hidden.hide(VARIABLE_KEY));
-        String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
-        if (!Arrays.asList(TYPES).contains(type)) {
-            throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(type);
-        }
-        Object value = vertex.value(Hidden.hide(type));
-        this.variables.put(key, value);
+    private void createPropertyKey(String name, DataType dataType,
+                                   Cardinality cardinality) {
+        PropertyKey propertyKey = new PropertyKey(name);
+        propertyKey.dataType(dataType);
+        propertyKey.cardinality(cardinality);
+        this.graph.schemaTransaction().addPropertyKey(propertyKey);
     }
 
     @Override
     public Set<String> keys() {
-        return this.variables.keySet();
+        Iterator<Vertex> vertices = this.queryAllVariableVertices();
+        Set<String> keys = new HashSet<>();
+        while (vertices.hasNext()) {
+            keys.add(vertices.next().<String>value(Hidden.hide(VARIABLE_KEY)));
+        }
+        return keys;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <R> Optional<R> get(String key) {
         if (key == null) {
@@ -202,7 +197,17 @@ public class HugeVariables implements Graph.Variables {
         if (key.isEmpty()) {
             throw Graph.Variables.Exceptions.variableKeyCanNotBeEmpty();
         }
-        return Optional.ofNullable((R) this.variables.get(key));
+
+        Vertex vertex = this.queryVariableVertex(key);
+        if (vertex == null) {
+            return Optional.empty();
+        }
+        String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
+        if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
+            throw Graph.Variables.Exceptions
+                       .dataTypeOfVariableValueNotSupported(type);
+        }
+        return Optional.of(vertex.value(Hidden.hide(type)));
     }
 
     @Override
@@ -217,90 +222,7 @@ public class HugeVariables implements Graph.Variables {
             throw Graph.Variables.Exceptions.variableValueCanNotBeNull();
         }
 
-        this.variables.put(key, value);
-
-        // TODO: add methods: {create/query/remove}VariableVertex()
-        HugeVertex vertex = this.constructVariableVertex(key);
-        this.setVariableValue(vertex, value);
-        this.graph.graphTransaction().addVertex(vertex);
-    }
-
-    private void setVariableValue(HugeVertex vertex, Object value) {
-        try {
-            // TODO: remove repeat code
-            if (value instanceof Byte) {
-                vertex.property(Hidden.hide(BYTE_VALUE), value);
-                vertex.property(Hidden.hide(VARIABLE_TYPE), BYTE_VALUE);
-            } else if (value instanceof Boolean) {
-                vertex.property(Hidden.hide(BOOLEAN_VALUE), value);
-                vertex.property(Hidden.hide(VARIABLE_TYPE), BOOLEAN_VALUE);
-            } else if (value instanceof Integer) {
-                vertex.property(Hidden.hide(INTEGER_VALUE), value);
-                vertex.property(Hidden.hide(VARIABLE_TYPE), INTEGER_VALUE);
-            } else if (value instanceof Long) {
-                vertex.property(Hidden.hide(LONG_VALUE), value);
-                vertex.property(Hidden.hide(VARIABLE_TYPE), LONG_VALUE);
-            } else if (value instanceof Float) {
-                vertex.property(Hidden.hide(FLOAT_VALUE), value);
-                vertex.property(Hidden.hide(VARIABLE_TYPE), FLOAT_VALUE);
-            } else if (value instanceof Double) {
-                vertex.property(Hidden.hide(DOUBLE_VALUE), value);
-                vertex.property(Hidden.hide(VARIABLE_TYPE), DOUBLE_VALUE);
-            } else if (value instanceof String) {
-                vertex.property(Hidden.hide(STRING_VALUE), value);
-                vertex.property(Hidden.hide(VARIABLE_TYPE), STRING_VALUE);
-            } else if (value instanceof List || value instanceof Set) {
-                String suffix = value instanceof List ? UNIFORM_LIST : SET;
-                Collection<?> collection = (Collection<?>) value;
-                if (collection.isEmpty()) {
-                    vertex.property(Hidden.hide(STRING_VALUE + suffix), value);
-                    vertex.property(Hidden.hide(VARIABLE_TYPE),
-                                    STRING_VALUE + suffix);
-                    return;
-                }
-                Object object1 = collection.iterator().next();
-                if (object1 instanceof Byte) {
-                    vertex.property(Hidden.hide(BYTE_VALUE + suffix), value);
-                    vertex.property(Hidden.hide(VARIABLE_TYPE),
-                                    BYTE_VALUE + suffix);
-                } else if (object1 instanceof Boolean) {
-                    vertex.property(Hidden.hide(BOOLEAN_VALUE + suffix),
-                                    value);
-                    vertex.property(Hidden.hide(VARIABLE_TYPE),
-                                    BOOLEAN_VALUE + suffix);
-                } else if (object1 instanceof Integer) {
-                    vertex.property(Hidden.hide(INTEGER_VALUE + suffix),
-                                    value);
-                    vertex.property(Hidden.hide(VARIABLE_TYPE),
-                                    INTEGER_VALUE + suffix);
-                } else if (object1 instanceof Long) {
-                    vertex.property(Hidden.hide(LONG_VALUE + suffix), value);
-                    vertex.property(Hidden.hide(VARIABLE_TYPE),
-                                    LONG_VALUE + suffix);
-                } else if (object1 instanceof Float) {
-                    vertex.property(Hidden.hide(FLOAT_VALUE + suffix), value);
-                    vertex.property(Hidden.hide(VARIABLE_TYPE),
-                                    FLOAT_VALUE + suffix);
-                } else if (object1 instanceof Double) {
-                    vertex.property(Hidden.hide(DOUBLE_VALUE + suffix), value);
-                    vertex.property(Hidden.hide(VARIABLE_TYPE),
-                                    DOUBLE_VALUE + suffix);
-                } else if (object1 instanceof String) {
-                    vertex.property(Hidden.hide(STRING_VALUE + suffix), value);
-                    vertex.property(Hidden.hide(VARIABLE_TYPE),
-                                    STRING_VALUE + suffix);
-                } else {
-                    throw Graph.Variables.Exceptions
-                               .dataTypeOfVariableValueNotSupported(value);
-                }
-            } else {
-                throw Graph.Variables.Exceptions
-                           .dataTypeOfVariableValueNotSupported(value);
-            }
-        } catch (IllegalArgumentException e) {
-            throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(value);
-        }
+        this.createVariableVertex(key, value);
     }
 
     @Override
@@ -311,21 +233,132 @@ public class HugeVariables implements Graph.Variables {
         if (key.isEmpty()) {
             throw Graph.Variables.Exceptions.variableKeyCanNotBeEmpty();
         }
-        if (this.variables.keySet().contains(key)) {
-            this.variables.remove(key);
-            HugeVertex vertex = this.constructVariableVertex(key);
-            this.graph.graphTransaction().removeVertex(vertex);
+        HugeVertex vertex = this.queryVariableVertex(key);
+        if (vertex != null) {
+            this.removeVariableVertex(vertex);
         }
     }
 
-    private HugeVertex constructVariableVertex(String key) {
-        Id id = SplicingIdGenerator.splicing(Hidden.hide(VARIABLES), key);
-        VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
-        return new HugeVertex(this.graph, id, vl);
+    @SuppressWarnings("unchecked")
+    @Override
+    public Map<String, Object> asMap() {
+        Map<String, Object> variables = new HashMap();
+        Iterator<Vertex> vertices = this.queryAllVariableVertices();
+        while (vertices.hasNext()) {
+            Vertex vertex = vertices.next();
+            String key = vertex.value(Hidden.hide(VARIABLE_KEY));
+            String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
+            if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
+                throw Graph.Variables.Exceptions
+                           .dataTypeOfVariableValueNotSupported(type);
+            }
+            Object value = vertex.value(Hidden.hide(type));
+            variables.put(key, value);
+        }
+        return Collections.unmodifiableMap(variables);
     }
 
     @Override
     public String toString() {
         return StringFactory.graphVariablesString(this);
+    }
+
+    private void setProperties(HugeVertex vertex, String key, Object value) {
+        String suffix;
+        if (value instanceof List) {
+            suffix = UNIFORM_LIST;
+        } else if (value instanceof Set) {
+            suffix = SET;
+        } else {
+            suffix = "";
+        }
+        vertex.property(Hidden.hide(VARIABLE_KEY), key);
+        Object object = HugeVariables.extractSingleObject(value);
+        if (object == null) {
+            vertex.property(Hidden.hide(STRING_VALUE + suffix), value);
+            vertex.property(Hidden.hide(VARIABLE_TYPE),
+                            STRING_VALUE + suffix);
+            return;
+        }
+        if (object instanceof Byte) {
+            vertex.property(Hidden.hide(BYTE_VALUE + suffix), value);
+            vertex.property(Hidden.hide(VARIABLE_TYPE),
+                            BYTE_VALUE + suffix);
+        } else if (object instanceof Boolean) {
+            vertex.property(Hidden.hide(BOOLEAN_VALUE + suffix), value);
+            vertex.property(Hidden.hide(VARIABLE_TYPE),
+                            BOOLEAN_VALUE + suffix);
+        } else if (object instanceof Integer) {
+            vertex.property(Hidden.hide(INTEGER_VALUE + suffix), value);
+            vertex.property(Hidden.hide(VARIABLE_TYPE),
+                            INTEGER_VALUE + suffix);
+        } else if (object instanceof Long) {
+            vertex.property(Hidden.hide(LONG_VALUE + suffix), value);
+            vertex.property(Hidden.hide(VARIABLE_TYPE),
+                            LONG_VALUE + suffix);
+        } else if (object instanceof Float) {
+            vertex.property(Hidden.hide(FLOAT_VALUE + suffix), value);
+            vertex.property(Hidden.hide(VARIABLE_TYPE),
+                            FLOAT_VALUE + suffix);
+        } else if (object instanceof Double) {
+            vertex.property(Hidden.hide(DOUBLE_VALUE + suffix), value);
+            vertex.property(Hidden.hide(VARIABLE_TYPE),
+                            DOUBLE_VALUE + suffix);
+        } else if (object instanceof String) {
+            vertex.property(Hidden.hide(STRING_VALUE + suffix), value);
+            vertex.property(Hidden.hide(VARIABLE_TYPE),
+                            STRING_VALUE + suffix);
+        } else {
+            throw Graph.Variables.Exceptions
+                       .dataTypeOfVariableValueNotSupported(value);
+        }
+    }
+
+    private void createVariableVertex(String key, Object value) {
+        VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
+        HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
+                                           null, vl);
+        try {
+            this.setProperties(vertex, key, value);
+        } catch (IllegalArgumentException e) {
+            throw Graph.Variables.Exceptions
+                       .dataTypeOfVariableValueNotSupported(value);
+        }
+        vertex.assignId(null);
+        this.graph.graphTransaction().addVertex(vertex);
+    }
+
+    private void removeVariableVertex(HugeVertex vertex) {
+        this.graph.graphTransaction().removeVertex(vertex);
+    }
+
+    private HugeVertex queryVariableVertex(String key) {
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.eq(HugeKeys.LABEL, Hidden.hide(VARIABLES));
+        query.query(Condition.eq(Hidden.hide(VARIABLE_KEY), key));
+        query.showHidden(true);
+        Iterator<Vertex> vertices = this.graph.vertices(query);
+        if (!vertices.hasNext()) {
+            return null;
+        }
+        return (HugeVertex) vertices.next();
+    }
+
+    private Iterator<Vertex> queryAllVariableVertices() {
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.eq(HugeKeys.LABEL, Hidden.hide(VARIABLES));
+        query.showHidden(true);
+        return this.graph.vertices(query);
+    }
+
+    private static Object extractSingleObject(Object value) {
+        if (value instanceof List || value instanceof Set) {
+            Collection<?> collection = (Collection<?>) value;
+            if (collection.isEmpty()) {
+                return null;
+            }
+            value = collection.iterator().next();
+        }
+        return value;
     }
 }

@@ -73,16 +73,18 @@ public class EdgeLabelAPI extends API {
     }
 
     @PUT
+    @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
+                         @PathParam("name") String name,
                          @QueryParam("action") String action,
                          JsonEdgeLabel jsonEdgeLabel) {
         E.checkArgumentNotNull(jsonEdgeLabel, "The request json body to " +
                                "create EdgeLabel can't be null or empty");
 
-        LOG.debug("Graph [{}] %s edge label: {}",
+        LOG.debug("Graph [{}] {} edge label: {}",
                   graph, action, jsonEdgeLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
@@ -106,7 +108,7 @@ public class EdgeLabelAPI extends API {
         LOG.debug("Graph [{}] get edge labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<EdgeLabel> labels = g.schemaTransaction().getEdgeLabels();
+        List<EdgeLabel> labels = g.schema().getEdgeLabels();
 
         return manager.serializer(g).writeEdgeLabels(labels);
     }
@@ -120,7 +122,7 @@ public class EdgeLabelAPI extends API {
         LOG.debug("Graph [{}] get edge label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        EdgeLabel edgeLabel = g.schemaTransaction().getEdgeLabel(name);
+        EdgeLabel edgeLabel = g.schema().getEdgeLabel(name);
         checkExists(HugeType.EDGE_LABEL, edgeLabel, name);
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
@@ -134,7 +136,7 @@ public class EdgeLabelAPI extends API {
         LOG.debug("Graph [{}] remove edge label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        g.schemaTransaction().removeEdgeLabel(name);
+        g.schema().edgeLabel(name).remove();
     }
 
     private static class JsonEdgeLabel {

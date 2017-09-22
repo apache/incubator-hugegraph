@@ -64,23 +64,28 @@ public class TestGraph implements Graph {
 
     protected void clearSchema() {
         // Clear schema and graph data will be cleared at same time
-        SchemaTransaction schema = this.graph.schemaTransaction();
+        SchemaManager schema = this.graph.schema();
 
         schema.getIndexLabels().stream().forEach(elem -> {
-            schema.removeIndexLabel(elem.name());
+            schema.indexLabel(elem.name()).remove();
         });
 
         schema.getEdgeLabels().stream().forEach(elem -> {
-            schema.removeEdgeLabel(elem.name());
+            schema.edgeLabel(elem.name()).remove();
         });
 
         schema.getVertexLabels().stream().forEach(elem -> {
-            schema.removeVertexLabel(elem.name());
+            schema.vertexLabel(elem.name()).remove();
         });
 
         schema.getPropertyKeys().stream().forEach(elem -> {
-            schema.removePropertyKey(elem.name());
+            schema.propertyKey(elem.name()).remove();
         });
+    }
+
+    protected void clearVariables() {
+        Variables variables = this.variables();
+        variables.keys().forEach(key -> variables.remove(key));
     }
 
     @Override

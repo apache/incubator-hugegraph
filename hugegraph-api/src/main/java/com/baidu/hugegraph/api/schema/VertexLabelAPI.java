@@ -74,16 +74,18 @@ public class VertexLabelAPI extends API {
     }
 
     @PUT
+    @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
+                         @PathParam("name") String name,
                          @QueryParam("action") String action,
                          JsonVertexLabel jsonVertexLabel) {
         E.checkArgumentNotNull(jsonVertexLabel, "The request json body to " +
                                "update VertexLabel can't be null or empty");
 
-        LOG.debug("Graph [{}] %s vertex label: {}",
+        LOG.debug("Graph [{}] {} vertex label: {}",
                   graph, action, jsonVertexLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
@@ -107,7 +109,7 @@ public class VertexLabelAPI extends API {
         LOG.debug("Graph [{}] get vertex labels", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<VertexLabel> labels = g.schemaTransaction().getVertexLabels();
+        List<VertexLabel> labels = g.schema().getVertexLabels();
 
         return manager.serializer(g).writeVertexLabels(labels);
     }
@@ -121,7 +123,7 @@ public class VertexLabelAPI extends API {
         LOG.debug("Graph [{}] get vertex label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        VertexLabel vertexLabel = g.schemaTransaction().getVertexLabel(name);
+        VertexLabel vertexLabel = g.schema().getVertexLabel(name);
         checkExists(HugeType.VERTEX_LABEL, vertexLabel, name);
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
@@ -135,7 +137,7 @@ public class VertexLabelAPI extends API {
         LOG.debug("Graph [{}] remove vertex label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        g.schemaTransaction().removeVertexLabel(name);
+        g.schema().vertexLabel(name).remove();
     }
 
     private static class JsonVertexLabel {

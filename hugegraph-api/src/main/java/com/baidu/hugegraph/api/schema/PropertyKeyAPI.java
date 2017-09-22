@@ -78,7 +78,7 @@ public class PropertyKeyAPI extends API {
         LOG.debug("Graph [{}] get property keys", graph);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        List<PropertyKey> propKeys = g.schemaTransaction().getPropertyKeys();
+        List<PropertyKey> propKeys = g.schema().getPropertyKeys();
 
         return manager.serializer(g).writePropertyKeys(propKeys);
     }
@@ -92,7 +92,7 @@ public class PropertyKeyAPI extends API {
         LOG.debug("Graph [{}] get property key by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        PropertyKey propertyKey = g.schemaTransaction().getPropertyKey(name);
+        PropertyKey propertyKey = g.schema().getPropertyKey(name);
         checkExists(HugeType.PROPERTY_KEY, propertyKey, name);
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
@@ -106,7 +106,7 @@ public class PropertyKeyAPI extends API {
         LOG.debug("Graph [{}] remove property key by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-        g.schemaTransaction().removePropertyKey(name);
+        g.schema().propertyKey(name).remove();
     }
 
     private static class JsonPropertyKey {

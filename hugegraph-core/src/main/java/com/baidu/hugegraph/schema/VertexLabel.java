@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.commons.collections.CollectionUtils;
 
 import com.baidu.hugegraph.HugeException;
@@ -154,8 +155,8 @@ public class VertexLabel extends SchemaLabel {
             String name = this.vertexLabel.name();
             VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
             if (vertexLabel == null) {
-                throw new HugeException("Can't append the vertex label '%s' " +
-                                        "since it doesn't exist", name);
+                throw new NotFoundException("Can't append vertex label '%s' " +
+                                            "since it doesn't exist", name);
             }
 
             this.checkStableVars();
