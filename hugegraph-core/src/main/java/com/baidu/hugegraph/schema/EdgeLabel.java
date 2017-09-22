@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.commons.collections.CollectionUtils;
 
 import com.baidu.hugegraph.HugeException;
@@ -187,8 +188,8 @@ public class EdgeLabel extends SchemaLabel {
             String name = this.edgeLabel.name();
             EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
             if (edgeLabel == null) {
-                throw new HugeException("Can't append the edge label '%s' " +
-                                        "since it doesn't exist", name);
+                throw new NotFoundException("Can't append edge label '%s'" +
+                                            " since it doesn't exist", name);
             }
 
             this.checkStableVars();

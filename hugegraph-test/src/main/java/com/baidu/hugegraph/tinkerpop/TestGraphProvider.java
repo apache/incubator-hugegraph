@@ -269,7 +269,9 @@ public class TestGraphProvider extends AbstractGraphProvider {
     public void clear(Graph graph, Configuration configuration)
            throws Exception {
         if (graph != null && graph.tx().isOpen()) {
-            ((TestGraph) graph).clearSchema();
+            TestGraph testGraph = (TestGraph) graph;
+            testGraph.clearSchema();
+            testGraph.clearVariables();
             graph.tx().commit();
         }
     }

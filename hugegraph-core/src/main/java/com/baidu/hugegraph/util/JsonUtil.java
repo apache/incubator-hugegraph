@@ -49,8 +49,6 @@ public class JsonUtil {
             Double number = (Double) object;
             if (clazz == Byte.class) {
                 object = number.byteValue();
-            } else if (clazz == Short.class) {
-                object = number.shortValue();
             } else if (clazz == Integer.class) {
                 object = number.intValue();
             } else if (clazz == Long.class) {

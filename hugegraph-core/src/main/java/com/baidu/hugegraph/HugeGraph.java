@@ -342,8 +342,9 @@ public class HugeGraph implements Graph {
     @Override
     public Variables variables() {
         if (this.veriables == null) {
-            return new HugeVariables(this);
+            this.veriables = new HugeVariables(this);
         }
+        this.veriables.initSchema();
         return this.veriables;
     }
 

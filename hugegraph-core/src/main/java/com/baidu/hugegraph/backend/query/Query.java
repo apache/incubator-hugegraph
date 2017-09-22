@@ -43,6 +43,7 @@ public class Query implements Cloneable {
     private long offset;
     private long limit;
     private long capacity;
+    private boolean showHidden;
 
     public Query(HugeType resultType) {
         this.resultType = resultType;
@@ -50,6 +51,7 @@ public class Query implements Cloneable {
         this.offset = 0L;
         this.limit = NO_LIMIT;
         this.capacity = DEFAULT_CAPACITY;
+        this.showHidden = false;
     }
 
     public HugeType resultType() {
@@ -100,6 +102,14 @@ public class Query implements Cloneable {
 
     public void capacity(long capacity) {
         this.capacity = capacity;
+    }
+
+    public boolean showHidden() {
+        return this.showHidden;
+    }
+
+    public void showHidden(boolean showHidden) {
+        this.showHidden = showHidden;
     }
 
     public Set<Id> ids() {

@@ -35,6 +35,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
@@ -329,11 +330,12 @@ public class GraphTransaction extends AbstractTransaction {
         Iterator<BackendEntry> entries = this.query(query).iterator();
         while (entries.hasNext()) {
             BackendEntry entry = entries.next();
-            Vertex vertex = this.serializer.readVertex(entry, graph());
+            HugeVertex vertex = this.serializer.readVertex(entry, graph());
             assert vertex != null;
-            list.add(vertex);
+            if (query.showHidden() || !Graph.Hidden.isHidden(vertex.label())) {
+                list.add(vertex);
+            }
         }
-
         return list;
     }
 
@@ -403,6 +405,10 @@ public class GraphTransaction extends AbstractTransaction {
         while (vertices.hasNext()) {
             HugeVertex vertex = (HugeVertex) vertices.next();
             for (HugeEdge edge : vertex.getEdges()) {
+                if (!query.showHidden() &&
+                    Graph.Hidden.isHidden(edge.label())) {
+                    continue;
+                }
                 if (!results.containsKey(edge.id())) {
                     /*
                      * NOTE: Maybe some edges are IN and others are OUT if
@@ -759,6 +765,9 @@ public class GraphTransaction extends AbstractTransaction {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         // TODO: use query.capacity(Query.NO_LIMIT);
         query.eq(HugeKeys.LABEL, vertexLabel.name());
+        if (Graph.Hidden.isHidden(vertexLabel.name())) {
+            query.showHidden(true);
+        }
         Iterator<Vertex> vertices = this.queryVertices(query).iterator();
 
         boolean autoCommit = this.autoCommit();
