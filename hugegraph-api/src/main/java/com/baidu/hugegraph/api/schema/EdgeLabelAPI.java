@@ -152,6 +152,10 @@ public class EdgeLabelAPI extends API {
         private EdgeLabel convert2EdgeLabel() {
             E.checkArgumentNotNull(this.name, "The name of edge label " +
                                    "can't be null");
+            E.checkArgument(this.indexNames == null ||
+                            this.indexNames.length == 0,
+                            "Not allowed to pass index names when " +
+                            "creating edge label");
             EdgeLabel edgeLabel = new EdgeLabel(this.name);
             if (this.sourceLabel != null) {
                 edgeLabel.sourceLabel(this.sourceLabel);
@@ -167,9 +171,6 @@ public class EdgeLabelAPI extends API {
             }
             if (this.nullableKeys != null) {
                 edgeLabel.nullableKeys(this.nullableKeys);
-            }
-            if (this.indexNames != null) {
-                edgeLabel.indexNames(this.indexNames);
             }
             if (this.properties != null) {
                 edgeLabel.properties(this.properties);

@@ -120,6 +120,11 @@ public class PropertyKeyAPI extends API {
         private PropertyKey convert2PropertyKey() {
             E.checkArgumentNotNull(this.name, "The name of property key " +
                                    "can't be null");
+            E.checkArgument(this.properties == null ||
+                            this.properties.length == 0,
+                            "Not allowed to pass properties when " +
+                            "creating property key since it doesn't " +
+                            "support meta properties currently");
             PropertyKey propertyKey = new PropertyKey(this.name);
             // Weather it can be replacee by java 8 function or consumer
             if (this.cardinality != null) {
@@ -127,9 +132,6 @@ public class PropertyKeyAPI extends API {
             }
             if (this.dataType != null) {
                 propertyKey.dataType(this.dataType);
-            }
-            if (this.properties != null) {
-                propertyKey.properties(this.properties);
             }
             if (this.checkExist != null) {
                 propertyKey.checkExist(this.checkExist);
