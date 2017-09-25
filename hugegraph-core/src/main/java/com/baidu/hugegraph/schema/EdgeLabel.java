@@ -371,12 +371,12 @@ public class EdgeLabel extends SchemaLabel {
 
             if (sourceLabel != null) {
                 throw new NotAllowException(
-                          "Not allowd to append source label " +
+                          "Not allowed to append source label " +
                           "for existed edge label '%s'", name);
             }
             if (targetLabel != null) {
                 throw new NotAllowException(
-                          "Not allowd to append target label " +
+                          "Not allowed to append target label " +
                           "for existed edge label '%s'", name);
             }
             // Don't allow to append sort keys.

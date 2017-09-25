@@ -151,6 +151,11 @@ public class VertexLabelAPI extends API {
         private VertexLabel convert2VertexLabel() {
             E.checkArgumentNotNull(this.name, "The name of vertex label " +
                                    "can't be null");
+            System.out.println(this.indexNames.length);
+            E.checkArgument(this.indexNames == null ||
+                            this.indexNames.length == 0,
+                            "Not allowed to pass index names when " +
+                            "creating vertex label");
             VertexLabel vertexLabel = new VertexLabel(this.name);
             if (this.idStrategy != null) {
                 vertexLabel.idStrategy(this.idStrategy);
@@ -160,9 +165,6 @@ public class VertexLabelAPI extends API {
             }
             if (this.nullableKeys != null) {
                 vertexLabel.nullableKeys(this.nullableKeys);
-            }
-            if (this.indexNames != null) {
-                vertexLabel.indexNames(this.indexNames);
             }
             if (this.properties != null) {
                 vertexLabel.properties(this.properties);
