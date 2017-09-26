@@ -55,7 +55,7 @@ public class IndexLabelAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         IndexLabelAPI.JsonIndexLabel jsonIndexLabel) {
+                         JsonIndexLabel jsonIndexLabel) {
         E.checkArgumentNotNull(jsonIndexLabel,
                                "The request body can't be empty");
 
@@ -117,12 +117,15 @@ public class IndexLabelAPI extends API {
         public Boolean checkExist;
 
         private IndexLabel convert2IndexLabel() {
-            E.checkArgumentNotNull(this.name, "The name of index label " +
-                                   "can't be null");
+            E.checkArgumentNotNull(this.name,
+                                  "The name of index label can't be null");
+            E.checkArgument(this.baseType == HugeType.VERTEX_LABEL ||
+                            this.baseType == HugeType.EDGE_LABEL,
+                            "The baseType of index label '%s' can only be " +
+                            "either VERTEX_LABEL or EDGE_LABEL", this.name);
             IndexLabel indexLabel = new IndexLabel(this.name);
-            if (this.baseType != null) {
-                indexLabel.baseType(this.baseType);
-            }
+            indexLabel.baseType(this.baseType);
+
             if (this.baseValue != null) {
                 indexLabel.baseValue(this.baseValue);
             }
