@@ -137,7 +137,7 @@ public class CoreOptions extends OptionHolder {
 
     public static final ConfigOption<String> SCHEMA_ILLEGAL_NAME_REGEX = new ConfigOption<>(
             "schema.illegal_name_regex",
-            "\\s+",
+            "\\s+|~.*",
             true,
             "The regex expression that specified the illegal format for " +
             "schema name",

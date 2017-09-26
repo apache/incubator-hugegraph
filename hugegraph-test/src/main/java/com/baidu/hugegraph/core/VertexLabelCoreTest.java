@@ -76,6 +76,16 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.vertexLabel("    ").create();
         });
+        // Start with '~'
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("~").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("~ ").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("~x").create();
+        });
     }
 
     @Test

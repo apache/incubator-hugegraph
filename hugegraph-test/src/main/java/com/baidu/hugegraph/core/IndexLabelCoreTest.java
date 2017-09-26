@@ -88,6 +88,16 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("    ").onV("person").by("name").create();
         });
+        // Start with '~'
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("~").onV("person").by("name").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("~ ").onV("person").by("name").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("~x").onV("person").by("name").create();
+        });
     }
 
     @Test

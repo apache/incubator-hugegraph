@@ -59,8 +59,11 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         schema.propertyKey(" . ").create();
         schema.propertyKey(". .").create();
 
-        schema.propertyKey("~@$%^&*()_+`-={}|[]\"<?;',./\\").create();
+        schema.propertyKey("@$%^&*()_+`-={}|[]\"<?;'~,./\\").create();
         schema.propertyKey("azAZ0123456789").create();
+
+        schema.propertyKey(" ~").create();
+        schema.propertyKey("x~").create();
     }
 
     @Test
@@ -96,6 +99,17 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.propertyKey("!").create();
+        });
+
+        // Start with '~'
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey("~").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey("~ ").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey("~x").create();
         });
     }
 
