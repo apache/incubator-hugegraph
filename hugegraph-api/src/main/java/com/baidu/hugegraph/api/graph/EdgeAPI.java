@@ -48,6 +48,7 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -81,13 +82,33 @@ public class EdgeAPI extends API {
         E.checkArgumentNotNull(jsonEdge.source, "Expect source vertex id");
         E.checkArgumentNotNull(jsonEdge.target, "Expect target vertex id");
 
-        Graph g = graph(manager, graph);
-        /*
-         * NOTE: If the vertex id is correct but label is null or incorrect,
-         * we allow to create it here
-         */
-        Vertex srcVertex = getVertex((HugeGraph) g, jsonEdge.source, null);
-        Vertex tgtVertex = getVertex((HugeGraph) g, jsonEdge.target, null);
+        E.checkArgument(jsonEdge.sourceLabel == null &&
+                        jsonEdge.targetLabel == null ||
+                        jsonEdge.sourceLabel != null &&
+                        jsonEdge.targetLabel != null,
+                        "The both source and target vertex label " +
+                        "are either passed in, or not passed in");
+
+        HugeGraph g = (HugeGraph) graph(manager, graph);
+
+        if (jsonEdge.sourceLabel != null && jsonEdge.targetLabel != null) {
+            // NOTE: Not use SchemaManager because it will throw 404
+            SchemaTransaction schema = g.schemaTransaction();
+            /*
+             * NOTE: If the vertex id is correct but label not match with id,
+             * we allow to create it here
+             */
+            E.checkArgumentNotNull(schema.getVertexLabel(jsonEdge.sourceLabel),
+                                   "Invalid source vertex label '%s'",
+                                   jsonEdge.sourceLabel);
+            E.checkArgumentNotNull(schema.getVertexLabel(jsonEdge.targetLabel),
+                                   "Invalid target vertex label '%s'",
+                                   jsonEdge.targetLabel);
+        }
+
+
+        Vertex srcVertex = getVertex(g, jsonEdge.source, jsonEdge.sourceLabel);
+        Vertex tgtVertex = getVertex(g, jsonEdge.target, jsonEdge.targetLabel);
         Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex,
                                       jsonEdge.properties());
 
@@ -137,7 +158,11 @@ public class EdgeAPI extends API {
                                        "Expect target vertex id");
                 E.checkArgumentNotNull(edge.targetLabel,
                                        "Expect target vertex label");
-
+                /*
+                 * NOTE: If the query param 'checkVertex' is false,
+                 * then the label is correct and not matched id,
+                 * it will be allowed currently
+                 */
                 Vertex srcVertex = getVertex.apply(g, edge.source,
                                                    edge.sourceLabel);
                 Vertex tgtVertex = getVertex.apply(g, edge.target,
@@ -211,11 +236,11 @@ public class EdgeAPI extends API {
     }
 
     private static Vertex newVertex(HugeGraph graph, String id, String label) {
+        // NOTE: Not use SchemaManager because it will throw 404
         VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
         E.checkArgumentNotNull(vl, "Invalid vertex label '%s'", label);
         Id idValue = HugeElement.getIdValue(id);
-        Vertex vertex = new HugeVertex(graph, idValue, vl);
-        return vertex;
+        return new HugeVertex(graph, idValue, vl);
     }
 
     @JsonIgnoreProperties(value = {"type"})
