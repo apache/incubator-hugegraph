@@ -178,8 +178,9 @@ public class IndexLabel extends SchemaElement {
 
             SchemaLabel schemaLabel = this.loadElement();
             E.checkArgumentNotNull(schemaLabel,
-                    "Can't build index for %s which does not exist",
-                    this.indexLabel.baseValue);
+                                   "Can't find the %s with name '%s'",
+                                   this.indexLabel.baseType,
+                                   this.indexLabel.baseValue);
 
             this.checkFields(schemaLabel.properties);
 
