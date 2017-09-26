@@ -29,6 +29,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -893,6 +894,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testScanEdge() {
         HugeGraph graph = graph();
+        Assume.assumeTrue("Not support scan", graph.graphTransaction().store()
+                                                   .features().supportsScan());
         init18Edges();
 
         Set<Edge> edges = new HashSet<>();

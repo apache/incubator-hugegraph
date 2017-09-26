@@ -38,6 +38,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
@@ -45,6 +46,7 @@ import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -56,10 +58,10 @@ import com.baidu.hugegraph.util.Log;
  * 3.remove by id
  * 4.range query
  * 5.append/subtract index data(element-id) and vertex-property
+ * 6.query edge by edge-label
  * InMemoryDBStore not support currently:
  * 1.remove by id + condition
  * 2.append/subtract edge-property
- * 3.query edge by edge-label
  */
 public class InMemoryDBStore implements BackendStore {
 
@@ -100,7 +102,7 @@ public class InMemoryDBStore implements BackendStore {
                 rs = queryEdgeById(query.ids(), rs);
                 E.checkState(query.conditions().isEmpty(),
                              "Not support querying edge by %s",
-                             query.conditions());
+                             query);
             } else {
                 rs = queryById(query.ids(), rs);
             }
@@ -108,7 +110,12 @@ public class InMemoryDBStore implements BackendStore {
 
         // Query by condition(s)
         if (!query.conditions().isEmpty()) {
-            rs = queryByFilter(query.conditions(), rs);
+            if (query.resultType() == HugeType.EDGE) {
+                // TODO: separate this method into a class
+                rs = queryEdgeByFilter(query.conditions(), rs);
+            } else {
+                rs = queryByFilter(query.conditions(), rs);
+            }
         }
 
         LOG.info("[store {}] return {} for query: {}",
@@ -144,8 +151,9 @@ public class InMemoryDBStore implements BackendStore {
         return rs;
     }
 
-    private Map<Id, BackendEntry> queryEdgeById(Set<Id> ids,
-                                                Map<Id, BackendEntry> entries) {
+    protected Map<Id, BackendEntry> queryEdgeById(
+              Set<Id> ids,
+              Map<Id, BackendEntry> entries) {
         assert ids.size() > 0;
         Map<Id, BackendEntry> rs = new HashMap<>();
 
@@ -164,16 +172,16 @@ public class InMemoryDBStore implements BackendStore {
             }
 
             if (entries.containsKey(entryId)) {
-                BackendEntry entry = entries.get(entryId);
+                BackendEntry value = entries.get(entryId);
                 // TODO: Compatible with BackendEntry
-                TextBackendEntry textEntry = (TextBackendEntry) entry;
+                TextBackendEntry entry = (TextBackendEntry) value;
                 if (column == null) {
                     // All edges in the vertex
                     rs.put(entryId, entry);
-                } else if (textEntry.containsPrefix(column)) {
+                } else if (entry.containsPrefix(column)) {
                     // An edge in the vertex
                     TextBackendEntry edges = new TextBackendEntry(entryId);
-                    edges.columns(textEntry.columnsWithPrefix(column));
+                    edges.columns(entry.columnsWithPrefix(column));
 
                     BackendEntry result = rs.get(entryId);
                     if (result == null) {
@@ -189,8 +197,8 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     protected Map<Id, BackendEntry> queryByFilter(
-            Set<Condition> conditions,
-            Map<Id, BackendEntry> entries) {
+              Set<Condition> conditions,
+              Map<Id, BackendEntry> entries) {
         assert conditions.size() > 0;
 
         Map<Id, BackendEntry> rs = new HashMap<>();
@@ -209,6 +217,51 @@ public class InMemoryDBStore implements BackendStore {
                 rs.put(entry.id(), entry);
             }
         }
+        return rs;
+    }
+
+    protected Map<Id, BackendEntry> queryEdgeByFilter(
+              Set<Condition> conditions,
+              Map<Id, BackendEntry> entries) {
+        if (conditions.isEmpty()) {
+            return entries;
+        }
+
+        // Only support querying edge by label
+        E.checkState(conditions.size() == 1,
+                     "Not support querying edge by %s",
+                     conditions);
+        Condition cond = conditions.iterator().next();
+        E.checkState(cond.isRelation() &&
+                     ((Condition.Relation) cond).key().equals(HugeKeys.LABEL),
+                     "Not support querying edge by %s",
+                     conditions);
+        String label = (String) ((Condition.Relation) cond).value();
+
+        Map<Id, BackendEntry> rs = new HashMap<>();
+
+        for (BackendEntry value : entries.values()) {
+            // TODO: Compatible with BackendEntry
+            TextBackendEntry entry = (TextBackendEntry) value;
+            String out = HugeType.EDGE_OUT + "\u0001" + label;
+            String in = HugeType.EDGE_IN + "\u0001" + label;
+            if (entry.containsPrefix(out)) {
+                TextBackendEntry edges = new TextBackendEntry(entry.id());
+                edges.columns(entry.columnsWithPrefix(out));
+                rs.put(edges.id(), edges);
+            }
+            if (entry.containsPrefix(in)) {
+                TextBackendEntry edges = new TextBackendEntry(entry.id());
+                edges.columns(entry.columnsWithPrefix(in));
+                BackendEntry result = rs.get(edges.id());
+                if (result == null) {
+                    rs.put(edges.id(), edges);
+                } else {
+                    result.merge(edges);
+                }
+            }
+        }
+
         return rs;
     }
 
@@ -246,7 +299,7 @@ public class InMemoryDBStore implements BackendStore {
         }
     }
 
-    private void mutate(MutateItem item) {
+    protected void mutate(MutateItem item) {
         BackendEntry entry = item.entry();
         switch (item.action()) {
             case INSERT:
@@ -334,7 +387,28 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     @Override
+    public BackendFeatures features() {
+        return FEATURES;
+    }
+
+    @Override
     public String toString() {
         return this.name;
     }
+
+    /**
+     * InMemoryDBStore features
+     */
+    private static final BackendFeatures FEATURES = new BackendFeatures() {
+
+        @Override
+        public boolean supportsDeleteEdgeByLabel() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsScan() {
+            return false;
+        }
+    };
 }

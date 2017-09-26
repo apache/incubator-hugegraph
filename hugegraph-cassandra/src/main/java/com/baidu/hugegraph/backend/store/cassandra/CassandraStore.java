@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
@@ -48,6 +49,8 @@ import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 public abstract class CassandraStore implements BackendStore {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
+
+    private static final BackendFeatures FEATURES = new CassandraFeatures();
 
     private final String name;
     private final String keyspace;
@@ -221,6 +224,11 @@ public abstract class CassandraStore implements BackendStore {
 
         CassandraTable table = this.table(type);
         return table.metadata(this.sessions.session(), meta, args);
+    }
+
+    @Override
+    public BackendFeatures features() {
+        return FEATURES;
     }
 
     @Override

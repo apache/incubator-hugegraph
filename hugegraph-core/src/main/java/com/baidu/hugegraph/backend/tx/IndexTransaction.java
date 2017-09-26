@@ -329,8 +329,8 @@ public class IndexTransaction extends AbstractTransaction {
             IndexLabel indexLabel = schema.getIndexLabel(name);
             if (indexLabel == null) {
                 /*
-                 * TODO: When incoming non-existent index name,
-                 * should continue or throw exception.
+                 * TODO: How to deal with non-existent index name:
+                 * continue or throw exception?
                  */
                 continue;
             }
