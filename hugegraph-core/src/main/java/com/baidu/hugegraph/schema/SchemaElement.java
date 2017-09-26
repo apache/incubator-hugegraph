@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.tinkerpop.gremlin.structure.Graph;
+
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Propfiable;
@@ -60,6 +62,10 @@ public abstract class SchemaElement
         return Collections.unmodifiableSet(this.properties);
     }
 
+    public boolean isHidden() {
+        return Graph.Hidden.isHidden(this.name());
+    }
+
     protected String propertiesSchema() {
         StringBuilder sb = new StringBuilder();
         for (String propertyName : this.properties) {
@@ -71,8 +77,10 @@ public abstract class SchemaElement
 
     @Override
     public String toString() {
-        return schema();
+        return this.schema();
     }
+
+    public abstract String schema();
 
     public static boolean isSchema(HugeType type) {
         if (type == HugeType.VERTEX_LABEL ||
@@ -83,8 +91,6 @@ public abstract class SchemaElement
         }
         return false;
     }
-
-    public abstract String schema();
 
     public static void checkName(String name, String illegalRegex) {
         E.checkNotNull(name, "name");

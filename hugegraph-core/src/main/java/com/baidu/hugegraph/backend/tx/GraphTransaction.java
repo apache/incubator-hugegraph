@@ -762,17 +762,17 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public void removeVertices(VertexLabel vertexLabel) {
-        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        // TODO: use query.capacity(Query.NO_LIMIT);
-        query.eq(HugeKeys.LABEL, vertexLabel.name());
-        if (Graph.Hidden.isHidden(vertexLabel.name())) {
-            query.showHidden(true);
-        }
-        Iterator<Vertex> vertices = this.queryVertices(query).iterator();
-
         boolean autoCommit = this.autoCommit();
         this.autoCommit(false);
         try {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            // TODO: use query.capacity(Query.NO_LIMIT);
+            query.eq(HugeKeys.LABEL, vertexLabel.name());
+            if (vertexLabel.isHidden()) {
+                query.showHidden(true);
+            }
+            Iterator<Vertex> vertices = this.queryVertices(query).iterator();
+
             while (vertices.hasNext()) {
                 this.removeVertex((HugeVertex) vertices.next());
             }
@@ -786,12 +786,26 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public void removeEdges(EdgeLabel edgeLabel) {
-        Id id = IdGenerator.of(edgeLabel);
         boolean autoCommit = this.autoCommit();
         this.autoCommit(false);
         try {
-            // TODO: Need to change to writeQuery.
-            this.removeEntry(this.serializer.writeId(HugeType.EDGE, id));
+            if (this.store().features().supportsDeleteEdgeByLabel()) {
+                // TODO: Need to change to writeQuery!
+                Id id = IdGenerator.of(edgeLabel);
+                this.removeEntry(this.serializer.writeId(HugeType.EDGE, id));
+            } else {
+                ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+                // TODO: use query.capacity(Query.NO_LIMIT);
+                query.eq(HugeKeys.LABEL, edgeLabel.name());
+                if (edgeLabel.isHidden()) {
+                    query.showHidden(true);
+                }
+                Iterator<Edge> edges = this.queryEdges(query).iterator();
+
+                while (edges.hasNext()) {
+                    this.removeEdge((HugeEdge) edges.next());
+                }
+            }
             this.commit();
         } catch (Exception e) {
             LOG.error("Failed to remove edges", e);

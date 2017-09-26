@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.cache;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
@@ -88,6 +89,11 @@ public class CachedBackendStore implements BackendStore {
     @Override
     public Object metadata(HugeType type, String meta, Object[] args) {
         return this.store.metadata(type, meta, args);
+    }
+
+    @Override
+    public BackendFeatures features() {
+        return this.store.features();
     }
 
     @Override

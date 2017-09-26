@@ -118,10 +118,19 @@ public class TextBackendEntry implements BackendEntry {
         for (Entry<String, String> col : entry.columns.entrySet()) {
             String newValue = col.getValue();
             String oldValue = this.column(col.getKey());
+
+            // Not changed
             if (newValue.equals(oldValue)) {
                 continue;
             }
-            // TODO: ensure the old value is a list and json format
+
+            // TODO: use more general method
+            if (col.getKey().startsWith(HugeType.PROPERTY.name())) {
+                this.columns.put(col.getKey(), col.getValue());
+                continue;
+            }
+
+            // TODO: ensure the old value is a list and json format (for index)
             List<String> values = new ArrayList<>();
             values.addAll(Arrays.asList(JsonUtil.fromJson(oldValue,
                                                           String[].class)));
@@ -136,14 +145,19 @@ public class TextBackendEntry implements BackendEntry {
         for (Entry<String, String> col : entry.columns.entrySet()) {
             String newValue = col.getValue();
             String oldValue = this.column(col.getKey());
-            if (newValue.equals(oldValue)) {
-                // TODO: use more general method
-                if (col.getKey().startsWith(HugeType.PROPERTY.name())) {
-                    this.columns.remove(col.getKey());
-                }
+
+            // TODO: use more general method
+            if (col.getKey().startsWith(HugeType.PROPERTY.name())) {
+                this.columns.remove(col.getKey());
                 continue;
             }
-            // TODO: ensure the old value is a list and json format
+
+            // TODO: use more general method
+            if (!col.getKey().endsWith(HugeKeys.ELEMENT_IDS.string())) {
+                continue;
+            }
+
+            // TODO: ensure the old value is a list and json format (for index)
             List<String> values = new ArrayList<>();
             values.addAll(Arrays.asList(JsonUtil.fromJson(oldValue,
                                                           String[].class)));

@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -1392,6 +1393,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertex() {
         HugeGraph graph = graph();
+        Assume.assumeTrue("Not support scan", graph.graphTransaction().store()
+                                                   .features().supportsScan());
         init10Vertices();
 
         List<Vertex> vertexes = new LinkedList<>();
@@ -1411,6 +1414,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertexWithSplitSizeLt1MB() {
         HugeGraph graph = graph();
+        Assume.assumeTrue("Not support scan", graph.graphTransaction().store()
+                                                   .features().supportsScan());
         init10Vertices();
 
         long splitSize = 1 * 1024 * 1024 - 1;
@@ -1423,6 +1428,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertexWithSplitSizeTypeError() {
         HugeGraph graph = graph();
+        Assume.assumeTrue("Not support scan", graph.graphTransaction().store()
+                                                   .features().supportsScan());
         init10Vertices();
 
         String splitSize = "123456";
