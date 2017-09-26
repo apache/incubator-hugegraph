@@ -104,7 +104,7 @@ public class IndexTransaction extends AbstractTransaction {
             HugeProperty<Object> property = element.getProperty(field);
             if (property == null) {
                 E.checkState(hasNullableProp(element, field),
-                             "Non-null property '%s'is null for '%s'",
+                             "Non-null property '%s' is null for '%s'",
                              field, element);
                 // Not build index for record with nullable field
                 break;
