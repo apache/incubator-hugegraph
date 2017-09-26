@@ -90,6 +90,16 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.edgeLabel("    ").link("person", "author").create();
         });
+        // Start with '~'
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("~").link("person", "author").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("~ ").link("person", "author").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("~x").link("person", "author").create();
+        });
     }
 
     @Test
