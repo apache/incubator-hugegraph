@@ -21,6 +21,8 @@ package com.baidu.hugegraph.tinkerpop;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.tinkerpop.gremlin.AbstractGremlinSuite;
+import org.apache.tinkerpop.gremlin.GraphManager;
+import org.apache.tinkerpop.gremlin.GraphProvider;
 import org.apache.tinkerpop.gremlin.process.traversal.CoreTraversalTest;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalInterruptionTest;
@@ -93,6 +95,7 @@ import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
 
 import com.baidu.hugegraph.dist.RegisterUtil;
+import org.junit.runners.model.Statement;
 
 /**
  * Standard process test suite for tinkerpop graph
@@ -282,5 +285,18 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
         super(klass, builder, testsToExecute, testsToEnforce, true,
               TraversalEngine.Type.STANDARD);
         RegisterUtil.registerBackends();
+    }
+
+    @Override
+    protected Statement withAfterClasses(final Statement statement) {
+        Statement wrappedStatement = new Statement() {
+            public void evaluate() throws Throwable {
+            statement.evaluate();
+            GraphProvider gp = GraphManager.setGraphProvider(null);
+            ((TestGraphProvider) gp).clearBackends();
+            GraphManager.setGraphProvider(gp);
+            }
+        };
+        return super.withAfterClasses(wrappedStatement);
     }
 }

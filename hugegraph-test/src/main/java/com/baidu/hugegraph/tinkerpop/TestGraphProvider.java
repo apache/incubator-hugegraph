@@ -276,6 +276,12 @@ public class TestGraphProvider extends AbstractGraphProvider {
         }
     }
 
+    public void clearBackends() {
+        for (TestGraph graph : this.graphs.values()) {
+            graph.hugeGraph().clearBackend();
+        }
+    }
+
     @SuppressWarnings("rawtypes")
     @Override
     public void loadGraphData(final Graph graph,
