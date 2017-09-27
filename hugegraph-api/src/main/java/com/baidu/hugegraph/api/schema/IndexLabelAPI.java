@@ -56,8 +56,8 @@ public class IndexLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          IndexLabelAPI.JsonIndexLabel jsonIndexLabel) {
-        E.checkArgumentNotNull(jsonIndexLabel, "The request json body to " +
-                               "create IndexLabel can't be null or empty");
+        E.checkArgumentNotNull(jsonIndexLabel,
+                               "The request body can't be empty");
 
         LOG.debug("Graph [{}] create index label: {}", graph, jsonIndexLabel);
 

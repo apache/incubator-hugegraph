@@ -57,8 +57,8 @@ public class PropertyKeyAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonPropertyKey jsonPropertyKey) {
-        E.checkArgumentNotNull(jsonPropertyKey, "The request json body to " +
-                               "create PropertyKey can't be null or empty");
+        E.checkArgumentNotNull(jsonPropertyKey,
+                               "The request body can't be empty");
 
         LOG.debug("Graph [{}] create property key: {}",
                   graph, jsonPropertyKey);

@@ -19,17 +19,16 @@
 
 package com.baidu.hugegraph.core;
 
-import com.baidu.hugegraph.schema.SchemaManager;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.util.Log;
 
 public class BaseCoreTest {
 

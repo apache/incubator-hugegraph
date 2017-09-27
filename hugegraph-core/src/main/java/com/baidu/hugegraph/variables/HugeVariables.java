@@ -21,7 +21,6 @@ package com.baidu.hugegraph.variables;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -30,26 +29,26 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import com.baidu.hugegraph.backend.query.Condition;
-import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.type.define.Cardinality;
-import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.util.Log;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import org.slf4j.Logger;
+import com.baidu.hugegraph.util.Log;
 
 public class HugeVariables implements Graph.Variables {
 
@@ -106,12 +105,14 @@ public class HugeVariables implements Graph.Variables {
 
     public void initSchema() {
         SchemaManager schema = this.graph.schema();
+
         try {
             schema.getVertexLabel(Hidden.hide(VARIABLES));
             return;
-        } catch (NotFoundException e) {
-            LOG.info("Variables schema not exist, create them");
+        } catch (NotFoundException ignored) {
+            LOG.debug("Variables schema not exist, create them...");
         }
+
         createPropertyKey(Hidden.hide(VARIABLE_KEY), DataType.TEXT,
                           Cardinality.SINGLE);
         createPropertyKey(Hidden.hide(VARIABLE_TYPE), DataType.TEXT,
@@ -168,7 +169,8 @@ public class HugeVariables implements Graph.Variables {
         vertexLabel.primaryKeys(Hidden.hide(VARIABLE_KEY));
         vertexLabel.nullableKeys(TYPES);
         this.graph.schemaTransaction().addVertexLabel(vertexLabel);
-        LOG.info("Variables schema created");
+
+        LOG.debug("Variables schema created");
     }
 
     private void createPropertyKey(String name, DataType dataType,
@@ -202,11 +204,13 @@ public class HugeVariables implements Graph.Variables {
         if (vertex == null) {
             return Optional.empty();
         }
+
         String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
         if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
             throw Graph.Variables.Exceptions
                        .dataTypeOfVariableValueNotSupported(type);
         }
+        // The value of key VARIABLE_TYPE is the name of variable value
         return Optional.of(vertex.value(Hidden.hide(type)));
     }
 
@@ -239,10 +243,9 @@ public class HugeVariables implements Graph.Variables {
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Map<String, Object> asMap() {
-        Map<String, Object> variables = new HashMap();
+        Map<String, Object> variables = new HashMap<>();
         Iterator<Vertex> vertices = this.queryAllVariableVertices();
         while (vertices.hasNext()) {
             Vertex vertex = vertices.next();
@@ -255,7 +258,7 @@ public class HugeVariables implements Graph.Variables {
             Object value = vertex.value(Hidden.hide(type));
             variables.put(key, value);
         }
-        return Collections.unmodifiableMap(variables);
+        return variables;
     }
 
     @Override
@@ -272,18 +275,18 @@ public class HugeVariables implements Graph.Variables {
         } else {
             suffix = "";
         }
+
         vertex.property(Hidden.hide(VARIABLE_KEY), key);
         Object object = HugeVariables.extractSingleObject(value);
         if (object == null) {
             vertex.property(Hidden.hide(STRING_VALUE + suffix), value);
-            vertex.property(Hidden.hide(VARIABLE_TYPE),
-                            STRING_VALUE + suffix);
+            vertex.property(Hidden.hide(VARIABLE_TYPE), STRING_VALUE + suffix);
             return;
         }
+
         if (object instanceof Byte) {
             vertex.property(Hidden.hide(BYTE_VALUE + suffix), value);
-            vertex.property(Hidden.hide(VARIABLE_TYPE),
-                            BYTE_VALUE + suffix);
+            vertex.property(Hidden.hide(VARIABLE_TYPE), BYTE_VALUE + suffix);
         } else if (object instanceof Boolean) {
             vertex.property(Hidden.hide(BOOLEAN_VALUE + suffix), value);
             vertex.property(Hidden.hide(VARIABLE_TYPE),
@@ -294,20 +297,16 @@ public class HugeVariables implements Graph.Variables {
                             INTEGER_VALUE + suffix);
         } else if (object instanceof Long) {
             vertex.property(Hidden.hide(LONG_VALUE + suffix), value);
-            vertex.property(Hidden.hide(VARIABLE_TYPE),
-                            LONG_VALUE + suffix);
+            vertex.property(Hidden.hide(VARIABLE_TYPE), LONG_VALUE + suffix);
         } else if (object instanceof Float) {
             vertex.property(Hidden.hide(FLOAT_VALUE + suffix), value);
-            vertex.property(Hidden.hide(VARIABLE_TYPE),
-                            FLOAT_VALUE + suffix);
+            vertex.property(Hidden.hide(VARIABLE_TYPE), FLOAT_VALUE + suffix);
         } else if (object instanceof Double) {
             vertex.property(Hidden.hide(DOUBLE_VALUE + suffix), value);
-            vertex.property(Hidden.hide(VARIABLE_TYPE),
-                            DOUBLE_VALUE + suffix);
+            vertex.property(Hidden.hide(VARIABLE_TYPE), DOUBLE_VALUE + suffix);
         } else if (object instanceof String) {
             vertex.property(Hidden.hide(STRING_VALUE + suffix), value);
-            vertex.property(Hidden.hide(VARIABLE_TYPE),
-                            STRING_VALUE + suffix);
+            vertex.property(Hidden.hide(VARIABLE_TYPE), STRING_VALUE + suffix);
         } else {
             throw Graph.Variables.Exceptions
                        .dataTypeOfVariableValueNotSupported(value);

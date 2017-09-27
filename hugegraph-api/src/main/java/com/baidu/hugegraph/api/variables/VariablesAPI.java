@@ -19,14 +19,9 @@
 
 package com.baidu.hugegraph.api.variables;
 
-import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.HugeServer;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.ImmutableMap;
-import org.slf4j.Logger;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -38,9 +33,16 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+
+import org.slf4j.Logger;
+
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
+import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/variables")
 @Singleton
@@ -57,7 +59,7 @@ public class VariablesAPI extends API {
                                       @PathParam("key") String key,
                                       JsonVariableValue value) {
         E.checkArgument(value != null && value.data != null,
-                        "The variable value can't be null");
+                        "The variable value can't be empty");
         LOG.debug("Graph [{}] set variable for {}: {}", graph, key, value);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
@@ -85,10 +87,10 @@ public class VariablesAPI extends API {
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         Map<String, Object> result = new HashMap<>();
-        Optional object = g.variables().get(key);
+        Optional<?> object = g.variables().get(key);
         if (!object.isPresent()) {
-            throw new NotFoundException(
-                      String.format("Not exist variable with key: '%s'", key));
+            throw new NotFoundException(String.format(
+                      "Not exist variable with key: '%s'", key));
         }
         result.put(key, object.get());
         return result;
@@ -112,7 +114,7 @@ public class VariablesAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("JsonVariableValue{data=%s}", data);
+            return String.format("JsonVariableValue{data=%s}", this.data);
         }
     }
 }
