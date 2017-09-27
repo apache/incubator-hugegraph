@@ -59,8 +59,8 @@ public class EdgeLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdgeLabel jsonEdgeLabel) {
-        E.checkArgumentNotNull(jsonEdgeLabel, "The request json body to " +
-                               "create EdgeLabel can't be null or empty");
+        E.checkArgumentNotNull(jsonEdgeLabel,
+                               "The request body can't be empty");
 
         LOG.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
 

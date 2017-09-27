@@ -73,8 +73,7 @@ public class EdgeAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdge jsonEdge) {
-        E.checkArgumentNotNull(jsonEdge, "The request json body to " +
-                               "create Edge can't be null or empty");
+        E.checkArgumentNotNull(jsonEdge, "The request body can't be empty");
 
         LOG.debug("Graph [{}] create edge: {}", graph, jsonEdge);
 
@@ -206,8 +205,8 @@ public class EdgeAPI extends API {
         try {
             return graph.traversal().V(id).next();
         } catch (NotFoundException e) {
-            throw new IllegalArgumentException(
-                      String.format("Invalid vertex id '%s'", id));
+            throw new IllegalArgumentException(String.format(
+                      "Invalid vertex id '%s'", id));
         }
     }
 
@@ -232,11 +231,12 @@ public class EdgeAPI extends API {
         @JsonProperty("inVLabel")
         public String targetLabel;
         public Map<String, Object> properties;
+        @SuppressWarnings("unused")
         public String type;
 
         public Object[] properties() {
-            E.checkArgumentNotNull(this.properties, "The properties of " +
-                                   "edge can't be null");
+            E.checkArgumentNotNull(this.properties,
+                                   "The properties of edge can't be null");
             return API.properties(this.properties);
         }
 

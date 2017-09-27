@@ -92,7 +92,6 @@ public class Example1 {
         SchemaManager schema = graph.schema();
         LOG.info("===============  propertyKey  ================");
         schema.propertyKey("id").asInt().create();
-        schema.propertyKey("~exist").asText().create();
         schema.propertyKey("name").asText().create();
         schema.propertyKey("gender").asText().create();
         schema.propertyKey("instructions").asText().create();

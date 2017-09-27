@@ -87,8 +87,8 @@ public class VertexAPI extends API {
     public List<String> create(@Context GraphManager manager,
                                @PathParam("graph") String graph,
                                List<JsonVertex> jsonVertices) {
-        E.checkArgumentNotNull(jsonVertices, "The request json body to " +
-                               "create Vertices can't be null or empty");
+        E.checkArgumentNotNull(jsonVertices,
+                               "The request body can't be empty");
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -166,13 +166,14 @@ public class VertexAPI extends API {
         public Object id;
         public String label;
         public Map<String, Object> properties;
+        @SuppressWarnings("unused")
         public String type;
 
         public Object[] properties() {
-            E.checkArgumentNotNull(this.label, "The label of vertex " +
-                                   "can't be null");
-            E.checkArgumentNotNull(this.properties, "The properties of " +
-                                   "vertex can't be null");
+            E.checkArgumentNotNull(this.label,
+                                   "The label of vertex can't be null");
+            E.checkArgumentNotNull(this.properties,
+                                   "The properties of vertex can't be null");
             Object[] props = API.properties(this.properties);
             List<Object> list = new ArrayList<>(Arrays.asList(props));
             list.add(T.label);

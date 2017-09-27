@@ -59,8 +59,8 @@ public class VertexLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertexLabel jsonVertexLabel) {
-        E.checkArgumentNotNull(jsonVertexLabel, "The request json body to " +
-                               "create VertexLabel can't be null or empty");
+        E.checkArgumentNotNull(jsonVertexLabel,
+                               "The request body can't be empty");
 
         LOG.debug("Graph [{}] create vertex label: {}",
                   graph, jsonVertexLabel);

@@ -25,15 +25,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.commons.collections.CollectionUtils;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.EdgeLabelBuilder;
 import com.baidu.hugegraph.type.HugeType;
