@@ -132,15 +132,15 @@ public abstract class CassandraTable {
         // Set table
         Select select = QueryBuilder.select().from(this.table);
 
-        // Set limit
-        if (query.limit() != Query.NO_LIMIT) {
-            select.limit((int) query.limit());
-        }
-
         // NOTE: Cassandra does not support query.offset()
         if (query.offset() != 0) {
             LOG.warn("Query offset is not supported currently " +
-                     "on Cassandra strore, it will be ignored");
+                    "on Cassandra strore, it will be ignored");
+        }
+
+        // Set limit
+        if (query.limit() != Query.NO_LIMIT) {
+            select.limit((int) (query.limit() + query.offset()));
         }
 
         // Set order-by
