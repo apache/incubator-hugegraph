@@ -47,6 +47,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     private boolean autoCommit = false;
     private boolean closed = false;
+    private boolean committing = false;
 
     private final HugeGraph graph;
     private final BackendStore store;
@@ -130,10 +131,17 @@ public abstract class AbstractTransaction implements Transaction {
             throw new BackendException("Transaction has been closed");
         }
 
+        if (this.committing) {
+            // It is not allowed to recursively commit in a transaction
+            return;
+        }
+        assert !this.committing : "Not allowed to commit when it's committing";
+        this.committing = true;
         BackendMutation mutation = null;
         try {
             mutation = this.prepareCommit();
         } finally {
+            this.committing = false;
             this.reset();
         }
 
@@ -171,7 +179,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Override
     public void afterWrite() {
-        if (autoCommit()) {
+        if (this.autoCommit()) {
             this.commitOrRollback();
         }
     }

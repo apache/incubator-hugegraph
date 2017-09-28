@@ -19,11 +19,12 @@
 
 package com.baidu.hugegraph.structure;
 
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.util.E;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 public class HugeEdgeProperty<V> extends HugeProperty<V> {
 

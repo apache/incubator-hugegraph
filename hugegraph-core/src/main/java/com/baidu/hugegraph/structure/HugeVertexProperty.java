@@ -21,16 +21,16 @@ package com.baidu.hugegraph.structure;
 
 import java.util.Iterator;
 
-import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
-import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.util.E;
 
 public class HugeVertexProperty<V> extends HugeProperty<V>
                                    implements VertexProperty<V> {
