@@ -219,7 +219,7 @@ public class TextBackendEntry implements BackendEntry {
             if (otherValue == null) {
                 return false;
             }
-            if (value.equals(otherValue)) {
+            if (!value.equals(otherValue)) {
                 return false;
             }
         }

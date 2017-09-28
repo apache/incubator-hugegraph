@@ -130,9 +130,13 @@ public abstract class AbstractTransaction implements Transaction {
             throw new BackendException("Transaction has been closed");
         }
 
-        this.prepareCommit();
+        BackendMutation mutation = null;
+        try {
+            mutation = this.prepareCommit();
+        } finally {
+            this.reset();
+        }
 
-        BackendMutation mutation = this.mutation();
         if (mutation.isEmpty()) {
             LOG.debug("Transaction has no data to commit({})", this.store());
             return;
@@ -141,7 +145,6 @@ public abstract class AbstractTransaction implements Transaction {
         // If an exception occurred, catch in the upper layer and roll back
         this.store.beginTx();
         this.store.mutate(mutation);
-        this.reset();
         this.store.commitTx();
     }
 
@@ -201,9 +204,10 @@ public abstract class AbstractTransaction implements Transaction {
         return this.mutation;
     }
 
-    protected void prepareCommit() {
+    protected BackendMutation prepareCommit() {
         // For sub-class preparing data, nothing to do here
         LOG.debug("Transaction prepareCommit()...");
+        return this.mutation();
     }
 
     protected void commitOrRollback() {

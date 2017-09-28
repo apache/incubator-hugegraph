@@ -49,6 +49,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -109,11 +110,12 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     @Override
-    protected void prepareCommit() {
+    protected BackendMutation prepareCommit() {
         // Serialize and add updates into super.deletions
         this.prepareDeletions(this.removedVertexes, this.removedEdges);
         // Serialize and add updates into super.additions
         this.prepareAdditions(this.addedVertexes, this.addedEdges);
+        return this.mutation();
     }
 
     protected void prepareAdditions(Set<HugeVertex> updatedVertexes,
