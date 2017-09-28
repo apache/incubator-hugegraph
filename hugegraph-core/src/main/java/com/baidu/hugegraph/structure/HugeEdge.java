@@ -311,6 +311,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return false;
     }
 
+    public boolean belongToVertex(HugeVertex vertex) {
+        return vertex != null && (vertex.equals(this.sourceVertex) ||
+                                  vertex.equals(this.targetVertex));
+    }
+
     public HugeVertex otherVertex(HugeVertex vertex) {
         if (vertex == this.sourceVertex) {
             return this.targetVertex;

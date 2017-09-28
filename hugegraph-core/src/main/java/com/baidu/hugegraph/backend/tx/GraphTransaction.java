@@ -122,6 +122,7 @@ public class GraphTransaction extends AbstractTransaction {
                                     Set<HugeEdge> updatedEdges) {
         // Do vertex update
         for (HugeVertex v : updatedVertexes) {
+            assert !v.removed();
             v.committed();
             // Add vertex entry
             this.addEntry(this.serializer.writeVertex(v));
@@ -131,6 +132,7 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Do edge update
         for (HugeEdge e : updatedEdges) {
+            assert !e.removed();
             e.committed();
             // Add edge entry of OUT and IN
             this.addEntry(this.serializer.writeEdge(e));
@@ -301,7 +303,21 @@ public class GraphTransaction extends AbstractTransaction {
         this.checkOwnerThread();
 
         this.beforeWrite();
+
+        // Override vertexes in local `addedVertexes`
+        this.addedVertexes.remove(vertex);
+
+        // Get edges in local `addedEdges`, and remove it
+        for (Iterator<HugeEdge> itor = this.addedEdges.iterator();
+             itor.hasNext();) {
+            if (itor.next().belongToVertex(vertex)) {
+                itor.remove();
+            }
+        }
+
+        // Collect the removed vertex
         this.removedVertexes.add(vertex);
+
         this.afterWrite();
     }
 
@@ -376,7 +392,13 @@ public class GraphTransaction extends AbstractTransaction {
         this.checkOwnerThread();
 
         this.beforeWrite();
+
+        // Override edges in local `addedEdges`
+        this.addedEdges.remove(edge);
+
+        // Collect the removed edge
         this.removedEdges.add(edge);
+
         this.afterWrite();
     }
 
@@ -442,6 +464,12 @@ public class GraphTransaction extends AbstractTransaction {
         List<String> primaryKeys = vertex.vertexLabel().primaryKeys();
         E.checkArgument(!primaryKeys.contains(prop.key()),
                         "Can't update primary key: '%s'", prop.key());
+        // Add property in memory for new created vertex
+        if (vertex.fresh()) {
+            // The owner will do property update
+            vertex.setProperty(prop);
+            return;
+        }
 
         Set<String> lockNames = relatedIndexNames(prop.name(),
                                                   vertex.vertexLabel());
@@ -472,6 +500,12 @@ public class GraphTransaction extends AbstractTransaction {
         List<String> primaryKeys = vertex.vertexLabel().primaryKeys();
         E.checkArgument(!primaryKeys.contains(prop.key()),
                         "Can't remove primary key '%s'", prop.key());
+        // Remove property in memory for new created vertex
+        if (vertex.fresh()) {
+            // The owner will do property update
+            vertex.removeProperty(prop.key());
+            return;
+        }
 
         Set<String> lockNames = relatedIndexNames(prop.name(),
                                                   vertex.vertexLabel());
@@ -499,6 +533,12 @@ public class GraphTransaction extends AbstractTransaction {
         // Check is updating sort key
         E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
                         "Can't update sort key '%s'", prop.key());
+        // Add property in memory for new created edge
+        if (edge.fresh()) {
+            // The owner will do property update
+            edge.setProperty(prop);
+            return;
+        }
 
         Set<String> lockNames = relatedIndexNames(prop.name(),
                                                   edge.edgeLabel());
@@ -529,6 +569,12 @@ public class GraphTransaction extends AbstractTransaction {
         // Check is removing sort key
         E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
                         "Can't remove sort key '%s'", prop.key());
+        // Remove property in memory for new created edge
+        if (edge.fresh()) {
+            // The owner will do property update
+            edge.removeProperty(prop.key());
+            return;
+        }
 
         Set<String> lockNames = relatedIndexNames(prop.name(),
                                                   edge.edgeLabel());

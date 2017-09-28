@@ -1047,6 +1047,62 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testRemoveEdgeAfterAddEdgeWithTx() {
+        HugeGraph graph = graph();
+        graph.tx().open();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+
+        Vertex java = graph.addVertex(T.label, "language", "name", "java");
+
+        Edge created = james.addEdge("created", java);
+        created.remove();
+
+        graph.tx().close();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
+    public void testRemoveVertexAfterAddEdgesWithTx() {
+        HugeGraph graph = graph();
+        graph.tx().open();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
+                                        "name", "Guido van Rossum", "age", 61,
+                                        "lived", "California");
+
+        Vertex java = graph.addVertex(T.label, "language", "name", "java");
+        Vertex python = graph.addVertex(T.label, "language", "name", "python",
+                                        "dynamic", true);
+
+        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
+        Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
+        Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
+
+        james.addEdge("created", java);
+        guido.addEdge("created", python);
+
+        james.addEdge("authored", java1);
+        james.addEdge("authored", java2);
+        james.addEdge("authored", java3);
+
+        james.remove();
+        guido.remove();
+
+        graph.tx().close();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
     public void testAddEdgeProperty() {
         HugeGraph graph = graph();
 

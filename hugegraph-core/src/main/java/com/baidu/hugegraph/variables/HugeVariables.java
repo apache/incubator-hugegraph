@@ -21,6 +21,7 @@ package com.baidu.hugegraph.variables;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -258,7 +259,7 @@ public class HugeVariables implements Graph.Variables {
             Object value = vertex.value(Hidden.hide(type));
             variables.put(key, value);
         }
-        return variables;
+        return Collections.unmodifiableMap(variables);
     }
 
     @Override

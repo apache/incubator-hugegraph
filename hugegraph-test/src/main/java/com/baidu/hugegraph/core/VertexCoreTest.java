@@ -1073,7 +1073,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testRemoveVertexNotExists() {
+    public void testRemoveVertexOfNotExists() {
         HugeGraph graph = graph();
         init10Vertices();
 
@@ -1094,6 +1094,20 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Remove again
         vertex.remove();
+    }
+
+    public void testRemoveVertexAfterAddVertexWithTx() {
+        HugeGraph graph = graph();
+
+        graph.tx().open();
+        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
+        graph.addVertex(T.label, "book", "name", "java-2");
+        java1.remove();
+        graph.tx().close();
+
+        List<Vertex> vertexes = graph.traversal().V().toList();
+        Assert.assertEquals(1, vertexes.size());
+        assertNotContains(vertexes, T.label, "book", "name", "java-2");
     }
 
     @Test
