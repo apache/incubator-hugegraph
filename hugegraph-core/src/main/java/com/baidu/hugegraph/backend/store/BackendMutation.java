@@ -21,19 +21,16 @@ package com.baidu.hugegraph.backend.store;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.slf4j.Logger;
-
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 
 public class BackendMutation {
-
-    private static final Logger LOG = Log.logger(BackendMutation.class);
 
     private final Map<Id, List<MutateItem>> updates;
 
@@ -47,48 +44,96 @@ public class BackendMutation {
     public void add(BackendEntry entry, MutateAction action) {
         Id id = entry.id();
         List<MutateItem> items = this.updates.get(id);
-        // If there is no entity of this id, add it
-        if (items == null) {
+        if (items != null) {
+            this.optimizeUpdates(entry, action);
+        } else {
+            // If there is no entity of this id, add it
             items = new LinkedList<>();
             items.add(MutateItem.of(entry, action));
             this.updates.put(id, items);
-            return;
         }
-
-        /*
-         * The Optimized scenes include but are not limited to：
-         * 1.If you want to delete an entry, the other mutations previously
-         *   can be ignored.
-         * 2.As similar to the item No.1, If you want to insert an entry,
-         *   the other mutations previously also can be ignored.
-         * 3.If you append an entry and then eliminate it, the new action
-         *   can override the old one.
-         */
-        this.optimizeUpdates(entry, action);
     }
 
+    /**
+     * The Optimized scenes include but are not limited to：
+     * 1.If you want to delete an entry, the other mutations previously
+     *   can be ignored.
+     * 2.As similar to the item No.1, If you want to insert an entry,
+     *   the other mutations previously also can be ignored.
+     * 3.If you append an entry and then eliminate it, the new action
+     *   can override the old one.
+     */
     private void optimizeUpdates(BackendEntry entry, MutateAction action) {
         Id id = entry.id();
-        List<MutateItem> items = this.updates.get(id);
-        switch (action) {
-            case INSERT:
-            case DELETE:
-                // Override all actions of this id
-                items.clear();
-                items.add(MutateItem.of(entry, action));
-                break;
-            case APPEND:
-            case ELIMINATE:
-                // Counteract the items with oppsite action and same value
-                items.removeIf(item -> action.oppsite(item.action()) &&
-                                       entry.equals(item.entry()));
-                items.add(MutateItem.of(entry, action));
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown mutate action: %s", action));
+        boolean ignoreCurrent = false;
+        for (Iterator<MutateItem> items = this.updates.get(id).iterator();
+             items.hasNext(); ) {
+            MutateItem originItem = items.next();
+            MutateAction originAction = originItem.action();
+            switch (action) {
+                case INSERT:
+                    if (originAction == MutateAction.INSERT ||
+                        originAction == MutateAction.DELETE) {
+                        items.remove();
+                    } else {
+                        throw incompatibleActionException(action, originAction);
+                    }
+                    break;
+                case DELETE:
+                    if (originAction == MutateAction.INSERT) {
+                        throw incompatibleActionException(action, originAction);
+                    } else if (originAction == MutateAction.DELETE) {
+                        ignoreCurrent = true;
+                    } else {
+                        items.remove();
+                    }
+                    break;
+                case APPEND:
+                    if (originAction == MutateAction.INSERT ||
+                        originAction == MutateAction.DELETE) {
+                        throw incompatibleActionException(action, originAction);
+                    } else if (originAction == MutateAction.APPEND) {
+                        if (entry.equals(originItem.entry())) {
+                            ignoreCurrent = true;
+                        }
+                    } else {
+                        assert originAction == MutateAction.ELIMINATE;
+                        if (entry.equals(originItem.entry())) {
+                            items.remove();
+                        }
+                    }
+                    break;
+                case ELIMINATE:
+                    if (originAction == MutateAction.INSERT ||
+                        originAction == MutateAction.DELETE) {
+                        throw incompatibleActionException(action, originAction);
+                    } else if (originAction == MutateAction.APPEND) {
+                        if (entry.equals(originItem.entry())) {
+                            items.remove();
+                        }
+                    } else {
+                        assert originAction == MutateAction.ELIMINATE;
+                        if (entry.equals(originItem.entry())) {
+                            ignoreCurrent = true;
+                        }
+                    }
+                    break;
+                default:
+                    throw new AssertionError(String.format(
+                              "Unknown mutate action: %s", action));
+            }
+        }
+        if (!ignoreCurrent) {
+            this.updates.get(id).add(MutateItem.of(entry, action));
         }
     }
+
+    private static HugeException incompatibleActionException(
+            MutateAction newAction, MutateAction originAction) {
+        return new HugeException("The action '%s' is incompatible with " +
+                                 "action '%s'", newAction, originAction);
+    }
+
 
     /**
      * Reset all items in mutations of this id.

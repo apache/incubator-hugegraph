@@ -26,7 +26,8 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
     RamCacheTest.class,
     CacheManagerTest.class,
-    EventHubTest.class
+    EventHubTest.class,
+    BackendMutationTest.class
 })
 public class UnitTestSuite {
 }
