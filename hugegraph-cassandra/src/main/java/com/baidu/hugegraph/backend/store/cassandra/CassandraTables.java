@@ -59,16 +59,19 @@ public class CassandraTables {
 
         @Override
         public void init(CassandraSessionPool.Session session) {
-            HugeKeys[] columns = new HugeKeys[] {
-                    HugeKeys.NAME,
-                    HugeKeys.ID_STRATEGY,
-                    HugeKeys.PRIMARY_KEYS,
-                    HugeKeys.NULLABLE_KEYS,
-                    HugeKeys.INDEX_NAMES,
-                    HugeKeys.PROPERTIES
-            };
+            ImmutableMap<HugeKeys, DataType> partitionCols = ImmutableMap.of(
+                    HugeKeys.NAME, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> clusteringCols = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.ID_STRATEGY, DataType.text(),
+                    HugeKeys.PRIMARY_KEYS, DataType.text(),
+                    HugeKeys.NULLABLE_KEYS, DataType.text(),
+                    HugeKeys.INDEX_NAMES, DataType.text(),
+                    HugeKeys.PROPERTIES, DataType.text()
+            );
 
-            super.createTable(session, columns, 1);
+            super.createTable(session, partitionCols, clusteringCols, columns);
         }
     }
 
@@ -82,18 +85,22 @@ public class CassandraTables {
 
         @Override
         public void init(CassandraSessionPool.Session session) {
-            HugeKeys[] columns = new HugeKeys[] {
-                    HugeKeys.NAME,
-                    HugeKeys.SOURCE_LABEL,
-                    HugeKeys.TARGET_LABEL,
-                    HugeKeys.FREQUENCY,
-                    HugeKeys.SORT_KEYS,
-                    HugeKeys.NULLABLE_KEYS,
-                    HugeKeys.INDEX_NAMES,
-                    HugeKeys.PROPERTIES
-            };
+            ImmutableMap<HugeKeys, DataType> partitionCols = ImmutableMap.of(
+                    HugeKeys.NAME, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> clusteringCols = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap
+                    .<HugeKeys, DataType>builder()
+                    .put(HugeKeys.SOURCE_LABEL, DataType.text())
+                    .put(HugeKeys.TARGET_LABEL, DataType.text())
+                    .put(HugeKeys.FREQUENCY, DataType.text())
+                    .put(HugeKeys.SORT_KEYS, DataType.text())
+                    .put(HugeKeys.NULLABLE_KEYS, DataType.text())
+                    .put(HugeKeys.INDEX_NAMES, DataType.text())
+                    .put(HugeKeys.PROPERTIES, DataType.text())
+                    .build();
 
-            super.createTable(session, columns, 1);
+            super.createTable(session, partitionCols, clusteringCols, columns);
         }
     }
 
@@ -107,14 +114,17 @@ public class CassandraTables {
 
         @Override
         public void init(CassandraSessionPool.Session session) {
-            HugeKeys[] columns = new HugeKeys[] {
-                    HugeKeys.NAME,
-                    HugeKeys.DATA_TYPE,
-                    HugeKeys.CARDINALITY,
-                    HugeKeys.PROPERTIES
-            };
+            ImmutableMap<HugeKeys, DataType> partitionCols = ImmutableMap.of(
+                    HugeKeys.NAME, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> clusteringCols = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.DATA_TYPE, DataType.text(),
+                    HugeKeys.CARDINALITY, DataType.text(),
+                    HugeKeys.PROPERTIES, DataType.text()
+            );
 
-            super.createTable(session, columns, 1);
+            super.createTable(session, partitionCols, clusteringCols, columns);
         }
     }
 
@@ -128,16 +138,19 @@ public class CassandraTables {
 
         @Override
         public void init(CassandraSessionPool.Session session) {
-            HugeKeys[] columns = new HugeKeys[] {
-                    HugeKeys.NAME,
-                    HugeKeys.BASE_TYPE,
-                    HugeKeys.BASE_VALUE,
-                    HugeKeys.INDEX_TYPE,
-                    HugeKeys.FIELDS
-            };
+            ImmutableMap<HugeKeys, DataType> partitionCols = ImmutableMap.of(
+                    HugeKeys.NAME, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> clusteringCols = ImmutableMap.of(
+                    HugeKeys.BASE_TYPE, DataType.text(),
+                    HugeKeys.BASE_VALUE, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.INDEX_TYPE, DataType.text(),
+                    HugeKeys.FIELDS, DataType.text()
+            );
 
-            // The base-type and base-value as clustering key
-            super.createTable(session, columns, 3);
+            super.createTable(session, partitionCols, clusteringCols, columns);
         }
     }
 
@@ -151,19 +164,17 @@ public class CassandraTables {
 
         @Override
         public void init(CassandraSessionPool.Session session) {
-            HugeKeys[] columns = new HugeKeys[] {
-                    HugeKeys.ID,
-                    HugeKeys.LABEL,
-                    HugeKeys.PROPERTIES
-            };
+            ImmutableMap<HugeKeys, DataType> partitionCols = ImmutableMap.of(
+                    HugeKeys.ID, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> clusteringCols = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.LABEL, DataType.text(),
+                    HugeKeys.PROPERTIES, DataType.map(DataType.text(),
+                                                      DataType.text())
+            );
 
-            DataType[] columnTypes = new DataType[] {
-                    DataType.text(),
-                    DataType.text(),
-                    DataType.map(DataType.text(), DataType.text())
-            };
-
-            super.createTable(session, columns, columnTypes, 1);
+            super.createTable(session, partitionCols, clusteringCols, columns);
             super.createIndex(session, "vertex_label_index", HugeKeys.LABEL);
         }
 
@@ -203,25 +214,21 @@ public class CassandraTables {
 
         @Override
         public void init(CassandraSessionPool.Session session) {
-            HugeKeys[] columns = new HugeKeys[] {
-                    HugeKeys.SOURCE_VERTEX,
-                    HugeKeys.DIRECTION,
-                    HugeKeys.LABEL,
-                    HugeKeys.SORT_VALUES,
-                    HugeKeys.TARGET_VERTEX,
-                    HugeKeys.PROPERTIES
-            };
+            ImmutableMap<HugeKeys, DataType> partitionCols = ImmutableMap.of(
+                    HugeKeys.SOURCE_VERTEX, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> clusteringCols = ImmutableMap.of(
+                    HugeKeys.DIRECTION, DataType.text(),
+                    HugeKeys.LABEL, DataType.text(),
+                    HugeKeys.SORT_VALUES, DataType.text(),
+                    HugeKeys.TARGET_VERTEX, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.PROPERTIES, DataType.map(DataType.text(),
+                                                      DataType.text())
+            );
 
-            DataType[] columnTypes = new DataType[] {
-                    DataType.text(),
-                    DataType.text(),
-                    DataType.text(),
-                    DataType.text(),
-                    DataType.text(),
-                    DataType.map(DataType.text(), DataType.text())
-            };
-
-            super.createTable(session, columns, columnTypes, 5);
+            super.createTable(session, partitionCols, clusteringCols, columns);
             super.createIndex(session, "edge_label_index", HugeKeys.LABEL);
         }
 
@@ -346,19 +353,17 @@ public class CassandraTables {
 
         @Override
         public void init(CassandraSessionPool.Session session) {
-            HugeKeys[] columns = new HugeKeys[] {
-                    HugeKeys.FIELD_VALUES,
-                    HugeKeys.INDEX_LABEL_NAME,
-                    HugeKeys.ELEMENT_IDS
-            };
+            ImmutableMap<HugeKeys, DataType> partitionCols = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> clusteringCols = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_NAME, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.ELEMENT_IDS, DataType.set(DataType.text())
+            );
 
-            DataType[] columnTypes = new DataType[] {
-                    DataType.text(),
-                    DataType.text(),
-                    DataType.set(DataType.text())
-            };
-
-            super.createTable(session, columns, columnTypes, 2);
+            super.createTable(session, partitionCols, clusteringCols, columns);
         }
 
         @Override
@@ -429,19 +434,17 @@ public class CassandraTables {
 
         @Override
         public void init(CassandraSessionPool.Session session) {
-            HugeKeys[] columns = new HugeKeys[] {
-                    HugeKeys.INDEX_LABEL_NAME,
-                    HugeKeys.FIELD_VALUES,
-                    HugeKeys.ELEMENT_IDS
-            };
+            ImmutableMap<HugeKeys, DataType> partitionCols = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_NAME, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> clusteringCols = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.decimal()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.ELEMENT_IDS, DataType.set(DataType.text())
+            );
 
-            DataType[] columnTypes = new DataType[] {
-                    DataType.text(),
-                    DataType.decimal(),
-                    DataType.set(DataType.text())
-            };
-
-            super.createTable(session, columns, columnTypes, 2);
+            super.createTable(session, partitionCols, clusteringCols, columns);
         }
 
         @Override

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
 
@@ -525,52 +526,23 @@ public abstract class CassandraTable {
     }
 
     protected void createTable(CassandraSessionPool.Session session,
-                               HugeKeys[] columns,
-                               int columnStart) {
-        DataType[] columnTypes = new DataType[columns.length];
-        for (int i = 0; i < columns.length; i++) {
-            columnTypes[i] = DataType.text();
-        }
-        this.createTable(session, columns, columnTypes, columnStart);
-    }
-
-    protected void createTable(CassandraSessionPool.Session session,
-                               HugeKeys[] columns,
-                               DataType[] columnTypes,
-                               int columnStart) {
-        assert (columnStart > 0);
-        this.createTable(session, columns, columnTypes, 1, columnStart);
-    }
-
-    protected void createTable(CassandraSessionPool.Session session,
-                               HugeKeys[] columns,
-                               int clusteringStart,
-                               int columnStart) {
-        DataType[] columnTypes = new DataType[columns.length];
-        for (int i = 0; i < columns.length; i++) {
-            columnTypes[i] = DataType.text();
-        }
-        this.createTable(session, columns, columnTypes,
-                         clusteringStart, columnStart);
-    }
-
-    protected void createTable(CassandraSessionPool.Session session,
-                               HugeKeys[] columns,
-                               DataType[] columnTypes,
-                               int clusteringStart,
-                               int columnStart) {
-        assert columns.length == columnTypes.length;
+                               ImmutableMap<HugeKeys, DataType> partitionCols,
+                               ImmutableMap<HugeKeys, DataType> clusteringCols,
+                               ImmutableMap<HugeKeys, DataType> columns) {
 
         Create createTable = SchemaBuilder.createTable(this.table)
                                           .ifNotExists();
-        for (int i = 0; i < clusteringStart; i++) {
-            createTable.addPartitionKey(formatKey(columns[i]), columnTypes[i]);
+        for (Map.Entry<HugeKeys, DataType> entry : partitionCols.entrySet()) {
+            createTable.addPartitionKey(formatKey(entry.getKey()),
+                                        entry.getValue());
         }
-        for (int i = clusteringStart; i < columnStart; i++) {
-            createTable.addClusteringColumn(formatKey(columns[i]), columnTypes[i]);
+        for (Map.Entry<HugeKeys, DataType> entry : clusteringCols.entrySet()) {
+            createTable.addClusteringColumn(formatKey(entry.getKey()),
+                                            entry.getValue());
         }
-        for (int i = columnStart; i < columns.length; i++) {
-            createTable.addColumn(formatKey(columns[i]), columnTypes[i]);
+        for (Map.Entry<HugeKeys, DataType> entry : columns.entrySet()) {
+            createTable.addColumn(formatKey(entry.getKey()),
+                                  entry.getValue());
         }
 
         LOG.debug("Create table: {}", createTable);
