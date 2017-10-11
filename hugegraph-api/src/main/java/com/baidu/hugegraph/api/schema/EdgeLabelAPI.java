@@ -123,7 +123,6 @@ public class EdgeLabelAPI extends API {
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         EdgeLabel edgeLabel = g.schema().getEdgeLabel(name);
-        checkExists(HugeType.EDGE_LABEL, edgeLabel, name);
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
 
@@ -136,6 +135,8 @@ public class EdgeLabelAPI extends API {
         LOG.debug("Graph [{}] remove edge label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
+        // Just check exists
+        g.schema().getEdgeLabel(name);
         g.schema().edgeLabel(name).remove();
     }
 

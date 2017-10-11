@@ -93,7 +93,6 @@ public class PropertyKeyAPI extends API {
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         PropertyKey propertyKey = g.schema().getPropertyKey(name);
-        checkExists(HugeType.PROPERTY_KEY, propertyKey, name);
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
 
@@ -106,6 +105,8 @@ public class PropertyKeyAPI extends API {
         LOG.debug("Graph [{}] remove property key by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
+        // Just check exists
+        g.schema().getPropertyKey(name);
         g.schema().propertyKey(name).remove();
     }
 

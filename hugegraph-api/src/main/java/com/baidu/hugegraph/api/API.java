@@ -27,7 +27,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.type.HugeType;
 
 public class API {
 
@@ -54,13 +53,5 @@ public class API {
             list[i++] = prop.getValue();
         }
         return list;
-    }
-
-    public static void checkExists(HugeType type, Object object, String name) {
-        if (object == null) {
-            String msg = String.format("Not found the %s with name '%s'",
-                                       type, name);
-            throw new NotFoundException(msg);
-        }
     }
 }

@@ -124,7 +124,6 @@ public class VertexLabelAPI extends API {
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         VertexLabel vertexLabel = g.schema().getVertexLabel(name);
-        checkExists(HugeType.VERTEX_LABEL, vertexLabel, name);
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
 
@@ -137,6 +136,8 @@ public class VertexLabelAPI extends API {
         LOG.debug("Graph [{}] remove vertex label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
+        // Just check exists
+        g.schema().getVertexLabel(name);
         g.schema().vertexLabel(name).remove();
     }
 

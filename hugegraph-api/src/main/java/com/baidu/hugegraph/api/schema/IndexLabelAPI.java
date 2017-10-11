@@ -91,7 +91,6 @@ public class IndexLabelAPI extends API {
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
         IndexLabel indexLabel = g.schema().getIndexLabel(name);
-        checkExists(HugeType.INDEX_LABEL, indexLabel, name);
         return manager.serializer(g).writeIndexlabel(indexLabel);
     }
 
@@ -104,6 +103,8 @@ public class IndexLabelAPI extends API {
         LOG.debug("Graph [{}] remove index label by name '{}'", graph, name);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
+        // Just check exists
+        g.schema().getIndexLabel(name);
         g.schema().indexLabel(name).remove();
     }
 
