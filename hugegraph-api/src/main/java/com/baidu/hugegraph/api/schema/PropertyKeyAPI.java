@@ -119,8 +119,8 @@ public class PropertyKeyAPI extends API {
         public Boolean checkExist;
 
         private PropertyKey convert2PropertyKey() {
-            E.checkArgumentNotNull(this.name, "The name of property key " +
-                                   "can't be null");
+            E.checkArgumentNotNull(this.name,
+                                   "The name of property key can't be null");
             E.checkArgument(this.properties == null ||
                             this.properties.length == 0,
                             "Not allowed to pass properties when " +

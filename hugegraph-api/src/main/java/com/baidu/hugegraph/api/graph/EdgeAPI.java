@@ -126,8 +126,7 @@ public class EdgeAPI extends API {
             @PathParam("graph") String graph,
             @QueryParam("checkVertex") @DefaultValue("true") boolean checkV,
             List<JsonEdge> jsonEdges) {
-        E.checkArgumentNotNull(jsonEdges, "The request json body to " +
-                               "create Edges can't be null or empty");
+        E.checkArgumentNotNull(jsonEdges, "The request body can't be empty");
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 

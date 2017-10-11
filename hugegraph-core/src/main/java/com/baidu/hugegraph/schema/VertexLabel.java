@@ -154,7 +154,7 @@ public class VertexLabel extends SchemaLabel {
             String name = this.vertexLabel.name();
             VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
             if (vertexLabel == null) {
-                throw new NotFoundException("Can't append vertex label '%s' " +
+                throw new NotFoundException("Can't update vertex label '%s' " +
                                             "since it doesn't exist", name);
             }
 
@@ -321,13 +321,13 @@ public class VertexLabel extends SchemaLabel {
             // Don't allow to append sort keys.
             if (!primaryKeys.isEmpty()) {
                 throw new NotAllowException(
-                          "Not allowed to append primary keys " +
-                          "for existed vertex label '%s'", name);
+                          "Not allowed to update primary keys " +
+                          "for vertex label '%s'", name);
             }
             if (idStrategy != IdStrategy.DEFAULT) {
                 throw new NotAllowException(
-                          "Not allowed to change id strategy " +
-                          "for existed vertex label '%s'", name);
+                          "Not allowed to update id strategy " +
+                          "for vertex label '%s'", name);
             }
         }
     }

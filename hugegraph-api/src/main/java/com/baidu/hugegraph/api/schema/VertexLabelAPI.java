@@ -82,8 +82,8 @@ public class VertexLabelAPI extends API {
                          @PathParam("name") String name,
                          @QueryParam("action") String action,
                          JsonVertexLabel jsonVertexLabel) {
-        E.checkArgumentNotNull(jsonVertexLabel, "The request json body to " +
-                               "update VertexLabel can't be null or empty");
+        E.checkArgumentNotNull(jsonVertexLabel,
+                               "The request body can't be empty");
 
         LOG.debug("Graph [{}] {} vertex label: {}",
                   graph, action, jsonVertexLabel);
@@ -152,8 +152,8 @@ public class VertexLabelAPI extends API {
         public Boolean checkExist;
 
         private VertexLabel convert2VertexLabel() {
-            E.checkArgumentNotNull(this.name, "The name of vertex label " +
-                                   "can't be null");
+            E.checkArgumentNotNull(this.name,
+                                   "The name of vertex label can't be null");
             System.out.println(this.indexNames.length);
             E.checkArgument(this.indexNames == null ||
                             this.indexNames.length == 0,
