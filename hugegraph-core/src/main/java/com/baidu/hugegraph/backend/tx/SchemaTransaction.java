@@ -94,7 +94,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public PropertyKey getPropertyKey(String name) {
-        BackendEntry entry = querySchema(new PropertyKey(name));
+        BackendEntry entry = this.querySchema(new PropertyKey(name));
         return this.serializer.readPropertyKey(entry);
     }
 
@@ -134,7 +134,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public VertexLabel getVertexLabel(String name) {
-        BackendEntry entry = querySchema(new VertexLabel(name));
+        BackendEntry entry = this.querySchema(new VertexLabel(name));
         return this.serializer.readVertexLabel(entry);
     }
 
@@ -182,7 +182,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public EdgeLabel getEdgeLabel(String name) {
-        BackendEntry entry = querySchema(new EdgeLabel(name));
+        BackendEntry entry = this.querySchema(new EdgeLabel(name));
         return this.serializer.readEdgeLabel(entry);
     }
 
@@ -217,7 +217,7 @@ public class SchemaTransaction extends AbstractTransaction {
     }
 
     public IndexLabel getIndexLabel(String name) {
-        BackendEntry entry = querySchema(new IndexLabel(name));
+        BackendEntry entry = this.querySchema(new IndexLabel(name));
         return this.serializer.readIndexLabel(entry);
     }
 

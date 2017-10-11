@@ -23,6 +23,7 @@ import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -114,6 +115,7 @@ public abstract class IdGenerator {
         private String id;
 
         public StringId(String id) {
+            E.checkArgument(!id.isEmpty(), "The id can't be empty");
             this.id = id;
         }
 
