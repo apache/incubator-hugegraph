@@ -114,7 +114,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     public BackendEntry get(HugeType type, Id id) {
-        BackendEntry entry = query(type, id);
+        BackendEntry entry = this.query(type, id);
         if (entry == null) {
             throw new NotFoundException(
                       "Not found the %s entry with id '%s'", type, id);
