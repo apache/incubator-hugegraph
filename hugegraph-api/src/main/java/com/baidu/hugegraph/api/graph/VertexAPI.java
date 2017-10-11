@@ -68,8 +68,7 @@ public class VertexAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertex jsonVertex) {
-        E.checkArgumentNotNull(jsonVertex, "The request json body to " +
-                               "create Vertex can't be null or empty");
+        E.checkArgumentNotNull(jsonVertex, "The request body can't be empty");
 
         LOG.debug("Graph [{}] create vertex: {}", graph, jsonVertex);
 

@@ -187,8 +187,8 @@ public class EdgeLabel extends SchemaLabel {
             String name = this.edgeLabel.name();
             EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
             if (edgeLabel == null) {
-                throw new NotFoundException("Can't append edge label '%s'" +
-                                            " since it doesn't exist", name);
+                throw new NotFoundException("Can't update edge label '%s' " +
+                                            "since it doesn't exist", name);
             }
 
             this.checkStableVars();
@@ -371,24 +371,24 @@ public class EdgeLabel extends SchemaLabel {
 
             if (sourceLabel != null) {
                 throw new NotAllowException(
-                          "Not allowed to append source label " +
-                          "for existed edge label '%s'", name);
+                          "Not allowed to update source label " +
+                          "for edge label '%s', it must be null", name);
             }
             if (targetLabel != null) {
                 throw new NotAllowException(
-                          "Not allowed to append target label " +
-                          "for existed edge label '%s'", name);
+                          "Not allowed to update target label " +
+                          "for edge label '%s', it must be null", name);
             }
             // Don't allow to append sort keys.
             if (!sortKeys.isEmpty()) {
                 throw new NotAllowException(
-                          "Not allowed to append sort keys " +
-                          "for existed edge label '%s'", name);
+                          "Not allowed to update sort keys " +
+                          "for edge label '%s'", name);
             }
             if (frequency != Frequency.DEFAULT) {
                 throw new NotAllowException(
-                          "Not allowed to change frequency " +
-                          "for existed edge label '%s'", name);
+                          "Not allowed to update frequency " +
+                          "for edge label '%s'", name);
             }
         }
     }

@@ -81,8 +81,8 @@ public class EdgeLabelAPI extends API {
                          @PathParam("name") String name,
                          @QueryParam("action") String action,
                          JsonEdgeLabel jsonEdgeLabel) {
-        E.checkArgumentNotNull(jsonEdgeLabel, "The request json body to " +
-                               "create EdgeLabel can't be null or empty");
+        E.checkArgumentNotNull(jsonEdgeLabel,
+                               "The request body can't be empty");
 
         LOG.debug("Graph [{}] {} edge label: {}",
                   graph, action, jsonEdgeLabel);
@@ -153,8 +153,8 @@ public class EdgeLabelAPI extends API {
         public Boolean checkExist;
 
         private EdgeLabel convert2EdgeLabel() {
-            E.checkArgumentNotNull(this.name, "The name of edge label " +
-                                   "can't be null");
+            E.checkArgumentNotNull(this.name,
+                                   "The name of edge label can't be null");
             E.checkArgument(this.indexNames == null ||
                             this.indexNames.length == 0,
                             "Not allowed to pass index names when " +
