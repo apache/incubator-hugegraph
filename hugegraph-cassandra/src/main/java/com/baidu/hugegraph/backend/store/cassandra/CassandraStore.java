@@ -280,7 +280,7 @@ public abstract class CassandraStore implements BackendStore {
             LOG.error("Failed to commit statements due to:", e);
             assert session.statements().size() > 0;
             throw new BackendException(
-                      "Failed to commit %s statements: '%s'...",
+                      "Failed to commit %s statements: '%s'...", e,
                       session.statements().size(),
                       session.statements().iterator().next());
         } finally {
