@@ -39,10 +39,15 @@ public class ExampleUtil {
     public static HugeGraph loadGraph() {
         registerPlugins();
 
-        String confFile = ExampleUtil.class.getClassLoader()
-                         .getResource("hugegraph.properties").getPath();
-
-        HugeGraph graph = HugeFactory.open(confFile);
+        String file = "hugegraph.properties";
+        HugeGraph graph;
+        try {
+            String conf = ExampleUtil.class.getClassLoader()
+                          .getResource(file).getPath();
+            graph = HugeFactory.open(conf);
+        } catch (Exception e) {
+            graph = HugeFactory.open(file);
+        }
 
         graph.clearBackend();
         graph.initBackend();
