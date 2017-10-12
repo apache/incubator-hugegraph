@@ -51,7 +51,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void initSchema() {
         SchemaManager schema = graph().schema();
 
-        LOG.info("===============  propertyKey  ================");
+        LOG.debug("===============  propertyKey  ================");
 
         schema.propertyKey("id").asInt().create();
         schema.propertyKey("name").asText().create();
@@ -67,7 +67,7 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("band").asText().create();
         schema.propertyKey("price").asInt().create();
 
-        LOG.info("===============  vertexLabel  ================");
+        LOG.debug("===============  vertexLabel  ================");
 
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -100,7 +100,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .nullableKeys("comment", "contribution")
               .create();
 
-        LOG.info("===============  vertexLabel index  ================");
+        LOG.debug("===============  vertexLabel index  ================");
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
@@ -121,7 +121,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testAddVertex() {
         HugeGraph graph = graph();
 
-        // Directly into the back-end
+        // Directly save into the backend
         graph.addVertex(T.label, "book", "name", "java-3");
 
         graph.addVertex(T.label, "person", "name", "Baby",
@@ -548,7 +548,7 @@ public class VertexCoreTest extends BaseCoreTest {
                        "age", 62, "lived", "Canadian");
     }
 
-    @Test()
+    @Test
     public void testQueryByIdNotFound() {
         HugeGraph graph = graph();
         init10Vertices();

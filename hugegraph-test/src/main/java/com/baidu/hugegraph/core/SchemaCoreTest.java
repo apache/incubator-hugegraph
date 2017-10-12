@@ -24,10 +24,11 @@ import com.baidu.hugegraph.schema.SchemaManager;
 public class SchemaCoreTest extends BaseCoreTest {
 
     /**
-     * Utils method to init some properties
+     * Utils method to init some property keys
      */
-    protected void initPropertyKey() {
+    protected void initPropertyKeys() {
         SchemaManager schema = graph().schema();
+
         schema.propertyKey("id").asInt().create();
         schema.propertyKey("name").asText().create();
         schema.propertyKey("age").asInt().valueSingle().create();

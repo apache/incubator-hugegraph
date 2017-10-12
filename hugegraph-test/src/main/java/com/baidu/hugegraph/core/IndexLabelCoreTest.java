@@ -39,7 +39,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexLabelOfVertex() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
@@ -67,7 +67,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexLabelWithIllegalName() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
@@ -102,7 +102,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexLabelOfEdge() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
@@ -129,7 +129,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexLabelOfVertexWithVertexExist() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person").properties("name", "age", "city")
@@ -164,7 +164,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexLabelOfEdgeWithEdgeExist() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
@@ -193,7 +193,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexlabelOnUndefinedSchemaLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -209,7 +209,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexlabelByUndefinedProperty() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("author").properties("id", "name")
@@ -232,7 +232,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexlabelByUnbelongedProperty() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("author").properties("id", "name")
@@ -261,7 +261,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveIndexLabelOfVertex() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
@@ -319,7 +319,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveIndexLabelOfEdge() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
@@ -364,7 +364,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRebuildIndexLabelOfVertex() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
@@ -399,7 +399,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRebuildIndexLabelOfVertexLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
@@ -433,7 +433,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRebuildIndexLabelOfEdgeLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();
@@ -473,7 +473,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRebuildIndexLabelOfEdge() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("author").properties("id", "name")
               .primaryKeys("id").create();

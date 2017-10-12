@@ -155,7 +155,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemovePropertyKeyUsedByVertexLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -171,7 +171,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemovePropertyKeyUsedByEdgeLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")

@@ -36,7 +36,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -65,7 +65,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithIllegalName() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -104,7 +104,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithoutFrequency() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -130,7 +130,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithoutProperty() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -155,7 +155,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithoutLink() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -174,7 +174,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithNotExistProperty() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -192,7 +192,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithNotExistVertexLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -211,7 +211,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelMultipleWithoutSortKey() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -229,7 +229,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelSortKeyNotInProperty() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -248,7 +248,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithNullableKeys() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -277,7 +277,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithUndefinedNullableKeys() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -299,7 +299,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithNullableKeysNotInProperties() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -321,7 +321,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddEdgeLabelWithNullableKeysIntersectSortkeys() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -365,7 +365,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendEdgeLabelWithUndefinedNullableKeys() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -388,7 +388,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendEdgeLabelWithNullableKeysInOriginProperties() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -420,7 +420,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendEdgeLabelWithNullableKeysInAppendProperties() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -453,7 +453,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendEdgeLabelWithNullableKeysNotInProperties() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -477,7 +477,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendEdgeLabelNewEdgeWithNullableKeysAbsent() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -512,7 +512,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendEdgeLabelNewVertexWithNonNullKeysAbsent() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -546,7 +546,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveEdgeLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -580,7 +580,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveEdgeLabelWithEdge() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -627,7 +627,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveEdgeLabelWithEdgeWithSearchIndex() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -683,7 +683,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveEdgeLabelWithEdgeWithSecondaryIndex() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
