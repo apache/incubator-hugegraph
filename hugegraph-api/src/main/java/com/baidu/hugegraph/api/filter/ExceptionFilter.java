@@ -33,6 +33,8 @@ import com.baidu.hugegraph.exception.NotFoundException;
 
 public class ExceptionFilter {
 
+    public static final boolean ALLOW_TRACE = false;
+
     @Provider
     public static class HugeExceptionMapper
                   implements ExceptionMapper<HugeException> {
@@ -123,7 +125,7 @@ public class ExceptionFilter {
                 .add("message", msg)
                 .add("cause", cause);
 
-        if (trace) {
+        if (ALLOW_TRACE && trace) {
             JsonArrayBuilder traces = Json.createArrayBuilder();
             for (StackTraceElement i : exception.getStackTrace()) {
                 traces.add(i.toString());
