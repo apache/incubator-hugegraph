@@ -38,7 +38,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         VertexLabel person = schema.vertexLabel("person")
@@ -90,7 +90,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithIdStrategy() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         VertexLabel person = schema.vertexLabel("person")
@@ -144,7 +144,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithMultiIdStrategy() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -174,7 +174,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithoutPKStrategyButCallPrimaryKey() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -196,7 +196,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexWithDefaultIdStrategyAndPassedPk() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
@@ -209,7 +209,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexWithDefaultIdStrategyAndNotPassedPk() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
@@ -235,7 +235,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexWithAutomaticIdStrategyAndNotPassedPk() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
@@ -248,7 +248,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexWithCustomizeIdStrategyButPassedPk() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
@@ -263,7 +263,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexWithCustomizeIdStrategyAndNotPassedPk() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
@@ -276,7 +276,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexWithPrimaryKeyIdStrategyAndPassedPk() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
@@ -290,7 +290,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexWithPrimaryKeyIdStrategyButNotPassedPk() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -303,7 +303,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWith2PrimaryKey() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         VertexLabel person = schema.vertexLabel("person")
@@ -324,7 +324,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithoutPrimaryKey() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -337,7 +337,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithoutPropertyKey() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         VertexLabel person = schema.vertexLabel("person").create();
@@ -347,7 +347,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithPrimaryKeyNotInProperty() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -368,7 +368,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithNotExistProperty() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -378,7 +378,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithNullableKeys() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         VertexLabel person = schema.vertexLabel("person")
@@ -401,7 +401,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithUndefinedNullableKeys() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -415,7 +415,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithNullableKeysNotInProperties() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -429,7 +429,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddVertexLabelWithNullableKeysIntersectPrimarykeys() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -459,7 +459,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendVertexLabelWithUndefinedNullableKeys() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -478,7 +478,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendVertexLabelWithNullableKeysInOriginProperties() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -506,7 +506,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendVertexLabelWithNullableKeysInAppendProperties() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -533,7 +533,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAppendVertexLabelWithNullableKeysNotInProperties() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -549,7 +549,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveVertexLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -574,7 +574,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveVertexLabelWithVertex() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -605,7 +605,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveVertexLabelWithVertexAndSearchIndex() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -643,7 +643,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveVertexLabelWithVertexAndSecondaryIndex() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
@@ -684,7 +684,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveVertexLabelUsedByEdgeLabel() {
-        super.initPropertyKey();
+        super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")

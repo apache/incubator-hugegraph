@@ -53,7 +53,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     public void initSchema() {
         SchemaManager schema = graph().schema();
 
-        LOG.info("===============  propertyKey  ================");
+        LOG.debug("===============  propertyKey  ================");
 
         schema.propertyKey("id").asInt().create();
         schema.propertyKey("name").asText().create();
@@ -74,7 +74,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.propertyKey("hurt").asBoolean().create();
         schema.propertyKey("arrested").asBoolean().create();
 
-        LOG.info("===============  vertexLabel  ================");
+        LOG.debug("===============  vertexLabel  ================");
 
         schema.vertexLabel("person")
               .properties("name", "age", "city")
@@ -94,14 +94,14 @@ public class EdgeCoreTest extends BaseCoreTest {
               .primaryKeys("name")
               .create();
 
-        LOG.info("===============  vertexLabel index  ================");
+        LOG.debug("===============  vertexLabel index  ================");
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
         schema.indexLabel("personByAge").onV("person").search()
               .by("age").create();
 
-        LOG.info("===============  edgeLabel  ================");
+        LOG.debug("===============  edgeLabel  ================");
 
         schema.edgeLabel("transfer")
               .properties("id", "amount", "timestamp", "message")
@@ -145,7 +145,7 @@ public class EdgeCoreTest extends BaseCoreTest {
               .nullableKeys("tool", "reason", "hurt")
               .ifNotExist().create();
 
-        LOG.info("===============  edgeLabel index  ================");
+        LOG.debug("===============  edgeLabel index  ================");
 
         schema.indexLabel("transferByTimestamp").onE("transfer").search()
               .by("timestamp").create();

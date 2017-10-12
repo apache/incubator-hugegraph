@@ -65,6 +65,7 @@ public class BaseCoreTest {
     @Before
     public void setup() {
         this.clearData();
+        this.clearSchema();
     }
 
     @After
@@ -87,31 +88,38 @@ public class BaseCoreTest {
                 v.remove();
             });
 
-            // Commit before clearing schema
-            graph.tx().commit();
-
-            // Clear schema
-            SchemaManager schema = graph.schema();
-
-            schema.getIndexLabels().stream().forEach(elem -> {
-                schema.indexLabel(elem.name()).remove();
-            });
-
-            schema.getEdgeLabels().stream().forEach(elem -> {
-                schema.edgeLabel(elem.name()).remove();
-            });
-
-            schema.getVertexLabels().stream().forEach(elem -> {
-                schema.vertexLabel(elem.name()).remove();
-            });
-
-            schema.getPropertyKeys().stream().forEach(elem -> {
-                schema.propertyKey(elem.name()).remove();
-            });
-
+            // Commit changes
             graph.tx().commit();
         } finally {
-            graph.tx().close();
+            try {
+                graph.tx().close();
+            } catch (Throwable e) {
+                /*
+                 * Ignore exception when close() due to we can't throw
+                 * a new exception which may override the origin one
+                 */
+                LOG.error("Error when close tx", e);
+            }
         }
+    }
+
+    private void clearSchema() {
+        SchemaManager schema = graph().schema();
+
+        schema.getIndexLabels().stream().forEach(elem -> {
+            schema.indexLabel(elem.name()).remove();
+        });
+
+        schema.getEdgeLabels().stream().forEach(elem -> {
+            schema.edgeLabel(elem.name()).remove();
+        });
+
+        schema.getVertexLabels().stream().forEach(elem -> {
+            schema.vertexLabel(elem.name()).remove();
+        });
+
+        schema.getPropertyKeys().stream().forEach(elem -> {
+            schema.propertyKey(elem.name()).remove();
+        });
     }
 }
