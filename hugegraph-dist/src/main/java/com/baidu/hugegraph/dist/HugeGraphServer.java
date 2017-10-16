@@ -34,7 +34,7 @@ public class HugeGraphServer {
         RegisterUtil.registerBackends();
         RegisterUtil.registerServer();
 
-        // start Huge Server
+        // Start HugeGraphServer
         HugeServer.main(args);
     }
 }

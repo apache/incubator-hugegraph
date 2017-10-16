@@ -33,7 +33,7 @@ import com.baidu.hugegraph.exception.NotFoundException;
 
 public class ExceptionFilter {
 
-    public static final boolean ALLOW_TRACE = false;
+    public static boolean ALLOW_TRACE = false;
 
     @Provider
     public static class HugeExceptionMapper
