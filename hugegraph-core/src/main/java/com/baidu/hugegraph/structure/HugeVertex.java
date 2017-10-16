@@ -181,13 +181,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
         ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
-        Id id = HugeElement.getIdValue(elemKeys.id());
-        Set<String> keys = elemKeys.keys();
-
         // Check id (must be null)
-        if (id != null) {
+        if (elemKeys.id() != null) {
             throw Edge.Exceptions.userSuppliedIdsNotSupported();
         }
+        Id id = HugeElement.getIdValue(elemKeys.id());
+        Set<String> keys = elemKeys.keys();
 
         // Check target vertex
         E.checkArgumentNotNull(vertex, "Target vertex can't be null");
