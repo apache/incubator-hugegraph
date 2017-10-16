@@ -72,12 +72,7 @@ public class BackendMutation {
             MutateAction originAction = originItem.action();
             switch (action) {
                 case INSERT:
-                    if (originAction == MutateAction.INSERT ||
-                        originAction == MutateAction.DELETE) {
-                        items.remove();
-                    } else {
-                        throw incompatibleActionException(action, originAction);
-                    }
+                    items.remove();
                     break;
                 case DELETE:
                     if (originAction == MutateAction.INSERT) {

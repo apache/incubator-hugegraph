@@ -460,6 +460,9 @@ public class GraphTransaction extends AbstractTransaction {
         HugeVertex vertex = prop.element();
         E.checkState(vertex != null,
                      "No owner for updating property '%s'", prop.key());
+        E.checkArgument(!vertex.removed(),
+                        "Can't update property for removed vertex '%s'",
+                        vertex);
         // Check is updating primary key
         List<String> primaryKeys = vertex.vertexLabel().primaryKeys();
         E.checkArgument(!primaryKeys.contains(prop.key()),
@@ -493,7 +496,7 @@ public class GraphTransaction extends AbstractTransaction {
         E.checkState(vertex != null,
                      "No owner for removing property '%s'", prop.key());
         // Maybe have ever been removed
-        if (!vertex.hasProperty(prop.key())) {
+        if (vertex.removed() || !vertex.hasProperty(prop.key())) {
             return;
         }
         // Check is removing primary key
@@ -530,6 +533,9 @@ public class GraphTransaction extends AbstractTransaction {
         HugeEdge edge = prop.element();
         E.checkState(edge != null,
                      "No owner for updating property '%s'", prop.key());
+        E.checkArgument(!edge.removed(),
+                        "Can't update property for removed edge '%s'",
+                        edge);
         // Check is updating sort key
         E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
                         "Can't update sort key '%s'", prop.key());
@@ -563,7 +569,7 @@ public class GraphTransaction extends AbstractTransaction {
         E.checkState(edge != null,
                      "No owner for removing property '%s'", prop.key());
         // Maybe have ever been removed
-        if (!edge.hasProperty(prop.key())) {
+        if (edge.removed() || !edge.hasProperty(prop.key())) {
             return;
         }
         // Check is removing sort key
