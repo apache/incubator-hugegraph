@@ -33,6 +33,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.Log;
@@ -65,6 +66,9 @@ public class PerfExample1 {
         testInsertPerf(graph, threadCount, times, multiple);
 
         hugegraph.close();
+
+        // Stop event hub before main thread exits
+        EventHub.destroy(30);
     }
 
     /**
@@ -86,17 +90,21 @@ public class PerfExample1 {
                                       int multiple)
                                       throws InterruptedException {
 
-        long begTime = System.currentTimeMillis();
-
         List<Thread> threads = new ArrayList<>(threadCount);
         for (int i = 0; i < threadCount; i++) {
             Thread t = new Thread(() -> {
                 graph.tx().open();
                 testInsertPerf(graph, times, multiple);
                 graph.tx().close();
+                graph.close();
             });
-            t.start();
             threads.add(t);
+        }
+
+        long beginTime = System.currentTimeMillis();
+
+        for (Thread t : threads) {
+            t.start();
         }
 
         for (Thread t : threads) {
@@ -107,7 +115,7 @@ public class PerfExample1 {
 
         // Total edges
         long edges = EDGE_NUM * threadCount * times * multiple;
-        long cost = endTime - begTime;
+        long cost = endTime - beginTime;
 
         LOG.info("Total edges: {}, cost times: {}", edges, cost);
         LOG.info("Rate with threads: {} edges/s", edges * 1000 / cost);
