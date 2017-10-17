@@ -47,8 +47,6 @@ import com.google.common.collect.ImmutableMap;
 
 public class CassandraTables {
 
-    /***************************** Table defines *****************************/
-
     public static class VertexLabel extends CassandraTable {
 
         public static final String TABLE = "vertex_labels";
@@ -469,7 +467,7 @@ public class CassandraTables {
 
         @Override
         public void delete(CassandraSessionPool.Session session,
-                                        CassandraBackendEntry.Row entry) {
+                           CassandraBackendEntry.Row entry) {
             String fieldValues = entry.column(HugeKeys.FIELD_VALUES);
             if (fieldValues != null) {
                 throw new BackendException("SearchIndex deletion " +
