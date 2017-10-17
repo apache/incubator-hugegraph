@@ -88,9 +88,10 @@ public class SchemaTransaction extends AbstractTransaction {
         return indexLabels;
     }
 
-    public void addPropertyKey(PropertyKey propKey) {
-        LOG.debug("SchemaTransaction add property key: {}", propKey);
-        this.addSchema(propKey, this.serializer.writePropertyKey(propKey));
+    public void addPropertyKey(PropertyKey propertyKey) {
+        LOG.debug("SchemaTransaction add property key: {}", propertyKey);
+        BackendEntry entry = this.serializer.writePropertyKey(propertyKey);
+        this.addSchema(propertyKey, entry);
     }
 
     public PropertyKey getPropertyKey(String name) {
@@ -173,7 +174,7 @@ public class SchemaTransaction extends AbstractTransaction {
             // Deleting a vertex will automatically deletes the held edge
             this.graph().graphTransaction().removeVertices(vertexLabel);
             LOG.debug("SchemaTransaction remove vertex label '{}'", name);
-            this.removeSchema(new VertexLabel(name));
+            this.removeSchema(vertexLabel);
         } finally {
             locks.unlock();
         }
@@ -181,7 +182,8 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public void addEdgeLabel(EdgeLabel edgeLabel) {
         LOG.debug("SchemaTransaction add edge label: {}", edgeLabel);
-        this.addSchema(edgeLabel, this.serializer.writeEdgeLabel(edgeLabel));
+        BackendEntry entry = this.serializer.writeEdgeLabel(edgeLabel);
+        this.addSchema(edgeLabel, entry);
     }
 
     public EdgeLabel getEdgeLabel(String name) {
@@ -208,7 +210,7 @@ public class SchemaTransaction extends AbstractTransaction {
             this.graph().graphTransaction().removeEdges(edgeLabel);
 
             LOG.debug("SchemaTransaction remove edge label '{}'", name);
-            this.removeSchema(new EdgeLabel(name));
+            this.removeSchema(edgeLabel);
         } finally {
             locks.unlock();
         }
@@ -216,7 +218,8 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public void addIndexLabel(IndexLabel indexLabel) {
         LOG.debug("SchemaTransaction add index label: {}", indexLabel);
-        this.addSchema(indexLabel, this.serializer.writeIndexLabel(indexLabel));
+        BackendEntry entry = this.serializer.writeIndexLabel(indexLabel);
+        this.addSchema(indexLabel, entry);
     }
 
     public IndexLabel getIndexLabel(String name) {
@@ -240,7 +243,7 @@ public class SchemaTransaction extends AbstractTransaction {
             this.graph().graphTransaction().removeIndex(indexLabel);
             // Remove indexName from indexNames of vertex label or edge label
             this.removeIndexNames(name);
-            this.removeSchema(new IndexLabel(name));
+            this.removeSchema(indexLabel);
         } finally {
             locks.unlock();
         }
