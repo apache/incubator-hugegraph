@@ -305,21 +305,6 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithAppendedNonNullKeysAbsent() {
-        SchemaManager schema = graph().schema();
-
-        schema.vertexLabel("person")
-              .properties("id")
-              .nullableKeys("city")
-              .append();
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            // Absent 'id'
-            graph().addVertex(T.label, "person", "name", "Baby");
-        });
-    }
-
-    @Test
     public void testAddVertexWithNotExistsVertexPropKey() {
         HugeGraph graph = graph();
         Assert.assertThrows(IllegalArgumentException.class, () -> {

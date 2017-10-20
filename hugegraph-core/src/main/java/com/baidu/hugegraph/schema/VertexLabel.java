@@ -161,6 +161,7 @@ public class VertexLabel extends SchemaLabel {
             this.checkStableVars();
             this.checkProperties();
             this.checkNullableKeys();
+            this.checkAddedPropsNullable();
 
             vertexLabel.properties.addAll(this.vertexLabel.properties);
             vertexLabel.nullableKeys.addAll(this.vertexLabel.nullableKeys);
@@ -259,6 +260,21 @@ public class VertexLabel extends SchemaLabel {
                             "The nullableKeys: %s are not allowed to " +
                             "belong to primaryKeys: %s of vertex label '%s'",
                             nullableKeys, primaryKeys, name);
+        }
+
+        @SuppressWarnings("unchecked")
+        private void checkAddedPropsNullable() {
+            String name = this.vertexLabel.name();
+            VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
+
+            Set<String> originProps = vertexLabel.properties();
+            Set<String> appendProps = this.vertexLabel.properties();
+            Set<String> appendNulls = this.vertexLabel.nullableKeys();
+
+            Collection<String> newAddedProps = CollectionUtils.subtract
+                                               (appendProps, originProps);
+            E.checkArgument(appendNulls.containsAll(newAddedProps),
+                            "The new added properties: %s must be nullable");
         }
 
         private void checkIdStrategy() {
