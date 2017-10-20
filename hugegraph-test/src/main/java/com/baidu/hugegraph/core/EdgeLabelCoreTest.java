@@ -511,7 +511,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAppendEdgeLabelNewVertexWithNonNullKeysAbsent() {
+    public void testAppendEdgeLabelNewEdgeWithNonNullKeysAbsent() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
@@ -542,6 +542,29 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
             // Absent 'time'
             baby.addEdge("look", java, "weight", 0.5);
         });
+    }
+
+    @Test
+    public void testAppendEdgeLabelWithNonNullProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.edgeLabel("look")
+              .properties("time")
+              .link("person", "book")
+              .create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("look")
+                  .properties("weight")
+                  .append();
+        });
+
     }
 
     @Test

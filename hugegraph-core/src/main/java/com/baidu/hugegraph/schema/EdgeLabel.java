@@ -194,6 +194,7 @@ public class EdgeLabel extends SchemaLabel {
             this.checkStableVars();
             this.checkProperties();
             this.checkNullableKeys();
+            this.checkAddedPropsNullable();
 
             edgeLabel.properties.addAll(this.edgeLabel.properties);
             edgeLabel.nullableKeys.addAll(this.edgeLabel.nullableKeys);
@@ -307,6 +308,21 @@ public class EdgeLabel extends SchemaLabel {
                             "The nullableKeys: %s are not allowed to " +
                             "belong to sortKeys: %s of edge label '%s'",
                             nullableKeys, sortKeys, name);
+        }
+
+        @SuppressWarnings("unchecked")
+        private void checkAddedPropsNullable() {
+            String name = this.edgeLabel.name();
+            EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
+
+            Set<String> originProps = edgeLabel.properties();
+            Set<String> appendProps = this.edgeLabel.properties();
+            Set<String> appendNulls = this.edgeLabel.nullableKeys();
+
+            Collection<String> newAddedProps = CollectionUtils.subtract
+                                               (appendProps, originProps);
+            E.checkArgument(appendNulls.containsAll(newAddedProps),
+                            "The new added properties: %s must be nullable");
         }
 
         private void checkSortKeys() {
