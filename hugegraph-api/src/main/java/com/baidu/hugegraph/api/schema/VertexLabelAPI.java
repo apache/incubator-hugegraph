@@ -44,6 +44,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/schema/vertexlabels")
 @Singleton
@@ -142,12 +143,19 @@ public class VertexLabelAPI extends API {
 
     private static class JsonVertexLabel {
 
+        @JsonProperty("name")
         public String name;
+        @JsonProperty("id_strategy")
         public IdStrategy idStrategy;
+        @JsonProperty("primary_keys")
         public String[] primaryKeys;
+        @JsonProperty("nullable_keys")
         public String[] nullableKeys;
+        @JsonProperty("index_names")
         public String[] indexNames;
+        @JsonProperty("properties")
         public String[] properties;
+        @JsonProperty("check_exist")
         public Boolean checkExist;
 
         private VertexLabel convert2VertexLabel() {

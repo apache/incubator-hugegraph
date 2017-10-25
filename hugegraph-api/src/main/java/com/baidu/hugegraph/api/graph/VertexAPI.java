@@ -54,6 +54,7 @@ import com.baidu.hugegraph.server.HugeServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/graph/vertices")
 @Singleton
@@ -162,10 +163,13 @@ public class VertexAPI extends API {
     @JsonIgnoreProperties(value = {"type"})
     private static class JsonVertex {
 
+        @JsonProperty("id")
         public Object id;
+        @JsonProperty("label")
         public String label;
+        @JsonProperty("properties")
         public Map<String, Object> properties;
-        @SuppressWarnings("unused")
+        @JsonProperty("type")
         public String type;
 
         public Object[] properties() {
