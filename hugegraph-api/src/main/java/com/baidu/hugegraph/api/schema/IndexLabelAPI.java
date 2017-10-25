@@ -42,6 +42,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/schema/indexlabels")
 @Singleton
@@ -110,11 +111,17 @@ public class IndexLabelAPI extends API {
 
     private static class JsonIndexLabel {
 
+        @JsonProperty("name")
         public String name;
+        @JsonProperty("base_type")
         public HugeType baseType;
+        @JsonProperty("base_value")
         public String baseValue;
+        @JsonProperty("index_type")
         public IndexType indexType;
+        @JsonProperty("fields")
         public String[] fields;
+        @JsonProperty("check_exist")
         public Boolean checkExist;
 
         private IndexLabel convert2IndexLabel() {

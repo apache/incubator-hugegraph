@@ -249,13 +249,15 @@ public class EdgeAPI extends API {
         public String source;
         @JsonProperty("outVLabel")
         public String sourceLabel;
+        @JsonProperty("label")
         public String label;
         @JsonProperty("inV")
         public String target;
         @JsonProperty("inVLabel")
         public String targetLabel;
+        @JsonProperty("properties")
         public Map<String, Object> properties;
-        @SuppressWarnings("unused")
+        @JsonProperty("type")
         public String type;
 
         public Object[] properties() {

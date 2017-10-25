@@ -42,6 +42,7 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/schema/propertykeys")
 @Singleton
@@ -111,10 +112,15 @@ public class PropertyKeyAPI extends API {
 
     private static class JsonPropertyKey {
 
+        @JsonProperty("name")
         public String name;
+        @JsonProperty("cardinality")
         public Cardinality cardinality;
+        @JsonProperty("data_type")
         public DataType dataType;
+        @JsonProperty("properties")
         public String[] properties;
+        @JsonProperty("check_exist")
         public Boolean checkExist;
 
         private PropertyKey convert2PropertyKey() {

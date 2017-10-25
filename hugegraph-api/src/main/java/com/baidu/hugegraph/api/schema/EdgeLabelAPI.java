@@ -44,6 +44,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/schema/edgelabels")
 @Singleton
@@ -141,14 +142,23 @@ public class EdgeLabelAPI extends API {
 
     private static class JsonEdgeLabel {
 
+        @JsonProperty("name")
         public String name;
+        @JsonProperty("source_label")
         public String sourceLabel;
+        @JsonProperty("target_label")
         public String targetLabel;
+        @JsonProperty("frequency")
         public Frequency frequency;
+        @JsonProperty("sort_keys")
         public String[] sortKeys;
+        @JsonProperty("nullable_keys")
         public String[] nullableKeys;
+        @JsonProperty("index_names")
         public String[] indexNames;
+        @JsonProperty("properties")
         public String[] properties;
+        @JsonProperty("check_exist")
         public Boolean checkExist;
 
         private EdgeLabel convert2EdgeLabel() {
