@@ -90,9 +90,9 @@ public class EdgeLabelAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
-        if (action.equals("append")) {
+        if (action.equals(ACTION_APPEND)) {
             edgeLabel = g.schema().edgeLabel(edgeLabel).append();
-        } else if (action.equals("eliminate")) {
+        } else if (action.equals(ACTION_ELIMINATE)) {
             edgeLabel = g.schema().edgeLabel(edgeLabel).eliminate();
         } else {
             throw new NotSupportedException(

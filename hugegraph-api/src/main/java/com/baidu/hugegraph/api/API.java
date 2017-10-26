@@ -36,6 +36,9 @@ public class API {
     public static final String APPLICATION_JSON_WITH_CHARSET =
                                APPLICATION_JSON + ";charset=" + CHARSET;;
 
+    public static final String ACTION_APPEND = "append";
+    public static final String ACTION_ELIMINATE = "eliminate";
+
     public static Graph graph(GraphManager manager, String graph) {
         Graph g = manager.graph(graph);
         if (g == null) {

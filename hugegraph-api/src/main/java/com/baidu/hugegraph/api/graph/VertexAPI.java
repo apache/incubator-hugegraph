@@ -32,6 +32,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -50,7 +51,10 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -120,6 +124,60 @@ public class VertexAPI extends API {
             g.tx().close();
         }
         return ids;
+    }
+
+    @PUT
+    @Path("{id}")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public String update(@Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         @PathParam("id") String id,
+                         @QueryParam("action") String action,
+                         JsonVertex jsonVertex) {
+        E.checkArgumentNotNull(jsonVertex, "The request body can't be empty");
+
+        LOG.debug("Graph [{}] update vertex: {}", graph, jsonVertex);
+
+        if (jsonVertex.id != null) {
+            E.checkArgument(id.equals(jsonVertex.id),
+                            "The ids are different between url('%s') and " +
+                            "request body('%s')", id, jsonVertex.id);
+        }
+
+        Graph g = graph(manager, graph);
+        HugeVertex vertex = (HugeVertex) g.vertices(id).next();
+        VertexLabel vertexLabel = vertex.vertexLabel();
+
+        boolean removingProperty;
+        if (action.equals(ACTION_ELIMINATE)) {
+            removingProperty = true;
+        } else if (action.equals(ACTION_APPEND)) {
+            removingProperty = false;
+        } else {
+            throw new NotSupportException("action '%s' for vertex '%s'",
+                                          action, id);
+        }
+
+        for (String key : jsonVertex.properties.keySet()) {
+            E.checkArgument(vertexLabel.properties().contains(key),
+                            "Can't update property for vertex '%s' because " +
+                            "there is no property key '%s' in its vertex label",
+                            id, key);
+
+            if (removingProperty) {
+                vertex.property(key).remove();
+            } else {
+                Object value = jsonVertex.properties.get(key);
+                E.checkArgumentNotNull(value, "Not allowed to set value of " +
+                                       "property '%s' to null for vertex '%s'",
+                                       key, id);
+                vertex.property(key, value);
+            }
+        }
+
+        vertex = (HugeVertex) g.vertices(id).next();
+        return manager.serializer(g).writeVertex(vertex);
     }
 
     @GET

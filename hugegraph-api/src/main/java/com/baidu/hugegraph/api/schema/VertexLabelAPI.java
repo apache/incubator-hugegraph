@@ -91,9 +91,9 @@ public class VertexLabelAPI extends API {
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
         VertexLabel vertexLabel = jsonVertexLabel.convert2VertexLabel();
-        if (action.equals("append")) {
+        if (action.equals(ACTION_APPEND)) {
             vertexLabel = g.schema().vertexLabel(vertexLabel).append();
-        } else if (action.equals("eliminate")) {
+        } else if (action.equals(ACTION_ELIMINATE)) {
             vertexLabel = g.schema().vertexLabel(vertexLabel).eliminate();
         } else {
             throw new NotSupportedException(

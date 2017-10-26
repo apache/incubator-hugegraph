@@ -29,6 +29,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -52,8 +53,11 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.E;
@@ -187,6 +191,60 @@ public class EdgeAPI extends API {
         return ids;
     }
 
+    @PUT
+    @Path("{id}")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public String update(@Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         @PathParam("id") String id,
+                         @QueryParam("action") String action,
+                         JsonEdge jsonEdge) {
+        E.checkArgumentNotNull(jsonEdge, "The request body can't be empty");
+
+        LOG.debug("Graph [{}] update edge: {}", graph, jsonEdge);
+
+        if (jsonEdge.id != null) {
+            E.checkArgument(id.equals(jsonEdge.id),
+                            "The ids are different between url('%s') and " +
+                            "request body('%s')", id, jsonEdge.id);
+        }
+
+        boolean removingProperty;
+        if (action.equals(ACTION_ELIMINATE)) {
+            removingProperty = true;
+        } else if (action.equals(ACTION_APPEND)) {
+            removingProperty = false;
+        } else {
+            throw new NotSupportException("action '%s' for edge '%s'",
+                                          action, id);
+        }
+
+        Graph g = graph(manager, graph);
+        HugeEdge edge = (HugeEdge) g.edges(id).next();
+        EdgeLabel edgeLabel = edge.edgeLabel();
+
+        for (String key : jsonEdge.properties.keySet()) {
+            E.checkArgument(edgeLabel.properties().contains(key),
+                            "Can't update property for edge '%s' because " +
+                            "there is no property key '%s' in its edge label",
+                            id, key);
+
+            if (removingProperty) {
+                edge.property(key).remove();
+            } else {
+                Object value = jsonEdge.properties.get(key);
+                E.checkArgumentNotNull(value, "Not allowed to set value of " +
+                                       "property '%s' to null for edge '%s'",
+                                       key, id);
+                edge.property(key, value);
+            }
+        }
+
+        edge = (HugeEdge) g.edges(id).next();
+        return manager.serializer(g).writeEdge(edge);
+    }
+
     @GET
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -245,6 +303,8 @@ public class EdgeAPI extends API {
     @JsonIgnoreProperties(value = {"type"})
     private static class JsonEdge {
 
+        @JsonProperty("id")
+        public String id;
         @JsonProperty("outV")
         public String source;
         @JsonProperty("outVLabel")
