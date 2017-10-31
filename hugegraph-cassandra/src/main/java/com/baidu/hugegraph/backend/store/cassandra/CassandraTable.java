@@ -115,7 +115,7 @@ public abstract class CassandraTable {
             return rs;
         }
 
-        List<Select> selections = query2Select(query);
+        List<Select> selections = query2Select(this.table, query);
         try {
             for (Select selection : selections) {
                 ResultSet results = session.execute(selection);
@@ -129,9 +129,9 @@ public abstract class CassandraTable {
         return rs;
     }
 
-    protected List<Select> query2Select(Query query) {
+    protected List<Select> query2Select(String table, Query query) {
         // Set table
-        Select select = QueryBuilder.select().from(this.table);
+        Select select = QueryBuilder.select().from(table);
 
         // NOTE: Cassandra does not support query.offset()
         if (query.offset() != 0) {
