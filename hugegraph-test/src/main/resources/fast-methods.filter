@@ -119,9 +119,6 @@ org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStra
 # unsupported OrP
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasXage_notXlteX10X_andXnotXbetweenX11_20XXXX_andXltX29X_orXeqX35XXXX_name: Unsupported OrP
 
-# no such element exceptions are caught and ignored in hasNext
-org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1_2_3_4X_name: No such element exceptions are caught and ignored in hasNext
-
 # unsupported automatic edge id, therefore number of edge is wrong
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdge: Unsupported automatic edge id, therefore number of edge is wrong
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdgeByPath: Unsupported automatic edge id, therefore number of edge is wrong

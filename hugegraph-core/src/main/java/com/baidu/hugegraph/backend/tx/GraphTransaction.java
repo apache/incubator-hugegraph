@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -326,7 +327,12 @@ public class GraphTransaction extends AbstractTransaction {
 
         for (Object vertexId : vertexIds) {
             Id id = HugeElement.getIdValue(vertexId);
-            BackendEntry entry = this.get(HugeType.VERTEX, id);
+            BackendEntry entry;
+            try {
+                entry = this.get(HugeType.VERTEX, id);
+            } catch (NotFoundException ignored) {
+                continue;
+            }
             Vertex vertex = this.serializer.readVertex(entry, this.graph());
             assert vertex != null;
             list.add(vertex);
@@ -407,10 +413,15 @@ public class GraphTransaction extends AbstractTransaction {
 
         for (Object edgeId : edgeIds) {
             Id id = HugeElement.getIdValue(edgeId);
-            BackendEntry entry = this.get(HugeType.EDGE, id);
+            BackendEntry entry;
+            try {
+                entry = this.get(HugeType.EDGE, id);
+            } catch (NotFoundException ignored) {
+                continue;
+            }
             HugeVertex vertex = this.serializer.readVertex(entry, graph());
             assert vertex != null;
-            list.addAll(ImmutableList.copyOf(vertex.getEdges()));
+            list.addAll(vertex.getEdges());
         }
 
         return list;
