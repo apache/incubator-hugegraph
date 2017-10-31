@@ -14,6 +14,7 @@
 
 package com.baidu.hugegraph.util;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 
@@ -46,7 +47,7 @@ public final class CheckSocket {
                                   Integer.parseInt(args[1]));
             s.close();
             System.exit(0);
-        } catch (Throwable ignored) {
+        } catch (IOException ignored) {
             System.err.println(ignored.toString());
             System.exit(E_FAILED);
         }
