@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
@@ -652,7 +653,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         String id = graph.traversal().E().toList().get(0).id() + "-not-exist";
         Assert.assertTrue(graph.traversal().E(id).toList().isEmpty());
-        Assert.assertThrows(NotFoundException.class, () -> {
+        Assert.assertThrows(NoSuchElementException.class, () -> {
             graph.traversal().E(id).next();
         });
     }
@@ -664,7 +665,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         String id = "invalid-id";
         Assert.assertTrue(graph.traversal().E(id).toList().isEmpty());
-        Assert.assertThrows(NotFoundException.class, () -> {
+        Assert.assertThrows(NoSuchElementException.class, () -> {
             graph.traversal().E(id).next();
         });
     }

@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.cache;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -71,9 +72,12 @@ public class CachedGraphTransaction extends GraphTransaction {
         for (Object i : vertexIds) {
             Id vid = HugeElement.getIdValue(i);
             Object v = this.verticesCache.getOrFetch(vid, id -> {
-                return super.queryVertices(id).iterator().next();
+                Iterator<Vertex> iterator = super.queryVertices(id).iterator();
+                return iterator.hasNext() ? iterator.next() : null;
             });
-            vertices.add(((HugeVertex) v).copy());
+            if (v != null) {
+                vertices.add((Vertex) v);
+            }
         }
         return vertices;
     }

@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -542,7 +543,7 @@ public class VertexCoreTest extends BaseCoreTest {
         // Query vertex by id which not exists
         Id id = SplicingIdGenerator.splicing("author", "not-exists-id");
         Assert.assertTrue(graph.traversal().V(id).toList().isEmpty());
-        Assert.assertThrows(NotFoundException.class, () -> {
+        Assert.assertThrows(NoSuchElementException.class, () -> {
             graph.traversal().V(id).next();
         });
     }
