@@ -23,6 +23,7 @@ import static com.baidu.hugegraph.config.ServerOptions.MAX_VERTICES_PER_BATCH;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +40,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import com.baidu.hugegraph.type.HugeType;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -202,7 +204,9 @@ public class VertexAPI extends API {
         LOG.debug("Graph [{}] get vertex by id '{}'", graph, id);
 
         Graph g = graph(manager, graph);
-        return manager.serializer(g).writeVertex(g.vertices(id).next());
+        Iterator<Vertex> vertices = g.vertices(id);
+        checkExist(vertices, HugeType.VERTEX, id);
+        return manager.serializer(g).writeVertex(vertices.next());
     }
 
     @DELETE

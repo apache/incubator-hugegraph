@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.filter;
 
+import java.util.NoSuchElementException;
+
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
@@ -67,6 +69,19 @@ public class ExceptionFilter {
 
         @Override
         public Response toResponse(NotFoundException exception) {
+            return Response.status(404)
+                           .type(MediaType.APPLICATION_JSON)
+                           .entity(formatException(exception))
+                           .build();
+        }
+    }
+
+    @Provider
+    public static class NoSuchElementExceptionMapper
+                  implements ExceptionMapper<NoSuchElementException> {
+
+        @Override
+        public Response toResponse(NoSuchElementException exception) {
             return Response.status(404)
                            .type(MediaType.APPLICATION_JSON)
                            .entity(formatException(exception))

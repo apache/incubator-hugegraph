@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.graph;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -60,6 +61,7 @@ import com.baidu.hugegraph.server.HugeServer;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -267,7 +269,9 @@ public class EdgeAPI extends API {
         LOG.debug("Graph [{}] get vertex by id '{}'", graph, id);
 
         Graph g = graph(manager, graph);
-        return manager.serializer(g).writeEdge(g.edges(id).next());
+        Iterator<Edge> edges = g.edges(id);
+        checkExist(edges, HugeType.EDGE, id);
+        return manager.serializer(g).writeEdge(edges.next());
     }
 
     @DELETE
