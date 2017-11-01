@@ -47,13 +47,15 @@ public class BaseCoreTest {
     @BeforeClass
     public static void init() {
         graph = open();
-
         graph.clearBackend();
         graph.initBackend();
     }
 
     @AfterClass
     public static void clear() throws Exception {
+        if (graph == null) {
+            return;
+        }
         graph.clearBackend();
         graph.close();
     }
