@@ -19,11 +19,13 @@
 
 package com.baidu.hugegraph.api;
 
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.MediaType;
 
+import com.baidu.hugegraph.type.HugeType;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.core.GraphManager;
@@ -56,5 +58,13 @@ public class API {
             list[i++] = prop.getValue();
         }
         return list;
+    }
+
+    public static void checkExist(Iterator<?> iter, HugeType type, String id) {
+        if (!iter.hasNext()) {
+            String msg = String.format("Not found the %s with id '%s'",
+                                       type, id);
+            throw new NotFoundException(msg);
+        }
     }
 }
