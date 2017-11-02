@@ -833,7 +833,7 @@ public class GraphTransaction extends AbstractTransaction {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             // TODO: use query.capacity(Query.NO_LIMIT);
             query.eq(HugeKeys.LABEL, vertexLabel.name());
-            if (vertexLabel.isHidden()) {
+            if (vertexLabel.hidden()) {
                 query.showHidden(true);
             }
             Iterator<Vertex> vertices = this.queryVertices(query).iterator();
@@ -862,7 +862,7 @@ public class GraphTransaction extends AbstractTransaction {
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
                 // TODO: use query.capacity(Query.NO_LIMIT);
                 query.eq(HugeKeys.LABEL, edgeLabel.name());
-                if (edgeLabel.isHidden()) {
+                if (edgeLabel.hidden()) {
                     query.showHidden(true);
                 }
                 Iterator<Edge> edges = this.queryEdges(query).iterator();
