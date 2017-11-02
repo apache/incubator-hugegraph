@@ -24,9 +24,9 @@ import org.apache.tinkerpop.gremlin.server.GraphManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.util.Log;
 
 public class HugeGremlinServer {
 
@@ -37,33 +37,40 @@ public class HugeGremlinServer {
     public static void main(String[] args) throws Exception {
 
         if (args.length != 1) {
-            throw new HugeException("HugeGremlinServer can only accept one " +
-                                    "config file.");
+            String msg = "HugeGremlinServer can only accept one config files";
+            LOG.error(msg);
+            throw new HugeException(msg);
         }
 
-        RegisterUtil.registerBackends();
-
-        // Start GremlinServer with inject traversal source
-        startWithInjectTraversal(args);
+        try {
+            RegisterUtil.registerBackends();
+            start(args[0]);
+        } catch (Exception e) {
+            LOG.error("HugeGremlinServer error:", e);
+            throw e;
+        }
+        LOG.info("HugeGremlinServer stopped");
     }
 
-    private static void startWithInjectTraversal(String[] args)
+    public static void start(String conf) throws Exception {
+        // Start GremlinServer with inject traversal source
+        startWithInjectTraversal(conf);
+    }
+
+    private static void startWithInjectTraversal(String conf)
                                                  throws Exception {
         LOG.info(GremlinServer.getHeader());
-
-        final String file;
         final Settings settings;
 
-        file = args.length > 0 ? args[0] : "conf/gremlin-server.yaml";
         try {
-            settings = Settings.read(file);
+            settings = Settings.read(conf);
         } catch (Exception ex) {
             LOG.error("Can't found the configuration file at {} or " +
-                      "being parsed properly. [{}]", file, ex.getMessage());
+                      "being parsed properly. [{}]", conf, ex.getMessage());
             return;
         }
 
-        LOG.info("Configuring Gremlin Server from {}", file);
+        LOG.info("Configuring Gremlin Server from {}", conf);
         final GremlinServer server = new GremlinServer(settings);
 
         // Inject customized traversal source

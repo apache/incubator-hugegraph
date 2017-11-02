@@ -39,7 +39,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
@@ -48,7 +48,7 @@ import com.google.common.collect.ImmutableMap;
 @Singleton
 public class VariablesAPI extends API {
 
-    private static final Logger LOG = Log.logger(HugeServer.class);
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     @PUT
     @Path("{key}")

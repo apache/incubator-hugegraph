@@ -11,7 +11,7 @@ abs_path() {
 }
 
 BIN=`abs_path`
-HUGESERVER_CONFIG_TAG=huge-server
+RESTSERVER_CONFIG_TAG=rest-server
 : ${HSRV_SHUTDOWN_TIMEOUT_S:=20}
 : ${SLEEP_INTERVAL_S:=2}
 
@@ -75,5 +75,5 @@ kill_class() {
     esac
 }
 
-kill_class        'HugeGraphServer' com.baidu.hugegraph.dist.HugeGraphServer
-wait_for_shutdown 'HugeGraphServer' com.baidu.hugegraph.dist.HugeGraphServer $HSRV_SHUTDOWN_TIMEOUT_S
+kill_class        'HugeRestServer' com.baidu.hugegraph.dist.HugeRestServer
+wait_for_shutdown 'HugeRestServer' com.baidu.hugegraph.dist.HugeRestServer $HSRV_SHUTDOWN_TIMEOUT_S

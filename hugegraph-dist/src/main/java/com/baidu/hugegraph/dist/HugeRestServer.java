@@ -22,32 +22,35 @@ package com.baidu.hugegraph.dist;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 
-public class HugeGraphServer {
+public class HugeRestServer {
 
-    private static final Logger LOG = Log.logger(HugeGraphServer.class);
+    private static final Logger LOG = Log.logger(HugeRestServer.class);
 
     public static void main(String[] args) throws Exception {
-
-        if (args.length != 2) {
-            String msg = "HugeGraphServer can only accept two config files";
+        if (args.length != 1) {
+            String msg = "HugeRestServer can only accept one config files";
             LOG.error(msg);
             throw new HugeException(msg);
         }
 
         try {
             RegisterUtil.registerBackends();
-            // Start GremlinServer
-            HugeGremlinServer.start(args[0]);
             // Start HugeRestServer
-            HugeRestServer.start(args[1]);
+            start(args[0]);
         } catch (Exception e) {
-            LOG.error("HugeGraphServer error:", e);
+            LOG.error("HugeRestServer error:", e);
             throw e;
         }
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            LOG.info("HugeGraphServer stopped");
-        }));
+        LOG.info("HugeRestServer stopped");
+    }
+
+    public static void start(String conf) throws Exception {
+        RegisterUtil.registerServer();
+
+        // Start RestServer
+        RestServer.start(conf);
     }
 }

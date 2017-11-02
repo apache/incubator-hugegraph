@@ -57,7 +57,7 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -71,7 +71,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class EdgeAPI extends API {
 
-    private static final Logger LOG = Log.logger(HugeServer.class);
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     @POST
     @Status(Status.CREATED)

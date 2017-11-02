@@ -29,15 +29,16 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
+
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
-import com.baidu.hugegraph.server.HugeServer;
 
 public final class GraphManager {
 
-    private static final Logger LOG = Log.logger(HugeServer.class);
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     private final Map<String, Graph> graphs;
 

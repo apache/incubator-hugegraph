@@ -39,7 +39,7 @@ export CLASSPATH="${CLASSPATH:-}:$CP"
 # Change to $BIN's parent
 cd $BIN/..
 
-export HUGESERVER_LOGDIR="$BIN/../logs"
+export HUGEGRAPH_LOGDIR="$BIN/../logs"
 
 # Find Java
 if [ "$JAVA_HOME" = "" ] ; then
@@ -55,11 +55,10 @@ fi
 
 # Execute the application and return its exit code
 set -x
-
 ARGS="$@"
 if [ $# = 0 ] ; then
-ARGS="conf/huge-server.properties"
+    ARGS="conf/gremlin-server.yaml conf/rest-server.properties"
 fi
-exec $JAVA -Dhugegraph.logdir="$HUGESERVER_LOGDIR" \
--Dlog4j.configurationFile=conf/huge-server-log4j.xml \
+exec $JAVA -Dhugegraph.logdir="HUGEGRAPH_LOGDIR" \
+-Dlog4j.configurationFile=conf/graph-server-log4j.xml \
 $JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.dist.HugeGraphServer $ARGS

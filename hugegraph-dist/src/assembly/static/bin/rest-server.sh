@@ -55,10 +55,11 @@ fi
 
 # Execute the application and return its exit code
 set -x
+
 ARGS="$@"
 if [ $# = 0 ] ; then
-    ARGS="conf/gremlin-server.yaml"
+ARGS="conf/rest-server.properties"
 fi
 exec $JAVA -Dhugegraph.logdir="HUGEGRAPH_LOGDIR" \
--Dlog4j.configurationFile=conf/gremlin-server-log4j.xml \
-$JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.dist.HugeGremlinServer $ARGS
+-Dlog4j.configurationFile=conf/rest-server-log4j.xml \
+$JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.dist.HugeRestServer $ARGS
