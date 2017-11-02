@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
@@ -28,6 +29,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.google.common.collect.ImmutableList;
 
 public class PropertyKeyCoreTest extends SchemaCoreTest {
 
@@ -190,5 +192,34 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertThrows(HugeException.class, () -> {
             schema.propertyKey("time").remove();
         });
+    }
+
+    @Test
+    public void testAddPropertyKeyWithUserData() {
+        SchemaManager schema = graph().schema();
+
+        PropertyKey age = schema.propertyKey("age")
+                                .userData("min", 0)
+                                .userData("max", 100)
+                                .create();
+        Assert.assertEquals(2, age.userData().size());
+        Assert.assertEquals(0, age.userData().get("min"));
+        Assert.assertEquals(100, age.userData().get("max"));
+
+        PropertyKey id = schema.propertyKey("id")
+                               .userData("length", 15)
+                               .userData("length", 18)
+                               .create();
+        // The same key user data will be overwritten
+        Assert.assertEquals(1, id.userData().size());
+        Assert.assertEquals(18, id.userData().get("length"));
+
+        PropertyKey sex = schema.propertyKey("sex")
+                                .userData("range",
+                                          ImmutableList.of("male", "female"))
+                                .create();
+        Assert.assertEquals(1, sex.userData().size());
+        Assert.assertEquals(ImmutableList.of("male", "female"),
+                            sex.userData().get("range"));
     }
 }

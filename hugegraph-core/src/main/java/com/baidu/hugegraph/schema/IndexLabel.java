@@ -23,10 +23,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
@@ -102,6 +104,16 @@ public class IndexLabel extends SchemaElement {
 
     public void indexFields(Id... ids) {
         this.indexFields.addAll(Arrays.asList(ids));
+    }
+
+    @Override
+    public Map<String, Object> userData() {
+        throw new NotSupportException("user data for index label");
+    }
+
+    @Override
+    public void userData(String key, Object value) {
+        throw new NotSupportException("user data for index label");
     }
 
     public static final IndexLabel VL_IL = new IndexLabel(-1, "~vli");

@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.schema;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -118,6 +119,8 @@ public class PropertyKeyAPI extends API {
         public DataType dataType;
         @JsonProperty("properties")
         public String[] properties;
+        @JsonProperty("user_data")
+        public Map<String, Object> userData;
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
@@ -140,6 +143,9 @@ public class PropertyKeyAPI extends API {
             }
             if (this.dataType != null) {
                 builder.dataType(this.dataType);
+            }
+            if (this.userData != null) {
+                builder.userData(this.userData);
             }
             if (this.checkExist != null) {
                 builder.checkExist(this.checkExist);

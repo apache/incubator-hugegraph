@@ -23,11 +23,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
-import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.E;
 
 public class EdgeLabel extends SchemaLabel {
@@ -124,6 +125,10 @@ public class EdgeLabel extends SchemaLabel {
 
         Builder nullableKeys(String... keys);
 
+        Builder userData(String key, Object value);
+
         Builder frequency(Frequency frequency);
+
+        Builder userData(Map<String, Object> userData);
     }
 }

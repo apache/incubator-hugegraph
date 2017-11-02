@@ -20,7 +20,9 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -41,6 +43,7 @@ public abstract class SchemaElement
     protected Id id;
     protected String name;
     protected Set<Id> properties;
+    protected Map<String, Object> userData;
 
     public SchemaElement(Id id, String name) {
         E.checkNotNull(id, "id");
@@ -48,6 +51,7 @@ public abstract class SchemaElement
         this.id = id;
         this.name = name;
         this.properties = new HashSet<>();
+        this.userData = new HashMap<>();
     }
 
     public Id id() {
@@ -71,6 +75,16 @@ public abstract class SchemaElement
 
     public void properties(Set<Id> properties) {
         this.properties.addAll(properties);
+    }
+
+    public Map<String, Object> userData() {
+        return Collections.unmodifiableMap(this.userData);
+    }
+
+    public void userData(String key, Object value) {
+        E.checkArgumentNotNull(key, "user data key");
+        E.checkArgumentNotNull(value, "user data value");
+        this.userData.put(key, value);
     }
 
     public boolean primitive() {

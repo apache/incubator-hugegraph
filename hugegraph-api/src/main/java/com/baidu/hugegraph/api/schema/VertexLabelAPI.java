@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.schema;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -144,6 +145,8 @@ public class VertexLabelAPI extends API {
         public String[] nullableKeys;
         @JsonProperty("properties")
         public String[] properties;
+        @JsonProperty("user_data")
+        public Map<String, Object> userData;
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
@@ -166,6 +169,9 @@ public class VertexLabelAPI extends API {
             }
             if (this.properties != null) {
                 builder.properties(this.properties);
+            }
+            if (this.userData != null) {
+                builder.userData(this.userData);
             }
             if (this.checkExist != null) {
                 builder.checkExist(this.checkExist);

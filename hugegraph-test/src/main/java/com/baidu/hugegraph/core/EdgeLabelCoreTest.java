@@ -801,4 +801,41 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
             graph().traversal().E().hasLabel("write").toList();
         });
     }
+
+    @Test
+    public void testAddEdgeLabelWithUserData() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        EdgeLabel father = schema.edgeLabel("father").link("person", "person")
+                                 .properties("weight")
+                                 .userData("multiplicity", "one-to-many")
+                                 .create();
+
+        Assert.assertEquals(1, father.userData().size());
+        Assert.assertEquals("one-to-many",
+                            father.userData().get("multiplicity"));
+
+        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
+                                .properties("time", "weight")
+                                .userData("multiplicity", "one-to-many")
+                                .userData("multiplicity", "many-to-many")
+                                .create();
+        // The same key user data will be overwritten
+        Assert.assertEquals(1, write.userData().size());
+        Assert.assertEquals("many-to-many",
+                            write.userData().get("multiplicity"));
+    }
 }

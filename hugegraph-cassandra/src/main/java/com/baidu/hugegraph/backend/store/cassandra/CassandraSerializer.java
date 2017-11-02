@@ -378,6 +378,7 @@ public class CassandraSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_LABELS,
                      toLongSet(vertexLabel.indexLabels()));
         entry.column(HugeKeys.PROPERTIES, toLongSet(vertexLabel.properties()));
+        writeUserData(vertexLabel, entry);
         return entry;
     }
 
@@ -395,6 +396,7 @@ public class CassandraSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_LABELS,
                      toLongSet(edgeLabel.indexLabels()));
         entry.column(HugeKeys.PROPERTIES, toLongSet(edgeLabel.properties()));
+        writeUserData(edgeLabel, entry);
         return entry;
     }
 
@@ -406,6 +408,7 @@ public class CassandraSerializer extends AbstractSerializer {
         entry.column(HugeKeys.DATA_TYPE, propertyKey.dataType().code());
         entry.column(HugeKeys.CARDINALITY, propertyKey.cardinality().code());
         entry.column(HugeKeys.PROPERTIES, toLongSet(propertyKey.properties()));
+        writeUserData(propertyKey, entry);
         return entry;
     }
 
@@ -432,6 +435,7 @@ public class CassandraSerializer extends AbstractSerializer {
         vertexLabel.primaryKeys(toIdArray(primaryKeys));
         vertexLabel.nullableKeys(toIdArray(nullableKeys));
         vertexLabel.indexLabels(toIdArray(indexLabels));
+        readUserData(vertexLabel, entry);
         return vertexLabel;
     }
 
@@ -461,6 +465,7 @@ public class CassandraSerializer extends AbstractSerializer {
         edgeLabel.sortKeys(toIdArray(sortKeys));
         edgeLabel.nullableKeys(toIdArray(nullableKeys));
         edgeLabel.indexLabels(toIdArray(indexLabels));
+        readUserData(edgeLabel, entry);
         return edgeLabel;
     }
 
@@ -484,6 +489,7 @@ public class CassandraSerializer extends AbstractSerializer {
                                                     cardinality));
         propertyKey.properties(toIdArray(properties));
 
+        readUserData(propertyKey, entry);
         return propertyKey;
     }
 
@@ -542,5 +548,23 @@ public class CassandraSerializer extends AbstractSerializer {
 
     private static List<Long> toLongList(Collection<Id> ids) {
         return ids.stream().map(Id::asLong).collect(Collectors.toList());
+    }
+
+    private static void writeUserData(SchemaElement schema,
+                                      CassandraBackendEntry entry) {
+        for (Map.Entry<String, Object> e : schema.userData().entrySet()) {
+            entry.column(HugeKeys.USER_DATA, e.getKey(),
+                         JsonUtil.toJson(e.getValue()));
+        }
+    }
+
+    private static void readUserData(SchemaElement schema,
+                                     CassandraBackendEntry entry) {
+        // Parse all user data of a schema element
+        Map<String, String> userData = entry.column(HugeKeys.USER_DATA);
+        for (String key : userData.keySet()) {
+            Object value = JsonUtil.fromJson(userData.get(key), Object.class);
+            schema.userData(key, value);
+        }
     }
 }

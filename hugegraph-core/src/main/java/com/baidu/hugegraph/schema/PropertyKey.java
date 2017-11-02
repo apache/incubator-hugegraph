@@ -24,13 +24,14 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.HugeType;
 
 public class PropertyKey extends SchemaElement {
 
@@ -180,8 +181,12 @@ public class PropertyKey extends SchemaElement {
 
         Builder valueSet();
 
+        Builder userData(String key, Object value);
+
         Builder cardinality(Cardinality cardinality);
 
         Builder dataType(DataType dataType);
+
+        Builder userData(Map<String, Object> userData);
     }
 }
