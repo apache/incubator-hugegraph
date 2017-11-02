@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.serializer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.NotImplementedException;
 
@@ -524,6 +525,7 @@ public class TextSerializer extends AbstractSerializer {
                      writeIds(vertexLabel.indexLabels()));
         entry.column(HugeKeys.PROPERTIES,
                      writeIds(vertexLabel.properties()));
+        writeUserData(vertexLabel, entry);
         return entry;
     }
 
@@ -551,6 +553,7 @@ public class TextSerializer extends AbstractSerializer {
         vertexLabel.primaryKeys(readIds(primarykeys));
         vertexLabel.nullableKeys(readIds(nullablekeys));
         vertexLabel.indexLabels(readIds(indexLabels));
+        readUserData(vertexLabel, entry);
         return vertexLabel;
     }
 
@@ -570,6 +573,7 @@ public class TextSerializer extends AbstractSerializer {
                      writeIds(edgeLabel.indexLabels()));
         entry.column(HugeKeys.PROPERTIES,
                      writeIds(edgeLabel.properties()));
+        writeUserData(edgeLabel, entry);
         return entry;
     }
 
@@ -601,6 +605,7 @@ public class TextSerializer extends AbstractSerializer {
         edgeLabel.sortKeys(readIds(sortKeys));
         edgeLabel.nullableKeys(readIds(nullablekeys));
         edgeLabel.indexLabels(readIds(indexLabels));
+        readUserData(edgeLabel, entry);
         return edgeLabel;
     }
 
@@ -614,6 +619,7 @@ public class TextSerializer extends AbstractSerializer {
                      JsonUtil.toJson(propertyKey.cardinality()));
         entry.column(HugeKeys.PROPERTIES,
                      writeIds(propertyKey.properties()));
+        writeUserData(propertyKey, entry);
         return entry;
     }
 
@@ -638,6 +644,7 @@ public class TextSerializer extends AbstractSerializer {
         propertyKey.cardinality(JsonUtil.fromJson(cardinality,
                                                   Cardinality.class));
         propertyKey.properties(readIds(properties));
+        readUserData(propertyKey, entry);
         return propertyKey;
     }
 
@@ -732,5 +739,22 @@ public class TextSerializer extends AbstractSerializer {
             }
         }
         return ids;
+    }
+
+    private static void writeUserData(SchemaElement schema,
+                                      TextBackendEntry entry) {
+        entry.column(HugeKeys.USER_DATA, JsonUtil.toJson(schema.userData()));
+    }
+
+    private static void readUserData(SchemaElement schema,
+                                     TextBackendEntry entry) {
+        // Parse all user data of a schema element
+        String userDataStr = entry.column(HugeKeys.USER_DATA);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> userData = JsonUtil.fromJson(userDataStr,
+                                                         Map.class);
+        for (String key : userData.keySet()) {
+            schema.userData(key, userData.get(key));
+        }
     }
 }

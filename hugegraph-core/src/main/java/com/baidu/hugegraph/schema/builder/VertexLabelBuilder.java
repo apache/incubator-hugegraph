@@ -22,8 +22,10 @@ package com.baidu.hugegraph.schema.builder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -50,6 +52,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     private Set<String> properties;
     private List<String> primaryKeys;
     private Set<String> nullableKeys;
+    private Map<String, Object> userData;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -62,6 +65,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.properties = new HashSet<>();
         this.primaryKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
+        this.userData = new HashMap<>();
         this.checkExist = true;
         this.transaction = transaction;
     }
@@ -83,6 +87,9 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         for (String key : this.nullableKeys) {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
+        }
+        for (String key : this.userData.keySet()) {
+            vertexLabel.userData(key, this.userData.get(key));
         }
         return vertexLabel;
     }
@@ -213,12 +220,24 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     @Override
+    public VertexLabelBuilder userData(String key, Object value) {
+        this.userData.put(key, value);
+        return this;
+    }
+
+    @Override
     public VertexLabelBuilder idStrategy(IdStrategy idStrategy) {
         E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
                         this.idStrategy == idStrategy,
                         "Not allowed to change id strategy for " +
                         "vertex label '%s'", this.name);
         this.idStrategy = idStrategy;
+        return this;
+    }
+
+    @Override
+    public VertexLabel.Builder userData(Map<String, Object> userData) {
+        this.userData.putAll(userData);
         return this;
     }
 

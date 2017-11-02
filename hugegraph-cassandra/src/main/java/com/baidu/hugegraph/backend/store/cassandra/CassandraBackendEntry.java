@@ -94,9 +94,9 @@ public class CassandraBackendEntry implements BackendEntry {
             }
         }
 
-        public <T> void column(HugeKeys key, Long name, T value) {
+        public <T> void column(HugeKeys key, Object name, T value) {
             this.columns.putIfAbsent(key, new ConcurrentHashMap<>());
-            this.<Map<Long, T>>column(key).put(name, value);
+            this.<Map<Object, T>>column(key).put(name, value);
         }
 
         @Override
@@ -177,7 +177,7 @@ public class CassandraBackendEntry implements BackendEntry {
         this.row.column(key, value);
     }
 
-    public <T> void column(HugeKeys key, Long name, T value) {
+    public <T> void column(HugeKeys key, Object name, T value) {
         this.row.column(key, name, value);
     }
 

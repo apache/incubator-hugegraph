@@ -29,6 +29,8 @@ public enum HugeKeys {
     TIMESTANMP(3, "timestamp"),
     SCHEMA_TYPE(4, "schema_type"),
 
+    USER_DATA(10, "user_data"),
+
     /* Column names of schema type (VertexLabel) */
     ID_STRATEGY(50, "id_strategy"),
     PROPERTIES(51, "properties"),

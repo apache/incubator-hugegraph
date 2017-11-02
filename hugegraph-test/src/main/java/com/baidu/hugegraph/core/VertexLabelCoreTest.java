@@ -754,4 +754,26 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
             schema.vertexLabel("book").remove();
         });
     }
+
+    @Test
+    public void testAddVertexLabelWithUserData() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel player = schema.vertexLabel("player")
+                                   .properties("name")
+                                   .userData("super_vl", "person")
+                                   .create();
+        Assert.assertEquals(1, player.userData().size());
+        Assert.assertEquals("person", player.userData().get("super_vl"));
+
+        VertexLabel runner = schema.vertexLabel("runner")
+                                   .properties("name")
+                                   .userData("super_vl", "person")
+                                   .userData("super_vl", "player")
+                                   .create();
+        // The same key user data will be overwritten
+        Assert.assertEquals(1, runner.userData().size());
+        Assert.assertEquals("player", runner.userData().get("super_vl"));
+    }
 }

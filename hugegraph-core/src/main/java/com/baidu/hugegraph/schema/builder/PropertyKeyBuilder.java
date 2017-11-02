@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.schema.builder;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
@@ -35,6 +38,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     private String name;
     private DataType dataType;
     private Cardinality cardinality;
+    private Map<String, Object> userData;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -45,6 +49,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.name = name;
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
+        this.userData = new HashMap<>();
         this.checkExist = true;
         this.transaction = transaction;
     }
@@ -55,6 +60,9 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         PropertyKey propertyKey = new PropertyKey(id, this.name);
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
+        for (String key : this.userData.keySet()) {
+            propertyKey.userData(key, this.userData.get(key));
+        }
         return propertyKey;
     }
 
@@ -173,6 +181,12 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     }
 
     @Override
+    public PropertyKeyBuilder userData(String key, Object value) {
+        this.userData.put(key, value);
+        return this;
+    }
+
+    @Override
     public PropertyKeyBuilder cardinality(Cardinality cardinality) {
         this.cardinality = cardinality;
         return this;
@@ -181,6 +195,12 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     @Override
     public PropertyKeyBuilder dataType(DataType dataType) {
         this.dataType = dataType;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder userData(Map<String, Object> userData) {
+        this.userData.putAll(userData);
         return this;
     }
 

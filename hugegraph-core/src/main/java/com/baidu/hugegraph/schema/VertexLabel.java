@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
@@ -81,6 +82,10 @@ public class VertexLabel extends SchemaLabel {
 
         Builder nullableKeys(String... keys);
 
+        Builder userData(String key, Object value);
+
         Builder idStrategy(IdStrategy idStrategy);
+
+        Builder userData(Map<String, Object> userData);
     }
 }

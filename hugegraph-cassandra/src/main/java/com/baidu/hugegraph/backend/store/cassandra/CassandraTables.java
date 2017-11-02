@@ -53,6 +53,9 @@ public class CassandraTables {
     private static final DataType DATATYPE_SL = DataType.cint(); // VL/EL
     private static final DataType DATATYPE_IL = DataType.cint();
 
+    private static final DataType DATATYPE_UD = DataType.map(DataType.text(),
+                                                             DataType.text());
+
     public static class Counters extends CassandraTable {
 
         public static final String TABLE = "counters";
@@ -135,6 +138,7 @@ public class CassandraTables {
                     .put(HugeKeys.NULLABLE_KEYS, DataType.set(DATATYPE_PK))
                     .put(HugeKeys.INDEX_LABELS, DataType.set(DATATYPE_IL))
                     .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
+                    .put(HugeKeys.USER_DATA, DATATYPE_UD)
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -167,6 +171,7 @@ public class CassandraTables {
                     .put(HugeKeys.NULLABLE_KEYS, DataType.set(DATATYPE_PK))
                     .put(HugeKeys.INDEX_LABELS, DataType.set(DATATYPE_IL))
                     .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
+                    .put(HugeKeys.USER_DATA, DATATYPE_UD)
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -192,7 +197,8 @@ public class CassandraTables {
                     HugeKeys.NAME, DataType.text(),
                     HugeKeys.DATA_TYPE, DataType.tinyint(),
                     HugeKeys.CARDINALITY, DataType.tinyint(),
-                    HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK)
+                    HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK),
+                    HugeKeys.USER_DATA, DATATYPE_UD
             );
 
             this.createTable(session, pkeys, ckeys, columns);

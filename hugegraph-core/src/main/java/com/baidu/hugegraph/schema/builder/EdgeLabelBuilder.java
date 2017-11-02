@@ -22,8 +22,10 @@ package com.baidu.hugegraph.schema.builder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -52,6 +54,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     private Set<String> properties;
     private List<String> sortKeys;
     private Set<String> nullableKeys;
+    private Map<String, Object> userData;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -64,6 +67,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.properties = new HashSet<>();
         this.sortKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
+        this.userData = new HashMap<>();
         this.checkExist = true;
         this.transaction = transaction;
     }
@@ -88,6 +92,9 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         for (String key : this.nullableKeys) {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
+        }
+        for (String key : this.userData.keySet()) {
+            edgeLabel.userData(key, this.userData.get(key));
         }
         return edgeLabel;
     }
@@ -176,6 +183,12 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     }
 
     @Override
+    public EdgeLabelBuilder userData(String key, Object value) {
+        this.userData.put(key, value);
+        return this;
+    }
+
+    @Override
     public EdgeLabelBuilder sortKeys(String... keys) {
         if (keys.length == 0) {
             return this;
@@ -232,6 +245,12 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     @Override
     public EdgeLabelBuilder frequency(Frequency frequency) {
         this.frequency = frequency;
+        return this;
+    }
+
+    @Override
+    public EdgeLabelBuilder userData(Map<String, Object> userData) {
+        this.userData.putAll(userData);
         return this;
     }
 
