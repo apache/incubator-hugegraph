@@ -55,7 +55,7 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -66,7 +66,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class VertexAPI extends API {
 
-    private static final Logger LOG = Log.logger(HugeServer.class);
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     @POST
     @Status(Status.CREATED)

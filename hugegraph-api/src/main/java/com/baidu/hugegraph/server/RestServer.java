@@ -38,14 +38,14 @@ import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.version.ApiVersion;
 
-public class HugeServer {
+public class RestServer {
 
-    private static final Logger LOG = Log.logger(HugeServer.class);
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     private final HugeConfig conf;
     private HttpServer httpServer = null;
 
-    public HugeServer(HugeConfig conf) {
+    public RestServer(HugeConfig conf) {
         this.conf = conf;
     }
 
@@ -65,41 +65,39 @@ public class HugeServer {
         this.httpServer.stop();
     }
 
-    public static HugeServer start(String[] args) throws HugeException {
-        LOG.info("HugeServer starting...");
+    public static RestServer start(String conf) throws Exception {
+        LOG.info("RestServer starting...");
         ApiVersion.check();
 
-        HugeConfig conf = HugeServer.loadConf(args);
-        HugeServer server = new HugeServer(conf);
-        try {
-            server.start();
-            LOG.info("HugeServer started");
-        } catch (Exception e) {
-            throw new HugeException("Failed to start HugeServer", e);
-        }
+        RestServer server = new RestServer(RestServer.loadConf(conf));
+        server.start();
+        LOG.info("RestServer started");
 
         return server;
     }
 
-    protected static HugeConfig loadConf(String[] args) throws HugeException {
-        E.checkArgument(args.length == 1,
-                        "HugeServer need one config file, but given %s",
-                        Arrays.asList(args));
+    protected static HugeConfig loadConf(String conf) throws HugeException {
         try {
-            return new HugeConfig(args[0]);
+            return new HugeConfig(conf);
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to load config file", e);
         }
     }
 
     public static void main(String[] args) throws Exception {
+        if (args.length != 1) {
+            LOG.error("RestServer need one config file, but given {}",
+                      Arrays.asList(args));
+            throw new HugeException("RestServer need one config file");
+        }
+
         try {
-            HugeServer.start(args);
+            RestServer.start(args[0]);
             Thread.currentThread().join();
         } catch (Exception e) {
-            LOG.error("HugeServer error:", e);
+            LOG.error("RestServer error:", e);
             throw e;
         }
-        LOG.info("HugeServer stopped");
+        LOG.info("RestServer stopped");
     }
 }

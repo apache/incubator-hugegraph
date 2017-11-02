@@ -11,7 +11,7 @@ abs_path() {
 }
 
 BIN=`abs_path`
-GSRV_CONFIG_TAG=cassandra-es
+GSRV_CONFIG_TAG=graph-server
 : ${CASSANDRA_SHUTDOWN_TIMEOUT_S:=60}
 : ${HSRV_SHUTDOWN_TIMEOUT_S:=30}
 : ${GSRV_SHUTDOWN_TIMEOUT_S:=30}
@@ -29,7 +29,7 @@ for maybejps in jps "${JAVA_HOME}/bin/jps"; do
 done
 
 if [ -z "$JPS" ]; then
-    echo "jps command not found.  Put the JDK's jps binary on the command path." >&2
+    echo "jps command not found. Put the JDK's jps binary on the command path." >&2
     exit 1
 fi
 
@@ -85,5 +85,3 @@ kill_class() {
 
 kill_class        'HugeGraphServer' com.baidu.hugegraph.dist.HugeGraphServer
 wait_for_shutdown 'HugeGraphServer' com.baidu.hugegraph.dist.HugeGraphServer $HSRV_SHUTDOWN_TIMEOUT_S
-kill_class        'HugeGremlinServer' com.baidu.hugegraph.dist.HugeGremlinServer
-wait_for_shutdown 'HugeGremlinServer' com.baidu.hugegraph.dist.HugeGremlinServer $GSRV_SHUTDOWN_TIMEOUT_S

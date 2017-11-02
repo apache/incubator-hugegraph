@@ -22,7 +22,7 @@ function read_property(){
 BIN=`abs_path`
 TOP="$(cd $BIN/../ && pwd)"
 
-HSRV_URL=`read_property "$TOP/conf/huge-server.properties" "hugeserver.url"`
+HSRV_URL=`read_property "$TOP/conf/rest-server.properties" "restserver.url"`
 
 HSRV_STARTUP_TIMEOUT_S=20
 HSRV_SHUTDOWN_TIMEOUT_S=20
@@ -58,13 +58,13 @@ function wait_for_startup() {
     return 1
 }
 
-echo "Starting HugeServer..."
+echo "Starting RestServer..."
 if [ -n "$VERBOSE" ]; then
-    "$BIN"/huge-server.sh "$TOP"/conf/huge-server.properties &
+    "$BIN"/rest-server.sh "$TOP"/conf/rest-server.properties &
 else
-    "$BIN"/huge-server.sh "$TOP"/conf/huge-server.properties >/dev/null 2>&1 &
+    "$BIN"/rest-server.sh "$TOP"/conf/rest-server.properties >/dev/null 2>&1 &
 fi
-wait_for_startup 'HugeServer' "$HSRV_URL/graphs" $HSRV_STARTUP_TIMEOUT_S || {
-    echo "See $TOP/logs/huge-server.log for HugeServer log output." >&2
+wait_for_startup 'RestServer' "$HSRV_URL/graphs" $HSRV_STARTUP_TIMEOUT_S || {
+    echo "See $TOP/logs/rest-server.log for RestServer log output." >&2
 }
 disown

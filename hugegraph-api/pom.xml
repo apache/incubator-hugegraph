@@ -48,26 +48,6 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.4</version>
-                <executions>
-                    <execution>
-                        <id>assembly-hugegraph-api</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <attach>false</attach>
-                            <appendAssemblyId>false</appendAssemblyId>
-                            <outputDirectory>${top.level.dir}</outputDirectory>
-                            <descriptor>src/assembly/assembly.xml</descriptor>
-                            <finalName>${final.name}</finalName>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-clean-plugin</artifactId>
                 <version>3.0.0</version>
                 <configuration>
@@ -79,7 +59,7 @@
                                 <!--<include>${final.name}/bin/huge-server.sh</include>-->
                                 <!--<include>${final.name}/bin/start-hugeserver.sh</include>-->
                                 <!--<include>${final.name}/bin/stop-hugeserver.sh</include>-->
-                                <!--<include>${final.name}/conf/huge-server.properties</include>-->
+                                <!--<include>${final.name}/conf/rest-server.properties</include>-->
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>

@@ -37,7 +37,7 @@ import javax.ws.rs.ext.WriterInterceptorContext;
 import org.slf4j.Logger;
 import com.baidu.hugegraph.util.Log;
 
-import com.baidu.hugegraph.server.HugeServer;
+import com.baidu.hugegraph.server.RestServer;
 
 @Provider
 @Singleton
@@ -46,7 +46,7 @@ public class CompressInterceptor implements WriterInterceptor {
 
     public static final String GZIP = "gzip";
 
-    private static final Logger LOG = Log.logger(HugeServer.class);
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     // Set compress output buffer size to 4KB (about 40~600 vertices)
     public static final int BUFFER_SIZE = 1024 * 4;
