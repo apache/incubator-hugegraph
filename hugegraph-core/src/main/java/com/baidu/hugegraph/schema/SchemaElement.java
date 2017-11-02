@@ -62,7 +62,7 @@ public abstract class SchemaElement
         return Collections.unmodifiableSet(this.properties);
     }
 
-    public boolean isHidden() {
+    public boolean hidden() {
         return Graph.Hidden.isHidden(this.name());
     }
 
