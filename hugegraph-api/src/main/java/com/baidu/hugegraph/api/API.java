@@ -25,10 +25,12 @@ import java.util.Map;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.MediaType;
 
-import com.baidu.hugegraph.type.HugeType;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.type.HugeType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 
 public class API {
 
@@ -66,5 +68,24 @@ public class API {
                                        type, id);
             throw new NotFoundException(msg);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    protected Map<String, Object> parseProperties(String properties) {
+        if (properties == null || properties.isEmpty()) {
+            return ImmutableMap.of();
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> props = null;
+        try {
+            props = mapper.readValue(properties, Map.class);
+        } catch (Exception ignore) {
+        }
+        // If properties is the string "null", props will be null
+        if (props == null) {
+            throw new IllegalArgumentException(String.format(
+                      "Invalid request with properties: %s", properties));
+        }
+        return props;
     }
 }

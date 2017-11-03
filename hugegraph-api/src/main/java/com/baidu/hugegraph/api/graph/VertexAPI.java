@@ -40,7 +40,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
-import com.baidu.hugegraph.type.HugeType;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -57,6 +57,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -187,12 +188,27 @@ public class VertexAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
+                       @QueryParam("label") String label,
+                       @QueryParam("properties") String properties,
                        @DefaultValue("100") @QueryParam("limit") long limit) {
-        LOG.debug("Graph [{}] get vertices", graph);
+        LOG.debug("Graph [{}] query vertices by label: {}, properties: {}",
+                  graph, label, properties);
+
+        Map<String, Object> props = parseProperties(properties);
 
         Graph g = graph(manager, graph);
-        List<Vertex> rs = g.traversal().V().limit(limit).toList();
-        return manager.serializer(g).writeVertices(rs);
+
+        GraphTraversal<Vertex, Vertex> traversal = g.traversal().V();
+        if (label != null) {
+            traversal = traversal.hasLabel(label);
+        }
+
+        for (Map.Entry<String, Object> entry : props.entrySet()) {
+            traversal = traversal.has(entry.getKey(), entry.getValue());
+        }
+
+        List<Vertex> vertices = traversal.limit(limit).toList();
+        return manager.serializer(g).writeVertices(vertices);
     }
 
     @GET

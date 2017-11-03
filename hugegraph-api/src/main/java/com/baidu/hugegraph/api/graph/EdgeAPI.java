@@ -37,6 +37,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -252,12 +254,41 @@ public class EdgeAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
+                       @QueryParam("vertex_id") String vertexId,
+                       @QueryParam("direction") String direction,
+                       @QueryParam("label") String label,
+                       @QueryParam("properties") String properties,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] get vertices", graph);
+        LOG.debug("Graph [{}] query edges by vertex: {}, direction: {}, " +
+                  "label: {}, properties: {}",
+                  vertexId, direction, label, properties);
+
+        Direction dir = parseDirection(direction);
+        Map<String, Object> props = parseProperties(properties);
 
         Graph g = graph(manager, graph);
-        List<Edge> rs = g.traversal().E().limit(limit).toList();
-        return manager.serializer(g).writeEdges(rs);
+
+        GraphTraversal<?, Edge> traversal;
+        if (vertexId != null) {
+            if (label != null) {
+                traversal = g.traversal().V(vertexId).toE(dir, label);
+            } else {
+                traversal = g.traversal().V(vertexId).toE(dir);
+            }
+        } else {
+            if (label != null) {
+                traversal = g.traversal().E().hasLabel(label);
+            } else {
+                traversal = g.traversal().E();
+            }
+        }
+
+        for (Map.Entry<String, Object> entry : props.entrySet()) {
+            traversal = traversal.has(entry.getKey(), entry.getValue());
+        }
+
+        List<Edge> edges = traversal.limit(limit).toList();
+        return manager.serializer(g).writeEdges(edges);
     }
 
     @GET
@@ -266,7 +297,7 @@ public class EdgeAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get vertex by id '{}'", graph, id);
+        LOG.debug("Graph [{}] get edge by id '{}'", graph, id);
 
         Graph g = graph(manager, graph);
         Iterator<Edge> edges = g.edges(id);
@@ -302,6 +333,19 @@ public class EdgeAPI extends API {
         E.checkArgumentNotNull(vl, "Invalid vertex label '%s'", label);
         Id idValue = HugeElement.getIdValue(id);
         return new HugeVertex(graph, idValue, vl);
+    }
+
+    private static Direction parseDirection(String direction) {
+        if (direction == null || direction.isEmpty()) {
+            return Direction.BOTH;
+        }
+        try {
+            return Direction.valueOf(direction);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format(
+                      "Direction value must be in [OUT, IN, BOTH], " +
+                      "but got '%s'", direction));
+        }
     }
 
     @JsonIgnoreProperties(value = {"type"})
