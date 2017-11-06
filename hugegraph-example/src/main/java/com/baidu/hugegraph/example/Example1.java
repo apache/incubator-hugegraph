@@ -38,7 +38,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -359,12 +358,7 @@ public class Example1 {
         vertex.addEdge("look", book3, "time", "2017-5-3");
         System.out.println(">>>> remove vertex: " + vertex);
         vertex.remove();
-        try {
-            graph.traversal().V(vertex.id()).next();
-            assert false;
-        } catch (NotFoundException e) {
-            assert e.getMessage().contains("Not found the VERTEX entry");
-        }
+        assert !graph.traversal().V(vertex.id()).hasNext();
 
         // remove edge
         id = "author:1>authored>>book:java-2";
@@ -372,12 +366,7 @@ public class Example1 {
         edge = edges.toList().get(0);
         System.out.println(">>>> remove edge: " + edge);
         edge.remove();
-        try {
-            graph.traversal().E(id).next();
-            assert false;
-        } catch (NotFoundException e) {
-            assert e.getMessage().contains("Not found the EDGE entry");
-        }
+        assert !graph.traversal().E(id).hasNext();
 
         // variables test
         Graph.Variables variables = graph.variables();
