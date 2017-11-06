@@ -322,7 +322,8 @@ public class EdgeLabel extends SchemaLabel {
             Collection<String> newAddedProps = CollectionUtils.subtract
                                                (appendProps, originProps);
             E.checkArgument(appendNulls.containsAll(newAddedProps),
-                            "The new added properties: %s must be nullable");
+                            "The new added properties: %s must be nullable",
+                            newAddedProps);
         }
 
         private void checkSortKeys() {
