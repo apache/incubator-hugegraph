@@ -45,4 +45,25 @@ public final class CollectionUtil {
         }
         return list;
     }
+
+    public static boolean prefixOf(List<String> prefix, List<String> all) {
+        E.checkNotNull(prefix, "prefix");
+        E.checkNotNull(all, "all");
+
+        if (prefix.size() > all.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < prefix.size(); i++) {
+            String first = prefix.get(i);
+            String second = all.get(i);
+            if (first == second) {
+                continue;
+            }
+            if (first == null || !first.equals(second)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
