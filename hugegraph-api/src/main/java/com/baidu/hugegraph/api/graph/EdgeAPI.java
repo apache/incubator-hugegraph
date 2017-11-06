@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -55,7 +56,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -321,7 +321,7 @@ public class EdgeAPI extends API {
     private static Vertex getVertex(HugeGraph graph, String id, String label) {
         try {
             return graph.traversal().V(id).next();
-        } catch (NotFoundException e) {
+        } catch (NoSuchElementException e) {
             throw new IllegalArgumentException(String.format(
                       "Invalid vertex id '%s'", id));
         }
