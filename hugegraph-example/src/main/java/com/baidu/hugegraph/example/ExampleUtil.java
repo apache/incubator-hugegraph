@@ -40,15 +40,14 @@ public class ExampleUtil {
     public static HugeGraph loadGraph() {
         registerPlugins();
 
-        String file = "hugegraph.properties";
-        HugeGraph graph;
+        String conf = "hugegraph.properties";
         try {
-            String conf = ExampleUtil.class.getClassLoader()
-                          .getResource(file).getPath();
-            graph = HugeFactory.open(conf);
-        } catch (Exception e) {
-            graph = HugeFactory.open(file);
+            conf = ExampleUtil.class.getClassLoader()
+                              .getResource(conf).getPath();
+        } catch (Exception ignored) {
         }
+
+        HugeGraph graph = HugeFactory.open(conf);
 
         graph.clearBackend();
         graph.initBackend();
