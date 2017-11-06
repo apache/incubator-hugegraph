@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.List;
+
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -192,7 +194,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddIndexlabelOnUndefinedSchemaLabel() {
+    public void testAddIndexLabelOnUndefinedSchemaLabel() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -208,7 +210,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddIndexlabelByUndefinedProperty() {
+    public void testAddIndexLabelByUndefinedProperty() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -231,7 +233,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddIndexlabelByUnbelongedProperty() {
+    public void testAddIndexLabelByNotBelongedProperty() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -251,6 +253,150 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.indexLabel("authoredByName").onE("authored")
                   .by("name").secondary().create();
         });
+    }
+
+    @Test
+    public void testAddIndexLabelWithSameFields() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("personByCity").onV("person").secondary()
+              .by("city").create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByCity1").onV("person").secondary()
+                  .by("city").create();
+        });
+
+        schema.indexLabel("personByAge").onV("person").search()
+              .by("age").create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByAge1").onV("person").search()
+                  .by("age").create();
+        });
+
+        schema.indexLabel("personByAgeAndCity").onV("person").secondary()
+              .by("age", "city").create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByAgeAndCity1").onV("person").secondary()
+                  .by("age", "city").create();
+        });
+    }
+
+    @Test
+    public void testAddIndexLabelWithSameFieldsBetweenSearchAndSecond() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("personByAge").onV("person").search()
+              .by("age").create();
+        schema.indexLabel("personByAge2").onV("person").secondary()
+              .by("age").create();
+    }
+
+    @Test
+    public void testAddIndexLabelIsPrefixOfExisted() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("personByAgeAndCity").onV("person").secondary()
+              .by("age", "city").create();
+        schema.indexLabel("personByAge").onV("person").search()
+              .by("age").create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByAge1").onV("person").secondary()
+                  .by("age").create();
+        });
+    }
+
+    @Test
+    public void testAddIndexLabelPrefixWithExistedSecondary() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+        graph().addVertex(T.label, "person", "name", "Baby",
+                          "city", "Hongkong", "age", 3);
+
+        schema.indexLabel("personByCity").onV("person").secondary()
+              .by("city").create();
+        schema.indexLabel("personByAge").onV("person").search()
+              .by("age").create();
+        schema.indexLabel("personByAgeSecondary").onV("person").secondary()
+              .by("age").create();
+
+        List<Vertex> vertices;
+        vertices = graph().traversal().V().has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertThrows(BackendException.class, () -> {
+            graph().traversal().V().has("city", "Hongkong")
+                   .has("age", "3").toList();
+        });
+
+        schema.indexLabel("personByCityAndAge").onV("person").secondary()
+              .by("city", "age").create();
+        Assert.assertThrows(NotFoundException.class, () -> {
+            schema.getIndexLabel("personByCity");
+        });
+        schema.getIndexLabel("personByAge");
+        schema.getIndexLabel("personByAgeSecondary");
+
+        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong")
+                          .has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testAddIndexLabelPrefixWithExistedSearch() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+        graph().addVertex(T.label, "person", "name", "Baby",
+                          "city", "Hongkong", "age", 3);
+
+        schema.indexLabel("personByCity").onV("person").secondary()
+              .by("city").create();
+        schema.indexLabel("personByAge").onV("person").search()
+              .by("age").create();
+        schema.indexLabel("personByAgeSecondary").onV("person").secondary()
+              .by("age").create();
+
+        List<Vertex> vertices;
+        vertices = graph().traversal().V().has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertThrows(BackendException.class, () -> {
+            graph().traversal().V().has("city", "Hongkong")
+                   .has("age", "3").toList();
+        });
+
+        schema.indexLabel("personByAgeAndCity").onV("person").secondary()
+              .by("age", "city").create();
+        schema.getIndexLabel("personByAge");
+        Assert.assertThrows(NotFoundException.class, () -> {
+            schema.getIndexLabel("personByAgeSecondary");
+        });
+
+        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong")
+                          .has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
     }
 
     @Test

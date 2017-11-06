@@ -21,6 +21,7 @@ package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -184,6 +185,16 @@ public class IndexLabel extends SchemaElement {
 
             this.checkFields(schemaLabel.properties);
 
+            /*
+             * If new index label is prefix of existed index label, or has
+             * the same fields, fail to create new index label.
+             */
+            this.checkRepeatIndex(schemaLabel);
+
+            // Delete index label which is prefix of the new index label
+            // TODO: use event to replace direct call
+            this.removeSubIndex(schemaLabel);
+
             // TODO: should wrap update and add operation in one transaction.
             this.updateSchemaIndexName(schemaLabel);
 
@@ -340,6 +351,43 @@ public class IndexLabel extends SchemaElement {
                               this.indexLabel.baseType));
             }
         }
-    }
 
+        protected void checkRepeatIndex(SchemaLabel schemaLabel) {
+            for (String indexName : schemaLabel.indexNames) {
+                IndexLabel existed = this.transaction.getIndexLabel(indexName);
+                IndexLabel newOne = this.indexLabel;
+                if (newOne.indexType != existed.indexType) {
+                    continue;
+                }
+                // New created indexLabel can't be prefix of existed indexLabel
+                E.checkArgument(!CollectionUtil.prefixOf(newOne.indexFields,
+                                                         existed.indexFields),
+                                "Fields %s of new index label '%s' is prefix" +
+                                " of existed index label '%s'",
+                                newOne.indexFields, newOne.name, existed.name);
+            }
+        }
+
+        protected void removeSubIndex(SchemaLabel schemaLabel) {
+            HashSet<String> overrideIndexLabels = new HashSet<>();
+            for (String indexName : schemaLabel.indexNames) {
+                IndexLabel existed = this.transaction.getIndexLabel(indexName);
+                IndexLabel newOne = this.indexLabel;
+                if (newOne.indexType != existed.indexType) {
+                    continue;
+                }
+                /*
+                 * If existed indexLabel is prefix of new created indexLabel,
+                 * remove the existed indexLabel.
+                 */
+                if (CollectionUtil.prefixOf(existed.indexFields,
+                                            newOne.indexFields)) {
+                    overrideIndexLabels.add(indexName);
+                }
+            }
+            for (String indexName : overrideIndexLabels) {
+                this.transaction.removeIndexLabel(indexName);
+            }
+        }
+    }
 }
