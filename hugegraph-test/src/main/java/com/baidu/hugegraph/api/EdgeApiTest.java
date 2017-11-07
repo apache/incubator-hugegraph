@@ -31,10 +31,10 @@ public class EdgeApiTest extends BaseApiTest {
 
     @Before
     public void prepareSchema() {
-        super.initPropertyKey();
-        super.initVertexLabel();
-        super.initEdgeLabel();
-        super.initVertex();
+        BaseApiTest.initPropertyKey();
+        BaseApiTest.initVertexLabel();
+        BaseApiTest.initEdgeLabel();
+        BaseApiTest.initVertex();
     }
 
     @Test
@@ -47,7 +47,7 @@ public class EdgeApiTest extends BaseApiTest {
                 + "\"inV\": \"software:lop\","
                 + "\"properties\":{"
                 + "\"date\": \"20170324\","
-                + "\"city\": \"Hongkong\"}"
+                + "\"weight\": 0.5}"
                 + "}";
         Response r = client().post(path, edge);
         Assert.assertEquals(201, r.getStatus());
@@ -63,7 +63,7 @@ public class EdgeApiTest extends BaseApiTest {
                 + "\"inV\": \"software:lop\","
                 + "\"properties\":{"
                 + "\"date\": \"20170324\","
-                + "\"city\": \"Hongkong\"}"
+                + "\"weight\": 0.5}"
                 + "}";
         Response r = client().post(path, edge);
         Assert.assertEquals(201, r.getStatus());
@@ -83,7 +83,7 @@ public class EdgeApiTest extends BaseApiTest {
                 + "\"inV\": \"software:lop\","
                 + "\"properties\":{"
                 + "\"date\": \"20170324\","
-                + "\"city\": \"Hongkong\"}"
+                + "\"weight\": 0.5}"
                 + "}";
         Response r = client().post(path, edge);
         Assert.assertEquals(201, r.getStatus());
@@ -102,7 +102,7 @@ public class EdgeApiTest extends BaseApiTest {
                 + "\"inV\": \"software:lop\","
                 + "\"properties\":{"
                 + "\"date\": \"20170324\","
-                + "\"city\": \"Hongkong\"}"
+                + "\"weight\": 0.5}"
                 + "}";
         Response r = client().post(path, edge);
         Assert.assertEquals(201, r.getStatus());

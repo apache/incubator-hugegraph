@@ -31,18 +31,18 @@ public class IndexLabelApiTest extends BaseApiTest {
 
     @Before
     public void prepareSchema() {
-        super.initPropertyKey();
-        super.initVertexLabel();
-        super.initEdgeLabel();
+        BaseApiTest.initPropertyKey();
+        BaseApiTest.initVertexLabel();
+        BaseApiTest.initEdgeLabel();
     }
 
     @Test
     public void testCreate() {
         String indexLabel = "{"
                 + "\"name\": \"personByAge\","
-                + "\"baseType\": \"VERTEX_LABEL\","
-                + "\"baseValue\": \"person\","
-                + "\"indexType\": \"SEARCH\","
+                + "\"base_type\": \"VERTEX_LABEL\","
+                + "\"base_value\": \"person\","
+                + "\"index_type\": \"SEARCH\","
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
@@ -53,9 +53,9 @@ public class IndexLabelApiTest extends BaseApiTest {
     public void testGet() {
         String indexLabel = "{"
                 + "\"name\": \"personByAge\","
-                + "\"baseType\": \"VERTEX_LABEL\","
-                + "\"baseValue\": \"person\","
-                + "\"indexType\": \"SEARCH\","
+                + "\"base_type\": \"VERTEX_LABEL\","
+                + "\"base_value\": \"person\","
+                + "\"index_type\": \"SEARCH\","
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
@@ -70,9 +70,9 @@ public class IndexLabelApiTest extends BaseApiTest {
     public void testList() {
         String indexLabel = "{"
                 + "\"name\": \"personByAge\","
-                + "\"baseType\": \"VERTEX_LABEL\","
-                + "\"baseValue\": \"person\","
-                + "\"indexType\": \"SEARCH\","
+                + "\"base_type\": \"VERTEX_LABEL\","
+                + "\"base_value\": \"person\","
+                + "\"index_type\": \"SEARCH\","
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
@@ -86,9 +86,9 @@ public class IndexLabelApiTest extends BaseApiTest {
     public void testDelete() {
         String indexLabel = "{"
                 + "\"name\": \"personByAge\","
-                + "\"baseType\": \"VERTEX_LABEL\","
-                + "\"baseValue\": \"person\","
-                + "\"indexType\": \"SEARCH\","
+                + "\"base_type\": \"VERTEX_LABEL\","
+                + "\"base_value\": \"person\","
+                + "\"index_type\": \"SEARCH\","
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);

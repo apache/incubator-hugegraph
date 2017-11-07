@@ -22,6 +22,8 @@ package com.baidu.hugegraph.api;
 import java.io.File;
 
 import javax.inject.Singleton;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.NotSupportedException;
@@ -31,10 +33,14 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
@@ -45,7 +51,7 @@ public class GraphsAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
-    private static final String TOKEN = "162f7848-0b6d-4faf-b557-3a0797869c55";
+    private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
 
     @GET
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -85,10 +91,57 @@ public class GraphsAPI extends API {
         return file;
     }
 
-    private boolean verifyToken(String token) {
-        if (token != null && token.equals(TOKEN)) {
-            return true;
+    @DELETE
+    @Path("{name}/clear")
+    @Consumes(APPLICATION_JSON)
+    public void clear(@Context GraphManager manager,
+                      @PathParam("name") String name,
+                      @QueryParam("token") String token,
+                      @QueryParam("confirm_message") String message) {
+        LOG.debug("Graphs [{}] clear graph by name '{}'", name);
+
+        if (!verifyToken(token)) {
+            throw new NotAuthorizedException("Invalid token");
         }
-        return false;
+        if (!CONFIRM_CLEAR.equals(message)) {
+            throw new IllegalArgumentException(String.format(
+                      "Please take the message: %s", CONFIRM_CLEAR));
+        }
+
+        HugeGraph g = (HugeGraph) graph(manager, name);
+        g.tx().open();
+        try {
+            // Clear edge
+            g.traversal().E().toStream().forEach(Edge::remove);
+            // Clear vertex
+            g.traversal().V().toStream().forEach(Vertex::remove);
+            // Commit changes
+            g.tx().commit();
+        } finally {
+            try {
+                g.tx().close();
+            } catch (Throwable e) {
+                LOG.error("Error when close tx", e);
+            }
+        }
+
+        SchemaManager schema = g.schema();
+        schema.getIndexLabels().forEach(elem -> {
+            schema.indexLabel(elem.name()).remove();
+        });
+        schema.getEdgeLabels().forEach(elem -> {
+            schema.edgeLabel(elem.name()).remove();
+        });
+        schema.getVertexLabels().forEach(elem -> {
+            schema.vertexLabel(elem.name()).remove();
+        });
+        schema.getPropertyKeys().forEach(elem -> {
+            schema.propertyKey(elem.name()).remove();
+        });
+    }
+
+    private boolean verifyToken(String token) {
+        String expected = ServerOptions.ADMIN_TOKEN.value();
+        return expected.equals(token);
     }
 }

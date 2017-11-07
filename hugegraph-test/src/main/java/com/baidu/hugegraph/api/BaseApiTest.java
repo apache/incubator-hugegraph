@@ -27,31 +27,43 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 
-import org.apache.tinkerpop.gremlin.structure.T;
 import org.glassfish.jersey.client.filter.EncodingFilter;
 import org.glassfish.jersey.message.GZipEncoder;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import com.baidu.hugegraph.core.BaseCoreTest;
-import com.baidu.hugegraph.schema.SchemaManager;
+import com.google.common.collect.ImmutableMap;
 
-public class BaseApiTest extends BaseCoreTest {
+public class BaseApiTest {
 
     public static String BASE_URL = "http://127.0.0.1:8080";
+    public static String GRAPH = "hugegraph";
+
+    private static final String URL_PREFIX = "graphs/" + GRAPH;
+    private static final String SCHEMA_PKS = "/schema/propertykeys";
+    private static final String SCHEMA_VLS = "/schema/vertexlabels";
+    private static final String SCHEMA_ELS = "/schema/edgelabels";
+    private static final String SCHEMA_ILS = "/schema/indexlabels";
+    private static final String GRAPH_VERTEX = "/graph/vertices";
+    private static final String GRAPH_EDGE = "/graph/edges";
 
     private static RestClient client;
 
     @BeforeClass
     public static void init() {
-        BaseCoreTest.init();
         client = newClient();
+        BaseApiTest.clearData();
     }
 
     @AfterClass
     public static void clear() throws Exception {
-        BaseCoreTest.clear();
         client.close();
+    }
+
+    @After
+    public void teardown() throws Exception {
+        BaseApiTest.clearData();
     }
 
     public RestClient client() {
@@ -122,70 +134,177 @@ public class BaseApiTest extends BaseCoreTest {
         public Response delete(String path, String id) {
             return this.target.path(path).path(id).request().delete();
         }
+
+        public Response delete(String path, Map<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                target = target.queryParam(i.getKey(), i.getValue());
+            }
+            return target.request().delete();
+        }
     }
 
     /**
      * Utils method to init some properties
      */
-    protected void initPropertyKey() {
-        SchemaManager schema = graph().schema();
-        schema.propertyKey("name").asText().ifNotExist().create();
-        schema.propertyKey("age").asInt().ifNotExist().create();
-        schema.propertyKey("city").asText().ifNotExist().create();
-        schema.propertyKey("lang").asText().ifNotExist().create();
-        schema.propertyKey("date").asText().ifNotExist().create();
-        schema.propertyKey("price").asInt().ifNotExist().create();
+    protected static void initPropertyKey() {
+        String path = URL_PREFIX + SCHEMA_PKS;
+
+        client.post(path, "{\n"
+                + "\"name\": \"name\",\n"
+                + "\"data_type\": \"TEXT\",\n"
+                + "\"cardinality\": \"SINGLE\",\n"
+                + "\"properties\":[]\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"name\": \"age\",\n"
+                + "\"data_type\": \"INT\",\n"
+                + "\"cardinality\": \"SINGLE\",\n"
+                + "\"properties\":[]\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"name\": \"city\",\n"
+                + "\"data_type\": \"TEXT\",\n"
+                + "\"cardinality\": \"SINGLE\",\n"
+                + "\"properties\":[]\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"name\": \"lang\",\n"
+                + "\"data_type\": \"TEXT\",\n"
+                + "\"cardinality\": \"SINGLE\",\n"
+                + "\"properties\":[]\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"name\": \"date\",\n"
+                + "\"data_type\": \"TEXT\",\n"
+                + "\"cardinality\": \"SINGLE\",\n"
+                + "\"properties\":[]\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"name\": \"price\",\n"
+                + "\"data_type\": \"INT\",\n"
+                + "\"cardinality\": \"SINGLE\",\n"
+                + "\"properties\":[]\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"name\": \"weight\",\n"
+                + "\"data_type\": \"DOUBLE\",\n"
+                + "\"cardinality\": \"SINGLE\",\n"
+                + "\"properties\":[]\n"
+                + "}");
     }
 
-    protected void initVertexLabel() {
-        SchemaManager schema = graph().schema();
+    protected static void initVertexLabel() {
+        String path = URL_PREFIX + SCHEMA_VLS;
 
-        schema.vertexLabel("person")
-              .properties("name", "age", "city")
-              .primaryKeys("name")
-              .ifNotExist()
-              .create();
-
-        schema.vertexLabel("software")
-              .properties("name", "lang", "price")
-              .primaryKeys("name")
-              .ifNotExist()
-              .create();
+        client.post(path, "{\n"
+                + "\"primary_keys\":[\"name\"],\n"
+                + "\"id_strategy\": \"PRIMARY_KEY\",\n"
+                + "\"name\": \"person\",\n"
+                + "\"index_names\":[],\n"
+                + "\"properties\":[\"city\", \"name\", \"age\"],\n"
+                + "\"nullable_keys\":[]\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"primary_keys\":[\"name\"],\n"
+                + "\"id_strategy\": \"PRIMARY_KEY\",\n"
+                + "\"name\": \"software\",\n"
+                + "\"index_names\":[],\n"
+                + "\"properties\":[\"price\", \"name\", \"lang\"],\n"
+                + "\"nullable_keys\":[]\n"
+                + "}");
     }
 
-    protected void initEdgeLabel() {
-        SchemaManager schema = graph().schema();
+    protected static void initEdgeLabel() {
+        String path = URL_PREFIX + SCHEMA_ELS;
 
-        schema.edgeLabel("knows")
-              .sourceLabel("person")
-              .targetLabel("person")
-              .properties("date")
-              .ifNotExist()
-              .create();
-
-        schema.edgeLabel("created")
-              .sourceLabel("person").targetLabel("software")
-              .properties("date", "city")
-              .ifNotExist()
-              .create();
+        client.post(path, "{\n"
+                + "\"name\": \"created\",\n"
+                + "\"source_label\": \"person\",\n"
+                + "\"target_label\": \"software\",\n"
+                + "\"frequency\": \"SINGLE\",\n"
+                + "\"properties\":[\"date\", \"weight\"],\n"
+                + "\"sort_keys\":[],\n"
+                + "\"index_names\":[],\n"
+                + "\"nullable_keys\":[]\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"name\": \"knows\",\n"
+                + "\"source_label\": \"person\",\n"
+                + "\"target_label\": \"person\",\n"
+                + "\"frequency\": \"SINGLE\",\n"
+                + "\"properties\":[\"date\", \"weight\"],\n"
+                + "\"sort_keys\":[],\n"
+                + "\"index_names\":[],\n"
+                + "\"nullable_keys\":[]\n"
+                + "}");
     }
 
-    protected void initVertex() {
-        graph().tx().open();
+    protected static void initVertex() {
+        String path = URL_PREFIX + GRAPH_VERTEX;
 
-        graph().addVertex(T.label, "person", "name", "marko",
-                          "age", 29, "city", "Beijing");
-        graph().addVertex(T.label, "person", "name", "vadas",
-                          "age", 27, "city", "Hongkong");
-        graph().addVertex(T.label, "software", "name", "lop",
-                          "lang", "java", "price", 328);
-        graph().addVertex(T.label, "person", "name", "josh",
-                          "age", 32, "city", "Beijing");
-        graph().addVertex(T.label, "software", "name", "ripple",
-                          "lang", "java", "price", 199);
-        graph().addVertex(T.label, "person", "name", "peter",
-                          "age", 29, "city", "Shanghai");
+        client.post(path, "{\n"
+                + "\"label\": \"person\",\n"
+                + "\"type\": \"vertex\",\n"
+                + "\"properties\":{"
+                + "\"name\": \"marko\","
+                + "\"age\": 29,"
+                + "\"city\": \"Beijing\""
+                + "}\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"label\": \"person\",\n"
+                + "\"type\": \"vertex\",\n"
+                + "\"properties\":{"
+                + "\"name\": \"vadas\","
+                + "\"age\": 27,"
+                + "\"city\": \"HongKong\""
+                + "}\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"label\": \"person\",\n"
+                + "\"type\": \"vertex\",\n"
+                + "\"properties\":{"
+                + "\"name\": \"josh\","
+                + "\"age\": 32,"
+                + "\"city\": \"Beijing\""
+                + "}\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"label\": \"person\",\n"
+                + "\"type\": \"vertex\",\n"
+                + "\"properties\":{"
+                + "\"name\": \"peter\","
+                + "\"age\": 35,"
+                + "\"city\": \"Shanghai\""
+                + "}\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"label\": \"software\",\n"
+                + "\"type\": \"vertex\",\n"
+                + "\"properties\":{"
+                + "\"name\": \"ripple\","
+                + "\"lang\": \"java\","
+                + "\"price\": 199"
+                + "}\n"
+                + "}");
+        client.post(path, "{\n"
+                + "\"label\": \"software\",\n"
+                + "\"type\": \"vertex\",\n"
+                + "\"properties\":{"
+                + "\"name\": \"lop\","
+                + "\"lang\": \"java\","
+                + "\"price\": 328"
+                + "}\n"
+                + "}");
+    }
 
-        graph().tx().commit();
+    protected static void clearData() {
+        String token = "162f7848-0b6d-4faf-b557-3a0797869c55";
+        String message = "I'm sure to delete all data";
+
+        Map<String, Object> param = ImmutableMap.of("token", token,
+                                                    "confirm_message", message);
+        client.delete("graphs/" + GRAPH + "/clear", param);
     }
 }

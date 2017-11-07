@@ -146,9 +146,11 @@ public class BackendMutationTest extends BaseUnitTest {
         BackendEntry entry2 = constructBackendEntry("1", "name", "marko");
 
         mutation.add(entry1, MutateAction.APPEND);
-        Assert.assertThrows(HugeException.class, () -> {
-            mutation.add(entry2, MutateAction.INSERT);
-        });
+        mutation.add(entry2, MutateAction.INSERT);
+
+        Assert.assertEquals(1, get(mutation, "1").size());
+        Assert.assertEquals(MutateAction.INSERT,
+                            get(mutation, "1").get(0).action());
     }
 
     @Test
@@ -232,9 +234,11 @@ public class BackendMutationTest extends BaseUnitTest {
         BackendEntry entry2 = constructBackendEntry("1", "name", "marko");
 
         mutation.add(entry1, MutateAction.ELIMINATE);
-        Assert.assertThrows(HugeException.class, () -> {
-            mutation.add(entry2, MutateAction.INSERT);
-        });
+        mutation.add(entry2, MutateAction.INSERT);
+
+        Assert.assertEquals(1, get(mutation, "1").size());
+        Assert.assertEquals(MutateAction.INSERT,
+                            get(mutation, "1").get(0).action());
     }
 
     @Test
