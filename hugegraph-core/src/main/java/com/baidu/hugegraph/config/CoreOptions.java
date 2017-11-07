@@ -100,13 +100,6 @@ public class CoreOptions extends OptionHolder {
             "The default vertex label.",
             disallowEmpty(String.class));
 
-    public static final ConfigOption<String> GRAPHS = new ConfigOption<>(
-            "graphs",
-            "hugegraph:conf/hugegraph.properties",
-            true,
-            "The map of graphs' name and config file.",
-            disallowEmpty(String.class));
-
     public static final ConfigOption<Integer> SCHEMA_CACHE_CAPACITY = new ConfigOption<>(
             "schema.cache_capacity",
             (1024 * 1024 * 1),

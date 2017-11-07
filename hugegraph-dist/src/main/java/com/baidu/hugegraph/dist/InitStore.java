@@ -27,11 +27,13 @@ import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.E;
 
 public class InitStore {
+
+    private static final String GRAPHS = ServerOptions.GRAPHS.name();
 
     public static void main(String[] args)
                   throws ConfigurationException, InterruptedException {
@@ -47,18 +49,20 @@ public class InitStore {
         YamlConfiguration config = new YamlConfiguration();
         config.load(confFile);
 
-        List<ConfigurationNode> graphNames = config.getRootNode().getChildren(
-                CoreOptions.GRAPHS.name()).get(0).getChildren();
+        List<ConfigurationNode> nodes = config.getRootNode()
+                                              .getChildren(GRAPHS);
+        E.checkArgument(nodes.size() == 1,
+                        "Must contain one '%s' in config file '%s'",
+                        GRAPHS, confFile);
 
-        E.checkArgumentNotNull(graphNames,
-                               "Not found the node '%s' in the config file %s",
-                               CoreOptions.GRAPHS.name(), confFile);
+        List<ConfigurationNode> graphNames = nodes.get(0).getChildren();
+
         E.checkArgument(!graphNames.isEmpty(),
-                        "The node '%s' must contain at least one child node");
+                        "Must contain at least one graph");
 
         for (ConfigurationNode graphName : graphNames) {
             String graphPropFile = graphName.getValue().toString();
-            // get graph property file path
+            // Get graph property file path
             HugeGraph graph = HugeFactory.open(graphPropFile);
             graph.initBackend();
             graph.close();

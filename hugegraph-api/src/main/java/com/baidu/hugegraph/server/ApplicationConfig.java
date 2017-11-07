@@ -34,8 +34,8 @@ import org.glassfish.jersey.server.monitoring.ApplicationEventListener;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
 
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.E;
 
@@ -56,7 +56,7 @@ public class ApplicationConfig extends ResourceConfig {
     }
 
     public Map<String, String> parseGraphs(HugeConfig conf) {
-        List<Object> graphs = conf.getList(CoreOptions.GRAPHS.name());
+        List<Object> graphs = conf.getList(ServerOptions.GRAPHS.name());
         Map<String, String> graphMap = new HashMap<>();
         for (Object graph : graphs) {
             String[] graphPair = ((String) graph).split(":");

@@ -56,9 +56,6 @@
                             <directory>${top.level.dir}</directory>
                             <includes>
                                 <include>*.tar.gz</include>
-                                <!--<include>${final.name}/bin/huge-server.sh</include>-->
-                                <!--<include>${final.name}/bin/start-hugeserver.sh</include>-->
-                                <!--<include>${final.name}/bin/stop-hugeserver.sh</include>-->
                                 <!--<include>${final.name}/conf/rest-server.properties</include>-->
                             </includes>
                             <followSymlinks>false</followSymlinks>

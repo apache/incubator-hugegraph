@@ -42,9 +42,9 @@ public class ServerOptions extends OptionHolder {
         return instance;
     }
 
-    public static final ConfigOption<String> HUGE_SERVER_URL =
+    public static final ConfigOption<String> REST_SERVER_URL =
             new ConfigOption<>(
-                    "hugeserver.url",
+                    "restserver.url",
                     "http://127.0.0.1:8080",
                     true,
                     "The url for listening of hugeserver.",
@@ -57,6 +57,15 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:8182",
                     true,
                     "The url of gremlin server.",
+                    disallowEmpty(String.class)
+            );
+
+    public static final ConfigOption<String> GRAPHS =
+            new ConfigOption<>(
+                    "graphs",
+                    "hugegraph:conf/hugegraph.properties",
+                    true,
+                    "The map of graphs' name and config file.",
                     disallowEmpty(String.class)
             );
 

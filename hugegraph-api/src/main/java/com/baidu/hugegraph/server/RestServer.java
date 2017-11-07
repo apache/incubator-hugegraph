@@ -50,7 +50,7 @@ public class RestServer {
     }
 
     public void start() throws IOException {
-        String url = this.conf.get(ServerOptions.HUGE_SERVER_URL);
+        String url = this.conf.get(ServerOptions.REST_SERVER_URL);
         URI uri = UriBuilder.fromUri(url).build();
 
         ResourceConfig rc = new ApplicationConfig(this.conf);
