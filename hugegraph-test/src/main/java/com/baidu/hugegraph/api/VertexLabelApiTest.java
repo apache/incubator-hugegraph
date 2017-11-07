@@ -35,17 +35,18 @@ public class VertexLabelApiTest extends BaseApiTest {
 
     @Before
     public void prepareSchema() {
-        super.initPropertyKey();
+        BaseApiTest.initPropertyKey();
     }
 
     @Test
     public void testCreate() {
         String vertexLabel = "{"
                 + "\"name\": \"person\","
-                + "\"idStrategy\": \"PRIMARY_KEY\","
+                + "\"id_strategy\": \"PRIMARY_KEY\","
                 + "\"properties\": [\"name\", \"age\", \"city\"],"
-                + "\"primaryKeys\":[\"name\"],"
-                + "\"indexNames\":[]"
+                + "\"primary_keys\":[\"name\"],"
+                + "\"nullable_keys\":[\"city\"],"
+                + "\"index_names\":[]"
                 + "}";
         Response r = client().post(path, vertexLabel);
         Assert.assertEquals(201, r.getStatus());
@@ -55,23 +56,25 @@ public class VertexLabelApiTest extends BaseApiTest {
     public void testAppend() {
         String vertexLabel = "{"
                 + "\"name\": \"person\","
-                + "\"idStrategy\": \"PRIMARY_KEY\","
+                + "\"id_strategy\": \"PRIMARY_KEY\","
                 + "\"properties\": [\"name\", \"age\", \"city\"],"
-                + "\"primaryKeys\":[\"name\"],"
-                + "\"indexNames\":[]"
+                + "\"primary_keys\":[\"name\"],"
+                + "\"nullable_keys\":[\"city\"],"
+                + "\"index_names\":[]"
                 + "}";
         Response r = client().post(path, vertexLabel);
         Assert.assertEquals(201, r.getStatus());
 
         vertexLabel = "{"
                 + "\"name\": \"person\","
-                + "\"idStrategy\":\"DEFAULT\","
+                + "\"id_strategy\":\"DEFAULT\","
                 + "\"properties\":[\"lang\"],"
-                + "\"primaryKeys\":[],"
-                + "\"indexNames\":[]"
+                + "\"primary_keys\":[],"
+                + "\"nullable_keys\":[\"lang\"],"
+                + "\"index_names\":[]"
                 + "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
-        r = client().put(path, vertexLabel, params);
+        r = client().put(path + "person", vertexLabel, params);
         Assert.assertEquals(200, r.getStatus());
     }
 
@@ -79,10 +82,11 @@ public class VertexLabelApiTest extends BaseApiTest {
     public void testGet() {
         String vertexLabel = "{"
                 + "\"name\": \"person\","
-                + "\"idStrategy\": \"PRIMARY_KEY\","
+                + "\"id_strategy\": \"PRIMARY_KEY\","
                 + "\"properties\": [\"name\", \"age\", \"city\"],"
-                + "\"primaryKeys\":[\"name\"],"
-                + "\"indexNames\":[]"
+                + "\"primary_keys\":[\"name\"],"
+                + "\"nullable_keys\":[\"city\"],"
+                + "\"index_names\":[]"
                 + "}";
         Response r = client().post(path, vertexLabel);
         Assert.assertEquals(201, r.getStatus());
@@ -96,10 +100,11 @@ public class VertexLabelApiTest extends BaseApiTest {
     public void testList() {
         String vertexLabel = "{"
                 + "\"name\": \"person\","
-                + "\"idStrategy\": \"PRIMARY_KEY\","
+                + "\"id_strategy\": \"PRIMARY_KEY\","
                 + "\"properties\": [\"name\", \"age\", \"city\"],"
-                + "\"primaryKeys\":[\"name\"],"
-                + "\"indexNames\":[]"
+                + "\"primary_keys\":[\"name\"],"
+                + "\"nullable_keys\":[\"city\"],"
+                + "\"index_names\":[]"
                 + "}";
         Response r = client().post(path, vertexLabel);
         Assert.assertEquals(201, r.getStatus());
@@ -112,10 +117,11 @@ public class VertexLabelApiTest extends BaseApiTest {
     public void testDelete() {
         String vertexLabel = "{"
                 + "\"name\": \"person\","
-                + "\"idStrategy\": \"PRIMARY_KEY\","
+                + "\"id_strategy\": \"PRIMARY_KEY\","
                 + "\"properties\": [\"name\", \"age\", \"city\"],"
-                + "\"primaryKeys\":[\"name\"],"
-                + "\"indexNames\":[]"
+                + "\"primary_keys\":[\"name\"],"
+                + "\"nullable_keys\":[\"city\"],"
+                + "\"index_names\":[]"
                 + "}";
         Response r = client().post(path, vertexLabel);
         Assert.assertEquals(201, r.getStatus());

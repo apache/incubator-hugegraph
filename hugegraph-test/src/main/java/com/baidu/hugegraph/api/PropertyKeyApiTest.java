@@ -32,7 +32,7 @@ public class PropertyKeyApiTest extends BaseApiTest {
     public void testCreate() {
         String propertyKey = "{"
                 + "\"name\": \"id\","
-                + "\"dataType\": \"TEXT\","
+                + "\"data_type\": \"TEXT\","
                 + "\"cardinality\": \"SINGLE\","
                 + "\"properties\":[]"
                 + "}";
@@ -44,7 +44,7 @@ public class PropertyKeyApiTest extends BaseApiTest {
     public void testGet() {
         String propertyKey = "{"
                 + "\"name\": \"id\","
-                + "\"dataType\": \"TEXT\","
+                + "\"data_type\": \"TEXT\","
                 + "\"cardinality\": \"SINGLE\","
                 + "\"properties\":[]"
                 + "}";
@@ -60,7 +60,7 @@ public class PropertyKeyApiTest extends BaseApiTest {
     public void testList() {
         String propertyKey = "{"
                 + "\"name\": \"id\","
-                + "\"dataType\": \"TEXT\","
+                + "\"data_type\": \"TEXT\","
                 + "\"cardinality\": \"SINGLE\","
                 + "\"properties\":[]"
                 + "}";
@@ -75,7 +75,7 @@ public class PropertyKeyApiTest extends BaseApiTest {
     public void testDelete() {
         String propertyKey = "{"
                 + "\"name\": \"id\","
-                + "\"dataType\": \"TEXT\","
+                + "\"data_type\": \"TEXT\","
                 + "\"cardinality\": \"SINGLE\","
                 + "\"properties\":[]"
                 + "}";

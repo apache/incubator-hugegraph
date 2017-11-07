@@ -31,8 +31,8 @@ public class VertexApiTest extends BaseApiTest {
 
     @Before
     public void prepareSchema() {
-        super.initPropertyKey();
-        super.initVertexLabel();
+        BaseApiTest.initPropertyKey();
+        BaseApiTest.initVertexLabel();
     }
 
     @Test

@@ -37,7 +37,6 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;

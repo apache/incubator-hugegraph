@@ -36,7 +36,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
-import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;

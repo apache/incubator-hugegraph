@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.baidu.hugegraph.variables.HugeVariables;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -61,6 +60,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.variables.HugeVariables;
 
 /**
  * HugeGraph is the entrance of the graph system, you can modify or query

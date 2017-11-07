@@ -86,4 +86,13 @@ public class ServerOptions extends OptionHolder {
                     "The maximum number of edges submitted per batch.",
                     rangeInt(100, 1000)
             );
+
+    public static final ConfigOption<String> ADMIN_TOKEN =
+            new ConfigOption<>(
+                    "admin.token",
+                    "162f7848-0b6d-4faf-b557-3a0797869c55",
+                    true,
+                    "Token for administrator operations",
+                    disallowEmpty(String.class)
+            );
 }
