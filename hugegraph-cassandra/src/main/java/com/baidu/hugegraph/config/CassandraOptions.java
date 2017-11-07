@@ -60,19 +60,19 @@ public class CassandraOptions extends OptionHolder {
 
     public static final ConfigOption<Integer> CASSANDRA_CONN_TIMEOUT =
             new ConfigOption<>(
-                "cassandra.connect_time_out",
+                "cassandra.connect_timeout",
                 5,
                 true,
-                "The cassandra driver connect server time out(seconds).",
+                "The cassandra driver connect server timeout(seconds).",
                 rangeInt(1, 30)
     );
 
     public static final ConfigOption<Integer> CASSANDRA_READ_TIMEOUT =
             new ConfigOption<>(
-                "cassandra.read_time_out",
+                "cassandra.read_timeout",
                 20,
                 true,
-                "The cassandra driver read from server time out(seconds).",
+                "The cassandra driver read from server timeout(seconds).",
                 rangeInt(1, 120)
             );
 
