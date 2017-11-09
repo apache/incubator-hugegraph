@@ -43,6 +43,13 @@ public class CoreOptions extends OptionHolder {
         return instance;
     }
 
+    public static final ConfigOption<String> GREMLIN_GRAPH = new ConfigOption<>(
+            "gremlin.graph",
+            "com.baidu.hugegraph.HugeFactory",
+            true,
+            "Gremlin entrence to create graph",
+            disallowEmpty(String.class));
+
     // TODO: could move to dist package
     public static final ConfigOption<String> BACKENDS = new ConfigOption<>(
             "backends",
