@@ -45,10 +45,9 @@ public class HugeFactory {
 
     private static PropertiesConfiguration getLocalConfig(String path) {
         File file = new File(path);
-        E.checkArgument(
-                file.exists() && file.isFile() && file.canRead(),
-                "Need to specify a readable config file rather than: %s",
-                file.toString());
+        E.checkArgument(file.exists() && file.isFile() && file.canRead(),
+                        "Please specify a proper config file rather than: %s",
+                        file.toString());
         try {
             PropertiesConfiguration config = new PropertiesConfiguration(file);
             final File tmpParent = file.getParentFile();
