@@ -90,4 +90,42 @@ public enum DataType {
     public Class<?> clazz() {
         return this.clazz;
     }
+
+    public boolean isNumberType() {
+        return this == BYTE || this == INT || this == LONG ||
+               this == FLOAT || this == DOUBLE;
+    }
+
+    public <V> Number valueToNumber(V value) {
+        if (!(this.isNumberType() && value instanceof Number)) {
+            return null;
+        }
+        Number number = null;
+        try {
+            switch (this) {
+                case BYTE:
+                    number = Byte.valueOf(value.toString());
+                    break;
+                case INT:
+                    number = Integer.valueOf(value.toString());
+                    break;
+                case LONG:
+                    number = Long.valueOf(value.toString());
+                    break;
+                case FLOAT:
+                    number = Float.valueOf(value.toString());
+                    break;
+                case DOUBLE:
+                    number = Double.valueOf(value.toString());
+                    break;
+                default:
+                    throw new AssertionError(String.format("Number type only " +
+                              "contains Byte, Integer, Long, Float, " +
+                              "Double, but got %s", this.clazz()));
+            }
+        } catch (NumberFormatException ignore) {
+            // Unmatched type found
+        }
+        return number;
+    }
 }

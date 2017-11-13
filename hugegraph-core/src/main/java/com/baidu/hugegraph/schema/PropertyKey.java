@@ -83,6 +83,9 @@ public class PropertyKey extends SchemaElement {
      * Check type of the value valid
      */
     public <V> boolean checkDataType(V value) {
+        if (value instanceof Number) {
+            return this.dataType().valueToNumber(value) != null;
+        }
         return this.dataType().clazz().isInstance(value);
     }
 
