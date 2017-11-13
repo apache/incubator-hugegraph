@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +38,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.VertexLabelBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringUtil;
 import com.google.common.collect.ImmutableSet;
@@ -77,19 +79,23 @@ public class VertexLabel extends SchemaLabel {
         if (keys.length == 0) {
             return this;
         }
+
         E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
                         this.idStrategy == IdStrategy.PRIMARY_KEY,
-                        "Not allowed to use id strategy '%s' and call " +
-                        "primaryKeys() at the same time for vertex label '%s'",
+                        "Not allowed to use id strategy '%s' and assign " +
+                        "primary keys at the same time for vertex label '%s'",
                         this.idStrategy, this.name);
 
-        this.idStrategy = IdStrategy.PRIMARY_KEY;
+        E.checkArgument(this.primaryKeys.isEmpty(),
+                        "Not allowed to assign primary keys multitimes");
 
-        for (String key : keys) {
-            if (!this.primaryKeys.contains(key)) {
-                this.primaryKeys.add(key);
-            }
-        }
+        List<String> primaryKeys = Arrays.asList(keys);
+        E.checkArgument(CollectionUtil.allUnique(primaryKeys),
+                        "Invalid primary keys %s, which contains some " +
+                        "duplicate properties", primaryKeys);
+
+        this.primaryKeys.addAll(primaryKeys);
+        this.idStrategy = IdStrategy.PRIMARY_KEY;
         return this;
     }
 

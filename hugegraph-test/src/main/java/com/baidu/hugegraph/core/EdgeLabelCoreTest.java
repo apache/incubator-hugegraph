@@ -210,6 +210,51 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddEdgeLabelWithSortKeyAssignedMultiTimes() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id")
+              .create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("look")
+                  .multiTimes()
+                  .properties("date")
+                  .link("person", "book")
+                  .sortKeys("date")
+                  .sortKeys("date")
+                  .create();
+        });
+    }
+
+    @Test
+    public void testAddEdgeLabelWithSortKeyContainSameProp() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id")
+              .create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("look")
+                  .multiTimes()
+                  .properties("date")
+                  .link("person", "book")
+                  .sortKeys("date", "date")
+                  .create();
+        });
+    }
+
+    @Test
     public void testAddEdgeLabelMultipleWithoutSortKey() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
