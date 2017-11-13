@@ -21,6 +21,7 @@ package com.baidu.hugegraph.io;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
 
 import org.apache.tinkerpop.gremlin.structure.io.AbstractIoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
@@ -36,6 +37,7 @@ import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.serializer.TextSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 
@@ -50,6 +52,8 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
     private static TextSerializer textSerializer = new TextSerializer();
 
     public HugeGraphIoRegistry() {
+        register(GryoIo.class, Optional.class, new OptionalSerializer());
+        // HugeGraph releated serializer
         register(GryoIo.class, IdGenerator.StringId.class, new IdSerializer());
         register(GryoIo.class, IdGenerator.LongId.class, new IdSerializer());
         register(GryoIo.class, PropertyKey.class,
@@ -58,9 +62,29 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
                  new VertexLabelKryoSerializer());
         register(GryoIo.class, EdgeLabel.class,
                  new EdgeLabelKryoSerializer());
+        register(GryoIo.class, IndexLabel.class,
+                 new IndexLabelKryoSerializer());
 
-        register(GraphSONIo.class, null,
-                 HugeGraphSONModule.getInstance());
+
+
+        register(GraphSONIo.class, null, HugeGraphSONModule.getInstance());
+    }
+
+    private class OptionalSerializer extends Serializer<Optional> {
+        @Override
+        public void write(Kryo kryo, Output output, Optional optional) {
+            if (optional.isPresent()) {
+                kryo.writeClassAndObject(output, optional.get());
+            } else {
+                kryo.writeObject(output, null);
+            }
+        }
+
+        @Override
+        public Optional read(Kryo kryo, Input input, Class<Optional> aClass) {
+            Object value = kryo.readClassAndObject(input);
+            return value == null ? Optional.empty() : Optional.of(value);
+        }
     }
 
     public static class IdSerializer extends Serializer<Id> {
@@ -133,7 +157,8 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         }
 
         @Override
-        public VertexLabel read(Kryo kryo, Input input,
+        public VertexLabel read(Kryo kryo,
+                                Input input,
                                 Class<VertexLabel> clazz) {
             return textSerializer.readVertexLabel(readEntry(input));
         }
@@ -149,6 +174,21 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         @Override
         public EdgeLabel read(Kryo kryo, Input input, Class<EdgeLabel> clazz) {
             return textSerializer.readEdgeLabel(readEntry(input));
+        }
+    }
+
+    private class IndexLabelKryoSerializer extends Serializer<IndexLabel> {
+        @Override
+        public void write(Kryo kryo, Output output, IndexLabel indexLabel) {
+            BackendEntry entry = textSerializer.writeIndexLabel(indexLabel);
+            writeEntry(output, entry);
+        }
+
+        @Override
+        public IndexLabel read(Kryo kryo,
+                               Input input,
+                               Class<IndexLabel> clazz) {
+            return textSerializer.readIndexLabel(readEntry(input));
         }
     }
 }
