@@ -22,6 +22,7 @@ package com.baidu.hugegraph.io;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.tinkerpop.gremlin.structure.io.graphson.TinkerPopJacksonModule;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
@@ -56,6 +57,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     static {
         TYPE_DEFINITIONS = new HashMap<>();
+        TYPE_DEFINITIONS.put(Optional.class, "Optional");
+        // HugeGraph releated serializer
         TYPE_DEFINITIONS.put(IdGenerator.StringId.class, "StringId");
         TYPE_DEFINITIONS.put(IdGenerator.LongId.class, "LongId");
         TYPE_DEFINITIONS.put(PropertyKey.class, "PropertyKey");
@@ -84,6 +87,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         addDeserializer(EdgeLabel.class, new EdgeLabelDeserializer());
         addSerializer(IndexLabel.class, new IndexLabelSerializer());
         addDeserializer(IndexLabel.class, new IndexLabelDeserializer());
+
+        addSerializer(Optional.class, new OptionalSerializer());
+        addDeserializer(Optional.class, new OptionalDeserializer());
     }
 
     @Override
@@ -95,6 +101,39 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     @Override
     public String getTypeNamespace() {
         return TYPE_NAMESPACE;
+    }
+
+    private class OptionalSerializer extends StdSerializer<Optional> {
+
+        public OptionalSerializer() {
+            super(Optional.class);
+        }
+
+        @Override
+        public void serialize(Optional optional,
+                              JsonGenerator jsonGenerator,
+                              SerializerProvider serializer)
+                              throws IOException {
+            if (optional.isPresent()) {
+                jsonGenerator.writeObject(optional.get());
+            } else {
+                jsonGenerator.writeObject(null);
+            }
+        }
+    }
+
+    private class OptionalDeserializer extends StdDeserializer<Optional> {
+
+        public OptionalDeserializer() {
+            super(Optional.class);
+        }
+
+        @Override
+        public Optional deserialize(JsonParser jsonParser,
+                                    DeserializationContext context)
+                                    throws IOException {
+            return null;
+        }
     }
 
     @SuppressWarnings("serial")
