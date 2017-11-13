@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -108,12 +109,17 @@ public class IndexLabel extends SchemaElement {
         return Collections.unmodifiableList(this.indexFields);
     }
 
-    public void indexFields(String... indexFields) {
-        for (String field : indexFields) {
-            if (!this.indexFields.contains(field)) {
-                this.indexFields.add(field);
-            }
+    public void indexFields(String... fields) {
+        if (fields.length == 0) {
+            return;
         }
+        E.checkArgument(this.indexFields.isEmpty(),
+                        "Not allowed to assign index fields multitimes");
+        List<String> indexFields = Arrays.asList(fields);
+        E.checkArgument(CollectionUtil.allUnique(indexFields),
+                        "Invalid index fields %s, which contains some " +
+                        "duplicate properties", indexFields);
+        this.indexFields.addAll(indexFields);
     }
 
     @Override

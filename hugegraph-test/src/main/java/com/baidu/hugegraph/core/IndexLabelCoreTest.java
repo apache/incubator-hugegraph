@@ -256,6 +256,36 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddIndexLabelWithFieldsAssignedMultiTimes() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByCity").onV("person").secondary()
+                  .by("city").by("city").create();
+        });
+    }
+
+    @Test
+    public void testAddIndexLabelWithFieldsContainSameProp() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByAgeAndCity").onV("person").secondary()
+                  .by("age", "city", "age").create();
+        });
+    }
+
+    @Test
     public void testAddIndexLabelWithSameFields() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();

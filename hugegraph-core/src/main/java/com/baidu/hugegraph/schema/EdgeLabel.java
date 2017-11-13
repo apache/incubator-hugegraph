@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +38,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.EdgeLabelBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringUtil;
 import com.google.common.collect.ImmutableSet;
@@ -112,11 +114,24 @@ public class EdgeLabel extends SchemaLabel {
     }
 
     public EdgeLabel sortKeys(String... keys) {
-        for (String key : keys) {
-            if (!this.sortKeys.contains(key)) {
-                this.sortKeys.add(key);
-            }
+        if (keys.length == 0) {
+            return this;
         }
+
+        E.checkArgument(this.frequency == Frequency.MULTIPLE,
+                        "Not allowed to use frequency '%s' and assign " +
+                        "sort keys at the same time for edge label '%s'",
+                        this.frequency, this.name);
+
+        E.checkArgument(this.sortKeys.isEmpty(),
+                        "Not allowed to assign sort keys multitimes");
+
+        List<String> sortKeys = Arrays.asList(keys);
+        E.checkArgument(CollectionUtil.allUnique(sortKeys),
+                        "Invalid sort keys %s, which contains some " +
+                        "duplicate properties", sortKeys);
+
+        this.sortKeys.addAll(sortKeys);
         return this;
     }
 

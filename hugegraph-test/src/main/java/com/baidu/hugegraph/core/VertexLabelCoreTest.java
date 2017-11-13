@@ -323,6 +323,33 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddVertexLabelWithPrimaryKeyAssignedMultiTimes() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .primaryKeys("name")
+                  .primaryKeys("age")
+                  .create();
+        });
+    }
+
+    @Test
+    public void testAddVertexLabelWithPrimaryKeyContainSameProp() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .primaryKeys("name", "age", "name")
+                  .create();
+        });
+    }
+
+    @Test
     public void testAddVertexLabelWithoutPrimaryKey() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
