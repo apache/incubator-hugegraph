@@ -22,6 +22,7 @@ package com.baidu.hugegraph.util;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 public final class CollectionUtil {
@@ -65,5 +66,9 @@ public final class CollectionUtil {
             }
         }
         return true;
+    }
+
+    public static boolean allUnique(Collection<?> collection){
+        return collection.stream().allMatch(new HashSet<>()::add);
     }
 }

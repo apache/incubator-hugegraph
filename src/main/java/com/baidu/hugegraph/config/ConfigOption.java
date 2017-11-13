@@ -55,6 +55,7 @@ public class ConfigOption<T> {
 
     private final String name;
     private final String desc;
+    // Not allowed to modify option whose `rewritable` is false
     private final Boolean rewritable;
     private final Class<T> dataType;
     private T value;

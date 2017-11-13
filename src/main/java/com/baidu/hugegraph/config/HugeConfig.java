@@ -89,7 +89,8 @@ public class HugeConfig extends PropertiesConfiguration {
                 String key = keys.next();
 
                 if (!OptionSpace.containKey(key)) {
-                    LOG.warn("The option '{}' is redundant", key);
+                    LOG.warn("The config option '{}' is redundant, " +
+                             "please ensure it has been registered", key);
                     continue;
                 }
                 ConfigOption option = OptionSpace.get(key);
