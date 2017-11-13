@@ -92,8 +92,8 @@ public abstract class HugeElement implements Element, GraphType {
         return this.propLoaded;
     }
 
-    public void propLoaded(boolean loaded) {
-        this.propLoaded = loaded;
+    public void propNotLoaded() {
+        this.propLoaded = false;
     }
 
     public void committed() {
