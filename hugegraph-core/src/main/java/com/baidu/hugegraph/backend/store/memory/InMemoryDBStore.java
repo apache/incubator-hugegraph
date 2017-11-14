@@ -233,10 +233,10 @@ public class InMemoryDBStore implements BackendStore {
                      conditions);
         Condition cond = conditions.iterator().next();
         E.checkState(cond.isRelation() &&
-                     ((Condition.Relation) cond).key().equals(HugeKeys.LABEL),
+                     ((Condition.Relation) cond).serialKey().equals(HugeKeys.LABEL),
                      "Not support querying edge by %s",
                      conditions);
-        String label = (String) ((Condition.Relation) cond).value();
+        String label = (String) ((Condition.Relation) cond).serialValue();
 
         Map<Id, BackendEntry> rs = new HashMap<>();
 
@@ -275,15 +275,15 @@ public class InMemoryDBStore implements BackendStore {
         }
 
         Condition.Relation r = (Condition.Relation) c;
-        String key = r.key().toString();
+        String key = r.serialKey().toString();
 
         // TODO: deal with others Relation like: <, >=, ...
         if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
-            return entry.contains(r.value().toString());
+            return entry.contains(r.serialValue().toString());
         } else if (r.relation() == Condition.RelationType.CONTAINS) {
-            return entry.containsValue(r.value().toString());
+            return entry.containsValue(r.serialValue().toString());
         } else if (r.relation() == Condition.RelationType.EQ) {
-            return entry.contains(key, r.value().toString());
+            return entry.contains(key, r.serialValue().toString());
         } else if (entry.contains(key)) {
             return r.test(entry.column(key));
         }

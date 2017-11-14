@@ -86,6 +86,7 @@ public class HugeGraph implements Graph {
 
     private String name;
     private EventHub schemaEventHub;
+    private EventHub indexEventHub;
     private HugeFeatures features;
     private HugeConfig configuration;
     private HugeVariables veriables;
@@ -101,6 +102,7 @@ public class HugeGraph implements Graph {
         this.configuration = configuration;
 
         this.schemaEventHub = new EventHub("schema");
+        this.indexEventHub = new EventHub("index");
         this.features = new HugeFeatures(this, true);
 
         this.name = configuration.get(CoreOptions.STORE);
@@ -168,6 +170,10 @@ public class HugeGraph implements Graph {
 
     public EventHub schemaEventHub() {
         return this.schemaEventHub;
+    }
+
+    public EventHub indexEventHub() {
+        return this.indexEventHub;
     }
 
     public void initBackend() {

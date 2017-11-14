@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.baidu.hugegraph.exception.NotFoundException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -46,12 +45,15 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -70,6 +72,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -365,6 +368,9 @@ public class GraphTransaction extends AbstractTransaction {
                 list.add(vertex);
             }
         }
+        if (query.resultType() == HugeType.VERTEX) {
+            return this.filterResults(query, list);
+        }
         return list;
     }
 
@@ -464,8 +470,7 @@ public class GraphTransaction extends AbstractTransaction {
                 }
             }
         }
-
-        return results.values();
+        return this.filterResults(query, results.values());
     }
 
     public Iterable<Edge> queryEdgesByVertex(Id id) {
@@ -813,6 +818,23 @@ public class GraphTransaction extends AbstractTransaction {
         } finally {
             locks.unlock();
         }
+    }
+
+    private <V> Iterable<V> filterResults(Query query,
+                                          Iterable<V> list) {
+        if (!(query instanceof ConditionQuery)) {
+            return list;
+        }
+        ConditionQuery q = (ConditionQuery) query;
+        List<V> results = new ArrayList<>();
+        for (V v : list) {
+            if (q.test((HugeElement) v)) {
+                results.add(v);
+            } else {
+                this.indexTx.removeIndexLeft(q, (HugeElement) v);
+            }
+        }
+        return results;
     }
 
     public void removeIndex(IndexLabel indexLabel) {

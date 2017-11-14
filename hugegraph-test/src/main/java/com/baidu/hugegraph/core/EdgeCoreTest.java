@@ -890,6 +890,50 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(2, vertices.size());
     }
 
+    @Test
+    public void testQueryByLongPropOfOverrideEdge() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        louise.addEdge("strike", sean, "id", 1, "timestamp", current,
+                       "place", "park", "tool", "shovel", "reason", "jeer",
+                       "arrested", false);
+        louise.addEdge("strike", sean, "id", 1, "timestamp", current + 1,
+                       "place", "park", "tool", "shovel", "reason", "jeer",
+                       "arrested", false);
+        List<Edge> edges = graph.traversal().E().has("timestamp", current)
+                                .toList();
+        Assert.assertEquals(0, edges.size());
+        edges = graph.traversal().E().has("timestamp", current + 1).toList();
+        Assert.assertEquals(1, edges.size());
+    }
+
+    @Test
+    public void testQueryByStringPropOfOverrideEdge() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        louise.addEdge("strike", sean, "id", 1, "timestamp", current,
+                       "place", "park", "tool", "shovel", "reason", "jeer",
+                       "arrested", false);
+        louise.addEdge("strike", sean, "id", 1, "timestamp", current,
+                       "place", "street", "tool", "shovel", "reason", "jeer",
+                       "arrested", false);
+        List<Edge> edges = graph.traversal().E().has("place", "park")
+                                .toList();
+        Assert.assertEquals(0, edges.size());
+        edges = graph.traversal().E().has("place", "street").toList();
+        Assert.assertEquals(1, edges.size());
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testScanEdge() {

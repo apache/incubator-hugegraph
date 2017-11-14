@@ -26,9 +26,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -42,6 +44,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -62,9 +65,109 @@ import com.google.common.collect.ImmutableSet;
 public class IndexTransaction extends AbstractTransaction {
 
     private static final String INDEX_EMPTY_SYM = "\u0000";
+    private static final Query EMPTY_QUERY = new ConditionQuery(null);
 
     public IndexTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
+    }
+
+    protected void removeIndexLeft(ConditionQuery query, HugeElement element) {
+        if (element.type() != HugeType.VERTEX &&
+            element.type() != HugeType.EDGE_OUT &&
+            element.type() != HugeType.EDGE_IN) {
+            throw new HugeException("Only accept element of type VERTEX and " +
+                                    "EDGE to remove left index, but got: '%s'",
+                                    element.type());
+        }
+
+        // TODO: remove left index in async thread
+        // Process search index
+        this.processSearchIndexLeft(query, element);
+        // Process secondary index
+        this.processSecondaryIndexLeft(query, element);
+
+        this.commit();
+    }
+
+    private void processSearchIndexLeft(ConditionQuery query,
+                                        HugeElement element) {
+        // Construct index ConditionQuery
+        Set<ConditionQuery> queries = this.query2IndexQuery(query, element);
+        if (queries.isEmpty()) {
+            throw new HugeException("Can't construct index query for '%s'",
+                                    query);
+        }
+
+        for (ConditionQuery q : queries) {
+            if (q.resultType() != HugeType.SEARCH_INDEX) {
+                continue;
+            }
+            // Search and delete index equals element id
+            for (BackendEntry entry : super.query(q)) {
+                HugeIndex index = this.serializer.readIndex(entry, graph());
+                if (index.elementIds().contains(element.id())) {
+                    index.resetElementIds();
+                    index.elementIds(element.id());
+                    this.eliminateEntry(this.serializer.writeIndex(index));
+                }
+            }
+        }
+    }
+
+    private void processSecondaryIndexLeft(ConditionQuery query,
+                                           HugeElement element) {
+        HugeElement elem = element.copyAsFresh();
+        Set<String> propKeys = query.userpropKeys();
+        for (String key : propKeys) {
+            Object conditionValue = query.userpropValue(key);
+            if (conditionValue == null) {
+                // It's inside/between Query (processed in search index)
+                return;
+            }
+            Object propValue = elem.value(key);
+            if (!propValue.equals(conditionValue)) {
+                elem.property(key, conditionValue);
+            }
+        }
+        this.removeSecondaryIndexLeft(element, elem, propKeys);
+    }
+
+    private Set<IndexLabel> relatedIndexLabels(HugeElement element) {
+        Set<IndexLabel> indexLabels = new HashSet<>();
+        Set<String> indexNames = element instanceof HugeVertex ?
+                    ((HugeVertex) element).vertexLabel().indexNames():
+                    ((HugeEdge) element).edgeLabel().indexNames();
+
+        for (String indexName : indexNames) {
+            SchemaTransaction schema = this.graph().schemaTransaction();
+            IndexLabel indexLabel = schema.getIndexLabel(indexName);
+            indexLabels.add(indexLabel);
+        }
+        return indexLabels;
+    }
+
+    private void removeSecondaryIndexLeft(HugeElement correctElem,
+                                          HugeElement incorrectElem,
+                                          Set<String> propKeys) {
+        for (IndexLabel indexLabel : this.relatedIndexLabels(incorrectElem)) {
+            if (CollectionUtils.containsAny(indexLabel.indexFields(),
+                                            propKeys)) {
+                this.updateIndex(indexLabel.name(), incorrectElem, true);
+                this.updateIndex(indexLabel.name(), correctElem, false);
+            }
+        }
+    }
+
+    private Set<ConditionQuery> query2IndexQuery(ConditionQuery query,
+                                                 HugeElement element) {
+        Set<ConditionQuery> indexQueries = new HashSet<>();
+        for (IndexLabel indexLabel : relatedIndexLabels(element)) {
+            ConditionQuery indexQuery = matchIndexLabel(query, indexLabel);
+            if (indexQuery != null) {
+                indexQueries.add(indexQuery);
+            }
+        }
+        return indexQueries;
     }
 
     @Watched(prefix = "index")
@@ -175,6 +278,10 @@ public class IndexTransaction extends AbstractTransaction {
                 locks.lockReads(LockUtil.INDEX_REBUILD, label);
                 // Condition => Entry
                 ConditionQuery indexQuery = this.makeIndexQuery(query, label);
+                // Value type of Condition not matched
+                if (!this.validQueryConditionValues(query)) {
+                    return EMPTY_QUERY;
+                }
                 entries.extend(super.query(indexQuery).iterator());
             } finally {
                 locks.unlock();
@@ -189,6 +296,27 @@ public class IndexTransaction extends AbstractTransaction {
             ids.addAll(index.elementIds());
         }
         return new IdQuery(query.resultType(), ids);
+    }
+
+    private boolean validQueryConditionValues(ConditionQuery query) {
+        Set<String> keys = query.userpropKeys();
+        for (String key : keys) {
+            PropertyKey pk = this.graph().propertyKey(key);
+            Object value = query.userpropValue(key);
+            if (value == null) {
+                return true;
+            }
+            if (pk.dataType().isNumberType()) {
+                if (!(value instanceof Number)) {
+                    return false;
+                }
+            } else {
+                if (!pk.checkValue(value)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private Set<String> collectQueryLabels(ConditionQuery query,

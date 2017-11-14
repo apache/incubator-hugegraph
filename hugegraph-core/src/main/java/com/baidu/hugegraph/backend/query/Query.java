@@ -26,6 +26,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
@@ -122,6 +123,10 @@ public class Query implements Cloneable {
 
     public boolean empty() {
         return this.ids().isEmpty() && this.conditions().isEmpty();
+    }
+
+    public boolean test(HugeElement element) {
+        return true;
     }
 
     @Override

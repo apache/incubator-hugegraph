@@ -334,7 +334,7 @@ public class CassandraSerializer extends AbstractSerializer {
                 for (Condition.Relation r : result.relations()) {
                     // Serialize has-value
                     if (r.relation() == Condition.RelationType.CONTAINS) {
-                        r.value(JsonUtil.toJson(r.value()));
+                        r.serialValue(JsonUtil.toJson(r.value()));
                     }
                 }
             }

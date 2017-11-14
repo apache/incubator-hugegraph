@@ -40,6 +40,7 @@ import com.baidu.hugegraph.backend.query.Query.Order;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
 import com.baidu.hugegraph.util.E;
@@ -261,8 +262,8 @@ public abstract class CassandraTable {
     }
 
     protected Clause relation2Cql(Relation relation) {
-        String key = relation.key().toString();
-        Object value = relation.value();
+        String key = relation.serialKey().toString();
+        Object value = relation.serialValue();
 
         // Serialize value (TODO: should move to Serializer)
         value = serializeValue(value);
@@ -293,8 +294,9 @@ public abstract class CassandraTable {
                 String[] col = pkColumnName().stream()
                                              .map(pk -> formatKey(pk))
                                              .toArray(String[]::new);
-                Object start = QueryBuilder.raw(key);
-                Object end = QueryBuilder.raw((String) value);
+                Shard shard = (Shard) value;
+                Object start = QueryBuilder.raw(shard.start());
+                Object end = QueryBuilder.raw(shard.end());
                 return Clauses.and(
                         QueryBuilder.gte(QueryBuilder.token(col), start),
                         QueryBuilder.lt(QueryBuilder.token(col), end));

@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 
 public class IdQuery extends Query {
@@ -57,6 +58,11 @@ public class IdQuery extends Query {
     public IdQuery query(Id id) {
         this.ids.add(id);
         return this;
+    }
+
+    @Override
+    public boolean test(HugeElement element) {
+        return ids.contains(element.id());
     }
 
     @Override

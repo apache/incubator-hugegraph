@@ -52,6 +52,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
@@ -411,6 +412,22 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         return props.iterator();
+    }
+
+    @Override
+    public Object sysprop(HugeKeys key) {
+        switch (key) {
+            case LABEL:
+                return this.label();
+            case PRIMARY_VALUES:
+                return this.name();
+            case PROPERTIES:
+                return this.getPropertiesMap();
+            default:
+                E.checkArgument(false,
+                                "Invalid system property '%s' of Vertex", key);
+                return null;
+        }
     }
 
     /**

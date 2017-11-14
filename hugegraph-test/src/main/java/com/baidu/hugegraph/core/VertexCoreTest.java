@@ -602,7 +602,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query vertex by primary-values
         List<Vertex> vertexes = graph.traversal().V()
-                                .hasLabel("author").has("id", "1").toList();
+                                .hasLabel("author").has("id", 1).toList();
         Assert.assertEquals(1, vertexes.size());
         assertContains(vertexes,
                        T.label, "author", "id", 1, "name", "James Gosling",
@@ -1044,6 +1044,33 @@ public class VertexCoreTest extends BaseCoreTest {
                      .and(P.lt(29).or(P.eq(35))))
                     .values("name").next();
         });
+    }
+
+    @Test
+    public void testQueryByIntPropOfOverrideVertex() {
+        HugeGraph graph = graph();
+        graph.addVertex(T.label, "person", "name", "Zhangyi",
+                        "city", "Beijing", "age", 28);
+        graph.addVertex(T.label, "person", "name", "Zhangyi",
+                        "city", "Hongkong", "age", 29);
+        List<Vertex> vertices = graph.traversal().V().has("age", 28).toList();
+        Assert.assertEquals(0, vertices.size());
+        vertices = graph.traversal().V().has("age", 29).toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testQueryByStringPropOfOverrideVertex() {
+        HugeGraph graph = graph();
+        graph.addVertex(T.label, "person", "name", "Zhangyi",
+                        "city", "Beijing", "age", 28);
+        graph.addVertex(T.label, "person", "name", "Zhangyi",
+                        "city", "Hongkong", "age", 29);
+        List<Vertex> vertices = graph.traversal().V().has("city", "Beijing")
+                                     .toList();
+        Assert.assertEquals(0, vertices.size());
+        vertices = graph.traversal().V().has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
     }
 
     @Test

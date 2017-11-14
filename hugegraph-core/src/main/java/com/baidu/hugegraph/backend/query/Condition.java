@@ -21,11 +21,16 @@ package com.baidu.hugegraph.backend.query;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -41,17 +46,21 @@ public abstract class Condition {
     }
 
     public enum RelationType {
-        EQ("==", (v1, v2) -> { return v1.equals(v2); }),
+        EQ("==", (v1, v2) -> {return equals(v1, v2); }),
         GT(">", (v1, v2) -> { return compare(v1, v2) > 0; }),
         GTE(">=", (v1, v2) -> { return compare(v1, v2) >= 0; }),
         LT("<", (v1, v2) -> { return compare(v1, v2) < 0; }),
         LTE("<=", (v1, v2) -> { return compare(v1, v2) <= 0; }),
         NEQ("!=", (v1, v2) -> { return compare(v1, v2) != 0; }),
-        IN("in", (v1, v2) -> { return ((List<?>) v2).contains(v1); }),
-        NOT_IN("notin", (v1, v2) -> { return !((List<?>) v2).contains(v1); }),
-        CONTAINS("contains", null),
-        CONTAINS_KEY("containskey", null),
-        SCAN("scan", null);
+        IN("in", (v1, v2) -> { return ((Collection<?>) v2).contains(v1); }),
+        NOT_IN("notin", (v1, v2) -> { return !((Collection<?>) v2).contains(v1); }),
+        CONTAINS("contains", (v1, v2) -> {
+            return ((Map<?, ?>) v1).containsValue(v2);
+        }),
+        CONTAINS_KEY("containskey", (v1, v2) -> {
+            return ((Map<?, ?>) v1).containsKey(v2);
+        }),
+        SCAN("scan", (v1, v2) -> true);
 
         private final String operator;
         private final BiFunction<Object, Object, Boolean> tester;
@@ -66,6 +75,32 @@ public abstract class Condition {
             return this.operator;
         }
 
+        /**
+         * Determine two values of any type equal
+         * @Param first is actual value
+         * @Param second is value in query condition
+         */
+        protected static boolean equals(final Object first,
+                                        final Object second) {
+            if (first instanceof Id) {
+                if (second instanceof String) {
+                    return second.equals(((Id) first).asString());
+                } else if (second instanceof Long) {
+                    return second.equals(((Id) first).asLong());
+                }
+            } else if (first instanceof Number || second instanceof Number) {
+                return compare(first, second) == 0;
+            }
+
+            return first.equals(second);
+        }
+
+        /**
+         * Determine two numbers equal
+         * @param first
+         * @param second
+         * @return
+         */
         protected static int compare(final Object first, final Object second) {
             if (first == null || second == null) {
                 throw new BackendException(
@@ -132,6 +167,8 @@ public abstract class Condition {
     public abstract List<? extends Relation> relations();
 
     public abstract boolean test(Object value);
+
+    public abstract boolean test(HugeElement element);
 
     public abstract Condition copy();
 
@@ -207,9 +244,8 @@ public abstract class Condition {
     }
 
     public static Condition scan(String start, String end) {
-        SyspropRelation s = new SyspropRelation(null, RelationType.SCAN, end);
-        s.key(start);
-        return s;
+        Shard value = new Shard(start, end, 0);
+        return new SyspropRelation(HugeKeys.ID, RelationType.SCAN, value);
     }
 
     public static Relation eq(String key, Object value) {
@@ -332,6 +368,11 @@ public abstract class Condition {
         }
 
         @Override
+        public boolean test(HugeElement element) {
+            return this.left().test(element) && this.right().test(element);
+        }
+
+        @Override
         public Condition copy() {
             return new And(this.left().copy(), this.right().copy());
         }
@@ -353,6 +394,11 @@ public abstract class Condition {
         }
 
         @Override
+        public boolean test(HugeElement element) {
+            return this.left().test(element) || this.right().test(element);
+        }
+
+        @Override
         public Condition copy() {
             return new Or(this.left().copy(), this.right().copy());
         }
@@ -365,6 +411,9 @@ public abstract class Condition {
         protected RelationType relation;
         // Single-type value or a list of single-type value
         protected Object value;
+
+        protected Object serialKey;
+        protected Object serialValue;
 
         @Override
         public ConditionType type() {
@@ -379,8 +428,20 @@ public abstract class Condition {
             return this.value;
         }
 
-        public void value(Object value) {
-            this.value = value;
+        public void serialKey(Object key) {
+            this.serialKey = key;
+        }
+
+        public Object serialKey() {
+            return this.serialKey != null ? this.serialKey : this.key();
+        }
+
+        public void serialValue(Object value) {
+            this.serialValue = value;
+        }
+
+        public Object serialValue() {
+            return this.serialValue != null ? this.serialValue : this.value();
         }
 
         @Override
@@ -433,8 +494,6 @@ public abstract class Condition {
         public abstract boolean isSysprop();
 
         public abstract Object key();
-
-        public abstract void key(Object key);
     }
 
     public static class SyspropRelation extends Relation {
@@ -443,17 +502,13 @@ public abstract class Condition {
          * Column name. TODO: the key should be serialized(code/string) by
          * backend store private Object key.
          */
-        private Object key;
+        private HugeKeys key;
 
         public SyspropRelation(HugeKeys key, Object value) {
-            this((Object) key, RelationType.EQ, value);
+            this(key, RelationType.EQ, value);
         }
 
         public SyspropRelation(HugeKeys key, RelationType op, Object value) {
-            this((Object) key, op, value);
-        }
-
-        private SyspropRelation(Object key, RelationType op, Object value) {
             E.checkNotNull(op, "relation type");
             this.key = key;
             this.relation = op;
@@ -466,13 +521,17 @@ public abstract class Condition {
         }
 
         @Override
-        public void key(Object key) {
-            this.key = key;
+        public boolean isSysprop() {
+            return true;
         }
 
         @Override
-        public boolean isSysprop() {
-            return true;
+        public boolean test(HugeElement element) {
+            if (this.relation == RelationType.SCAN) {
+                return true;
+            }
+            Object value = element.sysprop(this.key);
+            return this.relation.test(value, this.value);
         }
 
         @Override
@@ -502,13 +561,14 @@ public abstract class Condition {
         }
 
         @Override
-        public void key(Object key) {
-            this.key = key.toString();
+        public boolean isSysprop() {
+            return false;
         }
 
         @Override
-        public boolean isSysprop() {
-            return false;
+        public boolean test(HugeElement element) {
+            Object value = element.value(this.key());
+            return this.relation.test(value, this.value);
         }
 
         @Override
