@@ -247,21 +247,12 @@ public class ConditionQuery extends IdQuery {
                               "obtaining userprop from non relation");
                 }
                 Relation r = ((Relation) c);
-                if (!r.key().equals(field) || c.isSysprop()) {
-                    continue;
-                }
-                if (r.relation() == Condition.RelationType.IN) {
-                    List<?> fieldValues = (List<?>) r.value();
-                    E.checkArgument(
-                            fieldValues.size() == 1,
-                            "Only support one element IN index query");
-                    values.addAll(fieldValues);
-                } else {
-                    E.checkArgument(
-                            r.relation() == Condition.RelationType.EQ,
-                            "Must be IN or EQ index query, but got %s",
-                            r.relation());
-                    values.add(r.value());
+                if (r.key().equals(field) && !r.isSysprop()) {
+                    /*
+                     * This method only used for secondary index scenario,
+                     * relation must be IN or EQ
+                     */
+                    values.add(singleValueOfRelationInEq(r));
                 }
                 got = true;
             }
@@ -272,6 +263,40 @@ public class ConditionQuery extends IdQuery {
             }
         }
         return values;
+    }
+
+    public Object userpropValue(String field) {
+        for (Condition c : this.conditions) {
+            if (!c.isRelation()) {
+                // And/Or
+                continue;
+            }
+            Relation r = ((Relation) c);
+            /*
+             * Only relation type IN (only one element) or EQ has single value.
+             * Relation type GT, LT, GTE, LTE etc. doesn't have.
+             */
+            if (r.key().equals(field) && !r.isSysprop() &&
+                (r.relation == Condition.RelationType.IN ||
+                 r.relation == Condition.RelationType.EQ)) {
+                return singleValueOfRelationInEq(r);
+            }
+        }
+        return null;
+    }
+
+    private static Object singleValueOfRelationInEq(Relation r) {
+        if (r.relation() == Condition.RelationType.IN) {
+            List<?> fieldValues = (List<?>) r.value();
+            E.checkArgument(fieldValues.size() == 1,
+                            "Only support one element IN index query");
+            return fieldValues.get(0);
+        } else {
+            E.checkArgument(r.relation() == Condition.RelationType.EQ,
+                            "Must be IN or EQ index query, but got %s",
+                            r.relation());
+            return r.value();
+        }
     }
 
     public String userpropValuesString(List<String> fields) {
@@ -295,5 +320,18 @@ public class ConditionQuery extends IdQuery {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public boolean test(HugeElement element) {
+        if (!this.ids().isEmpty() && !super.test(element)) {
+            return false;
+        }
+        for (Condition cond : this.conditions()) {
+            if (!cond.test(element)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -371,10 +371,10 @@ public class TextSerializer extends AbstractSerializer {
             assert result.allSysprop();
             for (Condition.Relation r : result.relations()) {
                 // Serialize and reset key
-                r.key(formatSyspropName((HugeKeys) r.key()));
+                r.serialKey(formatSyspropName((HugeKeys) r.key()));
                 // Serialize has-key
                 if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
-                    r.value(formatPropertyName(r.value()));
+                    r.serialValue(formatPropertyName(r.value()));
                 }
             }
         }

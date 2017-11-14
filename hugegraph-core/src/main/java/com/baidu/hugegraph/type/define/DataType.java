@@ -67,18 +67,6 @@ public enum DataType {
         this.clazz = clazz;
     }
 
-    public String schema() {
-        return String.format(".as%s()", StringUtils.capitalize(this.name));
-    }
-
-    public static DataType fromCode(byte dataType) {
-        return ALL_CODE.get(dataType);
-    }
-
-    public static DataType fromString(String dataType) {
-        return ALL_NAME.get(dataType);
-    }
-
     public byte code() {
         return this.code;
     }
@@ -119,13 +107,25 @@ public enum DataType {
                     number = Double.valueOf(value.toString());
                     break;
                 default:
-                    throw new AssertionError(String.format("Number type only " +
-                              "contains Byte, Integer, Long, Float, " +
-                              "Double, but got %s", this.clazz()));
+                    throw new AssertionError(String.format(
+                              "Number type only contains Byte, Integer, " +
+                              "Long, Float, Double, but got %s", this.clazz()));
             }
         } catch (NumberFormatException ignore) {
             // Unmatched type found
         }
         return number;
+    }
+
+    public String schema() {
+        return String.format(".as%s()", StringUtils.capitalize(this.name));
+    }
+
+    public static DataType fromCode(byte dataType) {
+        return ALL_CODE.get(dataType);
+    }
+
+    public static DataType fromString(String dataType) {
+        return ALL_NAME.get(dataType);
     }
 }

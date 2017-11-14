@@ -40,6 +40,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
@@ -224,6 +225,27 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             }
         }
         return props.iterator();
+    }
+
+    public Object sysprop(HugeKeys key) {
+        switch (key) {
+            case OWNER_VERTEX:
+                return this.ownerVertex().id();
+            case LABEL:
+                return this.label();
+            case DIRECTION:
+                return this.direction();
+            case OTHER_VERTEX:
+                return this.otherVertex().id();
+            case SORT_VALUES:
+                return this.name();
+            case PROPERTIES:
+                return this.getPropertiesMap();
+            default:
+                E.checkArgument(false,
+                                "Invalid system property '%s' of Edge", key);
+                return null;
+        }
     }
 
     @Override

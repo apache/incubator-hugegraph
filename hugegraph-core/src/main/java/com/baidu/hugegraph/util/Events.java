@@ -27,5 +27,4 @@ public class Events {
     public static final String STORE_CLOSE = "store.close";
     public static final String STORE_INIT = "store.init";
     public static final String STORE_CLEAR = "store.clear";
-
 }

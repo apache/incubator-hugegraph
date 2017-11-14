@@ -386,5 +386,35 @@ public class Example1 {
         Vertex vertex1 = graph.addVertex(T.label,"test",
                "listKey", new ArrayList<>(Arrays.asList(1, 2,3)));
         graph.vertices(vertex1.id()).next();
+
+        // test for process left index when addVertex to override prior vertex
+        graph.schema().indexLabel("personByCityAndAge").by("city", "age")
+             .onV("person").ifNotExist().create();
+        graph.schema().indexLabel("personByAgeSecond").by("age")
+             .onV("person").secondary().ifNotExist().create();
+        graph.addVertex(T.label, "person", "name", "Curry",
+                        "city", "Beijing", "age", 27);
+        graph.addVertex(T.label, "person", "name", "Curry",
+                        "city", "Shanghai", "age", 28);
+        graph.addVertex(T.label, "person", "name", "Curry",
+                        "city", "Shanghai", "age", 30);
+        List<Vertex> vl;
+        // set breakpoint here to see secondary_indexes and search_indexes table
+        vl = graph.traversal().V().has("age", 27).has("city", "Beijing")
+                  .toList();
+        assert vl.isEmpty();
+        // set breakpoint here to see secondary_indexes and search_indexes table
+        vl = graph.traversal().V().has("age", 28).toList();
+        assert vl.isEmpty();
+        // set breakpoint here to see secondary_indexes and search_indexes table
+        vl = graph.traversal().V().has("city", "Beijing").toList();
+        assert vl.isEmpty();
+
+        graph.addVertex(T.label, "person", "name", "LeBron James",
+                        "city", "Shanghai", "age", 33);
+        vl = graph.traversal().V().has("age", "33").toList();
+        assert vl.size() == 0;
+        vl = graph.traversal().V().has("age", 33.0).toList();
+        assert vl.size() == 1;
     }
 }

@@ -35,7 +35,7 @@ public class HugeIndex implements GraphType {
 
     private Object fieldValues;
     private final IndexLabel label;
-    private final Set<Id> elementIds;
+    private Set<Id> elementIds;
 
     public HugeIndex(IndexLabel indexLabel) {
         this.label = indexLabel;
@@ -88,6 +88,10 @@ public class HugeIndex implements GraphType {
 
     public void elementIds(Id... elementIds) {
         this.elementIds.addAll(Arrays.asList(elementIds));
+    }
+
+    public void resetElementIds() {
+        this.elementIds = new LinkedHashSet<>();
     }
 
     @Override

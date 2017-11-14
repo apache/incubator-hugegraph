@@ -40,6 +40,7 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 
@@ -102,6 +103,15 @@ public abstract class HugeElement implements Element, GraphType {
 
     public Map<String, HugeProperty<?>> getProperties() {
         return Collections.unmodifiableMap(this.properties);
+    }
+
+    public Map<String, Object> getPropertiesMap() {
+        Map<String, Object> props = new HashMap<>();
+        for (Map.Entry<String, HugeProperty<?>> entry :
+             this.properties.entrySet()) {
+            props.put(entry.getKey(), entry.getValue().value());
+        }
+        return props;
     }
 
     @SuppressWarnings("unchecked")
@@ -246,6 +256,16 @@ public abstract class HugeElement implements Element, GraphType {
         this.properties = new HashMap<>(element.properties);
         this.propLoaded = true;
     }
+
+    public HugeElement copyAsFresh() {
+        HugeElement elem = this.copy();
+        elem.fresh = true;
+        return elem;
+    }
+
+    public abstract HugeElement copy();
+
+    public abstract Object sysprop(HugeKeys key);
 
     @Override
     public boolean equals(Object obj) {
