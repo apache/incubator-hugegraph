@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -33,7 +32,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -253,6 +251,12 @@ public class IndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     public Query query(ConditionQuery query) {
+        // NOTE: Currently we can't support filter changes in memory
+        if (this.hasUpdates()) {
+            throw new BackendException("Can't do index query when " +
+                                       "there are changes in transaction");
+        }
+
         SchemaTransaction schema = graph().schemaTransaction();
 
         // Get user applied label or collect all qualified labels
@@ -282,6 +286,7 @@ public class IndexTransaction extends AbstractTransaction {
                 if (!this.validQueryConditionValues(query)) {
                     return EMPTY_QUERY;
                 }
+                // Query index from backend store
                 entries.extend(super.query(indexQuery).iterator());
             } finally {
                 locks.unlock();
@@ -289,13 +294,13 @@ public class IndexTransaction extends AbstractTransaction {
         }
 
         // Entry => Id
-        Set<Id> ids = new LinkedHashSet<>();
+        IdQuery ids = new IdQuery(query.resultType(), query);
         while (entries.hasNext()) {
             BackendEntry entry = entries.next();
             HugeIndex index = this.serializer.readIndex(entry, graph());
-            ids.addAll(index.elementIds());
+            ids.query(index.elementIds());
         }
-        return new IdQuery(query.resultType(), ids);
+        return ids;
     }
 
     private boolean validQueryConditionValues(ConditionQuery query) {
@@ -404,7 +409,7 @@ public class IndexTransaction extends AbstractTransaction {
             if (joinedValues.isEmpty()) {
                 joinedValues = INDEX_EMPTY_SYM;
             }
-            indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX);
+            indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);
             indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
             indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
         } else {
@@ -423,7 +428,7 @@ public class IndexTransaction extends AbstractTransaction {
                 condition = condition.replace(r, sys);
             }
 
-            indexQuery = new ConditionQuery(HugeType.SEARCH_INDEX);
+            indexQuery = new ConditionQuery(HugeType.SEARCH_INDEX, query);
             indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
             indexQuery.query(condition);
         }

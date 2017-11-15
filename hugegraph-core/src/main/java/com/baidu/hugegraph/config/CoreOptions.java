@@ -86,13 +86,6 @@ public class CoreOptions extends OptionHolder {
             "The graph table name, which store vertex, edge and property.",
             disallowEmpty(String.class));
 
-    public static final ConfigOption<String> STORE_INDEX = new ConfigOption<>(
-            "store.index",
-            "huge_index",
-            true,
-            "The index table name, which store index data of vertex, edge.",
-            disallowEmpty(String.class));
-
     public static final ConfigOption<String> SERIALIZER = new ConfigOption<>(
             "serializer",
             "text",
@@ -100,11 +93,32 @@ public class CoreOptions extends OptionHolder {
             "The serializer for backend store, like: text/binary/cassandra",
             disallowEmpty(String.class));
 
-    public static final ConfigOption<String> DEFAULT_VERTEX_LABEL =  new ConfigOption<>(
+    public static final ConfigOption<String> VERTEX_DEFAULT_LABEL =  new ConfigOption<>(
             "vertex.default_label",
             "vertex",
             true,
             "The default vertex label.",
+            disallowEmpty(String.class));
+
+    public static final ConfigOption<Integer> VERTEX_TX_CAPACITY = new ConfigOption<>(
+            "vertex.tx_capacity",
+            10000,
+            true,
+            "The max size(items) of vertices(uncommitted) in transaction.",
+            rangeInt(1, 1000000));
+
+    public static final ConfigOption<Integer> EDGE_TX_CAPACITY = new ConfigOption<>(
+            "edge.tx_capacity",
+            10000,
+            true,
+            "The max size(items) of edges(uncommitted) in transaction.",
+            rangeInt(1, 1000000));
+
+    public static final ConfigOption<String> SCHEMA_ILLEGAL_NAME_REGEX = new ConfigOption<>(
+            "schema.illegal_name_regex",
+            "\\s+|~.*",
+            true,
+            "The regex expression that specified the illegal format for schema name.",
             disallowEmpty(String.class));
 
     public static final ConfigOption<Integer> SCHEMA_CACHE_CAPACITY = new ConfigOption<>(
@@ -134,12 +148,4 @@ public class CoreOptions extends OptionHolder {
             true,
             "The expire time in seconds of graph data(vertex/edge).",
             rangeInt(0, Integer.MAX_VALUE));
-
-    public static final ConfigOption<String> SCHEMA_ILLEGAL_NAME_REGEX = new ConfigOption<>(
-            "schema.illegal_name_regex",
-            "\\s+|~.*",
-            true,
-            "The regex expression that specified the illegal format for " +
-            "schema name",
-            disallowEmpty(String.class));
 }

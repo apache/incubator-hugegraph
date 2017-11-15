@@ -31,8 +31,6 @@ public interface BackendStoreProvider {
 
     public BackendStore loadGraphStore(String name);
 
-    public BackendStore loadIndexStore(String name);
-
     public void open(String name);
 
     public void close();

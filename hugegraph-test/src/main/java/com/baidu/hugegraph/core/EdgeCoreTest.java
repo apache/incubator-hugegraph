@@ -37,6 +37,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
@@ -215,18 +216,22 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
+        // Group 1
         james.addEdge("created", java);
         guido.addEdge("created", python);
 
         james.addEdge("created", java);
         guido.addEdge("created", python);
 
+        // Group 2
         james.addEdge("authored", java1);
         james.addEdge("authored", java2);
         james.addEdge("authored", java3, "score", 4);
 
         james.addEdge("authored", java1);
         james.addEdge("authored", java3, "score", 5);
+
+        graph.tx().commit();
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(5, edges.size());
@@ -1093,18 +1098,22 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testRemoveEdgeAfterAddEdgeWithTx() {
         HugeGraph graph = graph();
-        graph.tx().open();
+        GraphTransaction tx = graph.openTransaction();
 
-        Vertex james = graph.addVertex(T.label, "author", "id", 1,
-                                       "name", "James Gosling", "age", 62,
-                                       "lived", "Canadian");
+        Vertex james = tx.addVertex(T.label, "author", "id", 1,
+                                    "name", "James Gosling", "age", 62,
+                                    "lived", "Canadian");
 
-        Vertex java = graph.addVertex(T.label, "language", "name", "java");
+        Vertex java = tx.addVertex(T.label, "language", "name", "java");
 
         Edge created = james.addEdge("created", java);
         created.remove();
 
-        graph.tx().close();
+        try {
+            tx.commit();
+        } finally {
+            tx.close();
+        }
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(0, edges.size());
@@ -1113,22 +1122,22 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testRemoveVertexAfterAddEdgesWithTx() {
         HugeGraph graph = graph();
-        graph.tx().open();
+        GraphTransaction tx = graph.openTransaction();
 
-        Vertex james = graph.addVertex(T.label, "author", "id", 1,
-                                       "name", "James Gosling", "age", 62,
-                                       "lived", "Canadian");
-        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
-                                        "name", "Guido van Rossum", "age", 61,
-                                        "lived", "California");
+        Vertex james = tx.addVertex(T.label, "author", "id", 1,
+                                    "name", "James Gosling", "age", 62,
+                                    "lived", "Canadian");
+        Vertex guido =  tx.addVertex(T.label, "author", "id", 2,
+                                     "name", "Guido van Rossum", "age", 61,
+                                     "lived", "California");
 
-        Vertex java = graph.addVertex(T.label, "language", "name", "java");
-        Vertex python = graph.addVertex(T.label, "language", "name", "python",
-                                        "dynamic", true);
+        Vertex java = tx.addVertex(T.label, "language", "name", "java");
+        Vertex python = tx.addVertex(T.label, "language", "name", "python",
+                                     "dynamic", true);
 
-        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
-        Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
-        Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
+        Vertex java1 = tx.addVertex(T.label, "book", "name", "java-1");
+        Vertex java2 = tx.addVertex(T.label, "book", "name", "java-2");
+        Vertex java3 = tx.addVertex(T.label, "book", "name", "java-3");
 
         james.addEdge("created", java);
         guido.addEdge("created", python);
@@ -1140,7 +1149,11 @@ public class EdgeCoreTest extends BaseCoreTest {
         james.remove();
         guido.remove();
 
-        graph.tx().close();
+        try {
+            tx.commit();
+        } finally {
+            tx.close();
+        }
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(0, edges.size());
@@ -1157,30 +1170,17 @@ public class EdgeCoreTest extends BaseCoreTest {
         long current = System.currentTimeMillis();
         Edge edge = louise.addEdge("transfer", sean, "id", 1,
                                    "amount", 500.00F, "timestamp", current);
+        graph.tx().commit();
 
         // Add property
         edge.property("message", "Happy birthday!");
+        graph.tx().commit();
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(1, edges.size());
         assertContains(edges, "transfer", louise, sean, "id", 1,
                        "amount", 500.00F, "timestamp", current,
                        "message", "Happy birthday!");
-    }
-
-    @Test
-    public void testAddEdgePropertyExisted() {
-        HugeGraph graph = graph();
-
-        Edge edge = initEdgeTransfer();
-        Assert.assertEquals(500.00F, edge.property("amount").value());
-
-        edge.property("amount", 200.00F);
-
-        List<Edge> edges = graph.traversal().E().toList();
-        Assert.assertEquals(1, edges.size());
-        edge = edges.get(0);
-        Assert.assertEquals(200.00F, edge.property("amount").value());
     }
 
     @Test
@@ -1202,13 +1202,164 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddEdgePropertyOfSortKey() {
+    public void testAddEdgePropertyWithIllegalValueForIndex() {
+        HugeGraph graph = graph();
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+        graph.tx().commit();
+
+        long current = System.currentTimeMillis();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            louise.addEdge("strike", sean, "id", 1,
+                           "timestamp", current, "place", "park",
+                           "tool", "\u0000", "reason", "jeer",
+                           "arrested", false);
+            graph.tx().commit();
+        }, (e) -> {
+            Assert.assertTrue(e.getMessage().contains(
+                              "Illegal value of text property: '\u0000'"));
+        });
+    }
+
+    @Test
+    public void testUpdateEdgeProperty() {
+        HugeGraph graph = graph();
+
+        Edge edge = initEdgeTransfer();
+        Assert.assertEquals(500.00F, edge.property("amount").value());
+
+        // Update property
+        edge.property("amount", 200.00F);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(200.00F, edge.property("amount").value());
+    }
+
+    @Test
+    public void testUpdateEdgePropertyWithRemoveAndSet() {
+        HugeGraph graph = graph();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("transfer", sean, "id", 1,
+                                   "amount", 500.00F, "timestamp", current,
+                                   "message", "Happy birthday!");
+        graph.tx().commit();
+
+        edge.property("message").remove();
+        edge.property("message", "Happy birthday ^-^");
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        assertContains(edges, "transfer", louise, sean, "id", 1,
+                       "amount", 500.00F, "timestamp", current,
+                       "message", "Happy birthday ^-^");
+    }
+
+    @Test
+    public void testUpdateEdgePropertyTwice() {
+        HugeGraph graph = graph();
+
+        Edge edge = initEdgeTransfer();
+        Assert.assertEquals(500.00F, edge.property("amount").value());
+
+        edge.property("amount", 100.00F);
+        edge.property("amount", 200.00F);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(200.00F, edge.property("amount").value());
+    }
+
+    @Test
+    public void testUpdateEdgePropertyOfSortKey() {
         Edge edge = initEdgeTransfer();
 
         Assert.assertEquals(1, edge.property("id").value());
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Update sort key property
             edge.property("id", 2);
+        });
+    }
+
+    @Test
+    public void testUpdateEdgePropertyOfNewEdge() {
+        HugeGraph graph = graph();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+        long current = System.currentTimeMillis();
+        Edge edge = louise.addEdge("transfer", sean, "id", 1,
+                                   "amount", 500.00F, "timestamp", current,
+                                   "message", "Happy birthday!");
+
+        edge.property("amount", 200.00F);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        assertContains(edges, "transfer", louise, sean, "id", 1,
+                       "amount", 200.00F, "timestamp", current,
+                       "message", "Happy birthday!");
+    }
+
+    @Test
+    public void testUpdateEdgePropertyOfAddingVertex() {
+        Edge edge = initEdgeTransfer();
+
+        Vertex louise = vertex("person", "name", "Louise");
+        Vertex sean = vertex("person", "name", "Sean");
+        louise.addEdge("transfer", sean, "id", 1, "amount", 500.00F,
+                       "timestamp", edge.value("timestamp"));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("message").remove();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("message", "*");
+        });
+    }
+
+    @Test
+    public void testUpdateEdgePropertyOfRemovingVertex() {
+        Edge edge = initEdgeTransfer();
+
+        edge.remove();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("message").remove();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("message", "*");
+        });
+    }
+
+    @Test
+    public void testUpdateEdgePropertyOfRemovingVertexWithDrop() {
+        HugeGraph graph = graph();
+        Edge edge = initEdgeTransfer();
+
+        graph.traversal().E(edge.id()).drop().iterate();
+
+        // Update on dirty vertex
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("message").remove();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            edge.property("message", "*");
         });
     }
 
@@ -1222,6 +1373,26 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         // Remove property
         edge.property("message").remove();
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertFalse(edges.get(0).property("message").isPresent());
+    }
+
+    @Test
+    public void testRemoveEdgePropertyTwice() {
+        HugeGraph graph = graph();
+
+        Edge edge = initEdgeTransfer();
+        Assert.assertEquals(500.00F, edge.property("amount").value());
+        Assert.assertEquals("Happy birthday!",
+                            edge.property("message").value());
+
+        // Remove property twice
+        edge.property("message").remove();
+        edge.property("message").remove();
+        graph.tx().commit();
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(1, edges.size());
@@ -1251,6 +1422,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                    "tool", "shovel", "reason", "jeer",
                                    "arrested", false);
         edge.property("tool").remove();
+        graph.tx().commit();
     }
 
     @Test
@@ -1288,6 +1460,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                    "tool", "shovel", "reason", "jeer",
                                    "hurt", true, "arrested", false);
         edge.property("hurt").remove();
+        graph.tx().commit();
     }
 
     @Test
@@ -1305,26 +1478,6 @@ public class EdgeCoreTest extends BaseCoreTest {
                                    "arrested", false);
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             edge.property("arrested").remove();
-        });
-    }
-
-    @Test
-    public void testAddEdgePropertyWithIllegalValueForIndex() {
-        HugeGraph graph = graph();
-        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
-                                        "city", "Beijing", "age", 21);
-        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
-                                      "city", "Beijing", "age", 23);
-
-        long current = System.currentTimeMillis();
-        Assert.assertThrows(BackendException.class, () -> {
-            louise.addEdge("strike", sean, "id", 1,
-                           "timestamp", current, "place", "park",
-                           "tool", "\u0000", "reason", "jeer",
-                           "arrested", false);
-        }, (e) -> {
-            Assert.assertTrue(e.getMessage().contains(
-                    "Illegal value of text property: '\u0000'"));
         });
     }
 
@@ -1518,6 +1671,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         louise.addEdge("friend", selina);
         jeff.addEdge("friend", sean);
         jeff.addEdge("follow", james);
+
+        graph.tx().commit();
     }
 
     private Edge initEdgeTransfer() {
@@ -1532,6 +1687,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         Edge edge = louise.addEdge("transfer", sean, "id", 1,
                                    "amount", 500.00F, "timestamp", current,
                                    "message", "Happy birthday!");
+
+        graph.tx().commit();
         return edge;
     }
 

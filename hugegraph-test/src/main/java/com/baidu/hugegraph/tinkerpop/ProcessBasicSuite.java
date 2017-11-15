@@ -93,9 +93,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.Transl
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.verification.ReadOnlyStrategyProcessTest;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
+import org.junit.runners.model.Statement;
 
 import com.baidu.hugegraph.dist.RegisterUtil;
-import org.junit.runners.model.Statement;
 
 /**
  * Standard process test suite for tinkerpop graph
@@ -290,11 +290,12 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
     @Override
     protected Statement withAfterClasses(final Statement statement) {
         Statement wrappedStatement = new Statement() {
+            @Override
             public void evaluate() throws Throwable {
-            statement.evaluate();
-            GraphProvider gp = GraphManager.setGraphProvider(null);
-            ((TestGraphProvider) gp).clearBackends();
-            GraphManager.setGraphProvider(gp);
+                statement.evaluate();
+                GraphProvider gp = GraphManager.setGraphProvider(null);
+                ((TestGraphProvider) gp).clearBackends();
+                GraphManager.setGraphProvider(gp);
             }
         };
         return super.withAfterClasses(wrappedStatement);

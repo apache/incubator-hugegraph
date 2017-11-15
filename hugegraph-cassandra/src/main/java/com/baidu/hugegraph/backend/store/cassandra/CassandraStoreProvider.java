@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraGraphStore;
-import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraIndexStore;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraSchemaStore;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -68,23 +67,6 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         E.checkNotNull(store, "store");
         E.checkState(store instanceof CassandraStore.CassandraGraphStore,
                      "GraphStore must be a instance of CassandraGraphStore");
-        return store;
-    }
-
-    @Override
-    public BackendStore loadIndexStore(String name) {
-        LOG.debug("CassandraStoreProvider load IndexStore '{}'", name);
-
-        this.checkOpened();
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new CassandraIndexStore(this, keyspace(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof CassandraStore.CassandraIndexStore,
-                     "IndexStore must be a instance of CassandraIndexStore");
         return store;
     }
 

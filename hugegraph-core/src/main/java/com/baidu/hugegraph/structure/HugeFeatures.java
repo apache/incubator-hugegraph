@@ -29,7 +29,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 
-
 public class HugeFeatures implements Graph.Features {
 
     protected final HugeGraph graph;
@@ -70,7 +69,7 @@ public class HugeFeatures implements Graph.Features {
     public class HugeGraphFeatures implements GraphFeatures {
 
         private final VariableFeatures variableFeatures =
-                new HugeVariableFeatures();
+                                       new HugeVariableFeatures();
 
         @Override
         public boolean supportsConcurrentAccess() {
@@ -260,7 +259,7 @@ public class HugeFeatures implements Graph.Features {
 
         public String defaultLabel() {
             Configuration conf = HugeFeatures.this.graph.configuration();
-            return ((HugeConfig) conf).get(CoreOptions.DEFAULT_VERTEX_LABEL);
+            return ((HugeConfig) conf).get(CoreOptions.VERTEX_DEFAULT_LABEL);
         }
     }
 

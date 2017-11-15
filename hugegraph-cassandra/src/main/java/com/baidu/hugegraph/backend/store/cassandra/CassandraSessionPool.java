@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.store.BackendStore.TxState;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
@@ -162,11 +163,13 @@ public class CassandraSessionPool {
         private com.datastax.driver.core.Session session;
         private BatchStatement batch;
         private int refs;
+        private TxState txState;
 
         public Session(com.datastax.driver.core.Session session) {
             this.session = session;
             this.batch = new BatchStatement();
             this.refs = 1;
+            this.txState = TxState.CLEAN;
         }
 
         private int attach() {
@@ -215,6 +218,14 @@ public class CassandraSessionPool {
 
         public Collection<Statement> statements() {
             return this.batch.getStatements();
+        }
+
+        public TxState txState() {
+            return this.txState;
+        }
+
+        public void txState(TxState state) {
+            this.txState = state;
         }
 
         public String keyspace() {

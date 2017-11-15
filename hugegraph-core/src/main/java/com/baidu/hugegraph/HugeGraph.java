@@ -20,8 +20,6 @@
 package com.baidu.hugegraph;
 
 import java.util.Iterator;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
@@ -30,7 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
-import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadedTransaction;
+import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadLocalTransaction;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
@@ -91,12 +89,10 @@ public class HugeGraph implements Graph {
     private HugeConfig configuration;
     private HugeVariables veriables;
 
+    private TinkerpopTransaction tx;
+
     // Store provider like Cassandra
     private BackendStoreProvider storeProvider;
-
-    // Default transactions
-    private ThreadLocal<GraphTransaction> graphTransaction;
-    private ThreadLocal<SchemaTransaction> schemaTransaction;
 
     public HugeGraph(HugeConfig configuration) {
         this.configuration = configuration;
@@ -107,61 +103,23 @@ public class HugeGraph implements Graph {
 
         this.name = configuration.get(CoreOptions.STORE);
 
-        this.graphTransaction = new ThreadLocal<>();
-        this.schemaTransaction = new ThreadLocal<>();
-
         this.veriables = null;
 
-        this.storeProvider = null;
-
         try {
-            this.initTransaction();
+            this.storeProvider = this.loadStoreProvider();
         } catch (BackendException e) {
             String message = "Failed to init backend store";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
         }
+
+        this.tx = new TinkerpopTransaction(this);
     }
 
-    private synchronized void initTransaction() throws HugeException {
-        if (this.storeProvider == null) {
-            String backend = this.configuration.get(CoreOptions.BACKEND);
-            LOG.info("Opening backend store: '{}'", backend);
-            this.storeProvider = BackendProviderFactory.open(backend,
-                                                             this.name);
-        }
-
-        SchemaTransaction schemaTx = this.openSchemaTransaction();
-        GraphTransaction graphTx = this.openGraphTransaction();
-
-        schemaTx.autoCommit(true);
-        graphTx.autoCommit(true);
-
-        this.schemaTransaction.set(schemaTx);
-        this.graphTransaction.set(graphTx);
-    }
-
-    private void destroyTransaction() {
-        GraphTransaction graphTx = this.graphTransaction.get();
-        if (graphTx != null) {
-            try {
-                graphTx.close();
-            } catch (Exception e) {
-                LOG.error("Failed to close GraphTransaction", e);
-            }
-        }
-
-        SchemaTransaction schemaTx = this.schemaTransaction.get();
-        if (schemaTx != null) {
-            try {
-                schemaTx.close();
-            } catch (Exception e) {
-                LOG.error("Failed to close SchemaTransaction", e);
-            }
-        }
-
-        this.graphTransaction.remove();
-        this.schemaTransaction.remove();
+    private BackendStoreProvider loadStoreProvider() {
+        String backend = this.configuration.get(CoreOptions.BACKEND);
+        LOG.info("Opening backend store: '{}'", backend);
+        return BackendProviderFactory.open(backend, this.name);
     }
 
     public String name() {
@@ -177,11 +135,21 @@ public class HugeGraph implements Graph {
     }
 
     public void initBackend() {
-        this.storeProvider.init();
+        this.tx.readWrite();
+        try {
+            this.storeProvider.init();
+        } finally {
+            this.tx.close();
+        }
     }
 
     public void clearBackend() {
-        this.storeProvider.clear();
+        this.tx.readWrite();
+        try {
+            this.storeProvider.clear();
+        } finally {
+            this.tx.close();
+        }
     }
 
     private SchemaTransaction openSchemaTransaction() throws HugeException {
@@ -201,10 +169,7 @@ public class HugeGraph implements Graph {
             String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
             BackendStore store = this.storeProvider.loadGraphStore(graph);
 
-            String index = this.configuration.get(CoreOptions.STORE_INDEX);
-            BackendStore indexStore = this.storeProvider.loadIndexStore(index);
-
-            return new CachedGraphTransaction(this, store, indexStore);
+            return new CachedGraphTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";
             LOG.error("{}: {}", message, e.getMessage());
@@ -213,21 +178,20 @@ public class HugeGraph implements Graph {
     }
 
     public SchemaTransaction schemaTransaction() {
-        SchemaTransaction schemaTx = this.schemaTransaction.get();
-        if (schemaTx == null) {
-            this.initTransaction();
-            schemaTx = this.schemaTransaction.get();
-        }
-        return schemaTx;
+        /*
+         * NOTE: each schema operation will be auto committed,
+         * Don't need to open tinkerpop tx by readWrite() and commit manually.
+         */
+        return this.tx.schemaTransaction();
     }
 
     public GraphTransaction graphTransaction() {
-        GraphTransaction graphTx = this.graphTransaction.get();
-        if (graphTx == null) {
-            this.initTransaction();
-            graphTx = this.graphTransaction.get();
-        }
-        return graphTx;
+        /*
+         * NOTE: graph operations must be committed manually,
+         * Maybe users need to auto open tinkerpop tx by readWrite().
+         */
+        this.tx.readWrite();
+        return this.tx.graphTransaction();
     }
 
     public SchemaManager schema() {
@@ -335,7 +299,7 @@ public class HugeGraph implements Graph {
                 this.tx.close();
             }
         } finally {
-            this.destroyTransaction();
+            this.tx.destroyTransaction();
             this.storeProvider.close();
         }
     }
@@ -346,7 +310,7 @@ public class HugeGraph implements Graph {
     }
 
     @Override
-    public Variables variables() {
+    public synchronized Variables variables() {
         if (this.veriables == null) {
             this.veriables = new HugeVariables(this);
         }
@@ -364,85 +328,176 @@ public class HugeGraph implements Graph {
         return StringFactory.graphString(this, this.name());
     }
 
-    private Transaction tx = new AbstractThreadedTransaction(this) {
+    private class TinkerpopTransaction extends AbstractThreadLocalTransaction {
 
-        private ThreadLocal<GraphTransaction> backendTx = new ThreadLocal<>();
+        private ThreadLocal<Boolean> opened;
+
+        // Backend transactions
+        private ThreadLocal<GraphTransaction> graphTransaction;
+        private ThreadLocal<SchemaTransaction> schemaTransaction;
+
+        public TinkerpopTransaction(Graph graph) {
+            super(graph);
+
+            this.opened = ThreadLocal.withInitial(() -> false);
+            this.graphTransaction = ThreadLocal.withInitial(() -> null);
+            this.schemaTransaction = ThreadLocal.withInitial(() -> null);
+        }
 
         @Override
-        public void open() {
-            if (isOpen()) {
-                close();
+        public void commit() {
+            try {
+                super.commit();
+            } finally {
+                this.setClosed();
             }
-            doOpen();
+        }
+
+        @Override
+        public void rollback() {
+            try {
+                super.rollback();
+            } finally {
+                this.setClosed();
+            }
+        }
+
+        @Override
+        public <G extends Graph> G createThreadedTx() {
+            throw Transaction.Exceptions.threadedTransactionsNotSupported();
+        }
+
+        @Override
+        public boolean isOpen() {
+            return this.opened.get();
         }
 
         @Override
         protected void doOpen() {
-            this.backendTx.set(graphTransaction());
-            this.backendTx().autoCommit(false);
+            this.schemaTransaction();
+            this.graphTransaction();
+
+            this.setOpened();
         }
 
         @Override
         public void doCommit() {
             this.verifyOpened();
-            this.backendTx().commit();
+
+            this.schemaTransaction().commit();
+            this.graphTransaction().commit();
         }
 
         @Override
         public void doRollback() {
             this.verifyOpened();
-            this.backendTx().rollback();
-        }
 
-        @Override
-        public <R> Workload<R> submit(Function<Graph, R> graphRFunction) {
-            throw new UnsupportedOperationException(
-                      "HugeGraph transaction does not support submit.");
-        }
-
-        @Override
-        public <G extends Graph> G createThreadedTx() {
-            throw new UnsupportedOperationException(
-                      "HugeGraph does not support threaded transactions.");
-        }
-
-        @Override
-        public boolean isOpen() {
-            return this.backendTx() != null;
+            try {
+                this.graphTransaction().rollback();
+            } finally {
+                this.schemaTransaction().rollback();
+            }
         }
 
         @Override
         public void doClose() {
             this.verifyOpened();
 
-            // Calling super will clear listeners
-            super.doClose();
-
-            this.backendTx().autoCommit(true);
             try {
-                // Would commit() if there is changes
-                // TODO: maybe we should call commit() directly
-                this.backendTx().afterWrite();
+                // Calling super will clear listeners
+                super.doClose();
             } finally {
-                this.backendTx.remove();
+                this.resetState();
             }
         }
 
         @Override
-        public synchronized Transaction onReadWrite(
-                final Consumer<Transaction> consumer) {
-            consumer.accept(this);
-            return this;
-        }
-
-        private GraphTransaction backendTx() {
-            return this.backendTx.get();
+        public String toString() {
+            return String.format("TinkerpopTransaction{opened=%s, " +
+                                 "graphTx=%s, schemaTx=%s}",
+                                 this.opened.get(),
+                                 this.graphTransaction.get(),
+                                 this.schemaTransaction.get());
         }
 
         private void verifyOpened() {
             if (!this.isOpen()) {
                 throw new HugeException("Transaction has not been opened");
             }
+        }
+
+        private void resetState() {
+            this.setClosed();
+            this.readWriteConsumerInternal.set(READ_WRITE_BEHAVIOR.AUTO);
+            this.closeConsumerInternal.set(CLOSE_BEHAVIOR.ROLLBACK);
+        }
+
+        private void setOpened() {
+            // The backend tx may be reused, here just set a flag
+            this.opened.set(true);
+        }
+
+        private void setClosed() {
+            // Just set flag opened=false to reuse the backend tx
+            this.opened.set(false);
+        }
+
+        private SchemaTransaction schemaTransaction() {
+            /*
+             * NOTE: this method may be called even tx is not opened,
+             * the reason is for reusing backend tx.
+             * so we don't call this.verifyOpened() here.
+             */
+
+            SchemaTransaction schemaTx = this.schemaTransaction.get();
+            if (schemaTx == null) {
+                schemaTx = openSchemaTransaction();
+                this.schemaTransaction.set(schemaTx);
+            }
+            return schemaTx;
+        }
+
+        private GraphTransaction graphTransaction() {
+            /*
+             * NOTE: this method may be called even tx is not opened,
+             * the reason is for reusing backend tx.
+             * so we don't call this.verifyOpened() here.
+             */
+
+            GraphTransaction graphTx = this.graphTransaction.get();
+            if (graphTx == null) {
+                graphTx = openGraphTransaction();
+                this.graphTransaction.set(graphTx);
+            }
+            return graphTx;
+        }
+
+        private void destroyTransaction() {
+            if (this.isOpen()) {
+                throw new HugeException(
+                          "Transaction should be closed before destroying");
+            }
+
+            GraphTransaction graphTx = this.graphTransaction.get();
+            if (graphTx != null) {
+                try {
+                    graphTx.close();
+                } catch (Exception e) {
+                    LOG.error("Failed to close GraphTransaction", e);
+                }
+            }
+
+            SchemaTransaction schemaTx = this.schemaTransaction.get();
+            if (schemaTx != null) {
+                try {
+                    schemaTx.close();
+                } catch (Exception e) {
+                    LOG.error("Failed to close SchemaTransaction", e);
+                }
+            }
+
+            this.graphTransaction.remove();
+            this.schemaTransaction.remove();
         }
     };
 }

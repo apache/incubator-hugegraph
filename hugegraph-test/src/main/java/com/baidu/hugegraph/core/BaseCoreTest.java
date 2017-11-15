@@ -78,7 +78,6 @@ public class BaseCoreTest {
     protected void clearData() {
         HugeGraph graph = graph();
 
-        graph.tx().open();
         try {
             // Clear edge
             graph().traversal().E().toStream().forEach(e -> {

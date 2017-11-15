@@ -110,16 +110,22 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public Direction direction() {
-        if (!this.label.directed()) {
-            return Direction.BOTH;
-        }
-
-        if (this.type() == HugeType.EDGE_OUT) {
+        if (this.ownerVertex == this.sourceVertex) {
             return Direction.OUT;
         } else {
-            assert this.type() == HugeType.EDGE_IN;
+            assert this.ownerVertex == this.targetVertex;
             return Direction.IN;
         }
+    }
+
+    public boolean isDirection(Direction direction) {
+        // NOTE: self-loop edge will match both OUT and IN
+        if (direction == Direction.OUT) {
+            return this.ownerVertex == this.sourceVertex;
+        } else if (direction == Direction.IN) {
+            return this.ownerVertex == this.targetVertex;
+        }
+        return false;
     }
 
     @Watched(prefix = "edge")
@@ -161,10 +167,15 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public <V> Property<V> property(String key, V value) {
+        // Check key in edge label
         E.checkArgument(this.label.properties().contains(key),
                         "Invalid property '%s' for edge label '%s', " +
-                        "expect: %s",
-                        key, this.label(), this.edgeLabel().properties());
+                        "expect: %s", key, label(), edgeLabel().properties());
+        // Sort-Keys can only be set once
+        if (edgeLabel().sortKeys().contains(key)) {
+            E.checkArgument(!this.hasProperty(key),
+                            "Can't update sort key: '%s'", key);
+        }
         return this.addProperty(key, value, true);
     }
 
@@ -178,7 +189,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     protected <V> void onUpdateProperty(Cardinality cardinality,
                                         HugeProperty<V> prop) {
-        if (prop != null && !this.fresh()) {
+        if (prop != null) {
             assert prop instanceof HugeEdgeProperty;
             // Use addEdgeProperty() to update
             this.tx().addEdgeProperty((HugeEdgeProperty<V>) prop);
@@ -227,6 +238,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return props.iterator();
     }
 
+    @Override
     public Object sysprop(HugeKeys key) {
         switch (key) {
             case OWNER_VERTEX:
@@ -285,33 +297,14 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
         this.sourceVertex = source;
         this.targetVertex = target;
-
-        this.cloneTargetIfSelfToSelfEdge();
-    }
-
-    protected void cloneTargetIfSelfToSelfEdge() {
-        /*
-         * Edge from V to V(the vertex itself)
-         * TODO: it should be improved that currently we just clone the
-         * target vertex to support self-to-self edge.
-         */
-        if (this.sourceVertex == this.targetVertex) {
-            this.targetVertex = this.targetVertex.clone();
-        }
     }
 
     public HugeEdge switchOwner() {
-        /*
-         * They wont be equal due to targetVertex has been cloned if
-         * it's a self-to-self edge
-         */
-        E.checkState(this.sourceVertex != this.targetVertex,
-                     "Can't switch owner of self-to-self edge");
-
         HugeEdge edge = this.clone();
         if (edge.ownerVertex == edge.sourceVertex) {
             edge.ownerVertex = edge.targetVertex;
         } else {
+            assert edge.ownerVertex == this.targetVertex;
             edge.ownerVertex = edge.sourceVertex;
         }
 
@@ -319,7 +312,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeEdge switchToOutDirection() {
-        if (this.type() == HugeType.EDGE_IN) {
+        if (this.direction() == Direction.IN) {
             return this.switchOwner();
         }
         return this;
@@ -341,7 +334,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     public void sourceVertex(HugeVertex sourceVertex) {
         this.sourceVertex = sourceVertex;
-        this.cloneTargetIfSelfToSelfEdge();
     }
 
     public HugeVertex targetVertex() {
@@ -350,7 +342,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     public void targetVertex(HugeVertex targetVertex) {
         this.targetVertex = targetVertex;
-        this.cloneTargetIfSelfToSelfEdge();
     }
 
     public boolean belongToLabels(String... edgeLabels) {
@@ -395,6 +386,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return edge;
     }
 
+    @Override
     public HugeEdge copy() {
         HugeEdge edge = this.clone();
         edge.properties = new HashMap<>(edge.properties);

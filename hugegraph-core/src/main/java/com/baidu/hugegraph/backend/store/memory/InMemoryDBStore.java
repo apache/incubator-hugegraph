@@ -373,17 +373,18 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public void beginTx() {
-        // TODO Auto-generated method stub
+        // pass
     }
 
     @Override
     public void commitTx() {
-        // TODO Auto-generated method stub
+        // pass
     }
 
     @Override
     public void rollbackTx() {
-        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException(
+                  "Unsupported rollback operation by InMemoryDBStore");
     }
 
     @Override
@@ -408,6 +409,11 @@ public class InMemoryDBStore implements BackendStore {
 
         @Override
         public boolean supportsScan() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsTransaction() {
             return false;
         }
 

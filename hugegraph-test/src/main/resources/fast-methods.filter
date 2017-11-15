@@ -11,9 +11,6 @@ org.apache.tinkerpop.gremlin.structure.EdgeTest.BasicEdgeTest.shouldValidateEqua
 ## property ID
 org.apache.tinkerpop.gremlin.structure.util.detached.DetachedPropertyTest.shouldNotBeEqualPropertiesAsThereIsDifferentKey: Not support property id
 
-## self loop should treated as 2 edges
-org.apache.tinkerpop.gremlin.structure.util.star.StarGraphTest.shouldHandleSelfLoops: Self loop vertex only have 1 edge, this test expect 2 edges(1 IN and 1 OUT)
-
 ## id should be String type
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldAddVertexWithUserSuppliedStringId: expect vertex.id is String type
 
@@ -52,62 +49,23 @@ org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.Diffe
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: Replicated edges treated as one
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: Replicated edges treated as one
 
-## transaction failed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionFireAndForget: HugeGraph transaction does not support submit
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: Hang the tests with unknown reason now
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionIsolationCommitCheck: Hang the tests with unknown reason now
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionExponentialBackoff: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionOneAndDone: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenTransactionAlreadyOpen: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionRetryWhenUsingManualTransactions: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldCommitOnCloseWhenConfigured: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionRetry: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenUsingManualTransactionOnRollback: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenUsingManualTransaction: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldCommitElementAutoTransactionByDefault: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowAutoTransactionToWorkWithoutMutationByDefault: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenOnReadWriteToNull: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackOnCloseByDefault: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenOnCloseToNull: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenTransactionOpenOnClose: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldNotShareTransactionReadWriteConsumersAcrossThreads: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldSupportTransactionExponentialBackoffWithExceptionChecks: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldNotShareTransactionCloseConsumersAcrossThreads: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldHaveExceptionConsistencyWhenUsingManualTransactionOnCommit: To be analyzed
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowJustRollbackOnlyWithAutoTransaction: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexIdOutsideOfOriginalThreadAuto: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldNotifyTransactionListenersOnRollbackSuccess: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexIdOutsideOfOriginalThreadManual: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfVertexOutsideOfOriginalTransactionalContextManual: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeIdOutsideOfOriginalThreadAuto: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeIdOutsideOfOriginalThreadManual: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextManual: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldAllowReferenceOfEdgeOutsideOfOriginalTransactionalContextAuto: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackElementAutoTransactionByDefault: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldRollbackPropertyAutoTransactionByDefault: Unsupported rollback operation by Cassandra
-
 ## not bugs
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv1d0]: weight property have both Float and Double value
-org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphsonv1d0]: weight property have both Float and Double value
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassic[graphsonv1d0]: 'weight' property have both Float and Double value
+org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldReadWriteClassicToFileWithHelpers[graphsonv1d0]: 'weight' property have both Float and Double value
 org.apache.tinkerpop.gremlin.structure.io.IoGraphTest.shouldMigrateClassicGraph[graphsonv1d0]: weight property have both Float and Double value
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: 'test' property have both String and Long value
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
 
 ####################    process suite    ####################
 
-# multi label
+# multi label query
 org.apache.tinkerpop.gremlin.process.traversal.step.branch.LocalTest.Traversals.g_VX4X_localXbothEXknows_createdX_limitX1XX: Not support querying by multi edge-labels
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasLabelXsoftwareX: Not support querying by multi vertex-labels
 org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1X_outEXknows_createdX_inV: Not support querying by multi edge-labels
 org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1X_outXknows_createdX: Not support querying by multi edge-labels
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterEdgeCriterion: Not support querying by multi edge-labels
 org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.playlistPaths: Don't accept query based on properties '[name]' that are not indexed
-
-# unsupported rollback
-org.apache.tinkerpop.gremlin.process.traversal.CoreTraversalTest.shouldTraverseIfAutoTxEnabledAndOriginalTxIsClosed: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.process.traversal.CoreTraversalTest.shouldTraverseIfManualTxEnabledAndOriginalTxIsClosed: Unsupported rollback operation by Cassandra
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldResetAfterRollback: Unsupported rollback operation by Cassandra
 
 # unsupported IN index query
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterMixedCriteria: Unsupported IN index query
@@ -122,12 +80,6 @@ org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_
 # unsupported automatic edge id, therefore number of edge is wrong
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdge: Unsupported automatic edge id, therefore number of edge is wrong
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdgeByPath: Unsupported automatic edge id, therefore number of edge is wrong
-
-# tinkerpop expect vertex.properties() fetching data from db, but hugegraph not
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachVertexPropertyWhenRemoved: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachPropertyOfEdgeWhenNew: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachPropertyOfEdgeWhenRemoved: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldDetachVertexPropertyWhenNew: Tinkerpop expect g.V().properties() fetching data from db, but hugegraph not
 
 # assert error, long time, reason: replicated edges treated as one
 org.apache.tinkerpop.gremlin.process.traversal.step.map.CountTest.Traversals.g_V_both_both_count: Replicated edges treated as one

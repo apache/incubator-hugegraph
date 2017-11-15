@@ -94,9 +94,7 @@ public class PerfExample1 {
         List<Thread> threads = new ArrayList<>(threadCount);
         for (int i = 0; i < threadCount; i++) {
             Thread t = new Thread(() -> {
-                graph.tx().open();
                 testInsertPerf(graph, times, multiple);
-                graph.tx().close();
                 graph.close();
                 LOG.info("option = {}", PerfUtil.instance().toECharts());
             });

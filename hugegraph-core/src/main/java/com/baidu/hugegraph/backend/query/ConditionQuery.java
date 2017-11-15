@@ -46,6 +46,10 @@ public class ConditionQuery extends IdQuery {
         super(resultType);
     }
 
+    public ConditionQuery(HugeType resultType, Query originQuery) {
+        super(resultType, originQuery);
+    }
+
     public ConditionQuery query(Condition condition) {
         // Query by id (HugeGraph-259)
         if (condition instanceof Relation) {

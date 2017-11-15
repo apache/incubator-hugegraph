@@ -34,6 +34,13 @@ public class CassandraFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsTransaction() {
+        // Cassandra support tx(atomicity level) with batch API
+        // https://docs.datastax.com/en/cassandra/2.1/cassandra/dml/dml_atomicity_c.html
+        return true;
+    }
+
+    @Override
     public boolean supportsQueryByContains() {
         return true;
     }

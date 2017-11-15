@@ -47,6 +47,18 @@ public class SchemaTransaction extends AbstractTransaction {
 
     public SchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
+        this.autoCommit(true);
+    }
+
+    @Override
+    protected void beforeRead() {
+        /*
+         * NOTE: each schema operation will be auto committed,
+         * we expect the tx is clean when query.
+         */
+        if (this.hasUpdates()) {
+            throw new BackendException("There are still dirty changes");
+        }
     }
 
     public List<PropertyKey> getPropertyKeys() {

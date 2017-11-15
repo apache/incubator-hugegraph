@@ -55,4 +55,8 @@ public interface BackendStore {
 
     // Backend features
     public BackendFeatures features();
+
+    static enum TxState {
+        BEGIN, COMMITTING, COMMITT_FAIL, ROLLBACKING, ROLLBACK_FAIL, CLEAN
+    }
 }
