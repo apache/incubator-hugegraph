@@ -678,6 +678,8 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         marko.addEdge("write", hadoop, "time", "2014-2-28",
                       "weight", 0.5);
 
+        graph().tx().commit();
+
         List<Edge> edge = graph().traversal().E().hasLabel("write").toList();
         Assert.assertNotNull(edge);
         Assert.assertEquals(2, edge.size());

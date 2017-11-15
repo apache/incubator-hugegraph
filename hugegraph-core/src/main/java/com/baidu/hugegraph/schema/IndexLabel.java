@@ -312,7 +312,8 @@ public class IndexLabel extends SchemaElement {
 
             E.checkArgument(CollectionUtil.containsAll(properties, fields),
                             "Not all index fields '%s' are contained in " +
-                            "schema properties '%s'", fields, properties);
+                            "'%s' properties %s",
+                            fields, this.indexLabel.baseValue, properties);
 
             for (String field : fields) {
                 PropertyKey pk = this.transaction.getPropertyKey(field);

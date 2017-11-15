@@ -255,16 +255,29 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void beginTx() {
-        // TODO how to implement?
+        this.checkSessionConnected();
+
+        CassandraSessionPool.Session session = this.sessions.session();
+        if (session.txState() != TxState.CLEAN) {
+            LOG.warn("Store {} expect state CLEAN than {} when begin()",
+                     this.name, session.txState());
+        }
+        session.txState(TxState.BEGIN);
     }
 
     @Override
     public void commitTx() {
         this.checkSessionConnected();
 
-        // Do update
         CassandraSessionPool.Session session = this.sessions.session();
+        if (session.txState() != TxState.BEGIN) {
+            LOG.warn("Store {} expect state BEGIN than {} when commit()",
+                     this.name, session.txState());
+        }
+        session.txState(TxState.COMMITTING);
+
         if (!session.hasChanged()) {
+            session.txState(TxState.CLEAN);
             LOG.debug("Store {} has nothing to commit", this.name);
             return;
         }
@@ -274,9 +287,14 @@ public abstract class CassandraStore implements BackendStore {
                       session.statements().size(), session.statements());
         }
 
+        // TODO how to implement tx perfectly?
+
+        // Do update
         try {
             session.commit();
+            session.txState(TxState.CLEAN);
         } catch (DriverException e) {
+            session.txState(TxState.COMMITT_FAIL);
             LOG.error("Failed to commit statements due to:", e);
             assert session.statements().size() > 0;
             throw new BackendException(
@@ -286,15 +304,30 @@ public abstract class CassandraStore implements BackendStore {
         } finally {
             session.clear();
         }
-
-        // TODO how to implement tx?
     }
 
     @Override
     public void rollbackTx() {
-        // TODO how to implement?
-        throw new UnsupportedOperationException(
-                  "Unsupported rollback operation by Cassandra");
+        this.checkSessionConnected();
+
+        CassandraSessionPool.Session session = this.sessions.session();
+
+        // TODO how to implement perfectly?
+
+        if (session.txState() != TxState.COMMITT_FAIL &&
+            session.txState() != TxState.COMMITTING &&
+            session.txState() != TxState.CLEAN) {
+            LOG.warn("Store {} expect state COMMITT_FAIL/COMMITTING/CLEAN " +
+                     "than {} when rollback()", this.name, session.txState());
+        }
+        session.txState(TxState.ROLLBACKING);
+
+        try {
+            session.clear();
+        } finally {
+            // Assume batch commit would auto rollback
+            session.txState(TxState.CLEAN);
+        }
     }
 
     @Override
@@ -429,14 +462,6 @@ public abstract class CassandraStore implements BackendStore {
                                  new CassandraTables.Vertex());
             registerTableManager(HugeType.EDGE,
                                  new CassandraTables.Edge());
-        }
-    }
-
-    public static class CassandraIndexStore extends CassandraStore {
-
-        public CassandraIndexStore(BackendStoreProvider provider,
-                                   String keyspace, String name) {
-            super(provider, keyspace, name);
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new CassandraTables.SecondaryIndex());

@@ -147,7 +147,7 @@ public class Example2 {
         SchemaManager schema = graph.schema();
 
         /*
-         * Note:
+         * NOTE:
          * Use schema.propertyKey interface to create propertyKey.
          * Use schema.propertyKey interface to query propertyKey.
          */

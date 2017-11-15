@@ -27,6 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -136,9 +137,9 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
-
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
+        graph().tx().commit();
 
         Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().V().hasLabel("person")
@@ -179,7 +180,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                                          "name", "James Gosling");
         Vertex java1 = graph().addVertex(T.label, "book", "name", "java-1");
 
-        james.addEdge("authored", java1,"contribution", "test");
+        james.addEdge("authored", java1, "contribution", "test");
+
+        graph().tx().commit();
+
         Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().E().hasLabel("authored")
                    .has("contribution", "test").next();
@@ -347,11 +351,13 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     @Test
     public void testAddIndexLabelPrefixWithExistedSecondary() {
         super.initPropertyKeys();
-        SchemaManager schema = graph().schema();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
-        graph().addVertex(T.label, "person", "name", "Baby",
-                          "city", "Hongkong", "age", 3);
+        graph.addVertex(T.label, "person", "name", "Baby",
+                        "city", "Hongkong", "age", 3);
+        graph.tx().commit();
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
@@ -361,13 +367,13 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("age").create();
 
         List<Vertex> vertices;
-        vertices = graph().traversal().V().has("age", 3).toList();
+        vertices = graph.traversal().V().has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
-        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        vertices = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertThrows(BackendException.class, () -> {
-            graph().traversal().V().has("city", "Hongkong")
-                   .has("age", "3").toList();
+            graph.traversal().V().has("city", "Hongkong")
+                 .has("age", "3").toList();
         });
 
         schema.indexLabel("personByCityAndAge").onV("person").secondary()
@@ -378,23 +384,25 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         schema.getIndexLabel("personByAge");
         schema.getIndexLabel("personByAgeSecondary");
 
-        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        vertices = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(1, vertices.size());
-        vertices = graph().traversal().V().has("age", 3).toList();
+        vertices = graph.traversal().V().has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
-        vertices = graph().traversal().V().has("city", "Hongkong")
-                          .has("age", 3).toList();
+        vertices = graph.traversal().V().has("city", "Hongkong")
+                        .has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
     }
 
     @Test
     public void testAddIndexLabelPrefixWithExistedSearch() {
         super.initPropertyKeys();
-        SchemaManager schema = graph().schema();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
-        graph().addVertex(T.label, "person", "name", "Baby",
-                          "city", "Hongkong", "age", 3);
+        graph.addVertex(T.label, "person", "name", "Baby",
+                        "city", "Hongkong", "age", 3);
+        graph.tx().commit();
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
@@ -404,13 +412,13 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("age").create();
 
         List<Vertex> vertices;
-        vertices = graph().traversal().V().has("age", 3).toList();
+        vertices = graph.traversal().V().has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
-        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        vertices = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertThrows(BackendException.class, () -> {
-            graph().traversal().V().has("city", "Hongkong")
-                   .has("age", "3").toList();
+            graph.traversal().V().has("city", "Hongkong")
+                 .has("age", "3").toList();
         });
 
         schema.indexLabel("personByAgeAndCity").onV("person").secondary()
@@ -420,12 +428,12 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.getIndexLabel("personByAgeSecondary");
         });
 
-        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        vertices = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(1, vertices.size());
-        vertices = graph().traversal().V().has("age", 3).toList();
+        vertices = graph.traversal().V().has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
-        vertices = graph().traversal().V().has("city", "Hongkong")
-                          .has("age", 3).toList();
+        vertices = graph.traversal().V().has("city", "Hongkong")
+                        .has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
     }
 

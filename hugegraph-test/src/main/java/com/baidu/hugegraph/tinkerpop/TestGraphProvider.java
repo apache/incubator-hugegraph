@@ -37,6 +37,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.optimization.LazyBarrierStrategy;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.slf4j.Logger;
@@ -119,7 +120,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
                 Assert.assertTrue(
                         "Reason why ignore in methods.filter can't be empty",
                         parts[1] != null && !parts[1].trim().isEmpty());
-                blackMethods.putIfAbsent(parts[0], parts[1]);
+                this.blackMethods.putIfAbsent(parts[0], parts[1]);
             }
         }
     }
@@ -165,8 +166,8 @@ public class TestGraphProvider extends AbstractGraphProvider {
         testFullName = testFullName.substring(0, index);
         Assume.assumeFalse(
                String.format("Test %s will be ignored with reason: %s",
-                             testFullName, blackMethods.get(testFullName)),
-               blackMethods.containsKey(testFullName));
+                             testFullName, this.blackMethods.get(testFullName)),
+               this.blackMethods.containsKey(testFullName));
 
         LOG.debug("Full name of test is: {}", testFullName);
         LOG.debug("Prefix of test is: {}", testFullName.substring(0, index));
@@ -218,11 +219,8 @@ public class TestGraphProvider extends AbstractGraphProvider {
         }
 
         TestGraph testGraph = this.graphs.get(graphName);
-
-        // Ensure tx is open
-        if (!testGraph.tx().isOpen()) {
-            testGraph.tx().open();
-        }
+        // Ensure tx clean
+        testGraph.tx().rollback();
 
         // Define property key 'aKey' based on specified type in test name
         String aKeyType = getAKeyType(
@@ -256,29 +254,32 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
     private TestGraph newTestGraph(final Configuration config) {
         TestGraph testGraph = ((TestGraph) super.openTestGraph(config));
-
-        HugeGraph graph = testGraph.hugeGraph();
-        graph.clearBackend();
-        graph.initBackend();
-        graph.tx().open();
-
+        testGraph.initBackend();
         return testGraph;
     }
 
     @Override
-    public void clear(Graph graph, Configuration configuration)
-           throws Exception {
-        if (graph != null && graph.tx().isOpen()) {
-            TestGraph testGraph = (TestGraph) graph;
-            testGraph.clearSchema();
-            testGraph.clearVariables();
-            graph.tx().commit();
+    public void clear(Graph graph, Configuration config) throws Exception {
+        TestGraph testGraph = (TestGraph) graph;
+        if (testGraph == null || !testGraph.initedBackend()) {
+            return;
         }
+
+        // Reset consumers
+        graph.tx().onReadWrite(Transaction.READ_WRITE_BEHAVIOR.AUTO);
+        graph.tx().onClose(Transaction.CLOSE_BEHAVIOR.ROLLBACK);
+
+        // Clear schema (also include data)
+        testGraph.clearSchema();
+
+        // Clear variables (would not clear when clearing schema)
+        testGraph.clearVariables();
+        graph.tx().commit();
     }
 
     public void clearBackends() {
         for (TestGraph graph : this.graphs.values()) {
-            graph.hugeGraph().clearBackend();
+            graph.clearBackend();
         }
     }
 

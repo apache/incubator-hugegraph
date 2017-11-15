@@ -53,7 +53,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
     public HugeGraphIoRegistry() {
         register(GryoIo.class, Optional.class, new OptionalSerializer());
-        // HugeGraph releated serializer
+        // HugeGraph related serializer
         register(GryoIo.class, IdGenerator.StringId.class, new IdSerializer());
         register(GryoIo.class, IdGenerator.LongId.class, new IdSerializer());
         register(GryoIo.class, PropertyKey.class,
@@ -70,9 +70,9 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         register(GraphSONIo.class, null, HugeGraphSONModule.getInstance());
     }
 
-    private class OptionalSerializer extends Serializer<Optional> {
+    private class OptionalSerializer extends Serializer<Optional<?>> {
         @Override
-        public void write(Kryo kryo, Output output, Optional optional) {
+        public void write(Kryo kryo, Output output, Optional<?> optional) {
             if (optional.isPresent()) {
                 kryo.writeClassAndObject(output, optional.get());
             } else {
@@ -81,7 +81,8 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         }
 
         @Override
-        public Optional read(Kryo kryo, Input input, Class<Optional> aClass) {
+        public Optional<?> read(Kryo kryo, Input input,
+                                Class<Optional<?>> clazz) {
             Object value = kryo.readClassAndObject(input);
             return value == null ? Optional.empty() : Optional.of(value);
         }

@@ -49,6 +49,7 @@ public abstract class AbstractTransaction implements Transaction {
     private boolean autoCommit = false;
     private boolean closed = false;
     private boolean committing = false;
+    private boolean committing2Backend = false;
 
     private final HugeGraph graph;
     private final BackendStore store;
@@ -141,23 +142,20 @@ public abstract class AbstractTransaction implements Transaction {
         }
         assert !this.committing : "Not allowed to commit when it's committing";
         this.committing = true;
-        BackendMutation mutation = null;
         try {
-            mutation = this.prepareCommit();
+            BackendMutation mutation = this.prepareCommit();
+            if (mutation.isEmpty()) {
+                LOG.debug("Transaction has no data to commit({})", store());
+                return;
+            }
+
+            this.committing2Backend = true;
+            this.commit2Backend(mutation);
+            this.committing2Backend = false;
         } finally {
             this.committing = false;
             this.reset();
         }
-
-        if (mutation.isEmpty()) {
-            LOG.debug("Transaction has no data to commit({})", this.store());
-            return;
-        }
-
-        // If an exception occurred, catch in the upper layer and roll back
-        this.store.beginTx();
-        this.store.mutate(mutation);
-        this.store.commitTx();
     }
 
     @Watched(prefix = "tx")
@@ -165,7 +163,10 @@ public abstract class AbstractTransaction implements Transaction {
     public void rollback() throws BackendException {
         LOG.debug("Transaction rollback()...");
         this.reset();
-        this.store.rollbackTx();
+        if (this.committing2Backend) {
+            this.committing2Backend = false;
+            this.store.rollbackTx();
+        }
     }
 
     @Override
@@ -173,38 +174,36 @@ public abstract class AbstractTransaction implements Transaction {
         return this.autoCommit;
     }
 
-    public void autoCommit(boolean autoCommit) {
+    protected void autoCommit(boolean autoCommit) {
         this.autoCommit = autoCommit;
     }
 
-    @Override
-    public void beforeWrite() {
+    protected void beforeWrite() {
         // TODO: auto open()
     }
 
-    @Override
-    public void afterWrite() {
+    protected void afterWrite() {
         if (this.autoCommit()) {
             this.commitOrRollback();
         }
     }
 
-    @Override
-    public void beforeRead() {
-        // TODO: auto open()
-        if (this.hasUpdates()) {
+    protected void beforeRead() {
+        if (this.autoCommit() && this.hasUpdates()) {
             this.commitOrRollback();
         }
     }
 
-    @Override
-    public void afterRead() {
-        // Pass
+    protected void afterRead() {
+        // pass
     }
 
     @Watched(prefix = "tx")
     @Override
     public void close() {
+        if (this.hasUpdates()) {
+            throw new BackendException("There are still changes to commit");
+        }
         this.closed = true;
         this.autoCommit = true; /* Let call after close() fail to commit */
         this.store().close();
@@ -222,6 +221,13 @@ public abstract class AbstractTransaction implements Transaction {
         // For sub-class preparing data, nothing to do here
         LOG.debug("Transaction prepareCommit()...");
         return this.mutation();
+    }
+
+    protected void commit2Backend(BackendMutation mutation) {
+        // If an exception occurred, catch in the upper layer and rollback
+        this.store.beginTx();
+        this.store.mutate(mutation);
+        this.store.commitTx();
     }
 
     @Watched(prefix = "tx")

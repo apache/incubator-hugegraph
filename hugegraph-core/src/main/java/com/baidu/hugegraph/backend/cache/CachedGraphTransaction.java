@@ -27,6 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedBackendStore.QueryId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -47,9 +48,8 @@ public class CachedGraphTransaction extends GraphTransaction {
     private final Cache verticesCache;
     private final Cache edgesCache;
 
-    public CachedGraphTransaction(HugeGraph graph, BackendStore store,
-                                  BackendStore indexStore) {
-        super(graph, store, indexStore);
+    public CachedGraphTransaction(HugeGraph graph, BackendStore store) {
+        super(graph, store);
         this.verticesCache = this.cache("vertex");
         this.edgesCache = this.cache("edge");
     }
@@ -187,5 +187,18 @@ public class CachedGraphTransaction extends GraphTransaction {
         this.edgesCache.clear();
 
         super.removeIndex(indexLabel);
+    }
+
+    @Override
+    public void rollback() throws BackendException {
+        // Update vertex cache
+        for (Id id : this.verticesInTx()) {
+            this.verticesCache.invalidate(id);
+        }
+
+        // TODO: Use a more precise strategy to update the edge cache
+        this.edgesCache.clear();
+
+        super.rollback();
     }
 }

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.query;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -28,7 +29,7 @@ import com.baidu.hugegraph.type.HugeType;
 
 public class IdQuery extends Query {
 
-    // The ids will be concated with `or`
+    // The id(s) will be concated with `or`
     private Set<Id> ids;
 
     public IdQuery(HugeType resultType) {
@@ -36,8 +37,18 @@ public class IdQuery extends Query {
         this.ids = new LinkedHashSet<>();
     }
 
+    public IdQuery(HugeType resultType, Query originQuery) {
+        super(resultType, originQuery);
+        this.ids = new LinkedHashSet<>();
+    }
+
     public IdQuery(HugeType resultType, Set<Id> ids) {
         super(resultType);
+        this.ids = new LinkedHashSet<>(ids);
+    }
+
+    public IdQuery(Query originQuery, Set<Id> ids) {
+        super(originQuery.resultType(), originQuery);
         this.ids = new LinkedHashSet<>(ids);
     }
 
@@ -48,7 +59,7 @@ public class IdQuery extends Query {
 
     @Override
     public Set<Id> ids() {
-        return this.ids;
+        return Collections.unmodifiableSet(this.ids);
     }
 
     public void resetIds() {
@@ -60,9 +71,14 @@ public class IdQuery extends Query {
         return this;
     }
 
+    public IdQuery query(Set<Id> ids) {
+        this.ids.addAll(ids);
+        return this;
+    }
+
     @Override
     public boolean test(HugeElement element) {
-        return ids.contains(element.id());
+        return this.ids.contains(element.id());
     }
 
     @Override

@@ -251,7 +251,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             edge.ownerVertex(this);
             edge.sourceVertex(this);
         }
-        E.checkState(edge.type() == HugeType.EDGE_OUT,
+        E.checkState(edge.isDirection(Direction.OUT),
                      "The owner vertex('%s') of OUT edge '%s' should be '%s'",
                      edge.ownerVertex().id(), edge, this.id());
         this.edges.add(edge);
@@ -265,7 +265,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             edge.ownerVertex(this);
             edge.targetVertex(this);
         }
-        E.checkState(edge.type() == HugeType.EDGE_IN,
+        E.checkState(edge.isDirection(Direction.IN),
                      "The owner vertex('%s') of IN edge '%s' should be '%s'",
                      edge.ownerVertex().id(), edge, this.id());
         this.edges.add(edge);
@@ -274,7 +274,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public Iterator<Edge> getEdges(Direction direction, String... edgeLabels) {
         List<Edge> list = new LinkedList<>();
         for (HugeEdge edge : this.edges) {
-            if ((edge.direction() == direction || direction == Direction.BOTH)
+            if ((edge.isDirection(direction) || direction == Direction.BOTH)
                 && edge.belongToLabels(edgeLabels)) {
                 list.add(edge);
             }
@@ -345,10 +345,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             throw VertexProperty.Exceptions.metaPropertiesNotSupported();
         }
 
+        // Check key in vertex label
         E.checkArgument(this.label.properties().contains(key),
                         "Invalid property '%s' for vertex label '%s', " +
-                        "expect: %s",
-                        key, this.label(), this.vertexLabel().properties());
+                        "expect: %s", key, label(), vertexLabel().properties());
+        // Primary-Keys can only be set once
+        if (vertexLabel().primaryKeys().contains(key)) {
+            E.checkArgument(!this.hasProperty(key),
+                            "Can't update primary key: '%s'", key);
+        }
         return (VertexProperty<V>) this.addProperty(key, value, true);
     }
 
@@ -362,7 +367,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     protected <V> void onUpdateProperty(Cardinality cardinality,
                                         HugeProperty<V> prop) {
-        if (prop != null && !this.fresh()) {
+        if (prop != null) {
             assert prop instanceof HugeVertexProperty;
             // Use addVertexProperty() to update
             this.tx().addVertexProperty((HugeVertexProperty<V>) prop);
@@ -443,6 +448,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return vertex;
     }
 
+    @Override
     public HugeVertex copy() {
         HugeVertex vertex = this.clone();
         vertex.properties = new HashMap<>(vertex.properties);

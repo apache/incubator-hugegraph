@@ -46,8 +46,15 @@ public class Query implements Cloneable {
     private long capacity;
     private boolean showHidden;
 
+    private Query originQuery;
+
     public Query(HugeType resultType) {
+        this(resultType, null);
+    }
+
+    public Query(HugeType resultType, Query originQuery) {
         this.resultType = resultType;
+        this.originQuery = originQuery;
         this.orders = new LinkedHashMap<>();
         this.offset = 0L;
         this.limit = NO_LIMIT;
@@ -61,6 +68,10 @@ public class Query implements Cloneable {
 
     public void resultType(HugeType resultType) {
         this.resultType = resultType;
+    }
+
+    public Query originQuery() {
+        return this.originQuery;
     }
 
     public Map<HugeKeys, Order> orders() {

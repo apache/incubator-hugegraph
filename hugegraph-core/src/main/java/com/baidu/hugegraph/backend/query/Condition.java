@@ -30,6 +30,7 @@ import java.util.function.Function;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
@@ -52,8 +53,12 @@ public abstract class Condition {
         LT("<", (v1, v2) -> { return compare(v1, v2) < 0; }),
         LTE("<=", (v1, v2) -> { return compare(v1, v2) <= 0; }),
         NEQ("!=", (v1, v2) -> { return compare(v1, v2) != 0; }),
-        IN("in", (v1, v2) -> { return ((Collection<?>) v2).contains(v1); }),
-        NOT_IN("notin", (v1, v2) -> { return !((Collection<?>) v2).contains(v1); }),
+        IN("in", (v1, v2) -> {
+            return ((Collection<?>) v2).contains(v1);
+        }),
+        NOT_IN("notin", (v1, v2) -> {
+            return !((Collection<?>) v2).contains(v1);
+        }),
         CONTAINS("contains", (v1, v2) -> {
             return ((Map<?, ?>) v1).containsValue(v2);
         }),
@@ -82,7 +87,9 @@ public abstract class Condition {
          */
         protected static boolean equals(final Object first,
                                         final Object second) {
-            if (first instanceof Id) {
+            if (first == null) {
+                return second == null;
+            } else if (first instanceof Id) {
                 if (second instanceof String) {
                     return second.equals(((Id) first).asString());
                 } else if (second instanceof Long) {
@@ -124,9 +131,9 @@ public abstract class Condition {
             return n1.compareTo(n2);
         }
 
-        public boolean test(Object value1, Object value2) {
+        public boolean test(Object first, Object second) {
             E.checkState(this.tester != null, "Can't test %s", this.name());
-            return this.tester.apply(value1, value2);
+            return this.tester.apply(first, second);
         }
 
         public boolean isSearchType() {
@@ -543,7 +550,8 @@ public abstract class Condition {
 
         @Override
         public boolean test(HugeElement element) {
-            Object value = element.value(this.key());
+            HugeProperty<?> prop = element.getProperty(this.key());
+            Object value = prop != null ? prop.value() : null;
             return this.relation.test(value, this.value);
         }
 

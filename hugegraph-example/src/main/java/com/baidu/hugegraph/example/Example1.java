@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.example;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -53,7 +52,13 @@ public class Example1 {
         HugeGraph graph = ExampleUtil.loadGraph();
 
         Example1.showFeatures(graph);
-        Example1.load(graph);
+
+        Example1.loadSchema(graph);
+        Example1.loadData(graph);
+        Example1.testQuery(graph);
+        Example1.testRemove(graph);
+        Example1.testVariables(graph);
+        Example1.testLeftIndexProcess(graph);
 
         Example1.thread(graph);
 
@@ -66,13 +71,15 @@ public class Example1 {
             // TODO: add graph.initTx()
             graph.addVertex(T.label, "book", "name", "java-11");
             graph.addVertex(T.label, "book", "name", "java-12");
+            graph.tx().commit();
             // TODO: add graph.destroyTx()
             graph.close(); // close current thread tx/store
 
             GraphTransaction tx = graph.openTransaction();
             tx.addVertex(T.label, "book", "name", "java-21");
             tx.addVertex(T.label, "book", "name", "java-22");
-            tx.close(); // this will cause the schema tx not to be closed!
+            tx.commit();
+
             graph.close(); // this will close the schema tx
         });
 
@@ -85,10 +92,11 @@ public class Example1 {
                  graph.features().graph().supportsPersistence());
     }
 
-    public static void load(final HugeGraph graph) {
+    public static void loadSchema(final HugeGraph graph) {
 
-        /*********************** schemaManager operating *********************/
         SchemaManager schema = graph.schema();
+
+        // Schema changes will be commit directly into the back-end
         LOG.info("===============  propertyKey  ================");
         schema.propertyKey("id").asInt().create();
         schema.propertyKey("name").asText().create();
@@ -110,8 +118,7 @@ public class Example1 {
         schema.propertyKey("country").asText().valueSet().create();
         schema.propertyKey("city").asText().create();
         schema.propertyKey("sensor_id").asUuid().create();
-        schema.propertyKey("listKey").asInt().valueList().create();
-
+        schema.propertyKey("versions").asInt().valueList().create();
 
         LOG.info("===============  vertexLabel  ================");
 
@@ -122,7 +129,7 @@ public class Example1 {
         schema.vertexLabel("author")
               .properties("id", "name", "age", "lived")
               .primaryKeys("id").create();
-        schema.vertexLabel("language").properties("name")
+        schema.vertexLabel("language").properties("name", "versions")
               .primaryKeys("name").create();
         schema.vertexLabel("recipe").properties("name", "instructions")
               .primaryKeys("name").create();
@@ -139,6 +146,7 @@ public class Example1 {
               .onV("person").secondary().by("city").create();
         schema.indexLabel("personByAge")
               .onV("person").search().by("age").create();
+
         // schemaManager.getVertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.getVertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schemaManager.getVertexLabel("meal").index("byMeal").materialized().by("name").add();
@@ -173,10 +181,11 @@ public class Example1 {
 
         LOG.info("===============  schemaManager desc  ================");
         schema.desc().forEach(element -> System.out.println(element.schema()));
+    }
 
-        /************************* data operating *************************/
+    public static void loadData(final HugeGraph graph) {
 
-        // Directly into the back-end
+        // will auto open tx (would not auto commit)
         graph.addVertex(T.label, "book", "name", "java-3");
 
         graph.addVertex(T.label, "person", "name", "Baby",
@@ -190,7 +199,9 @@ public class Example1 {
         graph.addVertex(T.label, "person", "name", "Hebe",
                         "city", "Taipei", "age", 21);
 
-        // Must commit manually
+        graph.tx().commit();
+
+        // must commit manually with new backend tx (independent of tinkerpop)
         GraphTransaction tx = graph.openTransaction();
 
         LOG.info("===============  addVertex  ================");
@@ -198,7 +209,8 @@ public class Example1 {
                                     "id", 1, "name", "James Gosling",
                                     "age", 62, "lived", "Canadian");
 
-        Vertex java = tx.addVertex(T.label, "language", "name", "java");
+        Vertex java = tx.addVertex(T.label, "language", "name", "java",
+                                   "versions", Arrays.asList(6, 7, 8));
         Vertex book1 = tx.addVertex(T.label, "book", "name", "java-1");
         Vertex book2 = tx.addVertex(T.label, "book", "name", "java-2");
         Vertex book3 = tx.addVertex(T.label, "book", "name", "java-3");
@@ -230,16 +242,15 @@ public class Example1 {
             tx.close();
         }
 
-        // use the default Transaction to commit
-        graph.addVertex(T.label, "book", "name", "java-3");
-
-        // tinkerpop tx
+        // use the manually open transaction (tinkerpop tx)
         graph.tx().open();
+        graph.addVertex(T.label, "book", "name", "java-3");
         graph.addVertex(T.label, "book", "name", "java-4");
         graph.addVertex(T.label, "book", "name", "java-5");
         graph.tx().commit();
-        graph.tx().close();
+    }
 
+    public static void testQuery(final HugeGraph graph) {
         // query all
         GraphTraversal<Vertex, Vertex> vertexes = graph.traversal().V();
         int size = vertexes.toList().size();
@@ -261,8 +272,7 @@ public class Example1 {
         System.out.println(">>>> query edges of vertex: " + edgeList);
 
         vertexes = graph.traversal().V("author:1");
-        GraphTraversal<Vertex, Vertex> verticesOfVertex = vertexes.out("created");
-        vertexList = verticesOfVertex.toList();
+        vertexList = vertexes.out("created").toList();
         assert vertexList.size() == 1;
         System.out.println(">>>> query vertices of vertex: " + vertexList);
 
@@ -318,9 +328,11 @@ public class Example1 {
 
         Iterator<Edge> edges2 = graph.edges(q);
         assert edges2.hasNext();
-        System.out.println(">>>> queryEdges(contribution): " + edges2.hasNext());
+        System.out.println(">>>> queryEdges(contribution): " +
+                           edges2.hasNext());
         while (edges2.hasNext()) {
-            System.out.println(">>>> queryEdges(contribution): " + edges2.next());
+            System.out.println(">>>> queryEdges(contribution): " +
+                               edges2.next());
         }
 
         // query by vertex label
@@ -336,7 +348,8 @@ public class Example1 {
         System.out.println(">>>> query all persons with age: size=" + size);
 
         // query by vertex props
-        vertexes = graph.traversal().V().hasLabel("person").has("city", "Taipei");
+        vertexes = graph.traversal().V().hasLabel("person")
+                        .has("city", "Taipei");
         vertexList = vertexes.toList();
         assert vertexList.size() == 1;
         System.out.println(">>>> query all persons in Taipei: " + vertexList);
@@ -346,28 +359,41 @@ public class Example1 {
         assert vertexList.size() == 1;
         System.out.println(">>>> query all persons age==19: " + vertexList);
 
-        vertexes = graph.traversal().V().hasLabel("person").has("age", P.lt(19));
+        vertexes = graph.traversal().V().hasLabel("person")
+                        .has("age", P.lt(19));
         vertexList = vertexes.toList();
         assert vertexList.size() == 1;
         assert vertexList.get(0).property("age").value().equals(3);
         System.out.println(">>>> query all persons age<19: " + vertexList);
+    }
 
+    public static void testRemove(final HugeGraph graph) {
         // remove vertex (and its edges)
-        vertexes = graph.traversal().V().hasLabel("person").has("age", 19);
-        Vertex vertex = vertexes.toList().get(0);
-        vertex.addEdge("look", book3, "time", "2017-5-3");
-        System.out.println(">>>> remove vertex: " + vertex);
-        vertex.remove();
-        assert !graph.traversal().V(vertex.id()).hasNext();
+        List<Vertex> vertices = graph.traversal().V().hasLabel("person")
+                                     .has("age", 19).toList();
+        assert vertices.size() == 1;
+        Vertex james = vertices.get(0);
+        Vertex book6 = graph.addVertex(T.label, "book", "name", "java-6");
+        james.addEdge("look", book6, "time", "2017-5-3");
+        graph.tx().commit();
+        assert graph.traversal().V(book6.id()).bothE().hasNext();
+        System.out.println(">>>> removing vertex: " + james);
+        james.remove();
+        graph.tx().commit();
+        assert !graph.traversal().V(james.id()).hasNext();
+        assert !graph.traversal().V(book6.id()).bothE().hasNext();
 
         // remove edge
-        id = "author:1>authored>>book:java-2";
-        edges = graph.traversal().E(id);
-        edge = edges.toList().get(0);
-        System.out.println(">>>> remove edge: " + edge);
+        String id = "author:1>authored>>book:java-2";
+        List <Edge> edges = graph.traversal().E(id).toList();
+        Edge edge = edges.get(0);
+        System.out.println(">>>> removing edge: " + edge);
         edge.remove();
+        graph.tx().commit();
         assert !graph.traversal().E(id).hasNext();
+    }
 
+    public static void testVariables(final HugeGraph graph) {
         // variables test
         Graph.Variables variables = graph.variables();
         variables.set("owner", "zhangyi");
@@ -379,42 +405,29 @@ public class Example1 {
         variables.get("owner");
         variables.remove("owner");
         variables.get("owner");
-        variables.get("owner");
+    }
 
-        // number list tests
-        schema.vertexLabel("test").properties("listKey").create();
-        Vertex vertex1 = graph.addVertex(T.label,"test",
-               "listKey", new ArrayList<>(Arrays.asList(1, 2,3)));
-        graph.vertices(vertex1.id()).next();
-
+    public static void testLeftIndexProcess(final HugeGraph graph) {
         // test for process left index when addVertex to override prior vertex
         graph.schema().indexLabel("personByCityAndAge").by("city", "age")
              .onV("person").ifNotExist().create();
         graph.schema().indexLabel("personByAgeSecond").by("age")
              .onV("person").secondary().ifNotExist().create();
         graph.addVertex(T.label, "person", "name", "Curry",
-                        "city", "Beijing", "age", 27);
+                        "city", "Hangzhou", "age", 27);
         graph.addVertex(T.label, "person", "name", "Curry",
                         "city", "Shanghai", "age", 28);
         graph.addVertex(T.label, "person", "name", "Curry",
                         "city", "Shanghai", "age", 30);
-        List<Vertex> vl;
         // set breakpoint here to see secondary_indexes and search_indexes table
-        vl = graph.traversal().V().has("age", 27).has("city", "Beijing")
-                  .toList();
-        assert vl.isEmpty();
+        List<Vertex> vertices = graph.traversal().V().has("age", 27)
+                                     .has("city", "Hangzhou").toList();
+        assert vertices.isEmpty();
         // set breakpoint here to see secondary_indexes and search_indexes table
-        vl = graph.traversal().V().has("age", 28).toList();
-        assert vl.isEmpty();
+        vertices = graph.traversal().V().has("age", 28).toList();
+        assert vertices.isEmpty();
         // set breakpoint here to see secondary_indexes and search_indexes table
-        vl = graph.traversal().V().has("city", "Beijing").toList();
-        assert vl.isEmpty();
-
-        graph.addVertex(T.label, "person", "name", "LeBron James",
-                        "city", "Shanghai", "age", 33);
-        vl = graph.traversal().V().has("age", "33").toList();
-        assert vl.size() == 0;
-        vl = graph.traversal().V().has("age", 33.0).toList();
-        assert vl.size() == 1;
+        vertices = graph.traversal().V().has("city", "Hangzhou").toList();
+        assert vertices.isEmpty();
     }
 }

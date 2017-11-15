@@ -57,11 +57,6 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    public BackendStore loadIndexStore(String name) {
-        return this.load(name);
-    }
-
-    @Override
     public String type() {
         return "memory";
     }

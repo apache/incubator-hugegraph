@@ -27,13 +27,5 @@ public interface Transaction {
 
     public boolean autoCommit();
 
-    public void beforeWrite();
-
-    public void afterWrite();
-
-    public void beforeRead();
-
-    public void afterRead();
-
     public void close();
 }

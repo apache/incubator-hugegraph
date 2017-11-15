@@ -23,6 +23,8 @@ public interface BackendFeatures {
 
     public boolean supportsScan();
 
+    public boolean supportsTransaction();
+
     public boolean supportsQueryByContains();
 
     public boolean supportsQueryByContainsKey();
