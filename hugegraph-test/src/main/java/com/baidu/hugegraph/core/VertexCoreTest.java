@@ -790,6 +790,22 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByIntPropWithDifferentDataType() {
+        HugeGraph graph = graph();
+        init5Persons();
+        List<Vertex> vertexes;
+
+        vertexes = graph.traversal().V().has("age", 21).toList();
+        Assert.assertEquals(1, vertexes.size());
+
+        vertexes = graph.traversal().V().has("age", 21.0).toList();
+        Assert.assertEquals(1, vertexes.size());
+
+        vertexes = graph.traversal().V().has("age", "21").toList();
+        Assert.assertEquals(0, vertexes.size());
+    }
+
+    @Test
     public void testQueryByIntPropUsingLtWithOneResult() {
         // age < 19
         HugeGraph graph = graph();
