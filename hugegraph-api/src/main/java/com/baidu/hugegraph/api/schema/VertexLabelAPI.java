@@ -161,7 +161,6 @@ public class VertexLabelAPI extends API {
         private VertexLabel convert2VertexLabel() {
             E.checkArgumentNotNull(this.name,
                                    "The name of vertex label can't be null");
-            System.out.println(this.indexNames.length);
             E.checkArgument(this.indexNames == null ||
                             this.indexNames.length == 0,
                             "Not allowed to pass index names when " +
