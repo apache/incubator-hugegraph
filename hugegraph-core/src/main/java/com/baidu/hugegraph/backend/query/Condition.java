@@ -97,17 +97,18 @@ public abstract class Condition {
 
         /**
          * Determine two numbers equal
-         * @param first
-         * @param second
-         * @return
+         * @param first is actual value, might be Number or String, It is
+         *              probably that the `first` is serialized to String.
+         * @param second is value in query condition, must be Number
          */
         protected static int compare(final Object first, final Object second) {
-            if (first == null || second == null) {
-                throw new BackendException(
-                          "Can't compare between %s and %s", first, second);
+            if (first == null || second == null ||
+                !(second instanceof Number)) {
+                throw new BackendException("Can't compare between %s and %s",
+                                           first, second);
             }
 
-            Function<Object, Number> toBig = (number) -> {
+            Function<Object, BigDecimal> toBig = (number) -> {
                 try {
                     return new BigDecimal(number.toString());
                 } catch (NumberFormatException e) {
@@ -117,35 +118,10 @@ public abstract class Condition {
                 }
             };
 
-            Number n1 = (first instanceof Number) ?
-                        (Number) first :
-                        toBig.apply(first);
+            BigDecimal n1 = toBig.apply(first);
+            BigDecimal n2 = toBig.apply(second);
 
-            Number n2 = (second instanceof Number) ?
-                        (Number) second :
-                        toBig.apply(second);
-
-            /*
-             * It is proberly that the `first` is serialized to String. Hence,
-             * Convert the `second` to String too, and then to Big.
-             */
-            if (!n1.getClass().equals(n2.getClass()) &&
-                first.getClass().equals(String.class)) {
-                n2 = toBig.apply(second);
-            }
-
-            // Check they are the same type
-            if (!n1.getClass().equals(n2.getClass())) {
-                throw new BackendException(
-                          "Can't compare class %s with class %s",
-                          first.getClass().getSimpleName(),
-                          second.getClass().getSimpleName());
-            }
-
-            @SuppressWarnings("unchecked")
-            Comparable<Number> n1cmp = (Comparable<Number>) n1;
-            assert n1.getClass().equals(n2.getClass());
-            return n1cmp.compareTo(n2);
+            return n1.compareTo(n2);
         }
 
         public boolean test(Object value1, Object value2) {
