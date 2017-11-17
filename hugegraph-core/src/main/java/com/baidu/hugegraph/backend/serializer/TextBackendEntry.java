@@ -41,10 +41,12 @@ public class TextBackendEntry implements BackendEntry {
     public static final String VALUE_SPLITOR = "\u0002";
 
     private Id id;
+    private Id subId;
     private Map<String, String> columns;
 
     public TextBackendEntry(Id id) {
         this.id = id;
+        this.subId = null;
         this.columns = new ConcurrentHashMap<>();
     }
 
@@ -56,6 +58,16 @@ public class TextBackendEntry implements BackendEntry {
     @Override
     public void id(Id id) {
         this.id = id;
+    }
+
+    @Override
+    public Id subId() {
+        return this.subId;
+    }
+
+    @Override
+    public void subId(Id subId) {
+        this.subId = subId;
     }
 
     public Set<String> columnNames() {

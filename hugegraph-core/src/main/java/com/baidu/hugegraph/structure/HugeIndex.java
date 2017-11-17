@@ -29,7 +29,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
-
+import com.baidu.hugegraph.util.E;
 
 public class HugeIndex implements GraphType {
 
@@ -80,6 +80,13 @@ public class HugeIndex implements GraphType {
 
     public String indexLabelName() {
         return this.label.name();
+    }
+
+    public Id elementId() {
+        E.checkState(this.elementIds.size() == 1,
+                     "Expect one element id, actual %s",
+                     this.elementIds.size());
+        return this.elementIds.iterator().next();
     }
 
     public Set<Id> elementIds() {

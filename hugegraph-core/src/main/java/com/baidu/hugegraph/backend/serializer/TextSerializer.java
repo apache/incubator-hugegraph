@@ -20,10 +20,10 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -44,10 +44,12 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -240,6 +242,23 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
+    public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
+        HugeVertex vertex = prop.element();
+        TextBackendEntry entry = new TextBackendEntry(vertex.id());
+        entry.subId(IdGenerator.of(prop.key()));
+
+        // Write label (NOTE: maybe just with edges if label is null)
+        if (vertex.vertexLabel() != null) {
+            entry.column(this.formatSyspropName(HugeKeys.LABEL),
+                         vertex.label());
+        }
+
+        entry.column(this.formatPropertyName(prop),
+                     this.formatPropertyValue(prop));
+        return entry;
+    }
+
+    @Override
     public HugeVertex readVertex(BackendEntry bytesEntry, HugeGraph graph) {
         E.checkNotNull(graph, "serializer graph");
         if (bytesEntry == null) {
@@ -274,6 +293,15 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
+    public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop) {
+        HugeEdge edge = prop.element();
+        TextBackendEntry entry = new TextBackendEntry(edge.id());
+        entry.subId(IdGenerator.of(prop.key()));
+        entry.column(this.formatEdgeName(edge), this.formatEdgeValue(edge));
+        return entry;
+    }
+
+    @Override
     public HugeEdge readEdge(BackendEntry backendEntry, HugeGraph graph) {
         E.checkNotNull(graph, "serializer graph");
         // TODO: implement
@@ -296,10 +324,9 @@ public class TextSerializer extends AbstractSerializer {
                          index.fieldValues().toString());
             entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
                          index.indexLabelName());
-            Set<String> ids = index.elementIds().stream().map(id ->
-                              id.asString()).collect(Collectors.toSet());
             entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
-                         JsonUtil.toJson(ids));
+                         JsonUtil.toJson(Arrays.asList(index.elementId())));
+            entry.subId(index.elementId());
         }
         return entry;
     }

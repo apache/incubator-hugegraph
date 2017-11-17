@@ -395,17 +395,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return edge;
     }
 
-    /**
-     * Clear properties of the edge, and set `removed` false
-     * @return a new edge
-     */
-    public HugeEdge prepareRemovedChildren() {
-        HugeEdge edge = this.clone();
-        edge.removed = false;
-        edge.resetProperties();
-        return edge;
-    }
-
     public HugeEdge copy() {
         HugeEdge edge = this.clone();
         edge.properties = new HashMap<>(edge.properties);

@@ -40,6 +40,7 @@ public class CassandraBackendEntry implements BackendEntry {
 
         private HugeType type;
         private Id id;
+        private Id subId;
         private Map<HugeKeys, Object> columns;
 
         public Row(HugeType type) {
@@ -49,6 +50,7 @@ public class CassandraBackendEntry implements BackendEntry {
         public Row(HugeType type, Id id) {
             this.type = type;
             this.id = id;
+            this.subId = null;
             this.columns = new ConcurrentHashMap<>();
         }
 
@@ -98,27 +100,6 @@ public class CassandraBackendEntry implements BackendEntry {
         }
 
         @Override
-        public boolean equals(Object obj) {
-            if (!(obj instanceof Row)) {
-                return false;
-            }
-            Row other = (Row) obj;
-            if (this.type != other.type) {
-                return false;
-            }
-            if (this.id != other.id && !this.id.equals(other.id)) {
-                return false;
-            }
-            for (HugeKeys key : this.columns.keySet()) {
-                Object value = other.columns.get(key);
-                if (value == null || !this.columns.get(key).equals(value)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        @Override
         public String toString() {
             return String.format("Row{type=%s, id=%s, columns=%s}",
                                  this.type, this.id, this.columns);
@@ -165,6 +146,16 @@ public class CassandraBackendEntry implements BackendEntry {
     @Override
     public void id(Id id) {
         this.row.id = id;
+    }
+
+    @Override
+    public Id subId() {
+        return this.row.subId;
+    }
+
+    @Override
+    public void subId(Id subId) {
+        this.row.subId = subId;
     }
 
     public void selfChanged(boolean changed) {
@@ -227,25 +218,5 @@ public class CassandraBackendEntry implements BackendEntry {
     @Override
     public void merge(BackendEntry other) {
         throw new RuntimeException("Not supported by Cassandra");
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof CassandraBackendEntry)) {
-            return false;
-        }
-        CassandraBackendEntry other = (CassandraBackendEntry) obj;
-        if (!this.row.equals(other.row)) {
-            return false;
-        }
-        if (this.subRows.size() != other.subRows.size()) {
-            return false;
-        }
-        for (int i = 0; i < this.subRows.size(); i++) {
-            if (!this.subRows.get(i).equals(other.subRows.get(i))) {
-                return false;
-            }
-        }
-        return true;
     }
 }

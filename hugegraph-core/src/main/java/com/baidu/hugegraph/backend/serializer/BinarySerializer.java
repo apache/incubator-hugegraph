@@ -33,9 +33,11 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
@@ -137,6 +139,11 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         return entry;
+    }
+
+    @Override
+    public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
+        return null;
     }
 
     @Override
@@ -243,6 +250,11 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeEdge(HugeEdge edge) {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop) {
         return null;
     }
 

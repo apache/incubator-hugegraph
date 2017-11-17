@@ -41,6 +41,9 @@ public interface BackendEntry {
     public Id id();
     public void id(Id id);
 
+    public Id subId();
+    public void subId(Id subId);
+
     public Collection<BackendColumn> columns();
     public void columns(Collection<BackendColumn> columns);
 

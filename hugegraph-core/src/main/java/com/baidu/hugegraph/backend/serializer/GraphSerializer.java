@@ -24,16 +24,20 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
 
 public interface GraphSerializer {
 
     public BackendEntry writeVertex(HugeVertex vertex);
+    public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop);
     public HugeVertex readVertex(BackendEntry entry, HugeGraph graph);
 
     public BackendEntry writeEdge(HugeEdge edge);
+    public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop);
     public HugeEdge readEdge(BackendEntry entry, HugeGraph graph);
 
     public BackendEntry writeIndex(HugeIndex index);
