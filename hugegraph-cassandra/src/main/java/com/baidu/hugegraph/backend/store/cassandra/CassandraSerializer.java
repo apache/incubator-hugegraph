@@ -40,10 +40,12 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -217,6 +219,18 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
+    public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
+        HugeVertex vertex = prop.element();
+        CassandraBackendEntry entry = newBackendEntry(vertex);
+        entry.subId(IdGenerator.of(prop.key()));
+        entry.column(HugeKeys.ID, vertex.id().asString());
+        entry.column(HugeKeys.LABEL, vertex.label());
+        entry.column(HugeKeys.PROPERTIES, prop.key(),
+                     JsonUtil.toJson(prop.value()));
+        return entry;
+    }
+
+    @Override
     public HugeVertex readVertex(BackendEntry backendEntry, HugeGraph graph) {
         E.checkNotNull(graph, "serializer graph");
         if (backendEntry == null) {
@@ -254,6 +268,26 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
+    public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop) {
+        HugeEdge edge = prop.element();
+        CassandraBackendEntry.Row row = new CassandraBackendEntry.Row(
+                                        HugeType.EDGE, edge.idWithDirection());
+        // sourceVertex + direction + edge-label + sortValues + targetVertex
+        row.column(HugeKeys.OWNER_VERTEX, edge.ownerVertex().id().asString());
+        row.column(HugeKeys.DIRECTION, edge.direction().name());
+        row.column(HugeKeys.LABEL, edge.label());
+        row.column(HugeKeys.SORT_VALUES, edge.name());
+        row.column(HugeKeys.OTHER_VERTEX, edge.otherVertex().id().asString());
+        // Format edge property
+        row.column(HugeKeys.PROPERTIES, prop.key(),
+                   JsonUtil.toJson(prop.value()));
+
+        CassandraBackendEntry entry = new CassandraBackendEntry(row);
+        entry.subId(IdGenerator.of(prop.key()));
+        return entry;
+    }
+
+    @Override
     public HugeEdge readEdge(BackendEntry backendEntry, HugeGraph graph) {
         E.checkNotNull(graph, "serializer graph");
         if (backendEntry == null) {
@@ -278,10 +312,8 @@ public class CassandraSerializer extends AbstractSerializer {
         } else {
             entry.column(HugeKeys.FIELD_VALUES, index.fieldValues());
             entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
-            // TODO: try to make these code more clear.
-            Id[] ids = index.elementIds().toArray(new Id[0]);
-            assert ids.length == 1;
-            entry.column(HugeKeys.ELEMENT_IDS, ids[0].asString());
+            entry.column(HugeKeys.ELEMENT_IDS, index.elementId().asString());
+            entry.subId(index.elementId());
         }
         return entry;
     }

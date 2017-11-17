@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
@@ -317,8 +318,11 @@ public class BackendMutationTest extends BaseUnitTest {
 
     private static BackendEntry constructBackendEntry(String id,
                                                       String... columns) {
-        assert (columns.length & 1) == 0;
+        assert (columns.length == 0 || columns.length == 2);
         TextBackendEntry entry = new TextBackendEntry(IdGenerator.of(id));
+        if (columns.length == 2) {
+            entry.subId(SplicingIdGenerator.concat(id, columns[0]));
+        }
         for (int i = 0; i < columns.length; i = i + 2) {
             entry.column(columns[i], columns[i + 1]);
         }

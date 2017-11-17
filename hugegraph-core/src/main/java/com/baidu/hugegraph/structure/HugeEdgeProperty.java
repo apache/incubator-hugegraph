@@ -34,14 +34,14 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
 
     @Override
     public HugeEdge element() {
-        assert super.element() instanceof HugeEdge;
-        return (HugeEdge) super.element();
+        assert this.owner instanceof HugeEdge;
+        return (HugeEdge) this.owner;
     }
 
     @Override
     public void remove() {
-        assert super.element() instanceof HugeEdge;
-        EdgeLabel edgeLabel = ((HugeEdge) super.element()).edgeLabel();
+        assert this.owner instanceof HugeEdge;
+        EdgeLabel edgeLabel = ((HugeEdge) this.owner).edgeLabel();
         E.checkArgument(edgeLabel.nullableKeys().contains(this.key()),
                         "Can't remove non-null edge property '%s'", this);
         this.owner.tx().removeEdgeProperty(this);
@@ -53,5 +53,11 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
             return false;
         }
         return ElementHelper.areEqual(this, obj);
+    }
+
+    public HugeEdgeProperty<V> switchEdgeOwner() {
+        assert this.owner instanceof HugeEdge;
+        return new HugeEdgeProperty<V>(((HugeEdge) this.owner).switchOwner(),
+                                       this.key, this.value);
     }
 }

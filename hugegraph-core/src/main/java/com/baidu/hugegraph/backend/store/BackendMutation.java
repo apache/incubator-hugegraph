@@ -84,32 +84,15 @@ public class BackendMutation {
                     }
                     break;
                 case APPEND:
-                    if (originAction == MutateAction.INSERT ||
-                        originAction == MutateAction.DELETE) {
-                        throw incompatibleActionException(action, originAction);
-                    } else if (originAction == MutateAction.APPEND) {
-                        if (entry.equals(originItem.entry())) {
-                            ignoreCurrent = true;
-                        }
-                    } else {
-                        assert originAction == MutateAction.ELIMINATE;
-                        if (entry.equals(originItem.entry())) {
-                            items.remove();
-                        }
-                    }
-                    break;
                 case ELIMINATE:
                     if (originAction == MutateAction.INSERT ||
                         originAction == MutateAction.DELETE) {
                         throw incompatibleActionException(action, originAction);
-                    } else if (originAction == MutateAction.APPEND) {
-                        if (entry.equals(originItem.entry())) {
-                            items.remove();
-                        }
                     } else {
-                        assert originAction == MutateAction.ELIMINATE;
-                        if (entry.equals(originItem.entry())) {
-                            ignoreCurrent = true;
+                        assert entry.subId() != null;
+                        if (entry.subId() == originItem.entry().subId() ||
+                            entry.subId().equals(originItem.entry().subId())) {
+                            items.remove();
                         }
                     }
                     break;

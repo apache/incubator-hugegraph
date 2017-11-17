@@ -45,14 +45,12 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
-import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -72,7 +70,6 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -507,10 +504,8 @@ public class GraphTransaction extends AbstractTransaction {
             vertex.setProperty(prop);
             this.indexTx.updateVertexIndex(vertex, false);
 
-            // Update vertex (append only with new property)
-            HugeVertex v = vertex.prepareRemovedChildren();
-            v.setProperty(prop);
-            this.appendEntry(this.serializer.writeVertex(v));
+            // Append new property
+            this.appendEntry(this.serializer.writeVertexProperty(prop));
         });
     }
 
@@ -543,10 +538,8 @@ public class GraphTransaction extends AbstractTransaction {
             vertex.removeProperty(prop.key());
             this.indexTx.updateVertexIndex(vertex, false);
 
-            // Update vertex (eliminate only with the property)
-            HugeVertex v = vertex.prepareRemovedChildren();
-            v.setProperty(prop);
-            this.eliminateEntry(this.serializer.writeVertex(v));
+            // Eliminate the property
+            this.eliminateEntry(this.serializer.writeVertexProperty(prop));
         });
     }
 
@@ -579,11 +572,10 @@ public class GraphTransaction extends AbstractTransaction {
             edge.setProperty(prop);
             this.indexTx.updateEdgeIndex(edge, false);
 
-            // Update edge of OUT and IN (append only with new property)
-            HugeEdge e = edge.prepareRemovedChildren();
-            e.setProperty(prop);
-            this.appendEntry(this.serializer.writeEdge(e));
-            this.appendEntry(this.serializer.writeEdge(e.switchOwner()));
+            // Append new property(OUT and IN owner edge)
+            this.appendEntry(this.serializer.writeEdgeProperty(prop));
+            this.appendEntry(this.serializer.writeEdgeProperty(
+                             prop.switchEdgeOwner()));
         });
     }
 
@@ -615,11 +607,10 @@ public class GraphTransaction extends AbstractTransaction {
             edge.removeProperty(prop.key());
             this.indexTx.updateEdgeIndex(edge, false);
 
-            // Update edge of OUT and IN (eliminate only with the property)
-            HugeEdge e = edge.prepareRemovedChildren();
-            e.setProperty(prop);
-            this.eliminateEntry(this.serializer.writeEdge(e));
-            this.eliminateEntry(this.serializer.writeEdge(e.switchOwner()));
+            // Eliminate the property(OUT and IN owner edge)
+            this.eliminateEntry(this.serializer.writeEdgeProperty(prop));
+            this.eliminateEntry(this.serializer.writeEdgeProperty(
+                                prop.switchEdgeOwner()));
         });
     }
 

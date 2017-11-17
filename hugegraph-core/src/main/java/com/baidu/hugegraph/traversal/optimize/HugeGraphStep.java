@@ -92,7 +92,7 @@ public final class HugeGraphStep<S, E extends Element>
 
         @SuppressWarnings("unchecked")
         Iterator<E> result = (Iterator<E>) graph.vertices(query);
-        return  result;
+        return result;
     }
 
     private Iterator<E> edges() {

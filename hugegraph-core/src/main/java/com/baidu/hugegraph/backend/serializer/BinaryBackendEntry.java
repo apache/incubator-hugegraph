@@ -29,6 +29,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 public class BinaryBackendEntry implements BackendEntry {
 
     private Id id;
+    private Id subId;
     private Collection<BackendColumn> columns;
 
     public BinaryBackendEntry(Id id) {
@@ -43,6 +44,16 @@ public class BinaryBackendEntry implements BackendEntry {
     @Override
     public void id(Id id) {
         this.id = id;
+    }
+
+    @Override
+    public Id subId() {
+        return this.subId;
+    }
+
+    @Override
+    public void subId(Id subId) {
+        this.subId = subId;
     }
 
     @Override

@@ -443,18 +443,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return vertex;
     }
 
-    /**
-     * Clear edges/properties of the cloned vertex, and set `removed` false
-     * @return a new vertex
-     */
-    public HugeVertex prepareRemovedChildren() {
-        HugeVertex vertex = this.clone();
-        vertex.removed = false; /* Don't remove self */
-        vertex.resetEdges();
-        vertex.resetProperties();
-        return vertex;
-    }
-
     public HugeVertex copy() {
         HugeVertex vertex = this.clone();
         vertex.properties = new HashMap<>(vertex.properties);

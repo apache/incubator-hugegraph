@@ -52,14 +52,14 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
 
     @Override
     public HugeVertex element() {
-        assert super.element() instanceof HugeVertex;
-        return (HugeVertex) super.element();
+        assert this.owner instanceof HugeVertex;
+        return (HugeVertex) this.owner;
     }
 
     @Override
     public void remove() {
-        assert super.element() instanceof HugeVertex;
-        VertexLabel vertexLabel = ((HugeVertex) super.element()).vertexLabel();
+        assert this.owner instanceof HugeVertex;
+        VertexLabel vertexLabel = ((HugeVertex) this.owner).vertexLabel();
         E.checkArgument(vertexLabel.nullableKeys().contains(this.key()),
                         "Can't remove non-null vertex property '%s'", this);
         this.owner.tx().removeVertexProperty(this);
