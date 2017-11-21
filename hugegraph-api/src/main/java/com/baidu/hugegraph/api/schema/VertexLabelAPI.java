@@ -141,6 +141,9 @@ public class VertexLabelAPI extends API {
         g.schema().vertexLabel(name).remove();
     }
 
+    /**
+     * JsonVertexLabel is only used to receive create and append requests
+     */
     private static class JsonVertexLabel {
 
         @JsonProperty("name")
@@ -151,8 +154,6 @@ public class VertexLabelAPI extends API {
         public String[] primaryKeys;
         @JsonProperty("nullable_keys")
         public String[] nullableKeys;
-        @JsonProperty("index_names")
-        public String[] indexNames;
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("check_exist")
@@ -161,10 +162,6 @@ public class VertexLabelAPI extends API {
         private VertexLabel convert2VertexLabel() {
             E.checkArgumentNotNull(this.name,
                                    "The name of vertex label can't be null");
-            E.checkArgument(this.indexNames == null ||
-                            this.indexNames.length == 0,
-                            "Not allowed to pass index names when " +
-                            "creating vertex label");
             VertexLabel vertexLabel = new VertexLabel(this.name);
             if (this.idStrategy != null) {
                 vertexLabel.idStrategy(this.idStrategy);
@@ -188,9 +185,9 @@ public class VertexLabelAPI extends API {
         public String toString() {
             return String.format("JsonVertexLabel{" +
                    "name=%s, idStrategy=%s, primaryKeys=%s, " +
-                   "nullableKeys=%s, indexNames=%s, properties=%s}",
+                   "nullableKeys=%s, properties=%s}",
                    this.name, this.idStrategy, this.primaryKeys,
-                   this.nullableKeys, this.indexNames, this.properties);
+                   this.nullableKeys, this.properties);
         }
     }
 }

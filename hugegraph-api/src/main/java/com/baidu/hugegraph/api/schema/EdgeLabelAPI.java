@@ -140,6 +140,9 @@ public class EdgeLabelAPI extends API {
         g.schema().edgeLabel(name).remove();
     }
 
+    /**
+     * JsonEdgeLabel is only used to receive create and append requests
+     */
     private static class JsonEdgeLabel {
 
         @JsonProperty("name")
@@ -154,8 +157,6 @@ public class EdgeLabelAPI extends API {
         public String[] sortKeys;
         @JsonProperty("nullable_keys")
         public String[] nullableKeys;
-        @JsonProperty("index_names")
-        public String[] indexNames;
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("check_exist")
@@ -164,10 +165,6 @@ public class EdgeLabelAPI extends API {
         private EdgeLabel convert2EdgeLabel() {
             E.checkArgumentNotNull(this.name,
                                    "The name of edge label can't be null");
-            E.checkArgument(this.indexNames == null ||
-                            this.indexNames.length == 0,
-                            "Not allowed to pass index names when " +
-                            "creating edge label");
             EdgeLabel edgeLabel = new EdgeLabel(this.name);
             if (this.sourceLabel != null) {
                 edgeLabel.sourceLabel(this.sourceLabel);
@@ -197,11 +194,10 @@ public class EdgeLabelAPI extends API {
         public String toString() {
             return String.format("JsonEdgeLabel{" +
                    "name=%s, sourceLabel=%s, targetLabel=%s, frequency=%s, " +
-                   "sortKeys=%s, nullableKeys=%s, indexNames=%s, " +
-                   "properties=%s}",
+                   "sortKeys=%s, nullableKeys=%s, properties=%s}",
                    this.name, this.sourceLabel, this.targetLabel,
                    this.frequency, this.sortKeys, this.nullableKeys,
-                   this.indexNames, this.properties);
+                   this.properties);
         }
     }
 }
