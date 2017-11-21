@@ -48,8 +48,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"frequency\": \"SINGLE\","
                 + "\"properties\":[\"date\", \"city\"],"
                 + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[],"
-                + "\"index_names\":[]"
+                + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
         Assert.assertEquals(201, r.getStatus());
@@ -64,8 +63,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"frequency\": \"SINGLE\","
                 + "\"properties\":[\"date\", \"city\"],"
                 + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[],"
-                + "\"index_names\":[]"
+                + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
         Assert.assertEquals(201, r.getStatus());
@@ -77,8 +75,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"frequency\": \"DEFAULT\","
                 + "\"properties\":[\"lang\"],"
                 + "\"nullable_keys\":[\"lang\"],"
-                + "\"sort_keys\":[],"
-                + "\"index_names\":[]"
+                + "\"sort_keys\":[]"
                 + "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
         r = client().put(path + "created", edgeLabel, params);
@@ -94,8 +91,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"frequency\": \"SINGLE\","
                 + "\"properties\":[\"date\", \"city\"],"
                 + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[],"
-                + "\"index_names\":[]"
+                + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
         Assert.assertEquals(201, r.getStatus());
@@ -114,8 +110,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"frequency\": \"SINGLE\","
                 + "\"properties\":[\"date\", \"city\"],"
                 + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[],"
-                + "\"index_names\":[]"
+                + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
         Assert.assertEquals(201, r.getStatus());
@@ -133,8 +128,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"frequency\": \"SINGLE\","
                 + "\"properties\":[\"date\", \"city\"],"
                 + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[],"
-                + "\"index_names\":[]"
+                + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
         Assert.assertEquals(201, r.getStatus());

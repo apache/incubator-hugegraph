@@ -109,6 +109,9 @@ public class IndexLabelAPI extends API {
         g.schema().indexLabel(name).remove();
     }
 
+    /**
+     * JsonIndexLabel is only used to receive create and append requests
+     */
     private static class JsonIndexLabel {
 
         @JsonProperty("name")

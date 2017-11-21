@@ -201,7 +201,6 @@ public class BaseApiTest {
                 + "\"primary_keys\":[\"name\"],\n"
                 + "\"id_strategy\": \"PRIMARY_KEY\",\n"
                 + "\"name\": \"person\",\n"
-                + "\"index_names\":[],\n"
                 + "\"properties\":[\"city\", \"name\", \"age\"],\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
@@ -209,7 +208,6 @@ public class BaseApiTest {
                 + "\"primary_keys\":[\"name\"],\n"
                 + "\"id_strategy\": \"PRIMARY_KEY\",\n"
                 + "\"name\": \"software\",\n"
-                + "\"index_names\":[],\n"
                 + "\"properties\":[\"price\", \"name\", \"lang\"],\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
@@ -225,7 +223,6 @@ public class BaseApiTest {
                 + "\"frequency\": \"SINGLE\",\n"
                 + "\"properties\":[\"date\", \"weight\"],\n"
                 + "\"sort_keys\":[],\n"
-                + "\"index_names\":[],\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
         client.post(path, "{\n"
@@ -235,7 +232,6 @@ public class BaseApiTest {
                 + "\"frequency\": \"SINGLE\",\n"
                 + "\"properties\":[\"date\", \"weight\"],\n"
                 + "\"sort_keys\":[],\n"
-                + "\"index_names\":[],\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
     }

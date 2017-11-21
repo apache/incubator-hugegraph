@@ -110,6 +110,9 @@ public class PropertyKeyAPI extends API {
         g.schema().propertyKey(name).remove();
     }
 
+    /**
+     * JsonPropertyKey is only used to receive create and append requests
+     */
     private static class JsonPropertyKey {
 
         @JsonProperty("name")
