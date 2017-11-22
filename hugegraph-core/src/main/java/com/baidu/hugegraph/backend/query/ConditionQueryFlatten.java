@@ -31,6 +31,10 @@ public class ConditionQueryFlatten {
 
     public static List<ConditionQuery> flatten(ConditionQuery query) {
         List<ConditionQuery> queries = new ArrayList<>();
+        if (query.conditions().isEmpty()) {
+            queries.add(query.copy());
+            return queries;
+        }
         Set<Set<Relation>> results = null;
         for (Condition condition : query.conditions()) {
             if (results == null) {

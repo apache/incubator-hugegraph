@@ -461,7 +461,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public HugeVertex copy() {
         HugeVertex vertex = this.clone();
-        vertex.properties = new HashMap<>(vertex.properties);
+        vertex.properties = new HashMap<>(this.properties);
         return vertex;
     }
 

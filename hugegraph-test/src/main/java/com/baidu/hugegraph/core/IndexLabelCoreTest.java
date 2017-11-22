@@ -373,10 +373,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, vertices.size());
         vertices = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(1, vertices.size());
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            graph.traversal().V().has("city", "Hongkong")
-                 .has("age", "3").toList();
-        });
+
+        vertices = graph().traversal().V().has("city", "Hongkong")
+                          .has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
 
         schema.indexLabel("personByCityAndAge").onV("person").secondary()
               .by("city", "age").create();
@@ -418,10 +418,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, vertices.size());
         vertices = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(1, vertices.size());
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            graph.traversal().V().has("city", "Hongkong")
-                 .has("age", "3").toList();
-        });
+
+        vertices = graph().traversal().V().has("city", "Hongkong")
+                          .has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
 
         schema.indexLabel("personByAgeAndCity").onV("person").secondary()
               .by("age", "city").create();

@@ -19,10 +19,12 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -32,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -70,6 +73,7 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("ram").asText().create();
         schema.propertyKey("band").asText().create();
         schema.propertyKey("price").asInt().create();
+        schema.propertyKey("weight").asDouble().create();
 
         LOG.debug("===============  vertexLabel  ================");
 
@@ -1317,6 +1321,154 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByJointIndexes() {
+        graph().addVertex(T.label, "person", "name", "Baby",
+                          "city", "Hongkong", "age", 3);
+        List<Vertex> vertices;
+        vertices = graph().traversal().V().has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V().has("city", "Hongkong")
+                          .has("age", 2).toList();
+        Assert.assertEquals(0, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hangzhou")
+                          .has("age", 2).toList();
+        Assert.assertEquals(0, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong")
+                          .has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testQueryByJointIndexesAndCompositeIndexForOneLabel() {
+        graph().addVertex(T.label, "person", "name", "Tom",
+                          "city", "Hongkong", "age", 3);
+        List<Vertex> vertices;
+        vertices = graph().traversal().V().has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong")
+                          .has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        graph().schema().indexLabel("personByCityAndAge").onV("person")
+               .by("city", "age").ifNotExist().create();
+
+        vertices = graph().traversal().V().has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices = graph().traversal().V().has("city", "Hongkong")
+                          .has("age", 3).toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testQueryByJointIndexesAndCompositeIndexForMultiLabel() {
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("dog").properties("name", "age", "city")
+              .primaryKeys("name").nullableKeys("age").create();
+        schema.indexLabel("dogByCityAndAge").onV("dog")
+              .by("city", "age").create();
+
+        schema.vertexLabel("cat").properties("name", "age", "city")
+              .primaryKeys("name").nullableKeys("age").create();
+        schema.indexLabel("catByCity").onV("cat").secondary()
+              .by("city").create();
+        schema.indexLabel("catByAge").onV("cat").range()
+              .by("age").create();
+
+        graph().addVertex(T.label, "dog", "name", "Tom",
+                          "city", "Hongkong", "age", 3);
+        graph().addVertex(T.label, "cat", "name", "Baby",
+                          "city", "Hongkong", "age", 3);
+
+        List<Vertex> vertices;
+        vertices = graph().traversal().V().has("age", 3)
+                          .has("city", "Hongkong").toList();
+        Assert.assertEquals(2, vertices.size());
+        Set<String> labels = new HashSet<>();
+        labels.add(vertices.get(0).label());
+        labels.add(vertices.get(1).label());
+        Set<String> expectedLabels = ImmutableSet.of("dog", "cat");
+        Assert.assertEquals(expectedLabels, labels);
+    }
+
+    @Test
+    public void testQueryByJointIndexesOnlyWithCompositeIndex() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("dog").properties("name", "age", "city")
+              .nullableKeys("age").create();
+        schema.indexLabel("dogByNameAndCity").onV("dog").secondary()
+              .by("name", "city").create();
+        schema.indexLabel("dogByCityAndAge").onV("dog").secondary()
+              .by("city", "age").create();
+
+        graph().addVertex(T.label, "dog", "name", "Tom",
+                          "city", "Hongkong", "age", 3);
+
+        graph().tx().commit();
+        List<Vertex> vertices;
+
+        vertices = graph().traversal().V().has("age", 3)
+                          .has("city", "Hongkong").has("name", "Tom")
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testQueryByJointIndexesWithRangeIndex() {
+        graph().addVertex(T.label, "person", "name", "Tom",
+                          "city", "Hongkong", "age", 3);
+
+        List<Vertex> vertices;
+        vertices = graph().traversal().V().has("age", P.gt(2))
+                          .has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testQueryByJointIndexesWithCompositeIndexIncludeOtherField() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("dog").properties("name", "age", "city")
+              .nullableKeys("age").create();
+        schema.indexLabel("dogByAge").onV("dog").range().by("age").create();
+        schema.indexLabel("dogByCityAndName").onV("dog").secondary()
+              .by("city", "name").create();
+
+        graph().addVertex(T.label, "dog", "name", "Tom",
+                          "city", "Hongkong", "age", 3);
+
+        graph().tx().commit();
+        List<Vertex> vertices;
+
+        vertices = graph().traversal().V().has("age", P.gt(2))
+                          .has("city", "Hongkong").toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testQueryByJointIndexesWithOnlyRangeIndexes() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("dog").properties("name", "age", "weight").create();
+        schema.indexLabel("dogByAge").onV("dog").range().by("age").create();
+        schema.indexLabel("dogByWeight").onV("dog").range().by("weight")
+              .create();
+
+        graph().addVertex(T.label, "dog", "name", "Tom",
+                          "age", 8, "weight", 3);
+
+        graph().tx().commit();
+        List<Vertex> vertices = graph().traversal().V().has("age", P.gt(2))
+                                       .has("weight", P.lt(10)).toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
     public void testRemoveVertex() {
         HugeGraph graph = graph();
         init10Vertices();
@@ -1671,7 +1823,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryVertexWithNullablePropertyInJointIndex() {
+    public void testQueryVertexWithNullablePropertyInCompositeIndex() {
         HugeGraph graph = graph();
         graph.addVertex(T.label, "computer", "name", "1st", "band", "10Gbps",
                         "cpu", "2GHz", "ram", "8GB", "price", 1000);

@@ -1729,7 +1729,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryEdgeWithNullablePropertyInJointIndex() {
+    public void testQueryEdgeWithNullablePropertyInCompositeIndex() {
         HugeGraph graph = graph();
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
