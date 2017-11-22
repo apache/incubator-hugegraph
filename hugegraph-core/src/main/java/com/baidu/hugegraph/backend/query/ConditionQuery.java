@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,7 +32,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -135,26 +135,34 @@ public class ConditionQuery extends IdQuery {
     }
 
     public Object condition(Object key) {
+        // TODO: uncomment checkFlattened when query flattened in Graph tx
+        // this.checkFlattened();
+        List<Object> values = new ArrayList<>();
         for (Condition c : this.conditions) {
             if (c.isRelation()) {
                 Condition.Relation r = (Condition.Relation) c;
                 if (r.key().equals(key)) {
-                    return r.value();
+                    values.add(r.value());
                 }
             }
-            // TODO: deal with other Condition
         }
-        return null;
+        if (values.isEmpty()) {
+            return null;
+        }
+        E.checkState(values.size() == 1,
+                     "Illegal key: '%s' with more than one value", key);
+        return values.get(0);
     }
 
     public void unsetCondition(Object key) {
+        this.checkFlattened();
         for (Iterator<Condition> iter = this.conditions.iterator();
              iter.hasNext();) {
             Condition c = iter.next();
-            if (c.isRelation() && ((Condition.Relation) c).key().equals(key)) {
+            assert c.isRelation();
+            if (((Condition.Relation) c).key().equals(key)) {
                 iter.remove();
             }
-            // TODO: deal with other Condition
         }
     }
 
@@ -164,25 +172,19 @@ public class ConditionQuery extends IdQuery {
 
     public boolean containsCondition(HugeKeys key,
                                      Condition.RelationType type) {
-        for (Condition c : this.conditions) {
-            if (c.isRelation()) {
-                Condition.Relation r = (Condition.Relation) c;
-                if (r.key().equals(key) && r.relation().equals(type)) {
-                    return true;
-                }
+        for (Relation r : this.relations()) {
+            if (r.key().equals(key) && r.relation().equals(type)) {
+                return true;
             }
-            // TODO: deal with other Condition
         }
         return false;
     }
 
     public boolean containsCondition(Condition.RelationType type) {
-        for (Condition c : this.conditions) {
-            if (c.isRelation() &&
-                ((Condition.Relation) c).relation().equals(type)) {
+        for (Relation r : this.relations()) {
+            if (r.relation().equals(type)) {
                 return true;
             }
-            // TODO: deal with other Condition
         }
         return false;
     }
@@ -201,6 +203,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public List<Condition> syspropConditions() {
+        this.checkFlattened();
         List<Condition> conds = new ArrayList<>();
         for (Condition c : this.conditions) {
             if (c.isSysprop()) {
@@ -211,6 +214,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public List<Condition> userpropConditions() {
+        this.checkFlattened();
         List<Condition> conds = new ArrayList<>();
         for (Condition c : this.conditions) {
             if (!c.isSysprop()) {
@@ -220,7 +224,31 @@ public class ConditionQuery extends IdQuery {
         return conds;
     }
 
+    public List<Condition> userpropConditions(Id key) {
+        this.checkFlattened();
+        List<Condition> conditions = new ArrayList<>();
+        for (Condition condition : this.conditions) {
+            Relation relation = (Relation) condition;
+            if (relation.key().equals(key)) {
+                conditions.add(relation);
+            }
+        }
+        return conditions;
+    }
+
+    public List<Relation> userpropRelations() {
+        List<Relation> relations = new ArrayList<>();
+        for (Relation r : this.relations()) {
+            if (!r.isSysprop()) {
+                relations.add(r);
+            }
+        }
+        return relations;
+    }
+
     public void resetUserpropConditions() {
+        // TODO: uncomment checkFlattened when query flattened in Graph tx
+        // this.checkFlattened();
         this.conditions.removeIf(condition -> !condition.isSysprop());
     }
 
@@ -235,22 +263,22 @@ public class ConditionQuery extends IdQuery {
         return keys;
     }
 
+    /**
+     * This method is only used for secondary index scenario,
+     * relation must be IN or EQ
+     */
     public List<Object> userpropValues(List<Id> fields) {
         List<Object> values = new ArrayList<>(fields.size());
         for (Id field : fields) {
             boolean got = false;
-            for (Condition c : this.conditions) {
-                if (!c.isRelation()) {
-                    // TODO: deal with other Condition like AND/OR
-                    throw new NotSupportException(
-                              "obtaining userprop from non relation");
-                }
-                Relation r = ((Relation) c);
+            for (Relation r : this.userpropRelations()) {
                 if (r.key().equals(field) && !r.isSysprop()) {
-                    /*
-                     * This method only used for secondary index scenario,
-                     * relation must be IN or EQ
-                     */
+                    E.checkState(r.relation == RelationType.EQ ||
+                                 r.relation == RelationType.IN,
+                                 "Method userpropValues(List<String>) only " +
+                                 "used for secondary index, " +
+                                 "relation must be IN or EQ, but got '%s'",
+                                 r.relation());
                     values.add(singleValueOfRelationInEq(r));
                 }
                 got = true;
@@ -264,24 +292,14 @@ public class ConditionQuery extends IdQuery {
         return values;
     }
 
-    public Object userpropValue(Id field) {
-        for (Condition c : this.conditions) {
-            if (!c.isRelation()) {
-                // And/Or
-                continue;
-            }
-            Relation r = ((Relation) c);
-            /*
-             * Only relation type IN (only one element) or EQ has single value.
-             * Relation type GT, LT, GTE, LTE etc. doesn't have.
-             */
-            if (r.key().equals(field) && !r.isSysprop() &&
-                (r.relation == Condition.RelationType.IN ||
-                 r.relation == Condition.RelationType.EQ)) {
-                return singleValueOfRelationInEq(r);
+    public Set<Object> userpropValue(Id field) {
+        Set<Object> values = new HashSet<>();
+        for (Relation r : this.userpropRelations()) {
+            if (r.key().equals(field)) {
+                values.add(singleValueOfRelationInEq(r));
             }
         }
-        return null;
+        return values;
     }
 
     private static Object singleValueOfRelationInEq(Relation r) {
@@ -291,9 +309,6 @@ public class ConditionQuery extends IdQuery {
                             "Only support one element IN index query");
             return fieldValues.get(0);
         } else {
-            E.checkArgument(r.relation() == Condition.RelationType.EQ,
-                            "Must be IN or EQ index query, but got %s",
-                            r.relation());
             return r.value();
         }
     }
@@ -314,15 +329,8 @@ public class ConditionQuery extends IdQuery {
 
     public boolean matchUserpropKeys(List<Id> keys) {
         Set<Id> conditionKeys = userpropKeys();
-        if (keys.size() == conditionKeys.size() &&
-            conditionKeys.containsAll(keys)) {
-            return true;
-        }
-        return false;
-    }
-
-    public List<ConditionQuery> flatten() {
-        return ConditionQueryFlatten.flatten(this);
+        return keys.size() == conditionKeys.size() &&
+               conditionKeys.containsAll(keys);
     }
 
     @Override
@@ -343,5 +351,17 @@ public class ConditionQuery extends IdQuery {
             }
         }
         return true;
+    }
+
+    public List<ConditionQuery> flatten() {
+        return ConditionQueryFlatten.flatten(this);
+    }
+
+    private void checkFlattened() {
+        for (Condition condition : this.conditions) {
+            E.checkState(condition.isRelation(),
+                         "Condition Query has none-flatten condition '%s'",
+                         condition);
+        }
     }
 }

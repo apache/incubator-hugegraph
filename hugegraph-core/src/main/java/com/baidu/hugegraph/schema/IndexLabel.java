@@ -32,6 +32,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.util.E;
 
 public class IndexLabel extends SchemaElement {
 
@@ -98,12 +99,21 @@ public class IndexLabel extends SchemaElement {
         return Collections.unmodifiableList(this.indexFields);
     }
 
+    public void indexFields(Id... ids) {
+        this.indexFields.addAll(Arrays.asList(ids));
+    }
+
     public void indexField(Id id) {
         this.indexFields.add(id);
     }
 
-    public void indexFields(Id... ids) {
-        this.indexFields.addAll(Arrays.asList(ids));
+    public Id indexField() {
+        E.checkState(this.indexType == IndexType.RANGE,
+                     "Only support indexField() for range index label");
+        E.checkState(this.indexFields.size() == 1,
+                     "Range index label only has one index field, but got: " +
+                     "%s", this.indexFields);
+        return this.indexFields.get(0);
     }
 
     @Override
