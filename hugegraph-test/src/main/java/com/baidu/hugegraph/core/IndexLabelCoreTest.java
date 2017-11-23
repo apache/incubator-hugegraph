@@ -196,7 +196,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .secondary().by("contribution").create();
 
         Edge edge = graph().traversal().E().hasLabel("authored")
-                    .has("contribution", "test").next();
+                           .has("contribution", "test").next();
         Assert.assertNotNull(edge);
     }
 

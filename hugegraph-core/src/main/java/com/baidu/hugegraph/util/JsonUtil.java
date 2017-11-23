@@ -45,8 +45,8 @@ public class JsonUtil {
      * this method used to cast element in collection to original number type
      */
     public static Object castNumber(Object object, Class<?> clazz) {
-        if (object instanceof Double) {
-            Double number = (Double) object;
+        if (object instanceof Number) {
+            Number number = (Number) object;
             if (clazz == Byte.class) {
                 object = number.byteValue();
             } else if (clazz == Integer.class) {

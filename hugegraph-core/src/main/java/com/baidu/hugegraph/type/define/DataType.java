@@ -19,20 +19,17 @@
 
 package com.baidu.hugegraph.type.define;
 
-import java.sql.Timestamp;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.baidu.hugegraph.structure.HugeProperty;
-
-
 public enum DataType {
 
     // This property has sub properties
-    OBJECT(1, "object", HugeProperty.class),
+    OBJECT(1, "object", Object.class),
     BOOLEAN(2, "boolean", Boolean.class),
     BYTE(3, "byte", Byte.class),
     BLOB(4, "blob", byte[].class),
@@ -41,7 +38,7 @@ public enum DataType {
     INT(7, "int", Integer.class),
     LONG(8, "long", Long.class),
     TEXT(9, "text", String.class),
-    TIMESTAMP(10, "timestamp", Timestamp.class),
+    DATE(10, "date", Date.class),
     UUID(11, "uuid", UUID.class);
 
     private byte code = 0;

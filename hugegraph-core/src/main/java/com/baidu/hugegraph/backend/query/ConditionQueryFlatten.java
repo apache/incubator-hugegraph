@@ -68,7 +68,6 @@ public class ConditionQueryFlatten {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
     private static Set<Set<Relation>> and(Set<Set<Relation>> left,
                                           Set<Set<Relation>> right) {
         Set<Set<Relation>> result = new HashSet<>();
@@ -92,7 +91,7 @@ public class ConditionQueryFlatten {
 
     private static ConditionQuery queryFromRelations(ConditionQuery query,
                                                      Set<Relation> relations) {
-        ConditionQuery q = query.clone();
+        ConditionQuery q = query.copy();
         q.resetConditions();
         for (Relation relation : relations) {
             q.query(relation);

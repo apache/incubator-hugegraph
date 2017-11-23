@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.serializer;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.type.HugeType;
 
 public abstract class AbstractSerializer
                 implements GraphSerializer, SchemaSerializer {
@@ -29,5 +30,5 @@ public abstract class AbstractSerializer
         return entry;
     }
 
-    public abstract BackendEntry newBackendEntry(Id id);
+    public abstract BackendEntry newBackendEntry(HugeType type, Id id);
 }

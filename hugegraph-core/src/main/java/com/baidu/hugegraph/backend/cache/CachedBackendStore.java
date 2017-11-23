@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.cache;
 
+import java.util.Iterator;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -29,6 +31,9 @@ import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 
+/**
+ * This class is unused now, just for debug or test
+ */
 public class CachedBackendStore implements BackendStore {
 
     private BackendStore store = null;
@@ -104,7 +109,7 @@ public class CachedBackendStore implements BackendStore {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterable<BackendEntry> query(Query query) {
+    public Iterator<BackendEntry> query(Query query) {
         if (query.empty()) {
             return this.store.query(query);
         }
@@ -112,10 +117,10 @@ public class CachedBackendStore implements BackendStore {
         QueryId id = new QueryId(query);
         Object result = this.cache.get(id);
         if (result != null) {
-            return (Iterable<BackendEntry>) result;
+            return (Iterator<BackendEntry>) result;
         } else {
-            Iterable<BackendEntry> rs = this.store.query(query);
-            if (rs.iterator().hasNext()) {
+            Iterator<BackendEntry> rs = this.store.query(query);
+            if (rs.hasNext()) {
                 this.cache.update(id, rs);
             }
             return rs;
@@ -150,8 +155,8 @@ public class CachedBackendStore implements BackendStore {
 
         @Override
         public int compareTo(Id o) {
-            // TODO Auto-generated method stub
-            return hashCode() - o.hashCode();
+            // TODO: improve
+            return this.hashCode() - o.hashCode();
         }
 
         @Override
@@ -161,19 +166,31 @@ public class CachedBackendStore implements BackendStore {
 
         @Override
         public long asLong() {
-            // TODO Auto-generated method stub
+            // TODO: improve
             return 0;
         }
 
         @Override
         public byte[] asBytes() {
-            // TODO Auto-generated method stub
+            // TODO: improve
             return null;
         }
 
         @Override
         public String toString() {
             return this.id.toString();
+        }
+
+        @Override
+        public int length() {
+            // TODO: improve
+            return 32;
+        }
+
+        @Override
+        public boolean number() {
+            // TODO: improve
+            return false;
         }
     }
 }

@@ -630,6 +630,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         graph().addVertex(T.label, "person", "name", "marko", "age", 22);
         graph().addVertex(T.label, "person", "name", "jerry", "age", 5);
         graph().addVertex(T.label, "person", "name", "tom", "age", 8);
+        graph().tx().commit();
 
         List<Vertex> vertex = graph().traversal().V().hasLabel("person")
                               .toList();
@@ -666,6 +667,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         graph().addVertex(T.label, "person", "name", "marko", "age", 22);
         graph().addVertex(T.label, "person", "name", "jerry", "age", 5);
         graph().addVertex(T.label, "person", "name", "tom", "age", 8);
+        graph().tx().commit();
 
         List<Vertex> vertex = graph().traversal().V().hasLabel("person")
                               .has("age", P.inside(4, 10)).toList();
@@ -707,6 +709,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                           "city", "Beijing");
         graph().addVertex(T.label, "person", "name", "tom",
                           "city", "HongKong");
+        graph().tx().commit();
 
         List<Vertex> vertex = graph().traversal().V().hasLabel("person")
                               .has("city", "Beijing").toList();

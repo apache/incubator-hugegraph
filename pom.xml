@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>0.4.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <prerequisites>
         <maven>3.3.9</maven>
@@ -96,12 +96,13 @@
     </properties>
     <modules>
         <module>hugegraph-core</module>
-        <module>hugegraph-cassandra</module>
-        <module>hugegraph-dist</module>
         <module>hugegraph-api</module>
         <module>hugegraph-example</module>
+        <module>hugegraph-dist</module>
         <module>hugegraph-test</module>
+        <module>hugegraph-cassandra</module>
         <module>hugegraph-scylladb</module>
+        <module>hugegraph-rocksdb</module>
     </modules>
 
     <dependencyManagement>

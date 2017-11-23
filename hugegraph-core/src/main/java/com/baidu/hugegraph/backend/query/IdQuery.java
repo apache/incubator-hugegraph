@@ -82,8 +82,8 @@ public class IdQuery extends Query {
     }
 
     @Override
-    public IdQuery clone() {
-        IdQuery query = (IdQuery) super.clone();
+    public IdQuery copy() {
+        IdQuery query = (IdQuery) super.copy();
         query.ids = new LinkedHashSet<>(this.ids);
         return query;
     }

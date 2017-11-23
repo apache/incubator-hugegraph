@@ -21,19 +21,29 @@ package com.baidu.hugegraph.backend.store;
 
 public interface BackendFeatures {
 
-    public boolean supportsScan();
+    public boolean supportsScanToken();
 
-    public boolean supportsTransaction();
+    public boolean supportsScanKeyPrefix();
 
-    public boolean supportsQueryByContains();
+    public boolean supportsScanKeyRange();
 
-    public boolean supportsQueryByContainsKey();
+    public boolean supportsQuerySchemaByName();
 
-    public boolean supportsDeleteEdgeByLabel();
+    public boolean supportsQueryByLabel();
 
     public boolean supportsQueryWithSearchCondition();
 
+    public boolean supportsQueryWithContains();
+
+    public boolean supportsQueryWithContainsKey();
+
+    public boolean supportsQueryWithOrderBy();
+
+    public boolean supportsDeleteEdgeByLabel();
+
     public boolean supportsUpdateEdgeProperty();
 
-    public boolean supportsOrderByQuery();
+    public boolean supportsTransaction();
+
+    public boolean supportsNumberType();
 }

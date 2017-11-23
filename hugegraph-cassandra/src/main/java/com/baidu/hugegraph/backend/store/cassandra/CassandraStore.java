@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,7 +113,7 @@ public abstract class CassandraStore implements BackendStore {
         try {
             LOG.debug("Store connect with keyspace: {}", this.keyspace);
             try {
-                this.sessions.session();
+                this.sessions.session().open();
             } catch (InvalidQueryException e) {
                 // TODO: the error message may be changed in different versions
                 if (!e.getMessage().contains(String.format(
@@ -120,8 +121,7 @@ public abstract class CassandraStore implements BackendStore {
                     throw e;
                 }
                 LOG.info("Failed to connect keyspace: {}, " +
-                         "try init keyspace later", this.keyspace);
-                this.sessions.closeSession();
+                         "try to init keyspace later", this.keyspace);
             }
         } catch (Throwable e) {
             try {
@@ -211,7 +211,7 @@ public abstract class CassandraStore implements BackendStore {
     }
 
     @Override
-    public Iterable<BackendEntry> query(Query query) {
+    public Iterator<BackendEntry> query(Query query) {
         this.checkSessionConnected();
 
         CassandraTable table = this.table(query.resultType());
@@ -234,8 +234,9 @@ public abstract class CassandraStore implements BackendStore {
     @Override
     public void init() {
         this.checkClusterConnected();
-
         this.initKeyspace();
+
+        this.checkSessionConnected();
         this.initTables();
 
         LOG.info("Store initialized: {}", this.name);
@@ -246,6 +247,7 @@ public abstract class CassandraStore implements BackendStore {
         this.checkClusterConnected();
 
         if (this.existsKeyspace()) {
+            this.checkSessionConnected();
             this.clearTables();
             this.clearKeyspace();
         }
@@ -363,6 +365,7 @@ public abstract class CassandraStore implements BackendStore {
                 session.close();
             }
         }
+        this.sessions.session().open();
     }
 
     protected void clearKeyspace() {
@@ -402,7 +405,7 @@ public abstract class CassandraStore implements BackendStore {
         assert type != null;
         CassandraTable table = this.tables.get(type);
         if (table == null) {
-            throw new BackendException("Unsupported type: %s", type.name());
+            throw new BackendException("Unsupported table type: %s", type);
         }
         return table;
     }

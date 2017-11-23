@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit;
+package com.baidu.hugegraph.unit.common;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,6 +31,7 @@ import com.baidu.hugegraph.event.Event;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.google.common.collect.ImmutableList;
 
 public class EventHubTest extends BaseUnitTest {

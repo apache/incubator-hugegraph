@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -151,6 +152,44 @@ public class IndexLabel extends SchemaElement {
         }
         int endIdx = sb.lastIndexOf(",") > 0 ? sb.length() - 1 : sb.length();
         return String.format(".by(%s)", sb.substring(0, endIdx));
+    }
+
+    static class PrimitiveIndexLabel extends IndexLabel {
+
+        public PrimitiveIndexLabel(String name) {
+            super(name);
+            // TODO: add indexFields and id(from -1)
+        }
+
+        @Override
+        public boolean primitive() {
+            return true;
+        }
+    }
+
+    public static final IndexLabel VL_IL = new PrimitiveIndexLabel("~vli");
+    public static final IndexLabel EL_IL = new PrimitiveIndexLabel("~eli");
+
+    public static IndexLabel label(HugeType type) {
+        if (type == HugeType.VERTEX) {
+            return VL_IL;
+        } else if (type == HugeType.EDGE || // TODO: just EDGE when separate e-p
+                   type == HugeType.EDGE_OUT || type == HugeType.EDGE_IN) {
+            return EL_IL;
+        }
+        throw new AssertionError("No index label for " + type);
+    }
+
+    public static IndexLabel indexLabel(HugeGraph graph, String il) {
+        // Primitive IndexLabel first
+        if (VL_IL.name().equals(il)) {
+            return VL_IL;
+        }
+        if (EL_IL.name().equals(il)) {
+            return EL_IL;
+        }
+
+        return graph.indexLabel(il);
     }
 
     public static class Builder implements IndexLabelBuilder {

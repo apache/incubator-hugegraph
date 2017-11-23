@@ -19,31 +19,40 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class BinaryBackendEntry implements BackendEntry {
 
-    private Id id;
+    private static final byte[] EMPTY_BYTES = new byte[]{};
+
+    private final HugeType type;
+    private final BinaryId id;
     private Id subId;
     private Collection<BackendColumn> columns;
 
-    public BinaryBackendEntry(Id id) {
+    public BinaryBackendEntry(HugeType type, BinaryId id) {
+        this.type = type;
         this.id = id;
+        this.columns = new ArrayList<>();
     }
 
     @Override
-    public Id id() {
+    public HugeType type() {
+        return this.type;
+    }
+
+    @Override
+    public BinaryId id() {
         return this.id;
-    }
-
-    @Override
-    public void id(Id id) {
-        this.id = id;
     }
 
     @Override
@@ -51,7 +60,6 @@ public class BinaryBackendEntry implements BackendEntry {
         return this.subId;
     }
 
-    @Override
     public void subId(Id subId) {
         this.subId = subId;
     }
@@ -71,10 +79,15 @@ public class BinaryBackendEntry implements BackendEntry {
     }
 
     public void column(BackendColumn column) {
-        if (this.columns == null) {
-            this.columns = new ArrayList<>();
-        }
         this.columns.add(column);
+    }
+
+    public void column(byte[] name, byte[] value) {
+        E.checkNotNull(name, "name");
+        BackendColumn col = new BackendColumn();
+        col.name = name;
+        col.value = value != null ? value : EMPTY_BYTES;
+        this.columns.add(col);
     }
 
     @Override
@@ -84,7 +97,12 @@ public class BinaryBackendEntry implements BackendEntry {
 
     @Override
     public void columns(Collection<BackendColumn> bytesColumns) {
-        this.columns = bytesColumns;
+        this.columns.addAll(bytesColumns);
+    }
+
+    @Override
+    public void columns(BackendColumn... bytesColumns) {
+        this.columns.addAll(Arrays.asList(bytesColumns));
     }
 
     @Override
@@ -97,6 +115,11 @@ public class BinaryBackendEntry implements BackendEntry {
                 this.column(col);
             }
         }
+    }
+
+    @Override
+    public void clear() {
+        this.columns.clear();
     }
 
     @Override
@@ -115,5 +138,65 @@ public class BinaryBackendEntry implements BackendEntry {
             return false;
         }
         return true;
+    }
+
+    protected static class BinaryId implements Id {
+
+        private final byte[] bytes;
+        private final Id id;
+
+        public BinaryId(byte[] bytes, Id id) {
+            this.bytes = bytes;
+            this.id = id;
+        }
+
+        public Id origin() {
+            return this.id;
+        }
+
+        @Override
+        public String asString() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long asLong() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean number() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int compareTo(Id other) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public byte[] asBytes() {
+            return this.bytes;
+        }
+
+        @Override
+        public int length() {
+            return this.bytes.length;
+        }
+
+        @Override
+        public int hashCode() {
+            return ByteBuffer.wrap(this.bytes).hashCode();
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return ByteBuffer.wrap(this.bytes).equals(other);
+        }
+
+        @Override
+        public String toString() {
+            return StringEncoding.decode(this.bytes);
+        }
     }
 }

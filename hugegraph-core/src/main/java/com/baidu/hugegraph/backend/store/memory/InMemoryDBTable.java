@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -98,7 +99,7 @@ public class InMemoryDBTable {
         }
     }
 
-    public Iterable<BackendEntry> query(final Query query) {
+    public Iterator<BackendEntry> query(final Query query) {
         Map<Id, BackendEntry> rs = this.store;
 
         // Query by id(s)
@@ -125,7 +126,7 @@ public class InMemoryDBTable {
             }
         }
 
-        return rs.values();
+        return rs.values().iterator();
     }
 
     protected Map<Id, BackendEntry> queryById(Set<Id> ids,

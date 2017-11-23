@@ -102,8 +102,10 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
     private static void writeEntry(Output output, BackendEntry entry) {
         /* Write id */
-        output.writeInt(entry.id().asBytes().length);
-        output.writeBytes(entry.id().asBytes());
+        byte[] id = entry.id().asBytes();
+        output.writeBoolean(entry.id().number());
+        output.writeShort(id.length);
+        output.writeBytes(id);
 
         /* Write columns size and data */
         output.writeInt(entry.columns().size());
@@ -117,21 +119,22 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
     private static BackendEntry readEntry(Input input) {
         /* Read id */
-        int idLen = input.readInt();
-        Id id = IdGenerator.of(input.readBytes(idLen));
+        boolean number = input.readBoolean();
+        int idLen = input.readShortUnsigned();
+        Id id = IdGenerator.of(input.readBytes(idLen), number);
 
         /* Read columns size and data */
         Collection<BackendEntry.BackendColumn> columns = new ArrayList<>();
         int columnSize = input.readInt();
         for (int i = 0; i < columnSize; i++) {
             BackendEntry.BackendColumn backendColumn =
-                    new BackendEntry.BackendColumn();
+                                       new BackendEntry.BackendColumn();
             backendColumn.name = input.readBytes(input.readInt());
             backendColumn.value = input.readBytes(input.readInt());
             columns.add(backendColumn);
         }
 
-        BackendEntry backendEntry = new TextBackendEntry(id);
+        BackendEntry backendEntry = new TextBackendEntry(null, id);
         backendEntry.columns(columns);
         return backendEntry;
     }

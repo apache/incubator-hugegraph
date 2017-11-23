@@ -27,6 +27,7 @@ import org.apache.commons.configuration.ConfigurationException;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -64,6 +65,9 @@ public class RegisterUtil {
             case "hbase":
                 registerHBase();
                 break;
+            case "rocksdb":
+                registerRocksDB();
+                break;
             default:
                 throw new HugeException("Unsupported backend type '%s'", backend);
         }
@@ -92,7 +96,14 @@ public class RegisterUtil {
     }
 
     public static void registerHBase() {
+    }
 
+    public static void registerRocksDB() {
+        // Register config
+        OptionSpace.register(RocksDBOptions.Instance());
+        // Register backend
+        BackendProviderFactory.register("rocksdb",
+                "com.baidu.hugegraph.backend.store.rocksdb.RocksDBStoreProvider");
     }
 
     public static void registerServer() {

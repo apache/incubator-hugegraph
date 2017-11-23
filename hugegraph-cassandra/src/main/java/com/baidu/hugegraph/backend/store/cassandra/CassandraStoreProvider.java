@@ -49,7 +49,7 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         BackendStore store = this.stores.get(name);
         E.checkNotNull(store, "store");
         E.checkState(store instanceof CassandraStore.CassandraSchemaStore,
-                     "SchemaStore must be a instance of CassandraSchemaStore");
+                     "SchemaStore must be an instance of CassandraSchemaStore");
         return store;
     }
 
@@ -66,7 +66,7 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
         BackendStore store = this.stores.get(name);
         E.checkNotNull(store, "store");
         E.checkState(store instanceof CassandraStore.CassandraGraphStore,
-                     "GraphStore must be a instance of CassandraGraphStore");
+                     "GraphStore must be an instance of CassandraGraphStore");
         return store;
     }
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit;
+package com.baidu.hugegraph.unit.common;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +33,7 @@ import com.baidu.hugegraph.backend.cache.RamCache;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
+import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.google.common.collect.ImmutableMap;
 
 public class CacheManagerTest extends BaseUnitTest {

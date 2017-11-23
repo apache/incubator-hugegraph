@@ -22,6 +22,8 @@ package com.baidu.hugegraph.backend.store;
 import java.util.Collection;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public interface BackendEntry {
@@ -33,19 +35,27 @@ public interface BackendEntry {
         @Override
         public String toString() {
             return String.format("%s=%s",
-                    StringEncoding.decodeString(name),
-                    StringEncoding.decodeString(value));
+                                 StringEncoding.decode(name),
+                                 StringEncoding.decode(value));
         }
     }
 
+    public HugeType type();
+
     public Id id();
-    public void id(Id id);
 
     public Id subId();
-    public void subId(Id subId);
 
     public Collection<BackendColumn> columns();
+
     public void columns(Collection<BackendColumn> columns);
+    public void columns(BackendColumn... columns);
 
     public void merge(BackendEntry other);
+
+    public void clear();
+
+    public default boolean belongToMe(BackendColumn column) {
+        return Bytes.prefixWith(column.name, id().asBytes());
+    }
 }

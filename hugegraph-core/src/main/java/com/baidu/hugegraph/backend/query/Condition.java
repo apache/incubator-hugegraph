@@ -395,7 +395,9 @@ public abstract class Condition {
         // Single-type value or a list of single-type value
         protected Object value;
 
+        // The key serialized(code/string) by backend store.
         protected Object serialKey;
+        // The value serialized(code/string) by backend store.
         protected Object serialValue;
 
         @Override
@@ -481,10 +483,6 @@ public abstract class Condition {
 
     public static class SyspropRelation extends Relation {
 
-        /*
-         * Column name. TODO: the key should be serialized(code/string) by
-         * backend store private Object key.
-         */
         private HugeKeys key;
 
         public SyspropRelation(HugeKeys key, Object value) {

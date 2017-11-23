@@ -36,6 +36,8 @@ public class ExampleUtil {
 
         RegisterUtil.registerCassandra();
         RegisterUtil.registerScyllaDB();
+        RegisterUtil.registerHBase();
+        RegisterUtil.registerRocksDB();
     }
 
     public static HugeGraph loadGraph() {

@@ -69,6 +69,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this(tx.graph(), id, label);
         this.tx = tx;
         this.fresh = true;
+        E.checkNotNull(label, "label");
     }
 
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {

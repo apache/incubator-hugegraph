@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit;
+package com.baidu.hugegraph.unit.common;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +30,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.backend.cache.RamCache;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.unit.BaseUnitTest;
 
 public class RamCacheTest extends BaseUnitTest {
 

@@ -19,13 +19,15 @@
 
 package com.baidu.hugegraph.backend.id;
 
-import com.baidu.hugegraph.type.HugeType;
-
 public interface Id extends Comparable<Id> {
 
-    public abstract String asString();
+    public String asString();
 
-    public abstract long asLong();
+    public long asLong();
 
-    public abstract byte[] asBytes();
+    public byte[] asBytes();
+
+    public int length();
+
+    public boolean number();
 }

@@ -130,6 +130,7 @@ public class CassandraBackendEntry implements BackendEntry {
         this.selfChanged = true;
     }
 
+    @Override
     public HugeType type() {
         return this.row.type;
     }
@@ -143,7 +144,6 @@ public class CassandraBackendEntry implements BackendEntry {
         return this.row.id;
     }
 
-    @Override
     public void id(Id id) {
         this.row.id = id;
     }
@@ -153,7 +153,6 @@ public class CassandraBackendEntry implements BackendEntry {
         return this.row.subId;
     }
 
-    @Override
     public void subId(Id subId) {
         this.row.subId = subId;
     }
@@ -216,7 +215,17 @@ public class CassandraBackendEntry implements BackendEntry {
     }
 
     @Override
+    public void columns(BackendColumn... bytesColumns) {
+        throw new RuntimeException("Not supported by Cassandra");
+    }
+
+    @Override
     public void merge(BackendEntry other) {
+        throw new RuntimeException("Not supported by Cassandra");
+    }
+
+    @Override
+    public void clear() {
         throw new RuntimeException("Not supported by Cassandra");
     }
 }

@@ -331,8 +331,8 @@ public class ConditionQuery extends IdQuery {
     }
 
     @Override
-    public ConditionQuery clone() {
-        ConditionQuery query = (ConditionQuery) super.clone();
+    public ConditionQuery copy() {
+        ConditionQuery query = (ConditionQuery) super.copy();
         query.conditions = new LinkedHashSet<>(this.conditions);
         return query;
     }

@@ -107,13 +107,13 @@ public abstract class CassandraTable {
         });
     }
 
-    public Iterable<BackendEntry> query(CassandraSessionPool.Session session,
+    public Iterator<BackendEntry> query(CassandraSessionPool.Session session,
                                         Query query) {
         List<BackendEntry> rs = new ArrayList<>();
 
         if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
-            return rs;
+            return rs.iterator();
         }
 
         List<Select> selections = query2Select(this.table, query);
@@ -127,7 +127,7 @@ public abstract class CassandraTable {
         }
 
         LOG.debug("Return {} for query {}", rs, query);
-        return rs;
+        return rs.iterator();
     }
 
     protected List<Select> query2Select(String table, Query query) {

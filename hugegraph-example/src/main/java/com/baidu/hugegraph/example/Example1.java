@@ -257,6 +257,12 @@ public class Example1 {
         assert size == 12;
         System.out.println(">>>> query all vertices: size=" + size);
 
+        // query by label
+        vertexes = graph.traversal().V().hasLabel("person");
+        size = vertexes.toList().size();
+        assert size == 5;
+        System.out.println(">>>> query all persons: size=" + size);
+
         // query vertex by primary-values
         vertexes = graph.traversal().V().hasLabel("author").has("id", "1");
         List<Vertex> vertexList = vertexes.toList();
@@ -310,7 +316,7 @@ public class Example1 {
         assert edgeList.size() == 1;
         System.out.println(">>>> query edge by id: " + edgeList);
 
-        Edge edge = graph.traversal().E(id).toList().get(0);
+        Edge edge = edgeList.get(0);
         edges = graph.traversal().E(edge.id());
         edgeList = edges.toList();
         assert edgeList.size() == 1;

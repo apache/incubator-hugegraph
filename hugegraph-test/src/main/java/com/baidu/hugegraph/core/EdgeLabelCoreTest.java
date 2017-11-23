@@ -680,9 +680,9 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         graph().tx().commit();
 
-        List<Edge> edge = graph().traversal().E().hasLabel("write").toList();
-        Assert.assertNotNull(edge);
-        Assert.assertEquals(2, edge.size());
+        List<Edge> edges = graph().traversal().E().hasLabel("write").toList();
+        Assert.assertNotNull(edges);
+        Assert.assertEquals(2, edges.size());
 
         schema.edgeLabel("write").remove();
 
@@ -696,7 +696,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testRemoveEdgeLabelWithEdgeWithSearchIndex() {
+    public void testRemoveEdgeLabelWithEdgeAndSearchIndex() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -731,10 +731,10 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         marko.addEdge("write", hadoop, "time", "2014-2-28",
                       "weight", 0.5);
 
-        List<Edge> edge = graph().traversal().E().hasLabel("write")
-                          .has("weight", 0.5).toList();
-        Assert.assertNotNull(edge);
-        Assert.assertEquals(1, edge.size());
+        List<Edge> edges = graph().traversal().E().hasLabel("write")
+                           .has("weight", 0.5).toList();
+        Assert.assertNotNull(edges);
+        Assert.assertEquals(1, edges.size());
 
         schema.edgeLabel("write").remove();
 
@@ -752,7 +752,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testRemoveEdgeLabelWithEdgeWithSecondaryIndex() {
+    public void testRemoveEdgeLabelWithEdgeAndSecondaryIndex() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -785,10 +785,10 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
         marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
 
-        List<Edge> edge = graph().traversal().E().hasLabel("write")
-                          .has("time", "2016-12-12").toList();
-        Assert.assertNotNull(edge);
-        Assert.assertEquals(1, edge.size());
+        List<Edge> edges = graph().traversal().E().hasLabel("write")
+                           .has("time", "2016-12-12").toList();
+        Assert.assertNotNull(edges);
+        Assert.assertEquals(1, edges.size());
 
         schema.edgeLabel("write").remove();
 

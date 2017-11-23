@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.id;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
@@ -55,8 +54,8 @@ public abstract class IdGenerator {
         return new LongId(id);
     }
 
-    public static Id of(byte[] id) {
-        return new StringId(id);
+    public static Id of(byte[] bytes, boolean number) {
+        return number ? new LongId(bytes) : new StringId(bytes);
     }
 
     public static Id of(SchemaElement element) {
@@ -120,7 +119,12 @@ public abstract class IdGenerator {
         }
 
         public StringId(byte[] bytes) {
-            this.id = StringEncoding.decodeString(bytes);
+            this.id = StringEncoding.decode(bytes);
+        }
+
+        @Override
+        public boolean number() {
+            return false;
         }
 
         @Override
@@ -135,7 +139,12 @@ public abstract class IdGenerator {
 
         @Override
         public byte[] asBytes() {
-            return StringEncoding.encodeString(this.id);
+            return StringEncoding.encode(this.id);
+        }
+
+        @Override
+        public int length() {
+            return this.id.length();
         }
 
         @Override
@@ -175,6 +184,11 @@ public abstract class IdGenerator {
         }
 
         @Override
+        public boolean number() {
+            return true;
+        }
+
+        @Override
         public String asString() {
             return String.valueOf(this.id);
         }
@@ -187,6 +201,11 @@ public abstract class IdGenerator {
         @Override
         public byte[] asBytes() {
             return NumericUtil.longToBytes(this.id);
+        }
+
+        @Override
+        public int length() {
+            return Long.BYTES;
         }
 
         @Override

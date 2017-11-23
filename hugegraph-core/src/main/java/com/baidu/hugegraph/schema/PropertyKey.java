@@ -219,7 +219,7 @@ public class PropertyKey extends SchemaElement {
 
         @Override
         public Builder asTimestamp() {
-            this.propertyKey.dataType(DataType.TIMESTAMP);
+            this.propertyKey.dataType(DataType.DATE);
             return this;
         }
 

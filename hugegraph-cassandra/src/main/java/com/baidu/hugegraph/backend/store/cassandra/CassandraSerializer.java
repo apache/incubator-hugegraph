@@ -59,13 +59,9 @@ import com.google.common.collect.ImmutableMap;
 
 public class CassandraSerializer extends AbstractSerializer {
 
+    @Override
     public CassandraBackendEntry newBackendEntry(HugeType type, Id id) {
         return new CassandraBackendEntry(type, id);
-    }
-
-    @Override
-    public BackendEntry newBackendEntry(Id id) {
-        return newBackendEntry(null, id);
     }
 
     protected CassandraBackendEntry newBackendEntry(HugeElement e) {
@@ -84,8 +80,7 @@ public class CassandraSerializer extends AbstractSerializer {
     @Override
     protected BackendEntry convertEntry(BackendEntry backendEntry) {
         if (!(backendEntry instanceof CassandraBackendEntry)) {
-            throw new BackendException(
-                    "CassandraSerializer just supports CassandraBackendEntry");
+            throw new BackendException("Not supported by CassandraSerializer");
         }
         return backendEntry;
     }
@@ -151,7 +146,6 @@ public class CassandraSerializer extends AbstractSerializer {
         String labelName = row.column(HugeKeys.LABEL);
         String sortValues = row.column(HugeKeys.SORT_VALUES);
         String targetVertexId = row.column(HugeKeys.OTHER_VERTEX);
-
 
         if (vertex == null) {
             Id id = IdGenerator.of(sourceVertexId);

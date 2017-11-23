@@ -63,7 +63,7 @@ public class StringEncoding {
         return attribute.isEmpty() ? 1 : attribute.length();
     }
 
-    public static byte[] encodeString(String value) {
+    public static byte[] encode(String value) {
         try {
             return value.getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -71,7 +71,7 @@ public class StringEncoding {
         }
     }
 
-    public static String decodeString(byte[] bytes) {
+    public static String decode(byte[] bytes) {
         try {
             return new String(bytes, "UTF-8");
         } catch (UnsupportedEncodingException e) {

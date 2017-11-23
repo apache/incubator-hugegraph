@@ -67,13 +67,22 @@ public class TextSerializer extends AbstractSerializer {
     private static final String COLUME_SPLITOR = TextBackendEntry.COLUME_SPLITOR;
     private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
 
+    @Override
     public TextBackendEntry newBackendEntry(HugeType type, Id id) {
         return new TextBackendEntry(type, id);
     }
 
-    @Override
-    public BackendEntry newBackendEntry(Id id) {
-        return new TextBackendEntry(null, id);
+    private TextBackendEntry newBackendEntry(HugeElement elem) {
+        return new TextBackendEntry(elem.type(), elem.id());
+    }
+
+    private TextBackendEntry newBackendEntry(HugeIndex index) {
+        return new TextBackendEntry(index.type(), index.id());
+    }
+
+    private TextBackendEntry newBackendEntry(SchemaElement elem) {
+        Id id = IdGenerator.of(elem);
+        return new TextBackendEntry(elem.type(), id);
     }
 
     @Override
@@ -86,7 +95,8 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     protected String formatSyspropName(String name) {
-        return String.format("%s%s%s", HugeType.SYS_PROPERTY.name(),
+        return String.format("%s%s%s",
+                             HugeType.SYS_PROPERTY.name(),
                              COLUME_SPLITOR, name);
     }
 
@@ -95,12 +105,14 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     protected Object formatPropertyName(Object key) {
-        return String.format("%s%s%s", HugeType.PROPERTY.name(),
+        return String.format("%s%s%s",
+                             HugeType.PROPERTY.name(),
                              COLUME_SPLITOR, key);
     }
 
     protected String formatPropertyName(HugeProperty<?> prop) {
-        return String.format("%s%s%s", prop.type().name(),
+        return String.format("%s%s%s",
+                             prop.type().name(),
                              COLUME_SPLITOR, prop.key());
     }
 
@@ -227,7 +239,7 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeVertex(HugeVertex vertex) {
-        TextBackendEntry entry = newBackendEntry(HugeType.VERTEX, vertex.id());
+        TextBackendEntry entry = newBackendEntry(vertex);
 
         // Write label (NOTE: maybe just with edges if label is null)
         if (vertex.vertexLabel() != null) {
@@ -247,7 +259,7 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
         HugeVertex vertex = prop.element();
-        TextBackendEntry entry = newBackendEntry(HugeType.VERTEX, vertex.id());
+        TextBackendEntry entry = newBackendEntry(vertex);
         entry.subId(IdGenerator.of(prop.key()));
 
         // Write label (NOTE: maybe just with edges if label is null)
@@ -299,7 +311,8 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop) {
         HugeEdge edge = prop.element();
-        TextBackendEntry entry = newBackendEntry(edge.type(), edge.id());
+        TextBackendEntry entry = newBackendEntry(HugeType.EDGE,
+                                                 edge.idWithDirection());
         entry.subId(IdGenerator.of(prop.key()));
         entry.column(this.formatEdgeName(edge), this.formatEdgeValue(edge));
         return entry;
@@ -309,12 +322,12 @@ public class TextSerializer extends AbstractSerializer {
     public HugeEdge readEdge(BackendEntry backendEntry, HugeGraph graph) {
         E.checkNotNull(graph, "serializer graph");
         // TODO: implement
-        throw new NotImplementedException("Unsupport readEdge()");
+        throw new NotImplementedException("Unsupported readEdge()");
     }
 
     @Override
     public BackendEntry writeIndex(HugeIndex index) {
-        TextBackendEntry entry = newBackendEntry(index.type(), index.id());
+        TextBackendEntry entry = newBackendEntry(index);
         /*
          * When field-values is null and elementIds size is 0, it is
          * meaningful for deletion of index data in secondary/search index.
@@ -374,8 +387,8 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public Query writeQuery(Query query) {
         /*
-         * Serialize edge query by id/conditions to query by src-vertex +
-         * edge-name.
+         * Serialize edge query by id/conditions to query by
+         * src-vertex + edge-name.
          */
         if (query.resultType() == HugeType.EDGE && query instanceof IdQuery) {
             return this.writeEdgeQuery((IdQuery) query);
@@ -400,7 +413,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     protected IdQuery writeEdgeQuery(IdQuery query) {
-        IdQuery result = query.clone();
+        IdQuery result = query.copy();
         result.resetIds();
 
         if (!query.conditions().isEmpty() && !query.ids().isEmpty()) {
@@ -472,9 +485,8 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
-        Id id = IdGenerator.of(vertexLabel);
+        TextBackendEntry entry = newBackendEntry(vertexLabel);
 
-        TextBackendEntry entry = this.writeId(vertexLabel.type(), id);
         entry.column(HugeKeys.NAME, JsonUtil.toJson(vertexLabel.name()));
         entry.column(HugeKeys.ID_STRATEGY,
                      JsonUtil.toJson(vertexLabel.idStrategy()));
@@ -484,15 +496,14 @@ public class TextSerializer extends AbstractSerializer {
                      JsonUtil.toJson(vertexLabel.nullableKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES,
                      JsonUtil.toJson(vertexLabel.indexNames().toArray()));
-        writeProperties(vertexLabel, entry);
+        writeSchemaProperties(vertexLabel, entry);
         return entry;
     }
 
     @Override
     public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel) {
-        Id id = IdGenerator.of(edgeLabel);
+        TextBackendEntry entry = newBackendEntry(edgeLabel);
 
-        TextBackendEntry entry = this.writeId(edgeLabel.type(), id);
         entry.column(HugeKeys.NAME, JsonUtil.toJson(edgeLabel.name()));
         entry.column(HugeKeys.SOURCE_LABEL,
                      JsonUtil.toJson(edgeLabel.sourceLabel()));
@@ -506,26 +517,42 @@ public class TextSerializer extends AbstractSerializer {
                      JsonUtil.toJson(edgeLabel.nullableKeys().toArray()));
         entry.column(HugeKeys.INDEX_NAMES,
                      JsonUtil.toJson(edgeLabel.indexNames().toArray()));
-        writeProperties(edgeLabel, entry);
+        writeSchemaProperties(edgeLabel, entry);
         return entry;
     }
 
     @Override
     public BackendEntry writePropertyKey(PropertyKey propertyKey) {
-        Id id = IdGenerator.of(propertyKey);
+        TextBackendEntry entry = newBackendEntry(propertyKey);
 
-        TextBackendEntry entry = this.writeId(propertyKey.type(), id);
         entry.column(HugeKeys.NAME, JsonUtil.toJson(propertyKey.name()));
         entry.column(HugeKeys.DATA_TYPE,
                      JsonUtil.toJson(propertyKey.dataType()));
         entry.column(HugeKeys.CARDINALITY,
                      JsonUtil.toJson(propertyKey.cardinality()));
-        writeProperties(propertyKey, entry);
+        writeSchemaProperties(propertyKey, entry);
         return entry;
     }
 
-    public void writeProperties(SchemaElement schemaElement,
-                                TextBackendEntry entry) {
+    @Override
+    public BackendEntry writeIndexLabel(IndexLabel indexLabel) {
+        TextBackendEntry entry = newBackendEntry(indexLabel);
+
+        entry.column(HugeKeys.NAME,
+                     JsonUtil.toJson(indexLabel.name()));
+        entry.column(HugeKeys.BASE_TYPE,
+                     JsonUtil.toJson(indexLabel.baseType()));
+        entry.column(HugeKeys.BASE_VALUE,
+                     JsonUtil.toJson(indexLabel.baseValue()));
+        entry.column(HugeKeys.INDEX_TYPE,
+                     JsonUtil.toJson(indexLabel.indexType()));
+        entry.column(HugeKeys.FIELDS,
+                     JsonUtil.toJson(indexLabel.indexFields().toArray()));
+        return entry;
+    }
+
+    private static void writeSchemaProperties(SchemaElement schemaElement,
+                                              TextBackendEntry entry) {
         Set<String> properties = schemaElement.properties();
         if (properties == null) {
             entry.column(HugeKeys.PROPERTIES, "[]");
@@ -618,24 +645,6 @@ public class TextSerializer extends AbstractSerializer {
         propertyKey.properties(JsonUtil.fromJson(properties, String[].class));
 
         return propertyKey;
-    }
-
-    @Override
-    public BackendEntry writeIndexLabel(IndexLabel indexLabel) {
-        Id id = IdGenerator.of(indexLabel);
-        TextBackendEntry entry = this.writeId(indexLabel.type(), id);
-
-        entry.column(HugeKeys.NAME,
-                     JsonUtil.toJson(indexLabel.name()));
-        entry.column(HugeKeys.BASE_TYPE,
-                     JsonUtil.toJson(indexLabel.baseType()));
-        entry.column(HugeKeys.BASE_VALUE,
-                     JsonUtil.toJson(indexLabel.baseValue()));
-        entry.column(HugeKeys.INDEX_TYPE,
-                     JsonUtil.toJson(indexLabel.indexType()));
-        entry.column(HugeKeys.FIELDS,
-                     JsonUtil.toJson(indexLabel.indexFields().toArray()));
-        return entry;
     }
 
     @Override

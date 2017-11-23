@@ -24,12 +24,12 @@ import com.baidu.hugegraph.backend.store.cassandra.CassandraFeatures;
 public class ScyllaDBFeatures extends CassandraFeatures {
 
     @Override
-    public boolean supportsQueryByContains() {
+    public boolean supportsQueryWithContains() {
         return false;
     }
 
     @Override
-    public boolean supportsQueryByContainsKey() {
+    public boolean supportsQueryWithContainsKey() {
         return false;
     }
 }
