@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit;
+package com.baidu.hugegraph.unit.core;
 
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +31,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.google.common.collect.ImmutableSet;
 
 public class ConditionQueryFlattenTest extends BaseUnitTest {

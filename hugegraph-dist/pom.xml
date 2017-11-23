@@ -5,7 +5,7 @@
     <parent>
         <artifactId>hugegraph</artifactId>
         <groupId>com.baidu.hugegraph</groupId>
-        <version>0.4.1-SNAPSHOT</version>
+        <version>0.4.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <name>hugegraph-dist: Tar and Distribute Archives</name>
@@ -30,6 +30,16 @@
             <properties>
                 <backend>scylladb</backend>
                 <serializer>scylladb</serializer>
+            </properties>
+        </profile>
+        <profile>
+            <id>rocksdb</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <backend>rocksdb</backend>
+                <serializer>binary</serializer>
             </properties>
         </profile>
     </profiles>
@@ -60,6 +70,11 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-scylladb</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-rocksdb</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

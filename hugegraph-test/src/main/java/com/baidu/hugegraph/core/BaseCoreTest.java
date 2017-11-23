@@ -57,8 +57,16 @@ public class BaseCoreTest {
         if (graph == null) {
             return;
         }
-        graph.clearBackend();
-        graph.close();
+
+        try {
+            graph.clearBackend();
+        } finally {
+            try {
+                graph.close();
+            } catch (Throwable e) {
+                LOG.error("Error when close()", e);
+            }
+        }
     }
 
     public HugeGraph graph() {
@@ -79,30 +87,18 @@ public class BaseCoreTest {
     protected void clearData() {
         HugeGraph graph = graph();
 
-        try {
-            // Clear edge
-            graph().traversal().E().toStream().forEach(e -> {
-                e.remove();
-            });
+        // Clear edge
+        graph().traversal().E().toStream().forEach(e -> {
+            e.remove();
+        });
 
-            // Clear vertex
-            graph().traversal().V().toStream().forEach(v -> {
-                v.remove();
-            });
+        // Clear vertex
+        graph().traversal().V().toStream().forEach(v -> {
+            v.remove();
+        });
 
-            // Commit changes
-            graph.tx().commit();
-        } finally {
-            try {
-                graph.tx().close();
-            } catch (Throwable e) {
-                /*
-                 * Ignore exception when close() due to we can't throw
-                 * a new exception which may override the origin one
-                 */
-                LOG.error("Error when close tx", e);
-            }
-        }
+        // Commit changes
+        graph.tx().commit();
     }
 
     private void clearSchema() {

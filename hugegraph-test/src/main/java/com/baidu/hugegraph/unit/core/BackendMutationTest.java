@@ -1,4 +1,4 @@
-package com.baidu.hugegraph.unit;
+package com.baidu.hugegraph.unit.core;
 
 import java.util.List;
 
@@ -15,6 +15,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.MutateAction;
 import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.unit.BaseUnitTest;
 
 public class BackendMutationTest extends BaseUnitTest {
 
@@ -319,7 +320,7 @@ public class BackendMutationTest extends BaseUnitTest {
     private static BackendEntry constructBackendEntry(String id,
                                                       String... columns) {
         assert (columns.length == 0 || columns.length == 2);
-        TextBackendEntry entry = new TextBackendEntry(IdGenerator.of(id));
+        TextBackendEntry entry = new TextBackendEntry(null, IdGenerator.of(id));
         if (columns.length == 2) {
             entry.subId(SplicingIdGenerator.concat(id, columns[0]));
         }

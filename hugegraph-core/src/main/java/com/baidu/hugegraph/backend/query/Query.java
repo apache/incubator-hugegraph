@@ -140,10 +140,9 @@ public class Query implements Cloneable {
         return true;
     }
 
-    @Override
-    public Query clone() {
+    public Query copy() {
         try {
-            return (Query) super.clone();
+            return (Query) this.clone();
         } catch (CloneNotSupportedException e) {
             throw new BackendException(e);
         }

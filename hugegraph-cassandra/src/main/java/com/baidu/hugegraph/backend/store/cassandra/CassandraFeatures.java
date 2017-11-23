@@ -24,7 +24,29 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 public class CassandraFeatures implements BackendFeatures {
 
     @Override
-    public boolean supportsDeleteEdgeByLabel() {
+    public boolean supportsScanToken() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsScanKeyPrefix() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsScanKeyRange() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsQuerySchemaByName() {
+        // Cassandra support secondary index
+        return true;
+    }
+
+    @Override
+    public boolean supportsQueryByLabel() {
+        // Cassandra support secondary index
         return true;
     }
 
@@ -34,17 +56,27 @@ public class CassandraFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsQueryWithOrderBy() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsQueryWithContains() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsQueryWithContainsKey() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsDeleteEdgeByLabel() {
+        return true;
+    }
+
+    @Override
     public boolean supportsUpdateEdgeProperty() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsOrderByQuery() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsScan() {
         return true;
     }
 
@@ -56,12 +88,7 @@ public class CassandraFeatures implements BackendFeatures {
     }
 
     @Override
-    public boolean supportsQueryByContains() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsQueryByContainsKey() {
+    public boolean supportsNumberType() {
         return true;
     }
 }

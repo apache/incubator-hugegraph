@@ -159,10 +159,10 @@ public class CachedGraphTransaction extends GraphTransaction {
 
     @Override
     public void removeEdges(EdgeLabel edgeLabel) {
+        super.removeEdges(edgeLabel);
+
         // TODO: Use a more precise strategy to update the edge cache
         this.edgesCache.clear();
-
-        super.removeEdges(edgeLabel);
     }
 
     @Override

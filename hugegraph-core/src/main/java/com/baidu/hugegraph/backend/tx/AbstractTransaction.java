@@ -86,7 +86,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Watched(prefix = "tx")
-    public Iterable<BackendEntry> query(Query query) {
+    public Iterator<BackendEntry> query(Query query) {
         LOG.debug("Transaction query: {}", query);
         /*
          * NOTE: it's dangerous if an IdQuery/ConditionQuery is empty
@@ -99,7 +99,7 @@ public abstract class AbstractTransaction implements Transaction {
         query = this.serializer.writeQuery(query);
 
         this.beforeRead();
-        Iterable<BackendEntry> result = this.store.query(query);
+        Iterator<BackendEntry> result = this.store.query(query);
         this.afterRead();
 
         return result;
@@ -108,7 +108,7 @@ public abstract class AbstractTransaction implements Transaction {
     @Watched(prefix = "tx")
     public BackendEntry query(HugeType type, Id id) {
         IdQuery q = new IdQuery(type, id);
-        Iterator<BackendEntry> results = this.query(q).iterator();
+        Iterator<BackendEntry> results = this.query(q);
         if (results.hasNext()) {
             BackendEntry entry = results.next();
             assert !results.hasNext();
@@ -203,6 +203,9 @@ public abstract class AbstractTransaction implements Transaction {
     public void close() {
         if (this.hasUpdates()) {
             throw new BackendException("There are still changes to commit");
+        }
+        if (this.closed) {
+            return;
         }
         this.closed = true;
         this.autoCommit = true; /* Let call after close() fail to commit */

@@ -22,13 +22,25 @@ package com.baidu.hugegraph.unit;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import com.baidu.hugegraph.unit.common.CacheManagerTest;
+import com.baidu.hugegraph.unit.common.EventHubTest;
+import com.baidu.hugegraph.unit.common.RamCacheTest;
+import com.baidu.hugegraph.unit.core.BackendMutationTest;
+import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
+import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
+import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
+
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     RamCacheTest.class,
     CacheManagerTest.class,
     EventHubTest.class,
+
     BackendMutationTest.class,
-    ConditionQueryFlattenTest.class
+    ConditionQueryFlattenTest.class,
+
+    RocksDBSessionsTest.class,
+    RocksDBCountersTest.class
 })
 public class UnitTestSuite {
 }

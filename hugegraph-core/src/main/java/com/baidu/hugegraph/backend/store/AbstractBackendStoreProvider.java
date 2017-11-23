@@ -66,10 +66,6 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public void close() throws BackendException {
         this.checkOpened();
-        for (BackendStore store : this.stores.values()) {
-            // TODO: catch exceptions here
-            store.close();
-        }
         this.storeEventHub.notify(Events.STORE_CLOSE, this);
     }
 

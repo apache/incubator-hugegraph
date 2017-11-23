@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -79,17 +80,17 @@ public class InMemoryDBStore implements BackendStore {
         assert type != null;
         InMemoryDBTable table = this.tables.get(type);
         if (table == null) {
-            throw new BackendException("Unsupported type: %s", type.name());
+            throw new BackendException("Unsupported table type: %s", type);
         }
         return table;
     }
 
     @Override
-    public Iterable<BackendEntry> query(final Query query) {
+    public Iterator<BackendEntry> query(final Query query) {
         InMemoryDBTable table = this.table(query.resultType());
-        Iterable<BackendEntry> rs = table.query(query);
-        LOG.debug("[store {}] return {} for query: {}",
-                  this.name, rs, query);
+        Iterator<BackendEntry> rs = table.query(query);
+        LOG.debug("[store {}] has result({}) for query: {}",
+                  this.name, rs.hasNext(), query);
         return rs;
     }
 
@@ -152,7 +153,7 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public void init() {
-        // TODO Auto-generated method stub
+        // pass
     }
 
     @Override
@@ -231,12 +232,54 @@ public class InMemoryDBStore implements BackendStore {
     private static final BackendFeatures FEATURES = new BackendFeatures() {
 
         @Override
-        public boolean supportsDeleteEdgeByLabel() {
+        public boolean supportsScanToken() {
             return false;
         }
 
         @Override
+        public boolean supportsScanKeyPrefix() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsScanKeyRange() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsQuerySchemaByName() {
+            // Traversal all data in memory
+            return true;
+        }
+
+        @Override
+        public boolean supportsQueryByLabel() {
+            // Traversal all data in memory
+            return true;
+        }
+
+        @Override
         public boolean supportsQueryWithSearchCondition() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsQueryWithOrderBy() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsQueryWithContains() {
+            return true;
+        }
+
+        @Override
+        public boolean supportsQueryWithContainsKey() {
+            return true;
+        }
+
+        @Override
+        public boolean supportsDeleteEdgeByLabel() {
             return false;
         }
 
@@ -246,28 +289,13 @@ public class InMemoryDBStore implements BackendStore {
         }
 
         @Override
-        public boolean supportsOrderByQuery() {
-            return false;
-        }
-
-        @Override
-        public boolean supportsScan() {
-            return false;
-        }
-
-        @Override
         public boolean supportsTransaction() {
             return false;
         }
 
         @Override
-        public boolean supportsQueryByContains() {
-            return true;
-        }
-
-        @Override
-        public boolean supportsQueryByContainsKey() {
-            return true;
+        public boolean supportsNumberType() {
+            return false;
         }
     };
 }

@@ -65,6 +65,10 @@ public abstract class SchemaElement
         return Graph.Hidden.isHidden(this.name());
     }
 
+    public boolean primitive() {
+        return false;
+    }
+
     protected String propertiesSchema() {
         StringBuilder sb = new StringBuilder();
         for (String propertyName : this.properties) {

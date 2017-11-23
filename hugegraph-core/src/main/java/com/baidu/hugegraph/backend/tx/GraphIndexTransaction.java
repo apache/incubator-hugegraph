@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -60,12 +61,12 @@ import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableSet;
 
-public class IndexTransaction extends AbstractTransaction {
+public class GraphIndexTransaction extends AbstractTransaction {
 
     private static final String INDEX_EMPTY_SYM = "\u0000";
     private static final Query EMPTY_QUERY = new ConditionQuery(null);
 
-    public IndexTransaction(HugeGraph graph, BackendStore store) {
+    public GraphIndexTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
     }
 
@@ -101,7 +102,9 @@ public class IndexTransaction extends AbstractTransaction {
                 continue;
             }
             // Search and delete index equals element id
-            for (BackendEntry entry : super.query(q)) {
+            for (Iterator<BackendEntry> itor = super.query(q);
+                 itor.hasNext();) {
+                BackendEntry entry = itor.next();
                 HugeIndex index = this.serializer.readIndex(entry, graph());
                 if (index.elementIds().contains(element.id())) {
                     index.resetElementIds();
@@ -130,49 +133,40 @@ public class IndexTransaction extends AbstractTransaction {
         this.removeSecondaryIndexLeft(element, elem, propKeys);
     }
 
-    private Set<IndexLabel> relatedIndexLabels(HugeElement element) {
-        Set<IndexLabel> indexLabels = new HashSet<>();
-        Set<String> indexNames = element instanceof HugeVertex ?
-                    ((HugeVertex) element).vertexLabel().indexNames():
-                    ((HugeEdge) element).edgeLabel().indexNames();
-
-        for (String indexName : indexNames) {
-            SchemaTransaction schema = this.graph().schemaTransaction();
-            IndexLabel indexLabel = schema.getIndexLabel(indexName);
-            indexLabels.add(indexLabel);
-        }
-        return indexLabels;
-    }
-
     private void removeSecondaryIndexLeft(HugeElement correctElem,
                                           HugeElement incorrectElem,
                                           Set<String> propKeys) {
-        for (IndexLabel indexLabel : this.relatedIndexLabels(incorrectElem)) {
-            if (CollectionUtils.containsAny(indexLabel.indexFields(),
-                                            propKeys)) {
-                this.updateIndex(indexLabel.name(), incorrectElem, true);
-                this.updateIndex(indexLabel.name(), correctElem, false);
+        for (IndexLabel il : relatedIndexLabels(incorrectElem)) {
+            if (CollectionUtils.containsAny(il.indexFields(), propKeys)) {
+                this.updateIndex(il.name(), incorrectElem, true);
+                this.updateIndex(il.name(), correctElem, false);
             }
         }
     }
 
-    private Set<ConditionQuery> query2IndexQuery(ConditionQuery query,
-                                                 HugeElement element) {
-        Set<ConditionQuery> indexQueries = new HashSet<>();
-        for (IndexLabel indexLabel : relatedIndexLabels(element)) {
-            ConditionQuery indexQuery = matchIndexLabel(query, indexLabel);
-            if (indexQuery != null) {
-                indexQueries.add(indexQuery);
-            }
+    @Watched(prefix = "index")
+    public void updateLabelIndex(HugeElement element, boolean removed) {
+        if (!this.needIndexForLabel()) {
+            return;
         }
-        return indexQueries;
+
+        // Update label index if backend store not supports label-query
+        HugeIndex index = new HugeIndex(IndexLabel.label(element.type()));
+        index.fieldValues(element.label());
+        index.elementIds(element.id());
+
+        if (removed) {
+            this.eliminateEntry(this.serializer.writeIndex(index));
+        } else {
+            this.appendEntry(this.serializer.writeIndex(index));
+        }
     }
 
     @Watched(prefix = "index")
     public void updateVertexIndex(HugeVertex vertex, boolean removed) {
         // Update index(only property, no edge) of a vertex
         for (String indexName : vertex.vertexLabel().indexNames()) {
-            updateIndex(indexName, vertex, removed);
+            this.updateIndex(indexName, vertex, removed);
         }
     }
 
@@ -180,21 +174,14 @@ public class IndexTransaction extends AbstractTransaction {
     public void updateEdgeIndex(HugeEdge edge, boolean removed) {
         // Update index of an edge
         for (String indexName : edge.edgeLabel().indexNames()) {
-            updateIndex(indexName, edge, removed);
+            this.updateIndex(indexName, edge, removed);
         }
     }
 
-    private static boolean hasNullableProp(HugeElement element, String key) {
-        Set<String> nullableKeys;
-        if (element instanceof HugeVertex) {
-            nullableKeys = ((HugeVertex) element).vertexLabel().nullableKeys();
-        } else {
-            assert element instanceof HugeEdge;
-            nullableKeys = ((HugeEdge) element).edgeLabel().nullableKeys();
-        }
-        return nullableKeys.contains(key);
-    }
-
+    /**
+     * Update index of (user properties in) vertex or edge
+     */
+    @Watched(prefix = "index")
     protected void updateIndex(String indexName,
                                HugeElement element,
                                boolean removed) {
@@ -234,17 +221,17 @@ public class IndexTransaction extends AbstractTransaction {
                 assert indexLabel.indexType() == IndexType.SEARCH;
                 E.checkState(subPropValues.size() == 1,
                              "Expect searching by only one property");
-                propValue = NumericUtil.convert2Number(subPropValues.get(0));
+                propValue = NumericUtil.convertToNumber(subPropValues.get(0));
             }
 
             HugeIndex index = new HugeIndex(indexLabel);
             index.fieldValues(propValue);
             index.elementIds(element.id());
 
-            if (!removed) {
-                this.appendEntry(this.serializer.writeIndex(index));
-            } else {
+            if (removed) {
                 this.eliminateEntry(this.serializer.writeIndex(index));
+            } else {
+                this.appendEntry(this.serializer.writeIndex(index));
             }
         }
     }
@@ -257,20 +244,57 @@ public class IndexTransaction extends AbstractTransaction {
                                        "there are changes in transaction");
         }
 
-        SchemaTransaction schema = graph().schemaTransaction();
-
-        // Get user applied label or collect all qualified labels
-        List<IndexLabel> indexLabels = schema.getIndexLabels();
-        Set<String> labels = collectQueryLabels(query, indexLabels);
-        if (labels.isEmpty()) {
-            throw noIndexException(query, "<any label>");
-        }
-
         // Can't query by index and by non-label sysprop at the same time
         List<Condition> conds = query.syspropConditions();
         if (conds.size() > 1 ||
             (conds.size() == 1 && !query.containsCondition(HugeKeys.LABEL))) {
             throw new BackendException("Can't do index query with %s", conds);
+        }
+
+        // Query by index
+        Iterator<BackendEntry> entries;
+        if (query.allSysprop() && conds.size() == 1 &&
+            query.containsCondition(HugeKeys.LABEL)) {
+            // Query only by label
+            entries = this.queryByLabel(query);
+        } else {
+            // Query by userprops (or userprops + label)
+            entries = this.queryByUserprop(query);
+        }
+
+        if (!entries.hasNext()) {
+            return EMPTY_QUERY;
+        }
+
+        // Entry => Id
+        IdQuery ids = new IdQuery(query.resultType(), query);
+        while (entries.hasNext()) {
+            BackendEntry entry = entries.next();
+            HugeIndex index = this.serializer.readIndex(entry, graph());
+            ids.query(index.elementIds());
+        }
+        return ids;
+    }
+
+    @Watched(prefix = "index")
+    private Iterator<BackendEntry> queryByLabel(ConditionQuery query) {
+        IndexLabel il = IndexLabel.label(query.resultType());
+        String label = (String) query.condition(HugeKeys.LABEL);
+        assert label != null;
+
+        ConditionQuery indexQuery;
+        indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);
+        indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, il.name());
+        indexQuery.eq(HugeKeys.FIELD_VALUES, label);
+        return super.query(indexQuery);
+    }
+
+    @Watched(prefix = "index")
+    private Iterator<BackendEntry> queryByUserprop(ConditionQuery query) {
+        // Get user applied label or collect all qualified labels.
+        Set<String> labels = this.collectQueryLabels(query);
+        if (labels.isEmpty()) {
+            throw noIndexException(query, "<any label>");
         }
 
         // Do index query
@@ -284,23 +308,20 @@ public class IndexTransaction extends AbstractTransaction {
                 ConditionQuery indexQuery = this.makeIndexQuery(query, label);
                 // Value type of Condition not matched
                 if (!this.validQueryConditionValues(query)) {
-                    return EMPTY_QUERY;
+                    assert !entries.hasNext();
+                    break;
                 }
                 // Query index from backend store
-                entries.extend(super.query(indexQuery).iterator());
+                entries.extend(super.query(indexQuery));
             } finally {
                 locks.unlock();
             }
         }
+        return entries;
+    }
 
-        // Entry => Id
-        IdQuery ids = new IdQuery(query.resultType(), query);
-        while (entries.hasNext()) {
-            BackendEntry entry = entries.next();
-            HugeIndex index = this.serializer.readIndex(entry, graph());
-            ids.query(index.elementIds());
-        }
-        return ids;
+    private boolean needIndexForLabel() {
+        return !this.store().features().supportsQueryByLabel();
     }
 
     private boolean validQueryConditionValues(ConditionQuery query) {
@@ -324,15 +345,19 @@ public class IndexTransaction extends AbstractTransaction {
         return true;
     }
 
-    private Set<String> collectQueryLabels(ConditionQuery query,
-                                           List<IndexLabel> indexLabels) {
+    private Set<String> collectQueryLabels(ConditionQuery query) {
         Set<String> labels = new HashSet<>();
 
         String label = (String) query.condition(HugeKeys.LABEL);
         if (label != null) {
             labels.add(label);
         } else {
+            // TODO: improve that get from cache
+            SchemaTransaction schema = graph().schemaTransaction();
+            List<IndexLabel> indexLabels = schema.getIndexLabels();
+
             Set<String> queryKeys = query.userpropKeys();
+            assert queryKeys.size() > 0;
             for (IndexLabel indexLabel : indexLabels) {
                 List<String> indexFields = indexLabel.indexFields();
                 if (query.resultType() == indexLabel.queryType() &&
@@ -380,6 +405,18 @@ public class IndexTransaction extends AbstractTransaction {
         return indexQuery;
     }
 
+    private Set<ConditionQuery> query2IndexQuery(ConditionQuery query,
+                                                 HugeElement element) {
+        Set<ConditionQuery> indexQueries = new HashSet<>();
+        for (IndexLabel indexLabel : relatedIndexLabels(element)) {
+            ConditionQuery indexQuery = matchIndexLabel(query, indexLabel);
+            if (indexQuery != null) {
+                indexQueries.add(indexQuery);
+            }
+        }
+        return indexQueries;
+    }
+
     private static ConditionQuery matchIndexLabel(ConditionQuery query,
                                                   IndexLabel indexLabel) {
         boolean requireSearch = query.hasSearchCondition();
@@ -421,11 +458,11 @@ public class IndexTransaction extends AbstractTransaction {
             // Replace the query key with PROPERTY_VALUES, and set number value
             Condition condition = query.userpropConditions().get(0).copy();
             for (Condition.Relation r : condition.relations()) {
-                Condition.Relation sys = new Condition.SyspropRelation(
+                Condition.Relation sr = new Condition.SyspropRelation(
                         HugeKeys.FIELD_VALUES,
                         r.relation(),
-                        NumericUtil.convert2Number(r.value()));
-                condition = condition.replace(r, sys);
+                        NumericUtil.convertToNumber(r.value()));
+                condition = condition.replace(r, sr);
             }
 
             indexQuery = new ConditionQuery(HugeType.SEARCH_INDEX, query);
@@ -454,6 +491,31 @@ public class IndexTransaction extends AbstractTransaction {
         return new BackendException("Don't accept query based on properties " +
                                     "%s that are not indexed in label '%s'",
                                     query.userpropKeys(), label);
+    }
+
+    private static boolean hasNullableProp(HugeElement element, String key) {
+        Set<String> nullableKeys;
+        if (element instanceof HugeVertex) {
+            nullableKeys = ((HugeVertex) element).vertexLabel().nullableKeys();
+        } else {
+            assert element instanceof HugeEdge;
+            nullableKeys = ((HugeEdge) element).edgeLabel().nullableKeys();
+        }
+        return nullableKeys.contains(key);
+    }
+
+    private static Set<IndexLabel> relatedIndexLabels(HugeElement element) {
+        Set<IndexLabel> indexLabels = new HashSet<>();
+        Set<String> indexNames = element instanceof HugeVertex ?
+                    ((HugeVertex) element).vertexLabel().indexNames() :
+                    ((HugeEdge) element).edgeLabel().indexNames();
+
+        SchemaTransaction schema = element.graph().schemaTransaction();
+        for (String indexName : indexNames) {
+            IndexLabel indexLabel = schema.getIndexLabel(indexName);
+            indexLabels.add(indexLabel);
+        }
+        return indexLabels;
     }
 
     public void removeIndex(IndexLabel indexLabel) {

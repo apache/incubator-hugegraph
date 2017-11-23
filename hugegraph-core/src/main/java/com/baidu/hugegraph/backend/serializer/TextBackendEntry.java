@@ -41,22 +41,21 @@ public class TextBackendEntry implements BackendEntry {
     public static final String VALUE_SPLITOR = "\u0002";
     public static final String IDS_SPLITOR = "\u0003";
 
-    private Id id;
+    private final HugeType type;
+    private final Id id;
     private Id subId;
-    private HugeType type;
     private Map<String, String> columns;
 
     public TextBackendEntry(HugeType type, Id id) {
-        this.id = id;
         this.type = type;
+        this.id = id;
+        this.subId = null;
         this.columns = new ConcurrentHashMap<>();
     }
 
-    public TextBackendEntry(Id id) {
-        this.id = id;
-        this.subId = null;
-        this.type = null;
-        this.columns = new ConcurrentHashMap<>();
+    @Override
+    public HugeType type() {
+        return this.type;
     }
 
     @Override
@@ -65,22 +64,12 @@ public class TextBackendEntry implements BackendEntry {
     }
 
     @Override
-    public void id(Id id) {
-        this.id = id;
-    }
-
-    @Override
     public Id subId() {
         return this.subId;
     }
 
-    @Override
     public void subId(Id subId) {
         this.subId = subId;
-    }
-
-    public HugeType type() {
-        return this.type;
     }
 
     public Set<String> columnNames() {
@@ -131,8 +120,8 @@ public class TextBackendEntry implements BackendEntry {
             if (c.startsWith(column)) {
                 String v = this.columns.get(c);
                 BackendColumn bytesColumn = new BackendColumn();
-                bytesColumn.name = StringEncoding.encodeString(c);
-                bytesColumn.value = StringEncoding.encodeString(v);
+                bytesColumn.name = StringEncoding.encode(c);
+                bytesColumn.value = StringEncoding.encode(v);
                 list.add(bytesColumn);
             }
         }
@@ -144,23 +133,23 @@ public class TextBackendEntry implements BackendEntry {
             String newValue = col.getValue();
             String oldValue = this.column(col.getKey());
 
-            // Not changed
-            if (newValue.equals(oldValue)) {
-                continue;
-            }
-
             // TODO: use more general method
             if (col.getKey().startsWith(HugeType.PROPERTY.name())) {
                 this.columns.put(col.getKey(), col.getValue());
                 continue;
             }
 
+            // TODO: use more general method
+            if (!col.getKey().endsWith(HugeKeys.ELEMENT_IDS.string())) {
+                continue;
+            }
+
             // TODO: ensure the old value is a list and json format (for index)
-            List<String> values = new ArrayList<>();
-            values.addAll(Arrays.asList(JsonUtil.fromJson(oldValue,
-                                                          String[].class)));
-            values.addAll(Arrays.asList(JsonUtil.fromJson(newValue,
-                                                          String[].class)));
+            List<Object> values = new ArrayList<>();
+            Object[] oldValues = JsonUtil.fromJson(oldValue, Object[].class);
+            Object[] newValues = JsonUtil.fromJson(newValue, Object[].class);
+            values.addAll(Arrays.asList(oldValues));
+            values.addAll(Arrays.asList(newValues));
             // Update the old value
             this.column(col.getKey(), JsonUtil.toJson(values));
         }
@@ -184,11 +173,11 @@ public class TextBackendEntry implements BackendEntry {
             }
 
             // TODO: ensure the old value is a list and json format (for index)
-            List<String> values = new ArrayList<>();
-            values.addAll(Arrays.asList(JsonUtil.fromJson(oldValue,
-                                                          String[].class)));
-            values.removeAll(Arrays.asList(JsonUtil.fromJson(newValue,
-                                                             String[].class)));
+            List<Object> values = new ArrayList<>();
+            Object[] oldValues = JsonUtil.fromJson(oldValue, Object[].class);
+            Object[] newValues = JsonUtil.fromJson(newValue, Object[].class);
+            values.addAll(Arrays.asList(oldValues));
+            values.removeAll(Arrays.asList(newValues));
             // Update the old value
             this.column(col.getKey(), JsonUtil.toJson(values));
         }
@@ -204,8 +193,8 @@ public class TextBackendEntry implements BackendEntry {
         List<BackendColumn> list = new ArrayList<>(this.columns.size());
         for (Entry<String, String> column : this.columns.entrySet()) {
             BackendColumn bytesColumn = new BackendColumn();
-            bytesColumn.name = StringEncoding.encodeString(column.getKey());
-            bytesColumn.value = StringEncoding.encodeString(column.getValue());
+            bytesColumn.name = StringEncoding.encode(column.getKey());
+            bytesColumn.value = StringEncoding.encode(column.getValue());
             list.add(bytesColumn);
         }
         return list;
@@ -213,11 +202,17 @@ public class TextBackendEntry implements BackendEntry {
 
     @Override
     public void columns(Collection<BackendColumn> bytesColumns) {
-        this.columns.clear();
-
         for (BackendColumn column : bytesColumns) {
-            this.columns.put(StringEncoding.decodeString(column.name),
-                             StringEncoding.decodeString(column.value));
+            this.columns.put(StringEncoding.decode(column.name),
+                             StringEncoding.decode(column.value));
+        }
+    }
+
+    @Override
+    public void columns(BackendColumn... bytesColumns) {
+        for (BackendColumn column : bytesColumns) {
+            this.columns.put(StringEncoding.decode(column.name),
+                             StringEncoding.decode(column.value));
         }
     }
 
@@ -225,6 +220,11 @@ public class TextBackendEntry implements BackendEntry {
     public void merge(BackendEntry other) {
         TextBackendEntry text = (TextBackendEntry) other;
         this.columns.putAll(text.columns);
+    }
+
+    @Override
+    public void clear() {
+        this.columns.clear();
     }
 
     @Override

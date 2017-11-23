@@ -186,11 +186,12 @@ public class ScyllaDBTables {
         }
 
         @Override
-        public Iterable<BackendEntry> query(
-                CassandraSessionPool.Session session, Query query) {
+        public Iterator<BackendEntry> query(
+               CassandraSessionPool.Session session,
+               Query query) {
             query = queryByLabelIndex(session, LABEL_INDEX_TABLE, query);
             if (query == null) {
-                return ImmutableList.of();
+                return ImmutableList.<BackendEntry>of().iterator();
             }
             return super.query(session, query);
         }
@@ -266,11 +267,11 @@ public class ScyllaDBTables {
         }
 
         @Override
-        public Iterable<BackendEntry> query(
+        public Iterator<BackendEntry> query(
                CassandraSessionPool.Session session, Query query) {
             query = queryByLabelIndex(session, LABEL_INDEX_TABLE, query);
             if (query == null) {
-                return ImmutableList.of();
+                return ImmutableList.<BackendEntry>of().iterator();
             }
             return super.query(session, query);
         }

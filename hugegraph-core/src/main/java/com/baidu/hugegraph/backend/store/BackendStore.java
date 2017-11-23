@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import java.util.Iterator;
+
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
@@ -43,7 +45,7 @@ public interface BackendStore {
     public void mutate(BackendMutation mutation);
 
     // Query data
-    public Iterable<BackendEntry> query(Query query);
+    public Iterator<BackendEntry> query(Query query);
 
     // Transaction
     public void beginTx();

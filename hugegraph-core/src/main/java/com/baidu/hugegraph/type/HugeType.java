@@ -35,14 +35,17 @@ public enum HugeType {
     SYS_PROPERTY(102),
     // Property
     PROPERTY(103),
+    // Edge
     EDGE(120),
     // Edge's direction is OUT for the specified vertex
-    EDGE_OUT(120),
+    EDGE_OUT(130),
     // Edge's direction is IN for the specified vertex
-    EDGE_IN(121),
+    EDGE_IN(140),
 
     SECONDARY_INDEX(150),
-    SEARCH_INDEX(151),
+    SEARCH_INDEX(160),
+
+    COUNTERS(250),
 
     MAX_TYPE(255);
 

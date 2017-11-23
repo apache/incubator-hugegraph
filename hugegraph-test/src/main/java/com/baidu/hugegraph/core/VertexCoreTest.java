@@ -633,7 +633,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         BackendFeatures features = graph.graphTransaction().store().features();
         Assume.assumeTrue("Not support CONTAINS_KEY query",
-                          features.supportsQueryByContainsKey());
+                          features.supportsQueryWithContainsKey());
         init10Vertices();
 
         // Query vertex by condition (does contain the property name?)
@@ -652,7 +652,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         BackendFeatures features = graph.graphTransaction().store().features();
         Assume.assumeTrue("Not support CONTAINS_KEY query",
-                          features.supportsQueryByContainsKey());
+                          features.supportsQueryWithContainsKey());
         init10Vertices();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -691,7 +691,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         BackendFeatures features = graph.graphTransaction().store().features();
         Assume.assumeTrue("Not support CONTAINS query",
-                          features.supportsQueryByContains());
+                          features.supportsQueryWithContains());
         init10Vertices();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1191,10 +1191,14 @@ public class VertexCoreTest extends BaseCoreTest {
 
         AtomicInteger size = new AtomicInteger(-1);
         Thread t = new Thread(() -> {
-            List<Vertex> vertices = graph.traversal()
-                                         .V("person:marko")
-                                         .toList();
-            size.set(vertices.size());
+            try {
+                List<Vertex> vertices = graph.traversal()
+                                             .V("person:marko")
+                                             .toList();
+                size.set(vertices.size());
+            } finally {
+                graph.close();
+            }
         });
         t.start();
         t.join();
@@ -1985,7 +1989,9 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertex() {
         HugeGraph graph = graph();
-        Assume.assumeTrue("Not support scan", storeFeatures().supportsScan());
+        // TODO: also support test scan by range
+        Assume.assumeTrue("Not support scan",
+                          storeFeatures().supportsScanToken());
         init10Vertices();
 
         List<Vertex> vertexes = new LinkedList<>();
@@ -2005,7 +2011,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertexWithSplitSizeLt1MB() {
         HugeGraph graph = graph();
-        Assume.assumeTrue("Not support scan", storeFeatures().supportsScan());
+        Assume.assumeTrue("Not support scan",
+                          storeFeatures().supportsScanToken());
         init10Vertices();
 
         long splitSize = 1 * 1024 * 1024 - 1;
@@ -2018,7 +2025,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertexWithSplitSizeTypeError() {
         HugeGraph graph = graph();
-        Assume.assumeTrue("Not support scan", storeFeatures().supportsScan());
+        Assume.assumeTrue("Not support scan",
+                          storeFeatures().supportsScanToken());
         init10Vertices();
 
         String splitSize = "123456";
@@ -2031,7 +2039,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertexWithoutSplitSize() {
         HugeGraph graph = graph();
-        Assume.assumeTrue("Not support scan", storeFeatures().supportsScan());
+        Assume.assumeTrue("Not support scan",
+                          storeFeatures().supportsScanToken());
         init10Vertices();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {

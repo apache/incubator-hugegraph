@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.tx;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -64,8 +65,8 @@ public class SchemaTransaction extends AbstractTransaction {
     public List<PropertyKey> getPropertyKeys() {
         List<PropertyKey> propertyKeys = new ArrayList<>();
         Query q = new Query(HugeType.PROPERTY_KEY);
-        Iterable<BackendEntry> entries = this.query(q);
-        entries.forEach(entry -> {
+        Iterator<BackendEntry> entries = this.query(q);
+        entries.forEachRemaining(entry -> {
             propertyKeys.add(this.serializer.readPropertyKey(entry));
         });
         return propertyKeys;
@@ -74,8 +75,8 @@ public class SchemaTransaction extends AbstractTransaction {
     public List<VertexLabel> getVertexLabels() {
         List<VertexLabel> vertexLabels = new ArrayList<>();
         Query q = new Query(HugeType.VERTEX_LABEL);
-        Iterable<BackendEntry> entries = this.query(q);
-        entries.forEach(entry -> {
+        Iterator<BackendEntry> entries = this.query(q);
+        entries.forEachRemaining(entry -> {
             vertexLabels.add(this.serializer.readVertexLabel(entry));
         });
         return vertexLabels;
@@ -84,8 +85,8 @@ public class SchemaTransaction extends AbstractTransaction {
     public List<EdgeLabel> getEdgeLabels() {
         List<EdgeLabel> edgeLabels = new ArrayList<>();
         Query q = new Query(HugeType.EDGE_LABEL);
-        Iterable<BackendEntry> entries = this.query(q);
-        entries.forEach(entry -> {
+        Iterator<BackendEntry> entries = this.query(q);
+        entries.forEachRemaining(entry -> {
             edgeLabels.add(this.serializer.readEdgeLabel(entry));
         });
         return edgeLabels;
@@ -94,8 +95,8 @@ public class SchemaTransaction extends AbstractTransaction {
     public List<IndexLabel> getIndexLabels() {
         List<IndexLabel> indexLabels = new ArrayList<>();
         Query q = new Query(HugeType.INDEX_LABEL);
-        Iterable<BackendEntry> entries = this.query(q);
-        entries.forEach(entry -> {
+        Iterator<BackendEntry> entries = this.query(q);
+        entries.forEachRemaining(entry -> {
             indexLabels.add(this.serializer.readIndexLabel(entry));
         });
         return indexLabels;

@@ -20,41 +20,30 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.BackendStore.TxState;
+import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.InvalidQueryException;
 
-public class CassandraSessionPool {
-
-    private static final Logger LOG = Log.logger(CassandraStore.class);
+public class CassandraSessionPool extends BackendSessionPool {
 
     private static final int SECOND = 1000;
 
     private Cluster cluster;
     private String keyspace;
 
-    private ThreadLocal<Session> threadLocalSession;
-    private AtomicInteger sessionCount;
-
     public CassandraSessionPool(String keyspace) {
         this.cluster = null;
         this.keyspace = keyspace;
-
-        this.threadLocalSession = new ThreadLocal<>();
-        this.sessionCount = new AtomicInteger(0);
     }
 
     public synchronized void open(HugeConfig config) {
@@ -91,51 +80,21 @@ public class CassandraSessionPool {
     }
 
     public final synchronized Session session() {
-        Session session = this.threadLocalSession.get();
-        if (session == null) {
-            E.checkState(this.cluster != null,
-                         "Cassandra cluster has not been initialized");
-            session = new Session(this.cluster.connect(this.keyspace));
-            this.threadLocalSession.set(session);
-            this.sessionCount.incrementAndGet();
-            LOG.debug("Now(after connect()) session count is: {}",
-                      this.sessionCount.get());
-        }
-        return session;
+        return (Session) super.getOrNewSession();
     }
 
-    public void useSession() {
-        Session session = this.threadLocalSession.get();
-        if (session == null) {
-            return;
-        }
-        session.attach();
+    @Override
+    protected final synchronized Session newSession() {
+        E.checkState(this.cluster != null,
+                     "Cassandra cluster has not been initialized");
+        return new Session();
     }
 
-    public void closeSession() {
-        Session session = this.threadLocalSession.get();
-        if (session == null) {
-            return;
+    @Override
+    protected synchronized void doClose() {
+        if (this.cluster != null && !this.cluster.isClosed()) {
+            this.cluster.close();
         }
-        if (session.detach() <= 0) {
-            session.close();
-            this.threadLocalSession.remove();
-            this.sessionCount.decrementAndGet();
-        }
-    }
-
-    public synchronized void close() {
-        try {
-            this.closeSession();
-        } finally {
-            if (this.sessionCount.get() == 0 &&
-                this.cluster != null &&
-                !this.cluster.isClosed()) {
-                this.cluster.close();
-            }
-        }
-        LOG.debug("Now(after close()) session count is: {}",
-                  this.sessionCount.get());
     }
 
     public final void checkClusterConnected() {
@@ -158,36 +117,29 @@ public class CassandraSessionPool {
      * The Session class is a wrapper of driver Session
      * Expect every thread hold a its own session(wrapper)
      */
-    public final class Session {
+    public final class Session extends BackendSessionPool.Session {
 
         private com.datastax.driver.core.Session session;
         private BatchStatement batch;
-        private int refs;
-        private TxState txState;
 
-        public Session(com.datastax.driver.core.Session session) {
-            this.session = session;
+        public Session() {
+            this.session = null;
             this.batch = new BatchStatement();
-            this.refs = 1;
-            this.txState = TxState.CLEAN;
-        }
-
-        private int attach() {
-            return ++this.refs;
-        }
-
-        private int detach() {
-            return --this.refs;
+            try {
+                this.open();
+            } catch (InvalidQueryException ignored) {}
         }
 
         public BatchStatement add(Statement statement) {
             return this.batch.add(statement);
         }
 
+        @Override
         public void clear() {
             this.batch.clear();
         }
 
+        @Override
         public ResultSet commit() {
             return this.session.execute(this.batch);
         }
@@ -204,11 +156,24 @@ public class CassandraSessionPool {
             return this.session.execute(statement, args);
         }
 
+        public void open() {
+            this.session = cluster().connect(keyspace());
+        }
+
+        @Override
         public boolean closed() {
+            if (this.session == null) {
+                return true;
+            }
             return this.session.isClosed();
         }
 
-        private void close() {
+        @Override
+        public void close() {
+            assert this.closeable();
+            if (this.session == null) {
+                return;
+            }
             this.session.close();
         }
 
@@ -218,14 +183,6 @@ public class CassandraSessionPool {
 
         public Collection<Statement> statements() {
             return this.batch.getStatements();
-        }
-
-        public TxState txState() {
-            return this.txState;
-        }
-
-        public void txState(TxState state) {
-            this.txState = state;
         }
 
         public String keyspace() {

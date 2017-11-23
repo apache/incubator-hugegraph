@@ -39,7 +39,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
             synchronized (SnowflakeIdGenerator.class) {
                 if (instance == null) {
                     // TODO: workerId, datacenterId should read from conf
-                    instance = new SnowflakeIdGenerator(1, 1);
+                    instance = new SnowflakeIdGenerator(0, 0);
                 }
             }
         }
@@ -52,7 +52,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
 
     public Id generate() {
         if (this.idWorker == null) {
-            throw new HugeException("Please initialize before using it");
+            throw new HugeException("Please initialize before using");
         }
         return this.generate(this.idWorker.nextId());
     }
@@ -90,7 +90,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
 
         private long workerId;
         private long datacenterId;
-        private long sequence = 0L;
+        private long sequence = 0L; // AtomicLong
         private long lastTimestamp = -1L;
 
         private static final long WORKER_BIT = 5L;
@@ -120,33 +120,32 @@ public class SnowflakeIdGenerator extends IdGenerator {
             }
             this.workerId = workerId;
             this.datacenterId = datacenterId;
-            LOG.debug("Worker starting. timestamp left shift {}," +
+            LOG.debug("Id Worker starting. timestamp left shift {}," +
                       "datacenter id bits {}, worker id bits {}," +
-                      "sequence bits {}, workerid {}",
-                      TIMESTAMP_SHIFT,
-                      DC_BIT,
-                      WORKER_BIT,
-                      SEQUENCE_BIT,
-                      workerId);
+                      "sequence bits {}",
+                      TIMESTAMP_SHIFT, DC_BIT, WORKER_BIT, SEQUENCE_BIT);
+            LOG.info("Id Worker starting. datacenter id {}, worker id {}",
+                     datacenterId, workerId);
         }
 
         public synchronized long nextId() {
             long timestamp = TimeUtil.timeGen();
 
-            if (timestamp < this.lastTimestamp) {
-                LOG.error("Clock is moving backwards, " +
-                          "rejecting requests until {}.",
-                          this.lastTimestamp);
-                throw new HugeException("Clock moved backwards. Refusing to " +
-                                        "generate id for %d milliseconds",
-                                        this.lastTimestamp - timestamp);
+            if (timestamp > this.lastTimestamp) {
+                this.sequence = 0L;
             } else if (timestamp == this.lastTimestamp) {
                 this.sequence = (this.sequence + 1) & SEQUENCE_MASK;
                 if (this.sequence == 0) {
                     timestamp = TimeUtil.tillNextMillis(this.lastTimestamp);
                 }
             } else {
-                this.sequence = 0L;
+                assert timestamp < this.lastTimestamp;
+                LOG.error("Clock is moving backwards, " +
+                          "rejecting requests until {}.",
+                          this.lastTimestamp);
+                throw new HugeException("Clock moved backwards. Refusing to " +
+                                        "generate id for %d milliseconds",
+                                        this.lastTimestamp - timestamp);
             }
 
             this.lastTimestamp = timestamp;
