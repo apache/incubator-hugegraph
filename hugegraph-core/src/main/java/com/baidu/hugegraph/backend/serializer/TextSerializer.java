@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -66,20 +67,22 @@ public class TextSerializer extends AbstractSerializer {
     private static final String COLUME_SPLITOR = TextBackendEntry.COLUME_SPLITOR;
     private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
 
+    public TextBackendEntry newBackendEntry(HugeType type, Id id) {
+        return new TextBackendEntry(type, id);
+    }
+
     @Override
     public BackendEntry newBackendEntry(Id id) {
-        return new TextBackendEntry(id);
+        return new TextBackendEntry(null, id);
     }
 
     @Override
     protected BackendEntry convertEntry(BackendEntry backendEntry) {
-        if (backendEntry instanceof TextBackendEntry) {
-            return backendEntry;
+        if (!(backendEntry instanceof TextBackendEntry)) {
+            throw new HugeException("The entry '%s' is not TextBackendEntry",
+                                    backendEntry);
         }
-
-        TextBackendEntry text = new TextBackendEntry(backendEntry.id());
-        text.columns(backendEntry.columns());
-        return text;
+        return backendEntry;
     }
 
     protected String formatSyspropName(String name) {
@@ -224,7 +227,7 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeVertex(HugeVertex vertex) {
-        TextBackendEntry entry = new TextBackendEntry(vertex.id());
+        TextBackendEntry entry = newBackendEntry(HugeType.VERTEX, vertex.id());
 
         // Write label (NOTE: maybe just with edges if label is null)
         if (vertex.vertexLabel() != null) {
@@ -244,7 +247,7 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
         HugeVertex vertex = prop.element();
-        TextBackendEntry entry = new TextBackendEntry(vertex.id());
+        TextBackendEntry entry = newBackendEntry(HugeType.VERTEX, vertex.id());
         entry.subId(IdGenerator.of(prop.key()));
 
         // Write label (NOTE: maybe just with edges if label is null)
@@ -287,7 +290,8 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeEdge(HugeEdge edge) {
-        TextBackendEntry entry = new TextBackendEntry(edge.ownerVertex().id());
+        TextBackendEntry entry = newBackendEntry(HugeType.EDGE,
+                                                 edge.idWithDirection());
         entry.column(this.formatEdgeName(edge), this.formatEdgeValue(edge));
         return entry;
     }
@@ -295,7 +299,7 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop) {
         HugeEdge edge = prop.element();
-        TextBackendEntry entry = new TextBackendEntry(edge.id());
+        TextBackendEntry entry = newBackendEntry(edge.type(), edge.id());
         entry.subId(IdGenerator.of(prop.key()));
         entry.column(this.formatEdgeName(edge), this.formatEdgeValue(edge));
         return entry;
@@ -310,7 +314,7 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeIndex(HugeIndex index) {
-        TextBackendEntry entry = new TextBackendEntry(index.id());
+        TextBackendEntry entry = newBackendEntry(index.type(), index.id());
         /*
          * When field-values is null and elementIds size is 0, it is
          * meaningful for deletion of index data in secondary/search index.
@@ -320,12 +324,13 @@ public class TextSerializer extends AbstractSerializer {
                          index.indexLabelName());
         } else {
             // TODO: field-values may be a number (SEARCH index)
+            String elementId = index.elementId().asString();
             entry.column(formatSyspropName(HugeKeys.FIELD_VALUES),
                          index.fieldValues().toString());
             entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_NAME),
                          index.indexLabelName());
             entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
-                         JsonUtil.toJson(Arrays.asList(index.elementId())));
+                         JsonUtil.toJson(Arrays.asList(elementId)));
             entry.subId(index.elementId());
         }
         return entry;
@@ -363,10 +368,7 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public TextBackendEntry writeId(HugeType type, Id id) {
-        if (SchemaElement.isSchema(type)) {
-            id = id.prefixWith(type);
-        }
-        return new TextBackendEntry(id);
+        return newBackendEntry(type, id);
     }
 
     @Override
@@ -377,18 +379,6 @@ public class TextSerializer extends AbstractSerializer {
          */
         if (query.resultType() == HugeType.EDGE && query instanceof IdQuery) {
             return this.writeEdgeQuery((IdQuery) query);
-        }
-
-        // Prefix schema-id with type
-        if (SchemaElement.isSchema(query.resultType()) &&
-            query instanceof IdQuery) {
-            // Serialize query id of schema
-            IdQuery result = (IdQuery) query.clone();
-            result.resetIds();
-            for (Id id : query.ids()) {
-                result.query(id.prefixWith(query.resultType()));
-            }
-            return result;
         }
 
         // Serialize query key
@@ -410,7 +400,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     protected IdQuery writeEdgeQuery(IdQuery query) {
-        IdQuery result = (IdQuery) query.clone();
+        IdQuery result = query.clone();
         result.resetIds();
 
         if (!query.conditions().isEmpty() && !query.ids().isEmpty()) {

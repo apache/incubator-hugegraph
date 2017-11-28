@@ -124,11 +124,6 @@ public abstract class IdGenerator {
         }
 
         @Override
-        public Id prefixWith(HugeType type) {
-            return new StringId(String.format("%x%s", type.code(), this.id));
-        }
-
-        @Override
         public String asString() {
             return this.id;
         }
@@ -177,13 +172,6 @@ public abstract class IdGenerator {
 
         public LongId(byte[] bytes) {
             this.id = NumericUtil.bytesToLong(bytes);
-        }
-
-        @Override
-        public Id prefixWith(HugeType type) {
-            long t = type.code();
-            this.id = (this.id & 0x00ffffffffffffffL) & (t << 56);
-            return this;
         }
 
         @Override

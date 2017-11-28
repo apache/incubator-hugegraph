@@ -39,14 +39,23 @@ public class TextBackendEntry implements BackendEntry {
 
     public static final String COLUME_SPLITOR = "\u0001";
     public static final String VALUE_SPLITOR = "\u0002";
+    public static final String IDS_SPLITOR = "\u0003";
 
     private Id id;
     private Id subId;
+    private HugeType type;
     private Map<String, String> columns;
+
+    public TextBackendEntry(HugeType type, Id id) {
+        this.id = id;
+        this.type = type;
+        this.columns = new ConcurrentHashMap<>();
+    }
 
     public TextBackendEntry(Id id) {
         this.id = id;
         this.subId = null;
+        this.type = null;
         this.columns = new ConcurrentHashMap<>();
     }
 
@@ -68,6 +77,10 @@ public class TextBackendEntry implements BackendEntry {
     @Override
     public void subId(Id subId) {
         this.subId = subId;
+    }
+
+    public HugeType type() {
+        return this.type;
     }
 
     public Set<String> columnNames() {
@@ -159,7 +172,8 @@ public class TextBackendEntry implements BackendEntry {
             String oldValue = this.column(col.getKey());
 
             // TODO: use more general method
-            if (col.getKey().startsWith(HugeType.PROPERTY.name())) {
+            if (col.getKey().startsWith(HugeType.PROPERTY.name()) ||
+                col.getKey().startsWith(HugeType.EDGE.name())) {
                 this.columns.remove(col.getKey());
                 continue;
             }

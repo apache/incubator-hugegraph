@@ -29,6 +29,21 @@ public class CassandraFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsQueryWithSearchCondition() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsUpdateEdgeProperty() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsOrderByQuery() {
+        return true;
+    }
+
+    @Override
     public boolean supportsScan() {
         return true;
     }

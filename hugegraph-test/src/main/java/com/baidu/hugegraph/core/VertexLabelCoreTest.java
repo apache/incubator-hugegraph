@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
@@ -648,6 +649,8 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveVertexLabelWithVertexAndSearchIndex() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 

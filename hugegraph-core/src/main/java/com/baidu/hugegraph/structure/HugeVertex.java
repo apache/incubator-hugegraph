@@ -248,8 +248,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
      */
     public void addOutEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {
-            edge.ownerVertex(this);
             edge.sourceVertex(this);
+            edge.ownerVertex(this);
         }
         E.checkState(edge.isDirection(Direction.OUT),
                      "The owner vertex('%s') of OUT edge '%s' should be '%s'",
@@ -262,8 +262,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
      */
     public void addInEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {
-            edge.ownerVertex(this);
             edge.targetVertex(this);
+            edge.ownerVertex(this);
         }
         E.checkState(edge.isDirection(Direction.IN),
                      "The owner vertex('%s') of IN edge '%s' should be '%s'",

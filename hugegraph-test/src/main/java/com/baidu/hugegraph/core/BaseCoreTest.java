@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.util.Log;
 
@@ -122,5 +123,9 @@ public class BaseCoreTest {
         schema.getPropertyKeys().stream().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();
         });
+    }
+
+    protected BackendFeatures storeFeatures() {
+        return graph().graphTransaction().store().features();
     }
 }

@@ -611,6 +611,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryEdgesWithLimitAndOrderBy() {
+        Assume.assumeTrue("Not support order by",
+                          storeFeatures().supportsOrderByQuery());
         HugeGraph graph = graph();
         init18Edges();
 
@@ -943,8 +945,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testScanEdge() {
         HugeGraph graph = graph();
-        Assume.assumeTrue("Not support scan", graph.graphTransaction().store()
-                                                   .features().supportsScan());
+        Assume.assumeTrue("Not support scan", storeFeatures().supportsScan());
         init18Edges();
 
         Set<Edge> edges = new HashSet<>();
@@ -1161,6 +1162,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testAddEdgeProperty() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
 
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
@@ -1225,6 +1228,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testUpdateEdgeProperty() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
 
         Edge edge = initEdgeTransfer();
@@ -1242,6 +1247,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testUpdateEdgePropertyWithRemoveAndSet() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
 
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
@@ -1267,6 +1274,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testUpdateEdgePropertyTwice() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
 
         Edge edge = initEdgeTransfer();
@@ -1365,6 +1374,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testRemoveEdgeProperty() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
 
         Edge edge = initEdgeTransfer();
@@ -1382,6 +1393,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testRemoveEdgePropertyTwice() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
 
         Edge edge = initEdgeTransfer();
@@ -1410,6 +1423,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testRemoveEdgePropertyNullableWithIndex() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
@@ -1448,6 +1463,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testRemoveEdgePropertyNullableWithoutIndex() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
@@ -1505,6 +1522,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryEdgeBeforeAfterUpdateMultiPropertyWithIndex() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
@@ -1544,6 +1563,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryEdgeBeforeAfterUpdatePropertyWithSecondaryIndex() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
@@ -1573,6 +1594,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryEdgeBeforeAfterUpdatePropertyWithSearchIndex() {
+        Assume.assumeTrue("Not support append/eliminate edge property",
+                          storeFeatures().supportsUpdateEdgeProperty());
         HugeGraph graph = graph();
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);

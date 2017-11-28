@@ -810,6 +810,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropWithDifferentDataType() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         HugeGraph graph = graph();
         init5Persons();
         List<Vertex> vertexes;
@@ -920,6 +922,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingInsideWithOneResult() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -934,6 +938,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingInsideWithMultiResults() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -963,6 +969,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingInsideWithNonResult() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -1006,6 +1014,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingBetweenWithOneResult() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -1020,6 +1030,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingBetweenWithMultiResults() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -1041,6 +1053,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingBetweenWithNonResult() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -1691,8 +1705,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertex() {
         HugeGraph graph = graph();
-        Assume.assumeTrue("Not support scan", graph.graphTransaction().store()
-                                                   .features().supportsScan());
+        Assume.assumeTrue("Not support scan", storeFeatures().supportsScan());
         init10Vertices();
 
         List<Vertex> vertexes = new LinkedList<>();
@@ -1712,8 +1725,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertexWithSplitSizeLt1MB() {
         HugeGraph graph = graph();
-        Assume.assumeTrue("Not support scan", graph.graphTransaction().store()
-                                                   .features().supportsScan());
+        Assume.assumeTrue("Not support scan", storeFeatures().supportsScan());
         init10Vertices();
 
         long splitSize = 1 * 1024 * 1024 - 1;
@@ -1726,8 +1738,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertexWithSplitSizeTypeError() {
         HugeGraph graph = graph();
-        Assume.assumeTrue("Not support scan", graph.graphTransaction().store()
-                                                   .features().supportsScan());
+        Assume.assumeTrue("Not support scan", storeFeatures().supportsScan());
         init10Vertices();
 
         String splitSize = "123456";
@@ -1740,6 +1751,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testScanVertexWithoutSplitSize() {
         HugeGraph graph = graph();
+        Assume.assumeTrue("Not support scan", storeFeatures().supportsScan());
         init10Vertices();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
