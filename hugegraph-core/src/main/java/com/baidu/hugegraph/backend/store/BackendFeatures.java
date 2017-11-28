@@ -30,4 +30,10 @@ public interface BackendFeatures {
     public boolean supportsQueryByContainsKey();
 
     public boolean supportsDeleteEdgeByLabel();
+
+    public boolean supportsQueryWithSearchCondition();
+
+    public boolean supportsUpdateEdgeProperty();
+
+    public boolean supportsOrderByQuery();
 }

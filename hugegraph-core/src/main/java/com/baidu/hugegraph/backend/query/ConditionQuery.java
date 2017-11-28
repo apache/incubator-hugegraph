@@ -327,6 +327,13 @@ public class ConditionQuery extends IdQuery {
     }
 
     @Override
+    public IdQuery clone() {
+        ConditionQuery query = (ConditionQuery) super.clone();
+        query.conditions = new LinkedHashSet<>(this.conditions);
+        return query;
+    }
+
+    @Override
     public boolean test(HugeElement element) {
         if (!this.ids().isEmpty() && !super.test(element)) {
             return false;

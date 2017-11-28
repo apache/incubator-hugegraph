@@ -25,6 +25,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -132,6 +133,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexLabelOfVertexWithVertexExist() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -445,6 +448,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveIndexLabelOfVertex() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
@@ -548,6 +553,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRebuildIndexLabelOfVertex() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
@@ -583,6 +590,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRebuildIndexLabelOfVertexLabel() {
+        Assume.assumeTrue("Not support search condition query",
+                          storeFeatures().supportsQueryWithSearchCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")

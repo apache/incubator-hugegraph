@@ -23,12 +23,23 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySchemaStore;
+import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemoryGraphStore;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     private static final Logger LOG = Log.logger(InMemoryDBStore.class);
+
+    private static InMemoryDBStoreProvider single = null;
+
+    public static synchronized InMemoryDBStoreProvider instance(String name) {
+        if (single == null) {
+            single = new InMemoryDBStoreProvider(name);
+        }
+        return single;
+    }
 
     public InMemoryDBStoreProvider(String name) {
         this.open(name);
@@ -48,12 +59,28 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public BackendStore loadSchemaStore(String name) {
-        return this.load(name);
+        LOG.info("InMemoryDBStoreProvider load '{}'", name);
+
+        this.checkOpened();
+        if (!this.stores.containsKey(name)) {
+            this.stores.putIfAbsent(name, new InMemorySchemaStore(this, name));
+        }
+        BackendStore store = this.stores.get(name);
+        E.checkNotNull(store, "store");
+        return store;
     }
 
     @Override
     public BackendStore loadGraphStore(String name) {
-        return this.load(name);
+        LOG.info("InMemoryDBStoreProvider load '{}'", name);
+
+        this.checkOpened();
+        if (!this.stores.containsKey(name)) {
+            this.stores.putIfAbsent(name, new InMemoryGraphStore(this, name));
+        }
+        BackendStore store = this.stores.get(name);
+        E.checkNotNull(store, "store");
+        return store;
     }
 
     @Override

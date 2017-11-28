@@ -82,6 +82,13 @@ public class IdQuery extends Query {
     }
 
     @Override
+    public IdQuery clone() {
+        IdQuery query = (IdQuery) super.clone();
+        query.ids = new LinkedHashSet<>(this.ids);
+        return query;
+    }
+
+    @Override
     public String toString() {
         return String.format("%s where id in %s",
                              super.toString(), this.ids.toString());

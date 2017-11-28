@@ -35,7 +35,7 @@ public class BackendProviderFactory {
 
     public static BackendStoreProvider open(String backend, String name) {
         if (backend.equalsIgnoreCase("memory")) {
-            return new InMemoryDBStoreProvider(name);
+            return InMemoryDBStoreProvider.instance(name);
         }
 
         Class<? extends BackendStoreProvider> clazz = storeProviders.get(backend);

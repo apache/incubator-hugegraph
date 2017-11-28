@@ -25,7 +25,6 @@ import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.Typifiable;
@@ -81,16 +80,6 @@ public abstract class SchemaElement
     }
 
     public abstract String schema();
-
-    public static boolean isSchema(HugeType type) {
-        if (type == HugeType.VERTEX_LABEL ||
-            type == HugeType.EDGE_LABEL ||
-            type == HugeType.PROPERTY_KEY ||
-            type == HugeType.INDEX_LABEL) {
-            return true;
-        }
-        return false;
-    }
 
     public static void checkName(String name, String illegalRegex) {
         E.checkNotNull(name, "name");

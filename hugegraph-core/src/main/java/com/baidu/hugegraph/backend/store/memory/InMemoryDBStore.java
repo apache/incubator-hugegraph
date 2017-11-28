@@ -20,13 +20,10 @@
 package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.slf4j.Logger;
 
@@ -44,7 +41,6 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
@@ -69,13 +65,13 @@ public class InMemoryDBStore implements BackendStore {
 
     private final BackendStoreProvider provider;
     private final String name;
-    private final ConcurrentNavigableMap<Id, BackendEntry> store;
+    private Map<HugeType, InMemoryDBTable> tables;
 
     public InMemoryDBStore(final BackendStoreProvider provider,
                            final String name) {
         this.provider = provider;
         this.name = name;
-        this.store = new ConcurrentSkipListMap<Id, BackendEntry>();
+        this.tables = new HashMap<>();
     }
 
     @Override
@@ -83,16 +79,26 @@ public class InMemoryDBStore implements BackendStore {
         throw new UnsupportedOperationException("InMemoryDBStore.metadata()");
     }
 
+    protected void registerTableManager(HugeType type, InMemoryDBTable table) {
+        this.tables.put(type, table);
+    }
+
+    protected final InMemoryDBTable table(HugeType type) {
+        assert type != null;
+        if (type == HugeType.EDGE) {
+            // Edges are stored as columns of corresponding vertices now
+            type = HugeType.VERTEX;
+        }
+        InMemoryDBTable table = this.tables.get(type);
+        if (table == null) {
+            throw new BackendException("Unsupported type: %s", type.name());
+        }
+        return table;
+    }
+
     @Override
     public Iterable<BackendEntry> query(final Query query) {
-        Map<Id, BackendEntry> rs = null;
-
-        // Filter by type (TODO: maybe we should let all id prefix with type)
-        if (SchemaElement.isSchema(query.resultType())) {
-            rs = queryPrefixWith(query.resultType().code());
-        } else {
-            rs = queryAll();
-        }
+        Map<Id, BackendEntry> rs = queryAll(query.resultType());
 
         // Query by id(s)
         if (!query.ids().isEmpty()) {
@@ -123,19 +129,8 @@ public class InMemoryDBStore implements BackendStore {
         return rs.values();
     }
 
-    protected Map<Id, BackendEntry> queryAll() {
-        return Collections.unmodifiableMap(this.store);
-    }
-
-    protected Map<Id, BackendEntry> queryPrefixWith(byte prefix) {
-        String prefixString = String.format("%x", prefix);
-        Map<Id, BackendEntry> entries = new HashMap<>();
-        for (BackendEntry item : this.store.values()) {
-            if (item.id().asString().startsWith(prefixString)) {
-                entries.put(item.id(), item);
-            }
-        }
-        return entries;
+    protected Map<Id, BackendEntry> queryAll(HugeType type) {
+        return this.table(type).store();
     }
 
     protected Map<Id, BackendEntry> queryById(Set<Id> ids,
@@ -180,7 +175,8 @@ public class InMemoryDBStore implements BackendStore {
                     rs.put(entryId, entry);
                 } else if (entry.containsPrefix(column)) {
                     // An edge in the vertex
-                    TextBackendEntry edges = new TextBackendEntry(entryId);
+                    BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
+                                                              entryId);
                     edges.columns(entry.columnsWithPrefix(column));
 
                     BackendEntry result = rs.get(entryId);
@@ -246,12 +242,14 @@ public class InMemoryDBStore implements BackendStore {
             String out = HugeType.EDGE_OUT + "\u0001" + label;
             String in = HugeType.EDGE_IN + "\u0001" + label;
             if (entry.containsPrefix(out)) {
-                TextBackendEntry edges = new TextBackendEntry(entry.id());
+                BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
+                                                          entry.id());
                 edges.columns(entry.columnsWithPrefix(out));
                 rs.put(edges.id(), edges);
             }
             if (entry.containsPrefix(in)) {
-                TextBackendEntry edges = new TextBackendEntry(entry.id());
+                BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
+                                                          entry.id());
                 edges.columns(entry.columnsWithPrefix(in));
                 BackendEntry result = rs.get(edges.id());
                 if (result == null) {
@@ -300,39 +298,30 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     protected void mutate(MutateItem item) {
-        BackendEntry entry = item.entry();
+        BackendEntry e = item.entry();
+        assert e instanceof TextBackendEntry;
+        TextBackendEntry entry = (TextBackendEntry) e;
+        if (entry.type() == HugeType.EDGE) {
+            String ownerVertexId = SplicingIdGenerator.split(entry.id())[0];
+            entry.id(IdGenerator.of(ownerVertexId));
+        }
+        InMemoryDBTable table = this.table(entry.type());
         switch (item.action()) {
             case INSERT:
                 LOG.info("[store {}] add entry: {}", this.name, entry);
-                if (!this.store.containsKey(entry.id())) {
-                    this.store.put(entry.id(), entry);
-                } else {
-                    // Merge columns if the entry exists
-                    BackendEntry origin =  this.store.get(entry.id());
-                    // TODO: Compatible with BackendEntry
-                    origin.merge(entry);
-                }
+                table.insert(entry);
                 break;
             case DELETE:
                 LOG.info("[store {}] remove id: {}", this.name, entry.id());
-                // Remove by id (TODO: support remove by id + condition)
-                this.store.remove(entry.id());
+                table.delete(entry);
                 break;
             case APPEND:
-                // Append entry to a column
-                BackendEntry parent = this.store.get(entry.id());
-                if (parent == null) {
-                    this.store.put(entry.id(), entry);
-                } else {
-                    // TODO: Compatible with BackendEntry
-                    ((TextBackendEntry) parent).append((TextBackendEntry) entry);
-                }
+                LOG.info("[store {}] append entry: {}", this.name, entry);
+                table.append(entry);
                 break;
             case ELIMINATE:
-                // Eliminate item from a column in entry
-                parent = this.store.get(entry.id());
-                // TODO: Compatible with BackendEntry
-                ((TextBackendEntry) parent).eliminate((TextBackendEntry) entry);
+                LOG.info("[store {}] eliminate entry: {}", this.name, entry);
+                table.eliminate(entry);
                 break;
             default:
                 throw new BackendException("Unsupported mutate type: %s",
@@ -368,7 +357,9 @@ public class InMemoryDBStore implements BackendStore {
     @Override
     public void clear() {
         LOG.info("clear()");
-        this.store.clear();
+        for (InMemoryDBTable table : this.tables.values()) {
+            table.clear();
+        }
     }
 
     @Override
@@ -397,6 +388,42 @@ public class InMemoryDBStore implements BackendStore {
         return this.name;
     }
 
+    /***************************** Store defines *****************************/
+
+    public static class InMemorySchemaStore extends InMemoryDBStore {
+
+        public InMemorySchemaStore(BackendStoreProvider provider, String name) {
+            super(provider, name);
+
+            registerTableManager(HugeType.VERTEX_LABEL,
+                                 new InMemoryDBTable(HugeType.VERTEX_LABEL));
+            registerTableManager(HugeType.EDGE_LABEL,
+                                 new InMemoryDBTable(HugeType.EDGE_LABEL));
+            registerTableManager(HugeType.PROPERTY_KEY,
+                                 new InMemoryDBTable(HugeType.PROPERTY_KEY));
+            registerTableManager(HugeType.INDEX_LABEL,
+                                 new InMemoryDBTable(HugeType.INDEX_LABEL));
+        }
+    }
+
+    public static class InMemoryGraphStore extends InMemoryDBStore {
+
+        public InMemoryGraphStore(BackendStoreProvider provider, String name) {
+            super(provider, name);
+
+            // TODO: separate edges from vertices
+            registerTableManager(HugeType.VERTEX,
+                                 new InMemoryDBTable(HugeType.VERTEX));
+            // Edge table not used now
+            registerTableManager(HugeType.EDGE,
+                                 new InMemoryDBTable(HugeType.EDGE));
+            registerTableManager(HugeType.SECONDARY_INDEX,
+                                 new InMemoryDBTable(HugeType.SECONDARY_INDEX));
+            registerTableManager(HugeType.SEARCH_INDEX,
+                                 new InMemoryDBTable(HugeType.SEARCH_INDEX));
+        }
+    }
+
     /**
      * InMemoryDBStore features
      */
@@ -404,6 +431,21 @@ public class InMemoryDBStore implements BackendStore {
 
         @Override
         public boolean supportsDeleteEdgeByLabel() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsQueryWithSearchCondition() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsUpdateEdgeProperty() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsOrderByQuery() {
             return false;
         }
 

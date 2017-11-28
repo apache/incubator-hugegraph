@@ -155,12 +155,6 @@ public class CachedBackendStore implements BackendStore {
         }
 
         @Override
-        public Id prefixWith(HugeType type) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
         public String asString() {
             return this.id.toString();
         }
