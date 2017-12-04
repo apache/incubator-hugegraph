@@ -25,7 +25,6 @@ import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -59,11 +58,9 @@ public class VertexLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertexLabel jsonVertexLabel) {
-        E.checkArgumentNotNull(jsonVertexLabel,
-                               "The request body can't be empty");
-
         LOG.debug("Graph [{}] create vertex label: {}",
                   graph, jsonVertexLabel);
+        checkBody(jsonVertexLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -82,22 +79,18 @@ public class VertexLabelAPI extends API {
                          @PathParam("name") String name,
                          @QueryParam("action") String action,
                          JsonVertexLabel jsonVertexLabel) {
-        E.checkArgumentNotNull(jsonVertexLabel,
-                               "The request body can't be empty");
-
         LOG.debug("Graph [{}] {} vertex label: {}",
                   graph, action, jsonVertexLabel);
+        checkBody(jsonVertexLabel);
+        // Parse action param
+        boolean append = checkAndParseAction(action);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-
         VertexLabel vertexLabel = jsonVertexLabel.convert2VertexLabel();
-        if (action.equals(ACTION_APPEND)) {
+        if (append) {
             vertexLabel = g.schema().vertexLabel(vertexLabel).append();
-        } else if (action.equals(ACTION_ELIMINATE)) {
-            vertexLabel = g.schema().vertexLabel(vertexLabel).eliminate();
         } else {
-            throw new NotSupportedException(
-                      String.format("Not support action '%s'", action));
+            vertexLabel = g.schema().vertexLabel(vertexLabel).eliminate();
         }
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
@@ -144,7 +137,7 @@ public class VertexLabelAPI extends API {
     /**
      * JsonVertexLabel is only used to receive create and append requests
      */
-    private static class JsonVertexLabel {
+    private static class JsonVertexLabel implements Checkable {
 
         @JsonProperty("name")
         public String name;
@@ -159,9 +152,13 @@ public class VertexLabelAPI extends API {
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
-        private VertexLabel convert2VertexLabel() {
+        @Override
+        public void check(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
                                    "The name of vertex label can't be null");
+        }
+
+        private VertexLabel convert2VertexLabel() {
             VertexLabel vertexLabel = new VertexLabel(this.name);
             if (this.idStrategy != null) {
                 vertexLabel.idStrategy(this.idStrategy);

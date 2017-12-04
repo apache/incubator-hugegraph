@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.graph;
 
-import static com.baidu.hugegraph.config.ServerOptions.MAX_VERTICES_PER_BATCH;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -52,8 +50,9 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.api.schema.Checkable;
+import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -76,9 +75,8 @@ public class VertexAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertex jsonVertex) {
-        E.checkArgumentNotNull(jsonVertex, "The request body can't be empty");
-
         LOG.debug("Graph [{}] create vertex: {}", graph, jsonVertex);
+        checkBody(jsonVertex);
 
         Graph g = graph(manager, graph);
         Vertex vertex = g.addVertex(jsonVertex.properties());
@@ -94,22 +92,16 @@ public class VertexAPI extends API {
     public List<String> create(@Context GraphManager manager,
                                @PathParam("graph") String graph,
                                List<JsonVertex> jsonVertices) {
-        E.checkArgumentNotNull(jsonVertices,
-                               "The request body can't be empty");
+        LOG.debug("Graph [{}] create vertices: {}", graph, jsonVertices);
+        checkBody(jsonVertices);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-
-        final int maxVertices = g.configuration().get(MAX_VERTICES_PER_BATCH);
-        if (jsonVertices.size() > maxVertices) {
-            throw new HugeException(
-                      "Too many counts of vertices for one time post, " +
-                      "the maximum number is '%s'", maxVertices);
-        }
-
-        LOG.debug("Graph [{}] create vertices: {}", graph, jsonVertices);
+        checkBatchCount(g, jsonVertices);
 
         List<String> ids = new ArrayList<>(jsonVertices.size());
-        g.tx().open();
+        if (!g.tx().isOpen()) {
+            g.tx().open();
+        }
         try {
             for (JsonVertex vertex : jsonVertices) {
                 ids.add(g.addVertex(vertex.properties()).id().toString());
@@ -124,7 +116,9 @@ public class VertexAPI extends API {
             }
             throw new HugeException("Failed to add vertices", e1);
         } finally {
-            g.tx().close();
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
         }
         return ids;
     }
@@ -138,9 +132,8 @@ public class VertexAPI extends API {
                          @PathParam("id") String id,
                          @QueryParam("action") String action,
                          JsonVertex jsonVertex) {
-        E.checkArgumentNotNull(jsonVertex, "The request body can't be empty");
-
         LOG.debug("Graph [{}] update vertex: {}", graph, jsonVertex);
+        checkBody(jsonVertex);
 
         if (jsonVertex.id != null) {
             E.checkArgument(id.equals(jsonVertex.id),
@@ -148,34 +141,26 @@ public class VertexAPI extends API {
                             "request body('%s')", id, jsonVertex.id);
         }
 
+        // Parse action param
+        boolean append = checkAndParseAction(action);
+
         Graph g = graph(manager, graph);
         HugeVertex vertex = (HugeVertex) g.vertices(id).next();
         VertexLabel vertexLabel = vertex.vertexLabel();
-
-        boolean removingProperty;
-        if (action.equals(ACTION_ELIMINATE)) {
-            removingProperty = true;
-        } else if (action.equals(ACTION_APPEND)) {
-            removingProperty = false;
-        } else {
-            throw new NotSupportException("action '%s' for vertex '%s'",
-                                          action, id);
-        }
 
         for (String key : jsonVertex.properties.keySet()) {
             E.checkArgument(vertexLabel.properties().contains(key),
                             "Can't update property for vertex '%s' because " +
                             "there is no property key '%s' in its vertex label",
                             id, key);
-
-            if (removingProperty) {
-                vertex.property(key).remove();
-            } else {
+            if (append) {
                 Object value = jsonVertex.properties.get(key);
                 E.checkArgumentNotNull(value, "Not allowed to set value of " +
                                        "property '%s' to null for vertex '%s'",
                                        key, id);
                 vertex.property(key, value);
+            } else {
+                vertex.property(key).remove();
             }
         }
 
@@ -238,8 +223,18 @@ public class VertexAPI extends API {
         g.vertices(id).next().remove();
     }
 
+    private static void checkBatchCount(HugeGraph g,
+                                        List<JsonVertex> jsonVertices) {
+        int max = g.configuration().get(ServerOptions.MAX_VERTICES_PER_BATCH);
+        if (jsonVertices.size() > max) {
+            throw new IllegalArgumentException(String.format(
+                      "Too many counts of vertices for one time post, " +
+                      "the maximum number is '%s'", max));
+        }
+    }
+
     @JsonIgnoreProperties(value = {"type"})
-    private static class JsonVertex {
+    private static class JsonVertex implements Checkable {
 
         @JsonProperty("id")
         public Object id;
@@ -250,11 +245,15 @@ public class VertexAPI extends API {
         @JsonProperty("type")
         public String type;
 
-        public Object[] properties() {
+        @Override
+        public void check(boolean isBatch) {
             E.checkArgumentNotNull(this.label,
                                    "The label of vertex can't be null");
             E.checkArgumentNotNull(this.properties,
                                    "The properties of vertex can't be null");
+        }
+
+        public Object[] properties() {
             Object[] props = API.properties(this.properties);
             List<Object> list = new ArrayList<>(Arrays.asList(props));
             list.add(T.label);

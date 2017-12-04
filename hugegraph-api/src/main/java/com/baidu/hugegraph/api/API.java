@@ -19,16 +19,20 @@
 
 package com.baidu.hugegraph.api;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
 import javax.ws.rs.NotFoundException;
+import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
+import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
@@ -62,7 +66,9 @@ public class API {
         return list;
     }
 
-    public static void checkExist(Iterator<?> iter, HugeType type, String id) {
+    protected static void checkExist(Iterator<?> iter,
+                                     HugeType type,
+                                     String id) {
         if (!iter.hasNext()) {
             String msg = String.format("Not found the %s with id '%s'",
                                        type, id);
@@ -70,8 +76,20 @@ public class API {
         }
     }
 
+    protected static void checkBody(Checkable body) {
+        E.checkArgumentNotNull(body, "The request body can't be empty");
+        body.check(false);
+    }
+
+    protected static void checkBody(Collection<? extends Checkable> bodys) {
+        E.checkArgumentNotNull(bodys, "The request body can't be empty");
+        for (Checkable body : bodys) {
+            body.check(true);
+        }
+    }
+
     @SuppressWarnings("unchecked")
-    protected Map<String, Object> parseProperties(String properties) {
+    protected static Map<String, Object> parseProperties(String properties) {
         if (properties == null || properties.isEmpty()) {
             return ImmutableMap.of();
         }
@@ -87,5 +105,17 @@ public class API {
                       "Invalid request with properties: %s", properties));
         }
         return props;
+    }
+
+    public static boolean checkAndParseAction(String action) {
+        E.checkArgumentNotNull(action, "The action param can't be empty");
+        if (action.equals(ACTION_APPEND)) {
+            return true;
+        } else if (action.equals(ACTION_ELIMINATE)) {
+            return false;
+        } else {
+            throw new NotSupportedException(
+                      String.format("Not support action '%s'", action));
+        }
     }
 }

@@ -25,7 +25,6 @@ import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -59,10 +58,8 @@ public class EdgeLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdgeLabel jsonEdgeLabel) {
-        E.checkArgumentNotNull(jsonEdgeLabel,
-                               "The request body can't be empty");
-
         LOG.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
+        checkBody(jsonEdgeLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -81,22 +78,18 @@ public class EdgeLabelAPI extends API {
                          @PathParam("name") String name,
                          @QueryParam("action") String action,
                          JsonEdgeLabel jsonEdgeLabel) {
-        E.checkArgumentNotNull(jsonEdgeLabel,
-                               "The request body can't be empty");
-
         LOG.debug("Graph [{}] {} edge label: {}",
                   graph, action, jsonEdgeLabel);
+        checkBody(jsonEdgeLabel);
+        // Parse action param
+        boolean append = checkAndParseAction(action);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
-
         EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
-        if (action.equals(ACTION_APPEND)) {
+        if (append) {
             edgeLabel = g.schema().edgeLabel(edgeLabel).append();
-        } else if (action.equals(ACTION_ELIMINATE)) {
-            edgeLabel = g.schema().edgeLabel(edgeLabel).eliminate();
         } else {
-            throw new NotSupportedException(
-                      String.format("Not support action '%s'", action));
+            edgeLabel = g.schema().edgeLabel(edgeLabel).eliminate();
         }
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
@@ -143,7 +136,7 @@ public class EdgeLabelAPI extends API {
     /**
      * JsonEdgeLabel is only used to receive create and append requests
      */
-    private static class JsonEdgeLabel {
+    private static class JsonEdgeLabel implements Checkable {
 
         @JsonProperty("name")
         public String name;
@@ -162,9 +155,13 @@ public class EdgeLabelAPI extends API {
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
-        private EdgeLabel convert2EdgeLabel() {
+        @Override
+        public void check(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
                                    "The name of edge label can't be null");
+        }
+
+        private EdgeLabel convert2EdgeLabel() {
             EdgeLabel edgeLabel = new EdgeLabel(this.name);
             if (this.sourceLabel != null) {
                 edgeLabel.sourceLabel(this.sourceLabel);
