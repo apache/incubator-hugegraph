@@ -57,10 +57,8 @@ public class IndexLabelAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonIndexLabel jsonIndexLabel) {
-        E.checkArgumentNotNull(jsonIndexLabel,
-                               "The request body can't be empty");
-
         LOG.debug("Graph [{}] create index label: {}", graph, jsonIndexLabel);
+        checkBody(jsonIndexLabel);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -112,7 +110,7 @@ public class IndexLabelAPI extends API {
     /**
      * JsonIndexLabel is only used to receive create and append requests
      */
-    private static class JsonIndexLabel {
+    private static class JsonIndexLabel implements Checkable {
 
         @JsonProperty("name")
         public String name;
@@ -127,13 +125,17 @@ public class IndexLabelAPI extends API {
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
-        private IndexLabel convert2IndexLabel() {
+        @Override
+        public void check(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
-                                  "The name of index label can't be null");
+                                   "The name of index label can't be null");
             E.checkArgument(this.baseType == HugeType.VERTEX_LABEL ||
                             this.baseType == HugeType.EDGE_LABEL,
                             "The baseType of index label '%s' can only be " +
                             "either VERTEX_LABEL or EDGE_LABEL", this.name);
+        }
+
+        private IndexLabel convert2IndexLabel() {
             IndexLabel indexLabel = new IndexLabel(this.name);
             indexLabel.baseType(this.baseType);
 

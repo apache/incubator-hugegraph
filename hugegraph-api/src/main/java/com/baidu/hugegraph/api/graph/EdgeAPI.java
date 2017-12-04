@@ -52,11 +52,11 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
@@ -82,20 +82,8 @@ public class EdgeAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdge jsonEdge) {
-        E.checkArgumentNotNull(jsonEdge, "The request body can't be empty");
-
         LOG.debug("Graph [{}] create edge: {}", graph, jsonEdge);
-
-        E.checkArgumentNotNull(jsonEdge.label, "Expect the label of edge");
-        E.checkArgumentNotNull(jsonEdge.source, "Expect source vertex id");
-        E.checkArgumentNotNull(jsonEdge.target, "Expect target vertex id");
-
-        E.checkArgument(jsonEdge.sourceLabel == null &&
-                        jsonEdge.targetLabel == null ||
-                        jsonEdge.sourceLabel != null &&
-                        jsonEdge.targetLabel != null,
-                        "The both source and target vertex label " +
-                        "are either passed in, or not passed in");
+        checkBody(jsonEdge);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -114,9 +102,8 @@ public class EdgeAPI extends API {
                                    jsonEdge.targetLabel);
         }
 
-
-        Vertex srcVertex = getVertex(g, jsonEdge.source, jsonEdge.sourceLabel);
-        Vertex tgtVertex = getVertex(g, jsonEdge.target, jsonEdge.targetLabel);
+        Vertex srcVertex = getVertex(g, jsonEdge.source, null);
+        Vertex tgtVertex = getVertex(g, jsonEdge.target, null);
         Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex,
                                       jsonEdge.properties());
 
@@ -134,37 +121,22 @@ public class EdgeAPI extends API {
             @PathParam("graph") String graph,
             @QueryParam("checkVertex") @DefaultValue("true") boolean checkV,
             List<JsonEdge> jsonEdges) {
-        E.checkArgumentNotNull(jsonEdges, "The request body can't be empty");
+        LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
+        checkBody(jsonEdges);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
+        checkBatchCount(g, jsonEdges);
 
         TriFunction<HugeGraph, String, String, Vertex> getVertex =
                     checkV ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
-        final int maxEdges = g.configuration()
-                              .get(ServerOptions.MAX_EDGES_PER_BATCH);
-        if (jsonEdges.size() > maxEdges) {
-            throw new HugeException(
-                      "Too many counts of edges for one time post, " +
-                      "the maximum number is '%s'", maxEdges);
-        }
-
-        LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
-
         List<String> ids = new ArrayList<>(jsonEdges.size());
 
-        g.tx().open();
+        if (!g.tx().isOpen()) {
+            g.tx().open();
+        }
         try {
             for (JsonEdge edge : jsonEdges) {
-                E.checkArgumentNotNull(edge.label, "Expect the label of edge");
-                E.checkArgumentNotNull(edge.source,
-                                       "Expect source vertex id");
-                E.checkArgumentNotNull(edge.sourceLabel,
-                                       "Expect source vertex label");
-                E.checkArgumentNotNull(edge.target,
-                                       "Expect target vertex id");
-                E.checkArgumentNotNull(edge.targetLabel,
-                                       "Expect target vertex label");
                 /*
                  * NOTE: If the query param 'checkVertex' is false,
                  * then the label is correct and not matched id,
@@ -190,7 +162,9 @@ public class EdgeAPI extends API {
             }
             throw new HugeException("Failed to add edges", e1);
         } finally {
-            g.tx().close();
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
         }
         return ids;
     }
@@ -204,9 +178,8 @@ public class EdgeAPI extends API {
                          @PathParam("id") String id,
                          @QueryParam("action") String action,
                          JsonEdge jsonEdge) {
-        E.checkArgumentNotNull(jsonEdge, "The request body can't be empty");
-
         LOG.debug("Graph [{}] update edge: {}", graph, jsonEdge);
+        checkBody(jsonEdge);
 
         if (jsonEdge.id != null) {
             E.checkArgument(id.equals(jsonEdge.id),
@@ -214,15 +187,8 @@ public class EdgeAPI extends API {
                             "request body('%s')", id, jsonEdge.id);
         }
 
-        boolean removingProperty;
-        if (action.equals(ACTION_ELIMINATE)) {
-            removingProperty = true;
-        } else if (action.equals(ACTION_APPEND)) {
-            removingProperty = false;
-        } else {
-            throw new NotSupportException("action '%s' for edge '%s'",
-                                          action, id);
-        }
+        // Parse action param
+        boolean append = checkAndParseAction(action);
 
         Graph g = graph(manager, graph);
         HugeEdge edge = (HugeEdge) g.edges(id).next();
@@ -233,15 +199,14 @@ public class EdgeAPI extends API {
                             "Can't update property for edge '%s' because " +
                             "there is no property key '%s' in its edge label",
                             id, key);
-
-            if (removingProperty) {
-                edge.property(key).remove();
-            } else {
+            if (append) {
                 Object value = jsonEdge.properties.get(key);
                 E.checkArgumentNotNull(value, "Not allowed to set value of " +
                                        "property '%s' to null for edge '%s'",
                                        key, id);
                 edge.property(key, value);
+            } else {
+                edge.property(key).remove();
             }
         }
 
@@ -318,6 +283,15 @@ public class EdgeAPI extends API {
         g.edges(id).next().remove();
     }
 
+    private static void checkBatchCount(HugeGraph g, List<JsonEdge> jsonEdges) {
+        int max = g.configuration().get(ServerOptions.MAX_EDGES_PER_BATCH);
+        if (jsonEdges.size() > max) {
+            throw new IllegalArgumentException(String.format(
+                      "Too many counts of edges for one time post, " +
+                      "the maximum number is '%s'", max));
+        }
+    }
+
     private static Vertex getVertex(HugeGraph graph, String id, String label) {
         try {
             return graph.traversal().V(id).next();
@@ -349,7 +323,7 @@ public class EdgeAPI extends API {
     }
 
     @JsonIgnoreProperties(value = {"type"})
-    private static class JsonEdge {
+    private static class JsonEdge implements Checkable {
 
         @JsonProperty("id")
         public String id;
@@ -368,9 +342,29 @@ public class EdgeAPI extends API {
         @JsonProperty("type")
         public String type;
 
-        public Object[] properties() {
+        @Override
+        public void check(boolean isBatch) {
+            E.checkArgumentNotNull(this.label, "Expect the label of edge");
+            E.checkArgumentNotNull(this.source, "Expect source vertex id");
+            E.checkArgumentNotNull(this.target, "Expect target vertex id");
+            if (isBatch) {
+                E.checkArgumentNotNull(this.sourceLabel,
+                                       "Expect source vertex label");
+                E.checkArgumentNotNull(this.targetLabel,
+                                       "Expect target vertex label");
+            } else {
+                E.checkArgument(this.sourceLabel == null &&
+                                this.targetLabel == null ||
+                                this.sourceLabel != null &&
+                                this.targetLabel != null,
+                                "The both source and target vertex label " +
+                                "are either passed in, or not passed in");
+            }
             E.checkArgumentNotNull(this.properties,
                                    "The properties of edge can't be null");
+        }
+
+        public Object[] properties() {
             return API.properties(this.properties);
         }
 

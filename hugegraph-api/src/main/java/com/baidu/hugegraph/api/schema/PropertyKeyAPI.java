@@ -57,11 +57,9 @@ public class PropertyKeyAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonPropertyKey jsonPropertyKey) {
-        E.checkArgumentNotNull(jsonPropertyKey,
-                               "The request body can't be empty");
-
         LOG.debug("Graph [{}] create property key: {}",
                   graph, jsonPropertyKey);
+        checkBody(jsonPropertyKey);
 
         HugeGraph g = (HugeGraph) graph(manager, graph);
 
@@ -113,7 +111,7 @@ public class PropertyKeyAPI extends API {
     /**
      * JsonPropertyKey is only used to receive create and append requests
      */
-    private static class JsonPropertyKey {
+    private static class JsonPropertyKey implements Checkable {
 
         @JsonProperty("name")
         public String name;
@@ -126,7 +124,8 @@ public class PropertyKeyAPI extends API {
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
-        private PropertyKey convert2PropertyKey() {
+        @Override
+        public void check(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
                                    "The name of property key can't be null");
             E.checkArgument(this.properties == null ||
@@ -134,6 +133,9 @@ public class PropertyKeyAPI extends API {
                             "Not allowed to pass properties when " +
                             "creating property key since it doesn't " +
                             "support meta properties currently");
+        }
+
+        private PropertyKey convert2PropertyKey() {
             PropertyKey propertyKey = new PropertyKey(this.name);
             // Weather it can be replacee by java 8 function or consumer
             if (this.cardinality != null) {
