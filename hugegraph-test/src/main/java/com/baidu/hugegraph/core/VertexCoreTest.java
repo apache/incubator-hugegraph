@@ -1701,6 +1701,286 @@ public class VertexCoreTest extends BaseCoreTest {
         });
     }
 
+    // Insert -> {Insert, Delete, Append, Eliminate}
+    @Test
+    public void testInsertAndInsertVertex() {
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "Tom", "lived", "Beijing");
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "Tom", "lived", "Shanghai");
+        graph.tx().commit();
+
+        Vertex vertex = vertex("author", "id", 1);
+        Assert.assertEquals("Shanghai", vertex.property("lived").value());
+    }
+
+    @Test
+    public void testInsertAndDeleteVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.remove();
+        graph.tx().commit();
+
+        Assert.assertNull(vertex("author", "id", 1));
+    }
+
+    @Test
+    public void testInsertAndAppendVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived", "Shanghai");
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertEquals("Shanghai", vertex.property("lived").value());
+    }
+
+    @Test
+    public void testInsertAndEliminateVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived").remove();
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertFalse(vertex.property("lived").isPresent());
+    }
+
+    // Delete -> {Insert, Delete, Append, Eliminate}
+    @Test
+    public void testDeleteAndInsertVertex() {
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "Tom", "lived", "Beijing");
+
+        graph.traversal().V().hasLabel("author").has("id", 1).next().remove();
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "Tom", "lived", "Shanghai");
+        graph.tx().commit();
+
+        Vertex vertex = vertex("author", "id", 1);
+        Assert.assertTrue(vertex.property("lived").isPresent());
+        Assert.assertEquals("Shanghai", vertex.property("lived").value());
+    }
+
+    @Test
+    public void testDeleteAndDeleteVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.remove();
+        vertex.remove();
+        graph.tx().commit();
+
+        Assert.assertNull(vertex("author", "id", 1));
+    }
+
+    @Test
+    public void testDeleteAndAppendVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.remove();
+        vertex.property("lived", "Shanghai");
+        graph.tx().commit();
+
+        Assert.assertNull(vertex("author", "id", 1));
+    }
+
+    @Test
+    public void testDeleteAndEliminateVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.remove();
+        vertex.property("lived").remove();
+        graph.tx().commit();
+
+        Assert.assertNull(vertex("author", "id", 1));
+    }
+
+    // Append -> {Insert, Delete, Append, Eliminate}
+    @Test
+    public void testAppendAndInsertVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived", "Wuhan");
+        graph.addVertex(T.label, "author", "id", 1, "name", "Tom",
+                        "lived", "Shanghai");
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertTrue(vertex.property("lived").isPresent());
+        Assert.assertEquals("Shanghai", vertex.property("lived").value());
+    }
+
+    @Test
+    public void testAppendAndDeleteVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived", "Wuhan");
+        vertex.remove();
+        graph.tx().commit();
+
+        Assert.assertNull(vertex("author", "id", 1));
+    }
+
+    @Test
+    public void testAppendAndAppendSameVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived", "Wuhan");
+        vertex.property("lived", "Shanghai");
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertEquals("Shanghai", vertex.property("lived").value());
+    }
+
+    @Test
+    public void testAppendAndAppendDifferentVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("name", "Tomcat");
+        vertex.property("lived", "Shanghai");
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertEquals("Tomcat", vertex.property("name").value());
+        Assert.assertEquals("Shanghai", vertex.property("lived").value());
+    }
+
+    @Test
+    public void testAppendAndEliminateSameVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived", "Shanghai");
+        vertex.property("lived").remove();
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertFalse(vertex.property("lived").isPresent());
+    }
+
+    @Test
+    public void testAppendAndEliminateDifferentVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("name", "Tomcat");
+        vertex.property("lived").remove();
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertFalse(vertex.property("lived").isPresent());
+        Assert.assertEquals("Tomcat", vertex.property("name").value());
+    }
+
+    // Eliminate -> {Insert, Delete, Append, Eliminate}
+    @Test
+    public void testEliminateAndInsertVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived").remove();
+        graph.addVertex(T.label, "author", "id", 1, "name", "Tom",
+                        "lived", "Shanghai");
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertTrue(vertex.property("lived").isPresent());
+        Assert.assertEquals("Shanghai", vertex.property("lived").value());
+    }
+
+    @Test
+    public void testEliminateAndDeleteVertex() {
+        HugeGraph graph = graph();
+
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived").remove();
+        vertex.remove();
+        graph.tx().commit();
+
+        Assert.assertNull(vertex("author", "id", 1));
+    }
+
+    @Test
+    public void testEliminateAndAppendSameVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived").remove();
+        vertex.property("lived", "Shanghai");
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertTrue(vertex.property("lived").isPresent());
+        Assert.assertEquals("Shanghai", vertex.property("lived").value());
+    }
+
+    @Test
+    public void testEliminateAndAppendDifferentVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+
+        vertex.property("lived").remove();
+        vertex.property("name", "Tomcat");
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertFalse(vertex.property("lived").isPresent());
+        Assert.assertEquals("Tomcat", vertex.property("name").value());
+    }
+
+    @Test
+    public void testEliminateAndEliminateSameVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("lived").remove();
+        vertex.property("lived").remove();
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertFalse(vertex.property("lived").isPresent());
+    }
+
+    @Test
+    public void testEliminateAndEliminateDifferentVertexProperty() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1, "age", 18,
+                                        "name", "Tom", "lived", "Beijing");
+        vertex.property("age").remove();
+        vertex.property("lived").remove();
+        graph.tx().commit();
+
+        vertex = vertex("author", "id", 1);
+        Assert.assertFalse(vertex.property("age").isPresent());
+        Assert.assertFalse(vertex.property("lived").isPresent());
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testScanVertex() {
@@ -1954,8 +2234,8 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertexes = graph().traversal().V()
                                 .hasLabel(label).has(pkName, pkValue)
                                 .toList();
-        Assert.assertEquals(1, vertexes.size());
-        return vertexes.get(0);
+        Assert.assertTrue(vertexes.size() <= 1);
+        return vertexes.size() == 1 ? vertexes.get(0) : null;
     }
 
     private static void assertContains(List<Vertex> vertices,
