@@ -22,7 +22,7 @@ package com.baidu.hugegraph.type.define;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.util.E;
 
-public enum IdStrategy {
+public enum IdStrategy implements SerialEnum {
 
     DEFAULT(0, "default"),
 
@@ -35,12 +35,17 @@ public enum IdStrategy {
     private byte code = 0;
     private String name = null;
 
-    private IdStrategy(int code, String name) {
+    static {
+        SerialEnum.register(IdStrategy.class);
+    }
+
+    IdStrategy(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
     }
 
+    @Override
     public byte code() {
         return this.code;
     }
@@ -62,25 +67,5 @@ public enum IdStrategy {
                             "is '%s' for vertex label '%s'",
                             this, name);
         }
-    }
-
-    public String schema() {
-        String schema;
-        switch (this) {
-            case AUTOMATIC:
-                schema = "useAutomaticId()";
-                break;
-            case CUSTOMIZE:
-                schema = "useCustomizeId()";
-                break;
-            case PRIMARY_KEY:
-                schema = "usePrimaryKeyId()";
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown id strategy '%s'", this));
-
-        }
-        return String.format(".%s()", schema);
     }
 }

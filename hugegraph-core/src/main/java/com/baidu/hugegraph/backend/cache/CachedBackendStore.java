@@ -102,6 +102,11 @@ public class CachedBackendStore implements BackendStore {
     }
 
     @Override
+    public Id nextId(HugeType type) {
+        return this.store.nextId(type);
+    }
+
+    @Override
     public void mutate(BackendMutation mutation) {
         // TODO: invalid cache, or set expire time at least
         this.store.mutate(mutation);
@@ -157,6 +162,12 @@ public class CachedBackendStore implements BackendStore {
         public int compareTo(Id o) {
             // TODO: improve
             return this.hashCode() - o.hashCode();
+        }
+
+        @Override
+        public Object asObject() {
+            // TODO: improve
+            return null;
         }
 
         @Override

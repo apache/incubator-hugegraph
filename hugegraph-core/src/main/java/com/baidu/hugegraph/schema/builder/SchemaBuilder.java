@@ -21,13 +21,19 @@ package com.baidu.hugegraph.schema.builder;
 
 import com.baidu.hugegraph.schema.SchemaElement;
 
-public interface SchemaBuilder {
+public interface SchemaBuilder<T extends SchemaElement> {
 
-    SchemaElement create();
+    public T build();
 
-    SchemaElement append();
+    public T create();
 
-    SchemaElement eliminate();
+    public T append();
 
-    void remove();
+    public T eliminate();
+
+    public void remove();
+
+    public SchemaBuilder<T> ifNotExist();
+
+    public SchemaBuilder<T> checkExist(boolean checkExist);
 }

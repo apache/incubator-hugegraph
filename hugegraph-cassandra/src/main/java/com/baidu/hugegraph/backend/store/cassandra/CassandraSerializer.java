@@ -20,10 +20,10 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.tinkerpop.gremlin.structure.Direction;
+import java.util.stream.Collectors;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -46,13 +46,15 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
@@ -69,8 +71,7 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     protected CassandraBackendEntry newBackendEntry(SchemaElement e) {
-        Id id = IdGenerator.of(e);
-        return newBackendEntry(e.type(), id);
+        return newBackendEntry(e.type(), e.id());
     }
 
     protected CassandraBackendEntry newBackendEntry(HugeIndex index) {
@@ -78,33 +79,32 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    protected BackendEntry convertEntry(BackendEntry backendEntry) {
+    protected CassandraBackendEntry convertEntry(BackendEntry backendEntry) {
         if (!(backendEntry instanceof CassandraBackendEntry)) {
             throw new BackendException("Not supported by CassandraSerializer");
         }
-        return backendEntry;
+        return (CassandraBackendEntry) backendEntry;
     }
 
-    protected void parseProperty(String colName, String colValue,
-                                 HugeElement owner) {
+    protected void parseProperty(Id key, String colValue, HugeElement owner) {
         // Get PropertyKey by PropertyKey name
-        PropertyKey pkey = owner.graph().propertyKey(colName);
+        PropertyKey pkey = owner.graph().propertyKey(key);
 
         // Parse value
         Object value = JsonUtil.fromJson(colValue, pkey.clazz());
 
         // Set properties of vertex/edge
         if (pkey.cardinality() == Cardinality.SINGLE) {
-            owner.addProperty(pkey.name(), value);
+            owner.addProperty(pkey, value);
         } else {
             if (!(value instanceof Collection)) {
                 throw new BackendException(String.format(
-                          "Invalid value of non-sigle property: %s",
+                          "Invalid value of non-single property: %s",
                           colValue));
             }
             for (Object v : (Collection<?>) value) {
                 v = JsonUtil.castNumber(v, pkey.dataType().clazz());
-                owner.addProperty(pkey.name(), v);
+                owner.addProperty(pkey, v);
             }
         }
     }
@@ -114,8 +114,8 @@ public class CassandraSerializer extends AbstractSerializer {
                                         HugeType.EDGE, edge.idWithDirection());
         // sourceVertex + direction + edge-label + sortValues + targetVertex
         row.column(HugeKeys.OWNER_VERTEX, edge.ownerVertex().id().asString());
-        row.column(HugeKeys.DIRECTION, edge.direction().name());
-        row.column(HugeKeys.LABEL, edge.label());
+        row.column(HugeKeys.DIRECTION, edge.direction().code());
+        row.column(HugeKeys.LABEL, edge.schemaLabel().id().asLong());
         row.column(HugeKeys.SORT_VALUES, edge.name());
         row.column(HugeKeys.OTHER_VERTEX, edge.otherVertex().id().asString());
 
@@ -124,7 +124,8 @@ public class CassandraSerializer extends AbstractSerializer {
         } else {
             // Format edge properties
             for (HugeProperty<?> prop : edge.getProperties().values()) {
-                row.column(HugeKeys.PROPERTIES, prop.key(),
+                row.column(HugeKeys.PROPERTIES,
+                           prop.propertyKey().id().asLong(),
                            JsonUtil.toJson(prop.value()));
             }
         }
@@ -140,31 +141,31 @@ public class CassandraSerializer extends AbstractSerializer {
      */
     protected HugeEdge parseEdge(CassandraBackendEntry.Row row,
                                  HugeVertex vertex, HugeGraph graph) {
-        String sourceVertexId = row.column(HugeKeys.OWNER_VERTEX);
-        Direction direction = Direction.valueOf(
-                              row.column(HugeKeys.DIRECTION));
-        String labelName = row.column(HugeKeys.LABEL);
+        String ownerVertexId = row.column(HugeKeys.OWNER_VERTEX);
+        Byte dir = row.column(HugeKeys.DIRECTION);
+        Directions direction = SerialEnum.fromCode(Directions.class, dir);
+        Number label = row.column(HugeKeys.LABEL);
         String sortValues = row.column(HugeKeys.SORT_VALUES);
-        String targetVertexId = row.column(HugeKeys.OTHER_VERTEX);
+        String otherVertexId = row.column(HugeKeys.OTHER_VERTEX);
 
         if (vertex == null) {
-            Id id = IdGenerator.of(sourceVertexId);
-            vertex = new HugeVertex(graph, id, null);
+            Id ownerId = IdGenerator.of(ownerVertexId);
+            vertex = new HugeVertex(graph, ownerId, null);
         }
 
-        EdgeLabel edgeLabel = graph.edgeLabel(labelName);
+        EdgeLabel edgeLabel = graph.edgeLabel(toId(label));
         VertexLabel srcLabel = graph.vertexLabel(edgeLabel.sourceLabel());
         VertexLabel tgtLabel = graph.vertexLabel(edgeLabel.targetLabel());
 
-        Id vertexId = IdGenerator.of(targetVertexId);
-        boolean isOutEdge = direction == Direction.OUT;
+        Id otherId = IdGenerator.of(otherVertexId);
+        boolean isOutEdge = direction == Directions.OUT;
         HugeVertex otherVertex;
         if (isOutEdge) {
             vertex.vertexLabel(srcLabel);
-            otherVertex = new HugeVertex(graph, vertexId, tgtLabel);
+            otherVertex = new HugeVertex(graph, otherId, tgtLabel);
         } else {
             vertex.vertexLabel(tgtLabel);
-            otherVertex = new HugeVertex(graph, vertexId, srcLabel);
+            otherVertex = new HugeVertex(graph, otherId, srcLabel);
         }
 
         HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
@@ -185,9 +186,10 @@ public class CassandraSerializer extends AbstractSerializer {
         otherVertex.propNotLoaded();
 
         // Parse edge properties
-        Map<String, String> props = row.column(HugeKeys.PROPERTIES);
-        for (Map.Entry<String, String> prop : props.entrySet()) {
-            this.parseProperty(prop.getKey(), prop.getValue(), edge);
+        Map<Number, String> props = row.column(HugeKeys.PROPERTIES);
+        for (Map.Entry<Number, String> prop : props.entrySet()) {
+            Id pkeyId = toId(prop.getKey());
+            this.parseProperty(pkeyId, prop.getValue(), edge);
         }
 
         edge.name(sortValues);
@@ -201,11 +203,11 @@ public class CassandraSerializer extends AbstractSerializer {
         CassandraBackendEntry entry = newBackendEntry(vertex);
 
         entry.column(HugeKeys.ID, vertex.id().asString());
-        entry.column(HugeKeys.LABEL, vertex.label());
+        entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
 
         // Add all properties of a Vertex
         for (HugeProperty<?> prop : vertex.getProperties().values()) {
-            entry.column(HugeKeys.PROPERTIES, prop.key(),
+            entry.column(HugeKeys.PROPERTIES, prop.propertyKey().id().asLong(),
                          JsonUtil.toJson(prop.value()));
         }
 
@@ -218,8 +220,8 @@ public class CassandraSerializer extends AbstractSerializer {
         CassandraBackendEntry entry = newBackendEntry(vertex);
         entry.subId(IdGenerator.of(prop.key()));
         entry.column(HugeKeys.ID, vertex.id().asString());
-        entry.column(HugeKeys.LABEL, vertex.label());
-        entry.column(HugeKeys.PROPERTIES, prop.key(),
+        entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
+        entry.column(HugeKeys.PROPERTIES, prop.propertyKey().id().asLong(),
                      JsonUtil.toJson(prop.value()));
         return entry;
     }
@@ -230,23 +232,23 @@ public class CassandraSerializer extends AbstractSerializer {
         if (backendEntry == null) {
             return null;
         }
-        backendEntry = this.convertEntry(backendEntry);
-        assert backendEntry instanceof CassandraBackendEntry;
-        CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
+
+        CassandraBackendEntry entry = this.convertEntry(backendEntry);
 
         Id id = IdGenerator.of(entry.<String>column(HugeKeys.ID));
-        String labelName = entry.column(HugeKeys.LABEL);
+        Number label = entry.column(HugeKeys.LABEL);
 
-        VertexLabel label = null;
-        if (labelName != null) {
-            label = graph.vertexLabel(labelName);
+        VertexLabel vertexLabel = null;
+        if (label != null) {
+            vertexLabel = graph.vertexLabel(toId(label));
         }
-        HugeVertex vertex = new HugeVertex(graph, id, label);
+        HugeVertex vertex = new HugeVertex(graph, id, vertexLabel);
 
         // Parse all properties of a Vertex
-        Map<String, String> props = entry.column(HugeKeys.PROPERTIES);
-        for (Map.Entry<String, String> prop : props.entrySet()) {
-            this.parseProperty(prop.getKey(), prop.getValue(), vertex);
+        Map<Number, String> props = entry.column(HugeKeys.PROPERTIES);
+        for (Map.Entry<Number, String> prop : props.entrySet()) {
+            Id pkeyId = toId(prop.getKey());
+            this.parseProperty(pkeyId, prop.getValue(), vertex);
         }
 
         // Parse all edges of a Vertex
@@ -268,12 +270,12 @@ public class CassandraSerializer extends AbstractSerializer {
                                         HugeType.EDGE, edge.idWithDirection());
         // sourceVertex + direction + edge-label + sortValues + targetVertex
         row.column(HugeKeys.OWNER_VERTEX, edge.ownerVertex().id().asString());
-        row.column(HugeKeys.DIRECTION, edge.direction().name());
-        row.column(HugeKeys.LABEL, edge.label());
+        row.column(HugeKeys.DIRECTION, edge.direction().code());
+        row.column(HugeKeys.LABEL, edge.schemaLabel().id().asLong());
         row.column(HugeKeys.SORT_VALUES, edge.name());
         row.column(HugeKeys.OTHER_VERTEX, edge.otherVertex().id().asString());
         // Format edge property
-        row.column(HugeKeys.PROPERTIES, prop.key(),
+        row.column(HugeKeys.PROPERTIES, prop.propertyKey().id().asLong(),
                    JsonUtil.toJson(prop.value()));
 
         CassandraBackendEntry entry = new CassandraBackendEntry(row);
@@ -287,9 +289,8 @@ public class CassandraSerializer extends AbstractSerializer {
         if (backendEntry == null) {
             return null;
         }
-        backendEntry = this.convertEntry(backendEntry);
-        assert backendEntry instanceof CassandraBackendEntry;
-        CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
+
+        CassandraBackendEntry entry = this.convertEntry(backendEntry);
 
         return this.parseEdge(entry.row(), null, graph);
     }
@@ -302,10 +303,10 @@ public class CassandraSerializer extends AbstractSerializer {
          * meaningful for deletion of index data in secondary/search index.
          */
         if (index.fieldValues() == null && index.elementIds().size() == 0) {
-            entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
+            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().asLong());
         } else {
             entry.column(HugeKeys.FIELD_VALUES, index.fieldValues());
-            entry.column(HugeKeys.INDEX_LABEL_NAME, index.indexLabelName());
+            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().asLong());
             entry.column(HugeKeys.ELEMENT_IDS, index.elementId().asString());
             entry.subId(index.elementId());
         }
@@ -319,23 +320,19 @@ public class CassandraSerializer extends AbstractSerializer {
             return null;
         }
 
-        backendEntry = convertEntry(backendEntry);
-        assert backendEntry instanceof CassandraBackendEntry;
-        CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
+        CassandraBackendEntry entry = this.convertEntry(backendEntry);
 
         Object indexValues = entry.column(HugeKeys.FIELD_VALUES);
-        String indexLabelName = entry.column(HugeKeys.INDEX_LABEL_NAME);
+        Number indexLabelId = entry.column(HugeKeys.INDEX_LABEL_ID);
         Set<String> elementIds = entry.column(HugeKeys.ELEMENT_IDS);
 
-        IndexLabel indexLabel = graph.indexLabel(indexLabelName);
-
+        IndexLabel indexLabel = graph.indexLabel(toId(indexLabelId));
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(indexValues);
 
         for (String id : elementIds) {
             index.elementIds(IdGenerator.of(id));
         }
-
         return index;
     }
 
@@ -371,58 +368,45 @@ public class CassandraSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
         CassandraBackendEntry entry = newBackendEntry(vertexLabel);
+        entry.column(HugeKeys.ID, vertexLabel.id().asLong());
         entry.column(HugeKeys.NAME, vertexLabel.name());
-        entry.column(HugeKeys.ID_STRATEGY,
-                     JsonUtil.toJson(vertexLabel.idStrategy()));
+        entry.column(HugeKeys.ID_STRATEGY, vertexLabel.idStrategy().code());
         entry.column(HugeKeys.PRIMARY_KEYS,
-                     JsonUtil.toJson(vertexLabel.primaryKeys().toArray()));
+                     toLongList(vertexLabel.primaryKeys()));
         entry.column(HugeKeys.NULLABLE_KEYS,
-                     JsonUtil.toJson(vertexLabel.nullableKeys().toArray()));
-        entry.column(HugeKeys.INDEX_NAMES,
-                     JsonUtil.toJson(vertexLabel.indexNames().toArray()));
-        writeProperties(vertexLabel, entry);
+                     toLongSet(vertexLabel.nullableKeys()));
+        entry.column(HugeKeys.INDEX_LABELS,
+                     toLongSet(vertexLabel.indexLabels()));
+        entry.column(HugeKeys.PROPERTIES, toLongSet(vertexLabel.properties()));
         return entry;
     }
 
     @Override
     public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel) {
         CassandraBackendEntry entry = newBackendEntry(edgeLabel);
+        entry.column(HugeKeys.ID, edgeLabel.id().asLong());
         entry.column(HugeKeys.NAME, edgeLabel.name());
-        entry.column(HugeKeys.SOURCE_LABEL, edgeLabel.sourceLabel());
-        entry.column(HugeKeys.TARGET_LABEL, edgeLabel.targetLabel());
-        entry.column(HugeKeys.FREQUENCY,
-                     JsonUtil.toJson(edgeLabel.frequency()));
-        entry.column(HugeKeys.SORT_KEYS,
-                     JsonUtil.toJson(edgeLabel.sortKeys().toArray()));
+        entry.column(HugeKeys.FREQUENCY, edgeLabel.frequency().code());
+        entry.column(HugeKeys.SOURCE_LABEL, edgeLabel.sourceLabel().asLong());
+        entry.column(HugeKeys.TARGET_LABEL, edgeLabel.targetLabel().asLong());
+        entry.column(HugeKeys.SORT_KEYS, toLongList(edgeLabel.sortKeys()));
         entry.column(HugeKeys.NULLABLE_KEYS,
-                     JsonUtil.toJson(edgeLabel.nullableKeys().toArray()));
-        entry.column(HugeKeys.INDEX_NAMES,
-                     JsonUtil.toJson(edgeLabel.indexNames().toArray()));
-        writeProperties(edgeLabel, entry);
+                     toLongSet(edgeLabel.nullableKeys()));
+        entry.column(HugeKeys.INDEX_LABELS,
+                     toLongSet(edgeLabel.indexLabels()));
+        entry.column(HugeKeys.PROPERTIES, toLongSet(edgeLabel.properties()));
         return entry;
     }
 
     @Override
     public BackendEntry writePropertyKey(PropertyKey propertyKey) {
         CassandraBackendEntry entry = newBackendEntry(propertyKey);
+        entry.column(HugeKeys.ID, propertyKey.id().asLong());
         entry.column(HugeKeys.NAME, propertyKey.name());
-        entry.column(HugeKeys.DATA_TYPE,
-                     JsonUtil.toJson(propertyKey.dataType()));
-        entry.column(HugeKeys.CARDINALITY,
-                     JsonUtil.toJson(propertyKey.cardinality()));
-        writeProperties(propertyKey, entry);
+        entry.column(HugeKeys.DATA_TYPE, propertyKey.dataType().code());
+        entry.column(HugeKeys.CARDINALITY, propertyKey.cardinality().code());
+        entry.column(HugeKeys.PROPERTIES, toLongSet(propertyKey.properties()));
         return entry;
-    }
-
-    private static void writeProperties(SchemaElement schemaElement,
-                                        CassandraBackendEntry entry) {
-        Set<String> properties = schemaElement.properties();
-        if (properties == null) {
-            entry.column(HugeKeys.PROPERTIES, "[]");
-        } else {
-            entry.column(HugeKeys.PROPERTIES,
-                         JsonUtil.toJson(properties.toArray()));
-        }
     }
 
     @Override
@@ -431,25 +415,23 @@ public class CassandraSerializer extends AbstractSerializer {
             return null;
         }
 
-        backendEntry = convertEntry(backendEntry);
-        assert backendEntry instanceof CassandraBackendEntry;
+        CassandraBackendEntry entry = this.convertEntry(backendEntry);
 
-        CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
+        Number id = entry.column(HugeKeys.ID);
         String name = entry.column(HugeKeys.NAME);
-        String idStrategy = entry.column(HugeKeys.ID_STRATEGY);
-        String properties = entry.column(HugeKeys.PROPERTIES);
-        String primarykeys = entry.column(HugeKeys.PRIMARY_KEYS);
-        String nullablekeys = entry.column(HugeKeys.NULLABLE_KEYS);
-        String indexNames = entry.column(HugeKeys.INDEX_NAMES);
+        Byte idStrategy = entry.column(HugeKeys.ID_STRATEGY);
+        Set<Number> properties = entry.column(HugeKeys.PROPERTIES);
+        List<Number> primaryKeys = entry.column(HugeKeys.PRIMARY_KEYS);
+        Set<Number> nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
+        Set<Number> indexLabels = entry.column(HugeKeys.INDEX_LABELS);
 
-        VertexLabel vertexLabel = new VertexLabel(name);
-        vertexLabel.idStrategy(JsonUtil.fromJson(idStrategy, IdStrategy.class));
-        vertexLabel.properties(JsonUtil.fromJson(properties, String[].class));
-        vertexLabel.primaryKeys(JsonUtil.fromJson(primarykeys, String[].class));
-        vertexLabel.nullableKeys(JsonUtil.fromJson(nullablekeys,
-                                                   String[].class));
-        vertexLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
-
+        VertexLabel vertexLabel = new VertexLabel(toId(id), name);
+        vertexLabel.idStrategy(SerialEnum.fromCode(IdStrategy.class,
+                                                   idStrategy));
+        vertexLabel.properties(toIdArray(properties));
+        vertexLabel.primaryKeys(toIdArray(primaryKeys));
+        vertexLabel.nullableKeys(toIdArray(nullableKeys));
+        vertexLabel.indexLabels(toIdArray(indexLabels));
         return vertexLabel;
     }
 
@@ -459,27 +441,26 @@ public class CassandraSerializer extends AbstractSerializer {
             return null;
         }
 
-        backendEntry = convertEntry(backendEntry);
-        assert backendEntry instanceof CassandraBackendEntry;
+        CassandraBackendEntry entry = this.convertEntry(backendEntry);
 
-        CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
+        Number id = entry.column(HugeKeys.ID);
         String name = entry.column(HugeKeys.NAME);
-        String sourceLabel = entry.column(HugeKeys.SOURCE_LABEL);
-        String targetLabel = entry.column(HugeKeys.TARGET_LABEL);
-        String frequency = entry.column(HugeKeys.FREQUENCY);
-        String sortKeys = entry.column(HugeKeys.SORT_KEYS);
-        String nullablekeys = entry.column(HugeKeys.NULLABLE_KEYS);
-        String properties = entry.column(HugeKeys.PROPERTIES);
-        String indexNames = entry.column(HugeKeys.INDEX_NAMES);
+        Byte frequency = entry.column(HugeKeys.FREQUENCY);
+        Number sourceLabel = entry.column(HugeKeys.SOURCE_LABEL);
+        Number targetLabel = entry.column(HugeKeys.TARGET_LABEL);
+        List<Number> sortKeys = entry.column(HugeKeys.SORT_KEYS);
+        Set<Number> nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
+        Set<Number> properties = entry.column(HugeKeys.PROPERTIES);
+        Set<Number> indexLabels = entry.column(HugeKeys.INDEX_LABELS);
 
-        EdgeLabel edgeLabel = new EdgeLabel(name);
-        edgeLabel.sourceLabel(sourceLabel);
-        edgeLabel.targetLabel(targetLabel);
-        edgeLabel.frequency(JsonUtil.fromJson(frequency, Frequency.class));
-        edgeLabel.properties(JsonUtil.fromJson(properties, String[].class));
-        edgeLabel.sortKeys(JsonUtil.fromJson(sortKeys, String[].class));
-        edgeLabel.nullableKeys(JsonUtil.fromJson(nullablekeys, String[].class));
-        edgeLabel.indexNames(JsonUtil.fromJson(indexNames, String[].class));
+        EdgeLabel edgeLabel = new EdgeLabel(toId(id), name);
+        edgeLabel.frequency(SerialEnum.fromCode(Frequency.class, frequency));
+        edgeLabel.sourceLabel(toId(sourceLabel));
+        edgeLabel.targetLabel(toId(targetLabel));
+        edgeLabel.properties(toIdArray(properties));
+        edgeLabel.sortKeys(toIdArray(sortKeys));
+        edgeLabel.nullableKeys(toIdArray(nullableKeys));
+        edgeLabel.indexLabels(toIdArray(indexLabels));
         return edgeLabel;
     }
 
@@ -489,19 +470,19 @@ public class CassandraSerializer extends AbstractSerializer {
             return null;
         }
 
-        backendEntry = convertEntry(backendEntry);
-        assert backendEntry instanceof CassandraBackendEntry;
+        CassandraBackendEntry entry = this.convertEntry(backendEntry);
 
-        CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
+        Number id = entry.column(HugeKeys.ID);
         String name = entry.column(HugeKeys.NAME);
-        String dataType = entry.column(HugeKeys.DATA_TYPE);
-        String cardy = entry.column(HugeKeys.CARDINALITY);
-        String properties = entry.column(HugeKeys.PROPERTIES);
+        Byte dataType = entry.column(HugeKeys.DATA_TYPE);
+        Byte cardinality = entry.column(HugeKeys.CARDINALITY);
+        Set<Number> properties = entry.column(HugeKeys.PROPERTIES);
 
-        PropertyKey propertyKey = new PropertyKey(name);
-        propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
-        propertyKey.cardinality(JsonUtil.fromJson(cardy, Cardinality.class));
-        propertyKey.properties(JsonUtil.fromJson(properties, String[].class));
+        PropertyKey propertyKey = new PropertyKey(toId(id),name);
+        propertyKey.dataType(SerialEnum.fromCode(DataType.class, dataType));
+        propertyKey.cardinality(SerialEnum.fromCode(Cardinality.class,
+                                                    cardinality));
+        propertyKey.properties(toIdArray(properties));
 
         return propertyKey;
     }
@@ -509,14 +490,12 @@ public class CassandraSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeIndexLabel(IndexLabel indexLabel) {
         CassandraBackendEntry entry = newBackendEntry(indexLabel);
+        entry.column(HugeKeys.ID, indexLabel.id().asLong());
         entry.column(HugeKeys.NAME, indexLabel.name());
-        entry.column(HugeKeys.BASE_TYPE,
-                     JsonUtil.toJson(indexLabel.baseType()));
-        entry.column(HugeKeys.BASE_VALUE, indexLabel.baseValue());
-        entry.column(HugeKeys.INDEX_TYPE,
-                     JsonUtil.toJson(indexLabel.indexType()));
-        entry.column(HugeKeys.FIELDS,
-                     JsonUtil.toJson(indexLabel.indexFields().toArray()));
+        entry.column(HugeKeys.BASE_TYPE, indexLabel.baseType().code());
+        entry.column(HugeKeys.BASE_VALUE, indexLabel.baseValue().asLong());
+        entry.column(HugeKeys.INDEX_TYPE, indexLabel.indexType().code());
+        entry.column(HugeKeys.FIELDS, toLongList(indexLabel.indexFields()));
         return entry;
     }
 
@@ -527,21 +506,41 @@ public class CassandraSerializer extends AbstractSerializer {
             return null;
         }
 
-        backendEntry = convertEntry(backendEntry);
-        assert backendEntry instanceof CassandraBackendEntry;
+        CassandraBackendEntry entry = this.convertEntry(backendEntry);
 
-        CassandraBackendEntry entry = (CassandraBackendEntry) backendEntry;
-        String indexName = entry.column(HugeKeys.NAME);
-        HugeType baseType = JsonUtil.fromJson(
-                entry.column(HugeKeys.BASE_TYPE), HugeType.class);
-        String baseValue = entry.column(HugeKeys.BASE_VALUE);
-        String indexType = entry.column(HugeKeys.INDEX_TYPE);
-        String indexFields = entry.column(HugeKeys.FIELDS);
+        Number id = entry.column(HugeKeys.ID);
+        String name = entry.column(HugeKeys.NAME);
+        Byte baseType = entry.column(HugeKeys.BASE_TYPE);
+        Number baseValueId = entry.column(HugeKeys.BASE_VALUE);
+        Byte indexType = entry.column(HugeKeys.INDEX_TYPE);
+        List<Number> indexFields = entry.column(HugeKeys.FIELDS);
 
-        IndexLabel indexLabel = new IndexLabel(indexName, baseType, baseValue);
-        indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
-        indexLabel.indexFields(JsonUtil.fromJson(indexFields, String[].class));
-
+        IndexLabel indexLabel = new IndexLabel(toId(id), name);
+        indexLabel.baseType(SerialEnum.fromCode(HugeType.class, baseType));
+        indexLabel.baseValue(toId(baseValueId));
+        indexLabel.indexType(SerialEnum.fromCode(IndexType.class, indexType));
+        indexLabel.indexFields(toIdArray(indexFields));
         return indexLabel;
+    }
+
+    private static Id toId(Number number) {
+        return IdGenerator.of(number.longValue());
+    }
+
+    private static Id[] toIdArray(Collection<Number> numbers) {
+        Id[] ids = new Id[numbers.size()];
+        int i = 0;
+        for (Number number : numbers) {
+            ids[i++] = toId(number);
+        }
+        return ids;
+    }
+
+    private static Set<Long> toLongSet(Collection<Id> ids) {
+        return ids.stream().map(Id::asLong).collect(Collectors.toSet());
+    }
+
+    private static List<Long> toLongList(Collection<Id> ids) {
+        return ids.stream().map(Id::asLong).collect(Collectors.toList());
     }
 }

@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store;
 
 import java.util.Iterator;
 
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
@@ -57,6 +58,9 @@ public interface BackendStore {
 
     // Backend features
     public BackendFeatures features();
+
+    // Generate an id for a specific type
+    public Id nextId(HugeType type);
 
     static enum TxState {
         BEGIN, COMMITTING, COMMITT_FAIL, ROLLBACKING, ROLLBACK_FAIL, CLEAN

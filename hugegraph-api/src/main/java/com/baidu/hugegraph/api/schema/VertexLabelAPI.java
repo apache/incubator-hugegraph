@@ -62,11 +62,9 @@ public class VertexLabelAPI extends API {
                   graph, jsonVertexLabel);
         checkBody(jsonVertexLabel);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
-
-        VertexLabel vertexLabel = jsonVertexLabel.convert2VertexLabel();
-        vertexLabel = g.schema().vertexLabel(vertexLabel).create();
-
+        HugeGraph g = graph(manager, graph);
+        VertexLabel.Builder builder = jsonVertexLabel.convert2Builder(g);
+        VertexLabel vertexLabel = builder.create();
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
 
@@ -85,13 +83,11 @@ public class VertexLabelAPI extends API {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
-        VertexLabel vertexLabel = jsonVertexLabel.convert2VertexLabel();
-        if (append) {
-            vertexLabel = g.schema().vertexLabel(vertexLabel).append();
-        } else {
-            vertexLabel = g.schema().vertexLabel(vertexLabel).eliminate();
-        }
+        HugeGraph g = graph(manager, graph);
+        VertexLabel.Builder builder = jsonVertexLabel.convert2Builder(g);
+        VertexLabel vertexLabel = append ?
+                                  builder.append() :
+                                  builder.eliminate();
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
 
@@ -101,9 +97,8 @@ public class VertexLabelAPI extends API {
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get vertex labels", graph);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<VertexLabel> labels = g.schema().getVertexLabels();
-
         return manager.serializer(g).writeVertexLabels(labels);
     }
 
@@ -115,7 +110,7 @@ public class VertexLabelAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get vertex label by name '{}'", graph, name);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         VertexLabel vertexLabel = g.schema().getVertexLabel(name);
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
@@ -128,7 +123,7 @@ public class VertexLabelAPI extends API {
                        @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove vertex label by name '{}'", graph, name);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // Just check exists
         g.schema().getVertexLabel(name);
         g.schema().vertexLabel(name).remove();
@@ -158,24 +153,24 @@ public class VertexLabelAPI extends API {
                                    "The name of vertex label can't be null");
         }
 
-        private VertexLabel convert2VertexLabel() {
-            VertexLabel vertexLabel = new VertexLabel(this.name);
+        private VertexLabel.Builder convert2Builder(HugeGraph g) {
+            VertexLabel.Builder builder = g.schema().vertexLabel(this.name);
             if (this.idStrategy != null) {
-                vertexLabel.idStrategy(this.idStrategy);
+                builder.idStrategy(this.idStrategy);
             }
             if (this.primaryKeys != null) {
-                vertexLabel.primaryKeys(this.primaryKeys);
+                builder.primaryKeys(this.primaryKeys);
             }
             if (this.nullableKeys != null) {
-                vertexLabel.nullableKeys(this.nullableKeys);
+                builder.nullableKeys(this.nullableKeys);
             }
             if (this.properties != null) {
-                vertexLabel.properties(this.properties);
+                builder.properties(this.properties);
             }
             if (this.checkExist != null) {
-                vertexLabel.checkExist(this.checkExist);
+                builder.checkExist(this.checkExist);
             }
-            return vertexLabel;
+            return builder;
         }
 
         @Override

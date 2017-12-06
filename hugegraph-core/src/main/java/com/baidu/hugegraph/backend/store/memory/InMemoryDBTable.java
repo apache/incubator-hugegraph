@@ -107,12 +107,12 @@ public class InMemoryDBTable {
             if (query.resultType() == HugeType.EDGE) {
                 // Query edge(in a vertex) by id (or v-id + column-name prefix)
                 // TODO: separate this method into table Edge
-                rs = queryEdgeById(query.ids(), rs);
+                rs = this.queryEdgeById(query.ids(), rs);
                 E.checkState(query.conditions().isEmpty(),
                              "Not support querying edge by %s",
                              query);
             } else {
-                rs = queryById(query.ids(), rs);
+                rs = this.queryById(query.ids(), rs);
             }
         }
 
@@ -120,9 +120,9 @@ public class InMemoryDBTable {
         if (!query.conditions().isEmpty()) {
             if (query.resultType() == HugeType.EDGE) {
                 // TODO: separate this method into table Edge
-                rs = queryEdgeByFilter(query.conditions(), rs);
+                rs = this.queryEdgeByFilter(query.conditions(), rs);
             } else {
-                rs = queryByFilter(query.conditions(), rs);
+                rs = this.queryByFilter(query.conditions(), rs);
             }
         }
 
@@ -225,18 +225,18 @@ public class InMemoryDBTable {
                      conditions);
         Condition cond = conditions.iterator().next();
         E.checkState(cond.isRelation() &&
-                     ((Condition.Relation) cond).serialKey().equals(HugeKeys.LABEL),
+                     ((Condition.Relation) cond).key().equals(HugeKeys.LABEL),
                      "Not support querying edge by %s",
                      conditions);
-        String label = (String) ((Condition.Relation) cond).serialValue();
+        Id label = (Id) ((Condition.Relation) cond).serialValue();
 
         Map<Id, BackendEntry> rs = new HashMap<>();
 
         for (BackendEntry value : entries.values()) {
             // TODO: Compatible with BackendEntry
             TextBackendEntry entry = (TextBackendEntry) value;
-            String out = HugeType.EDGE_OUT + "\u0001" + label;
-            String in = HugeType.EDGE_IN + "\u0001" + label;
+            String out = HugeType.EDGE_OUT.string() + "\u0001" + label;
+            String in = HugeType.EDGE_IN.string() + "\u0001" + label;
             if (entry.containsPrefix(out)) {
                 BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
                                                           entry.id());

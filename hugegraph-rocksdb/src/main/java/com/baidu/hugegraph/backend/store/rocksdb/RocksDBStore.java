@@ -30,6 +30,7 @@ import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -42,7 +43,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public class RocksDBStore implements BackendStore {
+public abstract class RocksDBStore implements BackendStore {
 
     private static final Logger LOG = Log.logger(RocksDBStore.class);
 
@@ -82,7 +83,7 @@ public class RocksDBStore implements BackendStore {
         return table;
     }
 
-    protected final List<String> tableNames() {
+    protected List<String> tableNames() {
         return this.tables.values().stream().map(t -> t.table())
                                             .collect(Collectors.toList());
     }
@@ -275,9 +276,13 @@ public class RocksDBStore implements BackendStore {
 
     public static class RocksDBSchemaStore extends RocksDBStore {
 
+        private final RocksDBTables.Counters counters;
+
         public RocksDBSchemaStore(BackendStoreProvider provider,
                                   String database, String name) {
             super(provider, database, name);
+
+            this.counters = new RocksDBTables.Counters(database);
 
             registerTableManager(HugeType.VERTEX_LABEL,
                                  new RocksDBTables.VertexLabel(database));
@@ -288,8 +293,22 @@ public class RocksDBStore implements BackendStore {
             registerTableManager(HugeType.INDEX_LABEL,
                                  new RocksDBTables.IndexLabel(database));
 
-            registerTableManager(HugeType.COUNTERS,
-                                 new RocksDBTables.Counters(database));
+            registerTableManager(HugeType.SECONDARY_INDEX,
+                                 new RocksDBTables.SecondaryIndex(database));
+        }
+
+        @Override
+        protected List<String> tableNames() {
+            List<String> tableNames = super.tableNames();
+            tableNames.add(this.counters.table());
+            return tableNames;
+        }
+
+        @Override
+        public Id nextId(HugeType type) {
+            super.checkOpened();
+            RocksDBSessions.Session session = super.sessions.session();
+            return this.counters.nextId(session, type);
         }
     }
 
@@ -308,6 +327,12 @@ public class RocksDBStore implements BackendStore {
                                  new RocksDBTables.SecondaryIndex(database));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new RocksDBTables.SearchIndex(database));
+        }
+
+        @Override
+        public Id nextId(HugeType type) {
+            throw new UnsupportedOperationException(
+                      "RocksDBGraphStore.nextId()");
         }
     }
 }

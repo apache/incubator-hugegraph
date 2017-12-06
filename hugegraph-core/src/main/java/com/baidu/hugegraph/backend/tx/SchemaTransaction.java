@@ -28,27 +28,38 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.MutateAction;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
-import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableSet;
 
-public class SchemaTransaction extends AbstractTransaction {
+public class SchemaTransaction extends IndexableTransaction {
+
+    private SchemaIndexTransaction indexTx;
 
     public SchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
         this.autoCommit(true);
+
+        this.indexTx = new SchemaIndexTransaction(graph, store);
+    }
+
+    @Override
+    protected AbstractTransaction indexTransaction() {
+        return this.indexTx;
     }
 
     @Override
@@ -62,60 +73,52 @@ public class SchemaTransaction extends AbstractTransaction {
         }
     }
 
-    public List<PropertyKey> getPropertyKeys() {
-        List<PropertyKey> propertyKeys = new ArrayList<>();
-        Query q = new Query(HugeType.PROPERTY_KEY);
-        Iterator<BackendEntry> entries = this.query(q);
+    private <T> List<T> getAllSchema(HugeType type) {
+        Query query = new Query(type);
+        Iterator<BackendEntry> entries = this.query(query);
+
+        List<T> result = new ArrayList<>();
         entries.forEachRemaining(entry -> {
-            propertyKeys.add(this.serializer.readPropertyKey(entry));
+            result.add(this.deserialize(entry, type));
         });
-        return propertyKeys;
+        return result;
+    }
+
+    public List<PropertyKey> getPropertyKeys() {
+        return this.getAllSchema(HugeType.PROPERTY_KEY);
     }
 
     public List<VertexLabel> getVertexLabels() {
-        List<VertexLabel> vertexLabels = new ArrayList<>();
-        Query q = new Query(HugeType.VERTEX_LABEL);
-        Iterator<BackendEntry> entries = this.query(q);
-        entries.forEachRemaining(entry -> {
-            vertexLabels.add(this.serializer.readVertexLabel(entry));
-        });
-        return vertexLabels;
+        return this.getAllSchema(HugeType.VERTEX_LABEL);
     }
 
     public List<EdgeLabel> getEdgeLabels() {
-        List<EdgeLabel> edgeLabels = new ArrayList<>();
-        Query q = new Query(HugeType.EDGE_LABEL);
-        Iterator<BackendEntry> entries = this.query(q);
-        entries.forEachRemaining(entry -> {
-            edgeLabels.add(this.serializer.readEdgeLabel(entry));
-        });
-        return edgeLabels;
+        return this.getAllSchema(HugeType.EDGE_LABEL);
     }
 
     public List<IndexLabel> getIndexLabels() {
-        List<IndexLabel> indexLabels = new ArrayList<>();
-        Query q = new Query(HugeType.INDEX_LABEL);
-        Iterator<BackendEntry> entries = this.query(q);
-        entries.forEachRemaining(entry -> {
-            indexLabels.add(this.serializer.readIndexLabel(entry));
-        });
-        return indexLabels;
+        return this.getAllSchema(HugeType.INDEX_LABEL);
     }
 
     public void addPropertyKey(PropertyKey propertyKey) {
-        LOG.debug("SchemaTransaction add property key: {}", propertyKey);
-        BackendEntry entry = this.serializer.writePropertyKey(propertyKey);
-        this.addSchema(propertyKey, entry);
+        this.addSchema(propertyKey);
+    }
+
+    @Watched(prefix = "schema")
+    public PropertyKey getPropertyKey(Id id) {
+        E.checkArgumentNotNull(id, "Property key id can't be null");
+        return this.getSchema(HugeType.PROPERTY_KEY, id);
     }
 
     @Watched(prefix = "schema")
     public PropertyKey getPropertyKey(String name) {
-        BackendEntry entry = this.querySchema(new PropertyKey(name));
-        return this.serializer.readPropertyKey(entry);
+        E.checkArgumentNotNull(name, "Property key name can't be null");
+        return this.getSchema(HugeType.PROPERTY_KEY, name);
     }
 
-    public void removePropertyKey(String name) {
-        PropertyKey propertyKey = this.getPropertyKey(name);
+    public void removePropertyKey(Id id) {
+        LOG.debug("SchemaTransaction remove property key '{}'", id);
+        PropertyKey propertyKey = this.getPropertyKey(id);
         // If the property key does not exist, return directly
         if (propertyKey == null) {
             return;
@@ -123,42 +126,46 @@ public class SchemaTransaction extends AbstractTransaction {
 
         List<VertexLabel> vertexLabels = this.getVertexLabels();
         for (VertexLabel vertexLabel : vertexLabels) {
-            if (vertexLabel.properties().contains(name)) {
+            if (vertexLabel.properties().contains(id)) {
                 throw new NotAllowException(
                           "Not allowed to remove property key: '%s' " +
                           "because the vertex label '%s' is still using it.",
-                          name, vertexLabel.name());
+                          id, vertexLabel.name());
             }
         }
 
         List<EdgeLabel> edgeLabels = this.getEdgeLabels();
         for (EdgeLabel edgeLabel : edgeLabels) {
-            if (edgeLabel.properties().contains(name)) {
+            if (edgeLabel.properties().contains(id)) {
                 throw new NotAllowException(
                           "Not allowed to remove property key: '%s' " +
                           "because the edge label '%s' is still using it.",
-                          name, edgeLabel.name());
+                          id, edgeLabel.name());
             }
         }
 
-        LOG.debug("SchemaTransaction remove property key '{}'", name);
-        this.removeSchema(new PropertyKey(name));
+        this.removeSchema(HugeType.PROPERTY_KEY, id);
     }
 
     public void addVertexLabel(VertexLabel vertexLabel) {
-        LOG.debug("SchemaTransaction add vertex label: {}", vertexLabel);
-        BackendEntry entry = this.serializer.writeVertexLabel(vertexLabel);
-        this.addSchema(vertexLabel, entry);
+        this.addSchema(vertexLabel);
+    }
+
+    @Watched(prefix = "schema")
+    public VertexLabel getVertexLabel(Id id) {
+        E.checkArgumentNotNull(id, "Vertex label id can't be null");
+        return this.getSchema(HugeType.VERTEX_LABEL, id);
     }
 
     @Watched(prefix = "schema")
     public VertexLabel getVertexLabel(String name) {
-        BackendEntry entry = this.querySchema(new VertexLabel(name));
-        return this.serializer.readVertexLabel(entry);
+        E.checkArgumentNotNull(name, "Vertex label name can't be null");
+        return this.getSchema(HugeType.VERTEX_LABEL, name);
     }
 
-    public void removeVertexLabel(String name) {
-        VertexLabel vertexLabel = this.getVertexLabel(name);
+    public void removeVertexLabel(Id id) {
+        LOG.debug("SchemaTransaction remove vertex label '{}'", id);
+        VertexLabel vertexLabel = this.getVertexLabel(id);
         // If the vertex label does not exist, return directly
         if (vertexLabel == null) {
             return;
@@ -166,161 +173,187 @@ public class SchemaTransaction extends AbstractTransaction {
 
         List<EdgeLabel> edgeLabels = this.getEdgeLabels();
         for (EdgeLabel edgeLabel : edgeLabels) {
-            if (edgeLabel.linkWithLabel(name)) {
+            if (edgeLabel.linkWithLabel(id)) {
                 throw new HugeException("Not allowed to remove vertex label " +
                                         "'%s' because the edge label '%s' " +
                                         "still link with it",
-                                        name, edgeLabel.name());
+                                        vertexLabel.name(), edgeLabel.name());
             }
         }
 
         /*
-         * Copy index names because removeIndexLabel will mutate
-         * vertexLabel.indexNames()
+         * Copy index label ids because removeIndexLabel will mutate
+         * vertexLabel.indexLabels()
          */
-        Set<String> indexNames = ImmutableSet.copyOf(vertexLabel.indexNames());
+        Set<Id> indexLabelIds = ImmutableSet.copyOf(vertexLabel.indexLabels());
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockWrites(LockUtil.VERTEX_LABEL, name);
-            for (String indexName : indexNames) {
-                this.removeIndexLabel(indexName);
+            locks.lockWrites(LockUtil.VERTEX_LABEL, id);
+            for (Id indexLabelId : indexLabelIds) {
+                this.removeIndexLabel(indexLabelId);
             }
 
             // TODO: use event to replace direct call
             // Deleting a vertex will automatically deletes the held edge
             this.graph().graphTransaction().removeVertices(vertexLabel);
-            LOG.debug("SchemaTransaction remove vertex label '{}'", name);
-            this.removeSchema(vertexLabel);
+            this.removeSchema(HugeType.VERTEX_LABEL, vertexLabel.id());
         } finally {
             locks.unlock();
         }
     }
 
     public void addEdgeLabel(EdgeLabel edgeLabel) {
-        LOG.debug("SchemaTransaction add edge label: {}", edgeLabel);
-        BackendEntry entry = this.serializer.writeEdgeLabel(edgeLabel);
-        this.addSchema(edgeLabel, entry);
+        this.addSchema(edgeLabel);
+    }
+
+    @Watched(prefix = "schema")
+    public EdgeLabel getEdgeLabel(Id id) {
+        E.checkArgumentNotNull(id, "Edge label id can't be null");
+        return this.getSchema(HugeType.EDGE_LABEL, id);
     }
 
     @Watched(prefix = "schema")
     public EdgeLabel getEdgeLabel(String name) {
-        BackendEntry entry = this.querySchema(new EdgeLabel(name));
-        return this.serializer.readEdgeLabel(entry);
+        E.checkArgumentNotNull(name, "Edge label name can't be null");
+        return this.getSchema(HugeType.EDGE_LABEL, name);
     }
 
-    public void removeEdgeLabel(String name) {
-        EdgeLabel edgeLabel = this.getEdgeLabel(name);
+    public void removeEdgeLabel(Id id) {
+        LOG.debug("SchemaTransaction remove edge label '{}'", id);
+        EdgeLabel edgeLabel = this.getEdgeLabel(id);
         // If the edge label does not exist, return directly
         if (edgeLabel == null) {
             return;
         }
         // TODO: use event to replace direct call
         // Remove index related data(include schema) of this edge label
-        Set<String> indexNames = ImmutableSet.copyOf(edgeLabel.indexNames());
+        Set<Id> indexIds = ImmutableSet.copyOf(edgeLabel.indexLabels());
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockWrites(LockUtil.EDGE_LABEL, name);
-            for (String indexName : indexNames) {
-                this.removeIndexLabel(indexName);
+            locks.lockWrites(LockUtil.EDGE_LABEL, id);
+            for (Id indexId : indexIds) {
+                this.removeIndexLabel(indexId);
             }
             // Remove all edges which has matched label
             this.graph().graphTransaction().removeEdges(edgeLabel);
-
-            LOG.debug("SchemaTransaction remove edge label '{}'", name);
-            this.removeSchema(edgeLabel);
+            this.removeSchema(HugeType.EDGE_LABEL, edgeLabel.id());
         } finally {
             locks.unlock();
         }
     }
 
     public void addIndexLabel(IndexLabel indexLabel) {
-        LOG.debug("SchemaTransaction add index label: {}", indexLabel);
-        BackendEntry entry = this.serializer.writeIndexLabel(indexLabel);
-        this.addSchema(indexLabel, entry);
+        this.addSchema(indexLabel);
+    }
+
+    @Watched(prefix = "schema")
+    public IndexLabel getIndexLabel(Id id) {
+        E.checkArgumentNotNull(id, "Index label id can't be null");
+        return this.getSchema(HugeType.INDEX_LABEL, id);
     }
 
     @Watched(prefix = "schema")
     public IndexLabel getIndexLabel(String name) {
-        BackendEntry entry = this.querySchema(new IndexLabel(name));
-        return this.serializer.readIndexLabel(entry);
+        E.checkArgumentNotNull(name, "Index label name can't be null");
+        return this.getSchema(HugeType.INDEX_LABEL, name);
     }
 
-    public void removeIndexLabel(String name) {
-        IndexLabel indexLabel = this.getIndexLabel(name);
+    public void removeIndexLabel(Id id) {
+        LOG.debug("SchemaTransaction remove index label '{}'", id);
+        IndexLabel indexLabel = this.getIndexLabel(id);
         // If the index label does not exist, return directly
         if (indexLabel == null) {
             return;
         }
 
-        LOG.debug("SchemaTransaction remove index label '{}'", name);
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockWrites(LockUtil.INDEX_LABEL, name);
+            locks.lockWrites(LockUtil.INDEX_LABEL, id);
             // Remove index data
             // TODO: use event to replace direct call
             this.graph().graphTransaction().removeIndex(indexLabel);
-            // Remove indexName from indexNames of vertex label or edge label
-            this.removeIndexNames(name);
-            this.removeSchema(indexLabel);
+            // Remove label from indexLabels of vertex or edge label
+            this.removeIndexLabelFromBaseLabel(id);
+            this.removeSchema(HugeType.INDEX_LABEL, id);
         } finally {
             locks.unlock();
         }
     }
 
-    public void rebuildIndex(IndexLabel indexLabel) {
+    public void rebuildIndex(SchemaElement schema) {
         LOG.debug("SchemaTransaction rebuild index for '{}' '{}'",
-                  indexLabel.type(), indexLabel.name());
-        // Obtain index label from db by name
-        indexLabel = this.getIndexLabel(indexLabel.name());
-        this.graph().graphTransaction().rebuildIndex(indexLabel);
+                  schema.type(), schema.id());
+        this.graph().graphTransaction().rebuildIndex(schema);
     }
 
-    public void rebuildIndex(SchemaLabel schemaLabel) {
-        LOG.debug("SchemaTransaction rebuild index for '{}' '{}'",
-                  schemaLabel.type(), schemaLabel.name());
-        // Obtain vertex/edge label from db by name
-        if (schemaLabel.type() == HugeType.VERTEX_LABEL) {
-            schemaLabel = this.getVertexLabel(schemaLabel.name());
-        } else {
-            assert schemaLabel.type() == HugeType.EDGE_LABEL;
-            schemaLabel = this.getEdgeLabel(schemaLabel.name());
-        }
-        this.graph().graphTransaction().rebuildIndex(schemaLabel);
-    }
-
-    protected void addSchema(SchemaElement schemaElement, BackendEntry entry) {
+    protected void addSchema(SchemaElement schema) {
+        LOG.debug("SchemaTransaction add {}: {}", schema.type(), schema.id());
         this.beforeWrite();
-        this.addEntry(entry);
+        this.doInsert(this.serialize(schema));
+        this.indexTx.updateNameIndex(schema, false);
         this.afterWrite();
     }
 
-    protected BackendEntry querySchema(SchemaElement element) {
-        Id id = IdGenerator.of(element);
+    protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
+        LOG.debug("SchemaTransaction get {} with id {}", type, id);
         this.beforeRead();
-        BackendEntry entry = this.query(element.type(), id);
+        BackendEntry entry = this.query(type, id);
+        if (entry == null) {
+            return null;
+        }
+        T schema = this.deserialize(entry, type);
         this.afterRead();
-        return entry;
+        return schema;
     }
 
-    protected void removeSchema(SchemaElement element) {
-        Id id = IdGenerator.of(element);
+    /**
+     * Currently doesn't allow to exist schema with the same name
+     */
+    protected <T extends SchemaElement> T getSchema(HugeType type,
+                                                    String name) {
+        LOG.debug("SchemaTransaction get {} with name {}", type, name);
+        this.beforeRead();
+        ConditionQuery query = new ConditionQuery(type);
+        query.eq(HugeKeys.NAME, name);
+        Iterator<BackendEntry> itor = this.indexTx.query(query);
+        this.afterRead();
+        if (itor.hasNext()) {
+            T schema = this.deserialize(itor.next(), type);
+            E.checkState(!itor.hasNext(),
+                         "Should not exist schema with same name '%s'", name);
+            return schema;
+        }
+        return null;
+    }
+
+    protected void removeSchema(HugeType type, Id id) {
+        LOG.debug("SchemaTransaction remove {} with id {}", type, id);
+        SchemaElement schema = this.getSchema(type, id);
+        E.checkArgumentNotNull(schema,
+                               "Can't remove schema '%s': '%s' because " +
+                               "it doesn't exist", type, id);
+
         this.beforeWrite();
-        this.removeEntry(element.type(), id);
+        this.indexTx.updateNameIndex(schema, true);
+        BackendEntry entry = this.serializer.writeId(type, id);
+        this.doAction(MutateAction.DELETE, entry);
         this.afterWrite();
     }
 
-    protected void removeIndexNames(String indexName) {
-        IndexLabel label = this.getIndexLabel(indexName);
+    protected void removeIndexLabelFromBaseLabel(Id id) {
+        LOG.debug("SchemaTransaction remove index label from base label {} ",
+                  id);
+        IndexLabel label = this.getIndexLabel(id);
         HugeType baseType = label.baseType();
-        String baseValue = label.baseValue();
+        Id baseValue = label.baseValue();
         if (baseType == HugeType.VERTEX_LABEL) {
             VertexLabel vertexLabel = this.getVertexLabel(baseValue);
-            vertexLabel.removeIndexName(indexName);
+            vertexLabel.removeIndexLabel(id);
             addVertexLabel(vertexLabel);
         } else {
             assert baseType == HugeType.EDGE_LABEL;
             EdgeLabel edgeLabel = this.getEdgeLabel(baseValue);
-            edgeLabel.removeIndexName(indexName);
+            edgeLabel.removeIndexLabel(id);
             addEdgeLabel(edgeLabel);
         }
     }
@@ -336,5 +369,43 @@ public class SchemaTransaction extends AbstractTransaction {
         }
         // TODO: use event to replace direct call
         this.graph().graphTransaction().commit();
+    }
+
+    public Id getNextId(HugeType type) {
+        LOG.debug("SchemaTransaction get next id for {}", type);
+        return this.store().nextId(type);
+    }
+
+    private BackendEntry serialize(SchemaElement schema) {
+        switch (schema.type()) {
+            case PROPERTY_KEY:
+                return this.serializer.writePropertyKey((PropertyKey) schema);
+            case VERTEX_LABEL:
+                return this.serializer.writeVertexLabel((VertexLabel) schema);
+            case EDGE_LABEL:
+                return this.serializer.writeEdgeLabel((EdgeLabel) schema);
+            case INDEX_LABEL:
+                return this.serializer.writeIndexLabel((IndexLabel) schema);
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown schema type '%s'", schema.type()));
+        }
+    }
+
+    @SuppressWarnings({"unchecked"})
+    private <T> T deserialize(BackendEntry entry, HugeType type) {
+        switch (type) {
+            case PROPERTY_KEY:
+                return (T) this.serializer.readPropertyKey(entry);
+            case VERTEX_LABEL:
+                return (T) this.serializer.readVertexLabel(entry);
+            case EDGE_LABEL:
+                return (T) this.serializer.readEdgeLabel(entry);
+            case INDEX_LABEL:
+                return (T) this.serializer.readIndexLabel(entry);
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown schema type '%s'", type));
+        }
     }
 }

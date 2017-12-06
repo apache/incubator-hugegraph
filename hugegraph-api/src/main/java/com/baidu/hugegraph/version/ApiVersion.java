@@ -38,7 +38,7 @@ public final class ApiVersion {
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.11");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.12");
 
     public static final void check() {
         // Check version of hugegraph-core

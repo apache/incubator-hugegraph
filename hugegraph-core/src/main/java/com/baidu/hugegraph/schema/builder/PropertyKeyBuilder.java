@@ -19,31 +19,180 @@
 
 package com.baidu.hugegraph.schema.builder;
 
-public interface PropertyKeyBuilder extends SchemaBuilder {
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.exception.ExistedException;
+import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.E;
 
-    PropertyKeyBuilder asText();
+public class PropertyKeyBuilder implements PropertyKey.Builder {
 
-    PropertyKeyBuilder asInt();
+    private String name;
+    private DataType dataType;
+    private Cardinality cardinality;
+    private boolean checkExist;
 
-    PropertyKeyBuilder asTimestamp();
+    private SchemaTransaction transaction;
 
-    PropertyKeyBuilder asUuid();
+    public PropertyKeyBuilder(String name, SchemaTransaction transaction) {
+        E.checkNotNull(name, "name");
+        E.checkNotNull(transaction, "transaction");
+        this.name = name;
+        this.dataType = DataType.TEXT;
+        this.cardinality = Cardinality.SINGLE;
+        this.checkExist = true;
+        this.transaction = transaction;
+    }
 
-    PropertyKeyBuilder asBoolean();
+    @Override
+    public PropertyKey build() {
+        Id id = this.transaction.getNextId(HugeType.PROPERTY_KEY);
+        PropertyKey propertyKey = new PropertyKey(id, this.name);
+        propertyKey.dataType(this.dataType);
+        propertyKey.cardinality(this.cardinality);
+        return propertyKey;
+    }
 
-    PropertyKeyBuilder asByte();
+    @Override
+    public PropertyKey create() {
+        SchemaElement.checkName(this.name,
+                                this.transaction.graph().configuration());
+        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        if (propertyKey != null) {
+            if (this.checkExist) {
+                throw new ExistedException("property key", this.name);
+            }
+            return propertyKey;
+        }
 
-    PropertyKeyBuilder asBlob();
+        propertyKey = this.build();
+        this.transaction.addPropertyKey(propertyKey);
+        return propertyKey;
+    }
 
-    PropertyKeyBuilder asDouble();
+    @Override
+    public PropertyKey append() {
+        throw new NotSupportException("action append on property key");
+    }
 
-    PropertyKeyBuilder asFloat();
+    @Override
+    public PropertyKey eliminate() {
+        throw new NotSupportException("action eliminate on property key");
+    }
 
-    PropertyKeyBuilder asLong();
+    @Override
+    public void remove() {
+        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        if (propertyKey == null) {
+            return;
+        }
+        this.transaction.removePropertyKey(propertyKey.id());
+    }
 
-    PropertyKeyBuilder valueSingle();
+    @Override
+    public PropertyKeyBuilder asText() {
+        this.dataType = DataType.TEXT;
+        return this;
+    }
 
-    PropertyKeyBuilder valueList();
+    @Override
+    public PropertyKeyBuilder asInt() {
+        this.dataType = DataType.INT;
+        return this;
+    }
 
-    PropertyKeyBuilder valueSet();
+    @Override
+    public PropertyKeyBuilder asDate() {
+        this.dataType = DataType.DATE;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder asUuid() {
+        this.dataType = DataType.UUID;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder asBoolean() {
+        this.dataType = DataType.BOOLEAN;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder asByte() {
+        this.dataType = DataType.BYTE;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder asBlob() {
+        this.dataType = DataType.BLOB;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder asDouble() {
+        this.dataType = DataType.DOUBLE;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder asFloat() {
+        this.dataType = DataType.FLOAT;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder asLong() {
+        this.dataType = DataType.LONG;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder valueSingle() {
+        this.cardinality = Cardinality.SINGLE;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder valueList() {
+        this.cardinality = Cardinality.LIST;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder valueSet() {
+        this.cardinality = Cardinality.SET;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder cardinality(Cardinality cardinality) {
+        this.cardinality = cardinality;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder dataType(DataType dataType) {
+        this.dataType = dataType;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder ifNotExist() {
+        this.checkExist = false;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder checkExist(boolean checkExist) {
+        this.checkExist = checkExist;
+        return this;
+    }
 }

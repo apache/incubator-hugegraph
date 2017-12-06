@@ -80,9 +80,7 @@ public class InMemoryDBTables {
         private static Id vertexIdOfEdge(TextBackendEntry entry) {
             assert entry.type() == HugeType.EDGE;
             String vertexId = SplicingIdGenerator.split(entry.id())[0];
-            // TODO: parse id type
-            Id id = IdGenerator.of(vertexId);
-            return id;
+            return IdGenerator.of(vertexId);
         }
     }
 }

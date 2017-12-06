@@ -23,72 +23,65 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.tinkerpop.gremlin.structure.Graph;
+
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.schema.builder.EdgeLabelBuilder;
+import com.baidu.hugegraph.schema.builder.IndexLabelBuilder;
+import com.baidu.hugegraph.schema.builder.PropertyKeyBuilder;
+import com.baidu.hugegraph.schema.builder.VertexLabelBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 
 public class SchemaManager {
 
     private final SchemaTransaction transaction;
 
-    public SchemaManager(SchemaTransaction transaction) {
+    public SchemaManager(final SchemaTransaction transaction) {
         E.checkNotNull(transaction, "transaction");
         this.transaction = transaction;
     }
 
     public PropertyKey.Builder propertyKey(String name) {
-        return new PropertyKey.Builder(name, this.transaction);
-    }
-
-    public PropertyKey.Builder propertyKey(PropertyKey propertyKey) {
-        return new PropertyKey.Builder(propertyKey, this.transaction);
+        return new PropertyKeyBuilder(name, this.transaction);
     }
 
     public VertexLabel.Builder vertexLabel(String name) {
-        return new VertexLabel.Builder(name, this.transaction);
-    }
-
-    public VertexLabel.Builder vertexLabel(VertexLabel vertexLabel) {
-        return new VertexLabel.Builder(vertexLabel, this.transaction);
+        return new VertexLabelBuilder(name, this.transaction);
     }
 
     public EdgeLabel.Builder edgeLabel(String name) {
-        return new EdgeLabel.Builder(name, this.transaction);
-    }
-
-    public EdgeLabel.Builder edgeLabel(EdgeLabel edgeLabel) {
-        return new EdgeLabel.Builder(edgeLabel, this.transaction);
+        return new EdgeLabelBuilder(name, this.transaction);
     }
 
     public IndexLabel.Builder indexLabel(String name) {
-        return new IndexLabel.Builder(name, this.transaction);
-    }
-
-    public IndexLabel.Builder indexLabel(IndexLabel indexLabel) {
-        return new IndexLabel.Builder(indexLabel, this.transaction);
+        return new IndexLabelBuilder(name, this.transaction);
     }
 
     public PropertyKey getPropertyKey(String name) {
+        E.checkArgumentNotNull(name, "Name can't be null");
         PropertyKey propertyKey = this.transaction.getPropertyKey(name);
         checkExists(HugeType.PROPERTY_KEY, propertyKey, name);
         return propertyKey;
     }
 
     public VertexLabel getVertexLabel(String name) {
+        E.checkArgumentNotNull(name, "Name can't be null");
         VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
         checkExists(HugeType.VERTEX_LABEL, vertexLabel, name);
         return vertexLabel;
     }
 
     public EdgeLabel getEdgeLabel(String name) {
+        E.checkArgumentNotNull(name, "Name can't be null");
         EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
         checkExists(HugeType.EDGE_LABEL, edgeLabel, name);
         return edgeLabel;
     }
 
     public IndexLabel getIndexLabel(String name) {
+        E.checkArgumentNotNull(name, "Name can't be null");
         IndexLabel indexLabel = this.transaction.getIndexLabel(name);
         checkExists(HugeType.INDEX_LABEL, indexLabel, name);
         return indexLabel;
@@ -118,7 +111,7 @@ public class SchemaManager {
                    .collect(Collectors.toList());
     }
 
-    public List<SchemaElement> desc() {
+    public List<SchemaElement> getAllSchema() {
         List<SchemaElement> elements = new ArrayList<>();
         elements.addAll(this.getPropertyKeys());
         elements.addAll(this.getVertexLabels());
@@ -127,7 +120,7 @@ public class SchemaManager {
         return elements;
     }
 
-    public static void checkExists(HugeType type, Object object, String name) {
+    private static void checkExists(HugeType type, Object object, String name) {
         if (object == null) {
             throw new NotFoundException("Not found the %s with name '%s'",
                                         type, name);

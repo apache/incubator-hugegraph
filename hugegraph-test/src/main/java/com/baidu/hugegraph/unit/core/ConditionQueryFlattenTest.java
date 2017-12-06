@@ -27,6 +27,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.testutil.Assert;
@@ -48,8 +49,8 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
 
     @Test
     public void testFlattenWithAnd() {
-        Condition c1 = Condition.eq("c1", "1");
-        Condition c2 = Condition.eq("c2", "2");
+        Condition c1 = Condition.eq(IdGenerator.of("c1"), "1");
+        Condition c2 = Condition.eq(IdGenerator.of("c2"), "2");
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.and(c2));
@@ -67,10 +68,10 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
 
     @Test
     public void testFlattenWithMultiAnd() {
-        Condition c1 = Condition.eq("c1", "1");
-        Condition c2 = Condition.eq("c2", "2");
-        Condition c3 = Condition.eq("c3", "3");
-        Condition c4 = Condition.eq("c4", "4");
+        Condition c1 = Condition.eq(IdGenerator.of("c1"), "1");
+        Condition c2 = Condition.eq(IdGenerator.of("c2"), "2");
+        Condition c3 = Condition.eq(IdGenerator.of("c3"), "3");
+        Condition c4 = Condition.eq(IdGenerator.of("c4"), "4");
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1);
@@ -91,10 +92,10 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
 
     @Test
     public void testFlattenWithAndTree() {
-        Condition c1 = Condition.eq("c1", "1");
-        Condition c2 = Condition.eq("c2", "2");
-        Condition c3 = Condition.eq("c3", "3");
-        Condition c4 = Condition.eq("c4", "4");
+        Condition c1 = Condition.eq(IdGenerator.of("c1"), "1");
+        Condition c2 = Condition.eq(IdGenerator.of("c2"), "2");
+        Condition c3 = Condition.eq(IdGenerator.of("c3"), "3");
+        Condition c4 = Condition.eq(IdGenerator.of("c4"), "4");
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.and(c2).and(c3.and(c4)));
@@ -112,8 +113,8 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
 
     @Test
     public void testFlattenWithOr() {
-        Condition c1 = Condition.eq("c1", "1");
-        Condition c2 = Condition.eq("c2", "2");
+        Condition c1 = Condition.eq(IdGenerator.of("c1"), "1");
+        Condition c2 = Condition.eq(IdGenerator.of("c2"), "2");
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.or(c2));
@@ -131,10 +132,10 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
 
     @Test
     public void testFlattenWithMultiOr() {
-        Condition c1 = Condition.eq("c1", "1");
-        Condition c2 = Condition.eq("c2", "2");
-        Condition c3 = Condition.eq("c3", "3");
-        Condition c4 = Condition.eq("c4", "4");
+        Condition c1 = Condition.eq(IdGenerator.of("c1"), "1");
+        Condition c2 = Condition.eq(IdGenerator.of("c2"), "2");
+        Condition c3 = Condition.eq(IdGenerator.of("c3"), "3");
+        Condition c4 = Condition.eq(IdGenerator.of("c4"), "4");
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.or(c2));
@@ -156,10 +157,10 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
 
     @Test
     public void testFlattenWithOrTree() {
-        Condition c1 = Condition.eq("c1", "1");
-        Condition c2 = Condition.eq("c2", "2");
-        Condition c3 = Condition.eq("c3", "3");
-        Condition c4 = Condition.eq("c4", "4");
+        Condition c1 = Condition.eq(IdGenerator.of("c1"), "1");
+        Condition c2 = Condition.eq(IdGenerator.of("c2"), "2");
+        Condition c3 = Condition.eq(IdGenerator.of("c3"), "3");
+        Condition c4 = Condition.eq(IdGenerator.of("c4"), "4");
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.or(c2).or(c3.or(c4)));
@@ -178,10 +179,10 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
 
     @Test
     public void testFlattenWithAndOrTree() {
-        Condition c1 = Condition.eq("c1", "1");
-        Condition c2 = Condition.eq("c2", "2");
-        Condition c3 = Condition.eq("c3", "3");
-        Condition c4 = Condition.eq("c4", "4");
+        Condition c1 = Condition.eq(IdGenerator.of("c1"), "1");
+        Condition c2 = Condition.eq(IdGenerator.of("c2"), "2");
+        Condition c3 = Condition.eq(IdGenerator.of("c3"), "3");
+        Condition c4 = Condition.eq(IdGenerator.of("c4"), "4");
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.or(c2).and(c3.or(c4)));
@@ -202,10 +203,10 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
 
     @Test
     public void testFlattenWithOrAndTree() {
-        Condition c1 = Condition.eq("c1", "1");
-        Condition c2 = Condition.eq("c2", "2");
-        Condition c3 = Condition.eq("c3", "3");
-        Condition c4 = Condition.eq("c4", "4");
+        Condition c1 = Condition.eq(IdGenerator.of("c1"), "1");
+        Condition c2 = Condition.eq(IdGenerator.of("c2"), "2");
+        Condition c3 = Condition.eq(IdGenerator.of("c3"), "3");
+        Condition c4 = Condition.eq(IdGenerator.of("c4"), "4");
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.and(c2).or(c3.and(c4)));

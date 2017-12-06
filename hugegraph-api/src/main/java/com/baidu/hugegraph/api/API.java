@@ -27,8 +27,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.tinkerpop.gremlin.structure.Graph;
-
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.type.HugeType;
@@ -47,8 +46,8 @@ public class API {
     public static final String ACTION_APPEND = "append";
     public static final String ACTION_ELIMINATE = "eliminate";
 
-    public static Graph graph(GraphManager manager, String graph) {
-        Graph g = manager.graph(graph);
+    public static HugeGraph graph(GraphManager manager, String graph) {
+        HugeGraph g = manager.graph(graph);
         if (g == null) {
             String msg = String.format("Not found graph '%s'", graph);
             throw new NotFoundException(msg);

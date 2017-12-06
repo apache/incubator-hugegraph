@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -41,6 +40,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
 import com.baidu.hugegraph.util.E;
@@ -182,9 +182,9 @@ public abstract class CassandraTable {
 
         List<HugeKeys> nameParts = this.idColumnName();
 
-        List<List<String>> ids = new ArrayList<>(query.ids().size());
+        List<List<Object>> ids = new ArrayList<>(query.ids().size());
         for (Id id : query.ids()) {
-            List<String> idParts = this.idColumnValue(id);
+            List<Object> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
                 throw new NotFoundException(
                           "Unsupported ID format: '%s' (should contain %s)",
@@ -195,8 +195,8 @@ public abstract class CassandraTable {
 
         // Query only by partition-key
         if (nameParts.size() == 1) {
-            List<String> idList = new ArrayList<>(ids.size());
-            for (List<String> id : ids) {
+            List<Object> idList = new ArrayList<>(ids.size());
+            for (List<Object> id : ids) {
                 assert id.size() == 1;
                 idList.add(id.get(0));
             }
@@ -212,7 +212,7 @@ public abstract class CassandraTable {
          * So we use multi-query instead of IN
          */
         List<Select> selections = new ArrayList<>(ids.size());
-        for (List<String> id : ids) {
+        for (List<Object> id : ids) {
             assert nameParts.size() == id.size();
             // NOTE: there is no Select.clone(), just use copy instead
             Select idSelection = CopyUtil.copy(select,
@@ -301,7 +301,7 @@ public abstract class CassandraTable {
                         QueryBuilder.gte(QueryBuilder.token(col), start),
                         QueryBuilder.lt(QueryBuilder.token(col), end));
             /*
-             * Currently we can't sypport LIKE due to error:
+             * Currently we can't support LIKE due to error:
              * "cassandra no viable alternative at input 'like'..."
              */
             // case LIKE:
@@ -315,11 +315,10 @@ public abstract class CassandraTable {
     protected static Object serializeValue(Object value) {
         // Serialize value (TODO: should move to Serializer)
         if (value instanceof Id) {
-            value = ((Id) value).asString();
-        } else if (value instanceof Direction) {
-            value = ((Direction) value).name();
+            value = ((Id) value).asObject();
+        } else if (value instanceof Directions) {
+            value = ((Directions) value).code();
         }
-
         return value;
     }
 
@@ -360,15 +359,15 @@ public abstract class CassandraTable {
     }
 
     protected List<HugeKeys> idColumnName() {
-        return ImmutableList.of(HugeKeys.NAME);
+        return ImmutableList.of(HugeKeys.ID);
     }
 
-    protected List<String> idColumnValue(Id id) {
-        return ImmutableList.of(id.asString());
+    protected List<Object> idColumnValue(Id id) {
+        return ImmutableList.of(id.asObject());
     }
 
-    protected List<String> idColumnValue(CassandraBackendEntry.Row entry) {
-        return ImmutableList.of(entry.id().asString());
+    protected List<Long> idColumnValue(CassandraBackendEntry.Row entry) {
+        return ImmutableList.of(entry.id().asLong());
     }
 
     protected List<HugeKeys> modifiableColumnName() {
@@ -504,7 +503,7 @@ public abstract class CassandraTable {
 
         if (entry.columns().isEmpty()) {
             // Delete just by id
-            List<String> idValues = this.idColumnValue(entry);
+            List<Long> idValues = this.idColumnValue(entry);
             assert idNames.size() == idValues.size();
 
             for (int i = 0, n = idNames.size(); i < n; i++) {
@@ -547,15 +546,15 @@ public abstract class CassandraTable {
         session.execute(table);
     }
 
-    protected void dropTable(CassandraSessionPool.Session session) {
+    public void dropTable(CassandraSessionPool.Session session) {
         LOG.debug("Drop table: {}", this.table);
         session.execute(SchemaBuilder.dropTable(this.table).ifExists());
     }
 
     protected void createIndex(CassandraSessionPool.Session session,
-                               String indexName,
+                               String indexLabel,
                                HugeKeys column) {
-        SchemaStatement createIndex = SchemaBuilder.createIndex(indexName)
+        SchemaStatement createIndex = SchemaBuilder.createIndex(indexLabel)
                                       .ifNotExists().onTable(this.table)
                                       .andColumn(formatKey(column));
 

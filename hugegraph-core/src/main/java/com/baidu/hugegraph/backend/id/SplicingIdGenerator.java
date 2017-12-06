@@ -21,7 +21,6 @@ package com.baidu.hugegraph.backend.id;
 
 import java.util.List;
 
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.StringUtil;
@@ -58,18 +57,6 @@ public class SplicingIdGenerator extends IdGenerator {
     /****************************** id generate ******************************/
 
     /**
-     * Generate a string id of SchemaType from Schema name
-     */
-    @Override
-    public Id generate(SchemaElement entry) {
-        /*
-         * String id = String.format("%x%s%s", entry.type().code(),
-         *                           ID_SPLITOR, escapeId(entry.name()));
-         */
-        return generate(entry.name());
-    }
-
-    /**
      * Generate a string id of HugeEdge from:
      * { source-vertex-id + edge-label + edge-name + target-vertex-id }
      * NOTE: if we use `entry.type()` which is IN or OUT as a part of id,
@@ -80,13 +67,13 @@ public class SplicingIdGenerator extends IdGenerator {
     public Id generate(HugeEdge edge, boolean directed) {
         if (directed) {
             return concat(edge.ownerVertex().id().asString(),
-                          edge.direction().name(),
-                          edge.label(),
+                          edge.type().string(),
+                          edge.schemaLabel().id().asString(),
                           edge.name(),
                           edge.otherVertex().id().asString());
         } else {
             return concat(edge.sourceVertex().id().asString(),
-                          edge.label(),
+                          edge.schemaLabel().id().asString(),
                           edge.name(),
                           edge.targetVertex().id().asString());
         }
@@ -104,7 +91,7 @@ public class SplicingIdGenerator extends IdGenerator {
          * id = String.format("%s%s%s", HashUtil.hash(id), ID_SPLITOR, id);
          */
         // TODO: use binary Id with binary fields instead of string id
-        return splicing(vertex.label(), vertex.name());
+        return splicing(vertex.schemaLabel().id().asString(), vertex.name());
     }
 
     /**

@@ -27,12 +27,13 @@ public enum HugeKeys {
     ID(1, "id"),
     NAME(2, "name"),
     TIMESTANMP(3, "timestamp"),
+    SCHEMA_TYPE(4, "schema_type"),
 
     /* Column names of schema type (VertexLabel) */
     ID_STRATEGY(50, "id_strategy"),
     PROPERTIES(51, "properties"),
     PRIMARY_KEYS(52, "primary_keys"),
-    INDEX_NAMES(53, "index_names"),
+    INDEX_LABELS(53, "index_labels"),
     NULLABLE_KEYS(54, "nullable_keys"),
 
     /* Column names of schema type (EdgeLabel) */
@@ -55,7 +56,7 @@ public enum HugeKeys {
     /* Column names of index data */
     INDEX_NAME(180, "index_name"),
     FIELD_VALUES(181, "field_values"),
-    INDEX_LABEL_NAME(182, "index_label_name"),
+    INDEX_LABEL_ID(182, "index_label_id"),
     ELEMENT_IDS(183, "element_ids"),
 
     /* Column names of data type (Vertex/Edge) */
@@ -72,7 +73,7 @@ public enum HugeKeys {
     private byte code = 0;
     private String name = null;
 
-    private HugeKeys(int code, String name) {
+    HugeKeys(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;

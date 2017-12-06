@@ -38,6 +38,8 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.testutil.Utils;
@@ -408,11 +410,11 @@ public class VertexCoreTest extends BaseCoreTest {
                         "age", 18, "city", "Beijing");
         graph.tx().commit();
 
-        List<Vertex> vertices = graph.traversal().V("programmer:marko!18")
-                                .toList();
+        String programmerId = graph.vertexLabel("programmer").id().asString();
+        String vid = String.format("%s:%s!%s", programmerId, "marko", "18");
+        List<Vertex> vertices = graph.traversal().V(vid).toList();
         Assert.assertEquals(1, vertices.size());
-        Assert.assertEquals("programmer:marko!18",
-                            vertices.get(0).id().toString());
+        Assert.assertEquals(vid, vertices.get(0).id().toString());
         assertContains(vertices,
                        T.label, "programmer", "name", "marko",
                        "age", 18, "city", "Beijing");
@@ -530,13 +532,13 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
         List<Vertex> vertexes = graph.traversal().V().toList();
-
+        String bookId = graph.vertexLabel("book").id().asString();
         Assert.assertTrue(Utils.containsId(vertexes,
-                          SplicingIdGenerator.splicing("book", "java-1")));
+                          SplicingIdGenerator.splicing(bookId, "java-1")));
         Assert.assertTrue(Utils.containsId(vertexes,
-                          SplicingIdGenerator.splicing("book", "java-3")));
+                          SplicingIdGenerator.splicing(bookId, "java-3")));
         Assert.assertTrue(Utils.containsId(vertexes,
-                          SplicingIdGenerator.splicing("book", "java-5")));
+                          SplicingIdGenerator.splicing(bookId, "java-5")));
     }
 
     @Test
@@ -544,8 +546,9 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
+        String authorId = graph.vertexLabel("author").id().asString();
         // Query vertex by id
-        Id id = SplicingIdGenerator.splicing("author", "1");
+        Id id = SplicingIdGenerator.splicing(authorId, "1");
         List<Vertex> vertexes = graph.traversal().V(id).toList();
         Assert.assertEquals(1, vertexes.size());
         assertContains(vertexes,
@@ -574,19 +577,19 @@ public class VertexCoreTest extends BaseCoreTest {
         // Query by vertex label
         List<Vertex> vertexes = graph.traversal().V().hasLabel("book")
                                 .toList();
+        String bookId = graph.vertexLabel("book").id().asString();
 
         Assert.assertEquals(5, vertexes.size());
-
         Assert.assertTrue(Utils.containsId(vertexes,
-                          SplicingIdGenerator.splicing("book", "java-1")));
+                          SplicingIdGenerator.splicing(bookId, "java-1")));
         Assert.assertTrue(Utils.containsId(vertexes,
-                          SplicingIdGenerator.splicing("book", "java-2")));
+                          SplicingIdGenerator.splicing(bookId, "java-2")));
         Assert.assertTrue(Utils.containsId(vertexes,
-                          SplicingIdGenerator.splicing("book", "java-3")));
+                          SplicingIdGenerator.splicing(bookId, "java-3")));
         Assert.assertTrue(Utils.containsId(vertexes,
-                          SplicingIdGenerator.splicing("book", "java-4")));
+                          SplicingIdGenerator.splicing(bookId, "java-4")));
         Assert.assertTrue(Utils.containsId(vertexes,
-                          SplicingIdGenerator.splicing("book", "java-5")));
+                          SplicingIdGenerator.splicing(bookId, "java-5")));
     }
 
     @Test
@@ -636,10 +639,12 @@ public class VertexCoreTest extends BaseCoreTest {
                           features.supportsQueryWithContainsKey());
         init10Vertices();
 
+        VertexLabel language = graph.vertexLabel("language");
+        PropertyKey dynamic = graph.propertyKey("dynamic");
         // Query vertex by condition (does contain the property name?)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
-        q.eq(HugeKeys.LABEL, "language");
-        q.key(HugeKeys.PROPERTIES, "dynamic");
+        q.eq(HugeKeys.LABEL, language.id());
+        q.key(HugeKeys.PROPERTIES, dynamic.id());
         List<Vertex> vertexes = ImmutableList.copyOf(graph.vertices(q));
 
         Assert.assertEquals(1, vertexes.size());
@@ -819,11 +824,13 @@ public class VertexCoreTest extends BaseCoreTest {
         vertexes = graph.traversal().V().has("age", 21).toList();
         Assert.assertEquals(1, vertexes.size());
 
-        vertexes = graph.traversal().V().has("age", 21.0).toList();
-        Assert.assertEquals(1, vertexes.size());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().has("age", 21.0).toList();
+        });
 
-        vertexes = graph.traversal().V().has("age", "21").toList();
-        Assert.assertEquals(0, vertexes.size());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().has("age", "21").toList();
+        });
     }
 
     @Test
@@ -1152,13 +1159,14 @@ public class VertexCoreTest extends BaseCoreTest {
                         "age", 18, "city", "Beijing");
 
         List<Vertex> vertices;
-        vertices = graph.traversal().V("person:marko").toList();
+        String personId = graph.vertexLabel("person").id().asString();
+        String vid = SplicingIdGenerator.splicing(personId, "marko").asString();
+        vertices = graph.traversal().V(vid).toList();
         Assert.assertEquals(1, vertices.size());
-        Assert.assertEquals("person:marko",
-                            vertices.get(0).id().toString());
+        Assert.assertEquals(vid, vertices.get(0).id().toString());
 
         graph.tx().rollback();
-        vertices = graph.traversal().V("person:marko").toList();
+        vertices = graph.traversal().V(personId + ":marko").toList();
         Assert.assertEquals(0, vertices.size());
     }
 

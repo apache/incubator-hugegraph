@@ -19,33 +19,31 @@
 
 package com.baidu.hugegraph.type.define;
 
-public enum Frequency implements SerialEnum {
+import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.util.CollectionUtil;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
-    DEFAULT(0, "default"),
+public interface SerialEnum {
 
-    SINGLE(1, "single"),
+    public byte code();
 
-    MULTIPLE(2, "multiple");
+    static Table<Class<?>, Byte, SerialEnum> table = HashBasedTable.create();
 
-    private byte code = 0;
-    private String name = null;
-
-    static {
-        SerialEnum.register(Frequency.class);
+    public static void register(Class<? extends SerialEnum> clazz) {
+        Object enums;
+        try {
+            enums = clazz.getMethod("values").invoke(null);
+        } catch (Exception e) {
+            throw new BackendException(e);
+        }
+        for (SerialEnum e : CollectionUtil.<SerialEnum>toList(enums)) {
+            table.put(clazz, e.code(), e);
+        }
     }
 
-    Frequency(int code, String name) {
-        assert code < 256;
-        this.code = (byte) code;
-        this.name = name;
-    }
-
-    @Override
-    public byte code() {
-        return this.code;
-    }
-
-    public String string() {
-        return this.name;
+    @SuppressWarnings("unchecked")
+    public static <T extends SerialEnum> T fromCode(Class<T> clazz, Byte code) {
+        return (T) table.get(clazz, code);
     }
 }

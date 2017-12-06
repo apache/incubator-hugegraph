@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.id;
 
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.E;
@@ -27,20 +26,6 @@ import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public abstract class IdGenerator {
-
-    /****************************** id type **********************************/
-
-    public static enum IdType {
-        LONG,
-        STRING;
-    }
-
-    // This could be set by configurations
-    public static IdType ID_TYPE = IdType.STRING;
-
-    /****************************** id generate ******************************/
-
-    public abstract Id generate(SchemaElement schema);
 
     public abstract Id generate(HugeVertex vertex);
 
@@ -58,53 +43,18 @@ public abstract class IdGenerator {
         return number ? new LongId(bytes) : new StringId(bytes);
     }
 
-    public static Id of(SchemaElement element) {
-        return SplicingIdGenerator.instance().generate(element);
-    }
-
     /**
      * Generate a string id
      */
     public Id generate(String id) {
-        switch (ID_TYPE) {
-            case LONG:
-                return of(Long.parseLong(id));
-            case STRING:
-                return of(id);
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown id type '%s'", ID_TYPE));
-        }
+        return of(id);
     }
 
     /**
      * Generate a long id
      */
     public Id generate(long id) {
-        switch (ID_TYPE) {
-            case LONG:
-                return of(id);
-            case STRING:
-                return of(Long.toHexString(id));
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown id type '%s'", ID_TYPE));
-        }
-    }
-
-    /**
-     * Parse an id from bytes
-     */
-    public Id parse(byte[] bytes) {
-        switch (ID_TYPE) {
-            case LONG:
-                return new LongId(bytes);
-            case STRING:
-                return new StringId(bytes);
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown id type '%s'", ID_TYPE));
-        }
+        return of(id);
     }
 
     /****************************** id defines ******************************/
@@ -125,6 +75,11 @@ public abstract class IdGenerator {
         @Override
         public boolean number() {
             return false;
+        }
+
+        @Override
+        public Object asObject() {
+            return this.id;
         }
 
         @Override
@@ -186,6 +141,11 @@ public abstract class IdGenerator {
         @Override
         public boolean number() {
             return true;
+        }
+
+        @Override
+        public Object asObject() {
+            return this.id;
         }
 
         @Override

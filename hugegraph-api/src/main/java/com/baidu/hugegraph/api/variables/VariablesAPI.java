@@ -62,7 +62,7 @@ public class VariablesAPI extends API {
                         "The variable value can't be empty");
         LOG.debug("Graph [{}] set variable for {}: {}", graph, key, value);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         g.variables().set(key, value.data);
         return ImmutableMap.of(key, value);
     }
@@ -73,7 +73,7 @@ public class VariablesAPI extends API {
                                     @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get variables", graph);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         return g.variables().asMap();
     }
 
@@ -85,7 +85,7 @@ public class VariablesAPI extends API {
                                    @PathParam("key") String key) {
         LOG.debug("Graph [{}] get variable by key '{}'", graph, key);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Map<String, Object> result = new HashMap<>();
         Optional<?> object = g.variables().get(key);
         if (!object.isPresent()) {
@@ -104,7 +104,7 @@ public class VariablesAPI extends API {
                        @PathParam("key") String key) {
         LOG.debug("Graph [{}] remove variable by key '{}'", graph, key);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         g.variables().remove(key);
     }
 

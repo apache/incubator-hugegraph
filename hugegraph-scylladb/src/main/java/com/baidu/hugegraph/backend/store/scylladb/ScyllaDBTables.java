@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-import org.apache.tinkerpop.gremlin.structure.Direction;
-
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -37,8 +35,10 @@ import com.baidu.hugegraph.backend.store.cassandra.CassandraBackendEntry;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraSessionPool;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTable;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTables;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.querybuilder.Delete;
@@ -52,6 +52,10 @@ import com.google.common.collect.ImmutableSet;
 
 public class ScyllaDBTables {
 
+    private static final String NAME =
+                                CassandraTable.formatKey(HugeKeys.NAME);
+    private static final String LABEL =
+                                CassandraTable.formatKey(HugeKeys.LABEL);
     private static final String ELEMENT_IDS =
                                 CassandraTable.formatKey(HugeKeys.ELEMENT_IDS);
 
@@ -63,10 +67,8 @@ public class ScyllaDBTables {
     private static void createIndexTable(CassandraSessionPool.Session session,
                                          String table) {
         Create tableBuilder = SchemaBuilder.createTable(table).ifNotExists();
-        tableBuilder.addPartitionKey(CassandraTable.formatKey(HugeKeys.LABEL),
-                                     DataType.text());
-        tableBuilder.addColumn(CassandraTable.formatKey(HugeKeys.ELEMENT_IDS),
-                               DataType.set(DataType.text()));
+        tableBuilder.addPartitionKey(LABEL, DataType.cint());
+        tableBuilder.addColumn(ELEMENT_IDS, DataType.set(DataType.text()));
         session.execute(tableBuilder);
     }
 
@@ -114,10 +116,10 @@ public class ScyllaDBTables {
             return query;
         }
 
-        ConditionQuery cq = (ConditionQuery) query;
-        String label = (String) cq.condition(HugeKeys.LABEL);
-        if (label != null && cq.allSysprop() && conditions.size() == 1 &&
-            cq.containsCondition(HugeKeys.LABEL, Condition.RelationType.EQ)) {
+        ConditionQuery q = (ConditionQuery) query;
+        Id label = (Id) q.condition(HugeKeys.LABEL);
+        if (label != null && q.allSysprop() && conditions.size() == 1 &&
+            q.containsCondition(HugeKeys.LABEL, Condition.RelationType.EQ)) {
 
             Set<String> ids = queryByLabelIndex(session, table, label);
             if (ids.isEmpty()) {
@@ -125,19 +127,19 @@ public class ScyllaDBTables {
                 return null;
             }
 
-            cq.resetConditions();
+            q.resetConditions();
             for (String id : ids) {
-                cq.query(IdGenerator.of(id));
+                q.query(IdGenerator.of(id));
             }
         }
         return query;
     }
 
     private static Set<String> queryByLabelIndex(
-            CassandraSessionPool.Session session, String table, String label) {
+            CassandraSessionPool.Session session, String table, Id label) {
 
         Select select = QueryBuilder.select().from(table);
-        select.where(CassandraTable.formatEQ(HugeKeys.LABEL, label));
+        select.where(CassandraTable.formatEQ(HugeKeys.LABEL, label.asLong()));
 
         try {
             Iterator<Row> it = session.execute(select).iterator();
@@ -159,13 +161,13 @@ public class ScyllaDBTables {
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
-                                   String indexName,
+                                   String indexLabel,
                                    HugeKeys column) {
             createIndexTable(session, LABEL_INDEX_TABLE);
         }
 
         @Override
-        protected void dropTable(CassandraSessionPool.Session session) {
+        public void dropTable(CassandraSessionPool.Session session) {
             session.execute(SchemaBuilder.dropTable(LABEL_INDEX_TABLE)
                                          .ifExists());
             super.dropTable(session);
@@ -203,13 +205,13 @@ public class ScyllaDBTables {
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
-                                   String indexName,
+                                   String indexLabel,
                                    HugeKeys column) {
             createIndexTable(session, LABEL_INDEX_TABLE);
         }
 
         @Override
-        protected void dropTable(CassandraSessionPool.Session session) {
+        public void dropTable(CassandraSessionPool.Session session) {
             session.execute(SchemaBuilder.dropTable(LABEL_INDEX_TABLE)
                                          .ifExists());
             super.dropTable(session);
@@ -231,7 +233,8 @@ public class ScyllaDBTables {
 
         @Override
         protected void deleteEdgesByLabel(CassandraSessionPool.Session session,
-                                          String label) {
+                                          Id label) {
+
             // Query edge id(s) by label index
             Set<String> ids = queryByLabelIndex(session,
                                                 LABEL_INDEX_TABLE,
@@ -242,14 +245,14 @@ public class ScyllaDBTables {
 
             // Delete index
             Delete del = QueryBuilder.delete().from(LABEL_INDEX_TABLE);
-            del.where(formatEQ(HugeKeys.LABEL, label));
+            del.where(formatEQ(HugeKeys.LABEL, label.asLong()));
             session.add(del);
 
             // Delete edges by id(s)
             List<HugeKeys> idNames = idColumnName();
 
-            BiConsumer<Id, Direction> deleteEdge = (id, direction) -> {
-                List<String> idValues = idColumnValue(id, direction);
+            BiConsumer<Id, Directions> deleteEdge = (id, direction) -> {
+                List<Object> idValues = idColumnValue(id, direction);
                 assert idNames.size() == idValues.size();
 
                 Delete delete = QueryBuilder.delete().from(this.table());
@@ -261,8 +264,8 @@ public class ScyllaDBTables {
 
             for (String s : ids) {
                 Id id = IdGenerator.of(s);
-                deleteEdge.accept(id, Direction.OUT);
-                deleteEdge.accept(id, Direction.IN);
+                deleteEdge.accept(id, Directions.OUT);
+                deleteEdge.accept(id, Directions.IN);
             }
         }
 
@@ -270,6 +273,274 @@ public class ScyllaDBTables {
         public Iterator<BackendEntry> query(
                CassandraSessionPool.Session session, Query query) {
             query = queryByLabelIndex(session, LABEL_INDEX_TABLE, query);
+            if (query == null) {
+                return ImmutableList.<BackendEntry>of().iterator();
+            }
+            return super.query(session, query);
+        }
+    }
+
+    private static class Schema {
+
+        // Index table name
+        private String table;
+
+        public Schema(String table) {
+            this.table = table;
+        }
+
+        public void createIndex(CassandraSessionPool.Session session) {
+            Create create = SchemaBuilder.createTable(this.table)
+                                         .ifNotExists();
+            create.addPartitionKey(NAME, DataType.text());
+            create.addColumn(ELEMENT_IDS, DataType.set(DataType.cint()));
+            session.execute(create);
+        }
+
+        public void dropTable(CassandraSessionPool.Session session) {
+            session.execute(SchemaBuilder.dropTable(this.table).ifExists());
+        }
+
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Update update = QueryBuilder.update(this.table);
+
+            update.with(QueryBuilder.add(ELEMENT_IDS, entry.id().asLong()));
+            update.where(CassandraTable.formatEQ(HugeKeys.NAME,
+                                                 entry.column(HugeKeys.NAME)));
+            session.add(update);
+        }
+
+        public void delete(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry,
+                           String mainTable) {
+            // Get name from main table by id
+            Select select = QueryBuilder.select().from(mainTable);
+            select.where(CassandraTable.formatEQ(HugeKeys.ID,
+                                                 entry.id().asLong()));
+            ResultSet resultSet = session.execute(select);
+            List<Row> rows = resultSet.all();
+            if (rows.size() == 0) {
+                return;
+            }
+
+            String name = rows.get(0).getString(HugeKeys.NAME.string());
+
+            Update update = QueryBuilder.update(this.table);
+            update.with(QueryBuilder.remove(ELEMENT_IDS, entry.id().asLong()));
+            update.where(CassandraTable.formatEQ(HugeKeys.NAME, name));
+            session.add(update);
+        }
+
+        public Query query(CassandraSessionPool.Session session, Query query) {
+            Set<Condition> conditions = query.conditions();
+
+            if (!(query instanceof ConditionQuery) || conditions.isEmpty()) {
+                return query;
+            }
+
+            ConditionQuery q = ((ConditionQuery) query).copy();
+            String name = (String) q.condition(HugeKeys.NAME);
+            if (name != null && q.allSysprop() && conditions.size() == 1 &&
+                q.containsCondition(HugeKeys.NAME, Condition.RelationType.EQ)) {
+
+                Set<Integer> ids = queryByNameIndex(session, this.table, name);
+                if (ids.isEmpty()) {
+                    // Not found data with the specified label
+                    return null;
+                }
+
+                q.resetConditions();
+                for (Integer id : ids) {
+                    q.query(IdGenerator.of(id));
+                }
+            }
+            return q;
+        }
+
+        private static Set<Integer> queryByNameIndex(
+                CassandraSessionPool.Session session,
+                String table, String name) {
+
+            Select select = QueryBuilder.select().from(table);
+            select.where(CassandraTable.formatEQ(HugeKeys.NAME, name));
+
+            try {
+                Iterator<Row> it = session.execute(select).iterator();
+                if (!it.hasNext()) {
+                    return ImmutableSet.of();
+                }
+                Set<Integer> ids = it.next().getSet(ELEMENT_IDS, Integer.class);
+                assert !it.hasNext();
+                return ids;
+            } catch (DriverException e) {
+                throw new BackendException("Failed to query by name '%s'",
+                                           e, name);
+            }
+        }
+    }
+
+    public static class VertexLabel extends CassandraTables.VertexLabel {
+
+        private final Schema schema = new Schema("vl_name_index");
+
+        @Override
+        protected void createIndex(CassandraSessionPool.Session session,
+                                   String indexLabel,
+                                   HugeKeys column) {
+            this.schema.createIndex(session);
+        }
+
+        @Override
+        public void dropTable(CassandraSessionPool.Session session) {
+            this.schema.dropTable(session);
+            super.dropTable(session);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            super.insert(session, entry);
+            this.schema.insert(session, entry);
+        }
+
+        @Override
+        public void delete(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            this.schema.delete(session, entry, this.table());
+            super.delete(session, entry);
+        }
+
+        @Override
+        public Iterator<BackendEntry> query(
+               CassandraSessionPool.Session session, Query query) {
+            query = this.schema.query(session, query);
+            if (query == null) {
+                return ImmutableList.<BackendEntry>of().iterator();
+            }
+            return super.query(session, query);
+        }
+    }
+
+    public static class EdgeLabel extends CassandraTables.EdgeLabel {
+
+        private final Schema schema = new Schema("el_name_index");
+
+        @Override
+        protected void createIndex(CassandraSessionPool.Session session,
+                                   String indexLabel,
+                                   HugeKeys column) {
+            this.schema.createIndex(session);
+        }
+
+        @Override
+        public void dropTable(CassandraSessionPool.Session session) {
+            this.schema.dropTable(session);
+            super.dropTable(session);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            super.insert(session, entry);
+            this.schema.insert(session, entry);
+        }
+
+        @Override
+        public void delete(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            this.schema.delete(session, entry, this.table());
+            super.delete(session, entry);
+        }
+
+        @Override
+        public Iterator<BackendEntry> query(
+               CassandraSessionPool.Session session, Query query) {
+            query = this.schema.query(session, query);
+            if (query == null) {
+                return ImmutableList.<BackendEntry>of().iterator();
+            }
+            return super.query(session, query);
+        }
+    }
+
+    public static class PropertyKey extends CassandraTables.PropertyKey {
+
+        private final Schema schema = new Schema("pk_name_index");
+
+        @Override
+        protected void createIndex(CassandraSessionPool.Session session,
+                                   String indexLabel,
+                                   HugeKeys column) {
+            this.schema.createIndex(session);
+        }
+
+        @Override
+        public void dropTable(CassandraSessionPool.Session session) {
+            this.schema.dropTable(session);
+            super.dropTable(session);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            super.insert(session, entry);
+            this.schema.insert(session, entry);
+        }
+
+        @Override
+        public void delete(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            this.schema.delete(session, entry, this.table());
+            super.delete(session, entry);
+        }
+
+        @Override
+        public Iterator<BackendEntry> query(
+               CassandraSessionPool.Session session, Query query) {
+            query = this.schema.query(session, query);
+            if (query == null) {
+                return ImmutableList.<BackendEntry>of().iterator();
+            }
+            return super.query(session, query);
+        }
+    }
+
+    public static class IndexLabel extends CassandraTables.IndexLabel {
+
+        private final Schema schema = new Schema("il_name_index");
+
+        @Override
+        protected void createIndex(CassandraSessionPool.Session session,
+                                   String indexLabel,
+                                   HugeKeys column) {
+            this.schema.createIndex(session);
+        }
+
+        @Override
+        public void dropTable(CassandraSessionPool.Session session) {
+            this.schema.dropTable(session);
+            super.dropTable(session);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            super.insert(session, entry);
+            this.schema.insert(session, entry);
+        }
+
+        @Override
+        public void delete(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            this.schema.delete(session, entry, this.table());
+            super.delete(session, entry);
+        }
+
+        @Override
+        public Iterator<BackendEntry> query(
+               CassandraSessionPool.Session session, Query query) {
+            query = this.schema.query(session, query);
             if (query == null) {
                 return ImmutableList.<BackendEntry>of().iterator();
             }

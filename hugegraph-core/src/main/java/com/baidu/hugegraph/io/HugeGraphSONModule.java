@@ -183,8 +183,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                    throws IOException {
         jsonGenerator.writeStartObject();
         // Write id
-        jsonGenerator.writeStringField(HugeKeys.ID.string(),
-                                       entry.id().asString());
+        jsonGenerator.writeNumberField(HugeKeys.ID.string(),
+                                       entry.id().asLong());
 
         // Write columns size and data
         for (String name : entry.columnNames()) {

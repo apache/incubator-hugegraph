@@ -33,6 +33,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -109,7 +110,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (index.elementIds().contains(element.id())) {
                     index.resetElementIds();
                     index.elementIds(element.id());
-                    this.eliminateEntry(this.serializer.writeIndex(index));
+                    this.doEliminate(this.serializer.writeIndex(index));
                 }
             }
         }
@@ -118,16 +119,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private void processSecondaryIndexLeft(ConditionQuery query,
                                            HugeElement element) {
         HugeElement elem = element.copyAsFresh();
-        Set<String> propKeys = query.userpropKeys();
-        for (String key : propKeys) {
+        Set<Id> propKeys = query.userpropKeys();
+        for (Id key : propKeys) {
             Object conditionValue = query.userpropValue(key);
             if (conditionValue == null) {
                 // It's inside/between Query (processed in search index)
                 return;
             }
-            Object propValue = elem.value(key);
+            Object propValue = elem.getProperty(key).value();
             if (!propValue.equals(conditionValue)) {
-                elem.property(key, conditionValue);
+                PropertyKey pkey = this.graph().propertyKey(key);
+                elem.addProperty(pkey, conditionValue);
             }
         }
         this.removeSecondaryIndexLeft(element, elem, propKeys);
@@ -135,11 +137,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private void removeSecondaryIndexLeft(HugeElement correctElem,
                                           HugeElement incorrectElem,
-                                          Set<String> propKeys) {
+                                          Set<Id> propKeys) {
         for (IndexLabel il : relatedIndexLabels(incorrectElem)) {
             if (CollectionUtils.containsAny(il.indexFields(), propKeys)) {
-                this.updateIndex(il.name(), incorrectElem, true);
-                this.updateIndex(il.name(), correctElem, false);
+                this.updateIndex(il.id(), incorrectElem, true);
+                this.updateIndex(il.id(), correctElem, false);
             }
         }
     }
@@ -152,51 +154,50 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Update label index if backend store not supports label-query
         HugeIndex index = new HugeIndex(IndexLabel.label(element.type()));
-        index.fieldValues(element.label());
+        index.fieldValues(element.schemaLabel().id().asLong());
         index.elementIds(element.id());
 
         if (removed) {
-            this.eliminateEntry(this.serializer.writeIndex(index));
+            this.doEliminate(this.serializer.writeIndex(index));
         } else {
-            this.appendEntry(this.serializer.writeIndex(index));
+            this.doAppend(this.serializer.writeIndex(index));
         }
     }
 
     @Watched(prefix = "index")
     public void updateVertexIndex(HugeVertex vertex, boolean removed) {
         // Update index(only property, no edge) of a vertex
-        for (String indexName : vertex.vertexLabel().indexNames()) {
-            this.updateIndex(indexName, vertex, removed);
+        for (Id id : vertex.schemaLabel().indexLabels()) {
+            updateIndex(id, vertex, removed);
         }
     }
 
     @Watched(prefix = "index")
     public void updateEdgeIndex(HugeEdge edge, boolean removed) {
         // Update index of an edge
-        for (String indexName : edge.edgeLabel().indexNames()) {
-            this.updateIndex(indexName, edge, removed);
+        for (Id id : edge.schemaLabel().indexLabels()) {
+            updateIndex(id, edge, removed);
         }
     }
 
     /**
      * Update index of (user properties in) vertex or edge
      */
-    @Watched(prefix = "index")
-    protected void updateIndex(String indexName,
+    protected void updateIndex(Id indexLabelId,
                                HugeElement element,
                                boolean removed) {
         SchemaTransaction schema = graph().schemaTransaction();
-        IndexLabel indexLabel = schema.getIndexLabel(indexName);
+        IndexLabel indexLabel = schema.getIndexLabel(indexLabelId);
         E.checkArgumentNotNull(indexLabel,
-                               "Not exist index label: '%s'", indexName);
+                               "Not exist index label: '%s'", indexLabelId);
 
         List<Object> propValues = new ArrayList<>();
-        for (String field : indexLabel.indexFields()) {
-            HugeProperty<Object> property = element.getProperty(field);
+        for (Id fieldId : indexLabel.indexFields()) {
+            HugeProperty<Object> property = element.getProperty(fieldId);
             if (property == null) {
-                E.checkState(hasNullableProp(element, field),
+                E.checkState(hasNullableProp(element, fieldId),
                              "Non-null property '%s' is null for '%s'",
-                             field, element);
+                             fieldId, element);
                 // Not build index for record with nullable field
                 break;
             }
@@ -229,9 +230,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
             index.elementIds(element.id());
 
             if (removed) {
-                this.eliminateEntry(this.serializer.writeIndex(index));
+                this.doEliminate(this.serializer.writeIndex(index));
             } else {
-                this.appendEntry(this.serializer.writeIndex(index));
+                this.doAppend(this.serializer.writeIndex(index));
             }
         }
     }
@@ -279,12 +280,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private Iterator<BackendEntry> queryByLabel(ConditionQuery query) {
         IndexLabel il = IndexLabel.label(query.resultType());
-        String label = (String) query.condition(HugeKeys.LABEL);
+        Id label = (Id) query.condition(HugeKeys.LABEL);
         assert label != null;
 
         ConditionQuery indexQuery;
         indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);
-        indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, il.name());
+        indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
         return super.query(indexQuery);
     }
@@ -292,20 +293,20 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private Iterator<BackendEntry> queryByUserprop(ConditionQuery query) {
         // Get user applied label or collect all qualified labels.
-        Set<String> labels = this.collectQueryLabels(query);
+        Set<Id> labels = this.collectQueryLabels(query);
         if (labels.isEmpty()) {
             throw noIndexException(query, "<any label>");
         }
 
         // Do index query
         ExtendableIterator<BackendEntry> entries = new ExtendableIterator<>();
-        for (String label : labels) {
+        for (Id id : labels) {
             LockUtil.Locks locks = new LockUtil.Locks();
             try {
-                locks.lockReads(LockUtil.INDEX_LABEL, label);
-                locks.lockReads(LockUtil.INDEX_REBUILD, label);
+                locks.lockReads(LockUtil.INDEX_LABEL, id);
+                locks.lockReads(LockUtil.INDEX_REBUILD, id);
                 // Condition => Entry
-                ConditionQuery indexQuery = this.makeIndexQuery(query, label);
+                ConditionQuery indexQuery = this.makeIndexQuery(query, id);
                 // Value type of Condition not matched
                 if (!this.validQueryConditionValues(query)) {
                     assert !entries.hasNext();
@@ -325,30 +326,28 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private boolean validQueryConditionValues(ConditionQuery query) {
-        Set<String> keys = query.userpropKeys();
-        for (String key : keys) {
+        Set<Id> keys = query.userpropKeys();
+        for (Id key : keys) {
             PropertyKey pk = this.graph().propertyKey(key);
             Object value = query.userpropValue(key);
+            /*
+             * NOTE: If condition is not a relation(like and/or) will return
+             * null, so that will skip check
+             */
             if (value == null) {
                 return true;
             }
-            if (pk.dataType().isNumberType()) {
-                if (!(value instanceof Number)) {
-                    return false;
-                }
-            } else {
-                if (!pk.checkValue(value)) {
-                    return false;
-                }
+            if (!pk.checkValue(value)) {
+                return false;
             }
         }
         return true;
     }
 
-    private Set<String> collectQueryLabels(ConditionQuery query) {
-        Set<String> labels = new HashSet<>();
+    private Set<Id> collectQueryLabels(ConditionQuery query) {
+        Set<Id> labels = new HashSet<>();
 
-        String label = (String) query.condition(HugeKeys.LABEL);
+        Id label = (Id) query.condition(HugeKeys.LABEL);
         if (label != null) {
             labels.add(label);
         } else {
@@ -356,12 +355,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
             SchemaTransaction schema = graph().schemaTransaction();
             List<IndexLabel> indexLabels = schema.getIndexLabels();
 
-            Set<String> queryKeys = query.userpropKeys();
+            Set<Id> queryKeys = query.userpropKeys();
             assert queryKeys.size() > 0;
             for (IndexLabel indexLabel : indexLabels) {
-                List<String> indexFields = indexLabel.indexFields();
+                List<Id> fields = indexLabel.indexFields();
                 if (query.resultType() == indexLabel.queryType() &&
-                    matchIndexFields(queryKeys, indexFields)) {
+                    matchIndexFields(queryKeys, fields)) {
                     labels.add(indexLabel.baseValue());
                 }
             }
@@ -370,7 +369,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private ConditionQuery makeIndexQuery(ConditionQuery query, String label) {
+    private ConditionQuery makeIndexQuery(ConditionQuery query, Id label) {
         ConditionQuery indexQuery = null;
         SchemaLabel schemaLabel = null;
 
@@ -387,12 +386,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
                           "Unsupported index query: %s", query.resultType()));
         }
 
-        E.checkArgumentNotNull(schemaLabel, "Invalid label: '%s'", label);
-        Set<String> indexNames = schemaLabel.indexNames();
-        LOG.debug("The label '{}' with index names: {}", label, indexNames);
+        E.checkArgumentNotNull(schemaLabel, "Invalid label id: '%s'", label);
+        Set<Id> indexIds = schemaLabel.indexLabels();
+        LOG.debug("The label '{}' with index names: {}", label, indexIds);
 
-        for (String name : indexNames) {
-            IndexLabel indexLabel = schema.getIndexLabel(name);
+        for (Id id : indexIds) {
+            IndexLabel indexLabel = schema.getIndexLabel(id);
             indexQuery = matchIndexLabel(query, indexLabel);
             if (indexQuery != null) {
                 break;
@@ -400,7 +399,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         if (indexQuery == null) {
-            throw noIndexException(query, label);
+            throw noIndexException(query, schemaLabel.name());
         }
         return indexQuery;
     }
@@ -428,9 +427,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return null;
         }
 
-        Set<String> queryKeys = query.userpropKeys();
-        List<String> indexFields = indexLabel.indexFields();
-
+        Set<Id> queryKeys = query.userpropKeys();
+        List<Id> indexFields = indexLabel.indexFields();
         if (!matchIndexFields(queryKeys, indexFields)) {
             return null;
         }
@@ -439,7 +437,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         ConditionQuery indexQuery;
         if (indexLabel.indexType() == IndexType.SECONDARY) {
-            List<String> joinedKeys = indexFields.subList(0, queryKeys.size());
+            List<Id> joinedKeys = indexFields.subList(0, queryKeys.size());
             String joinedValues = query.userpropValuesString(joinedKeys);
 
             // Escape empty String to "\u0000"
@@ -447,7 +445,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 joinedValues = INDEX_EMPTY_SYM;
             }
             indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);
-            indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
+            indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
             indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
         } else {
             assert indexLabel.indexType() == IndexType.SEARCH;
@@ -466,20 +464,20 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
 
             indexQuery = new ConditionQuery(HugeType.SEARCH_INDEX, query);
-            indexQuery.eq(HugeKeys.INDEX_LABEL_NAME, indexLabel.name());
+            indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
             indexQuery.query(condition);
         }
         return indexQuery;
     }
 
-    private static boolean matchIndexFields(Set<String> queryKeys,
-                                            List<String> indexFields) {
+    private static boolean matchIndexFields(Set<Id> queryKeys,
+                                            List<Id> indexFields) {
         if (queryKeys.size() > indexFields.size()) {
             return false;
         }
 
         // Is queryKeys the prefix of indexFields?
-        List<String> subFields = indexFields.subList(0, queryKeys.size());
+        List<Id> subFields = indexFields.subList(0, queryKeys.size());
         if (!subFields.containsAll(queryKeys)) {
             return false;
         }
@@ -493,26 +491,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                     query.userpropKeys(), label);
     }
 
-    private static boolean hasNullableProp(HugeElement element, String key) {
-        Set<String> nullableKeys;
-        if (element instanceof HugeVertex) {
-            nullableKeys = ((HugeVertex) element).vertexLabel().nullableKeys();
-        } else {
-            assert element instanceof HugeEdge;
-            nullableKeys = ((HugeEdge) element).edgeLabel().nullableKeys();
-        }
-        return nullableKeys.contains(key);
+    private static boolean hasNullableProp(HugeElement element, Id key) {
+        return element.schemaLabel().nullableKeys().contains(key);
     }
 
     private static Set<IndexLabel> relatedIndexLabels(HugeElement element) {
         Set<IndexLabel> indexLabels = new HashSet<>();
-        Set<String> indexNames = element instanceof HugeVertex ?
-                    ((HugeVertex) element).vertexLabel().indexNames() :
-                    ((HugeEdge) element).edgeLabel().indexNames();
+        Set<Id> indexLabelIds = element.schemaLabel().indexLabels();
 
-        SchemaTransaction schema = element.graph().schemaTransaction();
-        for (String indexName : indexNames) {
-            IndexLabel indexLabel = schema.getIndexLabel(indexName);
+        for (Id id : indexLabelIds) {
+            SchemaTransaction schema = element.graph().schemaTransaction();
+            IndexLabel indexLabel = schema.getIndexLabel(id);
             indexLabels.add(indexLabel);
         }
         return indexLabels;
@@ -520,13 +509,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     public void removeIndex(IndexLabel indexLabel) {
         HugeIndex index = new HugeIndex(indexLabel);
-        this.removeEntry(this.serializer.writeIndex(index));
+        this.doRemove(this.serializer.writeIndex(index));
     }
 
-    public void removeIndex(Collection<String> indexNames) {
+    public void removeIndex(Collection<Id> indexLabelIds) {
         SchemaTransaction schema = graph().schemaTransaction();
-        for (String name : indexNames) {
-            IndexLabel indexLabel = schema.getIndexLabel(name);
+        for (Id id : indexLabelIds) {
+            IndexLabel indexLabel = schema.getIndexLabel(id);
             if (indexLabel == null) {
                 /*
                  * TODO: How to deal with non-existent index name:
@@ -544,19 +533,19 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 IndexLabel indexLabel = (IndexLabel) schema;
                 this.rebuildIndex(indexLabel.baseType(),
                                   indexLabel.baseValue(),
-                                  ImmutableSet.of(indexLabel.name()));
+                                  ImmutableSet.of(indexLabel.id()));
                 break;
             case VERTEX_LABEL:
                 VertexLabel vertexLabel = (VertexLabel) schema;
                 this.rebuildIndex(vertexLabel.type(),
-                                  vertexLabel.name(),
-                                  vertexLabel.indexNames());
+                                  vertexLabel.id(),
+                                  vertexLabel.indexLabels());
                 break;
             case EDGE_LABEL:
                 EdgeLabel edgeLabel = (EdgeLabel) schema;
                 this.rebuildIndex(edgeLabel.type(),
-                                  edgeLabel.name(),
-                                  edgeLabel.indexNames());
+                                  edgeLabel.id(),
+                                  edgeLabel.indexLabels());
                 break;
             default:
                 assert schema.type() == HugeType.PROPERTY_KEY;
@@ -565,8 +554,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
     }
 
-    public void rebuildIndex(HugeType type, String label,
-                             Collection<String> indexNames) {
+    public void rebuildIndex(HugeType type, Id label,
+                             Collection<Id> indexLabelIds) {
         GraphTransaction graphTransaction = graph().graphTransaction();
         // Manually commit avoid deletion override add/update
         boolean autoCommit = this.autoCommit();
@@ -574,9 +563,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockWrites(LockUtil.INDEX_REBUILD, indexNames);
-            locks.lockWrites(LockUtil.INDEX_LABEL, indexNames);
-            this.removeIndex(indexNames);
+            locks.lockWrites(LockUtil.INDEX_REBUILD, indexLabelIds);
+            locks.lockWrites(LockUtil.INDEX_LABEL, indexLabelIds);
+            this.removeIndex(indexLabelIds);
             /**
              * Note: Here must commit index transaction firstly.
              * Because remove index convert to (id like <?>:personByCity):
@@ -591,8 +580,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
                 query.eq(HugeKeys.LABEL, label);
                 for (Vertex vertex : graphTransaction.queryVertices(query)) {
-                    for (String indexName : indexNames) {
-                        updateIndex(indexName, (HugeVertex) vertex, false);
+                    for (Id id : indexLabelIds) {
+                        this.updateIndex(id, (HugeVertex) vertex, false);
                     }
                 }
             } else {
@@ -600,8 +589,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
                 query.eq(HugeKeys.LABEL, label);
                 for (Edge edge : graphTransaction.queryEdges(query)) {
-                    for (String indexName : indexNames) {
-                        updateIndex(indexName, (HugeEdge) edge, false);
+                    for (Id id : indexLabelIds) {
+                        this.updateIndex(id, (HugeEdge) edge, false);
                     }
                 }
 

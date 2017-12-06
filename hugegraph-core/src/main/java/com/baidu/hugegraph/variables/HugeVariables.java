@@ -45,10 +45,10 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeVariables implements Graph.Variables {
@@ -165,20 +165,24 @@ public class HugeVariables implements Graph.Variables {
                                Hidden.hide(VARIABLE_TYPE)};
         properties = ArrayUtils.addAll(properties, TYPES);
 
-        VertexLabel vertexLabel = new VertexLabel(Hidden.hide(VARIABLES));
-        vertexLabel.properties(properties);
-        vertexLabel.primaryKeys(Hidden.hide(VARIABLE_KEY));
-        vertexLabel.nullableKeys(TYPES);
-        this.graph.schemaTransaction().addVertexLabel(vertexLabel);
+        VertexLabel.Builder builder = schema.vertexLabel(Hidden.hide(
+                                                         VARIABLES));
+        builder.properties(properties);
+        builder.usePrimaryKeyId();
+        builder.primaryKeys(Hidden.hide(VARIABLE_KEY));
+        builder.nullableKeys(TYPES);
+        this.graph.schemaTransaction().addVertexLabel(builder.build());
 
         LOG.debug("Variables schema created");
     }
 
     private void createPropertyKey(String name, DataType dataType,
                                    Cardinality cardinality) {
-        PropertyKey propertyKey = new PropertyKey(name);
-        propertyKey.dataType(dataType);
-        propertyKey.cardinality(cardinality);
+        SchemaManager schema = this.graph.schema();
+        PropertyKey propertyKey = schema.propertyKey(name)
+                                        .dataType(dataType)
+                                        .cardinality(cardinality)
+                                        .build();
         this.graph.schemaTransaction().addPropertyKey(propertyKey);
     }
 
@@ -334,8 +338,11 @@ public class HugeVariables implements Graph.Variables {
 
     private HugeVertex queryVariableVertex(String key) {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        query.eq(HugeKeys.LABEL, Hidden.hide(VARIABLES));
-        query.query(Condition.eq(Hidden.hide(VARIABLE_KEY), key));
+        VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
+        query.eq(HugeKeys.LABEL, vl.id());
+
+        PropertyKey pkey = this.graph.propertyKey(Hidden.hide(VARIABLE_KEY));
+        query.query(Condition.eq(pkey.id(), key));
         query.showHidden(true);
         Iterator<Vertex> vertices = this.graph.vertices(query);
         if (!vertices.hasNext()) {
@@ -346,7 +353,8 @@ public class HugeVariables implements Graph.Variables {
 
     private Iterator<Vertex> queryAllVariableVertices() {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        query.eq(HugeKeys.LABEL, Hidden.hide(VARIABLES));
+        VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
+        query.eq(HugeKeys.LABEL, vl.id());
         query.showHidden(true);
         return this.graph.vertices(query);
     }

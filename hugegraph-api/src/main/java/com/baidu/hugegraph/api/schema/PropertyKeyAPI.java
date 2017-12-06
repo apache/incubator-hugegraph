@@ -61,11 +61,9 @@ public class PropertyKeyAPI extends API {
                   graph, jsonPropertyKey);
         checkBody(jsonPropertyKey);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
-
-        PropertyKey propertyKey = jsonPropertyKey.convert2PropertyKey();
-        propertyKey = g.schema().propertyKey(propertyKey).create();
-
+        HugeGraph g = graph(manager, graph);
+        PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
+        PropertyKey propertyKey = builder.create();
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
 
@@ -75,9 +73,8 @@ public class PropertyKeyAPI extends API {
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get property keys", graph);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<PropertyKey> propKeys = g.schema().getPropertyKeys();
-
         return manager.serializer(g).writePropertyKeys(propKeys);
     }
 
@@ -89,7 +86,7 @@ public class PropertyKeyAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get property key by name '{}'", graph, name);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         PropertyKey propertyKey = g.schema().getPropertyKey(name);
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
@@ -102,7 +99,7 @@ public class PropertyKeyAPI extends API {
                        @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove property key by name '{}'", graph, name);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // Just check exists
         g.schema().getPropertyKey(name);
         g.schema().propertyKey(name).remove();
@@ -135,19 +132,19 @@ public class PropertyKeyAPI extends API {
                             "support meta properties currently");
         }
 
-        private PropertyKey convert2PropertyKey() {
-            PropertyKey propertyKey = new PropertyKey(this.name);
+        private PropertyKey.Builder convert2Builder(HugeGraph g) {
+            PropertyKey.Builder builder = g.schema().propertyKey(this.name);
             // Weather it can be replacee by java 8 function or consumer
             if (this.cardinality != null) {
-                propertyKey.cardinality(this.cardinality);
+                builder.cardinality(this.cardinality);
             }
             if (this.dataType != null) {
-                propertyKey.dataType(this.dataType);
+                builder.dataType(this.dataType);
             }
             if (this.checkExist != null) {
-                propertyKey.checkExist(this.checkExist);
+                builder.checkExist(this.checkExist);
             }
-            return propertyKey;
+            return builder;
         }
 
         @Override

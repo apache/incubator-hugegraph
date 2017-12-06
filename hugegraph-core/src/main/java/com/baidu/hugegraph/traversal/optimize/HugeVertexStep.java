@@ -29,7 +29,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -42,6 +41,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.ExtendableIterator;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableSet;
 
@@ -109,28 +109,30 @@ public final class HugeVertexStep<E extends Element>
                                !conditions.isEmpty();
 
         Vertex vertex = traverser.get();
-        Direction direction = this.getDirection();
+        Directions direction = Directions.convert(this.getDirection());
         String[] edgeLabels = this.getEdgeLabels();
 
         LOG.debug("HugeVertexStep.edges(): vertex={}, direction={}, " +
                   "edgeLabels={}, has={}",
                   vertex.id(), direction, edgeLabels, this.hasContainers);
 
-        ImmutableSet<Direction> directions = ImmutableSet.of(direction);
+        ImmutableSet<Directions> directions = ImmutableSet.of(direction);
         // Deal with direction is BOTH
-        if (direction == Direction.BOTH) {
-            directions = ImmutableSet.of(Direction.OUT, Direction.IN);
+        if (direction == Directions.BOTH) {
+            directions = ImmutableSet.of(Directions.OUT, Directions.IN);
         }
 
+        Id[] edgeLabelIds = graph.mapElName2Id(edgeLabels);
+
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
-        for (Direction dir : directions) {
+        for (Directions dir : directions) {
             ConditionQuery query = GraphTransaction.constructEdgesQuery(
-                                   (Id) vertex.id(), dir, edgeLabels);
+                                   (Id) vertex.id(), dir, edgeLabelIds);
 
             // Query by sort-keys
             boolean bySortKeys = false;
             if (withEdgeCond && edgeLabels.length > 0) {
-                TraversalUtil.fillConditionQuery(conditions, query);
+                TraversalUtil.fillConditionQuery(conditions, query, graph);
                 if (GraphTransaction.matchEdgeSortKeys(query, graph)) {
                     bySortKeys = true;
                 } else {
@@ -193,7 +195,6 @@ public final class HugeVertexStep<E extends Element>
         this.queryInfo.order(TraversalUtil.string2HugeKey(key),
                              TraversalUtil.convOrder(order));
     }
-
 
     @Override
     public void setRange(long start, long end) {

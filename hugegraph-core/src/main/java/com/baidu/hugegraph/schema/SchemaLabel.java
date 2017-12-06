@@ -24,51 +24,88 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.type.Indexfiable;
-import com.baidu.hugegraph.util.StringUtil;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaLabel extends SchemaElement
                                   implements Indexfiable {
 
-    protected Set<String> nullableKeys;
-    protected Set<String> indexNames;
+    private Set<Id> nullableKeys;
+    private Set<Id> indexLabels;
 
-    public SchemaLabel(String name) {
-        super(name);
-        this.indexNames = new HashSet<>();
+    public SchemaLabel(Id id, String name) {
+        super(id, name);
         this.nullableKeys = new HashSet<>();
+        this.indexLabels = new HashSet<>();
     }
 
-    public SchemaLabel properties(String... keys) {
-        this.properties.addAll(Arrays.asList(keys));
+    public void property(Id id) {
+        this.properties.add(id);
+    }
+
+    public SchemaLabel properties(Id... ids) {
+        this.properties.addAll(Arrays.asList(ids));
         return this;
     }
 
-    public Set<String> nullableKeys() {
+    public Set<Id> nullableKeys() {
         return Collections.unmodifiableSet(this.nullableKeys);
     }
 
-    public SchemaLabel nullableKeys(String... keys) {
-        this.nullableKeys.addAll(Arrays.asList(keys));
-        return this;
+    public void nullableKey(Id id) {
+        this.nullableKeys.add(id);
+    }
+
+    public void nullableKeys(Id... ids) {
+        this.nullableKeys.addAll(Arrays.asList(ids));
+    }
+
+    public void nullableKeys(Set<Id> nullableKeys) {
+        this.nullableKeys.addAll(nullableKeys);
     }
 
     @Override
-    public Set<String> indexNames() {
-        return Collections.unmodifiableSet(this.indexNames);
+    public Set<Id> indexLabels() {
+        return Collections.unmodifiableSet(this.indexLabels);
     }
 
-    public SchemaLabel indexNames(String... names) {
-        this.indexNames.addAll(Arrays.asList(names));
-        return this;
+    public void indexLabel(Id id) {
+        this.indexLabels.add(id);
     }
 
-    public void removeIndexName(String name) {
-        this.indexNames.remove(name);
+    public void indexLabels(Id... ids) {
+        this.indexLabels.addAll(Arrays.asList(ids));
     }
 
+    public void removeIndexLabel(Id id) {
+        this.indexLabels.remove(id);
+    }
 
-    public String nullableKeysSchema() {
-        return StringUtil.desc("nullableKeys", this.nullableKeys);
+    public static Id getLabelId(HugeGraph graph, HugeType type, Object label) {
+        E.checkNotNull(graph, "graph");
+        E.checkNotNull(type, "type");
+        E.checkNotNull(label, "label");
+        if (label instanceof Number) {
+            return IdGenerator.of(((Number) label).longValue());
+        } else if (label instanceof String) {
+            if (type == HugeType.VERTEX) {
+                return graph.vertexLabel((String) label).id();
+            } else if (type == HugeType.EDGE) {
+                return graph.edgeLabel((String) label).id();
+            } else {
+                throw new HugeException(
+                          "Not support query from '%s' with label '%s'",
+                          type, label);
+            }
+        } else {
+            throw new HugeException(
+                      "The label type must be number or string, but got '%s'",
+                      label.getClass());
+        }
     }
 }

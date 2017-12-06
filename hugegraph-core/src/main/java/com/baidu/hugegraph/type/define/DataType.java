@@ -20,13 +20,9 @@
 package com.baidu.hugegraph.type.define;
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.lang.StringUtils;
-
-public enum DataType {
+public enum DataType implements SerialEnum {
 
     // This property has sub properties
     OBJECT(1, "object", Object.class),
@@ -45,25 +41,18 @@ public enum DataType {
     private String name = null;
     private Class<?> clazz = null;
 
-    private static final Map<Byte, DataType> ALL_CODE = new HashMap<>();
-    private static final Map<String, DataType> ALL_NAME = new HashMap<>();
-    private static final Map<Class<?>, DataType> ALL_CLASS = new HashMap<>();
-
     static {
-        for (DataType dataType : values()) {
-            ALL_CODE.put(dataType.code, dataType);
-            ALL_NAME.put(dataType.name, dataType);
-            ALL_CLASS.put(dataType.clazz, dataType);
-        }
+        SerialEnum.register(DataType.class);
     }
 
-    private DataType(int code, String name, Class<?> clazz) {
+    DataType(int code, String name, Class<?> clazz) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
         this.clazz = clazz;
     }
 
+    @Override
     public byte code() {
         return this.code;
     }
@@ -112,17 +101,5 @@ public enum DataType {
             // Unmatched type found
         }
         return number;
-    }
-
-    public String schema() {
-        return String.format(".as%s()", StringUtils.capitalize(this.name));
-    }
-
-    public static DataType fromCode(byte dataType) {
-        return ALL_CODE.get(dataType);
-    }
-
-    public static DataType fromString(String dataType) {
-        return ALL_NAME.get(dataType);
     }
 }

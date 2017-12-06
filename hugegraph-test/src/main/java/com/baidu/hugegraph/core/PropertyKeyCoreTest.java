@@ -175,10 +175,10 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
 
         schema.vertexLabel("person")
-                .properties("name", "age", "city")
-                .primaryKeys("name")
-                .nullableKeys("city")
-                .create();
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
         schema.vertexLabel("book")
               .properties("name")
               .primaryKeys("name")

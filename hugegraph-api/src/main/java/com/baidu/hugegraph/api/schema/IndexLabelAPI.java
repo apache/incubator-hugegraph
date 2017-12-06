@@ -60,11 +60,9 @@ public class IndexLabelAPI extends API {
         LOG.debug("Graph [{}] create index label: {}", graph, jsonIndexLabel);
         checkBody(jsonIndexLabel);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
-
-        IndexLabel indexLabel = jsonIndexLabel.convert2IndexLabel();
-        indexLabel = g.schema().indexLabel(indexLabel).create();
-
+        HugeGraph g = graph(manager, graph);
+        IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
+        IndexLabel indexLabel = builder.create();
         return manager.serializer(g).writeIndexlabel(indexLabel);
     }
 
@@ -74,9 +72,8 @@ public class IndexLabelAPI extends API {
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get edge labels", graph);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<IndexLabel> labels = g.schema().getIndexLabels();
-
         return manager.serializer(g).writeIndexlabels(labels);
     }
 
@@ -88,7 +85,7 @@ public class IndexLabelAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get edge label by name '{}'", graph, name);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         IndexLabel indexLabel = g.schema().getIndexLabel(name);
         return manager.serializer(g).writeIndexlabel(indexLabel);
     }
@@ -101,7 +98,7 @@ public class IndexLabelAPI extends API {
                        @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove index label by name '{}'", graph, name);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // Just check exists
         g.schema().getIndexLabel(name);
         g.schema().indexLabel(name).remove();
@@ -129,29 +126,30 @@ public class IndexLabelAPI extends API {
         public void check(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
                                    "The name of index label can't be null");
+            E.checkArgumentNotNull(this.baseType,
+                                   "The base type of index label " +
+                                   "can't be null");
             E.checkArgument(this.baseType == HugeType.VERTEX_LABEL ||
                             this.baseType == HugeType.EDGE_LABEL,
-                            "The baseType of index label '%s' can only be " +
+                            "The base type of index label '%s' can only be " +
                             "either VERTEX_LABEL or EDGE_LABEL", this.name);
         }
 
-        private IndexLabel convert2IndexLabel() {
-            IndexLabel indexLabel = new IndexLabel(this.name);
-            indexLabel.baseType(this.baseType);
-
+        private IndexLabel.Builder convert2Builder(HugeGraph g) {
+            IndexLabel.Builder builder = g.schema().indexLabel(this.name);
             if (this.baseValue != null) {
-                indexLabel.baseValue(this.baseValue);
+                builder.on(this.baseType, this.baseValue);
             }
             if (this.indexType != null) {
-                indexLabel.indexType(this.indexType);
+                builder.indexType(this.indexType);
             }
             if (this.fields != null) {
-                indexLabel.indexFields(this.fields);
+                builder.by(this.fields);
             }
             if (this.checkExist != null) {
-                indexLabel.checkExist(this.checkExist);
+                builder.checkExist(this.checkExist);
             }
-            return indexLabel;
+            return builder;
         }
 
         @Override

@@ -21,7 +21,9 @@ package com.baidu.hugegraph.type;
 
 import java.util.Set;
 
+import com.baidu.hugegraph.backend.id.Id;
+
 public interface Propfiable {
 
-    public Set<String> properties();
+    public Set<Id> properties();
 }

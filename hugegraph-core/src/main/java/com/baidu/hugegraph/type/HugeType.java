@@ -19,45 +19,67 @@
 
 package com.baidu.hugegraph.type;
 
-public enum HugeType {
+import java.util.HashMap;
+import java.util.Map;
 
-    UNKNOWN(0),
+import com.baidu.hugegraph.type.define.SerialEnum;
+
+public enum HugeType implements SerialEnum {
+
+    UNKNOWN(0, "UNKNOWN"),
 
     /* Schema types */
-    VERTEX_LABEL(1),
-    EDGE_LABEL(2),
-    PROPERTY_KEY(3),
-    INDEX_LABEL(4),
+    VERTEX_LABEL(1, "VL"),
+    EDGE_LABEL(2, "EL"),
+    PROPERTY_KEY(3, "PK"),
+    INDEX_LABEL(4, "IL"),
 
     /* Data types */
-    VERTEX(101),
+    VERTEX(101, "V"),
     // System meta
-    SYS_PROPERTY(102),
+    SYS_PROPERTY(102, "S"),
     // Property
-    PROPERTY(103),
+    PROPERTY(103, "U"),
     // Edge
-    EDGE(120),
+    EDGE(120, "E"),
     // Edge's direction is OUT for the specified vertex
-    EDGE_OUT(130),
+    EDGE_OUT(130, "O"),
     // Edge's direction is IN for the specified vertex
-    EDGE_IN(140),
+    EDGE_IN(140, "I"),
 
-    SECONDARY_INDEX(150),
-    SEARCH_INDEX(160),
+    SECONDARY_INDEX(150, "SI"),
+    SEARCH_INDEX(160, "RI"),
 
-    COUNTERS(250),
+    MAX_TYPE(255, "~");
 
-    MAX_TYPE(255);
-
-    // HugeType define
     private byte type = 0;
+    private String name;
 
-    private HugeType(int type) {
-        assert type < 256;
-        this.type = (byte) type;
+    private static final Map<String, HugeType> ALL_NAME = new HashMap<>();
+
+    static {
+        SerialEnum.register(HugeType.class);
+        for (HugeType type : values()) {
+            ALL_NAME.put(type.name, type);
+        }
     }
 
+    HugeType(int type, String name) {
+        assert type < 256;
+        this.type = (byte) type;
+        this.name = name;
+    }
+
+    @Override
     public byte code() {
         return this.type;
+    }
+
+    public String string() {
+        return this.name;
+    }
+
+    public static HugeType fromString(String type) {
+        return ALL_NAME.get(type);
     }
 }

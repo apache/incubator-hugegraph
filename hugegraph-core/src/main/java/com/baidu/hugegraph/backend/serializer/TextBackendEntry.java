@@ -39,7 +39,6 @@ public class TextBackendEntry implements BackendEntry {
 
     public static final String COLUME_SPLITOR = "\u0001";
     public static final String VALUE_SPLITOR = "\u0002";
-    public static final String IDS_SPLITOR = "\u0003";
 
     private final HugeType type;
     private final Id id;
@@ -134,7 +133,7 @@ public class TextBackendEntry implements BackendEntry {
             String oldValue = this.column(col.getKey());
 
             // TODO: use more general method
-            if (col.getKey().startsWith(HugeType.PROPERTY.name())) {
+            if (col.getKey().startsWith(HugeType.PROPERTY.string())) {
                 this.columns.put(col.getKey(), col.getValue());
                 continue;
             }
@@ -161,8 +160,9 @@ public class TextBackendEntry implements BackendEntry {
             String oldValue = this.column(col.getKey());
 
             // TODO: use more general method
-            if (col.getKey().startsWith(HugeType.PROPERTY.name()) ||
-                col.getKey().startsWith(HugeType.EDGE.name())) {
+            if (col.getKey().startsWith(HugeType.PROPERTY.string()) ||
+                col.getKey().startsWith(HugeType.EDGE_OUT.string()) ||
+                col.getKey().startsWith(HugeType.EDGE_IN.string())) {
                 this.columns.remove(col.getKey());
                 continue;
             }

@@ -41,7 +41,6 @@ import javax.ws.rs.core.Context;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.slf4j.Logger;
@@ -58,6 +57,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -85,7 +85,7 @@ public class EdgeAPI extends API {
         LOG.debug("Graph [{}] create edge: {}", graph, jsonEdge);
         checkBody(jsonEdge);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         if (jsonEdge.sourceLabel != null && jsonEdge.targetLabel != null) {
             // NOTE: Not use SchemaManager because it will throw 404
@@ -124,7 +124,7 @@ public class EdgeAPI extends API {
         LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
         checkBody(jsonEdges);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         checkBatchCount(g, jsonEdges);
 
         TriFunction<HugeGraph, String, String, Vertex> getVertex =
@@ -190,12 +190,13 @@ public class EdgeAPI extends API {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        Graph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         HugeEdge edge = (HugeEdge) g.edges(id).next();
-        EdgeLabel edgeLabel = edge.edgeLabel();
+        EdgeLabel edgeLabel = edge.schemaLabel();
 
         for (String key : jsonEdge.properties.keySet()) {
-            E.checkArgument(edgeLabel.properties().contains(key),
+            PropertyKey pkey = g.propertyKey(key);
+            E.checkArgument(edgeLabel.properties().contains(pkey.id()),
                             "Can't update property for edge '%s' because " +
                             "there is no property key '%s' in its edge label",
                             id, key);
@@ -231,7 +232,7 @@ public class EdgeAPI extends API {
         Direction dir = parseDirection(direction);
         Map<String, Object> props = parseProperties(properties);
 
-        Graph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         GraphTraversal<?, Edge> traversal;
         if (vertexId != null) {
@@ -264,7 +265,7 @@ public class EdgeAPI extends API {
                       @PathParam("id") String id) {
         LOG.debug("Graph [{}] get edge by id '{}'", graph, id);
 
-        Graph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Iterator<Edge> edges = g.edges(id);
         checkExist(edges, HugeType.EDGE, id);
         return manager.serializer(g).writeEdge(edges.next());
@@ -278,7 +279,7 @@ public class EdgeAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
-        Graph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // TODO: add removeEdge(id) to improve
         g.edges(id).next().remove();
     }

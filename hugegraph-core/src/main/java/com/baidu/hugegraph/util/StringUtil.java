@@ -21,12 +21,14 @@ package com.baidu.hugegraph.util;
 
 import java.util.Collection;
 
+import com.baidu.hugegraph.backend.id.Id;
+
 public class StringUtil {
 
-    public static String desc(String prefix, Collection<String> elems) {
+    public static String desc(String prefix, Collection<Id> elems) {
         StringBuilder sb = new StringBuilder();
-        for (String elem : elems) {
-            sb.append("\"").append(elem).append("\",");
+        for (Id elem : elems) {
+            sb.append("\"").append(elem.asString()).append("\",");
         }
         int endIdx = sb.lastIndexOf(",") > 0 ? sb.length() - 1 : sb.length();
         return String.format(".%s(%s)", prefix, sb.substring(0, endIdx));

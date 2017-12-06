@@ -61,11 +61,9 @@ public class EdgeLabelAPI extends API {
         LOG.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
         checkBody(jsonEdgeLabel);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
-
-        EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
-        edgeLabel = g.schema().edgeLabel(edgeLabel).create();
-
+        HugeGraph g = graph(manager, graph);
+        EdgeLabel.Builder builder = jsonEdgeLabel.convert2Builder(g);
+        EdgeLabel edgeLabel = builder.create();
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
 
@@ -84,13 +82,9 @@ public class EdgeLabelAPI extends API {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
-        EdgeLabel edgeLabel = jsonEdgeLabel.convert2EdgeLabel();
-        if (append) {
-            edgeLabel = g.schema().edgeLabel(edgeLabel).append();
-        } else {
-            edgeLabel = g.schema().edgeLabel(edgeLabel).eliminate();
-        }
+        HugeGraph g = graph(manager, graph);
+        EdgeLabel.Builder builder = jsonEdgeLabel.convert2Builder(g);
+        EdgeLabel edgeLabel = append ? builder.append() : builder.eliminate();
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
 
@@ -100,9 +94,8 @@ public class EdgeLabelAPI extends API {
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get edge labels", graph);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<EdgeLabel> labels = g.schema().getEdgeLabels();
-
         return manager.serializer(g).writeEdgeLabels(labels);
     }
 
@@ -114,7 +107,7 @@ public class EdgeLabelAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get edge label by name '{}'", graph, name);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         EdgeLabel edgeLabel = g.schema().getEdgeLabel(name);
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
@@ -127,7 +120,7 @@ public class EdgeLabelAPI extends API {
                        @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove edge label by name '{}'", graph, name);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // Just check exists
         g.schema().getEdgeLabel(name);
         g.schema().edgeLabel(name).remove();
@@ -161,30 +154,30 @@ public class EdgeLabelAPI extends API {
                                    "The name of edge label can't be null");
         }
 
-        private EdgeLabel convert2EdgeLabel() {
-            EdgeLabel edgeLabel = new EdgeLabel(this.name);
+        private EdgeLabel.Builder convert2Builder(HugeGraph g) {
+            EdgeLabel.Builder builder = g.schema().edgeLabel(this.name);
             if (this.sourceLabel != null) {
-                edgeLabel.sourceLabel(this.sourceLabel);
+                builder.sourceLabel(this.sourceLabel);
             }
             if (this.targetLabel != null) {
-                edgeLabel.targetLabel(this.targetLabel);
+                builder.targetLabel(this.targetLabel);
             }
             if (this.frequency != null) {
-                edgeLabel.frequency(this.frequency);
+                builder.frequency(this.frequency);
             }
             if (this.sortKeys != null) {
-                edgeLabel.sortKeys(this.sortKeys);
+                builder.sortKeys(this.sortKeys);
             }
             if (this.nullableKeys != null) {
-                edgeLabel.nullableKeys(this.nullableKeys);
+                builder.nullableKeys(this.nullableKeys);
             }
             if (this.properties != null) {
-                edgeLabel.properties(this.properties);
+                builder.properties(this.properties);
             }
             if (this.checkExist != null) {
-                edgeLabel.checkExist(this.checkExist);
+                builder.checkExist(this.checkExist);
             }
-            return edgeLabel;
+            return builder;
         }
 
         @Override
