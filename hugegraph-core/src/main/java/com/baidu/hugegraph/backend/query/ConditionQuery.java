@@ -326,8 +326,12 @@ public class ConditionQuery extends IdQuery {
         return false;
     }
 
+    public List<ConditionQuery> flatten() {
+        return ConditionQueryFlatten.flatten(this);
+    }
+
     @Override
-    public IdQuery clone() {
+    public ConditionQuery clone() {
         ConditionQuery query = (ConditionQuery) super.clone();
         query.conditions = new LinkedHashSet<>(this.conditions);
         return query;

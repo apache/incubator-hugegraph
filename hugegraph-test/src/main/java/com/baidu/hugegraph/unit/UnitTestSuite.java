@@ -27,7 +27,8 @@ import org.junit.runners.Suite;
     RamCacheTest.class,
     CacheManagerTest.class,
     EventHubTest.class,
-    BackendMutationTest.class
+    BackendMutationTest.class,
+    ConditionQueryFlattenTest.class
 })
 public class UnitTestSuite {
 }
