@@ -23,8 +23,8 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySchemaStore;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemoryGraphStore;
+import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySchemaStore;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -43,18 +43,6 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     public InMemoryDBStoreProvider(String name) {
         this.open(name);
-    }
-
-    private BackendStore load(String name) {
-        LOG.info("InMemoryDBStoreProvider load '{}'", name);
-
-        this.checkOpened();
-        if (!this.stores.containsKey(name)) {
-            this.stores.putIfAbsent(name, new InMemoryDBStore(this, name));
-        }
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        return store;
     }
 
     @Override

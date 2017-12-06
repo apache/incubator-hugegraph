@@ -19,19 +19,13 @@
 
 package com.baidu.hugegraph.backend.store.memory;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
-import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -42,8 +36,6 @@ import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 /**
@@ -85,10 +77,6 @@ public class InMemoryDBStore implements BackendStore {
 
     protected final InMemoryDBTable table(HugeType type) {
         assert type != null;
-        if (type == HugeType.EDGE) {
-            // Edges are stored as columns of corresponding vertices now
-            type = HugeType.VERTEX;
-        }
         InMemoryDBTable table = this.tables.get(type);
         if (table == null) {
             throw new BackendException("Unsupported type: %s", type.name());
@@ -98,194 +86,11 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public Iterable<BackendEntry> query(final Query query) {
-        Map<Id, BackendEntry> rs = queryAll(query.resultType());
-
-        // Query by id(s)
-        if (!query.ids().isEmpty()) {
-            if (query.resultType() == HugeType.EDGE) {
-                // Query edge(in a vertex) by id (or v-id + column-name prefix)
-                // TODO: separate this method into a class
-                rs = queryEdgeById(query.ids(), rs);
-                E.checkState(query.conditions().isEmpty(),
-                             "Not support querying edge by %s",
-                             query);
-            } else {
-                rs = queryById(query.ids(), rs);
-            }
-        }
-
-        // Query by condition(s)
-        if (!query.conditions().isEmpty()) {
-            if (query.resultType() == HugeType.EDGE) {
-                // TODO: separate this method into a class
-                rs = queryEdgeByFilter(query.conditions(), rs);
-            } else {
-                rs = queryByFilter(query.conditions(), rs);
-            }
-        }
-
-        LOG.info("[store {}] return {} for query: {}",
-                 this.name, rs.values(), query);
-        return rs.values();
-    }
-
-    protected Map<Id, BackendEntry> queryAll(HugeType type) {
-        return this.table(type).store();
-    }
-
-    protected Map<Id, BackendEntry> queryById(Set<Id> ids,
-                                              Map<Id, BackendEntry> entries) {
-        assert ids.size() > 0;
-        Map<Id, BackendEntry> rs = new HashMap<>();
-
-        for (Id id : ids) {
-            if (entries.containsKey(id)) {
-                rs.put(id, entries.get(id));
-            }
-        }
+        InMemoryDBTable table = this.table(query.resultType());
+        Iterable<BackendEntry> rs = table.query(query);
+        LOG.debug("[store {}] return {} for query: {}",
+                  this.name, rs, query);
         return rs;
-    }
-
-    protected Map<Id, BackendEntry> queryEdgeById(
-              Set<Id> ids,
-              Map<Id, BackendEntry> entries) {
-        assert ids.size() > 0;
-        Map<Id, BackendEntry> rs = new HashMap<>();
-
-        for (Id id : ids) {
-            // TODO: improve id split
-            String[] parts = SplicingIdGenerator.split(id);
-            Id entryId = IdGenerator.of(parts[0]);
-
-            String column = null;
-            if (parts.length > 1) {
-                parts = Arrays.copyOfRange(parts, 1, parts.length);
-                column = String.join(TextBackendEntry.COLUME_SPLITOR, parts);
-            } else {
-                // All edges
-                assert parts.length == 1;
-            }
-
-            if (entries.containsKey(entryId)) {
-                BackendEntry value = entries.get(entryId);
-                // TODO: Compatible with BackendEntry
-                TextBackendEntry entry = (TextBackendEntry) value;
-                if (column == null) {
-                    // All edges in the vertex
-                    rs.put(entryId, entry);
-                } else if (entry.containsPrefix(column)) {
-                    // An edge in the vertex
-                    BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
-                                                              entryId);
-                    edges.columns(entry.columnsWithPrefix(column));
-
-                    BackendEntry result = rs.get(entryId);
-                    if (result == null) {
-                        rs.put(entryId, edges);
-                    } else {
-                        result.merge(edges);
-                    }
-                }
-            }
-        }
-
-        return rs;
-    }
-
-    protected Map<Id, BackendEntry> queryByFilter(
-              Set<Condition> conditions,
-              Map<Id, BackendEntry> entries) {
-        assert conditions.size() > 0;
-
-        Map<Id, BackendEntry> rs = new HashMap<>();
-
-        for (BackendEntry entry : entries.values()) {
-            // Query by conditions
-            boolean matched = true;
-            for (Condition c : conditions) {
-                if (!matchCondition(entry, c)) {
-                    // TODO: deal with others Condition like: and, or...
-                    matched = false;
-                    break;
-                }
-            }
-            if (matched) {
-                rs.put(entry.id(), entry);
-            }
-        }
-        return rs;
-    }
-
-    protected Map<Id, BackendEntry> queryEdgeByFilter(
-              Set<Condition> conditions,
-              Map<Id, BackendEntry> entries) {
-        if (conditions.isEmpty()) {
-            return entries;
-        }
-
-        // Only support querying edge by label
-        E.checkState(conditions.size() == 1,
-                     "Not support querying edge by %s",
-                     conditions);
-        Condition cond = conditions.iterator().next();
-        E.checkState(cond.isRelation() &&
-                     ((Condition.Relation) cond).serialKey().equals(HugeKeys.LABEL),
-                     "Not support querying edge by %s",
-                     conditions);
-        String label = (String) ((Condition.Relation) cond).serialValue();
-
-        Map<Id, BackendEntry> rs = new HashMap<>();
-
-        for (BackendEntry value : entries.values()) {
-            // TODO: Compatible with BackendEntry
-            TextBackendEntry entry = (TextBackendEntry) value;
-            String out = HugeType.EDGE_OUT + "\u0001" + label;
-            String in = HugeType.EDGE_IN + "\u0001" + label;
-            if (entry.containsPrefix(out)) {
-                BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
-                                                          entry.id());
-                edges.columns(entry.columnsWithPrefix(out));
-                rs.put(edges.id(), edges);
-            }
-            if (entry.containsPrefix(in)) {
-                BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
-                                                          entry.id());
-                edges.columns(entry.columnsWithPrefix(in));
-                BackendEntry result = rs.get(edges.id());
-                if (result == null) {
-                    rs.put(edges.id(), edges);
-                } else {
-                    result.merge(edges);
-                }
-            }
-        }
-
-        return rs;
-    }
-
-    private static boolean matchCondition(BackendEntry item, Condition c) {
-        // TODO: Compatible with BackendEntry
-        TextBackendEntry entry = (TextBackendEntry) item;
-
-        // Not supported by memory
-        if (!(c instanceof Condition.Relation)) {
-            throw new BackendException("Unsupported condition: " + c);
-        }
-
-        Condition.Relation r = (Condition.Relation) c;
-        String key = r.serialKey().toString();
-
-        // TODO: deal with others Relation like: <, >=, ...
-        if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
-            return entry.contains(r.serialValue().toString());
-        } else if (r.relation() == Condition.RelationType.CONTAINS) {
-            return entry.containsValue(r.serialValue().toString());
-        } else if (r.relation() == Condition.RelationType.EQ) {
-            return entry.contains(key, r.serialValue().toString());
-        } else if (entry.contains(key)) {
-            return r.test(entry.column(key));
-        }
-        return false;
     }
 
     @Override
@@ -301,26 +106,22 @@ public class InMemoryDBStore implements BackendStore {
         BackendEntry e = item.entry();
         assert e instanceof TextBackendEntry;
         TextBackendEntry entry = (TextBackendEntry) e;
-        if (entry.type() == HugeType.EDGE) {
-            String ownerVertexId = SplicingIdGenerator.split(entry.id())[0];
-            entry.id(IdGenerator.of(ownerVertexId));
-        }
         InMemoryDBTable table = this.table(entry.type());
         switch (item.action()) {
             case INSERT:
-                LOG.info("[store {}] add entry: {}", this.name, entry);
+                LOG.debug("[store {}] add entry: {}", this.name, entry);
                 table.insert(entry);
                 break;
             case DELETE:
-                LOG.info("[store {}] remove id: {}", this.name, entry.id());
+                LOG.debug("[store {}] remove id: {}", this.name, entry.id());
                 table.delete(entry);
                 break;
             case APPEND:
-                LOG.info("[store {}] append entry: {}", this.name, entry);
+                LOG.debug("[store {}] append entry: {}", this.name, entry);
                 table.append(entry);
                 break;
             case ELIMINATE:
-                LOG.info("[store {}] eliminate entry: {}", this.name, entry);
+                LOG.debug("[store {}] eliminate entry: {}", this.name, entry);
                 table.eliminate(entry);
                 break;
             default:
@@ -412,11 +213,11 @@ public class InMemoryDBStore implements BackendStore {
             super(provider, name);
 
             // TODO: separate edges from vertices
-            registerTableManager(HugeType.VERTEX,
-                                 new InMemoryDBTable(HugeType.VERTEX));
-            // Edge table not used now
-            registerTableManager(HugeType.EDGE,
-                                 new InMemoryDBTable(HugeType.EDGE));
+            InMemoryDBTables.Vertex vertex = new InMemoryDBTables.Vertex();
+            InMemoryDBTables.Edge edge = new InMemoryDBTables.Edge(vertex);
+            registerTableManager(HugeType.VERTEX, vertex);
+            registerTableManager(HugeType.EDGE, edge);
+
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new InMemoryDBTable(HugeType.SECONDARY_INDEX));
             registerTableManager(HugeType.SEARCH_INDEX,
