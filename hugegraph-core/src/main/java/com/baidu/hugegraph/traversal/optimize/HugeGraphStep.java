@@ -83,7 +83,8 @@ public final class HugeGraphStep<S, E extends Element>
             query = new Query(HugeType.VERTEX);
         } else {
             ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
-            query = TraversalUtil.fillConditionQuery(this.hasContainers, q);
+            query = TraversalUtil.fillConditionQuery(this.hasContainers,
+                                                     q, graph);
         }
 
         query.orders(this.queryInfo.orders());
@@ -112,7 +113,8 @@ public final class HugeGraphStep<S, E extends Element>
             query = new Query(HugeType.EDGE);
         } else {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
-            query = TraversalUtil.fillConditionQuery(this.hasContainers, q);
+            query = TraversalUtil.fillConditionQuery(this.hasContainers,
+                                                     q, graph);
         }
 
         query.orders(this.queryInfo.orders());

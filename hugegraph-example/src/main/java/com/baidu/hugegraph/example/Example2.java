@@ -32,23 +32,25 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.util.Log;
 
 public class Example2 {
 
     private static final Logger LOG = Log.logger(Example2.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         LOG.info("Example2 start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
 
         Example2.load(graph);
-        showSchema(graph);
         traversal(graph);
-        System.exit(0);
+
+        graph.close();
+        EventHub.destroy(3);
     }
 
     public static void traversal(final HugeGraph graph) {
@@ -113,7 +115,12 @@ public class Example2 {
         assert paths.get(1).get(1).equals("josh");
         assert paths.get(1).get(2).equals("ripple");
 
-        paths = shortestPath(graph, "person:marko", "software:lop", 5);
+        VertexLabel person = graph.schema().getVertexLabel("person");
+        VertexLabel software = graph.schema().getVertexLabel("software");
+        String markoId = String.format("%s:%s", person.id().asString(),
+                                       "marko");
+        String lopId = String.format("%s:%s", software.id().asString(), "lop");
+        paths = shortestPath(graph, markoId, lopId, 5);
         System.out.println(">>>> test shortest path: " + paths.get(0));
         assert paths.get(0).get(0).equals("marko");
         assert paths.get(0).get(1).equals("lop");
@@ -130,17 +137,6 @@ public class Example2 {
                 .path().by("name")
                 .limit(1);
         return t.toList();
-    }
-
-    public static void showSchema(final HugeGraph graph) {
-        SchemaManager schemaManager = graph.schema();
-
-        LOG.info("===============  show schema  ================");
-
-        List<SchemaElement> elements = schemaManager.desc();
-        for (SchemaElement element : elements) {
-            System.out.println(element.schema());
-        }
     }
 
     public static void load(final HugeGraph graph) {
@@ -162,12 +158,14 @@ public class Example2 {
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
+              .nullableKeys("age")
               .ifNotExist()
               .create();
 
         schema.vertexLabel("software")
               .properties("name", "lang", "price")
               .primaryKeys("name")
+              .nullableKeys("price")
               .ifNotExist()
               .create();
 
@@ -199,15 +197,19 @@ public class Example2 {
               .create();
 
         schema.edgeLabel("knows")
+              .multiTimes()
               .sourceLabel("person")
               .targetLabel("person")
               .properties("date", "weight")
+              .sortKeys("date")
+              .nullableKeys("weight")
               .ifNotExist()
               .create();
 
         schema.edgeLabel("created")
               .sourceLabel("person").targetLabel("software")
               .properties("date", "weight")
+              .nullableKeys("weight")
               .ifNotExist()
               .create();
 
@@ -232,7 +234,7 @@ public class Example2 {
               .ifNotExist()
               .create();
 
-        schema.desc();
+        schema.getAllSchema();
 
         graph.tx().open();
 

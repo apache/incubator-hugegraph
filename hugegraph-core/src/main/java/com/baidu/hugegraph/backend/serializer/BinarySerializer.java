@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.serializer;
 import java.util.Collection;
 
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -50,6 +49,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -76,8 +76,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     @SuppressWarnings("unused")
     private BinaryBackendEntry newBackendEntry(SchemaElement elem) {
-        Id id = IdGenerator.of(elem);
-        return newBackendEntry(elem.type(), id);
+        return newBackendEntry(elem.type(), elem.id());
     }
 
     @Override
@@ -102,19 +101,20 @@ public class BinarySerializer extends AbstractSerializer {
     protected BackendColumn formatLabel(HugeElement elem) {
         BackendColumn col = new BackendColumn();
         col.name = this.formatSyspropName(elem.id(), HugeKeys.LABEL);
-        // TODO: change to save label id
-        col.value = StringEncoding.encode(elem.label());
+        Id label = elem.schemaLabel().id();
+        BytesBuffer buffer = BytesBuffer.allocate(label.length() + 1);
+        col.value = buffer.writeId(label).bytes();
         return col;
     }
 
     protected byte[] formatPropertyName(HugeProperty<?> prop) {
         Id id = prop.element().id();
-        byte[] name = StringEncoding.encode(prop.key());
+        Id pkeyId = prop.propertyKey().id();
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length() +
-                                                  1 + name.length);
+                                                  1 + 1 + pkeyId.length());
         buffer.writeId(id);
         buffer.write(prop.type().code());
-        buffer.write(name);
+        buffer.writeId(pkeyId);
         return buffer.bytes();
     }
 
@@ -130,15 +130,15 @@ public class BinarySerializer extends AbstractSerializer {
         return col;
     }
 
-    protected void parseProperty(String name, byte[] val, HugeElement owner) {
-        PropertyKey pkey = owner.graph().propertyKey(name);
+    protected void parseProperty(Id pkeyId, byte[] val, HugeElement owner) {
+        PropertyKey pkey = owner.graph().propertyKey(pkeyId);
 
         // Parse value
         Object value = JsonUtil.fromJson(StringEncoding.decode(val),
                                          pkey.clazz());
         // Set properties of vertex/edge
         if (pkey.cardinality() == Cardinality.SINGLE) {
-            owner.addProperty(pkey.name(), value);
+            owner.addProperty(pkey, value);
         } else {
             if (!(value instanceof Collection)) {
                 throw new BackendException(
@@ -146,7 +146,7 @@ public class BinarySerializer extends AbstractSerializer {
             }
             for (Object v : (Collection<?>) value) {
                 v = JsonUtil.castNumber(v, pkey.dataType().clazz());
-                owner.addProperty(pkey.name(), v);
+                owner.addProperty(pkey, v);
             }
         }
     }
@@ -158,7 +158,7 @@ public class BinarySerializer extends AbstractSerializer {
 
         buffer.writeId(edge.ownerVertex().id());
         buffer.write(edge.type().code());
-        buffer.writeString(edge.label()); // TODO: change to id
+        buffer.writeId(edge.schemaLabel().id());
         buffer.writeString(edge.name()); // TODO: write if need
         buffer.writeId(edge.otherVertex().id());
 
@@ -166,17 +166,18 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected byte[] formatEdgeValue(HugeEdge edge) {
-        BytesBuffer buffer = BytesBuffer.allocate(6 * edge.getProperties().size());
+        final int propCount = edge.getProperties().size();
+        BytesBuffer buffer = BytesBuffer.allocate(4 + 16 * propCount);
 
         // Write edge id
         //buffer.writeId(edge.id());
 
         // Write edge properties size
-        buffer.writeInt(edge.getProperties().size());
+        buffer.writeInt(propCount);
 
         // Write edge properties data
         for (HugeProperty<?> property : edge.getProperties().values()) {
-            buffer.writeString(property.key());
+            buffer.writeId(property.propertyKey().id());
             buffer.writeBytes(this.formatPropertyValue(property));
         }
 
@@ -197,7 +198,7 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer buffer = BytesBuffer.wrap(col.name);
         Id ownerVertexId = buffer.readId();
         byte type = buffer.read();
-        String labelName = buffer.readString(); // TODO: change to id
+        Id labelId = buffer.readId();
         String sk = buffer.readString();
         Id otherVertexId = buffer.readId();
 
@@ -206,7 +207,7 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         boolean isOutEdge = (type == HugeType.EDGE_OUT.code());
-        EdgeLabel edgeLabel = graph.edgeLabel(labelName);
+        EdgeLabel edgeLabel = graph.edgeLabel(labelId);
         VertexLabel srcLabel = graph.vertexLabel(edgeLabel.sourceLabel());
         VertexLabel tgtLabel = graph.vertexLabel(edgeLabel.targetLabel());
 
@@ -244,7 +245,7 @@ public class BinarySerializer extends AbstractSerializer {
         // Write edge properties
         int size = buffer.readInt();
         for (int i = 0; i < size; i++) {
-            this.parseProperty(buffer.readString(), buffer.readBytes(), edge);
+            this.parseProperty(buffer.readId(), buffer.readBytes(), edge);
         }
 
         edge.name(sk);
@@ -257,8 +258,8 @@ public class BinarySerializer extends AbstractSerializer {
         byte type = buffer.read();
         // Parse property
         if (type == HugeType.PROPERTY.code()) {
-            String name = buffer.readStringFromRemaining();
-            this.parseProperty(name, col.value, vertex);
+            Id pkeyId = buffer.readId();
+            this.parseProperty(pkeyId, col.value, vertex);
         }
         // Parse edge
         else if (type == HugeType.EDGE_IN.code() ||
@@ -306,8 +307,7 @@ public class BinarySerializer extends AbstractSerializer {
         BackendColumn vl = entry.column(VL);
         VertexLabel label = null;
         if (vl != null) {
-            // TODO: change to read vl-id
-            label = graph.vertexLabel(StringEncoding.decode(vl.value));
+            label = graph.vertexLabel(BytesBuffer.wrap(vl.value).readId());
         }
 
         // Parse id
@@ -349,7 +349,7 @@ public class BinarySerializer extends AbstractSerializer {
              * meaningful for deletion of index data in secondary/search index.
              * TODO: improve
              */
-            Id id = IdGenerator.of(index.indexLabelName());
+            Id id = index.indexLabel();
             entry = new BinaryBackendEntry(index.type(),
                                            new BinaryId(id.asBytes(), id));
         } else {
@@ -424,7 +424,7 @@ public class BinarySerializer extends AbstractSerializer {
                     count++;
                 } else {
                     if (key == HugeKeys.DIRECTION) {
-                        value = Direction.OUT;
+                        value = Directions.OUT;
                     } else {
                         break;
                     }
@@ -435,14 +435,16 @@ public class BinarySerializer extends AbstractSerializer {
                     Id id = HugeElement.getIdValue(value);
                     buffer.writeId(id);
                 } else if (key == HugeKeys.DIRECTION) {
-                    byte t = value == Direction.OUT ?
-                             HugeType.EDGE_OUT.code() :
-                             HugeType.EDGE_IN.code();
+                    byte t = ((Directions) value).type().code();
                     buffer.write(t);
-                } else if (value instanceof String) {
+                } else if (key == HugeKeys.LABEL) {
+                    assert value instanceof Id;
+                    buffer.writeId((Id) value);
+                } else if (key == HugeKeys.SORT_VALUES) {
+                    assert value instanceof String;
                     buffer.writeString((String) value);
                 } else {
-                    assert false : value.getClass();
+                    assert false : key;
                 }
             }
 
@@ -461,7 +463,7 @@ public class BinarySerializer extends AbstractSerializer {
             for (Id id : query.ids()) {
                 if (type == HugeType.EDGE) {
                     // Serialize edge id query (TODO: add class EdgeId)
-                    result.query(edgeId(id, Direction.OUT));
+                    result.query(edgeId(id, Directions.OUT));
                 } else {
                     BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
                     result.query(new BinaryId(buffer.writeId(id).bytes(), id));
@@ -473,7 +475,7 @@ public class BinarySerializer extends AbstractSerializer {
         return query;
     }
 
-    private static BinaryId edgeId(Id id, Direction dir) {
+    private static BinaryId edgeId(Id id, Directions dir) {
         BytesBuffer buffer = BytesBuffer.allocate(256);
 
         // TODO: improve Id split()
@@ -482,17 +484,15 @@ public class BinarySerializer extends AbstractSerializer {
         // Ensure edge id with Direction
         // NOTE: we assume the id without Direction if it contains 4 parts
         if (idParts.length == 4) {
-            if (dir == Direction.IN) {
+            if (dir == Directions.IN) {
                 // Swap source-vertex and target-vertex
                 String tmp = idParts[0];
                 idParts[0] = idParts[3];
                 idParts[3] = tmp;
             }
             buffer.writeId(IdGenerator.of(idParts[0])); // long or string
-            buffer.write(dir == Direction.OUT ?
-                         HugeType.EDGE_OUT.code() :
-                         HugeType.EDGE_IN.code());
-            buffer.writeString(idParts[1]); // TODO: change to id
+            buffer.write(dir.type().code());
+            buffer.writeId(SchemaElement.schemaId(idParts[1]));
             buffer.writeString(idParts[2]); // TODO: write if need
             buffer.writeId(IdGenerator.of(idParts[3]));
         } else if (idParts.length == 5) {
@@ -500,7 +500,7 @@ public class BinarySerializer extends AbstractSerializer {
             buffer.write(idParts[1].equals("OUT") ?
                          HugeType.EDGE_OUT.code() :
                          HugeType.EDGE_IN.code());
-            buffer.writeString(idParts[2]); // TODO: change to id
+            buffer.writeId(SchemaElement.schemaId(idParts[2]));
             buffer.writeString(idParts[3]); // TODO: write if need
             buffer.writeId(IdGenerator.of(idParts[4]));
 
@@ -538,11 +538,12 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     private BackendEntry text2bin(BackendEntry entry) {
-        BinaryBackendEntry bin = newBackendEntry(entry.type(), entry.id());
+        Id id = IdGenerator.of(entry.id().asLong());
+        BinaryBackendEntry bin = newBackendEntry(entry.type(), id);
         TextBackendEntry text = (TextBackendEntry) entry;
         for (String name : text.columnNames()) {
             String value = text.column(name);
-            bin.column(joinIdKey(entry.id(), name),
+            bin.column(joinIdKey(id, name),
                        StringEncoding.encode(value));
         }
         return bin;
@@ -553,7 +554,8 @@ public class BinarySerializer extends AbstractSerializer {
             return null;
         }
         BinaryBackendEntry bin = (BinaryBackendEntry) entry;
-        TextBackendEntry text = new TextBackendEntry(null, bin.id().origin());
+        Id id = IdGenerator.of(bin.id().origin().asString());
+        TextBackendEntry text = new TextBackendEntry(null, id);
         for (BackendColumn col : bin.columns()) {
             String name = splitKeyId(col.name);
             String value = StringEncoding.decode(col.value);

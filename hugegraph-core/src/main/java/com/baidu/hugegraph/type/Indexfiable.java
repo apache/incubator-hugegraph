@@ -21,7 +21,9 @@ package com.baidu.hugegraph.type;
 
 import java.util.Set;
 
+import com.baidu.hugegraph.backend.id.Id;
+
 public interface Indexfiable {
 
-    public Set<String> indexNames();
+    public Set<Id> indexLabels();
 }

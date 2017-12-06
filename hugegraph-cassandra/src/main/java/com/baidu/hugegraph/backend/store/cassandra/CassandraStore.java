@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -442,9 +443,13 @@ public abstract class CassandraStore implements BackendStore {
 
     public static class CassandraSchemaStore extends CassandraStore {
 
+        private final CassandraTables.Counters counters;
+
         public CassandraSchemaStore(BackendStoreProvider provider,
                                     String keyspace, String name) {
             super(provider, keyspace, name);
+
+            this.counters = new CassandraTables.Counters();
 
             registerTableManager(HugeType.VERTEX_LABEL,
                                  new CassandraTables.VertexLabel());
@@ -454,6 +459,21 @@ public abstract class CassandraStore implements BackendStore {
                                  new CassandraTables.PropertyKey());
             registerTableManager(HugeType.INDEX_LABEL,
                                  new CassandraTables.IndexLabel());
+        }
+
+        @Override
+        protected void initTables() {
+            super.initTables();
+            this.checkSessionConnected();
+            CassandraSessionPool.Session session = super.sessions.session();
+            this.counters.init(session);
+        }
+
+        @Override
+        public Id nextId(HugeType type) {
+            this.checkSessionConnected();
+            CassandraSessionPool.Session session = super.sessions.session();
+            return this.counters.nextId(session, type);
         }
     }
 
@@ -467,11 +487,16 @@ public abstract class CassandraStore implements BackendStore {
                                  new CassandraTables.Vertex());
             registerTableManager(HugeType.EDGE,
                                  new CassandraTables.Edge());
-
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new CassandraTables.SecondaryIndex());
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new CassandraTables.SearchIndex());
+        }
+
+        @Override
+        public Id nextId(HugeType type) {
+            throw new UnsupportedOperationException(
+                      "CassandraGraphStore.nextId()");
         }
     }
 }

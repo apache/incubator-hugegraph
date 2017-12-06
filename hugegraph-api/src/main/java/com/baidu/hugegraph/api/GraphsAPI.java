@@ -66,7 +66,7 @@ public class GraphsAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Graphs [{}] get graph by name '{}'", name);
 
-        HugeGraph g = (HugeGraph) graph(manager, name);
+        HugeGraph g = graph(manager, name);
         return ImmutableMap.of("name", g.name());
     }
 
@@ -78,7 +78,7 @@ public class GraphsAPI extends API {
                         @QueryParam("token") String token) {
         LOG.debug("Graphs [{}] get graph by name '{}'", name);
 
-        HugeGraph g = (HugeGraph) graph(manager, name);
+        HugeGraph g = graph(manager, name);
 
         if (!verifyToken(g, token)) {
             throw new NotAuthorizedException("Invalid token");
@@ -101,7 +101,7 @@ public class GraphsAPI extends API {
                       @QueryParam("confirm_message") String message) {
         LOG.debug("Graphs [{}] clear graph by name '{}'", name);
 
-        HugeGraph g = (HugeGraph) graph(manager, name);
+        HugeGraph g = graph(manager, name);
 
         if (!verifyToken(g, token)) {
             throw new NotAuthorizedException("Invalid token");

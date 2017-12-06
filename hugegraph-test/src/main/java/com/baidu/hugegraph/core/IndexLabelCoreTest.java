@@ -58,13 +58,12 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertNotNull(personByCity);
         Assert.assertNotNull(personByAge);
-        Assert.assertEquals(2, person.indexNames().size());
-        Assert.assertTrue(person.indexNames().contains("personByCity"));
-        Assert.assertTrue(person.indexNames().contains("personByAge"));
+        Assert.assertEquals(2, person.indexLabels().size());
+        assertContainsIl(person.indexLabels(), "personByCity", "personByAge");
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByCity.baseType());
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByAge.baseType());
-        Assert.assertEquals("person", personByCity.baseValue());
-        Assert.assertEquals("person", personByAge.baseValue());
+        assertVLEqual("person", personByCity.baseValue());
+        assertVLEqual("person", personByAge.baseValue());
         Assert.assertEquals(IndexType.SECONDARY, personByCity.indexType());
         Assert.assertEquals(IndexType.SEARCH, personByAge.indexType());
     }
@@ -124,10 +123,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         IndexLabel authoredByContri = schema.getIndexLabel("authoredByContri");
 
         Assert.assertNotNull(authoredByContri);
-        Assert.assertEquals(1, authored.indexNames().size());
-        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+        Assert.assertEquals(1, authored.indexLabels().size());
+        assertContainsIl(authored.indexLabels(), "authoredByContri");
         Assert.assertEquals(HugeType.EDGE_LABEL, authoredByContri.baseType());
-        Assert.assertEquals("authored", authoredByContri.baseValue());
+        assertELEqual("authored", authoredByContri.baseValue());
         Assert.assertEquals(IndexType.SECONDARY, authoredByContri.indexType());
     }
 
@@ -374,7 +373,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, vertices.size());
         vertices = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(1, vertices.size());
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().has("city", "Hongkong")
                  .has("age", "3").toList();
         });
@@ -419,7 +418,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, vertices.size());
         vertices = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(1, vertices.size());
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().has("city", "Hongkong")
                  .has("age", "3").toList();
         });
@@ -460,9 +459,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("age").create();
         VertexLabel person = schema.getVertexLabel("person");
 
-        Assert.assertEquals(2, person.indexNames().size());
-        Assert.assertTrue(person.indexNames().contains("personByCity"));
-        Assert.assertTrue(person.indexNames().contains("personByAge"));
+        Assert.assertEquals(2, person.indexLabels().size());
+        assertContainsIl(person.indexLabels(), "personByCity", "personByAge");
 
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
@@ -480,9 +478,9 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         });
 
         person = schema.getVertexLabel("person");
-        Assert.assertEquals(1, person.indexNames().size());
-        Assert.assertTrue(!person.indexNames().contains("personByCity"));
-        Assert.assertTrue(person.indexNames().contains("personByAge"));
+        Assert.assertEquals(1, person.indexLabels().size());
+        assertNotContainsIl(person.indexLabels(), "personByCity");
+        assertContainsIl(person.indexLabels(), "personByAge");
 
         Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().V().hasLabel("person")
@@ -499,7 +497,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         });
 
         person = schema.getVertexLabel("person");
-        Assert.assertEquals(0, person.indexNames().size());
+        Assert.assertEquals(0, person.indexLabels().size());
 
         Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().V().hasLabel("person")
@@ -529,8 +527,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         EdgeLabel authored = schema.getEdgeLabel("authored");
 
-        Assert.assertEquals(1, authored.indexNames().size());
-        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+        Assert.assertEquals(1, authored.indexLabels().size());
+        assertContainsIl(authored.indexLabels(), "authoredByContri");
 
         james.addEdge("authored", java1,"contribution", "test");
 
@@ -549,7 +547,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
          * dynamically modified with index label operation
          */
         authored = schema.getEdgeLabel("authored");
-        Assert.assertEquals(0, authored.indexNames().size());
+        Assert.assertEquals(0, authored.indexLabels().size());
 
         Assert.assertThrows(BackendException.class, () -> {
             graph().traversal().E().hasLabel("authored")
@@ -570,9 +568,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         schema.indexLabel("personByAge").onV("person").search()
               .by("age").create();
         VertexLabel person = schema.getVertexLabel("person");
-        Assert.assertEquals(2, person.indexNames().size());
-        Assert.assertTrue(person.indexNames().contains("personByCity"));
-        Assert.assertTrue(person.indexNames().contains("personByAge"));
+        Assert.assertEquals(2, person.indexLabels().size());
+        assertContainsIl(person.indexLabels(), "personByCity", "personByAge");
 
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
@@ -608,9 +605,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("age").create();
 
         VertexLabel person = schema.getVertexLabel("person");
-        Assert.assertEquals(2, person.indexNames().size());
-        Assert.assertTrue(person.indexNames().contains("personByCity"));
-        Assert.assertTrue(person.indexNames().contains("personByAge"));
+        Assert.assertEquals(2, person.indexLabels().size());
+        assertContainsIl(person.indexLabels(), "personByCity", "personByAge");
 
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
@@ -652,8 +648,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         EdgeLabel authored = schema.getEdgeLabel("authored");
 
-        Assert.assertEquals(1, authored.indexNames().size());
-        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+        Assert.assertEquals(1, authored.indexLabels().size());
+        assertContainsIl(authored.indexLabels(), "authoredByContri");
 
         james.addEdge("authored", java1,"contribution", "test");
 
@@ -662,8 +658,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertNotNull(edge);
 
         schema.indexLabel("authoredByContri").rebuild();
-        Assert.assertEquals(1, authored.indexNames().size());
-        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+        Assert.assertEquals(1, authored.indexLabels().size());
+        assertContainsIl(authored.indexLabels(), "authoredByContri");
 
         edge = graph().traversal().E().hasLabel("authored")
                .has("contribution", "test").next();
@@ -692,8 +688,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         EdgeLabel authored = schema.getEdgeLabel("authored");
 
-        Assert.assertEquals(1, authored.indexNames().size());
-        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+        Assert.assertEquals(1, authored.indexLabels().size());
+        assertContainsIl(authored.indexLabels(), "authoredByContri");
 
         james.addEdge("authored", java1,"contribution", "test");
 
@@ -702,8 +698,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertNotNull(edge);
 
         schema.edgeLabel("authored").rebuildIndex();
-        Assert.assertEquals(1, authored.indexNames().size());
-        Assert.assertTrue(authored.indexNames().contains("authoredByContri"));
+        Assert.assertEquals(1, authored.indexLabels().size());
+        assertContainsIl(authored.indexLabels(), "authoredByContri");
         edge = graph().traversal().E().hasLabel("authored")
                .has("contribution", "test").next();
         Assert.assertNotNull(edge);

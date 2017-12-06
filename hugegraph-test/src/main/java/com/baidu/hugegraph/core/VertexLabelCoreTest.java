@@ -50,11 +50,9 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
         Assert.assertEquals(3, person.properties().size());
-        Assert.assertTrue(person.properties().contains("name"));
-        Assert.assertTrue(person.properties().contains("age"));
-        Assert.assertTrue(person.properties().contains("city"));
+        assertContainsPk(person.properties(), "name", "age", "city");
         Assert.assertEquals(1, person.primaryKeys().size());
-        Assert.assertTrue(person.primaryKeys().contains("name"));
+        assertContainsPk(person.primaryKeys(), "name");
     }
 
     @Test
@@ -315,12 +313,9 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
         Assert.assertEquals(3, person.properties().size());
-        Assert.assertTrue(person.properties().contains("name"));
-        Assert.assertTrue(person.properties().contains("age"));
-        Assert.assertTrue(person.properties().contains("city"));
+        assertContainsPk(person.properties(), "name", "age", "city");
         Assert.assertEquals(2, person.primaryKeys().size());
-        Assert.assertTrue(person.primaryKeys().contains("name"));
-        Assert.assertTrue(person.primaryKeys().contains("age"));
+        assertContainsPk(person.primaryKeys(), "name", "age");
     }
 
     @Test
@@ -418,13 +413,11 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
         Assert.assertEquals(3, person.properties().size());
-        Assert.assertTrue(person.properties().contains("name"));
-        Assert.assertTrue(person.properties().contains("age"));
-        Assert.assertTrue(person.properties().contains("city"));
+        assertContainsPk(person.properties(), "name", "age", "city");
         Assert.assertEquals(1, person.primaryKeys().size());
-        Assert.assertTrue(person.primaryKeys().contains("name"));
+        assertContainsPk(person.primaryKeys(), "name");
         Assert.assertEquals(1, person.nullableKeys().size());
-        Assert.assertTrue(person.nullableKeys().contains("city"));
+        assertContainsPk(person.nullableKeys(), "city");
     }
 
     @Test
@@ -522,14 +515,11 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
         Assert.assertEquals(3, person.properties().size());
-        Assert.assertTrue(person.properties().contains("name"));
-        Assert.assertTrue(person.properties().contains("age"));
-        Assert.assertTrue(person.properties().contains("city"));
+        assertContainsPk(person.properties(), "name", "age", "city");
         Assert.assertEquals(1, person.primaryKeys().size());
-        Assert.assertTrue(person.primaryKeys().contains("name"));
+        assertContainsPk(person.primaryKeys(), "name");
         Assert.assertEquals(2, person.nullableKeys().size());
-        Assert.assertTrue(person.nullableKeys().contains("age"));
-        Assert.assertTrue(person.nullableKeys().contains("city"));
+        assertContainsPk(person.nullableKeys(), "age", "city");
     }
 
     @Test
@@ -550,13 +540,11 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
         Assert.assertEquals(3, person.properties().size());
-        Assert.assertTrue(person.properties().contains("name"));
-        Assert.assertTrue(person.properties().contains("age"));
-        Assert.assertTrue(person.properties().contains("city"));
+        assertContainsPk(person.properties(), "name", "age", "city");
         Assert.assertEquals(1, person.primaryKeys().size());
-        Assert.assertTrue(person.primaryKeys().contains("name"));
+        assertContainsPk(person.primaryKeys(), "name");
         Assert.assertEquals(1, person.nullableKeys().size());
-        Assert.assertTrue(person.nullableKeys().contains("city"));
+        assertContainsPk(person.nullableKeys(), "city");
     }
 
     @Test

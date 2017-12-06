@@ -22,43 +22,30 @@ package com.baidu.hugegraph.schema;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.exception.ExistedException;
-import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.schema.builder.IndexLabelBuilder;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.Cardinality;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.util.CollectionUtil;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.NumericUtil;
 
 public class IndexLabel extends SchemaElement {
 
     private HugeType baseType;
-    private String baseValue;
+    private Id baseValue;
     private IndexType indexType;
-    private List<String> indexFields;
+    private List<Id> indexFields;
 
-    public IndexLabel(String name) {
-        this(name, null, null);
-    }
-
-    public IndexLabel(String name, HugeType baseType, String baseValue) {
-        super(name);
-        this.baseType = baseType;
-        this.baseValue = baseValue;
+    public IndexLabel(Id id, String name) {
+        super(id, name);
         this.indexType = IndexType.SECONDARY;
         this.indexFields = new ArrayList<>();
+    }
+
+    protected IndexLabel(long id, String name) {
+        this(IdGenerator.of(id), name);
     }
 
     @Override
@@ -74,12 +61,12 @@ public class IndexLabel extends SchemaElement {
         this.baseType = baseType;
     }
 
-    public String baseValue() {
+    public Id baseValue() {
         return this.baseValue;
     }
 
-    public void baseValue(String baseValue) {
-        this.baseValue = baseValue;
+    public void baseValue(Id id) {
+        this.baseValue = id;
     }
 
     public IndexType indexType() {
@@ -100,341 +87,93 @@ public class IndexLabel extends SchemaElement {
                 throw new AssertionError(String.format(
                           "Query type of index label is either '%s' or '%s', " +
                           "but '%s' is used",
-                          HugeType.VERTEX_LABEL,
-                          HugeType.EDGE_LABEL,
+                          HugeType.VERTEX_LABEL, HugeType.EDGE_LABEL,
                           this.baseType));
         }
     }
 
-    public List<String> indexFields() {
+    public List<Id> indexFields() {
         return Collections.unmodifiableList(this.indexFields);
     }
 
-    public void indexFields(String... fields) {
-        if (fields.length == 0) {
-            return;
-        }
-        E.checkArgument(this.indexFields.isEmpty(),
-                        "Not allowed to assign index fields multitimes");
-        List<String> indexFields = Arrays.asList(fields);
-        E.checkArgument(CollectionUtil.allUnique(indexFields),
-                        "Invalid index fields %s, which contains some " +
-                        "duplicate properties", indexFields);
-        this.indexFields.addAll(indexFields);
+    public void indexField(Id id) {
+        this.indexFields.add(id);
     }
 
-    @Override
-    public String schema() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("schema.indexLabel(\"").append(this.name).append("\")");
-        sb.append(this.baseLabelSchema());
-        sb.append(this.indexFieldsSchema());
-        sb.append(this.indexType.schema());
-        sb.append(".ifNotExist()");
-        sb.append(".create();");
-        return sb.toString();
+    public void indexFields(Id... ids) {
+        this.indexFields.addAll(Arrays.asList(ids));
     }
 
-    // TODO: Print the element name instead of object may lead custom confused.
-    private String baseLabelSchema() {
-        if (this.baseType == HugeType.VERTEX_LABEL) {
-            return String.format(".onV(\"%s\")", this.baseValue);
-        } else {
-            assert this.baseType == HugeType.EDGE_LABEL;
-            return String.format(".onE(\"%s\")", this.baseValue);
-        }
-    }
+    public static final IndexLabel VL_IL = new IndexLabel(-1, "~vli");
+    public static final IndexLabel EL_IL = new IndexLabel(-2, "~eli");
 
-    private String indexFieldsSchema() {
-        StringBuilder sb = new StringBuilder();
-        for (String indexField : this.indexFields) {
-            sb.append("\"").append(indexField).append("\",");
-        }
-        int endIdx = sb.lastIndexOf(",") > 0 ? sb.length() - 1 : sb.length();
-        return String.format(".by(%s)", sb.substring(0, endIdx));
-    }
-
-    static class PrimitiveIndexLabel extends IndexLabel {
-
-        public PrimitiveIndexLabel(String name) {
-            super(name);
-            // TODO: add indexFields and id(from -1)
-        }
-
-        @Override
-        public boolean primitive() {
-            return true;
-        }
-    }
-
-    public static final IndexLabel VL_IL = new PrimitiveIndexLabel("~vli");
-    public static final IndexLabel EL_IL = new PrimitiveIndexLabel("~eli");
+    public static final IndexLabel PK_NAME_IL = new IndexLabel(-3, "~pkni");
+    public static final IndexLabel VL_NAME_IL = new IndexLabel(-4, "~vlni");
+    public static final IndexLabel EL_NAME_IL = new IndexLabel(-5, "~elni");
+    public static final IndexLabel IL_NAME_IL = new IndexLabel(-6, "~ilni");
 
     public static IndexLabel label(HugeType type) {
-        if (type == HugeType.VERTEX) {
-            return VL_IL;
-        } else if (type == HugeType.EDGE || // TODO: just EDGE when separate e-p
-                   type == HugeType.EDGE_OUT || type == HugeType.EDGE_IN) {
-            return EL_IL;
+        switch (type) {
+            case VERTEX:
+                return VL_IL;
+            case EDGE:
+            case EDGE_OUT:
+            case EDGE_IN:
+                return EL_IL;
+            case PROPERTY_KEY:
+                return PK_NAME_IL;
+            case VERTEX_LABEL:
+                return VL_NAME_IL;
+            case EDGE_LABEL:
+                return EL_NAME_IL;
+            case INDEX_LABEL:
+                return IL_NAME_IL;
+            default:
+                throw new AssertionError(String.format(
+                          "No primitive index label for '%s'", type));
         }
-        throw new AssertionError("No index label for " + type);
     }
 
-    public static IndexLabel indexLabel(HugeGraph graph, String il) {
+    public static IndexLabel label(HugeGraph graph, Id id) {
         // Primitive IndexLabel first
-        if (VL_IL.name().equals(il)) {
-            return VL_IL;
+        if (id.asLong() < 0) {
+            switch ((int) id.asLong()) {
+                case -1:
+                    return VL_IL;
+                case -2:
+                    return EL_IL;
+                case -3:
+                    return PK_NAME_IL;
+                case -4:
+                    return VL_NAME_IL;
+                case -5:
+                    return EL_NAME_IL;
+                case -6:
+                    return IL_NAME_IL;
+                default:
+                    throw new AssertionError(String.format(
+                              "No primitive index label for '%s'", id));
+            }
         }
-        if (EL_IL.name().equals(il)) {
-            return EL_IL;
-        }
-
-        return graph.indexLabel(il);
+        return graph.indexLabel(id);
     }
 
-    public static class Builder implements IndexLabelBuilder {
+    public interface Builder extends SchemaBuilder<IndexLabel> {
 
-        private IndexLabel indexLabel;
-        private SchemaTransaction transaction;
+        void rebuild();
 
-        public Builder(String name, SchemaTransaction transaction) {
-            this(new IndexLabel(name), transaction);
-        }
+        Builder onV(String baseValue);
 
-        public Builder(IndexLabel indexLabel, SchemaTransaction transaction) {
-            E.checkNotNull(indexLabel, "indexLabel");
-            E.checkNotNull(transaction, "transaction");
-            this.indexLabel = indexLabel;
-            this.transaction = transaction;
-        }
+        Builder onE(String baseValue);
 
-        @Override
-        public IndexLabel create() {
-            String name = this.indexLabel.name();
-            HugeConfig config = this.transaction.graph().configuration();
-            checkName(name, config.get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX));
+        Builder by(String... fields);
 
-            IndexLabel indexLabel = this.transaction.getIndexLabel(name);
-            if (indexLabel != null) {
-                if (this.indexLabel.checkExist) {
-                    throw new ExistedException("index label", name);
-                }
-                return indexLabel;
-            }
+        Builder secondary();
 
-            SchemaLabel schemaLabel = this.loadElement();
-            E.checkArgumentNotNull(schemaLabel,
-                                   "Can't find the %s with name '%s'",
-                                   this.indexLabel.baseType,
-                                   this.indexLabel.baseValue);
+        Builder search();
 
-            this.checkFields(schemaLabel.properties);
+        Builder on(HugeType baseType, String baseValue);
 
-            /*
-             * If new index label is prefix of existed index label, or has
-             * the same fields, fail to create new index label.
-             */
-            this.checkRepeatIndex(schemaLabel);
-
-            // Delete index label which is prefix of the new index label
-            // TODO: use event to replace direct call
-            this.removeSubIndex(schemaLabel);
-
-            // TODO: should wrap update and add operation in one transaction.
-            this.updateSchemaIndexName(schemaLabel);
-
-            this.transaction.addIndexLabel(this.indexLabel);
-
-            // TODO: use event to replace direct call
-            this.rebuildIndexIfNeeded();
-
-            return this.indexLabel;
-        }
-
-        @Override
-        public IndexLabel append() {
-            throw new NotSupportException("action append on index label");
-        }
-
-        @Override
-        public IndexLabel eliminate() {
-            throw new NotSupportException("action eliminate on index label");
-        }
-
-        @Override
-        public void remove() {
-            this.transaction.removeIndexLabel(this.indexLabel.name);
-        }
-
-        public void rebuildIndexIfNeeded() {
-            if (this.indexLabel.baseType() == HugeType.VERTEX_LABEL) {
-                ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-                query.eq(HugeKeys.LABEL, this.indexLabel.baseValue);
-                query.limit(1L);
-                if (this.transaction.graph().graphTransaction()
-                        .queryVertices(query).iterator().hasNext()) {
-                    this.transaction.rebuildIndex(this.indexLabel);
-                }
-            } else {
-                assert this.indexLabel.baseType() == HugeType.EDGE_LABEL;
-                ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-                query.eq(HugeKeys.LABEL, this.indexLabel.baseValue);
-                query.limit(1L);
-                if (this.transaction.graph().graphTransaction()
-                        .queryEdges(query).iterator().hasNext()) {
-                    this.transaction.rebuildIndex(this.indexLabel);
-                }
-            }
-        }
-
-        public void rebuild() {
-            this.transaction.rebuildIndex(this.indexLabel);
-        }
-
-        @Override
-        public Builder onV(String baseValue) {
-            this.indexLabel.baseType = HugeType.VERTEX_LABEL;
-            this.indexLabel.baseValue = baseValue;
-            return this;
-        }
-
-        @Override
-        public Builder onE(String baseValue) {
-            this.indexLabel.baseType = HugeType.EDGE_LABEL;
-            this.indexLabel.baseValue = baseValue;
-            return this;
-        }
-
-        @Override
-        public Builder by(String... fields) {
-            this.indexLabel.indexFields(fields);
-            return this;
-        }
-
-        @Override
-        public Builder secondary() {
-            this.indexLabel.indexType(IndexType.SECONDARY);
-            return this;
-        }
-
-        @Override
-        public Builder search() {
-            this.indexLabel.indexType(IndexType.SEARCH);
-            return this;
-        }
-
-        public Builder ifNotExist() {
-            this.indexLabel.checkExist = false;
-            return this;
-        }
-
-        private SchemaLabel loadElement() {
-            HugeType baseType = this.indexLabel.baseType;
-            E.checkNotNull(baseType, "base type", "index label");
-            String baseValue = this.indexLabel.baseValue;
-            E.checkNotNull(baseValue, "base value", "index label");
-            switch (baseType) {
-                case VERTEX_LABEL:
-                    return this.transaction.getVertexLabel(baseValue);
-                case EDGE_LABEL:
-                    return this.transaction.getEdgeLabel(baseValue);
-                default:
-                    throw new AssertionError(String.format(
-                              "Unsupported base type '%s' of index label '%s'",
-                              baseType, this.indexLabel.name));
-            }
-        }
-
-        private void checkFields(Set<String> properties) {
-            List<String> fields = this.indexLabel.indexFields;
-            E.checkNotEmpty(fields, "index fields", this.indexLabel.name);
-
-            E.checkArgument(CollectionUtil.containsAll(properties, fields),
-                            "Not all index fields '%s' are contained in " +
-                            "'%s' properties %s",
-                            fields, this.indexLabel.baseValue, properties);
-
-            for (String field : fields) {
-                PropertyKey pk = this.transaction.getPropertyKey(field);
-                // In general this will not happen
-                E.checkArgumentNotNull(pk, "Can't build index on undefined " +
-                                       "property key '%s' for '%s': '%s'",
-                                       field, this.indexLabel.baseType,
-                                       this.indexLabel.baseValue);
-                E.checkArgument(pk.cardinality() == Cardinality.SINGLE,
-                                "Not allowed to build index on property key " +
-                                "'%s' whose cardinality is list or set.",
-                                pk.name());
-            }
-
-            // Search index must build on single numeric column
-            if (this.indexLabel.indexType == IndexType.SEARCH) {
-                E.checkArgument(fields.size() == 1,
-                                "Search index can only build on " +
-                                "one property, but got %s properties: '%s'",
-                                fields.size(), fields);
-                String field = fields.iterator().next();
-                PropertyKey pk = this.transaction.getPropertyKey(field);
-                E.checkArgument(NumericUtil.isNumber(pk.dataType().clazz()),
-                                "Search index can only build on " +
-                                "numeric property, but got %s(%s)",
-                                pk.dataType(), pk.name());
-            }
-        }
-
-        protected void updateSchemaIndexName(SchemaLabel schemaLabel) {
-            schemaLabel.indexNames(this.indexLabel.name());
-            switch (this.indexLabel.baseType) {
-                case VERTEX_LABEL:
-                    this.transaction.addVertexLabel((VertexLabel) schemaLabel);
-                    break;
-                case EDGE_LABEL:
-                    this.transaction.addEdgeLabel((EdgeLabel) schemaLabel);
-                    break;
-                default:
-                    throw new AssertionError(String.format(
-                              "Can't update index name of schema type: %s",
-                              this.indexLabel.baseType));
-            }
-        }
-
-        protected void checkRepeatIndex(SchemaLabel schemaLabel) {
-            for (String indexName : schemaLabel.indexNames) {
-                IndexLabel existed = this.transaction.getIndexLabel(indexName);
-                IndexLabel newOne = this.indexLabel;
-                if (newOne.indexType != existed.indexType) {
-                    continue;
-                }
-                // New created indexLabel can't be prefix of existed indexLabel
-                E.checkArgument(!CollectionUtil.prefixOf(newOne.indexFields,
-                                                         existed.indexFields),
-                                "Fields %s of new index label '%s' is prefix" +
-                                " of existed index label '%s'",
-                                newOne.indexFields, newOne.name, existed.name);
-            }
-        }
-
-        protected void removeSubIndex(SchemaLabel schemaLabel) {
-            HashSet<String> overrideIndexLabels = new HashSet<>();
-            for (String indexName : schemaLabel.indexNames) {
-                IndexLabel existed = this.transaction.getIndexLabel(indexName);
-                IndexLabel newOne = this.indexLabel;
-                if (newOne.indexType != existed.indexType) {
-                    continue;
-                }
-                /*
-                 * If existed indexLabel is prefix of new created indexLabel,
-                 * remove the existed indexLabel.
-                 */
-                if (CollectionUtil.prefixOf(existed.indexFields,
-                                            newOne.indexFields)) {
-                    overrideIndexLabels.add(indexName);
-                }
-            }
-            for (String indexName : overrideIndexLabels) {
-                schemaLabel.removeIndexName(indexName);
-                this.transaction.removeIndexLabel(indexName);
-            }
-        }
+        Builder indexType(IndexType indexType);
     }
 }

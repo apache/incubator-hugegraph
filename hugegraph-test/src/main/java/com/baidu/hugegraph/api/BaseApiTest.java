@@ -37,15 +37,17 @@ import com.google.common.collect.ImmutableMap;
 
 public class BaseApiTest {
 
-    public static String BASE_URL = "http://127.0.0.1:8080";
-    public static String GRAPH = "hugegraph";
+    private static String BASE_URL = "http://127.0.0.1:8080";
+    private static String GRAPH = "hugegraph";
 
     private static final String URL_PREFIX = "graphs/" + GRAPH;
     private static final String SCHEMA_PKS = "/schema/propertykeys";
     private static final String SCHEMA_VLS = "/schema/vertexlabels";
     private static final String SCHEMA_ELS = "/schema/edgelabels";
+    @SuppressWarnings("unused")
     private static final String SCHEMA_ILS = "/schema/indexlabels";
     private static final String GRAPH_VERTEX = "/graph/vertices";
+    @SuppressWarnings("unused")
     private static final String GRAPH_EDGE = "/graph/edges";
 
     private static RestClient client;

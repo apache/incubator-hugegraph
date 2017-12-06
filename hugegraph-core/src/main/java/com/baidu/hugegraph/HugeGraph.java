@@ -19,7 +19,10 @@
 
 package com.baidu.hugegraph;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
@@ -35,6 +38,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
@@ -50,6 +54,7 @@ import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeFeatures;
@@ -271,10 +276,22 @@ public class HugeGraph implements Graph {
         return this.graphTransaction().queryEdges(query).iterator();
     }
 
+    public PropertyKey propertyKey(Id id) {
+        PropertyKey pk = this.schemaTransaction().getPropertyKey(id);
+        E.checkArgument(pk != null, "Undefined property key: '%s'", id);
+        return pk;
+    }
+
     public PropertyKey propertyKey(String name) {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(name);
-        E.checkArgument(pk != null, "Undefined property key:'%s'", name);
+        E.checkArgument(pk != null, "Undefined property key: '%s'", name);
         return pk;
+    }
+
+    public VertexLabel vertexLabel(Id id) {
+        VertexLabel vl = this.schemaTransaction().getVertexLabel(id);
+        E.checkArgument(vl != null, "Undefined vertex label: '%s'", id);
+        return vl;
     }
 
     public VertexLabel vertexLabel(String name) {
@@ -283,10 +300,22 @@ public class HugeGraph implements Graph {
         return vl;
     }
 
+    public EdgeLabel edgeLabel(Id id) {
+        EdgeLabel el = this.schemaTransaction().getEdgeLabel(id);
+        E.checkArgument(el != null, "Undefined edge label: '%s'", id);
+        return el;
+    }
+
     public EdgeLabel edgeLabel(String name) {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(name);
         E.checkArgument(el != null, "Undefined edge label: '%s'", name);
         return el;
+    }
+
+    public IndexLabel indexLabel(Id id) {
+        IndexLabel il = this.schemaTransaction().getIndexLabel(id);
+        E.checkArgument(il != null, "Undefined index label: '%s'", id);
+        return il;
     }
 
     public IndexLabel indexLabel(String name) {
@@ -335,6 +364,42 @@ public class HugeGraph implements Graph {
     @Override
     public String toString() {
         return StringFactory.graphString(this, this.name());
+    }
+
+    public List<String> mapPkId2Name(Collection<Id> ids) {
+        List<String> properties = new ArrayList<>(ids.size());
+        for (Id id : ids) {
+            SchemaElement schema = this.propertyKey(id);
+            properties.add(schema.name());
+        }
+        return properties;
+    }
+
+    public List<Id> mapPkName2Id(Collection<String> pkeys) {
+        List<Id> ids = new ArrayList<>(pkeys.size());
+        for (String pkey : pkeys) {
+            PropertyKey propertyKey = this.propertyKey(pkey);
+            ids.add(propertyKey.id());
+        }
+        return ids;
+    }
+
+    public Id[] mapElName2Id(String[] edgeLabels) {
+        Id[] ids = new Id[edgeLabels.length];
+        for (int i = 0; i < edgeLabels.length; i++) {
+            EdgeLabel edgeLabel = this.edgeLabel(edgeLabels[i]);
+            ids[i] = edgeLabel.id();
+        }
+        return ids;
+    }
+
+    public Id[] mapVlName2Id(String[] vertexLabels) {
+        Id[] ids = new Id[vertexLabels.length];
+        for (int i = 0; i < vertexLabels.length; i++) {
+            VertexLabel vertexLabel = this.vertexLabel(vertexLabels[i]);
+            ids[i] = vertexLabel.id();
+        }
+        return ids;
     }
 
     private class TinkerpopTransaction extends AbstractThreadLocalTransaction {

@@ -25,6 +25,11 @@ import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.Typifiable;
@@ -33,14 +38,20 @@ import com.baidu.hugegraph.util.E;
 public abstract class SchemaElement
                 implements Namifiable, Typifiable, Propfiable {
 
+    protected Id id;
     protected String name;
-    protected boolean checkExist;
-    protected Set<String> properties;
+    protected Set<Id> properties;
 
-    public SchemaElement(String name) {
+    public SchemaElement(Id id, String name) {
+        E.checkNotNull(id, "id");
+        E.checkNotNull(name, "name");
+        this.id = id;
         this.name = name;
-        this.checkExist = true;
         this.properties = new HashSet<>();
+    }
+
+    public Id id() {
+        return this.id;
     }
 
     @Override
@@ -48,49 +59,50 @@ public abstract class SchemaElement
         return this.name;
     }
 
-    public boolean checkExist() {
-        return this.checkExist;
-    }
-
-    public void checkExist(boolean checkExists) {
-        this.checkExist = checkExists;
+    @Override
+    public String toString() {
+        return String.format("%s(id=%s)", this.name, this.id);
     }
 
     @Override
-    public Set<String> properties() {
+    public Set<Id> properties() {
         return Collections.unmodifiableSet(this.properties);
     }
 
-    public boolean hidden() {
-        return Graph.Hidden.isHidden(this.name());
+    public void properties(Set<Id> properties) {
+        this.properties.addAll(properties);
     }
 
     public boolean primitive() {
         return false;
     }
 
-    protected String propertiesSchema() {
-        StringBuilder sb = new StringBuilder();
-        for (String propertyName : this.properties) {
-            sb.append("\"").append(propertyName).append("\",");
+    public boolean hidden() {
+        return Graph.Hidden.isHidden(this.name());
+    }
+
+    public static Id schemaId(String id) {
+        return IdGenerator.of(Long.valueOf(id));
+    }
+
+    public static boolean isSchema(HugeType type) {
+        if (type == HugeType.VERTEX_LABEL ||
+            type == HugeType.EDGE_LABEL ||
+            type == HugeType.PROPERTY_KEY ||
+            type == HugeType.INDEX_LABEL) {
+            return true;
         }
-        int endIdx = sb.lastIndexOf(",") > 0 ? sb.length() - 1 : sb.length();
-        return String.format(".properties(%s)", sb.substring(0, endIdx));
+        return false;
     }
 
-    @Override
-    public String toString() {
-        return this.schema();
-    }
+    public static void checkName(String name, HugeConfig config) {
+        String illegalReg = config.get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX);
 
-    public abstract String schema();
-
-    public static void checkName(String name, String illegalRegex) {
         E.checkNotNull(name, "name");
         E.checkArgument(!name.isEmpty(), "The name can't be empty.");
         E.checkArgument(name.length() < 256,
                         "The length of name must less than 256 bytes.");
-        E.checkArgument(!name.matches(illegalRegex),
+        E.checkArgument(!name.matches(illegalReg),
                         String.format("Illegal schema name '%s'", name));
 
         final char[] filters = {'#', '>', ':', '!'};

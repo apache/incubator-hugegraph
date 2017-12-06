@@ -38,6 +38,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -49,7 +50,7 @@ public abstract class HugeElement implements Element, GraphType {
     private final HugeGraph graph;
 
     protected Id id;
-    protected Map<String, HugeProperty<?>> properties;
+    protected Map<Id, HugeProperty<?>> properties;
     protected boolean removed;
     protected boolean fresh;
     protected boolean propLoaded;
@@ -63,6 +64,8 @@ public abstract class HugeElement implements Element, GraphType {
         this.fresh = false;
         this.propLoaded = true;
     }
+
+    public abstract SchemaLabel schemaLabel();
 
     protected abstract GraphTransaction tx();
 
@@ -101,13 +104,13 @@ public abstract class HugeElement implements Element, GraphType {
         this.fresh = false;
     }
 
-    public Map<String, HugeProperty<?>> getProperties() {
+    public Map<Id, HugeProperty<?>> getProperties() {
         return Collections.unmodifiableMap(this.properties);
     }
 
-    public Map<String, Object> getPropertiesMap() {
-        Map<String, Object> props = new HashMap<>();
-        for (Map.Entry<String, HugeProperty<?>> entry :
+    public Map<Id, Object> getPropertiesMap() {
+        Map<Id, Object> props = new HashMap<>();
+        for (Map.Entry<Id, HugeProperty<?>> entry :
              this.properties.entrySet()) {
             props.put(entry.getKey(), entry.getValue().value());
         }
@@ -115,11 +118,11 @@ public abstract class HugeElement implements Element, GraphType {
     }
 
     @SuppressWarnings("unchecked")
-    public <V> HugeProperty<V> getProperty(String key) {
+    public <V> HugeProperty<V> getProperty(Id key) {
         return (HugeProperty<V>) this.properties.get(key);
     }
 
-    public boolean hasProperty(String key) {
+    public boolean hasProperty(Id key) {
         return this.properties.containsKey(key);
     }
 
@@ -140,22 +143,21 @@ public abstract class HugeElement implements Element, GraphType {
                         prop.value(), pkey.name(),
                         pkey.clazz().getSimpleName(),
                         prop.value().getClass().getSimpleName());
-        return this.properties.put(prop.key(), prop);
+        return this.properties.put(pkey.id(), prop);
     }
 
-    public <V> HugeProperty<?> removeProperty(String key) {
+    public <V> HugeProperty<?> removeProperty(Id key) {
         return this.properties.remove(key);
     }
 
-    public <V> HugeProperty<V> addProperty(String key, V value) {
-        return this.addProperty(key, value, false);
+    public <V> HugeProperty<V> addProperty(PropertyKey pkey, V value) {
+        return this.addProperty(pkey, value, false);
     }
 
     @Watched(prefix = "element")
-    public <V> HugeProperty<V> addProperty(String key, V value,
+    public <V> HugeProperty<V> addProperty(PropertyKey pkey, V value,
                                            boolean notify) {
         HugeProperty<V> prop = null;
-        PropertyKey pkey = this.graph.propertyKey(key);
         switch (pkey.cardinality()) {
             case SINGLE:
                 prop = this.newProperty(pkey, value);
@@ -191,8 +193,8 @@ public abstract class HugeElement implements Element, GraphType {
     @SuppressWarnings({ "rawtypes", "unchecked" }) // (HugeProperty) propList
     private <V> HugeProperty<V> addPropertyList(PropertyKey pkey, V value) {
         HugeProperty<List<V>> propList;
-        if (this.hasProperty(pkey.name())) {
-            propList = this.<List<V>>getProperty(pkey.name());
+        if (this.hasProperty(pkey.id())) {
+            propList = this.getProperty(pkey.id());
         } else {
             propList = this.newProperty(pkey, new ArrayList<V>());
             this.setProperty(propList);
@@ -224,8 +226,8 @@ public abstract class HugeElement implements Element, GraphType {
     @SuppressWarnings({ "rawtypes", "unchecked" }) // (HugeProperty) propSet
     private <V> HugeProperty<V> addPropertySet(PropertyKey pkey, V value) {
         HugeProperty<Set<V>> propSet;
-        if (this.hasProperty(pkey.name())) {
-            propSet = this.<Set<V>>getProperty(pkey.name());
+        if (this.hasProperty(pkey.id())) {
+            propSet = this.getProperty(pkey.id());
         } else {
             propSet = this.newProperty(pkey, new HashSet<V>());
             this.setProperty(propSet);

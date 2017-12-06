@@ -268,44 +268,31 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Watched(prefix = "tx")
-    public void addEntry(BackendEntry entry) {
-        LOG.debug("Transaction add entry {}", entry);
+    public void doAction(MutateAction action, BackendEntry entry) {
+        LOG.debug("Transaction {} entry {}", action, entry);
         E.checkNotNull(entry, "entry");
         E.checkNotNull(entry.id(), "entry id");
-
-        this.mutation.add(entry, MutateAction.INSERT);
+        this.mutation.add(entry, action);
     }
 
     @Watched(prefix = "tx")
-    public void removeEntry(BackendEntry entry) {
-        LOG.debug("Transaction remove entry {}", entry);
-        E.checkNotNull(entry, "entry");
-        E.checkNotNull(entry.id(), "entry id");
-
-        this.mutation.add(entry, MutateAction.DELETE);
+    public void doInsert(BackendEntry entry) {
+        this.doAction(MutateAction.INSERT, entry);
     }
 
     @Watched(prefix = "tx")
-    public void removeEntry(HugeType type, Id id) {
-        this.removeEntry(this.serializer.writeId(type, id));
+    public void doAppend(BackendEntry entry) {
+        this.doAction(MutateAction.APPEND, entry);
     }
 
     @Watched(prefix = "tx")
-    public void appendEntry(BackendEntry entry) {
-        LOG.debug("Transaction append entry {}", entry);
-        E.checkNotNull(entry, "entry");
-        E.checkNotNull(entry.id(), "entry id");
-
-        this.mutation.add(entry, MutateAction.APPEND);
+    public void doEliminate(BackendEntry entry) {
+        this.doAction(MutateAction.ELIMINATE, entry);
     }
 
     @Watched(prefix = "tx")
-    public void eliminateEntry(BackendEntry entry) {
-        LOG.debug("Transaction eliminate entry {}", entry);
-        E.checkNotNull(entry, "entry");
-        E.checkNotNull(entry.id(), "entry id");
-
-        this.mutation.add(entry, MutateAction.ELIMINATE);
+    public void doRemove(BackendEntry entry) {
+        this.doAction(MutateAction.DELETE, entry);
     }
 
     public boolean hasUpdates() {

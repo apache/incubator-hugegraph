@@ -30,6 +30,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
 public class HugeVertexProperty<V> extends HugeProperty<V>
@@ -46,6 +47,11 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
     }
 
     @Override
+    public HugeType type() {
+        return HugeType.PROPERTY;
+    }
+
+    @Override
     public <U> Property<U> property(String key, U value) {
         throw new NotSupportException("nested property");
     }
@@ -59,8 +65,9 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
     @Override
     public void remove() {
         assert this.owner instanceof HugeVertex;
-        VertexLabel vertexLabel = ((HugeVertex) this.owner).vertexLabel();
-        E.checkArgument(vertexLabel.nullableKeys().contains(this.key()),
+        VertexLabel vertexLabel = ((HugeVertex) this.owner).schemaLabel();
+        E.checkArgument(vertexLabel.nullableKeys().contains(
+                        this.propertyKey().id()),
                         "Can't remove non-null vertex property '%s'", this);
         this.owner.tx().removeVertexProperty(this);
     }

@@ -38,9 +38,10 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
@@ -81,6 +82,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     @Override
+    public EdgeLabel schemaLabel() {
+        return this.label;
+    }
+
+    @Override
     public GraphTransaction tx() {
         if (this.ownerVertex() == null) {
             return null;
@@ -105,24 +111,20 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.label.name();
     }
 
-    public EdgeLabel edgeLabel() {
-        return this.label;
-    }
-
-    public Direction direction() {
+    public Directions direction() {
         if (this.ownerVertex == this.sourceVertex) {
-            return Direction.OUT;
+            return Directions.OUT;
         } else {
             assert this.ownerVertex == this.targetVertex;
-            return Direction.IN;
+            return Directions.IN;
         }
     }
 
-    public boolean isDirection(Direction direction) {
+    public boolean isDirection(Directions direction) {
         // NOTE: self-loop edge will match both OUT and IN
-        if (direction == Direction.OUT) {
+        if (direction == Directions.OUT) {
             return this.ownerVertex == this.sourceVertex;
-        } else if (direction == Direction.IN) {
+        } else if (direction == Directions.IN) {
             return this.ownerVertex == this.targetVertex;
         }
         return false;
@@ -144,14 +146,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Watched(prefix = "edge")
     public List<Object> sortValues() {
-        List<String> sortKeys = this.edgeLabel().sortKeys();
+        List<Id> sortKeys = this.schemaLabel().sortKeys();
         if (sortKeys.isEmpty()) {
             return ImmutableList.of();
         }
-
         List<Object> propValues = new ArrayList<>(sortKeys.size());
-        for (String sk : sortKeys) {
-            propValues.add(this.property(sk).value());
+        for (Id sk : sortKeys) {
+            propValues.add(this.getProperty(sk).value());
         }
         return propValues;
     }
@@ -167,16 +168,17 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public <V> Property<V> property(String key, V value) {
+        PropertyKey propertyKey = this.graph().propertyKey(key);
         // Check key in edge label
-        E.checkArgument(this.label.properties().contains(key),
-                        "Invalid property '%s' for edge label '%s', " +
-                        "expect: %s", key, label(), edgeLabel().properties());
+        E.checkArgument(this.label.properties().contains(propertyKey.id()),
+                        "Invalid property '%s' for edge label '%s'",
+                        key, this.label());
         // Sort-Keys can only be set once
-        if (edgeLabel().sortKeys().contains(key)) {
-            E.checkArgument(!this.hasProperty(key),
+        if (this.schemaLabel().sortKeys().contains(propertyKey.id())) {
+            E.checkArgument(!this.hasProperty(propertyKey.id()),
                             "Can't update sort key: '%s'", key);
         }
-        return this.addProperty(key, value, true);
+        return this.addProperty(propertyKey, value, true);
     }
 
     @Watched(prefix = "edge")
@@ -210,23 +212,24 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Watched(prefix = "edge")
     @Override
     @SuppressWarnings("unchecked") // (Property<V>) prop
-    public <V> Iterator<Property<V>> properties(String... propertyKeys) {
+    public <V> Iterator<Property<V>> properties(String... keys) {
         this.ensureEdgeProperties();
 
         // Capacity should be about the following size
-        int propsCapacity = propertyKeys.length == 0 ?
+        int propsCapacity = keys.length == 0 ?
                             this.sizeOfProperties() :
-                            propertyKeys.length;
+                            keys.length;
         List<Property<V>> props = new ArrayList<>(propsCapacity);
 
-        if (propertyKeys.length == 0) {
+        if (keys.length == 0) {
             for (HugeProperty<?> prop : this.getProperties().values()) {
                 assert prop instanceof Property;
                 props.add((Property<V>) prop);
             }
         } else {
-            for (String pk : propertyKeys) {
-                HugeProperty<? extends Object> prop = this.getProperty(pk);
+            for (String key : keys) {
+                PropertyKey propertyKey = this.graph().propertyKey(key);
+                HugeProperty<?> prop = this.getProperty(propertyKey.id());
                 if (prop == null) {
                     // Not found
                     continue;
@@ -244,7 +247,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             case OWNER_VERTEX:
                 return this.ownerVertex().id();
             case LABEL:
-                return this.label();
+                return this.schemaLabel().id();
             case DIRECTION:
                 return this.direction();
             case OTHER_VERTEX:
@@ -312,7 +315,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeEdge switchToOutDirection() {
-        if (this.direction() == Direction.IN) {
+        if (this.direction() == Directions.IN) {
             return this.switchOwner();
         }
         return this;

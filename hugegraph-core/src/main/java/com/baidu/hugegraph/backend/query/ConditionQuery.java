@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
@@ -94,7 +95,7 @@ public class ConditionQuery extends IdQuery {
         return this.query(Condition.neq(key, value));
     }
 
-    public ConditionQuery key(HugeKeys key, String value) {
+    public ConditionQuery key(HugeKeys key, Object value) {
         return this.query(Condition.containsKey(key, value));
     }
 
@@ -220,17 +221,11 @@ public class ConditionQuery extends IdQuery {
     }
 
     public void resetUserpropConditions() {
-        for (Iterator<Condition> iter = this.conditions.iterator();
-             iter.hasNext();) {
-            Condition c = iter.next();
-            if (!c.isSysprop()) {
-                iter.remove();
-            }
-        }
+        this.conditions.removeIf(condition -> !condition.isSysprop());
     }
 
-    public Set<String> userpropKeys() {
-        Set<String> keys = new LinkedHashSet<>();
+    public Set<Id> userpropKeys() {
+        Set<Id> keys = new LinkedHashSet<>();
         for (Relation r : this.relations()) {
             if (!r.isSysprop()) {
                 Condition.UserpropRelation ur = (Condition.UserpropRelation) r;
@@ -240,9 +235,9 @@ public class ConditionQuery extends IdQuery {
         return keys;
     }
 
-    public List<Object> userpropValues(List<String> fields) {
+    public List<Object> userpropValues(List<Id> fields) {
         List<Object> values = new ArrayList<>(fields.size());
-        for (String field : fields) {
+        for (Id field : fields) {
             boolean got = false;
             for (Condition c : this.conditions) {
                 if (!c.isRelation()) {
@@ -269,7 +264,7 @@ public class ConditionQuery extends IdQuery {
         return values;
     }
 
-    public Object userpropValue(String field) {
+    public Object userpropValue(Id field) {
         for (Condition c : this.conditions) {
             if (!c.isRelation()) {
                 // And/Or
@@ -303,7 +298,7 @@ public class ConditionQuery extends IdQuery {
         }
     }
 
-    public String userpropValuesString(List<String> fields) {
+    public String userpropValuesString(List<Id> fields) {
         return SplicingIdGenerator.concatValues(this.userpropValues(fields));
     }
 
@@ -317,8 +312,8 @@ public class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public boolean matchUserpropKeys(List<String> keys) {
-        Set<String> conditionKeys = userpropKeys();
+    public boolean matchUserpropKeys(List<Id> keys) {
+        Set<Id> conditionKeys = userpropKeys();
         if (keys.size() == conditionKeys.size() &&
             conditionKeys.containsAll(keys)) {
             return true;

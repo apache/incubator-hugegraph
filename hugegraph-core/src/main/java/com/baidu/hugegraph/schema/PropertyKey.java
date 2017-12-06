@@ -26,24 +26,19 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.exception.ExistedException;
-import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.schema.builder.PropertyKeyBuilder;
-import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.type.HugeType;
 
 public class PropertyKey extends SchemaElement {
 
     private DataType dataType;
     private Cardinality cardinality;
 
-    public PropertyKey(String name) {
-        super(name);
+    public PropertyKey(Id id, String name) {
+        super(id, name);
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
     }
@@ -53,8 +48,8 @@ public class PropertyKey extends SchemaElement {
         return HugeType.PROPERTY_KEY;
     }
 
-    public PropertyKey properties(String... propertyNames) {
-        this.properties.addAll(Arrays.asList(propertyNames));
+    public PropertyKey properties(Id... properties) {
+        this.properties.addAll(Arrays.asList(properties));
         return this;
     }
 
@@ -128,6 +123,19 @@ public class PropertyKey extends SchemaElement {
         return valid;
     }
 
+    public Object validValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (this.dataType().isNumberType()) {
+            return this.dataType().valueToNumber(value);
+        } else if (this.checkValue(value)) {
+            return value;
+        } else {
+            return null;
+        }
+    }
+
     public DataType dataType() {
         return this.dataType;
     }
@@ -144,148 +152,36 @@ public class PropertyKey extends SchemaElement {
         this.cardinality = cardinality;
     }
 
-    @Override
-    public String schema() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("schema.propertyKey(\"").append(this.name).append("\")");
-        sb.append(this.dataType.schema());
-        sb.append(this.cardinality.schema());
-        sb.append(this.propertiesSchema());
-        sb.append(".ifNotExist()");
-        sb.append(".create();");
-        return sb.toString();
-    }
+    public interface Builder extends SchemaBuilder<PropertyKey> {
 
-    public static class Builder implements PropertyKeyBuilder {
+        Builder asText();
 
-        private PropertyKey propertyKey;
-        private SchemaTransaction transaction;
+        Builder asInt();
 
-        public Builder(String name, SchemaTransaction transaction) {
-            this(new PropertyKey(name), transaction);
-        }
+        Builder asDate();
 
-        public Builder(PropertyKey propertyKey, SchemaTransaction transaction) {
-            E.checkNotNull(propertyKey, "propertyKey");
-            E.checkNotNull(transaction, "transaction");
-            this.propertyKey = propertyKey;
-            this.transaction = transaction;
-        }
+        Builder asUuid();
 
-        @Override
-        public PropertyKey create() {
-            String name = this.propertyKey.name();
-            HugeConfig config = this.transaction.graph().configuration();
-            checkName(name, config.get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX));
+        Builder asBoolean();
 
-            PropertyKey propertyKey = this.transaction.getPropertyKey(name);
-            if (propertyKey != null) {
-                if (this.propertyKey.checkExist) {
-                    throw new ExistedException("property key", name);
-                }
-                return propertyKey;
-            }
+        Builder asByte();
 
-            this.transaction.addPropertyKey(this.propertyKey);
-            return this.propertyKey;
-        }
+        Builder asBlob();
 
-        @Override
-        public PropertyKey append() {
-            throw new NotSupportException("action append on property key");
-        }
+        Builder asDouble();
 
-        @Override
-        public PropertyKey eliminate() {
-            throw new NotSupportException("action eliminate on property key");
-        }
+        Builder asFloat();
 
-        @Override
-        public void remove() {
-            this.transaction.removePropertyKey(this.propertyKey.name);
-        }
+        Builder asLong();
 
-        @Override
-        public Builder asText() {
-            this.propertyKey.dataType(DataType.TEXT);
-            return this;
-        }
+        Builder valueSingle();
 
-        @Override
-        public Builder asInt() {
-            this.propertyKey.dataType(DataType.INT);
-            return this;
-        }
+        Builder valueList();
 
-        @Override
-        public Builder asTimestamp() {
-            this.propertyKey.dataType(DataType.DATE);
-            return this;
-        }
+        Builder valueSet();
 
-        @Override
-        public Builder asUuid() {
-            this.propertyKey.dataType(DataType.UUID);
-            return this;
-        }
+        Builder cardinality(Cardinality cardinality);
 
-        @Override
-        public Builder asBoolean() {
-            this.propertyKey.dataType(DataType.BOOLEAN);
-            return this;
-        }
-
-        @Override
-        public Builder asByte() {
-            this.propertyKey.dataType(DataType.BYTE);
-            return this;
-        }
-
-        @Override
-        public Builder asBlob() {
-            this.propertyKey.dataType(DataType.BLOB);
-            return this;
-        }
-
-        @Override
-        public Builder asDouble() {
-            this.propertyKey.dataType(DataType.DOUBLE);
-            return this;
-        }
-
-        @Override
-        public Builder asFloat() {
-            this.propertyKey.dataType(DataType.FLOAT);
-            return this;
-        }
-
-        @Override
-        public Builder asLong() {
-            this.propertyKey.dataType(DataType.LONG);
-            return this;
-        }
-
-        @Override
-        public Builder valueSingle() {
-            this.propertyKey.cardinality(Cardinality.SINGLE);
-            return this;
-        }
-
-        @Override
-        public Builder valueList() {
-            this.propertyKey.cardinality(Cardinality.LIST);
-            return this;
-        }
-
-        @Override
-        public Builder valueSet() {
-            this.propertyKey.cardinality(Cardinality.SET);
-            return this;
-        }
-
-        public Builder ifNotExist() {
-            this.propertyKey.checkExist = false;
-            return this;
-        }
+        Builder dataType(DataType dataType);
     }
 }

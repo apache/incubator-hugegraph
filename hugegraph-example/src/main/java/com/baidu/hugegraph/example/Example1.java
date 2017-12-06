@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -37,8 +36,13 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Log;
 
@@ -63,22 +67,22 @@ public class Example1 {
         Example1.thread(graph);
 
         graph.close();
-        System.exit(0);
+        EventHub.destroy(3);
     }
 
     private static void thread(HugeGraph graph) throws InterruptedException {
         Thread t = new Thread(() -> {
-            // TODO: add graph.initTx()
+            // Default tx
             graph.addVertex(T.label, "book", "name", "java-11");
             graph.addVertex(T.label, "book", "name", "java-12");
             graph.tx().commit();
-            // TODO: add graph.destroyTx()
-            graph.close(); // close current thread tx/store
 
+            // New tx
             GraphTransaction tx = graph.openTransaction();
             tx.addVertex(T.label, "book", "name", "java-21");
             tx.addVertex(T.label, "book", "name", "java-22");
             tx.commit();
+            tx.close();
 
             graph.close(); // this will close the schema tx
         });
@@ -105,7 +109,7 @@ public class Example1 {
         schema.propertyKey("category").asText().create();
         schema.propertyKey("year").asInt().create();
         schema.propertyKey("time").asText().create();
-        schema.propertyKey("timestamp").asTimestamp().create();
+        schema.propertyKey("timestamp").asDate().create();
         schema.propertyKey("ISBN").asText().create();
         schema.propertyKey("calories").asInt().create();
         schema.propertyKey("amount").asText().create();
@@ -178,9 +182,6 @@ public class Example1 {
         schema.edgeLabel("rated")
               .sourceLabel("reviewer").targetLabel("recipe")
               .create();
-
-        LOG.info("===============  schemaManager desc  ================");
-        schema.desc().forEach(element -> System.out.println(element.schema()));
     }
 
     public static void loadData(final HugeGraph graph) {
@@ -264,26 +265,29 @@ public class Example1 {
         System.out.println(">>>> query all persons: size=" + size);
 
         // query vertex by primary-values
-        vertexes = graph.traversal().V().hasLabel("author").has("id", "1");
+        vertexes = graph.traversal().V().hasLabel("author").has("id", 1);
         List<Vertex> vertexList = vertexes.toList();
         assert vertexList.size() == 1;
         System.out.println(">>>> query vertices by primary-values: " +
                            vertexList);
 
+        VertexLabel author = graph.schema().getVertexLabel("author");
+        String authorId = String.format("%s:%s", author.id().asString(), "1");
+
         // query vertex by id and query out edges
-        vertexes = graph.traversal().V("author:1");
+        vertexes = graph.traversal().V(authorId);
         GraphTraversal<Vertex, Edge> edgesOfVertex = vertexes.outE("created");
         List<Edge> edgeList = edgesOfVertex.toList();
         assert edgeList.size() == 1;
         System.out.println(">>>> query edges of vertex: " + edgeList);
 
-        vertexes = graph.traversal().V("author:1");
+        vertexes = graph.traversal().V(authorId);
         vertexList = vertexes.out("created").toList();
         assert vertexList.size() == 1;
         System.out.println(">>>> query vertices of vertex: " + vertexList);
 
         // query edge by sort-values
-        vertexes = graph.traversal().V("author:1");
+        vertexes = graph.traversal().V(authorId);
         edgesOfVertex = vertexes.outE("write").has("time", "2017-4-28");
         edgeList = edgesOfVertex.toList();
         assert edgeList.size() == 2;
@@ -292,9 +296,10 @@ public class Example1 {
 
         // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
-        q.query(IdGenerator.of("author:1"));
+        q.query(IdGenerator.of(authorId));
+        PropertyKey age = graph.propertyKey("age");
         // TODO: remove the PROPERTIES which may just be used by Cassandra
-        q.key(HugeKeys.PROPERTIES, "age");
+        q.key(HugeKeys.PROPERTIES, age.id());
 
         Iterator<Vertex> vertices = graph.vertices(q);
         assert vertices.hasNext();
@@ -310,8 +315,14 @@ public class Example1 {
         System.out.println(">>>> query all edges with limit 2: size=" + size);
 
         // query edge by id
-        String id = "author:1>authored>>book:java-2";
-        edges = graph.traversal().E(id);
+        EdgeLabel authored = graph.edgeLabel("authored");
+        VertexLabel book = graph.schema().getVertexLabel("book");
+        String book1Id = String.format("%s:%s", book.id().asString(), "java-1");
+        String book2Id = String.format("%s:%s", book.id().asString(), "java-2");
+
+        String edgeId = String.format("%s>%s>%s>%s",
+                                      authorId, authored.id(), "", book2Id);
+        edges = graph.traversal().E(edgeId);
         edgeList = edges.toList();
         assert edgeList.size() == 1;
         System.out.println(">>>> query edge by id: " + edgeList);
@@ -324,11 +335,11 @@ public class Example1 {
 
         // query edge by condition
         q = new ConditionQuery(HugeType.EDGE);
-        q.eq(HugeKeys.OWNER_VERTEX, "author:1");
-        q.eq(HugeKeys.DIRECTION, Direction.OUT);
-        q.eq(HugeKeys.LABEL, "authored");
+        q.eq(HugeKeys.OWNER_VERTEX, authorId);
+        q.eq(HugeKeys.DIRECTION, Directions.OUT);
+        q.eq(HugeKeys.LABEL, authored.id());
         q.eq(HugeKeys.SORT_VALUES, "");
-        q.eq(HugeKeys.OTHER_VERTEX, "book:java-1");
+        q.eq(HugeKeys.OTHER_VERTEX, book1Id);
         // NOTE: query edge by has-key just supported by Cassandra
         // q.hasKey(HugeKeys.PROPERTIES, "contribution");
 
@@ -390,13 +401,21 @@ public class Example1 {
         assert !graph.traversal().V(book6.id()).bothE().hasNext();
 
         // remove edge
-        String id = "author:1>authored>>book:java-2";
-        List <Edge> edges = graph.traversal().E(id).toList();
+        VertexLabel author = graph.schema().getVertexLabel("author");
+        String authorId = String.format("%s:%s", author.id().asString(), "1");
+        EdgeLabel authored = graph.edgeLabel("authored");
+        VertexLabel book = graph.schema().getVertexLabel("book");
+        String book2Id = String.format("%s:%s", book.id().asString(), "java-2");
+
+        String edgeId = String.format("%s>%s>%s>%s",
+                                      authorId, authored.id(), "", book2Id);
+
+        List <Edge> edges = graph.traversal().E(edgeId).toList();
         Edge edge = edges.get(0);
         System.out.println(">>>> removing edge: " + edge);
         edge.remove();
         graph.tx().commit();
-        assert !graph.traversal().E(id).hasNext();
+        assert !graph.traversal().E(edgeId).hasNext();
     }
 
     public static void testVariables(final HugeGraph graph) {

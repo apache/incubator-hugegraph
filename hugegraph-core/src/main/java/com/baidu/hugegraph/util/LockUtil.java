@@ -28,6 +28,7 @@ import java.util.concurrent.locks.Lock;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.concurrent.LockManager;
 
 public class LockUtil {
@@ -117,27 +118,33 @@ public class LockUtil {
             this.lockList = new ArrayList<>();
         }
 
+        public void lockReads(String group, Id... locks) {
+            for (Id lock : locks) {
+                this.lockList.add(lockRead(group, lock.asString()));
+            }
+        }
+
+        public void lockReads(String group, Collection<Id> locks) {
+            for (Id lock : locks) {
+                this.lockList.add(lockRead(group, lock.asString()));
+            }
+        }
+
         public void lockReads(String group, String... locks) {
             for (String lock : locks) {
                 this.lockList.add(lockRead(group, lock));
             }
         }
 
-        public void lockReads(String group, Collection<String> locks) {
-            for (String lock : locks) {
-                this.lockList.add(lockRead(group, lock));
+        public void lockWrites(String group, Id... locks) {
+            for (Id lock : locks) {
+                this.lockList.add(lockWrite(group, lock.asString(), WRITE_WAIT_TIME));
             }
         }
 
-        public void lockWrites(String group, String... locks) {
-            for (String lock : locks) {
-                this.lockList.add(lockWrite(group, lock, WRITE_WAIT_TIME));
-            }
-        }
-
-        public void lockWrites(String group, Collection<String> locks) {
-            for (String lock : locks) {
-                this.lockList.add(lockWrite(group, lock, WRITE_WAIT_TIME));
+        public void lockWrites(String group, Collection<Id> locks) {
+            for (Id lock : locks) {
+                this.lockList.add(lockWrite(group, lock.asString(), WRITE_WAIT_TIME));
             }
         }
 

@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.id;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.Log;
@@ -55,11 +54,6 @@ public class SnowflakeIdGenerator extends IdGenerator {
             throw new HugeException("Please initialize before using");
         }
         return this.generate(this.idWorker.nextId());
-    }
-
-    @Override
-    public Id generate(SchemaElement schema) {
-        return this.generate();
     }
 
     @Override

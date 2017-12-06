@@ -21,6 +21,8 @@ package com.baidu.hugegraph.backend.id;
 
 public interface Id extends Comparable<Id> {
 
+    public Object asObject();
+
     public String asString();
 
     public long asLong();

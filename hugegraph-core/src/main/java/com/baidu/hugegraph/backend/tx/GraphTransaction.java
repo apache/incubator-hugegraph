@@ -33,7 +33,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -44,7 +43,6 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
@@ -59,6 +57,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -70,6 +69,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Indexfiable;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -77,7 +77,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableList;
 
-public class GraphTransaction extends AbstractTransaction {
+public class GraphTransaction extends IndexableTransaction {
 
     private final GraphIndexTransaction indexTx;
 
@@ -134,11 +134,11 @@ public class GraphTransaction extends AbstractTransaction {
         this.updatedEdges = this.newMapWithInsertionOrder();
 
         this.updatedProps = this.newSetWithInsertionOrder();
+    }
 
-        // It's null when called by super AbstractTransaction()
-        if (this.indexTx != null) {
-            this.indexTx.reset();
-        }
+    @Override
+    protected AbstractTransaction indexTransaction() {
+        return this.indexTx;
     }
 
     @Override
@@ -188,8 +188,8 @@ public class GraphTransaction extends AbstractTransaction {
             assert !v.removed();
             v.committed();
             // Add vertex entry
-            this.addEntry(this.serializer.writeVertex(v));
-            // Update index of vertex(only include props, without edges)
+            this.doInsert(this.serializer.writeVertex(v));
+            // Update index of vertex(only include props)
             this.indexTx.updateVertexIndex(v, false);
             this.indexTx.updateLabelIndex(v, false);
         }
@@ -199,8 +199,8 @@ public class GraphTransaction extends AbstractTransaction {
             assert !e.removed();
             e.committed();
             // Add edge entry of OUT and IN
-            this.addEntry(this.serializer.writeEdge(e));
-            this.addEntry(this.serializer.writeEdge(e.switchOwner()));
+            this.doInsert(this.serializer.writeEdge(e));
+            this.doInsert(this.serializer.writeEdge(e.switchOwner()));
             // Update index of edge
             this.indexTx.updateEdgeIndex(e, false);
             this.indexTx.updateLabelIndex(e, false);
@@ -241,7 +241,7 @@ public class GraphTransaction extends AbstractTransaction {
              * backend stores vertex which is separated from edges, it's
              * edges should be removed manually when removing vertex.
              */
-            this.removeEntry(this.serializer.writeVertex(v.prepareRemoved()));
+            this.doRemove(this.serializer.writeVertex(v.prepareRemoved()));
             this.indexTx.updateVertexIndex(v, true);
             this.indexTx.updateLabelIndex(v, true);
         }
@@ -253,21 +253,9 @@ public class GraphTransaction extends AbstractTransaction {
             this.indexTx.updateLabelIndex(e, true);
             // Remove edge of OUT and IN
             e = e.prepareRemoved();
-            this.removeEntry(this.serializer.writeEdge(e));
-            this.removeEntry(this.serializer.writeEdge(e.switchOwner()));
+            this.doRemove(this.serializer.writeEdge(e));
+            this.doRemove(this.serializer.writeEdge(e.switchOwner()));
         }
-    }
-
-    @Override
-    protected void commit2Backend(BackendMutation mutation) {
-        // If an exception occurred, catch in the upper layer and roll back
-        BackendStore store = this.store();
-        store.beginTx();
-        // Commit graph updates
-        store.mutate(mutation);
-        // Commit index updates with graph tx
-        store.mutate(this.indexTx.prepareCommit());
-        store.commitTx();
     }
 
     @Override
@@ -277,20 +265,7 @@ public class GraphTransaction extends AbstractTransaction {
             prop.element().setProperty(prop);
         }
 
-        try {
-            super.rollback();
-        } finally {
-            this.indexTx.rollback();
-        }
-    }
-
-    @Override
-    public void close() {
-        try {
-            this.indexTx.close();
-        } finally {
-            super.close();
-        }
+        super.rollback();
     }
 
     @Override
@@ -319,9 +294,9 @@ public class GraphTransaction extends AbstractTransaction {
 
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.VERTEX_LABEL, vertex.label());
+            locks.lockReads(LockUtil.VERTEX_LABEL, vertex.schemaLabel().id());
             locks.lockReads(LockUtil.INDEX_LABEL,
-                            vertex.vertexLabel().indexNames());
+                            vertex.schemaLabel().indexLabels());
             this.beforeWrite();
             this.addedVertexes.put(vertex.id(), vertex);
             this.afterWrite();
@@ -337,21 +312,21 @@ public class GraphTransaction extends AbstractTransaction {
 
         VertexLabel vertexLabel = this.checkVertexLabel(elemKeys.label());
         Id id = HugeElement.getIdValue(elemKeys.id());
-        Set<String> keys = elemKeys.keys();
 
         IdStrategy strategy = vertexLabel.idStrategy();
-
         // Check weather id strategy match with id
         strategy.checkId(id, vertexLabel.name());
 
+        List<Id> keys = this.graph().mapPkName2Id(elemKeys.keys());
         // Check id strategy
         if (strategy == IdStrategy.PRIMARY_KEY) {
             // Check whether primaryKey exists
-            List<String> primaryKeys = vertexLabel.primaryKeys();
+            List<Id> primaryKeys = vertexLabel.primaryKeys();
             E.checkArgument(CollectionUtil.containsAll(keys, primaryKeys),
                             "The primary keys: %s of vertex label '%s' " +
                             "must be set when using '%s' id strategy",
                             primaryKeys, vertexLabel.name(), strategy);
+
         }
 
         // Check weather passed all non-null props
@@ -485,9 +460,9 @@ public class GraphTransaction extends AbstractTransaction {
 
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.EDGE_LABEL, edge.label());
+            locks.lockReads(LockUtil.EDGE_LABEL, edge.schemaLabel().id());
             locks.lockReads(LockUtil.INDEX_LABEL,
-                            edge.edgeLabel().indexNames());
+                            edge.schemaLabel().indexLabels());
             this.beforeWrite();
             this.addedEdges.put(edge.id(), edge);
             this.afterWrite();
@@ -615,13 +590,12 @@ public class GraphTransaction extends AbstractTransaction {
                         "Can't update property '%s' for removing-state vertex",
                         prop.key());
         // Check is updating primary key
-        List<String> primaryKeys = vertex.vertexLabel().primaryKeys();
-        E.checkArgument(!primaryKeys.contains(prop.key()),
+        List<Id> primaryKeyIds = vertex.schemaLabel().primaryKeys();
+        E.checkArgument(!primaryKeyIds.contains(prop.propertyKey().id()),
                         "Can't update primary key: '%s'", prop.key());
 
         // Do property update
-        Set<String> lockNames = relatedIndexNames(prop.name(),
-                                                  vertex.vertexLabel());
+        Set<Id> lockNames = relatedIndexLabels(prop, vertex.schemaLabel());
         this.lockForUpdateProperty(lockNames, (locks) -> {
             // Update old vertex to remove index (without new property)
             this.indexTx.updateVertexIndex(vertex, true);
@@ -631,28 +605,29 @@ public class GraphTransaction extends AbstractTransaction {
             this.indexTx.updateVertexIndex(vertex, false);
 
             // Append new property
-            this.appendEntry(this.serializer.writeVertexProperty(prop));
+            this.doAppend(this.serializer.writeVertexProperty(prop));
         });
     }
 
     public <V> void removeVertexProperty(HugeVertexProperty<V> prop) {
         HugeVertex vertex = prop.element();
+        PropertyKey propertyKey = prop.propertyKey();
         E.checkState(vertex != null,
                      "No owner for removing property '%s'", prop.key());
 
         // Maybe have ever been removed (compatible with tinkerpop)
-        if (!vertex.hasProperty(prop.key())) {
+        if (!vertex.hasProperty(propertyKey.id())) {
             // PropertyTest shouldAllowRemovalFromVertexWhenAlreadyRemoved()
             return;
         }
         // Check is removing primary key
-        List<String> primaryKeys = vertex.vertexLabel().primaryKeys();
-        E.checkArgument(!primaryKeys.contains(prop.key()),
+        List<Id> primaryKeyIds = vertex.schemaLabel().primaryKeys();
+        E.checkArgument(!primaryKeyIds.contains(propertyKey.id()),
                         "Can't remove primary key '%s'", prop.key());
         // Remove property in memory for new created vertex
         if (vertex.fresh()) {
             // The owner will do property update
-            vertex.removeProperty(prop.key());
+            vertex.removeProperty(propertyKey.id());
             return;
         }
         // Check is updating property of added/removed vertex
@@ -664,18 +639,18 @@ public class GraphTransaction extends AbstractTransaction {
                         prop.key());
 
         // Do property update
-        Set<String> lockNames = relatedIndexNames(prop.name(),
-                                                  vertex.vertexLabel());
-        this.lockForUpdateProperty(lockNames, (locks) -> {
+        Set<Id> lockIds = relatedIndexLabels(prop, vertex.schemaLabel());
+        this.lockForUpdateProperty(lockIds, (locks) -> {
             // Update old vertex to remove index (with the property)
             this.indexTx.updateVertexIndex(vertex, true);
 
             // Update index of current vertex (without the property)
-            this.propertyUpdated(vertex, vertex.removeProperty(prop.key()));
+            this.propertyUpdated(vertex,
+                                 vertex.removeProperty(propertyKey.id()));
             this.indexTx.updateVertexIndex(vertex, false);
 
             // Eliminate the property
-            this.eliminateEntry(this.serializer.writeVertexProperty(prop));
+            this.doEliminate(this.serializer.writeVertexProperty(prop));
         });
     }
 
@@ -702,13 +677,13 @@ public class GraphTransaction extends AbstractTransaction {
                         "Can't update property '%s' for removing-state edge",
                         prop.key());
         // Check is updating sort key
-        E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
+        E.checkArgument(!edge.schemaLabel().sortKeys().contains(
+                        prop.propertyKey().id()),
                         "Can't update sort key '%s'", prop.key());
 
         // Do property update
-        Set<String> lockNames = relatedIndexNames(prop.name(),
-                                                  edge.edgeLabel());
-        this.lockForUpdateProperty(lockNames, (locks) -> {
+        Set<Id> lockIds = relatedIndexLabels(prop, edge.schemaLabel());
+        this.lockForUpdateProperty(lockIds, (locks) -> {
             // Update old edge to remove index (without new property)
             this.indexTx.updateEdgeIndex(edge, true);
 
@@ -718,9 +693,9 @@ public class GraphTransaction extends AbstractTransaction {
 
             if (this.store().features().supportsUpdateEdgeProperty()) {
                 // Append new property(OUT and IN owner edge)
-                this.appendEntry(this.serializer.writeEdgeProperty(prop));
-                this.appendEntry(this.serializer.writeEdgeProperty(
-                                 prop.switchEdgeOwner()));
+                this.doAppend(this.serializer.writeEdgeProperty(prop));
+                this.doAppend(this.serializer.writeEdgeProperty(
+                              prop.switchEdgeOwner()));
             } else {
                 // Override edge(the edge will be in addedEdges & updatedEdges)
                 this.addEdge(edge);
@@ -730,20 +705,22 @@ public class GraphTransaction extends AbstractTransaction {
 
     public <V> void removeEdgeProperty(HugeEdgeProperty<V> prop) {
         HugeEdge edge = prop.element();
+        PropertyKey propertyKey = prop.propertyKey();
         E.checkState(edge != null,
                      "No owner for removing property '%s'", prop.key());
 
         // Maybe have ever been removed
-        if (!edge.hasProperty(prop.key())) {
+        if (!edge.hasProperty(propertyKey.id())) {
             return;
         }
         // Check is removing sort key
-        E.checkArgument(!edge.edgeLabel().sortKeys().contains(prop.key()),
+        List<Id> sortKeyIds = edge.schemaLabel().sortKeys();
+        E.checkArgument(!sortKeyIds.contains(prop.propertyKey().id()),
                         "Can't remove sort key '%s'", prop.key());
         // Remove property in memory for new created edge
         if (edge.fresh()) {
             // The owner will do property update
-            edge.removeProperty(prop.key());
+            edge.removeProperty(propertyKey.id());
             return;
         }
         // Check is updating property of added/removed edge
@@ -756,21 +733,20 @@ public class GraphTransaction extends AbstractTransaction {
                         prop.key());
 
         // Do property update
-        Set<String> lockNames = relatedIndexNames(prop.name(),
-                                                  edge.edgeLabel());
-        this.lockForUpdateProperty(lockNames, (locks) -> {
+        Set<Id> lockIds = relatedIndexLabels(prop, edge.schemaLabel());
+        this.lockForUpdateProperty(lockIds, (locks) -> {
             // Update old edge to remove index (with the property)
             this.indexTx.updateEdgeIndex(edge, true);
 
             // Update index of current edge (without the property)
-            this.propertyUpdated(edge, edge.removeProperty(prop.key()));
+            this.propertyUpdated(edge, edge.removeProperty(propertyKey.id()));
             this.indexTx.updateEdgeIndex(edge, false);
 
             if (this.store().features().supportsUpdateEdgeProperty()) {
                 // Eliminate the property(OUT and IN owner edge)
-                this.eliminateEntry(this.serializer.writeEdgeProperty(prop));
-                this.eliminateEntry(this.serializer.writeEdgeProperty(
-                                    prop.switchEdgeOwner()));
+                this.doEliminate(this.serializer.writeEdgeProperty(prop));
+                this.doEliminate(this.serializer.writeEdgeProperty(
+                                 prop.switchEdgeOwner()));
             } else {
                 // Override edge(the edge will be in addedEdges & updatedEdges)
                 this.addEdge(edge);
@@ -779,12 +755,11 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,
-                                                     Direction direction,
-                                                     String... edgeLabels) {
+                                                     Directions directions,
+                                                     Id... edgeLabels) {
         E.checkState(sourceVertex != null,
                      "The edge query must contain source vertex");
-        E.checkState((direction != null ||
-                     (direction == null && edgeLabels.length == 0)),
+        E.checkState((directions != null || edgeLabels.length == 0),
                      "The edge query must contain direction " +
                      "if it contains edge label");
 
@@ -794,9 +769,9 @@ public class GraphTransaction extends AbstractTransaction {
         query.eq(HugeKeys.OWNER_VERTEX, sourceVertex);
 
         // Edge direction
-        if (direction != null) {
-            assert direction == Direction.OUT || direction == Direction.IN;
-            query.eq(HugeKeys.DIRECTION, direction);
+        if (directions != null) {
+            assert directions == Directions.OUT || directions == Directions.IN;
+            query.eq(HugeKeys.DIRECTION, directions);
         }
 
         // Edge labels
@@ -817,11 +792,11 @@ public class GraphTransaction extends AbstractTransaction {
                                             HugeGraph graph) {
         assert query.resultType() == HugeType.EDGE;
 
-        String label = (String) query.condition(HugeKeys.LABEL);
+        Id label = (Id) query.condition(HugeKeys.LABEL);
         if (label == null) {
             return false;
         }
-        List<String> keys = graph.edgeLabel(label).sortKeys();
+        List<Id> keys = graph.edgeLabel(label).sortKeys();
         return !keys.isEmpty() && query.matchUserpropKeys(keys);
     }
 
@@ -861,13 +836,13 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     protected Query optimizeQuery(ConditionQuery query) {
-        String label = (String) query.condition(HugeKeys.LABEL);
+        Id label = (Id) query.condition(HugeKeys.LABEL);
 
         // Optimize vertex query
         if (label != null && query.resultType() == HugeType.VERTEX) {
             VertexLabel vertexLabel = this.graph().vertexLabel(label);
             if (vertexLabel.idStrategy() == IdStrategy.PRIMARY_KEY) {
-                List<String> keys = vertexLabel.primaryKeys();
+                List<Id> keys = vertexLabel.primaryKeys();
                 if (keys.isEmpty()) {
                     throw new BackendException(
                               "The primary keys can't be empty when using " +
@@ -879,7 +854,9 @@ public class GraphTransaction extends AbstractTransaction {
                     String primaryValues = query.userpropValuesString(keys);
                     LOG.debug("Query vertices by primaryKeys: {}", query);
                     // Convert {vertex-label + primary-key} to vertex-id
-                    Id id = SplicingIdGenerator.splicing(label, primaryValues);
+                    Id id = SplicingIdGenerator.splicing(
+                                                vertexLabel.id().asString(),
+                                                primaryValues);
                     query.query(id);
                     query.resetConditions();
 
@@ -890,7 +867,7 @@ public class GraphTransaction extends AbstractTransaction {
 
         // Optimize edge query
         if (label != null && query.resultType() == HugeType.EDGE) {
-            List<String> keys = this.graph().edgeLabel(label).sortKeys();
+            List<Id> keys = this.graph().edgeLabel(label).sortKeys();
             if (query.condition(HugeKeys.OWNER_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&
                 !keys.isEmpty() && query.matchUserpropKeys(keys)) {
@@ -955,20 +932,21 @@ public class GraphTransaction extends AbstractTransaction {
         return (VertexLabel) label;
     }
 
-    private Set<String> relatedIndexNames(String prop,
-                                          Indexfiable indexfiable) {
-        return indexfiable.indexNames().stream().filter(index -> {
-            return graph().indexLabel(index).indexFields().contains(prop);
-        }).collect(Collectors.toSet());
+    private Set<Id> relatedIndexLabels(HugeProperty<?> prop,
+                                       Indexfiable indexfiable) {
+        Id pkeyId = prop.propertyKey().id();
+        return indexfiable.indexLabels().stream().filter(id ->
+            graph().indexLabel(id).indexFields().contains(pkeyId)
+        ).collect(Collectors.toSet());
     }
 
-    private void lockForUpdateProperty(Set<String> lockNames,
+    private void lockForUpdateProperty(Set<Id> lockIds,
                                        Consumer<LockUtil.Locks> callback) {
         this.checkOwnerThread();
 
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.INDEX_LABEL, lockNames);
+            locks.lockReads(LockUtil.INDEX_LABEL, lockIds);
 
             this.beforeWrite();
             callback.accept(locks);
@@ -979,13 +957,15 @@ public class GraphTransaction extends AbstractTransaction {
     }
 
     private boolean filterResultFromIndexQuery(Query query, HugeElement elem) {
-        if (!(query instanceof ConditionQuery)) {
+        if (!(query instanceof ConditionQuery) || query.originQuery() == null) {
+            // Not query by index, query.originQuery() is not null when index
             return true;
         }
         ConditionQuery cq = (ConditionQuery) query;
         if (cq.test(elem)) {
             return true;
         } else {
+            LOG.info("Remove left index: {}, query: {}", elem, cq);
             this.indexTx.removeIndexLeft(cq, elem);
             return false;
         }
@@ -1137,7 +1117,7 @@ public class GraphTransaction extends AbstractTransaction {
         try {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             // TODO: use query.capacity(Query.NO_LIMIT);
-            query.eq(HugeKeys.LABEL, vertexLabel.name());
+            query.eq(HugeKeys.LABEL, vertexLabel.id());
             if (vertexLabel.hidden()) {
                 query.showHidden(true);
             }
@@ -1165,12 +1145,12 @@ public class GraphTransaction extends AbstractTransaction {
         try {
             if (this.store().features().supportsDeleteEdgeByLabel()) {
                 // TODO: Need to change to writeQuery!
-                Id id = IdGenerator.of(edgeLabel);
-                this.removeEntry(this.serializer.writeId(HugeType.EDGE, id));
+                this.doRemove(this.serializer.writeId(HugeType.EDGE,
+                                                      edgeLabel.id()));
             } else {
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
                 // TODO: use query.capacity(Query.NO_LIMIT);
-                query.eq(HugeKeys.LABEL, edgeLabel.name());
+                query.eq(HugeKeys.LABEL, edgeLabel.id());
                 if (edgeLabel.hidden()) {
                     query.showHidden(true);
                 }

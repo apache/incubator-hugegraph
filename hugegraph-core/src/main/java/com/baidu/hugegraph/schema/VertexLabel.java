@@ -21,35 +21,21 @@ package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
-
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.exception.ExistedException;
-import com.baidu.hugegraph.exception.NotAllowException;
-import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.schema.builder.VertexLabelBuilder;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
-import com.baidu.hugegraph.util.CollectionUtil;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.StringUtil;
-import com.google.common.collect.ImmutableSet;
 
 public class VertexLabel extends SchemaLabel {
 
     private IdStrategy idStrategy;
-    private List<String> primaryKeys;
+    private List<Id> primaryKeys;
 
-    public VertexLabel(String name) {
-        super(name);
+    public VertexLabel(Id id, String name) {
+        super(id, name);
         this.idStrategy = IdStrategy.DEFAULT;
         this.primaryKeys = new ArrayList<>();
     }
@@ -64,294 +50,37 @@ public class VertexLabel extends SchemaLabel {
     }
 
     public void idStrategy(IdStrategy idStrategy) {
-        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
-                        this.idStrategy == idStrategy,
-                        "Not allowed to change id strategy for " +
-                        "vertex label '%s'", this.name);
         this.idStrategy = idStrategy;
     }
 
-    public List<String> primaryKeys() {
+    public List<Id> primaryKeys() {
         return Collections.unmodifiableList(this.primaryKeys);
     }
 
-    public VertexLabel primaryKeys(String... keys) {
-        if (keys.length == 0) {
-            return this;
-        }
-
-        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
-                        this.idStrategy == IdStrategy.PRIMARY_KEY,
-                        "Not allowed to use id strategy '%s' and assign " +
-                        "primary keys at the same time for vertex label '%s'",
-                        this.idStrategy, this.name);
-
-        E.checkArgument(this.primaryKeys.isEmpty(),
-                        "Not allowed to assign primary keys multitimes");
-
-        List<String> primaryKeys = Arrays.asList(keys);
-        E.checkArgument(CollectionUtil.allUnique(primaryKeys),
-                        "Invalid primary keys %s, which contains some " +
-                        "duplicate properties", primaryKeys);
-
-        this.primaryKeys.addAll(primaryKeys);
-        this.idStrategy = IdStrategy.PRIMARY_KEY;
-        return this;
+    public void primaryKey(Id id) {
+        this.primaryKeys.add(id);
     }
 
-    @Override
-    public String schema() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("schema.vertexLabel(\"").append(this.name).append("\")");
-        sb.append(this.idStrategy.schema());
-        sb.append(this.propertiesSchema());
-        sb.append(this.primaryKeysSchema());
-        sb.append(this.nullableKeysSchema());
-        sb.append(".ifNotExist()");
-        sb.append(".create();");
-        return sb.toString();
+    public void primaryKeys(Id... ids) {
+        this.primaryKeys.addAll(Arrays.asList(ids));
     }
 
-    private String primaryKeysSchema() {
-        return StringUtil.desc("primaryKeys", this.primaryKeys);
-    }
+    public interface Builder extends SchemaBuilder<VertexLabel> {
 
-    public static class Builder implements VertexLabelBuilder {
+        void rebuildIndex();
 
-        private VertexLabel vertexLabel;
-        private SchemaTransaction transaction;
+        Builder useAutomaticId();
 
-        public Builder(String name, SchemaTransaction transaction) {
-            this(new VertexLabel(name), transaction);
-        }
+        Builder useCustomizeId();
 
-        public Builder(VertexLabel vertexLabel,
-                       SchemaTransaction transaction) {
-            E.checkNotNull(vertexLabel, "vertexLabel");
-            E.checkNotNull(transaction, "transaction");
-            this.vertexLabel = vertexLabel;
-            this.transaction = transaction;
-        }
+        Builder usePrimaryKeyId();
 
-        @Override
-        public VertexLabel create() {
-            String name = this.vertexLabel.name();
-            HugeConfig config = this.transaction.graph().configuration();
-            checkName(name, config.get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX));
+        Builder properties(String... properties);
 
-            VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
-            if (vertexLabel != null) {
-                if (this.vertexLabel.checkExist) {
-                    throw new ExistedException("vertex label", name);
-                }
-                return vertexLabel;
-            }
+        Builder primaryKeys(String... keys);
 
-            this.checkProperties();
-            this.checkIdStrategy();
-            this.checkNullableKeys();
+        Builder nullableKeys(String... keys);
 
-            this.transaction.addVertexLabel(this.vertexLabel);
-            return this.vertexLabel;
-        }
-
-        @Override
-        public VertexLabel append() {
-            String name = this.vertexLabel.name();
-            VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
-            if (vertexLabel == null) {
-                throw new NotFoundException("Can't update vertex label '%s' " +
-                                            "since it doesn't exist", name);
-            }
-
-            this.checkStableVars();
-            this.checkProperties();
-            this.checkNullableKeys();
-            this.checkAddedPropsNullable();
-
-            vertexLabel.properties.addAll(this.vertexLabel.properties);
-            vertexLabel.nullableKeys.addAll(this.vertexLabel.nullableKeys);
-            this.transaction.addVertexLabel(vertexLabel);
-            return vertexLabel;
-        }
-
-        @Override
-        public VertexLabel eliminate() {
-            throw new NotSupportException("action eliminate on vertex label");
-        }
-
-        @Override
-        public void remove() {
-            this.transaction.removeVertexLabel(this.vertexLabel.name());
-        }
-
-        public void rebuildIndex() {
-            this.transaction.rebuildIndex(this.vertexLabel);
-        }
-
-        @Override
-        public Builder useAutomaticId() {
-            this.vertexLabel.idStrategy(IdStrategy.AUTOMATIC);
-            return this;
-        }
-
-        @Override
-        public Builder useCustomizeId() {
-            this.vertexLabel.idStrategy(IdStrategy.CUSTOMIZE);
-            return this;
-        }
-
-        @Override
-        public Builder usePrimaryKeyId() {
-            this.vertexLabel.idStrategy(IdStrategy.PRIMARY_KEY);
-            return this;
-        }
-
-        @Override
-        public Builder properties(String... propertyNames) {
-            this.vertexLabel.properties(propertyNames);
-            return this;
-        }
-
-        @Override
-        public Builder primaryKeys(String... keys) {
-            this.vertexLabel.primaryKeys(keys);
-            return this;
-        }
-
-        @Override
-        public Builder nullableKeys(String... keys) {
-            this.vertexLabel.nullableKeys(keys);
-            return this;
-        }
-
-        public Builder ifNotExist() {
-            this.vertexLabel.checkExist = false;
-            return this;
-        }
-
-        private void checkProperties() {
-            String name = this.vertexLabel.name();
-            Set<String> properties = this.vertexLabel.properties();
-            // If properties is not empty, check all property.
-            for (String pk : properties) {
-                E.checkArgumentNotNull(this.transaction.getPropertyKey(pk),
-                                       "Undefined property key '%s' in " +
-                                       "the vertex label '%s'", pk, name);
-            }
-        }
-
-        @SuppressWarnings("unchecked")
-        private void checkNullableKeys() {
-            String name = this.vertexLabel.name();
-
-            VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
-            // The originProps is empty when firstly create vertex label
-            Set<String> originProps = vertexLabel == null ?
-                                      ImmutableSet.of() :
-                                      vertexLabel.properties();
-            Set<String> appendProps = this.vertexLabel.properties();
-
-            Set<String> nullableKeys = this.vertexLabel.nullableKeys();
-            E.checkArgument(CollectionUtils.union(originProps, appendProps)
-                            .containsAll(nullableKeys),
-                            "The nullableKeys: %s to be created or appended " +
-                            "must belong to the origin/new properties: %s/%s",
-                            nullableKeys, originProps, appendProps);
-
-            List<String> primaryKeys = this.vertexLabel.primaryKeys();
-            Collection<?> intersecKeys = CollectionUtils.intersection(
-                                         primaryKeys, nullableKeys);
-            E.checkArgument(intersecKeys.isEmpty(),
-                            "The nullableKeys: %s are not allowed to " +
-                            "belong to primaryKeys: %s of vertex label '%s'",
-                            nullableKeys, primaryKeys, name);
-        }
-
-        @SuppressWarnings("unchecked")
-        private void checkAddedPropsNullable() {
-            String name = this.vertexLabel.name();
-            VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
-
-            Set<String> originProps = vertexLabel.properties();
-            Set<String> appendProps = this.vertexLabel.properties();
-            Set<String> appendNulls = this.vertexLabel.nullableKeys();
-
-            Collection<String> newAddedProps = CollectionUtils.subtract
-                                               (appendProps, originProps);
-            E.checkArgument(appendNulls.containsAll(newAddedProps),
-                            "The new added properties: %s must be nullable",
-                            newAddedProps);
-        }
-
-        private void checkIdStrategy() {
-            IdStrategy strategy = this.vertexLabel.idStrategy;
-            boolean hasPrimaryKey = this.vertexLabel.primaryKeys().size() > 0;
-            switch (strategy) {
-                case DEFAULT:
-                    if (hasPrimaryKey) {
-                        this.vertexLabel.idStrategy(IdStrategy.PRIMARY_KEY);
-                    } else {
-                        this.vertexLabel.idStrategy(IdStrategy.AUTOMATIC);
-                    }
-                    break;
-                case AUTOMATIC:
-                case CUSTOMIZE:
-                    E.checkArgument(!hasPrimaryKey,
-                                    "Not allowed to assign primary keys " +
-                                    "when using '%s' id strategy", strategy);
-                    break;
-                case PRIMARY_KEY:
-                    E.checkArgument(hasPrimaryKey,
-                                    "Must assign some primary keys " +
-                                    "when using '%s' id strategy", strategy);
-                    break;
-                default:
-                    throw new AssertionError(String.format(
-                              "Unknown id strategy '%s'", strategy));
-            }
-            if (this.vertexLabel.idStrategy == IdStrategy.PRIMARY_KEY) {
-                this.checkPrimaryKeys();
-            }
-        }
-
-        private void checkPrimaryKeys() {
-            String name = this.vertexLabel.name();
-
-            Set<String> properties = this.vertexLabel.properties();
-            E.checkArgument(!properties.isEmpty(),
-                            "The properties of vertex label '%s' " +
-                            "can't be empty when id strategy is '%s'",
-                            name, IdStrategy.PRIMARY_KEY);
-
-            List<String> primaryKeys = this.vertexLabel.primaryKeys();
-            E.checkNotEmpty(primaryKeys, "primary keys", name);
-
-            // Use loop instead containAll for more detailed exception info.
-            for (String key : primaryKeys) {
-                E.checkArgument(properties.contains(key),
-                                "The primary key '%s' of vertex label '%s' " +
-                                "must be contained in properties: %s",
-                                key, name, properties);
-            }
-        }
-
-        private void checkStableVars() {
-            String name = this.vertexLabel.name();
-            List<String> primaryKeys = this.vertexLabel.primaryKeys;
-            IdStrategy idStrategy = this.vertexLabel.idStrategy;
-
-            // Don't allow to append sort keys.
-            if (!primaryKeys.isEmpty()) {
-                throw new NotAllowException(
-                          "Not allowed to update primary keys " +
-                          "for vertex label '%s'", name);
-            }
-            if (idStrategy != IdStrategy.DEFAULT) {
-                throw new NotAllowException(
-                          "Not allowed to update id strategy " +
-                          "for vertex label '%s'", name);
-            }
-        }
+        Builder idStrategy(IdStrategy idStrategy);
     }
 }

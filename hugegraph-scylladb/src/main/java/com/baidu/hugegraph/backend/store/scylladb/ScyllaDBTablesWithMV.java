@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -38,7 +39,7 @@ public class ScyllaDBTablesWithMV {
         Set<Condition> conditions = query.conditions();
         if (query instanceof ConditionQuery && !conditions.isEmpty()) {
             ConditionQuery cq = (ConditionQuery) query;
-            String label = (String) cq.condition(HugeKeys.LABEL);
+            Id label = (Id) cq.condition(HugeKeys.LABEL);
             if (label != null && cq.allSysprop() &&
                 conditions.size() == 1 &&
                 cq.containsCondition(HugeKeys.LABEL,
@@ -55,7 +56,7 @@ public class ScyllaDBTablesWithMV {
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
-                                   String indexName,
+                                   String indexLabel,
                                    HugeKeys column) {
             final String LABEL = CassandraTable.formatKey(HugeKeys.LABEL);
             final String ID = CassandraTable.formatKey(HugeKeys.ID);
@@ -70,7 +71,7 @@ public class ScyllaDBTablesWithMV {
         }
 
         @Override
-        protected void dropTable(CassandraSessionPool.Session session) {
+        public void dropTable(CassandraSessionPool.Session session) {
             String cql = String.format(
                          "DROP MATERIALIZED VIEW IF EXISTS %s",
                          MV_LABEL2VERTEX);
@@ -107,7 +108,7 @@ public class ScyllaDBTablesWithMV {
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
-                                   String indexName,
+                                   String indexLabel,
                                    HugeKeys column) {
             String cql = String.format(
                          "CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS " +
@@ -121,7 +122,7 @@ public class ScyllaDBTablesWithMV {
         }
 
         @Override
-        protected void dropTable(CassandraSessionPool.Session session) {
+        public void dropTable(CassandraSessionPool.Session session) {
             String cql = String.format(
                          "DROP MATERIALIZED VIEW IF EXISTS %s",
                          MV_LABEL2EDGE);

@@ -155,6 +155,11 @@ public class BinaryBackendEntry implements BackendEntry {
         }
 
         @Override
+        public Object asObject() {
+            return this.asBytes();
+        }
+
+        @Override
         public String asString() {
             throw new UnsupportedOperationException();
         }

@@ -159,10 +159,10 @@ public class RocksDBTables {
             E.checkArgument(query.allSysprop() &&
                             query.conditions().size() == 2,
                             "There should be two conditions: " +
-                            "INDEX_LABEL_NAME and FIELD_VALUES" +
+                            "INDEX_LABEL_ID and FIELD_VALUES" +
                             "in secondary index query");
 
-            String index = (String) query.condition(HugeKeys.INDEX_LABEL_NAME);
+            Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
             Object key = query.condition(HugeKeys.FIELD_VALUES);
 
             E.checkArgument(index != null, "Please specify the index label");
@@ -187,7 +187,7 @@ public class RocksDBTables {
                                                      ConditionQuery query) {
             assert !query.conditions().isEmpty();
 
-            String index = (String) query.condition(HugeKeys.INDEX_LABEL_NAME);
+            Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
             Object key = query.condition(HugeKeys.FIELD_VALUES);
             E.checkArgument(index != null, "Please specify the index label");
 

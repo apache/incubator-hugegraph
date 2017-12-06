@@ -39,7 +39,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -53,6 +52,7 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -78,7 +78,7 @@ public class VertexAPI extends API {
         LOG.debug("Graph [{}] create vertex: {}", graph, jsonVertex);
         checkBody(jsonVertex);
 
-        Graph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Vertex vertex = g.addVertex(jsonVertex.properties());
         return manager.serializer(g).writeVertex(vertex);
     }
@@ -95,7 +95,7 @@ public class VertexAPI extends API {
         LOG.debug("Graph [{}] create vertices: {}", graph, jsonVertices);
         checkBody(jsonVertices);
 
-        HugeGraph g = (HugeGraph) graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         checkBatchCount(g, jsonVertices);
 
         List<String> ids = new ArrayList<>(jsonVertices.size());
@@ -144,12 +144,13 @@ public class VertexAPI extends API {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        Graph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         HugeVertex vertex = (HugeVertex) g.vertices(id).next();
-        VertexLabel vertexLabel = vertex.vertexLabel();
+        VertexLabel vertexLabel = vertex.schemaLabel();
 
         for (String key : jsonVertex.properties.keySet()) {
-            E.checkArgument(vertexLabel.properties().contains(key),
+            PropertyKey pkey = g.propertyKey(key);
+            E.checkArgument(vertexLabel.properties().contains(pkey.id()),
                             "Can't update property for vertex '%s' because " +
                             "there is no property key '%s' in its vertex label",
                             id, key);
@@ -181,7 +182,7 @@ public class VertexAPI extends API {
 
         Map<String, Object> props = parseProperties(properties);
 
-        Graph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         GraphTraversal<Vertex, Vertex> traversal = g.traversal().V();
         if (label != null) {
@@ -204,7 +205,7 @@ public class VertexAPI extends API {
                       @PathParam("id") String id) {
         LOG.debug("Graph [{}] get vertex by id '{}'", graph, id);
 
-        Graph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Iterator<Vertex> vertices = g.vertices(id);
         checkExist(vertices, HugeType.VERTEX, id);
         return manager.serializer(g).writeVertex(vertices.next());
@@ -218,7 +219,7 @@ public class VertexAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
-        Graph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // TODO: add removeVertex(id) to improve
         g.vertices(id).next().remove();
     }

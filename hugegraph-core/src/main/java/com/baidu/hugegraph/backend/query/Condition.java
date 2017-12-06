@@ -231,35 +231,35 @@ public abstract class Condition {
         return new SyspropRelation(HugeKeys.ID, RelationType.SCAN, value);
     }
 
-    public static Relation eq(String key, Object value) {
+    public static Relation eq(Id key, Object value) {
         return new UserpropRelation(key, RelationType.EQ, value);
     }
 
-    public static Relation gt(String key, Object value) {
+    public static Relation gt(Id key, Object value) {
         return new UserpropRelation(key, RelationType.GT, value);
     }
 
-    public static Relation gte(String key, Object value) {
+    public static Relation gte(Id key, Object value) {
         return new UserpropRelation(key, RelationType.GTE, value);
     }
 
-    public static Relation lt(String key, Object value) {
+    public static Relation lt(Id key, Object value) {
         return new UserpropRelation(key, RelationType.LT, value);
     }
 
-    public static Relation lte(String key, Object value) {
+    public static Relation lte(Id key, Object value) {
         return new UserpropRelation(key, RelationType.LTE, value);
     }
 
-    public static Relation neq(String key, Object value) {
+    public static Relation neq(Id key, Object value) {
         return new UserpropRelation(key, RelationType.NEQ, value);
     }
 
-    public static Condition in(String key, List<?> value) {
+    public static Condition in(Id key, List<?> value) {
         return new UserpropRelation(key, RelationType.IN, value);
     }
 
-    public static Condition nin(String key, List<?> value) {
+    public static Condition nin(Id key, List<?> value) {
         return new UserpropRelation(key, RelationType.NOT_IN, value);
     }
 
@@ -522,14 +522,14 @@ public abstract class Condition {
     }
 
     public static class UserpropRelation extends Relation {
-        // Column name
-        private String key;
+        // Id of property key
+        private Id key;
 
-        public UserpropRelation(String key, Object value) {
+        public UserpropRelation(Id key, Object value) {
             this(key, RelationType.EQ, value);
         }
 
-        public UserpropRelation(String key, RelationType op, Object value) {
+        public UserpropRelation(Id key, RelationType op, Object value) {
             E.checkNotNull(op, "relation type");
             this.key = key;
             this.relation = op;
@@ -537,7 +537,7 @@ public abstract class Condition {
         }
 
         @Override
-        public String key() {
+        public Id key() {
             return this.key;
         }
 

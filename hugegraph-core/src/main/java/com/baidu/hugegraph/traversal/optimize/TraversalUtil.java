@@ -42,18 +42,23 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.process.traversal.util.AndP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.OrP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaLabel;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
 public final class TraversalUtil {
@@ -139,19 +144,21 @@ public final class TraversalUtil {
 
     public static ConditionQuery fillConditionQuery(
                                  List<HasContainer> hasContainers,
-                                 ConditionQuery query) {
+                                 ConditionQuery query,
+                                 HugeGraph graph) {
+        HugeType resultType = query.resultType();
         for (HasContainer has : hasContainers) {
             BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
             if (keyForContains(has.getKey())) {
-                query.query(convContains2Condition(has));
+                query.query(convContains2Condition(graph, has));
             } else if (bp instanceof Compare) {
-                query.query(convCompare2Relation(has));
+                query.query(convCompare2Relation(graph, resultType, has));
             } else if (bp instanceof Contains) {
-                query.query(convIn2Relation(has));
+                query.query(convIn2Relation(graph, has));
             } else if (has.getPredicate() instanceof AndP) {
-                query.query(convAnd(has));
+                query.query(convAnd(graph, resultType, has));
             } else if (has.getPredicate() instanceof OrP) {
-                query.query(convOr(has));
+                query.query(convOr(graph, resultType, has));
             } else {
                 // TODO: deal with other Predicate
                 throw newUnsupportedPredicate(has.getPredicate());
@@ -161,7 +168,9 @@ public final class TraversalUtil {
         return query;
     }
 
-    public static Condition convAnd(HasContainer has) {
+    public static Condition convAnd(HugeGraph graph,
+                                    HugeType type,
+                                    HasContainer has) {
         P<?> p = has.getPredicate();
         assert p instanceof AndP;
         @SuppressWarnings("unchecked")
@@ -170,22 +179,25 @@ public final class TraversalUtil {
             throw newUnsupportedPredicate(p);
         }
 
+        HasContainer left = new HasContainer(has.getKey(), predicates.get(0));
+        HasContainer right = new HasContainer(has.getKey(), predicates.get(1));
         // Just for supporting P.inside() / P.between()
-        return Condition.and(
-                convCompare2Relation(
-                        new HasContainer(has.getKey(), predicates.get(0))),
-                convCompare2Relation(
-                        new HasContainer(has.getKey(), predicates.get(1))));
+        return Condition.and(convCompare2Relation(graph, type, left),
+                             convCompare2Relation(graph, type, right));
     }
 
-    public static Condition convOr(HasContainer has) {
+    public static Condition convOr(HugeGraph graph,
+                                   HugeType type,
+                                   HasContainer has) {
         P<?> p = has.getPredicate();
         assert p instanceof OrP;
         // TODO: support P.outside() which is implemented by OR
         throw newUnsupportedPredicate(p);
     }
 
-    public static Relation convCompare2Relation(HasContainer has) {
+    public static Relation convCompare2Relation(HugeGraph graph,
+                                                HugeType type,
+                                                HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
 
         if (!(bp instanceof Compare)) {
@@ -196,6 +208,10 @@ public final class TraversalUtil {
         try {
             HugeKeys key = string2HugeKey(has.getKey());
             Object value = has.getValue();
+
+            if (key == HugeKeys.LABEL && !(value instanceof Id)) {
+                value = SchemaLabel.getLabelId(graph, type, value);
+            }
 
             switch ((Compare) bp) {
                 case eq:
@@ -213,28 +229,36 @@ public final class TraversalUtil {
             }
         } catch (IllegalArgumentException e) {
             String key = has.getKey();
-            Object value = has.getValue();
+            PropertyKey pkey = graph.propertyKey(key);
+            Id pkeyId = pkey.id();
+            Object value = pkey.validValue(has.getValue());
+            E.checkArgumentNotNull(value,
+                                   "Invalid data type of query value, " +
+                                   "expect '%s', actual '%s'",
+                                   pkey.dataType().clazz(),
+                                   has.getValue().getClass());
 
             switch ((Compare) bp) {
                 case eq:
-                    return Condition.eq(key, value);
+                    return Condition.eq(pkeyId, value);
                 case gt:
-                    return Condition.gt(key, value);
+                    return Condition.gt(pkeyId, value);
                 case gte:
-                    return Condition.gte(key, value);
+                    return Condition.gte(pkeyId, value);
                 case lt:
-                    return Condition.lt(key, value);
+                    return Condition.lt(pkeyId, value);
                 case lte:
-                    return Condition.lte(key, value);
+                    return Condition.lte(pkeyId, value);
                 case neq:
-                    return Condition.neq(key, value);
+                    return Condition.neq(pkeyId, value);
             }
         }
 
         throw newUnsupportedPredicate(has.getPredicate());
     }
 
-    public static Condition convIn2Relation(HasContainer has) {
+    public static Condition convIn2Relation(HugeGraph graph,
+                                            HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         assert bp instanceof Contains;
         List<?> value = (List<?>) has.getValue();
@@ -250,19 +274,21 @@ public final class TraversalUtil {
             }
         } catch (IllegalArgumentException e) {
             String key = has.getKey();
+            PropertyKey pkey = graph.propertyKey(key);
 
             switch ((Contains) bp) {
                 case within:
-                    return Condition.in(key, value);
+                    return Condition.in(pkey.id(), value);
                 case without:
-                    return Condition.nin(key, value);
+                    return Condition.nin(pkey.id(), value);
             }
         }
 
         throw newUnsupportedPredicate(has.getPredicate());
     }
 
-    public static Condition convContains2Condition(HasContainer has) {
+    public static Condition convContains2Condition(HugeGraph graph,
+                                                   HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         E.checkArgument(bp == Compare.eq,
                         "Not support CONTAINS query with relation '%s'", bp);
@@ -271,6 +297,9 @@ public final class TraversalUtil {
         Object value = has.getValue();
 
         if (keyForContainsKey(has.getKey())) {
+            if (value instanceof String) {
+                value = graph.propertyKey((String) value).id();
+            }
             return Condition.containsKey(key, value);
         } else {
             assert keyForContainsValue(has.getKey());
@@ -323,13 +352,13 @@ public final class TraversalUtil {
     }
 
     public static Iterator<Edge> filterResult(Vertex vertex,
-                                              Direction dir,
+                                              Directions dir,
                                               Iterator<Edge> edges) {
         final List<Edge> list = new ArrayList<>();
         while (edges.hasNext()) {
             Edge edge = edges.next();
-            if (dir == Direction.OUT && vertex.equals(edge.outVertex()) ||
-                dir == Direction.IN && vertex.equals(edge.inVertex())) {
+            if (dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
+                dir == Directions.IN && vertex.equals(edge.inVertex())) {
                 list.add(edge);
             }
         }

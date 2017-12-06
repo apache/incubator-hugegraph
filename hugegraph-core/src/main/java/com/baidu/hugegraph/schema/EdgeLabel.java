@@ -21,39 +21,24 @@ package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
-
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.exception.ExistedException;
-import com.baidu.hugegraph.exception.NotAllowException;
-import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.schema.builder.EdgeLabelBuilder;
-import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.define.Frequency;
-import com.baidu.hugegraph.util.CollectionUtil;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.StringUtil;
-import com.google.common.collect.ImmutableSet;
 
 public class EdgeLabel extends SchemaLabel {
 
-    private String sourceLabel;
-    private String targetLabel;
+    private Id sourceLabel;
+    private Id targetLabel;
     private Frequency frequency;
-    private List<String> sortKeys;
+    private List<Id> sortKeys;
 
-    public EdgeLabel(String name) {
-        super(name);
-        this.sourceLabel = null;
-        this.targetLabel = null;
+    public EdgeLabel(Id id, String name) {
+        super(id, name);
         this.frequency = Frequency.DEFAULT;
         this.sortKeys = new ArrayList<>();
     }
@@ -76,352 +61,69 @@ public class EdgeLabel extends SchemaLabel {
         return true;
     }
 
-    public String sourceLabel() {
+    public Id sourceLabel() {
         return this.sourceLabel;
     }
 
-    public EdgeLabel sourceLabel(String label) {
+    public void sourceLabel(Id id) {
         E.checkArgument(this.sourceLabel == null,
                         "Not allowed to set source label multi times " +
                         "of edge label '%s'", this.name);
-        this.sourceLabel = label;
-        return this;
+        this.sourceLabel = id;
     }
 
-    public String targetLabel() {
+    public Id targetLabel() {
         return this.targetLabel;
     }
 
-    public EdgeLabel targetLabel(String label) {
+    public void targetLabel(Id id) {
         E.checkArgument(this.targetLabel == null,
                         "Not allowed to set target label multi times " +
                         "of edge label '%s'", this.name);
-        this.targetLabel = label;
-        return this;
+        this.targetLabel = id;
     }
 
-    public boolean linkWithLabel(String name) {
-        return this.sourceLabel.equals(name) || this.targetLabel.equals(name);
+    public boolean linkWithLabel(Id id) {
+        return this.sourceLabel.equals(id) || this.targetLabel.equals(id);
     }
 
-    public boolean checkLinkEqual(String sourceLabel, String targetLabel) {
+    public boolean checkLinkEqual(Id sourceLabel, Id targetLabel) {
         return this.sourceLabel.equals(sourceLabel) &&
                this.targetLabel.equals(targetLabel);
     }
 
-    public List<String> sortKeys() {
+    public List<Id> sortKeys() {
         return Collections.unmodifiableList(this.sortKeys);
     }
 
-    public EdgeLabel sortKeys(String... keys) {
-        if (keys.length == 0) {
-            return this;
-        }
-
-        E.checkArgument(this.frequency == Frequency.MULTIPLE,
-                        "Not allowed to use frequency '%s' and assign " +
-                        "sort keys at the same time for edge label '%s'",
-                        this.frequency, this.name);
-
-        E.checkArgument(this.sortKeys.isEmpty(),
-                        "Not allowed to assign sort keys multitimes");
-
-        List<String> sortKeys = Arrays.asList(keys);
-        E.checkArgument(CollectionUtil.allUnique(sortKeys),
-                        "Invalid sort keys %s, which contains some " +
-                        "duplicate properties", sortKeys);
-
-        this.sortKeys.addAll(sortKeys);
-        return this;
+    public void sortKey(Id id) {
+        this.sortKeys.add(id);
     }
 
-    @Override
-    public String schema() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("schema.edgeLabel(\"").append(this.name).append("\")");
-        sb.append(".sourceLabel(\"").append(this.sourceLabel).append("\")");
-        sb.append(".targetLabel(\"").append(this.targetLabel).append("\")");
-        sb.append(this.frequency.schema());
-        sb.append(this.propertiesSchema());
-        sb.append(this.sortKeysSchema());
-        sb.append(this.nullableKeysSchema());
-        sb.append(".ifNotExist()");
-        sb.append(".create();");
-        return sb.toString();
+    public void sortKeys(Id... ids) {
+        this.sortKeys.addAll(Arrays.asList(ids));
     }
 
-    private String sortKeysSchema() {
-        return StringUtil.desc("sortKeys", this.sortKeys);
-    }
+    public interface Builder extends SchemaBuilder<EdgeLabel> {
 
-    public static class Builder implements EdgeLabelBuilder {
+        void rebuildIndex();
 
-        private EdgeLabel edgeLabel;
-        private SchemaTransaction transaction;
+        Builder link(String sourceLabel, String targetLabel);
 
-        public Builder(String name, SchemaTransaction transaction) {
-            this(new EdgeLabel(name), transaction);
-        }
+        Builder sourceLabel(String label);
 
-        public Builder(EdgeLabel edgeLabel, SchemaTransaction transaction) {
-            E.checkNotNull(edgeLabel, "edgeLabel");
-            E.checkNotNull(transaction, "transaction");
-            this.edgeLabel = edgeLabel;
-            this.transaction = transaction;
-        }
+        Builder targetLabel(String label);
 
-        @Override
-        public EdgeLabel create() {
-            String name = this.edgeLabel.name();
-            HugeConfig config = this.transaction.graph().configuration();
-            checkName(name, config.get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX));
+        Builder singleTime();
 
-            EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
-            if (edgeLabel != null) {
-                if (this.edgeLabel.checkExist) {
-                    throw new ExistedException("edge label", name);
-                }
-                return edgeLabel;
-            }
+        Builder multiTimes();
 
-            if (this.edgeLabel.frequency == Frequency.DEFAULT) {
-                this.edgeLabel.frequency = Frequency.SINGLE;
-            }
+        Builder sortKeys(String... keys);
 
-            this.checkLink();
-            this.checkProperties();
-            this.checkSortKeys();
-            this.checkNullableKeys();
+        Builder properties(String... properties);
 
-            this.transaction.addEdgeLabel(this.edgeLabel);
-            return this.edgeLabel;
-        }
+        Builder nullableKeys(String... keys);
 
-        @Override
-        public EdgeLabel append() {
-            String name = this.edgeLabel.name();
-            EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
-            if (edgeLabel == null) {
-                throw new NotFoundException("Can't update edge label '%s' " +
-                                            "since it doesn't exist", name);
-            }
-
-            this.checkStableVars();
-            this.checkProperties();
-            this.checkNullableKeys();
-            this.checkAddedPropsNullable();
-
-            edgeLabel.properties.addAll(this.edgeLabel.properties);
-            edgeLabel.nullableKeys.addAll(this.edgeLabel.nullableKeys);
-            this.transaction.addEdgeLabel(edgeLabel);
-            return edgeLabel;
-        }
-
-        @Override
-        public EdgeLabel eliminate() {
-            throw new NotSupportException("action eliminate on edge label");
-        }
-
-        @Override
-        public void remove() {
-            this.transaction.removeEdgeLabel(this.edgeLabel.name());
-        }
-
-        public void rebuildIndex() {
-            this.transaction.rebuildIndex(this.edgeLabel);
-        }
-
-        @Override
-        public Builder properties(String... propertyNames) {
-            this.edgeLabel.properties(propertyNames);
-            return this;
-        }
-
-        @Override
-        public Builder nullableKeys(String... keys) {
-            this.edgeLabel.nullableKeys(keys);
-            return this;
-        }
-
-        @Override
-        public Builder sortKeys(String... keys) {
-            this.edgeLabel.sortKeys(keys);
-            return this;
-        }
-
-        @Override
-        public Builder link(String sourceLabel, String targetLabel) {
-            this.edgeLabel.sourceLabel(sourceLabel);
-            this.edgeLabel.targetLabel(targetLabel);
-            return this;
-        }
-
-        @Override
-        public Builder sourceLabel(String label) {
-            this.edgeLabel.sourceLabel(label);
-            return this;
-        }
-
-        @Override
-        public Builder targetLabel(String label) {
-            this.edgeLabel.targetLabel(label);
-            return this;
-        }
-
-        @Override
-        public Builder singleTime() {
-            this.edgeLabel.frequency(Frequency.SINGLE);
-            return this;
-        }
-
-        @Override
-        public Builder multiTimes() {
-            this.edgeLabel.frequency(Frequency.MULTIPLE);
-            return this;
-        }
-
-        public Builder ifNotExist() {
-            this.edgeLabel.checkExist = false;
-            return this;
-        }
-
-        private void checkProperties() {
-            String name = this.edgeLabel.name();
-            Set<String> properties = this.edgeLabel.properties();
-
-            // The properties of edge label allowded be empty.
-            // If properties is not empty, check all property.
-            for (String pk : properties) {
-                E.checkArgumentNotNull(this.transaction.getPropertyKey(pk),
-                                       "Undefined property key '%s' in " +
-                                       "the edge label '%s'", pk, name);
-            }
-        }
-
-        @SuppressWarnings("unchecked")
-        private void checkNullableKeys() {
-            String name = this.edgeLabel.name();
-
-            EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
-            // The originProps is empty when firstly create edge label
-            Set<String> originProps = edgeLabel == null ?
-                                      ImmutableSet.of() :
-                                      edgeLabel.properties();
-            Set<String> appendProps = this.edgeLabel.properties();
-
-            Set<String> nullableKeys = this.edgeLabel.nullableKeys();
-            E.checkArgument(CollectionUtils.union(originProps, appendProps)
-                            .containsAll(nullableKeys),
-                            "The nullableKeys: %s to be created or appended " +
-                            "must belong to the origin/new properties: %s/%s ",
-                            nullableKeys, originProps, appendProps);
-
-            List<String> sortKeys = this.edgeLabel.sortKeys();
-            Collection<?> intersecKeys = CollectionUtils.intersection(
-                                         sortKeys, nullableKeys);
-            E.checkArgument(intersecKeys.isEmpty(),
-                            "The nullableKeys: %s are not allowed to " +
-                            "belong to sortKeys: %s of edge label '%s'",
-                            nullableKeys, sortKeys, name);
-        }
-
-        @SuppressWarnings("unchecked")
-        private void checkAddedPropsNullable() {
-            String name = this.edgeLabel.name();
-            EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
-
-            Set<String> originProps = edgeLabel.properties();
-            Set<String> appendProps = this.edgeLabel.properties();
-            Set<String> appendNulls = this.edgeLabel.nullableKeys();
-
-            Collection<String> newAddedProps = CollectionUtils.subtract
-                                               (appendProps, originProps);
-            E.checkArgument(appendNulls.containsAll(newAddedProps),
-                            "The new added properties: %s must be nullable",
-                            newAddedProps);
-        }
-
-        private void checkSortKeys() {
-            String name = this.edgeLabel.name();
-            List<String> sortKeys = this.edgeLabel.sortKeys();
-            Frequency frequency = this.edgeLabel.frequency();
-
-            if (frequency == Frequency.SINGLE) {
-                E.checkArgument(sortKeys.isEmpty(),
-                                "EdgeLabel can't contain sortKeys " +
-                                "when the cardinality property is single");
-            } else {
-                E.checkState(sortKeys != null,
-                             "The sortKeys can't be null when the " +
-                             "cardinality property is multiple");
-                E.checkArgument(!sortKeys.isEmpty(),
-                                "EdgeLabel must contain sortKeys " +
-                                "when the cardinality property is multiple");
-            }
-
-            if (sortKeys.isEmpty()) {
-                return;
-            }
-
-            Set<String> properties = this.edgeLabel.properties();
-            // Check whether the properties contains the specified keys
-            E.checkArgument(!properties.isEmpty(),
-                            "The properties can't be empty when exist " +
-                            "sort keys for edge label '%s'", name);
-
-            for (String key : sortKeys) {
-                E.checkArgument(properties.contains(key),
-                                "The sort key '%s' must be contained in " +
-                                "properties '%s' for edge label '%s'",
-                                key, name, properties);
-            }
-        }
-
-        private void checkLink() {
-            String name = this.edgeLabel.name();
-            String srcLabel = this.edgeLabel.sourceLabel();
-            String tgtLabel = this.edgeLabel.targetLabel();
-
-            E.checkArgument(srcLabel != null && tgtLabel != null,
-                            "Must set source and target label " +
-                            "for edge label '%s'", name);
-
-            E.checkArgumentNotNull(this.transaction.getVertexLabel(srcLabel),
-                                   "Undefined source vertex label '%s' " +
-                                   "in edge label '%s'", srcLabel, name);
-            E.checkArgumentNotNull(this.transaction.getVertexLabel(tgtLabel),
-                                   "Undefined target vertex label '%s' " +
-                                   "in edge label '%s'", tgtLabel, name);
-        }
-
-        private void checkStableVars() {
-            String name = this.edgeLabel.name();
-            String sourceLabel = this.edgeLabel.sourceLabel();
-            String targetLabel = this.edgeLabel.targetLabel();
-            List<String> sortKeys = this.edgeLabel.sortKeys();
-            Frequency frequency = this.edgeLabel.frequency();
-
-            if (sourceLabel != null) {
-                throw new NotAllowException(
-                          "Not allowed to update source label " +
-                          "for edge label '%s', it must be null", name);
-            }
-            if (targetLabel != null) {
-                throw new NotAllowException(
-                          "Not allowed to update target label " +
-                          "for edge label '%s', it must be null", name);
-            }
-            // Don't allow to append sort keys.
-            if (!sortKeys.isEmpty()) {
-                throw new NotAllowException(
-                          "Not allowed to update sort keys " +
-                          "for edge label '%s'", name);
-            }
-            if (frequency != Frequency.DEFAULT) {
-                throw new NotAllowException(
-                          "Not allowed to update frequency " +
-                          "for edge label '%s'", name);
-            }
-        }
+        Builder frequency(Frequency frequency);
     }
 }

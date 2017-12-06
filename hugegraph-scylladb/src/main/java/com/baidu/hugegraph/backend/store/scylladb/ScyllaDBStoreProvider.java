@@ -34,9 +34,27 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
 
+    private static final BackendFeatures FEATURES = new ScyllaDBFeatures();
+
     @Override
     public String type() {
         return "scylladb";
+    }
+
+    @Override
+    public BackendStore loadSchemaStore(String name) {
+        LOG.debug("ScyllaDBStoreProvider load SchemaStore '{}'", name);
+
+        if (!this.stores.containsKey(name)) {
+            BackendStore s = new ScyllaDBSchemaStore(this, keyspace(), name);
+            this.stores.putIfAbsent(name, s);
+        }
+
+        BackendStore store = this.stores.get(name);
+        E.checkNotNull(store, "store");
+        E.checkState(store instanceof ScyllaDBSchemaStore,
+                     "SchemaStore must be an instance of ScyllaDBSchemaStore");
+        return store;
     }
 
     @Override
@@ -51,13 +69,35 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
         BackendStore store = this.stores.get(name);
         E.checkNotNull(store, "store");
         E.checkState(store instanceof ScyllaDBGraphStore,
-                     "GraphStore must be a instance of ScyllaDBGraphStore");
+                     "GraphStore must be an instance of ScyllaDBGraphStore");
         return store;
     }
 
-    public static class ScyllaDBGraphStore extends CassandraStore {
+    public static class ScyllaDBSchemaStore
+                  extends CassandraStore.CassandraSchemaStore {
 
-        private static final BackendFeatures FEATURES = new ScyllaDBFeatures();
+        public ScyllaDBSchemaStore(BackendStoreProvider provider,
+                                   String keyspace, String name) {
+            super(provider, keyspace, name);
+
+            registerTableManager(HugeType.VERTEX_LABEL,
+                                 new ScyllaDBTables.VertexLabel());
+            registerTableManager(HugeType.EDGE_LABEL,
+                                 new ScyllaDBTables.EdgeLabel());
+            registerTableManager(HugeType.PROPERTY_KEY,
+                                 new ScyllaDBTables.PropertyKey());
+            registerTableManager(HugeType.INDEX_LABEL,
+                                 new ScyllaDBTables.IndexLabel());
+        }
+
+        @Override
+        public BackendFeatures features() {
+            return FEATURES;
+        }
+    }
+
+    public static class ScyllaDBGraphStore
+                  extends CassandraStore.CassandraGraphStore {
 
         public ScyllaDBGraphStore(BackendStoreProvider provider,
                                   String keyspace, String name) {

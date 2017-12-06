@@ -24,12 +24,18 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
 public class HugeEdgeProperty<V> extends HugeProperty<V> {
 
     public HugeEdgeProperty(HugeElement owner, PropertyKey key, V value) {
         super(owner, key, value);
+    }
+
+    @Override
+    public HugeType type() {
+        return HugeType.PROPERTY;
     }
 
     @Override
@@ -41,8 +47,9 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
     @Override
     public void remove() {
         assert this.owner instanceof HugeEdge;
-        EdgeLabel edgeLabel = ((HugeEdge) this.owner).edgeLabel();
-        E.checkArgument(edgeLabel.nullableKeys().contains(this.key()),
+        EdgeLabel edgeLabel = ((HugeEdge) this.owner).schemaLabel();
+        E.checkArgument(edgeLabel.nullableKeys().contains(
+                        this.propertyKey().id()),
                         "Can't remove non-null edge property '%s'", this);
         this.owner.tx().removeEdgeProperty(this);
     }

@@ -19,8 +19,7 @@
 
 package com.baidu.hugegraph.type.define;
 
-
-public enum IndexType {
+public enum IndexType implements SerialEnum {
 
     SECONDARY(1, "secondary"),
 
@@ -29,21 +28,22 @@ public enum IndexType {
     private byte code = 0;
     private String name = null;
 
-    private IndexType(int code, String name) {
+    static {
+        SerialEnum.register(IndexType.class);
+    }
+
+    IndexType(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
     }
 
+    @Override
     public byte code() {
         return this.code;
     }
 
     public String string() {
         return this.name;
-    }
-
-    public String schema() {
-        return String.format(".%s()", this.name);
     }
 }

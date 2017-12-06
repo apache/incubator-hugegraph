@@ -104,19 +104,19 @@ public class BaseCoreTest {
     private void clearSchema() {
         SchemaManager schema = graph().schema();
 
-        schema.getIndexLabels().stream().forEach(elem -> {
+        schema.getIndexLabels().forEach(elem -> {
             schema.indexLabel(elem.name()).remove();
         });
 
-        schema.getEdgeLabels().stream().forEach(elem -> {
+        schema.getEdgeLabels().forEach(elem -> {
             schema.edgeLabel(elem.name()).remove();
         });
 
-        schema.getVertexLabels().stream().forEach(elem -> {
+        schema.getVertexLabels().forEach(elem -> {
             schema.vertexLabel(elem.name()).remove();
         });
 
-        schema.getPropertyKeys().stream().forEach(elem -> {
+        schema.getPropertyKeys().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();
         });
     }

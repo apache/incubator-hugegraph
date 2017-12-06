@@ -30,6 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 
@@ -40,7 +41,7 @@ public final class GraphManager {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
-    private final Map<String, Graph> graphs;
+    private final Map<String, HugeGraph> graphs;
 
     public GraphManager(final Map<String, String> graphConfs) {
         this.graphs = new ConcurrentHashMap<>();
@@ -52,7 +53,7 @@ public final class GraphManager {
         graphConfs.entrySet().forEach(conf -> {
             try {
                 final Graph newGraph = GraphFactory.open(conf.getValue());
-                this.graphs.put(conf.getKey(), newGraph);
+                this.graphs.put(conf.getKey(), (HugeGraph) newGraph);
                 LOG.info("Graph '{}' was successfully configured via '{}'",
                          conf.getKey(), conf.getValue());
             } catch (RuntimeException e) {
@@ -62,11 +63,11 @@ public final class GraphManager {
         });
     }
 
-    public Map<String, Graph> graphs() {
+    public Map<String, HugeGraph> graphs() {
         return this.graphs;
     }
 
-    public Graph graph(String name) {
+    public HugeGraph graph(String name) {
         return this.graphs.get(name);
     }
 

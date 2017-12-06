@@ -54,12 +54,12 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
-        Assert.assertTrue(look.sourceLabel().equals("person"));
-        Assert.assertTrue(look.targetLabel().equals("book"));
+        assertVLEqual("person", look.sourceLabel());
+        assertVLEqual("book", look.targetLabel());
         Assert.assertEquals(1, look.properties().size());
-        Assert.assertTrue(look.properties().contains("time"));
+        assertContainsPk(look.properties(), "time");
         Assert.assertEquals(1, look.sortKeys().size());
-        Assert.assertTrue(look.sortKeys().contains("time"));
+        assertContainsPk(look.sortKeys(), "time");
         Assert.assertEquals(Frequency.MULTIPLE, look.frequency());
     }
 
@@ -120,10 +120,10 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
-        Assert.assertTrue(look.sourceLabel().equals("person"));
-        Assert.assertTrue(look.targetLabel().equals("book"));
+        assertVLEqual("person", look.sourceLabel());
+        assertVLEqual("book", look.targetLabel());
         Assert.assertEquals(1, look.properties().size());
-        Assert.assertTrue(look.properties().contains("time"));
+        assertContainsPk(look.properties(), "time");
         Assert.assertEquals(0, look.sortKeys().size());
         Assert.assertEquals(Frequency.SINGLE, look.frequency());
     }
@@ -146,8 +146,8 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
-        Assert.assertTrue(look.sourceLabel().equals("person"));
-        Assert.assertTrue(look.targetLabel().equals("book"));
+        assertVLEqual("person", look.sourceLabel());
+        assertVLEqual("book", look.targetLabel());
         Assert.assertEquals(0, look.properties().size());
         Assert.assertEquals(0, look.sortKeys().size());
         Assert.assertEquals(Frequency.SINGLE, look.frequency());
@@ -311,13 +311,12 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
-        Assert.assertTrue(look.sourceLabel().equals("person"));
-        Assert.assertTrue(look.targetLabel().equals("book"));
+        assertVLEqual("person", look.sourceLabel());
+        assertVLEqual("book", look.targetLabel());
         Assert.assertEquals(2, look.properties().size());
-        Assert.assertTrue(look.properties().contains("time"));
-        Assert.assertTrue(look.properties().contains("weight"));
+        assertContainsPk(look.properties(), "time", "weight");
         Assert.assertEquals(1, look.nullableKeys().size());
-        Assert.assertTrue(look.nullableKeys().contains("weight"));
+        assertContainsPk(look.nullableKeys(), "weight");
     }
 
     @Test
@@ -454,13 +453,12 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
-        Assert.assertTrue(look.sourceLabel().equals("person"));
-        Assert.assertTrue(look.targetLabel().equals("book"));
+        assertVLEqual("person", look.sourceLabel());
+        assertVLEqual("book", look.targetLabel());
         Assert.assertEquals(2, look.properties().size());
-        Assert.assertTrue(look.properties().contains("time"));
-        Assert.assertTrue(look.properties().contains("weight"));
+        assertContainsPk(look.properties(), "time", "weight");
         Assert.assertEquals(1, look.nullableKeys().size());
-        Assert.assertTrue(look.nullableKeys().contains("weight"));
+        assertContainsPk(look.nullableKeys(), "weight");
     }
 
     @Test
@@ -487,13 +485,12 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
-        Assert.assertTrue(look.sourceLabel().equals("person"));
-        Assert.assertTrue(look.targetLabel().equals("book"));
+        assertVLEqual("person", look.sourceLabel());
+        assertVLEqual("book", look.targetLabel());
         Assert.assertEquals(2, look.properties().size());
-        Assert.assertTrue(look.properties().contains("time"));
-        Assert.assertTrue(look.properties().contains("weight"));
+        assertContainsPk(look.properties(), "time", "weight");
         Assert.assertEquals(1, look.nullableKeys().size());
-        Assert.assertTrue(look.nullableKeys().contains("weight"));
+        assertContainsPk(look.nullableKeys(), "weight");
     }
 
     @Test

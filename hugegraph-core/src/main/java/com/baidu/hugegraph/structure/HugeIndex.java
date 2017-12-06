@@ -33,6 +33,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
@@ -41,23 +42,25 @@ import com.baidu.hugegraph.util.NumericUtil;
 public class HugeIndex implements GraphType {
 
     private Object fieldValues;
-    private final IndexLabel label;
+    private IndexLabel indexLabel;
     private Set<Id> elementIds;
 
     public HugeIndex(IndexLabel indexLabel) {
-        this.label = indexLabel;
+        E.checkNotNull(indexLabel, "label");
+        E.checkNotNull(indexLabel.id(), "label id");
+        this.indexLabel = indexLabel;
         this.elementIds = new LinkedHashSet<>();
         this.fieldValues = null;
     }
 
     @Override
     public String name() {
-        return this.label.name();
+        return this.indexLabel.name();
     }
 
     @Override
     public HugeType type() {
-        IndexType indexType = this.label.indexType();
+        IndexType indexType = this.indexLabel.indexType();
         if (indexType == IndexType.SECONDARY) {
             return HugeType.SECONDARY_INDEX;
         } else {
@@ -67,7 +70,7 @@ public class HugeIndex implements GraphType {
     }
 
     public Id id() {
-        return formatIndexId(type(), indexLabelName(), fieldValues());
+        return formatIndexId(type(), indexLabel(), fieldValues());
     }
 
     public Object fieldValues() {
@@ -78,8 +81,8 @@ public class HugeIndex implements GraphType {
         this.fieldValues = fieldValues;
     }
 
-    public String indexLabelName() {
-        return this.label.name();
+    public Id indexLabel() {
+        return this.indexLabel.id();
     }
 
     public Id elementId() {
@@ -119,13 +122,14 @@ public class HugeIndex implements GraphType {
     @Override
     public String toString() {
         return String.format("{label=%s<%s>, fieldValues=%s, elementIds=%s}",
-                             this.label.name(), this.label.indexType().string(),
+                             this.indexLabel.name(),
+                             this.indexLabel.indexType().string(),
                              this.fieldValues, this.elementIds);
     }
 
     public static HugeIndex parseIndexId(HugeGraph graph,
                                          HugeType type, Id id) {
-        String label;
+        Id label;
         Object values;
         IndexLabel indexLabel;
 
@@ -133,17 +137,18 @@ public class HugeIndex implements GraphType {
             String[] parts = SplicingIdGenerator.parse(id);
             E.checkState(parts.length == 2, "Invalid SECONDARY_INDEX id");
             values = parts[0];
-            label = parts[1];
-            indexLabel = IndexLabel.indexLabel(graph, label);
+            label = SchemaElement.schemaId(parts[1]);
+            indexLabel = IndexLabel.label(graph, label);
         } else {
             assert type == HugeType.SEARCH_INDEX;
             // TODO: parse from bytes id
             String str = id.asString();
-            E.checkState(str.length() > 8, "Invalid SEARCH_INDEX id");
-            int offset = str.length() - 8;
-            label = str.substring(0, offset);
-            indexLabel = IndexLabel.indexLabel(graph, label);
-            List<String> fields = indexLabel.indexFields();
+            final int offset = 4;
+            E.checkState(str.length() > offset, "Invalid SEARCH_INDEX id");
+            label = IdGenerator.of((int) string2number(str.substring(0, offset),
+                                                       Integer.class));
+            indexLabel = IndexLabel.label(graph, label);
+            List<Id> fields = indexLabel.indexFields();
             E.checkState(fields.size() == 1, "Invalid SEARCH_INDEX fields");
             PropertyKey pk = graph.propertyKey(fields.get(0));
             E.checkState(pk.dataType().isNumberType(),
@@ -156,11 +161,11 @@ public class HugeIndex implements GraphType {
         return index;
     }
 
-    public static Id formatIndexId(HugeType type, String indexName,
+    public static Id formatIndexId(HugeType type, Id indexlabel,
                                    Object fieldValues) {
         if (type == HugeType.SECONDARY_INDEX) {
             String value = fieldValues == null ? "<?>" : fieldValues.toString();
-            return SplicingIdGenerator.splicing(value, indexName);
+            return SplicingIdGenerator.splicing(value, indexlabel.asString());
         } else {
             assert type == HugeType.SEARCH_INDEX;
             String value = "";
@@ -171,7 +176,8 @@ public class HugeIndex implements GraphType {
                 value = number2string((Number) fieldValues);
             }
             // TODO: use bytes id
-            return IdGenerator.of(indexName + value);
+            String index = number2string((int) indexlabel.asLong());
+            return IdGenerator.of(index + value);
         }
     }
 
