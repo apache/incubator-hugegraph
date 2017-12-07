@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.type;
+package com.baidu.hugegraph.iterator;
 
 import java.util.Deque;
 import java.util.Iterator;
@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class ExtendableIterator<T> implements Iterator<T> {
 
-    private Deque<Iterator<T>> itors;
+    private final Deque<Iterator<T>> itors;
 
     public ExtendableIterator() {
         this.itors = new ConcurrentLinkedDeque<Iterator<T>>();

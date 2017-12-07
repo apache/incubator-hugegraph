@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.type.ExtendableIterator;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
