@@ -393,6 +393,7 @@ public class IndexLabel extends SchemaElement {
                 }
             }
             for (String indexName : overrideIndexLabels) {
+                schemaLabel.removeIndexName(indexName);
                 this.transaction.removeIndexLabel(indexName);
             }
         }
