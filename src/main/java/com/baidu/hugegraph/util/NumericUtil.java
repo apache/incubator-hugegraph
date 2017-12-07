@@ -28,7 +28,7 @@ import java.util.Date;
 public final class NumericUtil {
 
     private NumericUtil() {
-    } // no instance!
+    }
 
     /**
      * Converts a <code>double</code> value to a sortable signed
@@ -96,6 +96,46 @@ public final class NumericUtil {
 
     /*************************************************************************/
 
+    public static byte[] numberToSortableBytes(Number number) {
+        if (number instanceof Long) {
+            return longToBytes(number.longValue());
+        } else if (number instanceof Double) {
+            return longToBytes(doubleToSortableLong(number.doubleValue()));
+        } else if (number instanceof Float) {
+            return intToBytes(floatToSortableInt(number.floatValue()));
+        } else if (number instanceof Integer || number instanceof Short) {
+            return intToBytes(number.intValue());
+        } else if (number instanceof Byte) {
+            return new byte[]{number.byteValue()} ;
+        }
+
+        // TODO: support other number types
+        return null;
+    }
+
+    public static Number sortableBytesToNumber(byte[] bytes, Class<?> clazz) {
+        assert NumericUtil.isNumber(clazz);
+
+        if (clazz == Long.class) {
+            return bytesToLong(bytes);
+        } else if (clazz == Double.class) {
+            return sortableLongToDouble(bytesToLong(bytes));
+        } else if (clazz == Float.class) {
+            return sortableIntToFloat(bytesToInt(bytes));
+        } else if (clazz == Integer.class) {
+            return bytesToInt(bytes);
+        } else if (clazz == Short.class) {
+            return (short) bytesToInt(bytes);
+        } else if (clazz == Byte.class) {
+            return bytes[0];
+        }
+
+        // TODO: support other number types
+        return null;
+    }
+
+    /*************************************************************************/
+
     public static byte[] longToBytes(long value) {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.putLong(value);
@@ -103,10 +143,19 @@ public final class NumericUtil {
     }
 
     public static long bytesToLong(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.put(bytes);
-        buffer.flip();
-        return buffer.getLong();
+        assert bytes.length == Long.BYTES;
+        return ByteBuffer.wrap(bytes).getLong();
+    }
+
+    public static byte[] intToBytes(int value) {
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        buffer.putInt(value);
+        return buffer.array();
+    }
+
+    public static int bytesToInt(byte[] bytes) {
+        assert bytes.length == Integer.BYTES;
+        return ByteBuffer.wrap(bytes).getInt();
     }
 
     /*************************************************************************/
@@ -118,26 +167,21 @@ public final class NumericUtil {
         return isNumber(value.getClass());
     }
 
-    public static boolean isNumber(Class<?> type) {
-        if (type.getSuperclass() != null
-                && type.getSuperclass().equals(Number.class)) {
-            return true;
-        }
-        return false;
+    public static boolean isNumber(Class<?> clazz) {
+        return Number.class.isAssignableFrom(clazz);
     }
 
     /*************************************************************************/
 
-    public static Object convert2Number(Object value) {
+    public static Object convertToNumber(Object value) {
         if (!isNumber(value) && value != null) {
             if (value instanceof Date) {
                 value = ((Date) value).getTime();
+            } else {
+                // TODO: add some more types to convert
+                value = new BigDecimal(value.toString());
             }
-            // TODO: add some more types to convert
-
-            value = new BigDecimal(value.toString());
         }
         return value;
     }
-
 }

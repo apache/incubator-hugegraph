@@ -23,18 +23,19 @@ import java.util.Date;
 
 public final class TimeUtil {
 
-    public static long twepoch = 1288834974657L;
+    @SuppressWarnings("deprecation")
+    public static long BASE_TIME = new Date(2017 - 1900, 10, 28).getTime();
 
     public static long timeGen() {
-        return System.currentTimeMillis() - twepoch;
+        return System.currentTimeMillis() - BASE_TIME;
     }
 
     public static long timeGen(Date date) {
-        return date.getTime() - twepoch;
+        return date.getTime() - BASE_TIME;
     }
 
     public static long timeGen(long time) {
-        return time - twepoch;
+        return time - BASE_TIME;
     }
 
     public static long tillNextMillis(long lastTimestamp) {
