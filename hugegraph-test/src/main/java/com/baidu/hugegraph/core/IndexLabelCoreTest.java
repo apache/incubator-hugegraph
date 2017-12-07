@@ -479,6 +479,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.getIndexLabel("personByCity");
         });
 
+        person = schema.getVertexLabel("person");
         Assert.assertEquals(1, person.indexNames().size());
         Assert.assertTrue(!person.indexNames().contains("personByCity"));
         Assert.assertTrue(person.indexNames().contains("personByAge"));
@@ -543,6 +544,11 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.getIndexLabel("authoredByContri");
         });
 
+        /*
+         * Should not expect that schemalabel previously constructed can be
+         * dynamically modified with index label operation
+         */
+        authored = schema.getEdgeLabel("authored");
         Assert.assertEquals(0, authored.indexNames().size());
 
         Assert.assertThrows(BackendException.class, () -> {
