@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.rocksdb.RocksDBException;
@@ -58,6 +59,8 @@ public abstract class RocksDBStore implements BackendStore {
     private HugeConfig conf;
 
     private RocksDBSessions sessions;
+
+    private static Map<String, RocksDBSessions> dbs = new ConcurrentHashMap<>();
 
     public RocksDBStore(final BackendStoreProvider provider,
                         final String database, final String name) {
@@ -130,21 +133,30 @@ public abstract class RocksDBStore implements BackendStore {
             this.sessions = new RocksDBSessions(dataPath, walPath,
                                                 this.tableNames());
         } catch (RocksDBException e) {
-            if (!e.getMessage().contains("Column family not found")) {
+            if (e.getMessage().contains("Column family not found")) {
+                // Before init
+                LOG.info("Failed to open RocksDB '{}' with database '{}', " +
+                         "try to init CF later", this.name, this.database);
+                try {
+                    this.sessions = new RocksDBSessions(dataPath, walPath);
+                } catch (RocksDBException e1) {
+                    LOG.error("Failed to open RocksDB with default CF", e1);
+                }
+            } else if (e.getMessage().contains("No locks available")) {
+                // Open twice, but we should support keyspace
+                this.sessions = dbs.get(dataPath);
+            }
+
+            if (this.sessions == null) {
+                // Error
                 LOG.error("Failed to open RocksDB '{}'", this.name, e);
                 throw new BackendException("Failed to open RocksDB '%s'",
                                            e, this.name);
             }
-            LOG.info("Failed to open RocksDB '{}' with database '{}', " +
-                     "try to init CF later", this.name, this.database);
-            try {
-                this.sessions = new RocksDBSessions(dataPath, walPath);
-            } catch (RocksDBException e1) {
-                LOG.error("Failed to open RocksDB with default CF", e);
-            }
         }
 
         if (this.sessions != null) {
+            dbs.putIfAbsent(dataPath, this.sessions);
             LOG.debug("Store opened: {}", this.name);
         }
     }

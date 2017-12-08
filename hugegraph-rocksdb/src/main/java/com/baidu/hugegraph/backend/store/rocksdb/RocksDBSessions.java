@@ -58,6 +58,7 @@ public class RocksDBSessions extends BackendSessionPool {
                            throws RocksDBException {
         this.cfs = new HashMap<>();
 
+        // Don't merge old CFs, we expect a clear DB when using this one
         Options options = new Options();
         this.initOptions(options, options);
         options.setWalDir(walPath);
@@ -96,6 +97,9 @@ public class RocksDBSessions extends BackendSessionPool {
     }
 
     public void createTable(String table) throws RocksDBException {
+        if (this.cfs.containsKey(table)) {
+            return;
+        }
         // Should we use options.setCreateMissingColumnFamilies() to create CF
         ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(table));
         this.initOptions(null, cfd.columnFamilyOptions());
