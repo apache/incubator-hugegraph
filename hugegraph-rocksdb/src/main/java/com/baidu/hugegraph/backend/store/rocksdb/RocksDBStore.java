@@ -210,6 +210,7 @@ public class RocksDBStore implements BackendStore {
                                            e, table, this.name);
             }
         }
+        LOG.info("Store initialized: {}", this.name);
     }
 
     @Override
@@ -229,6 +230,8 @@ public class RocksDBStore implements BackendStore {
                                            e, table, this.name);
             }
         }
+
+        LOG.info("Store cleared: {}", this.name);
     }
 
     @Override
