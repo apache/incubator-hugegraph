@@ -83,6 +83,8 @@ public class HugeGraph implements Graph {
     }
 
     private String name;
+    private boolean closed;
+
     private EventHub schemaEventHub;
     private EventHub indexEventHub;
     private HugeFeatures features;
@@ -102,6 +104,7 @@ public class HugeGraph implements Graph {
         this.features = new HugeFeatures(this, true);
 
         this.name = configuration.get(CoreOptions.STORE);
+        this.closed = false;
 
         this.veriables = null;
 
@@ -118,12 +121,17 @@ public class HugeGraph implements Graph {
 
     private BackendStoreProvider loadStoreProvider() {
         String backend = this.configuration.get(CoreOptions.BACKEND);
-        LOG.info("Opening backend store: '{}'", backend);
+        LOG.info("Opening backend store '{}' for graph '{}'",
+                 backend, this.name);
         return BackendProviderFactory.open(backend, this.name);
     }
 
     public String name() {
         return this.name;
+    }
+
+    public boolean closed() {
+        return this.closed;
     }
 
     public EventHub schemaEventHub() {
@@ -299,6 +307,7 @@ public class HugeGraph implements Graph {
                 this.tx.close();
             }
         } finally {
+            this.closed = true;
             this.tx.destroyTransaction();
             this.storeProvider.close();
         }
@@ -499,5 +508,5 @@ public class HugeGraph implements Graph {
             this.graphTransaction.remove();
             this.schemaTransaction.remove();
         }
-    };
+    }
 }

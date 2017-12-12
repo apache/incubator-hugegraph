@@ -21,18 +21,33 @@ package com.baidu.hugegraph;
 
 import java.io.File;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
 
 public class HugeFactory {
 
-    public static HugeGraph open(Configuration config) {
-        return new HugeGraph(new HugeConfig(config));
+    private static final Map<String, HugeGraph> graphs = new HashMap<>();
+
+    public static synchronized HugeGraph open(Configuration config) {
+        HugeConfig conf = new HugeConfig(config);
+        String name = conf.get(CoreOptions.STORE);
+        HugeGraph graph = null;
+        do {
+            graph = graphs.get(name);
+            if (graph == null || graph.closed()) {
+                graph = new HugeGraph(conf);
+                graphs.put(name, graph);
+            }
+        } while (graph == null);
+        return graph;
     }
 
     public static HugeGraph open(String path) {
@@ -49,21 +64,7 @@ public class HugeFactory {
                         "Please specify a proper config file rather than: %s",
                         file.toString());
         try {
-            PropertiesConfiguration config = new PropertiesConfiguration(file);
-            final File tmpParent = file.getParentFile();
-            final File configParent;
-
-            if (tmpParent == null) {
-                configParent = new File(System.getProperty("user.dir"));
-            } else {
-                configParent = tmpParent;
-            }
-
-            E.checkNotNull(configParent, "config parent");
-            E.checkArgument(configParent.isDirectory(),
-                            "Config parent must be directory.");
-
-            return config;
+            return new PropertiesConfiguration(file);
         } catch (ConfigurationException e) {
             throw new HugeException("Unable to load config file: %s", e, path);
         }
@@ -77,5 +78,4 @@ public class HugeFactory {
                                     e, url);
         }
     }
-
 }
