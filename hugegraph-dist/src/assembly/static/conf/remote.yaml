@@ -1,4 +1,9 @@
 hosts: [localhost]
 port: 8182
-serializer: { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV1d0, config: {
-serializeResultToString: false, ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry] }}
+serializer: {
+  className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV1d0,
+  config: {
+    serializeResultToString: true,
+    ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+  }
+}
