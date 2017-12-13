@@ -30,7 +30,7 @@ public class CassandraOptions extends OptionHolder {
 
     private static volatile CassandraOptions instance;
 
-    public static CassandraOptions Instance() {
+    public static CassandraOptions instance() {
         if (instance == null) {
             synchronized (CassandraOptions.class) {
                 if (instance == null) {
@@ -42,54 +42,51 @@ public class CassandraOptions extends OptionHolder {
         return instance;
     }
 
-    public static final ConfigOption<String> CASSANDRA_HOST = new ConfigOption<>(
-            "cassandra.host",
-            "localhost",
-            true,
-            "The seeds hostname or ip address of cassandra cluster.",
-            disallowEmpty(String.class)
-    );
+    public static final ConfigOption<String> CASSANDRA_HOST =
+            new ConfigOption<>(
+                    "cassandra.host",
+                    "The seeds hostname or ip address of cassandra cluster.",
+                    disallowEmpty(),
+                    "localhost"
+            );
 
-    public static final ConfigOption<Integer> CASSANDRA_PORT = new ConfigOption<>(
-            "cassandra.port",
-            9042,
-            true,
-            "The seeds port address of cassandra cluster.",
-            rangeInt(1024, 10000)
-    );
+    public static final ConfigOption<Integer> CASSANDRA_PORT =
+            new ConfigOption<>(
+                    "cassandra.port",
+                    "The seeds port address of cassandra cluster.",
+                    rangeInt(1024, 10000),
+                    9042
+            );
 
     public static final ConfigOption<Integer> CASSANDRA_CONN_TIMEOUT =
             new ConfigOption<>(
-                "cassandra.connect_timeout",
-                5,
-                true,
-                "The cassandra driver connect server timeout(seconds).",
-                rangeInt(1, 30)
-    );
+                    "cassandra.connect_timeout",
+                    "The cassandra driver connect server timeout(seconds).",
+                    rangeInt(1, 30),
+                    5
+            );
 
     public static final ConfigOption<Integer> CASSANDRA_READ_TIMEOUT =
             new ConfigOption<>(
-                "cassandra.read_timeout",
-                20,
-                true,
-                "The cassandra driver read from server timeout(seconds).",
-                rangeInt(1, 120)
+                    "cassandra.read_timeout",
+                    "The cassandra driver read from server timeout(seconds).",
+                    rangeInt(1, 120),
+                    20
             );
 
-    public static final ConfigOption<String> CASSANDRA_STRATEGY = new ConfigOption<>(
-            "cassandra.keyspace.strategy",
-            "SimpleStrategy",
-            true,
-            "The keyspace strategy",
-            disallowEmpty(String.class)
-    );
+    public static final ConfigOption<String> CASSANDRA_STRATEGY =
+            new ConfigOption<>(
+                    "cassandra.keyspace.strategy",
+                    "The keyspace strategy",
+                    disallowEmpty(),
+                    "SimpleStrategy"
+            );
 
-    public static final ConfigOption<Integer> CASSANDRA_REPLICATION = new ConfigOption<>(
-            "cassandra.keyspace.replication",
-            3,
-            true,
-            "The keyspace replication factor",
-            rangeInt(1, 100)
-    );
-
+    public static final ConfigOption<Integer> CASSANDRA_REPLICATION =
+            new ConfigOption<>(
+                    "cassandra.keyspace.replication",
+                    "The keyspace replication factor",
+                    rangeInt(1, 100),
+                    3
+            );
 }

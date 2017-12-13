@@ -30,7 +30,7 @@ public class ServerOptions extends OptionHolder {
 
     private static volatile ServerOptions instance;
 
-    public static ServerOptions Instance() {
+    public static ServerOptions instance() {
         if (instance == null) {
             synchronized (ServerOptions.class) {
                 if (instance == null) {
@@ -45,54 +45,48 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> REST_SERVER_URL =
             new ConfigOption<>(
                     "restserver.url",
-                    "http://127.0.0.1:8080",
-                    true,
                     "The url for listening of hugeserver.",
-                    disallowEmpty(String.class)
+                    disallowEmpty(),
+                    "http://127.0.0.1:8080"
             );
 
     public static final ConfigOption<String> GREMLIN_SERVER_URL =
             new ConfigOption<>(
                     "gremlinserver.url",
-                    "http://127.0.0.1:8182",
-                    true,
                     "The url of gremlin server.",
-                    disallowEmpty(String.class)
+                    disallowEmpty(),
+                    "http://127.0.0.1:8182"
             );
 
-    public static final ConfigOption<String> GRAPHS =
-            new ConfigOption<>(
+    public static final ConfigListOption<String> GRAPHS =
+            new ConfigListOption<>(
                     "graphs",
-                    "hugegraph:conf/hugegraph.properties",
-                    true,
                     "The map of graphs' name and config file.",
-                    disallowEmpty(String.class)
+                    disallowEmpty(),
+                    "hugegraph:conf/hugegraph.properties"
             );
 
     public static final ConfigOption<Integer> MAX_VERTICES_PER_BATCH =
             new ConfigOption<>(
                     "max_vertices_per_batch",
-                    500,
-                    true,
                     "The maximum number of vertices submitted per batch.",
-                    rangeInt(100, 1000)
+                    rangeInt(100, 1000),
+                    500
             );
 
     public static final ConfigOption<Integer> MAX_EDGES_PER_BATCH =
             new ConfigOption<>(
                     "max_edges_per_batch",
-                    500,
-                    true,
                     "The maximum number of edges submitted per batch.",
-                    rangeInt(100, 1000)
+                    rangeInt(100, 1000),
+                    500
             );
 
     public static final ConfigOption<String> ADMIN_TOKEN =
             new ConfigOption<>(
                     "admin.token",
-                    "162f7848-0b6d-4faf-b557-3a0797869c55",
-                    true,
                     "Token for administrator operations",
-                    disallowEmpty(String.class)
+                    disallowEmpty(),
+                    "162f7848-0b6d-4faf-b557-3a0797869c55"
             );
 }

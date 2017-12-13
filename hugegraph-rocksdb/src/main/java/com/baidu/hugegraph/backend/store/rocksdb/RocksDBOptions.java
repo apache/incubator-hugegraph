@@ -32,7 +32,7 @@ public class RocksDBOptions extends OptionHolder {
 
     private static volatile RocksDBOptions instance;
 
-    public static RocksDBOptions Instance() {
+    public static RocksDBOptions instance() {
         if (instance == null) {
             synchronized (RocksDBOptions.class) {
                 if (instance == null) {
@@ -44,19 +44,19 @@ public class RocksDBOptions extends OptionHolder {
         return instance;
     }
 
-    public static final ConfigOption<String> ROCKS_DATA_PATH = new ConfigOption<>(
-            "rocksdb.data_path",
-            "rocksdbdata",
-            true,
-            "The path for storing data of RocksDB.",
-            disallowEmpty(String.class)
-    );
+    public static final ConfigOption<String> ROCKS_DATA_PATH =
+            new ConfigOption<>(
+                    "rocksdb.data_path",
+                    "The path for storing data of RocksDB.",
+                    disallowEmpty(),
+                    "rocksdbdata"
+            );
 
-    public static final ConfigOption<String> ROCKS_WAL_PATH = new ConfigOption<>(
-            "rocksdb.wal_path",
-            "rocksdbwal",
-            true,
-            "The path for storing WAL of RocksDB.",
-            disallowEmpty(String.class)
-    );
+    public static final ConfigOption<String> ROCKS_WAL_PATH =
+            new ConfigOption<>(
+                    "rocksdb.wal_path",
+                    "The path for storing WAL of RocksDB.",
+                    disallowEmpty(),
+                    "rocksdbwal"
+            );
 }

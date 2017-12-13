@@ -38,7 +38,8 @@ import com.baidu.hugegraph.util.E;
 public class RegisterUtil {
 
     static {
-        OptionSpace.register(CoreOptions.Instance());
+        OptionSpace.register(CoreOptions.instance());
+        OptionSpace.register(DistOptions.instance());
     }
 
     public static void registerBackends() throws ConfigurationException {
@@ -48,9 +49,9 @@ public class RegisterUtil {
         E.checkState(is != null, "Can't read file '%s' as stream", confFile);
 
         HugeConfig config = new HugeConfig(is);
-        List<Object> backends = config.getList(CoreOptions.BACKENDS.name());
-        for (Object backend : backends) {
-            registerBackend((String) backend);
+        List<String> backends = config.get(DistOptions.BACKENDS);
+        for (String backend : backends) {
+            registerBackend(backend);
         }
     }
 
@@ -75,7 +76,7 @@ public class RegisterUtil {
 
     public static void registerCassandra() {
         // Register config
-        OptionSpace.register(CassandraOptions.Instance());
+        OptionSpace.register(CassandraOptions.instance());
         // Register serializer
         SerializerFactory.register("cassandra",
                 "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
@@ -86,7 +87,7 @@ public class RegisterUtil {
 
     public static void registerScyllaDB() {
         // Register config
-        OptionSpace.register(CassandraOptions.Instance());
+        OptionSpace.register(CassandraOptions.instance());
         // Register serializer
         SerializerFactory.register("scylladb",
                 "com.baidu.hugegraph.backend.store.scylladb.ScyllaDBSerializer");
@@ -100,13 +101,13 @@ public class RegisterUtil {
 
     public static void registerRocksDB() {
         // Register config
-        OptionSpace.register(RocksDBOptions.Instance());
+        OptionSpace.register(RocksDBOptions.instance());
         // Register backend
         BackendProviderFactory.register("rocksdb",
                 "com.baidu.hugegraph.backend.store.rocksdb.RocksDBStoreProvider");
     }
 
     public static void registerServer() {
-        OptionSpace.register(ServerOptions.Instance());
+        OptionSpace.register(ServerOptions.instance());
     }
 }
