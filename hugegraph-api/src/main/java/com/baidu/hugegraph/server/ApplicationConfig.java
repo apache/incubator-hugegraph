@@ -56,10 +56,10 @@ public class ApplicationConfig extends ResourceConfig {
     }
 
     public Map<String, String> parseGraphs(HugeConfig conf) {
-        List<Object> graphs = conf.getList(ServerOptions.GRAPHS.name());
+        List<String> graphs = conf.get(ServerOptions.GRAPHS);
         Map<String, String> graphMap = new HashMap<>();
-        for (Object graph : graphs) {
-            String[] graphPair = ((String) graph).split(":");
+        for (String graph : graphs) {
+            String[] graphPair = graph.split(":");
             assert graphPair.length == 2;
             graphMap.put(graphPair[0], graphPair[1]);
         }

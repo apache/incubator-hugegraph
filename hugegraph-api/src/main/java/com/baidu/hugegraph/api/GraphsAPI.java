@@ -78,11 +78,12 @@ public class GraphsAPI extends API {
                         @QueryParam("token") String token) {
         LOG.debug("Graphs [{}] get graph by name '{}'", name);
 
-        if (!verifyToken(token)) {
+        HugeGraph g = (HugeGraph) graph(manager, name);
+
+        if (!verifyToken(g, token)) {
             throw new NotAuthorizedException("Invalid token");
         }
 
-        HugeGraph g = (HugeGraph) graph(manager, name);
         File file = g.configuration().getFile();
         if (file == null) {
             throw new NotSupportedException("Can't access the api in " +
@@ -100,7 +101,9 @@ public class GraphsAPI extends API {
                       @QueryParam("confirm_message") String message) {
         LOG.debug("Graphs [{}] clear graph by name '{}'", name);
 
-        if (!verifyToken(token)) {
+        HugeGraph g = (HugeGraph) graph(manager, name);
+
+        if (!verifyToken(g, token)) {
             throw new NotAuthorizedException("Invalid token");
         }
         if (!CONFIRM_CLEAR.equals(message)) {
@@ -108,7 +111,6 @@ public class GraphsAPI extends API {
                       "Please take the message: %s", CONFIRM_CLEAR));
         }
 
-        HugeGraph g = (HugeGraph) graph(manager, name);
         g.tx().open();
         try {
             // Clear edge
@@ -140,8 +142,8 @@ public class GraphsAPI extends API {
         });
     }
 
-    private boolean verifyToken(String token) {
-        String expected = ServerOptions.ADMIN_TOKEN.value();
+    private boolean verifyToken(HugeGraph graph, String token) {
+        String expected = graph.configuration().get(ServerOptions.ADMIN_TOKEN);
         return expected.equals(token);
     }
 }

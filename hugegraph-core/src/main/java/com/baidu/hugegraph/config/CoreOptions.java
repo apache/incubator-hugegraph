@@ -22,7 +22,6 @@ package com.baidu.hugegraph.config;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
-
 public class CoreOptions extends OptionHolder {
 
     private CoreOptions() {
@@ -31,7 +30,7 @@ public class CoreOptions extends OptionHolder {
 
     private static volatile CoreOptions instance;
 
-    public static CoreOptions Instance() {
+    public static CoreOptions instance() {
         if (instance == null) {
             synchronized (CoreOptions.class) {
                 if (instance == null) {
@@ -43,109 +42,115 @@ public class CoreOptions extends OptionHolder {
         return instance;
     }
 
-    public static final ConfigOption<String> GREMLIN_GRAPH = new ConfigOption<>(
-            "gremlin.graph",
-            "com.baidu.hugegraph.HugeFactory",
-            true,
-            "Gremlin entrence to create graph",
-            disallowEmpty(String.class));
+    public static final ConfigOption<String> GREMLIN_GRAPH =
+            new ConfigOption<>(
+                    "gremlin.graph",
+                    "Gremlin entrence to create graph",
+                    disallowEmpty(),
+                    "com.baidu.hugegraph.HugeFactory"
+            );
 
-    // TODO: could move to dist package
-    public static final ConfigOption<String> BACKENDS = new ConfigOption<>(
-            "backends",
-            "[]",
-            true,
-            "The all data store type.",
-            disallowEmpty(String.class));
+    public static final ConfigOption<String> BACKEND =
+            new ConfigOption<>(
+                    "backend",
+                    "The data store type.",
+                    disallowEmpty(),
+                    "memory"
+            );
 
-    public static final ConfigOption<String> BACKEND = new ConfigOption<>(
-            "backend",
-            "memory",
-            true,
-            "The data store type.",
-            disallowEmpty(String.class));
+    public static final ConfigOption<String> STORE =
+            new ConfigOption<>(
+                    "store",
+                    "The database name like Cassandra Keyspace.",
+                    disallowEmpty(),
+                    "hugegraph"
+            );
 
-    public static final ConfigOption<String> STORE = new ConfigOption<>(
-            "store",
-            "hugegraph",
-            true,
-            "The database name like Cassandra Keyspace.",
-            disallowEmpty(String.class));
+    public static final ConfigOption<String> STORE_SCHEMA =
+            new ConfigOption<>(
+                    "store.schema",
+                    "The schema table name, which store meta data.",
+                    disallowEmpty(),
+                    "huge_schema"
+            );
 
-    public static final ConfigOption<String> STORE_SCHEMA = new ConfigOption<>(
-            "store.schema",
-            "huge_schema",
-            true,
-            "The schema table name, which store meta data.",
-            disallowEmpty(String.class));
+    public static final ConfigOption<String> STORE_GRAPH =
+            new ConfigOption<>(
+                    "store.graph",
+                    "The graph table name, which store vertex, edge and property.",
+                    disallowEmpty(),
+                    "huge_graph"
+            );
 
-    public static final ConfigOption<String> STORE_GRAPH = new ConfigOption<>(
-            "store.graph",
-            "huge_graph",
-            true,
-            "The graph table name, which store vertex, edge and property.",
-            disallowEmpty(String.class));
+    public static final ConfigOption<String> SERIALIZER =
+            new ConfigOption<>(
+                    "serializer",
+                    "The serializer for backend store, like: text/binary/cassandra",
+                    disallowEmpty(),
+                    "text"
+            );
 
-    public static final ConfigOption<String> SERIALIZER = new ConfigOption<>(
-            "serializer",
-            "text",
-            true,
-            "The serializer for backend store, like: text/binary/cassandra",
-            disallowEmpty(String.class));
+    public static final ConfigOption<String> VERTEX_DEFAULT_LABEL =
+            new ConfigOption<>(
+                    "vertex.default_label",
+                    "The default vertex label.",
+                    disallowEmpty(),
+                    "vertex"
+            );
 
-    public static final ConfigOption<String> VERTEX_DEFAULT_LABEL =  new ConfigOption<>(
-            "vertex.default_label",
-            "vertex",
-            true,
-            "The default vertex label.",
-            disallowEmpty(String.class));
+    public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
+            new ConfigOption<>(
+                    "vertex.tx_capacity",
+                    "The max size(items) of vertices(uncommitted) in transaction.",
+                    rangeInt(1, 1000000),
+                    10000
+            );
 
-    public static final ConfigOption<Integer> VERTEX_TX_CAPACITY = new ConfigOption<>(
-            "vertex.tx_capacity",
-            10000,
-            true,
-            "The max size(items) of vertices(uncommitted) in transaction.",
-            rangeInt(1, 1000000));
+    public static final ConfigOption<Integer> EDGE_TX_CAPACITY =
+            new ConfigOption<>(
+                    "edge.tx_capacity",
+                    "The max size(items) of edges(uncommitted) in transaction.",
+                    rangeInt(1, 1000000),
+                    10000
+            );
 
-    public static final ConfigOption<Integer> EDGE_TX_CAPACITY = new ConfigOption<>(
-            "edge.tx_capacity",
-            10000,
-            true,
-            "The max size(items) of edges(uncommitted) in transaction.",
-            rangeInt(1, 1000000));
+    public static final ConfigOption<String> SCHEMA_ILLEGAL_NAME_REGEX =
+            new ConfigOption<>(
+                    "schema.illegal_name_regex",
+                    "The regex specified the illegal format for schema name.",
+                    disallowEmpty(),
+                    "\\s+|~.*"
+            );
 
-    public static final ConfigOption<String> SCHEMA_ILLEGAL_NAME_REGEX = new ConfigOption<>(
-            "schema.illegal_name_regex",
-            "\\s+|~.*",
-            true,
-            "The regex expression that specified the illegal format for schema name.",
-            disallowEmpty(String.class));
+    public static final ConfigOption<Integer> SCHEMA_CACHE_CAPACITY =
+            new ConfigOption<>(
+                    "schema.cache_capacity",
+                    "The max cache size(items) of schema data.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    (1024 * 1024 * 1)
+            );
 
-    public static final ConfigOption<Integer> SCHEMA_CACHE_CAPACITY = new ConfigOption<>(
-            "schema.cache_capacity",
-            (1024 * 1024 * 1),
-            true,
-            "The max cache size(items) of schema data.",
-            rangeInt(1, Integer.MAX_VALUE));
+    public static final ConfigOption<Integer> SCHEMA_CACHE_EXPIRE =
+            new ConfigOption<>(
+                    "schema.cache_expire",
+                    "The expire time in seconds of schema data.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    (60 * 30)
+            );
 
-    public static final ConfigOption<Integer> SCHEMA_CACHE_EXPIRE = new ConfigOption<>(
-            "schema.cache_expire",
-            (60 * 30),
-            true,
-            "The expire time in seconds of schema data.",
-            rangeInt(0, Integer.MAX_VALUE));
+    public static final ConfigOption<Integer> GRAPH_CACHE_CAPACITY =
+            new ConfigOption<>(
+                    "graph.cache_capacity",
+                    "The max cache size(items) of graph data(vertex/edge).",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    (1024 * 1024 * 10)
+            );
 
-    public static final ConfigOption<Integer> GRAPH_CACHE_CAPACITY = new ConfigOption<>(
-            "graph.cache_capacity",
-            (1024 * 1024 * 10),
-            true,
-            "The max cache size(items) of graph data(vertex/edge).",
-            rangeInt(1, Integer.MAX_VALUE));
-
-    public static final ConfigOption<Integer> GRAPH_CACHE_EXPIRE = new ConfigOption<>(
-            "graph.cache_expire",
-            (60 * 10),
-            true,
-            "The expire time in seconds of graph data(vertex/edge).",
-            rangeInt(0, Integer.MAX_VALUE));
+    public static final ConfigOption<Integer> GRAPH_CACHE_EXPIRE =
+            new ConfigOption<>(
+                    "graph.cache_expire",
+                    "The expire time in seconds of graph data(vertex/edge).",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    (60 * 10)
+            );
 }
