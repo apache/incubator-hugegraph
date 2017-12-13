@@ -22,8 +22,8 @@ package com.baidu.hugegraph.config;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Method;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.configuration.AbstractFileConfiguration;
 import org.apache.commons.configuration.Configuration;
@@ -52,21 +52,23 @@ public class HugeConfig extends PropertiesConfiguration {
         Iterator<String> keys = config.getKeys();
         while (keys.hasNext()) {
             String key = keys.next();
-            this.setProperty(key.replace("..", "."), config.getProperty(key));
+            if (key.contains("..")) {
+                key = key.replace("..", ".");
+            }
+            this.addProperty(key, config.getProperty(key));
         }
-
-        updateDefaultOption();
+        this.checkRequiredOptions();
     }
 
     public HugeConfig(String configFile) throws ConfigurationException {
         super(loadConfigFile(configFile));
-        updateDefaultOption();
+        this.checkRequiredOptions();
     }
 
     public HugeConfig(InputStream is) throws ConfigurationException {
         E.checkNotNull(is, "config input stream");
         this.load(new InputStreamReader(is));
-        updateDefaultOption();
+        this.checkRequiredOptions();
     }
 
     private static File loadConfigFile(String fileName) {
@@ -81,45 +83,42 @@ public class HugeConfig extends PropertiesConfiguration {
         return file;
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public void updateDefaultOption() {
-        try {
-            Iterator<String> keys = this.getKeys();
-            while (keys.hasNext()) {
-                String key = keys.next();
-
-                if (!OptionSpace.containKey(key)) {
-                    LOG.warn("The config option '{}' is redundant, " +
-                             "please ensure it has been registered", key);
-                    continue;
-                }
-                ConfigOption option = OptionSpace.get(key);
-                Class<?> dataType = option.dataType();
-                String methodGetter = "get" + dataType.getSimpleName();
-                Method method = this.getClass().getMethod(methodGetter,
-                                                          String.class,
-                                                          dataType);
-                option.value(method.invoke(this, key, option.value()));
-            }
-        } catch (Exception e) {
-            LOG.error("Failed to update options value: {}", e.getMessage());
-            throw new ConfigException("Failed to update options value");
-        }
-    }
-
+    @SuppressWarnings("unchecked")
     public <T> T get(ConfigOption<T> option) {
-        return option.value();
+        Object value = this.getProperty(option.name());
+        return value != null ? (T) value : option.defaultValue();
     }
 
     @Override
     public void addProperty(String key, Object value) {
-        if (value instanceof String) {
-            String val = (String) value;
-            if (val.startsWith("[") && val.endsWith("]")) {
-                val = val.substring(1, val.length() - 1);
-            }
-            value = val;
+        if (!OptionSpace.containKey(key)) {
+            LOG.warn("The config option '{}' is redundant, " +
+                     "please ensure it has been registered", key);
+        } else {
+            // The input value is String(parsed by PropertiesConfiguration)
+            value = this.validateOption(key, value);
         }
-        super.addProperty(key, value);
+        super.addPropertyDirect(key, value);
+    }
+
+    private Object validateOption(String key, Object value) {
+        assert value instanceof String;
+
+        ConfigOption<?> option = OptionSpace.get(key);
+        Class<?> dataType = option.dataType();
+
+        if (List.class.isAssignableFrom(dataType)) {
+            E.checkState(option instanceof ConfigListOption,
+                         "List option must be registered with " +
+                         "class ConfigListOption");
+        }
+
+        value = option.convert(value);
+        option.check(value);
+        return value;
+    }
+
+    private void checkRequiredOptions() {
+        // TODO: Check required options must be contained in this map
     }
 }

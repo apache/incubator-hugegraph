@@ -27,7 +27,15 @@ public class ConfigException extends RuntimeException {
         super(message);
     }
 
-    public ConfigException(String msg, Throwable cause) {
-        super(msg, cause);
+    public ConfigException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public ConfigException(String message, Object... args) {
+        super(String.format(message, args));
+    }
+
+    public ConfigException(String message, Throwable cause, Object... args) {
+        super(String.format(message, args), cause);
     }
 }

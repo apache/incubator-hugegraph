@@ -19,14 +19,16 @@
 
 package com.baidu.hugegraph.config;
 
+import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.configuration.PropertyConverter;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 
@@ -47,7 +49,8 @@ public class ConfigOption<T> {
                 Float.class,
                 Double.class,
                 String.class,
-                String[].class
+                String[].class,
+                List.class
         );
 
         ACCEPTED_DATA_TYPES_STRING = Joiner.on(", ").join(ACCEPTED_DATA_TYPES);
@@ -55,42 +58,45 @@ public class ConfigOption<T> {
 
     private final String name;
     private final String desc;
-    // Not allowed to modify option whose `rewritable` is false
-    private final Boolean rewritable;
+    private final boolean required;
     private final Class<T> dataType;
-    private T value;
+    private final T defaultValue;
     private final Predicate<T> checkFunc;
 
     @SuppressWarnings("unchecked")
-    public ConfigOption(String name, T value, Boolean rewritable,
-                        String desc, Predicate<T> func) {
-        this(name, (Class<T>) value.getClass(), value, rewritable, desc, func);
+    public ConfigOption(String name, String desc, Predicate<T> func, T value) {
+        this(name, false, desc, func, (Class<T>) value.getClass(), value);
     }
 
-    public ConfigOption(String name, Class<T> dataType, T value,
-                        Boolean rewritable, String desc, Predicate<T> func) {
-        Preconditions.checkNotNull(name);
-        Preconditions.checkNotNull(dataType);
-        Preconditions.checkNotNull(rewritable);
-
-        if (!ACCEPTED_DATA_TYPES.contains(dataType)) {
-            String msg = String.format("Input data type '%s' doesn't belong " +
-                                       "to acceptable type set: [%s]",
-                                       dataType, ACCEPTED_DATA_TYPES_STRING);
-            LOG.error(msg);
-            throw new IllegalArgumentException(msg);
-        }
+    @SuppressWarnings("unchecked")
+    public ConfigOption(String name, boolean required, String desc,
+                        Predicate<T> func, Class<T> type, T value) {
+        E.checkNotNull(name, "name");
+        E.checkNotNull(type, "dataType");
 
         this.name = name;
-        this.dataType = dataType;
-        this.value = value;
-        this.rewritable = rewritable;
+        this.dataType = (Class<T>) this.checkAndAssignDataType(type);
+        this.defaultValue = value;
+        this.required = required;
         this.desc = desc;
         this.checkFunc = func;
 
         if (this.checkFunc != null) {
-            check(this.value);
+            check(this.defaultValue);
         }
+    }
+
+    private Class<?> checkAndAssignDataType(Class<T> dataType) {
+        for (Class<?> clazz : ACCEPTED_DATA_TYPES) {
+            if (clazz.isAssignableFrom(dataType)) {
+                return clazz;
+            }
+        }
+
+        String msg = String.format("Input data type '%s' doesn't belong " +
+                                   "to acceptable type set: [%s]",
+                                   dataType, ACCEPTED_DATA_TYPES_STRING);
+        throw new IllegalArgumentException(msg);
     }
 
     public String name() {
@@ -105,24 +111,45 @@ public class ConfigOption<T> {
         return this.desc;
     }
 
-    public T value() {
-        return this.value;
+    public boolean required() {
+        return this.required;
     }
 
-    public void value(T value) {
-        check(value);
-        E.checkArgument(this.rewritable,
-                        "Not allowed to modify option '%s' " +
-                        "which can't be rewritable", this.name);
-        this.value = value;
+    public T defaultValue() {
+        return this.defaultValue;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T convert(Object value) {
+        return (T) this.convert(value, this.dataType);
+    }
+
+    public Object convert(Object value, Class<?> dataType) {
+        if (dataType.equals(String.class)) {
+            return value;
+        }
+
+        // Use PropertyConverter method `toXXX` convert value
+        String methodTo = "to" + dataType.getSimpleName();
+        try {
+            Method method = PropertyConverter.class.getMethod(
+                            methodTo, Object.class);
+            return method.invoke(null, value);
+        } catch (ReflectiveOperationException e) {
+            LOG.error("Invalid type of value '{}' for option '{}'",
+                      value, this.name, e);
+            throw new ConfigException(
+                      "Invalid type of value '%s' for option '%s', " +
+                      "expect '%s' type",
+                      value, this.name, dataType.getSimpleName());
+        }
     }
 
     public void check(Object value) {
         E.checkNotNull(value, "value", this.name);
         E.checkArgument(this.dataType.isInstance(value),
-                        "Invalid class for option '%s', " +
-                        "expected '%s' but given '%s'",
-                        this.name, this.dataType, value.getClass());
+                        "Invalid type of value '%s' for option '%s'",
+                        value, this.name);
         @SuppressWarnings("unchecked")
         T result = (T) value;
         E.checkArgument(this.checkFunc.apply(result),

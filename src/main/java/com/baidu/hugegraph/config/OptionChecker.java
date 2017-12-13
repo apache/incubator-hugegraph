@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.config;
 
 import java.lang.reflect.Array;
-import java.util.Collection;
 
 import javax.annotation.Nullable;
 
@@ -30,7 +29,7 @@ import com.google.common.base.Predicate;
 
 public class OptionChecker {
 
-    public static final <O> Predicate<O> disallowEmpty(Class<O> clazz) {
+    public static final <O> Predicate<O> disallowEmpty() {
         return new Predicate<O>() {
             @Override
             public boolean apply(@Nullable O o) {
@@ -43,7 +42,8 @@ public class OptionChecker {
                 if (o.getClass().isArray() && (Array.getLength(o) == 0)) {
                     return false;
                 }
-                if (o instanceof Collection && ((Collection<?>) o).isEmpty()) {
+                if (o instanceof Iterable &&
+                    !((Iterable<?>) o).iterator().hasNext()) {
                     return false;
                 }
                 return true;
