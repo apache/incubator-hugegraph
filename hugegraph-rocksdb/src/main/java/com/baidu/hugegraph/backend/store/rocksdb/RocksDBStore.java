@@ -108,6 +108,8 @@ public class RocksDBStore implements BackendStore {
 
     @Override
     public void open(HugeConfig config) {
+        LOG.debug("Store open: {}", this.name);
+
         E.checkNotNull(config, "config");
         this.conf = config;
 
@@ -141,21 +143,24 @@ public class RocksDBStore implements BackendStore {
             }
         }
 
-        LOG.debug("Store opened: {}", this.name);
+        if (this.sessions != null) {
+            LOG.debug("Store opened: {}", this.name);
+        }
     }
 
     @Override
     public void close() {
+        LOG.debug("Store close: {}", this.name);
+
         this.checkOpened();
         this.sessions.close();
-
-        LOG.debug("Store closed: {}", this.name);
     }
 
     @Override
     public void mutate(BackendMutation mutation) {
-
-        LOG.debug("Store {} mutation: {}", this.name, mutation);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Store {} mutation: {}", this.name, mutation);
+        }
 
         this.checkOpened();
         RocksDBSessions.Session session = this.sessions.session();
@@ -210,6 +215,7 @@ public class RocksDBStore implements BackendStore {
                                            e, table, this.name);
             }
         }
+
         LOG.info("Store initialized: {}", this.name);
     }
 
@@ -244,10 +250,9 @@ public class RocksDBStore implements BackendStore {
         this.checkOpened();
         RocksDBSessions.Session session = this.sessions.session();
 
-        try {
-            session.commit();
-        } finally {
-            session.clear();
+        Object count = session.commit();
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Store {} committed {} items", this.name, count);
         }
     }
 

@@ -96,6 +96,8 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void open(HugeConfig config) {
+        LOG.debug("Store open: {}", this.name);
+
         E.checkNotNull(config, "config");
 
         if (this.sessions.opened()) {
@@ -127,7 +129,7 @@ public abstract class CassandraStore implements BackendStore {
             try {
                 this.sessions.close();
             } catch (Throwable e2) {
-                LOG.warn("Failed to close cluster", e2);
+                LOG.warn("Failed to close cluster after an error", e2);
             }
             throw e;
         }
@@ -137,13 +139,15 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void close() {
+        LOG.debug("Store close: {}", this.name);
         this.sessions.close();
-        LOG.debug("Store closed: {}", this.name);
     }
 
     @Override
     public void mutate(BackendMutation mutation) {
-        LOG.debug("Store {} mutation: {}", this.name, mutation);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Store {} mutation: {}", this.name, mutation);
+        }
 
         this.checkSessionConnected();
         CassandraSessionPool.Session session = this.sessions.session();
@@ -278,7 +282,7 @@ public abstract class CassandraStore implements BackendStore {
         }
         session.txState(TxState.COMMITTING);
 
-        if (!session.hasChanged()) {
+        if (!session.hasChanges()) {
             session.txState(TxState.CLEAN);
             LOG.debug("Store {} has nothing to commit", this.name);
             return;
@@ -303,8 +307,6 @@ public abstract class CassandraStore implements BackendStore {
                       "Failed to commit %s statements: '%s'...", e,
                       session.statements().size(),
                       session.statements().iterator().next());
-        } finally {
-            session.clear();
         }
     }
 

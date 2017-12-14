@@ -141,7 +141,16 @@ public class CassandraSessionPool extends BackendSessionPool {
 
         @Override
         public ResultSet commit() {
-            return this.session.execute(this.batch);
+            try {
+                return this.session.execute(this.batch);
+            } finally {
+                this.batch.clear();
+            }
+        }
+
+        public ResultSet query(Statement statement) {
+            assert !this.hasChanges();
+            return this.execute(statement);
         }
 
         public ResultSet execute(Statement statement) {
@@ -177,7 +186,8 @@ public class CassandraSessionPool extends BackendSessionPool {
             this.session.close();
         }
 
-        public boolean hasChanged() {
+        @Override
+        public boolean hasChanges() {
             return this.batch.size() > 0;
         }
 

@@ -128,6 +128,8 @@ public abstract class BackendSessionPool {
 
         public abstract Object commit();
 
+        public abstract boolean hasChanges();
+
         protected int attach() {
             return ++this.refs;
         }

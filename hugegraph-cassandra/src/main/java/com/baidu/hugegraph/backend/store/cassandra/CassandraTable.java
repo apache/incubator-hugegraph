@@ -119,7 +119,7 @@ public abstract class CassandraTable {
         List<Select> selections = query2Select(this.table, query);
         try {
             for (Select selection : selections) {
-                ResultSet results = session.execute(selection);
+                ResultSet results = session.query(selection);
                 rs.addAll(this.results2Entries(query, results));
             }
         } catch (DriverException e) {
