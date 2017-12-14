@@ -228,10 +228,22 @@ public class RocksDBSessions extends BackendSessionPool {
         }
 
         /**
+         * Any change in the session
+         */
+        @Override
+        public boolean hasChanges() {
+            return this.batch.count() > 0;
+        }
+
+        /**
          * Commit all updates(put/delete) to DB
          */
         @Override
         public Object commit() {
+            int count = this.batch.count();
+            if (count <= 0) {
+                return 0;
+            }
             try {
                 rocksdb().write(this.writeOptions, this.batch);
             } catch (RocksDBException e) {
@@ -240,7 +252,7 @@ public class RocksDBSessions extends BackendSessionPool {
             } finally {
                 this.batch.clear();
             }
-            return null;
+            return count;
         }
 
         /**
@@ -287,6 +299,8 @@ public class RocksDBSessions extends BackendSessionPool {
          * Get a record by key from a table
          */
         public byte[] get(String table, byte[] key) {
+            assert !this.hasChanges();
+
             try {
                 return rocksdb().get(cf(table), key);
             } catch (RocksDBException e) {
@@ -324,6 +338,7 @@ public class RocksDBSessions extends BackendSessionPool {
                                             byte[] keyFrom,
                                             byte[] keyTo,
                                             boolean matchPrefix) {
+            assert !this.hasChanges();
             RocksIterator itor = rocksdb().newIterator(cf(table));
             return new ColumnIterator(table, itor, keyFrom, keyTo, matchPrefix);
         }

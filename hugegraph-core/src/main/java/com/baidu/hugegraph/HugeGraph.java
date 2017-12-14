@@ -70,7 +70,8 @@ public class HugeGraph implements Graph {
 
     static {
         TraversalStrategies strategies = null;
-        strategies = TraversalStrategies.GlobalCache.getStrategies(Graph.class)
+        strategies = TraversalStrategies.GlobalCache
+                                        .getStrategies(Graph.class)
                                         .clone();
         strategies.addStrategies(HugeVertexStepStrategy.instance(),
                                  HugeGraphStepStrategy.instance());
@@ -91,10 +92,9 @@ public class HugeGraph implements Graph {
     private HugeConfig configuration;
     private HugeVariables veriables;
 
-    private TinkerpopTransaction tx;
-
-    // Store provider like Cassandra
     private BackendStoreProvider storeProvider;
+
+    private TinkerpopTransaction tx;
 
     public HugeGraph(HugeConfig configuration) {
         this.configuration = configuration;
@@ -225,8 +225,8 @@ public class HugeGraph implements Graph {
     }
 
     @Override
-    public <C extends GraphComputer> C compute(Class<C> aClass)
-            throws IllegalArgumentException {
+    public <C extends GraphComputer> C compute(Class<C> clazz)
+                                               throws IllegalArgumentException {
         throw Graph.Exceptions.graphComputerNotSupported();
     }
 
