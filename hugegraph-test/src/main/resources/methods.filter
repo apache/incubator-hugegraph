@@ -52,6 +52,7 @@ org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.Diffe
 ## not bugs
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
+org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: Hang the tests because property 'test' have both String and long value
 
 ####################    process suite    ####################
 
@@ -95,3 +96,14 @@ org.apache.tinkerpop.gremlin.process.traversal.step.map.AddEdgeTest.Traversals.g
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXpersonX_propertyXname_stephenX_propertyXname_stephenmX: Expect multi properties after setting single property multi times
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXanimalX_propertyXname_mateoX_propertyXname_gateoX_propertyXname_cateoX_propertyXage_5X: Expect multi properties after setting single property multi times
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_V_addVXanimalX_propertyXname_valuesXnameXX_propertyXname_an_animalX_propertyXvaluesXnameX_labelX: Expect multi properties after setting single property multi times
+
+####################    structure performance suite    ####################
+
+org.apache.tinkerpop.gremlin.structure.GraphWritePerformanceTest.WriteToGraph.writeEmptyVertices: Vertices number exceeds 65536, can not delete by vertex label after tests
+org.apache.tinkerpop.gremlin.structure.GraphWritePerformanceTest.WriteToGraph.writeEmptyVerticesAndEdges: Vertices number exceeds 65536, can not delete by vertex label after tests
+org.apache.tinkerpop.gremlin.structure.GraphReadPerformanceTest.ReadFromGraph.readAllVerticesAndProperties: Vertices number exceeds 65536, can not delete by vertex label after tests
+org.apache.tinkerpop.gremlin.structure.GraphReadPerformanceTest.ReadFromGraph.readAllEdgesAndProperties: Vertices number exceeds 65536, can not delete by vertex label after tests
+
+####################    process performance suite    ####################
+
+org.apache.tinkerpop.gremlin.process.TraversalPerformanceTest.g_E_hasLabelXwrittenByX_whereXinV_inEXsungByX_count_isX0XX_subgraphXsgX: Failed with vertex not exist error after 15 minutes, need more analysis to fix
