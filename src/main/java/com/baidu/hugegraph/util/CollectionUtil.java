@@ -47,7 +47,7 @@ public final class CollectionUtil {
         return list;
     }
 
-    public static boolean prefixOf(List<String> prefix, List<String> all) {
+    public static <T> boolean prefixOf(List<T> prefix, List<T> all) {
         E.checkNotNull(prefix, "prefix");
         E.checkNotNull(all, "all");
 
@@ -56,8 +56,8 @@ public final class CollectionUtil {
         }
 
         for (int i = 0; i < prefix.size(); i++) {
-            String first = prefix.get(i);
-            String second = all.get(i);
+            T first = prefix.get(i);
+            T second = all.get(i);
             if (first == second) {
                 continue;
             }
