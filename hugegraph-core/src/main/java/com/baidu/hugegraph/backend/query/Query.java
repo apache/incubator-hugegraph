@@ -37,7 +37,7 @@ public class Query implements Cloneable {
     public static final long NO_LIMIT = Long.MAX_VALUE;
 
     public static final long NO_CAPACITY = -1L;
-    public static final long DEFAULT_CAPACITY = 100000L; // HugeGraph-777
+    public static final long DEFAULT_CAPACITY = 800000L; // HugeGraph-777
 
     private HugeType resultType;
     private Map<HugeKeys, Order> orders;

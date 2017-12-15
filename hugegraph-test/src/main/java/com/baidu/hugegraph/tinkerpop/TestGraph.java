@@ -41,6 +41,8 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructureBasicSuite")
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.ProcessStandardTest")
+@Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructurePerformanceTest")
+@Graph.OptIn("com.baidu.hugegraph.tinkerpop.ProcessPerformanceTest")
 public class TestGraph implements Graph {
 
     public static final String DEFAULT_VL = "vertex";
