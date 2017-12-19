@@ -37,7 +37,7 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 + "\"properties\":[]"
                 + "}";
         Response r = client().post(path, propertyKey);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
     }
 
     @Test
@@ -49,11 +49,11 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 + "\"properties\":[]"
                 + "}";
         Response r = client().post(path, propertyKey);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
 
         String name = "id";
         r = client().get(path, name);
-        Assert.assertEquals(200, r.getStatus());
+        assertResponseStatus(200, r);
     }
 
     @Test
@@ -65,10 +65,10 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 + "\"properties\":[]"
                 + "}";
         Response r = client().post(path, propertyKey);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
 
         r = client().get(path);
-        Assert.assertEquals(200, r.getStatus());
+        assertResponseStatus(200, r);
     }
 
     @Test
@@ -80,10 +80,10 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 + "\"properties\":[]"
                 + "}";
         Response r = client().post(path, propertyKey);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
 
         String name = "id";
         r = client().delete(path, name);
-        Assert.assertEquals(204, r.getStatus());
+        assertResponseStatus(204, r);
     }
 }

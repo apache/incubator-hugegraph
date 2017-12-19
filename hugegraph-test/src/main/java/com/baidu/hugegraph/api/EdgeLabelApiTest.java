@@ -51,7 +51,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
     }
 
     @Test
@@ -66,7 +66,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
 
         edgeLabel = "{"
                 + "\"name\": \"created\","
@@ -79,7 +79,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
         r = client().put(path + "created", edgeLabel, params);
-        Assert.assertEquals(200, r.getStatus());
+        assertResponseStatus(200, r);
     }
 
     @Test
@@ -94,11 +94,11 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
 
         String name = "created";
         r = client().get(path, name);
-        Assert.assertEquals(200, r.getStatus());
+        assertResponseStatus(200, r);
     }
 
     @Test
@@ -113,10 +113,10 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
 
         r = client().get(path);
-        Assert.assertEquals(200, r.getStatus());
+        assertResponseStatus(200, r);
     }
 
     @Test
@@ -131,10 +131,10 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"sort_keys\":[]"
                 + "}";
         Response r = client().post(path, edgeLabel);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
 
         String name = "created";
         r = client().delete(path, name);
-        Assert.assertEquals(204, r.getStatus());
+        assertResponseStatus(204, r);
     }
 }

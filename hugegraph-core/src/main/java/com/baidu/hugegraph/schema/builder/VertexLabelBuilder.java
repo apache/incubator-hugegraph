@@ -191,7 +191,10 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
 
     @Override
     public VertexLabelBuilder primaryKeys(String... keys) {
-        E.checkArgument(keys.length > 0, "Empty primary keys");
+        if (keys.length == 0) {
+            return this;
+        }
+
         E.checkArgument(this.primaryKeys.isEmpty(),
                         "Not allowed to assign primary keys multitimes");
 

@@ -45,7 +45,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
@@ -104,8 +103,11 @@ public class EdgeAPI extends API {
 
         Vertex srcVertex = getVertex(g, jsonEdge.source, null);
         Vertex tgtVertex = getVertex(g, jsonEdge.target, null);
-        Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex,
-                                      jsonEdge.properties());
+
+        Edge edge = commit(g, () -> {
+            return srcVertex.addEdge(jsonEdge.label, tgtVertex,
+                                     jsonEdge.properties());
+        });
 
         return manager.serializer(g).writeEdge(edge);
     }
@@ -130,12 +132,8 @@ public class EdgeAPI extends API {
         TriFunction<HugeGraph, String, String, Vertex> getVertex =
                     checkV ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
-        List<String> ids = new ArrayList<>(jsonEdges.size());
-
-        if (!g.tx().isOpen()) {
-            g.tx().open();
-        }
-        try {
+        return commit(g, () -> {
+            List<String> ids = new ArrayList<>(jsonEdges.size());
             for (JsonEdge edge : jsonEdges) {
                 /*
                  * NOTE: If the query param 'checkVertex' is false,
@@ -150,23 +148,8 @@ public class EdgeAPI extends API {
                                                 edge.properties());
                 ids.add(result.id().toString());
             }
-            g.tx().commit();
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e1) {
-            LOG.error("Failed to add edges", e1);
-            try {
-                g.tx().rollback();
-            } catch (Exception e2) {
-                LOG.error("Failed to rollback edges", e2);
-            }
-            throw new HugeException("Failed to add edges", e1);
-        } finally {
-            if (g.tx().isOpen()) {
-                g.tx().close();
-            }
-        }
-        return ids;
+            return ids;
+        });
     }
 
     @PUT
@@ -200,18 +183,18 @@ public class EdgeAPI extends API {
                             "Can't update property for edge '%s' because " +
                             "there is no property key '%s' in its edge label",
                             id, key);
-            if (append) {
-                Object value = jsonEdge.properties.get(key);
-                E.checkArgumentNotNull(value, "Not allowed to set value of " +
-                                       "property '%s' to null for edge '%s'",
-                                       key, id);
-                edge.property(key, value);
-            } else {
-                edge.property(key).remove();
-            }
         }
 
-        edge = (HugeEdge) g.edges(id).next();
+        commit(g, () -> {
+            for (String key : jsonEdge.properties.keySet()) {
+                if (append) {
+                    edge.property(key, jsonEdge.properties.get(key));
+                } else {
+                    edge.property(key).remove();
+                }
+            }
+        });
+
         return manager.serializer(g).writeEdge(edge);
     }
 
@@ -281,7 +264,7 @@ public class EdgeAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         // TODO: add removeEdge(id) to improve
-        g.edges(id).next().remove();
+        commit(g, () -> g.edges(id).next().remove());
     }
 
     private static void checkBatchCount(HugeGraph g, List<JsonEdge> jsonEdges) {
@@ -363,6 +346,13 @@ public class EdgeAPI extends API {
             }
             E.checkArgumentNotNull(this.properties,
                                    "The properties of edge can't be null");
+
+            for (String key : this.properties.keySet()) {
+                Object value = this.properties.get(key);
+                E.checkArgumentNotNull(value, "Not allowed to set value of " +
+                                       "property '%s' to null for edge '%s'",
+                                       key, id);
+            }
         }
 
         public Object[] properties() {

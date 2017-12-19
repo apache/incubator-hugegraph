@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.api;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.client.Client;
@@ -31,8 +34,13 @@ import org.glassfish.jersey.client.filter.EncodingFilter;
 import org.glassfish.jersey.message.GZipEncoder;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 
+import com.baidu.hugegraph.HugeException;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
 public class BaseApiTest {
@@ -51,6 +59,8 @@ public class BaseApiTest {
     private static final String GRAPH_EDGE = "/graph/edges";
 
     private static RestClient client;
+
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     @BeforeClass
     public static void init() {
@@ -297,6 +307,46 @@ public class BaseApiTest {
                 + "}");
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    protected String getVertexId(String label, String key, String value)
+                                 throws IOException {
+        String props = mapper.writeValueAsString(ImmutableMap.of(key, value));
+        Map<String, Object> params = ImmutableMap.of(
+                "label", label,
+                "properties", URLEncoder.encode(props, "UTF-8")
+        );
+        Response r = client.get(URL_PREFIX + GRAPH_VERTEX, params);
+        String content = r.readEntity(String.class);
+        if (r.getStatus() != 200) {
+            throw new HugeException("Failed to get vertex id: %s", content);
+        }
+
+        List<Map> list = readList(content, "vertices", Map.class);
+        if (list.size() != 1) {
+            throw new HugeException("Failed to get vertex id: %s", content);
+        }
+        return (String) list.get(0).get("id");
+    }
+
+    protected static <T> List<T> readList(String content,
+                                          String key,
+                                          Class<T> clazz) {
+        try {
+            JsonNode root = mapper.readTree(content);
+            JsonNode element = root.get(key);
+            if (element == null) {
+                throw new HugeException(String.format(
+                          "Can't find value of the key: %s in json.", key));
+            }
+            JavaType type = mapper.getTypeFactory()
+                                  .constructParametricType(List.class, clazz);
+            return mapper.readValue(element.toString(), type);
+        } catch (IOException e) {
+            throw new HugeException(String.format(
+                      "Failed to deserialize %s", content), e);
+        }
+    }
+
     protected static void clearData() {
         String token = "162f7848-0b6d-4faf-b557-3a0797869c55";
         String message = "I'm sure to delete all data";
@@ -304,5 +354,17 @@ public class BaseApiTest {
         Map<String, Object> param = ImmutableMap.of("token", token,
                                                     "confirm_message", message);
         client.delete("graphs/" + GRAPH + "/clear", param);
+    }
+
+    protected static String assertResponseStatus(int status,
+                                                 Response response) {
+        String content = response.readEntity(String.class);
+        Assert.assertEquals(content, status, response.getStatus());
+        return content;
+    }
+
+    protected static String parseId(String content) throws IOException {
+        Map<?, ?> map = mapper.readValue(content, Map.class);
+        return (String) map.get("id");
     }
 }

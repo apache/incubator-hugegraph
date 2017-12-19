@@ -187,14 +187,14 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
 
     @Override
     public IndexLabelBuilder on(HugeType baseType, String baseValue) {
-        E.checkArgument(this.baseType == HugeType.VERTEX_LABEL ||
-                        this.baseType == HugeType.EDGE_LABEL,
+        E.checkArgument(baseType == HugeType.VERTEX_LABEL ||
+                        baseType == HugeType.EDGE_LABEL,
                         "The base type of index label '%s' can only be " +
                         "either VERTEX_LABEL or EDGE_LABEL", this.name);
-        if (this.baseType == HugeType.VERTEX_LABEL) {
+        if (baseType == HugeType.VERTEX_LABEL) {
             this.onV(baseValue);
         } else {
-            assert this.baseType == HugeType.EDGE_LABEL;
+            assert baseType == HugeType.EDGE_LABEL;
             this.onE(baseValue);
         }
         return this;

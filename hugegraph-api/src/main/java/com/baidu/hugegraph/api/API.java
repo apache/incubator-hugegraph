@@ -22,20 +22,29 @@ package com.baidu.hugegraph.api;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.core.MediaType;
 
+import org.slf4j.Logger;
+
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
 public class API {
+
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     public static final String CHARSET = "UTF-8";
 
@@ -53,6 +62,29 @@ public class API {
             throw new NotFoundException(msg);
         }
         return g;
+    }
+
+    public static <R> R commit(HugeGraph g, Callable<R> callable) {
+        try {
+            R result = callable.call();
+            g.tx().commit();
+            return result;
+        } catch (Exception e1) {
+            LOG.error("Failed to commit", e1);
+            try {
+                g.tx().rollback();
+            } catch (Exception e2) {
+                LOG.error("Failed to rollback", e2);
+            }
+            throw new HugeException("Failed to commit", e1);
+        }
+    }
+
+    public static void commit(HugeGraph g, Runnable runnable) {
+        commit(g, () -> {
+            runnable.run();
+            return null;
+        });
     }
 
     public static Object[] properties(Map<String, Object> properties) {
