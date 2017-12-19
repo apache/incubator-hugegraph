@@ -32,19 +32,28 @@ import com.baidu.hugegraph.util.E;
 public abstract class HugeProperty<V> implements Property<V>, GraphType {
 
     protected final HugeElement owner;
-    protected final PropertyKey key;
+    protected final PropertyKey pkey;
     protected final V value;
 
-    public HugeProperty(HugeElement owner, PropertyKey key, V value) {
+    public HugeProperty(HugeElement owner, PropertyKey pkey, V value) {
         E.checkArgument(owner != null, "Property owner can't be null");
-        E.checkArgument(key != null, "Property key can't be null");
+        E.checkArgument(pkey != null, "Property key can't be null");
+        E.checkArgument(value != null, "Property value can't be null");
+
         this.owner = owner;
-        this.key = key;
-        this.value = value;
+        this.pkey = pkey;
+        this.value = pkey.validValue(value);
+
+        E.checkArgument(this.value != null,
+                        "Invalid property value '%s' for key '%s', " +
+                        "expect a value of type %s, actual type %s",
+                        value, pkey.name(),
+                        pkey.clazz().getSimpleName(),
+                        value.getClass().getSimpleName());
     }
 
     public PropertyKey propertyKey() {
-        return this.key;
+        return this.pkey;
     }
 
     @Override
@@ -54,12 +63,12 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
 
     @Override
     public String name() {
-        return this.key.name();
+        return this.pkey.name();
     }
 
     @Override
     public String key() {
-        return this.key.name();
+        return this.pkey.name();
     }
 
     @Override
@@ -84,7 +93,7 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
         }
 
         HugeProperty<?> other = (HugeProperty<?>) obj;
-        return this.owner.equals(other.owner) && this.key.equals(other.key);
+        return this.owner.equals(other.owner) && this.pkey.equals(other.pkey);
     }
 
     @Override

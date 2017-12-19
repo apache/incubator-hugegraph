@@ -184,8 +184,24 @@ public class RocksDBSessions extends BackendSessionPool {
     }
 
     public static final byte[] increase(byte[] bytes) {
-        assert bytes[bytes.length - 1] != 0xff;
-        bytes[bytes.length - 1] += 0x01; // FIXME: maybe overflow
+        final byte BYTE_MAX_VALUE = (byte) 0xff;
+        assert bytes.length > 0;
+        byte last = bytes[bytes.length - 1];
+        if (last != BYTE_MAX_VALUE) {
+            bytes[bytes.length - 1] += 0x01;
+        } else {
+            // Process overflow (like [1, 255] => [2, 0])
+            int i = bytes.length - 1;
+            for (; i > 0 && bytes[i] == BYTE_MAX_VALUE; --i) {
+                bytes[i] += 0x01;
+            }
+            if (bytes[i] == BYTE_MAX_VALUE) {
+                assert i == 0;
+                throw new BackendException("Unable to increase bytes: %s",
+                                           Bytes.toHex(bytes));
+            }
+            bytes[i] += 0x01;
+        }
         return bytes;
     }
 
