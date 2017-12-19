@@ -43,7 +43,6 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -299,7 +298,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
 
-        return this.doIndexQuery(query, label);
+        return this.doIndexQuery(indexQuery, label);
     }
 
     @Watched(prefix = "index")
@@ -343,12 +342,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return !this.store().features().supportsQueryByLabel();
     }
 
-    private Set<Id> doIndexQuery(ConditionQuery query, Id labelId) {
+    private Set<Id> doIndexQuery(ConditionQuery query, Id label) {
         Set<Id> ids = new HashSet<>();
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.INDEX_LABEL, labelId);
-            locks.lockReads(LockUtil.INDEX_REBUILD, labelId);
+            locks.lockReads(LockUtil.INDEX_LABEL, label);
+            locks.lockReads(LockUtil.INDEX_REBUILD, label);
 
             Iterator<BackendEntry> entries = super.query(query);
             while(entries.hasNext()) {
@@ -362,14 +361,18 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return ids;
     }
 
+    @SuppressWarnings("unchecked") // intersection()
     private Collection<Id> doMultiIndexQuery(List<ConditionQuery> queries,
                                              Id labelId) {
         Collection<Id> interIds = null;
 
         for (ConditionQuery query : queries) {
             Set<Id> ids = this.doIndexQuery(query, labelId);
-            interIds = interIds == null ? ids :
-                       CollectionUtils.intersection(interIds, ids);
+            if (interIds == null) {
+                interIds = ids;
+            } else {
+                interIds = CollectionUtils.intersection(interIds, ids);
+            }
             if (ids.isEmpty() || interIds.isEmpty()) {
                 return ImmutableSet.of();
             }

@@ -187,46 +187,12 @@ public class RocksDBTables {
             assert !query.conditions().isEmpty();
 
             Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
-            Object key = query.condition(HugeKeys.FIELD_VALUES);
-            E.checkArgument(index != null, "Please specify the index label");
+            E.checkArgument(index != null,
+                            "Please specify the index label");
 
-            List<? extends Relation> relations = null;
-
-            if (key != null) {
-                final String msg = "Expect one relation in range query";
-                E.checkArgument(query.conditions().size() == 2, msg);
-                for (Condition c : query.conditions()) {
-                    if (c.isRelation()) {
-                        key = ((Condition.Relation) c).key();
-                        if (key.equals(HugeKeys.FIELD_VALUES)) {
-                            relations = c.relations();
-                            break;
-                        }
-                    }
-                }
-            } else {
-                // TODO: query by range, like: 18 < age and age < 20
-                final String msg = "Expect one AND condition in range query";
-                E.checkArgument(query.conditions().size() == 2, msg);
-                Condition.And and = null;
-                for (Condition c : query.conditions()) {
-                    if (c instanceof Condition.And) {
-                        and = (Condition.And) c;
-                        break;
-                    }
-                }
-                E.checkArgument(and != null, msg);
-                E.checkArgument(and.left().isRelation() &&
-                                and.right().isRelation(),
-                                "Expect relations in AND condition");
-
-                relations = and.relations();
-                E.checkArgument(relations.size() == 2,
-                                "Expect 2 relations in AND condition");
-            }
-
-            E.checkArgument(relations != null,
-                            "Expect relations in range query");
+            List<Condition> fv = query.syspropConditions(HugeKeys.FIELD_VALUES);
+            E.checkArgument(!fv.isEmpty(),
+                            "Please specify the index field values");
 
             Object keyEq = null;
             Object keyMin = null;
@@ -234,9 +200,8 @@ public class RocksDBTables {
             Object keyMax = null;
             boolean keyMaxEq = false;
 
-            for (Relation r : relations) {
-                E.checkArgument(r.key() == HugeKeys.FIELD_VALUES,
-                                "Expect FIELD_VALUES in AND condition");
+            for (Condition c : fv) {
+                Relation r = (Relation) c;
                 switch (r.relation()) {
                     case EQ:
                         keyEq = r.value();

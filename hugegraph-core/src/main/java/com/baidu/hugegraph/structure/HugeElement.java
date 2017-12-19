@@ -137,12 +137,6 @@ public abstract class HugeElement implements Element, GraphType {
     @Watched(prefix = "element")
     public <V> HugeProperty<?> setProperty(HugeProperty<V> prop) {
         PropertyKey pkey = prop.propertyKey();
-        E.checkArgument(pkey.checkValue(prop.value()),
-                        "Invalid property value '%s' for key '%s', " +
-                        "expect a value of type %s, actual type %s",
-                        prop.value(), pkey.name(),
-                        pkey.clazz().getSimpleName(),
-                        prop.value().getClass().getSimpleName());
         return this.properties.put(pkey.id(), prop);
     }
 

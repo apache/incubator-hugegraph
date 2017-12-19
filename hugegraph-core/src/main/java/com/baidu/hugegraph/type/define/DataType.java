@@ -74,6 +74,10 @@ public enum DataType implements SerialEnum {
         if (!(this.isNumberType() && value instanceof Number)) {
             return null;
         }
+        if (this.clazz.isInstance(value)) {
+            return (Number) value;
+        }
+
         Number number = null;
         try {
             switch (this) {
@@ -97,7 +101,7 @@ public enum DataType implements SerialEnum {
                               "Number type only contains Byte, Integer, " +
                               "Long, Float, Double, but got %s", this.clazz()));
             }
-        } catch (NumberFormatException ignore) {
+        } catch (NumberFormatException ignored) {
             // Unmatched type found
         }
         return number;

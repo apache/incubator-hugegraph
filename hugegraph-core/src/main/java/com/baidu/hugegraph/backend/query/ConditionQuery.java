@@ -150,7 +150,7 @@ public class ConditionQuery extends IdQuery {
             return null;
         }
         E.checkState(values.size() == 1,
-                     "Illegal key: '%s' with more than one value", key);
+                     "Illegal key '%s' with more than one value", key);
         return values.get(0);
     }
 
@@ -211,6 +211,18 @@ public class ConditionQuery extends IdQuery {
             }
         }
         return conds;
+    }
+
+    public List<Condition> syspropConditions(HugeKeys key) {
+        this.checkFlattened();
+        List<Condition> conditions = new ArrayList<>();
+        for (Condition condition : this.conditions) {
+            Relation relation = (Relation) condition;
+            if (relation.key().equals(key)) {
+                conditions.add(relation);
+            }
+        }
+        return conditions;
     }
 
     public List<Condition> userpropConditions() {

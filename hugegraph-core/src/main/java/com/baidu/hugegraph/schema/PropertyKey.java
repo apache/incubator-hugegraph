@@ -124,17 +124,20 @@ public class PropertyKey extends SchemaElement {
         return valid;
     }
 
-    public Object validValue(Object value) {
+    public <V> V validValue(V value) {
         if (value == null) {
             return null;
         }
+
         if (this.dataType().isNumberType()) {
-            return this.dataType().valueToNumber(value);
+            @SuppressWarnings("unchecked")
+            V number = (V) this.dataType().valueToNumber(value);
+            return number;
         } else if (this.checkValue(value)) {
             return value;
-        } else {
-            return null;
         }
+
+        return null;
     }
 
     public DataType dataType() {

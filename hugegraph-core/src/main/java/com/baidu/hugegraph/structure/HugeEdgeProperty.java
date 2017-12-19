@@ -65,6 +65,6 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
     public HugeEdgeProperty<V> switchEdgeOwner() {
         assert this.owner instanceof HugeEdge;
         return new HugeEdgeProperty<V>(((HugeEdge) this.owner).switchOwner(),
-                                       this.key, this.value);
+                                       this.pkey, this.value);
     }
 }
