@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.util;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
+
 /**
  * TODO: extends com.google.common.primitives.Bytes
  */
@@ -34,5 +37,17 @@ public final class Bytes {
             }
         }
         return true;
+    }
+
+    public static String toHex(byte[] bytes) {
+        return new String(Hex.encodeHex(bytes));
+    }
+
+    public static byte[] fromHex(String hex) {
+        try {
+            return Hex.decodeHex(hex.toCharArray());
+        } catch (DecoderException e) {
+            throw new RuntimeException("Failed to decode hex: " + hex, e);
+        }
     }
 }
