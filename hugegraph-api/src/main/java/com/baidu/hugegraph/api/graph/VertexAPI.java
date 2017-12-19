@@ -43,7 +43,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
@@ -79,7 +78,8 @@ public class VertexAPI extends API {
         checkBody(jsonVertex);
 
         HugeGraph g = graph(manager, graph);
-        Vertex vertex = g.addVertex(jsonVertex.properties());
+        Vertex vertex = commit(g, () -> g.addVertex(jsonVertex.properties()));
+
         return manager.serializer(g).writeVertex(vertex);
     }
 
@@ -98,29 +98,13 @@ public class VertexAPI extends API {
         HugeGraph g = graph(manager, graph);
         checkBatchCount(g, jsonVertices);
 
-        List<String> ids = new ArrayList<>(jsonVertices.size());
-        if (!g.tx().isOpen()) {
-            g.tx().open();
-        }
-        try {
+        return commit(g, () -> {
+            List<String> ids = new ArrayList<>(jsonVertices.size());
             for (JsonVertex vertex : jsonVertices) {
                 ids.add(g.addVertex(vertex.properties()).id().toString());
             }
-            g.tx().commit();
-        } catch (Exception e1) {
-            LOG.error("Failed to add vertices", e1);
-            try {
-                g.tx().rollback();
-            } catch (Exception e2) {
-                LOG.error("Failed to rollback vertices", e2);
-            }
-            throw new HugeException("Failed to add vertices", e1);
-        } finally {
-            if (g.tx().isOpen()) {
-                g.tx().close();
-            }
-        }
-        return ids;
+            return ids;
+        });
     }
 
     @PUT
@@ -154,18 +138,18 @@ public class VertexAPI extends API {
                             "Can't update property for vertex '%s' because " +
                             "there is no property key '%s' in its vertex label",
                             id, key);
-            if (append) {
-                Object value = jsonVertex.properties.get(key);
-                E.checkArgumentNotNull(value, "Not allowed to set value of " +
-                                       "property '%s' to null for vertex '%s'",
-                                       key, id);
-                vertex.property(key, value);
-            } else {
-                vertex.property(key).remove();
-            }
         }
 
-        vertex = (HugeVertex) g.vertices(id).next();
+        commit(g, () -> {
+            for (String key : jsonVertex.properties.keySet()) {
+                if (append) {
+                    vertex.property(key, jsonVertex.properties.get(key));
+                } else {
+                    vertex.property(key).remove();
+                }
+            }
+        });
+
         return manager.serializer(g).writeVertex(vertex);
     }
 
@@ -220,8 +204,9 @@ public class VertexAPI extends API {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
         HugeGraph g = graph(manager, graph);
+
         // TODO: add removeVertex(id) to improve
-        g.vertices(id).next().remove();
+        commit(g, () -> g.vertices(id).next().remove());
     }
 
     private static void checkBatchCount(HugeGraph g,
@@ -252,6 +237,13 @@ public class VertexAPI extends API {
                                    "The label of vertex can't be null");
             E.checkArgumentNotNull(this.properties,
                                    "The properties of vertex can't be null");
+
+            for (String key : this.properties.keySet()) {
+                Object value = this.properties.get(key);
+                E.checkArgumentNotNull(value, "Not allowed to set value of " +
+                                       "property '%s' to null for vertex '%s'",
+                                       key, id);
+            }
         }
 
         public Object[] properties() {

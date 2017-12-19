@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api;
 
+import java.io.IOException;
+
 import javax.ws.rs.core.Response;
 
 import org.junit.Assert;
@@ -38,77 +40,89 @@ public class EdgeApiTest extends BaseApiTest {
     }
 
     @Test
-    public void testCreate() {
-        String edge = "{"
+    public void testCreate() throws IOException {
+        String outVId = getVertexId("person", "name", "peter");
+        String inVId = getVertexId("software", "name", "lop");
+
+        String edge = String.format("{"
                 + "\"label\": \"created\","
                 + "\"outVLabel\": \"person\","
                 + "\"inVLabel\": \"software\","
-                + "\"outV\": \"person:peter\","
-                + "\"inV\": \"software:lop\","
+                + "\"outV\": \"%s\","
+                + "\"inV\": \"%s\","
                 + "\"properties\":{"
                 + "\"date\": \"20170324\","
                 + "\"weight\": 0.5}"
-                + "}";
+                + "}", outVId, inVId);
         Response r = client().post(path, edge);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
     }
 
     @Test
-    public void testGet() {
-        String edge = "{"
+    public void testGet() throws IOException {
+        String outVId = getVertexId("person", "name", "peter");
+        String inVId = getVertexId("software", "name", "lop");
+
+        String edge = String.format("{"
                 + "\"label\": \"created\","
                 + "\"outVLabel\": \"person\","
                 + "\"inVLabel\": \"software\","
-                + "\"outV\": \"person:peter\","
-                + "\"inV\": \"software:lop\","
+                + "\"outV\": \"%s\","
+                + "\"inV\": \"%s\","
                 + "\"properties\":{"
                 + "\"date\": \"20170324\","
                 + "\"weight\": 0.5}"
-                + "}";
+                + "}", outVId, inVId);
         Response r = client().post(path, edge);
-        Assert.assertEquals(201, r.getStatus());
+        String content = assertResponseStatus(201, r);
 
-        String id = "person:peter>created>>software:lop";
+        String id = parseId(content);
         r = client().get(path, id);
-        Assert.assertEquals(200, r.getStatus());
+        assertResponseStatus(200, r);
     }
 
     @Test
-    public void testList() {
-        String edge = "{"
+    public void testList() throws IOException {
+        String outVId = getVertexId("person", "name", "peter");
+        String inVId = getVertexId("software", "name", "lop");
+
+        String edge = String.format("{"
                 + "\"label\": \"created\","
                 + "\"outVLabel\": \"person\","
                 + "\"inVLabel\": \"software\","
-                + "\"outV\": \"person:peter\","
-                + "\"inV\": \"software:lop\","
+                + "\"outV\": \"%s\","
+                + "\"inV\": \"%s\","
                 + "\"properties\":{"
                 + "\"date\": \"20170324\","
                 + "\"weight\": 0.5}"
-                + "}";
+                + "}", outVId, inVId);
         Response r = client().post(path, edge);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
 
         r = client().get(path);
-        Assert.assertEquals(200, r.getStatus());
+        assertResponseStatus(200, r);
     }
 
     @Test
-    public void testDelete() {
-        String edge = "{"
+    public void testDelete() throws IOException {
+        String outVId = getVertexId("person", "name", "peter");
+        String inVId = getVertexId("software", "name", "lop");
+
+        String edge = String.format("{"
                 + "\"label\": \"created\","
                 + "\"outVLabel\": \"person\","
                 + "\"inVLabel\": \"software\","
-                + "\"outV\": \"person:peter\","
-                + "\"inV\": \"software:lop\","
+                + "\"outV\": \"%s\","
+                + "\"inV\": \"%s\","
                 + "\"properties\":{"
                 + "\"date\": \"20170324\","
                 + "\"weight\": 0.5}"
-                + "}";
+                + "}", outVId, inVId);
         Response r = client().post(path, edge);
-        Assert.assertEquals(201, r.getStatus());
+        String content = assertResponseStatus(201, r);
 
-        String id = "person:peter>created>>software:lop";
+        String id = parseId(content);
         r = client().delete(path, id);
-        Assert.assertEquals(204, r.getStatus());
+        assertResponseStatus(204, r);
     }
 }

@@ -177,7 +177,10 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
 
     @Override
     public EdgeLabelBuilder sortKeys(String... keys) {
-        E.checkArgument(keys.length > 0, "Empty sort keys");
+        if (keys.length == 0) {
+            return this;
+        }
+
         E.checkArgument(this.sortKeys.isEmpty(),
                         "Not allowed to assign sort keys multitimes");
 

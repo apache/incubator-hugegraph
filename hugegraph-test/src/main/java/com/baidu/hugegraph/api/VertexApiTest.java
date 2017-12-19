@@ -19,9 +19,10 @@
 
 package com.baidu.hugegraph.api;
 
+import java.io.IOException;
+
 import javax.ws.rs.core.Response;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,11 +46,11 @@ public class VertexApiTest extends BaseApiTest {
                 + "\"age\":19}"
                 + "}";
         Response r = client().post(path, vertex);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
     }
 
     @Test
-    public void testGet() {
+    public void testGet() throws IOException {
         String vertex = "{"
                 + "\"label\":\"person\","
                 + "\"properties\":{"
@@ -58,11 +59,11 @@ public class VertexApiTest extends BaseApiTest {
                 + "\"age\":19}"
                 + "}";
         Response r = client().post(path, vertex);
-        Assert.assertEquals(201, r.getStatus());
+        String content = assertResponseStatus(201, r);
 
-        String id = "person:James";
+        String id = parseId(content);
         r = client().get(path, id);
-        Assert.assertEquals(200, r.getStatus());
+        assertResponseStatus(200, r);
     }
 
     @Test
@@ -75,14 +76,14 @@ public class VertexApiTest extends BaseApiTest {
                 + "\"age\":19}"
                 + "}";
         Response r = client().post(path, vertex);
-        Assert.assertEquals(201, r.getStatus());
+        assertResponseStatus(201, r);
 
         r = client().get(path);
-        Assert.assertEquals(200, r.getStatus());
+        assertResponseStatus(200, r);
     }
 
     @Test
-    public void testDelete() {
+    public void testDelete() throws IOException {
         String vertex = "{"
                 + "\"label\":\"person\","
                 + "\"properties\":{"
@@ -91,10 +92,10 @@ public class VertexApiTest extends BaseApiTest {
                 + "\"age\":19}"
                 + "}";
         Response r = client().post(path, vertex);
-        Assert.assertEquals(201, r.getStatus());
+        String content = assertResponseStatus(201, r);
 
-        String id = "person:James";
+        String id = parseId(content);
         r = client().delete(path, id);
-        Assert.assertEquals(204, r.getStatus());
+        assertResponseStatus(204, r);
     }
 }

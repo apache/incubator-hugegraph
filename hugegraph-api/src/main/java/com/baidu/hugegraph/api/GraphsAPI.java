@@ -37,6 +37,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
@@ -111,22 +112,13 @@ public class GraphsAPI extends API {
                       "Please take the message: %s", CONFIRM_CLEAR));
         }
 
-        g.tx().open();
-        try {
-            // Clear edge
+        // Clear vertex and edge
+        commit(g, () -> {
             g.traversal().E().toStream().forEach(Edge::remove);
-            // Clear vertex
             g.traversal().V().toStream().forEach(Vertex::remove);
-            // Commit changes
-            g.tx().commit();
-        } finally {
-            try {
-                g.tx().close();
-            } catch (Throwable e) {
-                LOG.error("Error when close tx", e);
-            }
-        }
+        });
 
+        // Schema operation will auto commit
         SchemaManager schema = g.schema();
         schema.getIndexLabels().forEach(elem -> {
             schema.indexLabel(elem.name()).remove();
