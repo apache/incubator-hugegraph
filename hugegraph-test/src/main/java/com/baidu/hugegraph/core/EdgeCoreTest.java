@@ -99,7 +99,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
 
         LOG.debug("===============  edgeLabel  ================");
@@ -148,10 +148,10 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         LOG.debug("===============  edgeLabel index  ================");
 
-        schema.indexLabel("transferByTimestamp").onE("transfer").search()
+        schema.indexLabel("transferByTimestamp").onE("transfer").range()
               .by("timestamp").create();
 
-        schema.indexLabel("strikeByTimestamp").onE("strike").search()
+        schema.indexLabel("strikeByTimestamp").onE("strike").range()
                 .by("timestamp").create();
         schema.indexLabel("strikeByPlace").onE("strike").secondary()
               .by("tool").create();
@@ -1574,7 +1574,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryEdgeBeforeAfterUpdatePropertyWithSearchIndex() {
+    public void testQueryEdgeBeforeAfterUpdatePropertyWithRangeIndex() {
         HugeGraph graph = graph();
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);

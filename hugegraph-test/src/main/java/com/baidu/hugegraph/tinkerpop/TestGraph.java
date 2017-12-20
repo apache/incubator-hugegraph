@@ -367,7 +367,7 @@ public class TestGraph implements Graph {
         schema.indexLabel("artistByName").onV("artist").by("name")
               .ifNotExist().create();
         schema.indexLabel("followedByByWeight").onE("followedBy").by("weight")
-              .search().ifNotExist().create();
+              .range().ifNotExist().create();
     }
 
     public void initModernSchema() {
@@ -469,7 +469,7 @@ public class TestGraph implements Graph {
 
         schema.indexLabel("personByName").onV("person").by("name")
               .ifNotExist().create();
-        schema.indexLabel("personByAge").onV("person").by("age").search()
+        schema.indexLabel("personByAge").onV("person").by("age").range()
               .ifNotExist().create();
         schema.indexLabel("softwareByName").onV("software").by("name")
               .ifNotExist().create();
@@ -479,12 +479,12 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.indexLabel("vertexByName").onV("vertex").by("name")
               .ifNotExist().create();
-        schema.indexLabel("vertexByAge").onV("vertex").by("age").search()
+        schema.indexLabel("vertexByAge").onV("vertex").by("age").range()
               .ifNotExist().create();
-        schema.indexLabel("knowsByWeight").onE("knows").by("weight").search()
+        schema.indexLabel("knowsByWeight").onE("knows").by("weight").range()
               .ifNotExist().create();
         schema.indexLabel("createdByWeight").onE("created").by("weight")
-              .search().ifNotExist().create();
+              .range().ifNotExist().create();
         schema.indexLabel("personByNameAge").onV("person").by("name", "age")
               .ifNotExist().create();
     }
@@ -527,7 +527,7 @@ public class TestGraph implements Graph {
               .nullableKeys("weight")
               .ifNotExist().create();
 
-        schema.indexLabel("vertexByAge").onV("vertex").by("age").search()
+        schema.indexLabel("vertexByAge").onV("vertex").by("age").range()
               .ifNotExist().create();
     }
 

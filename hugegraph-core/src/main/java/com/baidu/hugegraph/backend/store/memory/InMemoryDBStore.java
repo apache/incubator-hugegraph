@@ -241,8 +241,8 @@ public class InMemoryDBStore implements BackendStore {
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new InMemoryDBTable(HugeType.SECONDARY_INDEX));
-            registerTableManager(HugeType.SEARCH_INDEX,
-                                 new InMemoryDBTable(HugeType.SEARCH_INDEX));
+            registerTableManager(HugeType.RANGE_INDEX,
+                                 new InMemoryDBTable(HugeType.RANGE_INDEX));
         }
     }
 
@@ -279,7 +279,7 @@ public class InMemoryDBStore implements BackendStore {
         }
 
         @Override
-        public boolean supportsQueryWithSearchCondition() {
+        public boolean supportsQueryWithRangeCondition() {
             return false;
         }
 

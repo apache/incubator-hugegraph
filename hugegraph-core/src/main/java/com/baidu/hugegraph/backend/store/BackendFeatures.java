@@ -31,7 +31,7 @@ public interface BackendFeatures {
 
     public boolean supportsQueryByLabel();
 
-    public boolean supportsQueryWithSearchCondition();
+    public boolean supportsQueryWithRangeCondition();
 
     public boolean supportsQueryWithContains();
 

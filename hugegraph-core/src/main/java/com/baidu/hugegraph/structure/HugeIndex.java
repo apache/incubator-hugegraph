@@ -31,6 +31,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -63,9 +64,11 @@ public class HugeIndex implements GraphType {
         IndexType indexType = this.indexLabel.indexType();
         if (indexType == IndexType.SECONDARY) {
             return HugeType.SECONDARY_INDEX;
+        } else if (indexType == IndexType.RANGE) {
+            return HugeType.RANGE_INDEX;
         } else {
             assert indexType == IndexType.SEARCH;
-            return HugeType.SEARCH_INDEX;
+            throw new NotSupportException("index '%s' currently", indexType);
         }
     }
 
@@ -135,24 +138,24 @@ public class HugeIndex implements GraphType {
 
         if (type == HugeType.SECONDARY_INDEX) {
             String[] parts = SplicingIdGenerator.parse(id);
-            E.checkState(parts.length == 2, "Invalid SECONDARY_INDEX id");
+            E.checkState(parts.length == 2, "Invalid secondary index id");
             values = parts[0];
             label = SchemaElement.schemaId(parts[1]);
             indexLabel = IndexLabel.label(graph, label);
         } else {
-            assert type == HugeType.SEARCH_INDEX;
+            assert type == HugeType.RANGE_INDEX;
             // TODO: parse from bytes id
             String str = id.asString();
             final int offset = 4;
-            E.checkState(str.length() > offset, "Invalid SEARCH_INDEX id");
+            E.checkState(str.length() > offset, "Invalid range index id");
             label = IdGenerator.of((int) string2number(str.substring(0, offset),
                                                        Integer.class));
             indexLabel = IndexLabel.label(graph, label);
             List<Id> fields = indexLabel.indexFields();
-            E.checkState(fields.size() == 1, "Invalid SEARCH_INDEX fields");
+            E.checkState(fields.size() == 1, "Invalid range index fields");
             PropertyKey pk = graph.propertyKey(fields.get(0));
             E.checkState(pk.dataType().isNumberType(),
-                         "Invalid SEARCH_INDEX field type");
+                         "Invalid range index field type");
             values = string2number(str.substring(offset),
                                    pk.dataType().clazz());
         }
@@ -167,11 +170,11 @@ public class HugeIndex implements GraphType {
             String value = fieldValues == null ? "<?>" : fieldValues.toString();
             return SplicingIdGenerator.splicing(value, indexlabel.asString());
         } else {
-            assert type == HugeType.SEARCH_INDEX;
+            assert type == HugeType.RANGE_INDEX;
             String value = "";
             if (fieldValues != null) {
                 E.checkState(fieldValues instanceof Number,
-                             "Field value search index must be number type: %s",
+                             "Field value of range index must be number: %s",
                              fieldValues.getClass().getSimpleName());
                 value = number2string((Number) fieldValues);
             }

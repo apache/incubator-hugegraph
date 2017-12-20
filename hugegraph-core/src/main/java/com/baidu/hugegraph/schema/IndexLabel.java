@@ -170,6 +170,8 @@ public class IndexLabel extends SchemaElement {
 
         Builder secondary();
 
+        Builder range();
+
         Builder search();
 
         Builder on(HugeType baseType, String baseValue);

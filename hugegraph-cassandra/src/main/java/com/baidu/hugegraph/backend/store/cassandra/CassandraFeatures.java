@@ -51,7 +51,7 @@ public class CassandraFeatures implements BackendFeatures {
     }
 
     @Override
-    public boolean supportsQueryWithSearchCondition() {
+    public boolean supportsQueryWithRangeCondition() {
         return true;
     }
 

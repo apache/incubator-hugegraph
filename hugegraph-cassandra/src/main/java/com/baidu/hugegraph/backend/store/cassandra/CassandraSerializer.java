@@ -46,12 +46,12 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SerialEnum;
@@ -300,7 +300,7 @@ public class CassandraSerializer extends AbstractSerializer {
         CassandraBackendEntry entry = newBackendEntry(index);
         /*
          * When field-values is null and elementIds size is 0, it is
-         * meaningful for deletion of index data in secondary/search index.
+         * meaningful for deletion of index data in secondary/range index.
          */
         if (index.fieldValues() == null && index.elementIds().size() == 0) {
             entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().asLong());

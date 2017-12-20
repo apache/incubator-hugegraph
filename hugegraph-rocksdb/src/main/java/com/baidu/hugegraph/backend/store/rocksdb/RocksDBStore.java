@@ -325,8 +325,8 @@ public abstract class RocksDBStore implements BackendStore {
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new RocksDBTables.SecondaryIndex(database));
-            registerTableManager(HugeType.SEARCH_INDEX,
-                                 new RocksDBTables.SearchIndex(database));
+            registerTableManager(HugeType.RANGE_INDEX,
+                                 new RocksDBTables.RangeIndex(database));
         }
 
         @Override

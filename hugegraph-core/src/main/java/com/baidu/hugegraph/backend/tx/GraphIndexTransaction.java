@@ -81,15 +81,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // TODO: remove left index in async thread
-        // Process search index
-        this.processSearchIndexLeft(query, element);
+        // Process range index
+        this.processRangeIndexLeft(query, element);
         // Process secondary index
         this.processSecondaryIndexLeft(query, element);
 
         this.commit();
     }
 
-    private void processSearchIndexLeft(ConditionQuery query,
+    private void processRangeIndexLeft(ConditionQuery query,
                                         HugeElement element) {
         // Construct index ConditionQuery
         Set<ConditionQuery> queries = this.query2IndexQuery(query, element);
@@ -99,7 +99,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         for (ConditionQuery q : queries) {
-            if (q.resultType() != HugeType.SEARCH_INDEX) {
+            if (q.resultType() != HugeType.RANGE_INDEX) {
                 continue;
             }
             // Search and delete index equals element id
@@ -123,7 +123,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         for (Id key : propKeys) {
             Object conditionValue = query.userpropValue(key);
             if (conditionValue == null) {
-                // It's inside/between Query (processed in search index)
+                // It's inside/between Query (processed in range index)
                 return;
             }
             Object propValue = elem.getProperty(key).value();
@@ -219,9 +219,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     propValue = INDEX_EMPTY_SYM;
                 }
             } else {
-                assert indexLabel.indexType() == IndexType.SEARCH;
+                assert indexLabel.indexType() == IndexType.RANGE;
                 E.checkState(subPropValues.size() == 1,
-                             "Expect searching by only one property");
+                             "Expect range query by only one property");
                 propValue = NumericUtil.convertToNumber(subPropValues.get(0));
             }
 
@@ -418,11 +418,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static ConditionQuery matchIndexLabel(ConditionQuery query,
                                                   IndexLabel indexLabel) {
-        boolean requireSearch = query.hasSearchCondition();
-        boolean searching = indexLabel.indexType() == IndexType.SEARCH;
+        boolean requireSearch = query.hasRangeCondition();
+        boolean searching = indexLabel.indexType() == IndexType.RANGE;
         if (requireSearch && !searching) {
-            LOG.debug("There is search condition in '{}'," +
-                      "but the index label '{}' is unable to search",
+            LOG.debug("There is range query condition in '{}'," +
+                      "but the index label '{}' is unable to match",
                       query, indexLabel.name());
             return null;
         }
@@ -448,10 +448,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
             indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
             indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
         } else {
-            assert indexLabel.indexType() == IndexType.SEARCH;
+            assert indexLabel.indexType() == IndexType.RANGE;
             if (query.userpropConditions().size() != 1) {
                 throw new BackendException(
-                          "Only support searching by one field");
+                          "Only support range query by one field");
             }
             // Replace the query key with PROPERTY_VALUES, and set number value
             Condition condition = query.userpropConditions().get(0).copy();
@@ -463,7 +463,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 condition = condition.replace(r, sr);
             }
 
-            indexQuery = new ConditionQuery(HugeType.SEARCH_INDEX, query);
+            indexQuery = new ConditionQuery(HugeType.RANGE_INDEX, query);
             indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
             indexQuery.query(condition);
         }

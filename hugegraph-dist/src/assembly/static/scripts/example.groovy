@@ -22,12 +22,12 @@ schema.vertexLabel("software").properties("name", "lang", "price").primaryKeys("
 schema.indexLabel("personByName").onV("person").by("name").secondary().ifNotExist().create();
 schema.indexLabel("personByCity").onV("person").by("city").secondary().ifNotExist().create();
 schema.indexLabel("personByAgeAndCity").onV("person").by("age", "city").secondary().ifNotExist().create();
-schema.indexLabel("softwareByPrice").onV("software").by("price").search().ifNotExist().create();
+schema.indexLabel("softwareByPrice").onV("software").by("price").range().ifNotExist().create();
 schema.edgeLabel("knows").sourceLabel("person").targetLabel("person").properties("date", "weight").ifNotExist().create();
 schema.edgeLabel("created").sourceLabel("person").targetLabel("software").properties("date", "weight").ifNotExist().create();
 schema.indexLabel("createdByDate").onE("created").by("date").secondary().ifNotExist().create();
-schema.indexLabel("createdByWeight").onE("created").by("weight").search().ifNotExist().create();
-schema.indexLabel("knowsByWeight").onE("knows").by("weight").search().ifNotExist().create();
+schema.indexLabel("createdByWeight").onE("created").by("weight").range().ifNotExist().create();
+schema.indexLabel("knowsByWeight").onE("knows").by("weight").range().ifNotExist().create();
 
 marko = graph.addVertex(T.label, "person", "name", "marko", "age", 29, "city", "Beijing");
 vadas = graph.addVertex(T.label, "person", "name", "vadas", "age", 27, "city", "Hongkong");
