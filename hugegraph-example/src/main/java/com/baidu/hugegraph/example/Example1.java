@@ -149,7 +149,7 @@ public class Example1 {
         schema.indexLabel("personByCity")
               .onV("person").secondary().by("city").create();
         schema.indexLabel("personByAge")
-              .onV("person").search().by("age").create();
+              .onV("person").range().by("age").create();
 
         // schemaManager.getVertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.getVertexLabel("recipe").index("byRecipe").materialized().by("name").add();
@@ -444,14 +444,14 @@ public class Example1 {
                         "city", "Shanghai", "age", 28);
         graph.addVertex(T.label, "person", "name", "Curry",
                         "city", "Shanghai", "age", 30);
-        // set breakpoint here to see secondary_indexes and search_indexes table
+        // set breakpoint here to see secondary_indexes and range_indexes table
         List<Vertex> vertices = graph.traversal().V().has("age", 27)
                                      .has("city", "Hangzhou").toList();
         assert vertices.isEmpty();
-        // set breakpoint here to see secondary_indexes and search_indexes table
+        // set breakpoint here to see secondary_indexes and range_indexes table
         vertices = graph.traversal().V().has("age", 28).toList();
         assert vertices.isEmpty();
-        // set breakpoint here to see secondary_indexes and search_indexes table
+        // set breakpoint here to see secondary_indexes and range_indexes table
         vertices = graph.traversal().V().has("city", "Hangzhou").toList();
         assert vertices.isEmpty();
     }

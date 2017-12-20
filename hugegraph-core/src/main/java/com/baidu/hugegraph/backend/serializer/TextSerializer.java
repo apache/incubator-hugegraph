@@ -323,13 +323,13 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = newBackendEntry(index.type(), index.id());
         /*
          * When field-values is null and elementIds size is 0, it is
-         * meaningful for deletion of index data in secondary/search index.
+         * meaningful for deletion of index data in secondary/range index.
          */
         if (index.fieldValues() == null && index.elementIds().size() == 0) {
             entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_ID),
                          writeId(index.indexLabel()));
         } else {
-            // TODO: field-values may be a number (SEARCH index)
+            // TODO: field-values may be a number (range index)
             entry.column(formatSyspropName(HugeKeys.FIELD_VALUES),
                          JsonUtil.toJson(index.fieldValues()));
             entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_ID),

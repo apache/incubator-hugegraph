@@ -51,7 +51,7 @@ public class RocksDBFeatures implements BackendFeatures {
     }
 
     @Override
-    public boolean supportsQueryWithSearchCondition() {
+    public boolean supportsQueryWithRangeCondition() {
         return true;
     }
 

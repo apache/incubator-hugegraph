@@ -108,7 +108,7 @@ public class GraphOfTheMoviesExample {
         schema.indexLabel("personByName").onV("person").by("name")
               .secondary().create();
         schema.indexLabel("personByBorn").onV("person").by("born")
-              .search().create();
+              .range().create();
 
         graph.tx().open();
 

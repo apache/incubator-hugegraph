@@ -500,11 +500,11 @@ public class CassandraTables {
         }
     }
 
-    public static class SearchIndex extends CassandraTable {
+    public static class RangeIndex extends CassandraTable {
 
-        public static final String TABLE = "search_indexes";
+        public static final String TABLE = "range_indexes";
 
-        public SearchIndex() {
+        public RangeIndex() {
             super(TABLE);
         }
 
@@ -539,14 +539,14 @@ public class CassandraTables {
                            CassandraBackendEntry.Row entry) {
             String fieldValues = entry.column(HugeKeys.FIELD_VALUES);
             if (fieldValues != null) {
-                throw new BackendException("SearchIndex deletion " +
+                throw new BackendException("Range index deletion " +
                           "should just have INDEX_LABEL_ID, " +
                           "but PROPERTY_VALUES(%s) is provided.", fieldValues);
             }
 
             Long indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
             if (indexLabel == null) {
-                throw new BackendException("SearchIndex deletion " +
+                throw new BackendException("Range index deletion " +
                           "needs INDEX_LABEL_ID, but not provided.");
             }
 
@@ -559,7 +559,7 @@ public class CassandraTables {
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             throw new BackendException(
-                      "SearchIndex insertion is not supported.");
+                      "Range index insertion is not supported.");
         }
     }
 }

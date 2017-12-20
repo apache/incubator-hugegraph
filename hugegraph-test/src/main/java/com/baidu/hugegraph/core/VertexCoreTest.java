@@ -37,8 +37,8 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
@@ -108,7 +108,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
 
         schema.indexLabel("pcByBand").onV("computer")
@@ -815,8 +815,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropWithDifferentDataType() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
         init5Persons();
         List<Vertex> vertexes;
@@ -929,8 +929,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingInsideWithOneResult() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -945,8 +945,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingInsideWithMultiResults() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -976,8 +976,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingInsideWithNonResult() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -1021,8 +1021,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingBetweenWithOneResult() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -1037,8 +1037,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingBetweenWithMultiResults() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -1060,8 +1060,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByIntPropUsingBetweenWithNonResult() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
         init5Persons();
 
@@ -1545,7 +1545,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryVertexBeforeAfterUpdatePropertyWithSearchIndex() {
+    public void testQueryVertexBeforeAfterUpdatePropertyWithRangeIndex() {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
                                         "city", "Hongkong", "age", 3);

@@ -192,7 +192,7 @@ public class Example2 {
         schema.indexLabel("softwareByPrice")
               .onV("software")
               .by("price")
-              .search()
+              .range()
               .ifNotExist()
               .create();
 
@@ -223,14 +223,14 @@ public class Example2 {
         schema.indexLabel("createdByWeight")
               .onE("created")
               .by("weight")
-              .search()
+              .range()
               .ifNotExist()
               .create();
 
         schema.indexLabel("knowsByWeight")
               .onE("knows")
               .by("weight")
-              .search()
+              .range()
               .ifNotExist()
               .create();
 

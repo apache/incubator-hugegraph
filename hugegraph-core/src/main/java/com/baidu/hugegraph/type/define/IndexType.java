@@ -21,9 +21,14 @@ package com.baidu.hugegraph.type.define;
 
 public enum IndexType implements SerialEnum {
 
+    // For secondary query
     SECONDARY(1, "secondary"),
 
-    SEARCH(2, "search");
+    // For range query
+    RANGE(2, "range"),
+
+    // For full-text query (not supported now)
+    SEARCH(3, "search");
 
     private byte code = 0;
     private String name = null;

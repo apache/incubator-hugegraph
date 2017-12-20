@@ -174,6 +174,12 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     @Override
+    public IndexLabelBuilder range() {
+        this.indexType = IndexType.RANGE;
+        return this;
+    }
+
+    @Override
     public IndexLabelBuilder search() {
         this.indexType = IndexType.SEARCH;
         return this;
@@ -183,7 +189,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     public IndexLabelBuilder on(HugeType baseType, String baseValue) {
         E.checkArgument(this.baseType == HugeType.VERTEX_LABEL ||
                         this.baseType == HugeType.EDGE_LABEL,
-                        "The baseType of index label '%s' can only be " +
+                        "The base type of index label '%s' can only be " +
                         "either VERTEX_LABEL or EDGE_LABEL", this.name);
         if (this.baseType == HugeType.VERTEX_LABEL) {
             this.onV(baseValue);
@@ -257,16 +263,16 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                         "Not all index fields '%s' are contained in " +
                         "schema properties '%s'", fields, properties);
 
-        // Search index must build on single numeric column
-        if (this.indexType == IndexType.SEARCH) {
+        // Range index must build on single numeric column
+        if (this.indexType == IndexType.RANGE) {
             E.checkArgument(fields.size() == 1,
-                            "Search index can only build on " +
+                            "Range index can only build on " +
                             "one property, but got %s properties: '%s'",
                             fields.size(), fields);
             String field = fields.iterator().next();
             PropertyKey pk = this.transaction.getPropertyKey(field);
             E.checkArgument(NumericUtil.isNumber(pk.dataType().clazz()),
-                            "Search index can only build on " +
+                            "Range index can only build on " +
                             "numeric property, but got %s(%s)",
                             pk.dataType(), pk.name());
         }

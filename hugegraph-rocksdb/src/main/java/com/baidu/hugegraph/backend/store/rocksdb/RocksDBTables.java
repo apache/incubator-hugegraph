@@ -173,12 +173,11 @@ public class RocksDBTables {
         }
     }
 
-    // TODO: change to RangeIndex
-    public static class SearchIndex extends RocksDBTable {
+    public static class RangeIndex extends RocksDBTable {
 
         public static final String TABLE = "ri";
 
-        public SearchIndex(String database) {
+        public RangeIndex(String database) {
             super(database, TABLE);
         }
 
@@ -194,7 +193,7 @@ public class RocksDBTables {
             List<? extends Relation> relations = null;
 
             if (key != null) {
-                final String msg = "Expect one relation in search query";
+                final String msg = "Expect one relation in range query";
                 E.checkArgument(query.conditions().size() == 2, msg);
                 for (Condition c : query.conditions()) {
                     if (c.isRelation()) {
@@ -207,7 +206,7 @@ public class RocksDBTables {
                 }
             } else {
                 // TODO: query by range, like: 18 < age and age < 20
-                final String msg = "Expect one AND condition in search query";
+                final String msg = "Expect one AND condition in range query";
                 E.checkArgument(query.conditions().size() == 2, msg);
                 Condition.And and = null;
                 for (Condition c : query.conditions()) {
@@ -227,7 +226,7 @@ public class RocksDBTables {
             }
 
             E.checkArgument(relations != null,
-                            "Expect relations in search query");
+                            "Expect relations in range query");
 
             Object keyEq = null;
             Object keyMin = null;

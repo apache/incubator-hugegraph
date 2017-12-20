@@ -136,7 +136,7 @@ public abstract class Condition {
             return this.tester.apply(first, second);
         }
 
-        public boolean isSearchType() {
+        public boolean isRangeType() {
             return ImmutableSet.of(GT, GTE, LT, LTE, NEQ).contains(this);
         }
     }

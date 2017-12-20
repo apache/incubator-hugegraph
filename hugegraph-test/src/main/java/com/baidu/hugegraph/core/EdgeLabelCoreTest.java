@@ -693,7 +693,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testRemoveEdgeLabelWithEdgeAndSearchIndex() {
+    public void testRemoveEdgeLabelWithEdgeAndRangeIndex() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -713,7 +713,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .create();
 
         schema.indexLabel("writeByWeight").onE("write").by("weight")
-              .search()
+              .range()
               .create();
 
         Vertex marko = graph().addVertex(T.label, "person", "name", "marko",

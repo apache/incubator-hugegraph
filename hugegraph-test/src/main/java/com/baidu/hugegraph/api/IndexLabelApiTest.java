@@ -42,7 +42,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"name\": \"personByAge\","
                 + "\"base_type\": \"VERTEX_LABEL\","
                 + "\"base_value\": \"person\","
-                + "\"index_type\": \"SEARCH\","
+                + "\"index_type\": \"RANGE\","
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
@@ -55,7 +55,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"name\": \"personByAge\","
                 + "\"base_type\": \"VERTEX_LABEL\","
                 + "\"base_value\": \"person\","
-                + "\"index_type\": \"SEARCH\","
+                + "\"index_type\": \"RANGE\","
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
@@ -72,7 +72,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"name\": \"personByAge\","
                 + "\"base_type\": \"VERTEX_LABEL\","
                 + "\"base_value\": \"person\","
-                + "\"index_type\": \"SEARCH\","
+                + "\"index_type\": \"RANGE\","
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
@@ -88,7 +88,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"name\": \"personByAge\","
                 + "\"base_type\": \"VERTEX_LABEL\","
                 + "\"base_value\": \"person\","
-                + "\"index_type\": \"SEARCH\","
+                + "\"index_type\": \"RANGE\","
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);

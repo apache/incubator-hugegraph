@@ -49,7 +49,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .primaryKeys("name").create();
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
 
         VertexLabel person = schema.getVertexLabel("person");
@@ -65,7 +65,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         assertVLEqual("person", personByCity.baseValue());
         assertVLEqual("person", personByAge.baseValue());
         Assert.assertEquals(IndexType.SECONDARY, personByCity.indexType());
-        Assert.assertEquals(IndexType.SEARCH, personByAge.indexType());
+        Assert.assertEquals(IndexType.RANGE, personByAge.indexType());
     }
 
     @Test
@@ -132,8 +132,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testAddIndexLabelOfVertexWithVertexExist() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -159,7 +159,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             graph().traversal().V().hasLabel("person")
                    .has("age", P.inside(2, 4)).next();
         });
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
 
         vertex = graph().traversal().V().hasLabel("person")
@@ -305,10 +305,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .by("city").create();
         });
 
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            schema.indexLabel("personByAge1").onV("person").search()
+            schema.indexLabel("personByAge1").onV("person").range()
                   .by("age").create();
         });
 
@@ -321,13 +321,13 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddIndexLabelWithSameFieldsBetweenSearchAndSecond() {
+    public void testAddIndexLabelWithSameFieldsBetweenRangeAndSecondary() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
 
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
         schema.indexLabel("personByAge2").onV("person").secondary()
               .by("age").create();
@@ -342,7 +342,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         schema.indexLabel("personByAgeAndCity").onV("person").secondary()
               .by("age", "city").create();
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("personByAge1").onV("person").secondary()
@@ -363,7 +363,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
         schema.indexLabel("personByAgeSecondary").onV("person").secondary()
               .by("age").create();
@@ -396,7 +396,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddIndexLabelPrefixWithExistedSearch() {
+    public void testAddIndexLabelPrefixWithExistedRange() {
         super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
@@ -408,7 +408,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
         schema.indexLabel("personByAgeSecondary").onV("person").secondary()
               .by("age").create();
@@ -447,15 +447,15 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRemoveIndexLabelOfVertex() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
         VertexLabel person = schema.getVertexLabel("person");
 
@@ -557,15 +557,15 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRebuildIndexLabelOfVertex() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
         VertexLabel person = schema.getVertexLabel("person");
         Assert.assertEquals(2, person.indexLabels().size());
@@ -593,15 +593,15 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
     @Test
     public void testRebuildIndexLabelOfVertexLabel() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
         schema.indexLabel("personByCity").onV("person").secondary()
               .by("city").create();
-        schema.indexLabel("personByAge").onV("person").search()
+        schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
 
         VertexLabel person = schema.getVertexLabel("person");

@@ -302,10 +302,10 @@ public class ConditionQuery extends IdQuery {
         return SplicingIdGenerator.concatValues(this.userpropValues(fields));
     }
 
-    public boolean hasSearchCondition() {
+    public boolean hasRangeCondition() {
         // NOTE: we need to judge all the conditions, including the nested
         for (Condition.Relation r : this.relations()) {
-            if (r.relation().isSearchType()) {
+            if (r.relation().isRangeType()) {
                 return true;
             }
         }

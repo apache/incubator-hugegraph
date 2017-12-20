@@ -637,9 +637,9 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testRemoveVertexLabelWithVertexAndSearchIndex() {
-        Assume.assumeTrue("Not support search condition query",
-                          storeFeatures().supportsQueryWithSearchCondition());
+    public void testRemoveVertexLabelWithVertexAndRangeIndex() {
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -649,7 +649,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
               .nullableKeys("city")
               .create();
 
-        schema.indexLabel("personByAge").onV("person").by("age").search()
+        schema.indexLabel("personByAge").onV("person").by("age").range()
               .create();
 
         graph().addVertex(T.label, "person", "name", "marko", "age", 22);
