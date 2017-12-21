@@ -24,11 +24,28 @@ import java.util.List;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.HugeFactory;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 
 public class Utils {
+
+    public static final String CONF_PATH = "hugegraph.properties";
+
+    public static HugeGraph open() {
+        String confPath = System.getProperty("config_path");
+        if (confPath == null || confPath.isEmpty()) {
+            confPath = CONF_PATH;
+        }
+        try {
+            confPath = Utils.class.getClassLoader()
+                            .getResource(confPath).getPath();
+        } catch (Exception ignored) {
+        }
+        return HugeFactory.open(confPath);
+    }
 
     public static boolean containsId(List<Vertex> vertexes, Id id) {
         for (Vertex v : vertexes) {

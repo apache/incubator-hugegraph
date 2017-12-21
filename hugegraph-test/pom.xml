@@ -13,6 +13,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-dist</artifactId>
             <version>${project.version}</version>
@@ -40,6 +44,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
+                    <version>2.20</version>
                     <configuration>
                         <testSourceDirectory>${basedir}/src/main/java/
                         </testSourceDirectory>
@@ -47,6 +52,9 @@
                         </testClassesDirectory>
                         <includes>
                             <include>**/CoreTestSuite.java</include>
+                            <include>**/UnitTestSuite.java</include>
+                            <include>**/StructureStandardTest.java</include>
+                            <include>**/ProcessStandardTest.java</include>
                         </includes>
                     </configuration>
                 </plugin>
@@ -73,5 +81,12 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources/</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
     </build>
 </project>

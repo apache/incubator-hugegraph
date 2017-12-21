@@ -25,29 +25,21 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.util.Log;
 
 public class BaseCoreTest {
 
     protected static final Logger LOG = Log.logger(BaseCoreTest.class);
 
-    public static String CONF_PATH = "hugegraph.properties";
-
     private static HugeGraph graph = null;
-
-    protected static HugeGraph open() {
-        String confFile = BaseCoreTest.class.getClassLoader()
-                          .getResource(CONF_PATH).getPath();
-        return HugeFactory.open(confFile);
-    }
 
     @BeforeClass
     public static void init() {
-        graph = open();
+        graph = Utils.open();
         graph.clearBackend();
         graph.initBackend();
     }
