@@ -31,7 +31,7 @@ public class Assert extends org.junit.Assert {
     public static void assertThrows(Class<? extends Throwable> throwable,
                                     ThrowableRunnable runnable) {
         assertThrows(throwable, runnable, e -> {
-            e.printStackTrace();
+            System.err.println(e);
         });
     }
 
