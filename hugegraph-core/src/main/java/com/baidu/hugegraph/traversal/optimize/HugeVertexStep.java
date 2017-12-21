@@ -197,16 +197,9 @@ public final class HugeVertexStep<E extends Element>
     }
 
     @Override
-    public void setRange(long start, long end) {
-        // NOTE: use the min range one
-        start = Math.max(start, this.queryInfo.offset());
-        end = Math.min(end, this.queryInfo.limit());
-        if (end == -1) {
-            end = Query.NO_LIMIT;
-        }
-
-        this.queryInfo.offset(start);
-        this.queryInfo.limit(end - start);
+    public long setRange(long start, long end) {
+        this.queryInfo.range(start, end);
+        return this.queryInfo.limit();
     }
 
     @Override

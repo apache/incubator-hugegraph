@@ -327,14 +327,21 @@ public abstract class CassandraTable {
         final int atLeastSize = results.getAvailableWithoutFetching();
         List<BackendEntry> entries = new ArrayList<>(atLeastSize);
 
-        long total = query.capacity();
-        for (Iterator<Row> iter = results.iterator(); iter.hasNext();) {
-            if (total-- == 0) {
+        final long offset = query.offset();
+        final long capacity = query.capacity();
+        long count = 0L;
+        for (Iterator<Row> iter = results.iterator(); iter.hasNext(); ++count) {
+            Row row = iter.next();
+            // Skip offset (limit has been implemented by CQL)
+            if (count < offset) {
+                continue;
+            }
+            // Stop if reach capacity
+            if (count > capacity) {
                 throw new BackendException(
                           "Too many records(must <=%s) for a query",
                           query.capacity());
             }
-            Row row = iter.next();
             entries.add(result2Entry(query.resultType(), row));
         }
 

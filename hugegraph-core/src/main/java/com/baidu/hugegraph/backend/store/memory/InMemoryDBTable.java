@@ -126,7 +126,12 @@ public class InMemoryDBTable {
             }
         }
 
-        return rs.values().iterator();
+        Iterator<BackendEntry> iterator = rs.values().iterator();
+        // Skip offset (TODO: maybe we can improve when adding items to rs)
+        for (long i = 0; i < query.offset() && iterator.hasNext(); i++) {
+            iterator.next();
+        }
+        return iterator;
     }
 
     protected Map<Id, BackendEntry> queryById(Set<Id> ids,

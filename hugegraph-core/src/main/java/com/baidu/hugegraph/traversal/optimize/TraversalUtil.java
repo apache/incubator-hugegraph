@@ -56,9 +56,9 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
 public final class TraversalUtil {
@@ -127,15 +127,20 @@ public final class TraversalUtil {
             step = step.getNextStep();
             if (step instanceof RangeGlobalStep) {
                 QueryHolder holder = (QueryHolder) newStep;
-                RangeGlobalStep<?> range = (RangeGlobalStep<?>) step;
-                holder.setRange(range.getLowRange(), range.getHighRange());
-
+                @SuppressWarnings("unchecked")
+                RangeGlobalStep<Object> range = (RangeGlobalStep<Object>) step;
+                long limit = holder.setRange(range.getLowRange(),
+                                             range.getHighRange());
                 /*
-                 * NOTE: keep the step to filter results after query from DB
-                 * due to the DB may not be implemented accurately.
+                 * NOTE: keep the step to limit results after query from DB
+                 * due to `limit`(in DB) may not be implemented accurately.
+                 * but the backend driver should ensure `offset` accurately.
                  */
                 // TraversalHelper.copyLabels(step, newStep, false);
                 // traversal.removeStep(step);
+                Step<Object, Object> newRange = new RangeGlobalStep<>(traversal,
+                                                                      0, limit);
+                TraversalHelper.replaceStep(range, newRange, traversal);
             }
         } while (step instanceof RangeGlobalStep ||
                  step instanceof IdentityStep ||

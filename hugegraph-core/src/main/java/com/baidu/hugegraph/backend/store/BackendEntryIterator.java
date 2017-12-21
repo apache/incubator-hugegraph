@@ -61,6 +61,52 @@ public class BackendEntryIterator implements Iterator<BackendEntry> {
             return true;
         }
 
+        return this.fetch();
+    }
+
+    @Override
+    public BackendEntry next() {
+        if (this.reachLimit()) {
+            throw new NoSuchElementException();
+        }
+
+        if (this.current == null) {
+            this.fetch();
+        }
+
+        BackendEntry current = this.current;
+        if (current == null) {
+            throw new NoSuchElementException();
+        }
+
+        this.current = null;
+        this.count++;
+        return current;
+    }
+
+    protected final boolean reachLimit() {
+        /*
+         * TODO: if the query is separated with multi sub-queries(like query
+         * id in [id1, id2, ...]), then each BackendEntryIterator is only
+         * result(s) of one sub-query, so the query offset/limit is inaccurate.
+         */
+
+        // Skip offset
+        while (this.count < this.query.offset() && this.fetch()) {
+            assert this.current != null;
+            this.current = null;
+            this.count++;
+        }
+
+        // Stop if reach limit
+        if (this.query.limit() != Query.NO_LIMIT &&
+            this.count >= this.query.limit()) {
+            return true;
+        }
+        return false;
+    }
+
+    protected final boolean fetch() {
         assert this.current == null;
         if (this.next != null) {
             this.current = this.next;
@@ -88,38 +134,4 @@ public class BackendEntryIterator implements Iterator<BackendEntry> {
         }
         return this.current != null;
     }
-
-    @Override
-    public BackendEntry next() {
-        if (this.reachLimit()) {
-            throw new NoSuchElementException();
-        }
-
-        if (this.current == null) {
-            this.hasNext();
-        }
-
-        BackendEntry current = this.current;
-        if (current == null) {
-            throw new NoSuchElementException();
-        }
-
-        this.current = null;
-        this.count++;
-        return current;
-    }
-
-    private boolean reachLimit() {
-        if (this.query.limit() != Query.NO_LIMIT &&
-            this.count >= this.query.limit()) {
-            /*
-             * NOTE: if the query is separated with multi sub-queries(like query
-             * id in [id1, id2, ...]), then each BackendEntryIterator is only
-             * result(s) of one sub-query, so the query limit is inaccurate.
-             */
-            return true;
-        }
-        return false;
-    }
 }
-

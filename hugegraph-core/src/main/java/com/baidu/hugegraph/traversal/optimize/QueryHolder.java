@@ -26,5 +26,5 @@ public interface QueryHolder extends HasContainerHolder {
 
     public void orderBy(String key, Order order);
 
-    public void setRange(long start, long end);
+    public long setRange(long start, long end);
 }
