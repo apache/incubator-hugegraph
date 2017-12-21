@@ -91,9 +91,7 @@ public class Query implements Cloneable {
     }
 
     public void offset(long offset) {
-        E.checkArgument(offset <= this.limit,
-                        "Invalid offset %s due to > limit %s",
-                        offset, this.limit);
+        E.checkArgument(offset >= 0L, "Invalid offset %s", offset);
         this.offset = offset;
     }
 
@@ -102,10 +100,34 @@ public class Query implements Cloneable {
     }
 
     public void limit(long limit) {
-        E.checkArgument(limit >= this.offset,
-                        "Invalid limit %s due to < offset %s",
-                        limit, this.offset);
+        E.checkArgument(limit >= 0L, "Invalid limit %s", limit);
         this.limit = limit;
+    }
+
+    /**
+     * Set or update the offset and limit by a range [start, end)
+     * NOTE: it will use the min range one: max start and min end
+     */
+    public void range(long start, long end) {
+        // Update offset
+        long offset = this.offset();
+        start = Math.max(start, offset);
+        this.offset(start);
+
+        // Update limit
+        if (end == -1L) {
+            // Keep the origin limit
+            assert this.limit() >= 0;
+        } else {
+            if (this.limit() != Query.NO_LIMIT) {
+                end = Math.min(end, offset + this.limit());
+            } else {
+                assert end < Query.NO_LIMIT;
+            }
+            E.checkArgument(end >= start,
+                            "Invalid range: [%s, %s)", start, end);
+            this.limit(end - start);
+        }
     }
 
     public long capacity() {

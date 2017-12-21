@@ -521,10 +521,113 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init10Vertices();
 
-        // Query all with limit -1 (also no-limit)
+        // Query all with limit -1 (mean no-limit)
         List<Vertex> vertexes = graph.traversal().V().limit(-1).toList();
-
         Assert.assertEquals(10, vertexes.size());
+    }
+
+    @Test
+    public void testQueryAllWithIllegalLimit() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().limit(-2).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().limit(-18).toList();
+        });
+    }
+
+    @Test
+    public void testQueryAllWithOffset() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertexes = graph.traversal().V().range(8, 100).toList();
+        Assert.assertEquals(2, vertexes.size());
+
+        List<Vertex> vertexes2 = graph.traversal().V().range(8, -1).toList();
+        Assert.assertEquals(vertexes, vertexes2);
+    }
+
+    @Test
+    public void testQueryAllWithOffsetAndLimit() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertexes = graph.traversal().V().range(8, 9).toList();
+        Assert.assertEquals(1, vertexes.size());
+
+        vertexes = graph.traversal().V().range(0, 4).toList();
+        Assert.assertEquals(4, vertexes.size());
+
+        vertexes = graph.traversal().V().range(-2, 4).toList();
+        Assert.assertEquals(4, vertexes.size());
+
+        vertexes = graph.traversal().V().range(10, -1).toList();
+        Assert.assertEquals(0, vertexes.size());
+
+        vertexes = graph.traversal().V().range(0, -1).toList();
+        Assert.assertEquals(10, vertexes.size());
+
+        vertexes = graph.traversal().V().range(-2, -1).toList();
+        Assert.assertEquals(10, vertexes.size());
+    }
+
+    @Test
+    public void testQueryAllWithOffsetAndLimitWithMultiTimes() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertexes = graph.traversal().V()
+                                     .range(1, 6)
+                                     .range(4, 8)
+                                     .toList();
+        // [4, 6)
+        Assert.assertEquals(2, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                                    .range(1, -1)
+                                    .range(6, 8)
+                                    .toList();
+        // [6, 8)
+        Assert.assertEquals(2, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                                    .range(1, 6)
+                                    .range(6, 8)
+                                    .toList();
+        // [6, 6)
+        Assert.assertEquals(0, vertexes.size());
+    }
+
+    @Test
+    public void testQueryAllWithIllegalOffsetOrLimit() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().range(8, 7).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().range(-1, -2).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().range(0, -2).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().range(-4, -2).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // [7, 6)
+            graph.traversal().V().range(1, 6).range(7, 8).toList();
+        });
     }
 
     @Test
