@@ -102,7 +102,8 @@ public class HugeConfig extends PropertiesConfiguration {
     }
 
     private Object validateOption(String key, Object value) {
-        assert value instanceof String;
+        E.checkArgument(value instanceof String,
+                        "Invalid value for key '%s'", key);
 
         ConfigOption<?> option = OptionSpace.get(key);
         Class<?> dataType = option.dataType();
