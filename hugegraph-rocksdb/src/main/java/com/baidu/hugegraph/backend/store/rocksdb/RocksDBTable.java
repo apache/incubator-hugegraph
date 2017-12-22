@@ -27,13 +27,13 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
+import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
-import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.type.ExtendableIterator;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
@@ -120,11 +120,11 @@ public class RocksDBTable {
         throw new NotSupportException("query: %s", query);
     }
 
-    protected static BackendEntryIterator newEntryIterator(
-                                          Iterator<BackendColumn> cols,
-                                          Query query) {
+    protected static BinaryEntryIterator newEntryIterator(
+                                         Iterator<BackendColumn> cols,
+                                         Query query) {
         HugeType t = query.resultType();
-        return new BackendEntryIterator(cols, query, c ->
+        return new BinaryEntryIterator(cols, query, c ->
             // NOTE: only support BinarySerializer currently
             new BinaryBackendEntry(t, BinarySerializer.splitIdKey(t, c.name))
         );

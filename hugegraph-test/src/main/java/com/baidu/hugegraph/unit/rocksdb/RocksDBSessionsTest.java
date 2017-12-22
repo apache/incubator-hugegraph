@@ -294,6 +294,7 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         Assert.assertEquals("Beijing", get("person:1gcity"));
 
         this.rocks.session().remove(TABLE, b("person:1"));
+        this.commit();
 
         Assert.assertEquals("James", get("person:1gname"));
         Assert.assertEquals("19", get("person:1gage"));

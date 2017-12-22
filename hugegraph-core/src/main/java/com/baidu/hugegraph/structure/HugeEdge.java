@@ -38,10 +38,10 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
@@ -204,7 +204,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             return;
         }
 
-        Iterator<Edge> edges = tx().queryEdges(this.id()).iterator();
+        Iterator<Edge> edges = tx().queryEdges(this.id());
         assert edges.hasNext();
         this.copyProperties((HugeEdge) edges.next());
     }

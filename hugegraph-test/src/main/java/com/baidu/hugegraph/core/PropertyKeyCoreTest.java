@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.core;
 
-import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;

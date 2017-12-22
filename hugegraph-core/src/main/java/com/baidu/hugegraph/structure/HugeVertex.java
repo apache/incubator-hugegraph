@@ -45,11 +45,11 @@ import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.type.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
@@ -319,7 +319,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         for (Directions dir : directions) {
             Query query = GraphTransaction.constructEdgesQuery(
                           this.id(), dir, edgeLabelIds);
-            results.extend(this.tx().queryEdges(query).iterator());
+            results.extend(this.tx().queryEdges(query));
         }
         return results;
     }
@@ -329,7 +329,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public Iterator<Vertex> vertices(Direction direction,
                                      String... edgeLabels) {
         Iterator<Edge> edges = this.edges(direction, edgeLabels);
-        return this.tx().queryAdjacentVertices(edges).iterator();
+        return this.tx().queryAdjacentVertices(edges);
     }
 
     @Watched(prefix = "vertex")
@@ -389,7 +389,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             return;
         }
 
-        Iterator<Vertex> vertices = tx().queryVertices(this.id()).iterator();
+        Iterator<Vertex> vertices = tx().queryVertices(this.id());
         assert vertices.hasNext();
         this.copyProperties((HugeVertex) vertices.next());
     }

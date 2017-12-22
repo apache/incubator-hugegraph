@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -54,6 +55,10 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.FilterIterator;
+import com.baidu.hugegraph.iterator.FlatMapperFilterIterator;
+import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -226,9 +231,9 @@ public class GraphTransaction extends IndexableTransaction {
 
         // In order to remove edges of vertexes, query all edges first
         for (HugeVertex v : vertexes.values()) {
-            Iterable<Edge> vedges = this.queryEdgesByVertex(v.id());
-            for (Iterator<Edge> i = vedges.iterator(); i.hasNext();) {
-                HugeEdge edge = (HugeEdge) i.next();
+            Iterator<Edge> vedges = this.queryEdgesByVertex(v.id());
+            while (vedges.hasNext()) {
+                HugeEdge edge = (HugeEdge) vedges.next();
                 edges.put(edge.id(), edge);
             }
         }
@@ -375,7 +380,7 @@ public class GraphTransaction extends IndexableTransaction {
         this.afterWrite();
     }
 
-    public Iterable<Vertex> queryVertices(Object... vertexIds) {
+    public Iterator<Vertex> queryVertices(Object... vertexIds) {
         // NOTE: it will allow duplicated vertices if query by duplicated ids
         List<Vertex> results = new ArrayList<>(vertexIds.length);
 
@@ -402,44 +407,46 @@ public class GraphTransaction extends IndexableTransaction {
             }
         }
 
-        return results;
+        return results.iterator();
     }
 
-    public Iterable<Vertex> queryVertices() {
+    public Iterator<Vertex> queryVertices() {
         Query q = new Query(HugeType.VERTEX);
         return this.queryVertices(q);
     }
 
-    public Iterable<Vertex> queryVertices(Query query) {
+    public Iterator<Vertex> queryVertices(Query query) {
         assert query.resultType() == HugeType.VERTEX;
-        Set<HugeVertex> results = this.newSetWithInsertionOrder();
 
         Iterator<BackendEntry> entries = this.query(query);
-        while (entries.hasNext()) {
-            BackendEntry entry = entries.next();
+
+        Iterator<HugeVertex> results = new MapperIterator<>(entries, entry -> {
             HugeVertex vertex = this.serializer.readVertex(entry, graph());
             assert vertex != null;
+            return vertex;
+        });
+
+        results = new FilterIterator<>(results, vertex -> {
             // Filter hidden results
-            if (!query.showHidden() &&
-                Graph.Hidden.isHidden(vertex.label())) {
-                continue;
+            if (!query.showHidden() && Graph.Hidden.isHidden(vertex.label())) {
+                return false;
             }
             // Process results that query from left index
             if (query.resultType() == HugeType.VERTEX &&
-                !this.filterResultFromIndexQuery(query, vertex)) {
-                continue;
+                !filterResultFromIndexQuery(query, vertex)) {
+                return false;
             }
-            results.add(vertex);
-        }
+            return true;
+        });
 
         @SuppressWarnings("unchecked")
-        Iterable<Vertex> r = (Iterable<Vertex>) joinTxVertices(query, results);
+        Iterator<Vertex> r = (Iterator<Vertex>) joinTxVertices(query, results);
         return r;
     }
 
-    public Iterable<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
+    public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
         if (!edges.hasNext()) {
-            return ImmutableList.<Vertex>of();
+            return ImmutableList.<Vertex>of().iterator();
         }
 
         IdQuery query = new IdQuery(HugeType.VERTEX);
@@ -487,7 +494,7 @@ public class GraphTransaction extends IndexableTransaction {
         this.afterWrite();
     }
 
-    public Iterable<Edge> queryEdges(Object... edgeIds) {
+    public Iterator<Edge> queryEdges(Object... edgeIds) {
         // NOTE: it will allow duplicated edges if query by duplicated ids
         List<Edge> results = new ArrayList<>(edgeIds.length);
 
@@ -516,55 +523,63 @@ public class GraphTransaction extends IndexableTransaction {
             }
         }
 
-        return results;
+        return results.iterator();
     }
 
-    public Iterable<Edge> queryEdges() {
+    public Iterator<Edge> queryEdges() {
         Query q = new Query(HugeType.EDGE);
         return this.queryEdges(q);
     }
 
-    public Iterable<Edge> queryEdges(Query query) {
+    public Iterator<Edge> queryEdges(Query query) {
         assert query.resultType() == HugeType.EDGE;
-        Map<Id, HugeEdge> results = this.newMapWithInsertionOrder();
 
         Iterator<BackendEntry> entries = this.query(query);
-        while (entries.hasNext()) {
-            BackendEntry entry = entries.next();
+
+        Function<BackendEntry, Iterator<HugeEdge>> mapper = entry -> {
             // Edges are in a vertex
             HugeVertex vertex = this.serializer.readVertex(entry, graph());
-            for (HugeEdge edge : vertex.getEdges()) {
-                // Filter hidden results
-                if (!query.showHidden() &&
-                    Graph.Hidden.isHidden(edge.label())) {
-                    continue;
-                }
-                // Process results that query from left index
-                if (!this.filterResultFromIndexQuery(query, edge)) {
-                    continue;
-                }
-                // Filter repeat results
-                if (!results.containsKey(edge.id())) {
-                    /*
-                     * NOTE: Maybe some edges are IN and others are OUT if
-                     * querying edges both directions, perhaps it would look
-                     * better if we convert all edges in results to OUT, but
-                     * that would break the logic when querying IN edges.
-                     */
-                    results.put(edge.id(), edge);
-                } else {
-                    LOG.debug("Results contains edge: {}", edge);
-                }
-            }
-        }
+            assert vertex != null;
+            // Copy to avoid ConcurrentModificationException when removing edge
+            return ImmutableList.copyOf(vertex.getEdges()).iterator();
+        };
 
+        Set<Id> returnedEdges = new HashSet<>();
+        Function<HugeEdge, Boolean> filter = edge -> {
+            // Filter hidden results
+            if (!query.showHidden() && Graph.Hidden.isHidden(edge.label())) {
+                return false;
+            }
+            // Process results that query from left index
+            if (!this.filterResultFromIndexQuery(query, edge)) {
+                return false;
+            }
+
+            // Filter repeat edges (TODO: split edges table into OUT&IN table)
+            if (!returnedEdges.contains(edge.id())) {
+                /*
+                 * NOTE: Maybe some edges are IN and others are OUT if
+                 * querying edges both directions, perhaps it would look
+                 * better if we convert all edges in results to OUT, but
+                 * that would break the logic when querying IN edges.
+                 */
+                returnedEdges.add(edge.id());
+                return true;
+            } else {
+                LOG.debug("Results contains edge: {}", edge);
+                return false;
+            }
+        };
+
+        Iterator<HugeEdge> results = new FlatMapperFilterIterator<>(entries,
+                                                                    mapper,
+                                                                    filter);
         @SuppressWarnings("unchecked")
-        Iterable<Edge> r = (Iterable<Edge>) joinTxEdges(query,
-                                                        results.values());
+        Iterator<Edge> r = (Iterator<Edge>) joinTxEdges(query, results);
         return r;
     }
 
-    public Iterable<Edge> queryEdgesByVertex(Id id) {
+    public Iterator<Edge> queryEdgesByVertex(Id id) {
         return queryEdges(constructEdgesQuery(id, null));
     }
 
@@ -971,15 +986,15 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private Iterable<?> joinTxVertices(Query query,
-                                       Collection<HugeVertex> vertices) {
+    private Iterator<?> joinTxVertices(Query query,
+                                       Iterator<HugeVertex> vertices) {
         assert query.resultType() == HugeType.VERTEX;
         return this.joinTxRecords(query, vertices, (q, v) -> q.test(v),
                                   this.addedVertexes, this.removedVertexes,
                                   this.updatedVertexes);
     }
 
-    private Iterable<?> joinTxEdges(Query query, Collection<HugeEdge> edges) {
+    private Iterator<?> joinTxEdges(Query query, Iterator<HugeEdge> edges) {
         assert query.resultType() == HugeType.EDGE;
         final BiFunction<Query, HugeEdge, Boolean> matchTxEdges = (q, e) -> {
             assert q.resultType() == HugeType.EDGE;
@@ -992,22 +1007,19 @@ public class GraphTransaction extends IndexableTransaction {
             return edges;
         }
         // Filter edges that belong to deleted vertex
-        List<HugeEdge> results = new ArrayList<>(edges.size());
-        Collection<HugeVertex> vertices = this.removedVertexes.values();
-        filterloop: for (HugeEdge e : edges) {
-            for (HugeVertex v : vertices) {
-                if (e.belongToVertex(v)) {
-                    continue filterloop;
+        return new FilterIterator<HugeEdge>(edges, edge -> {
+            for (HugeVertex v : this.removedVertexes.values()) {
+                if (edge.belongToVertex(v)) {
+                    return false;
                 }
             }
-            results.add(e);
-        }
-        return results;
+            return true;
+        });
     }
 
-    private <V extends HugeElement> Collection<V> joinTxRecords(
+    private <V extends HugeElement> Iterator<V> joinTxRecords(
                                     Query query,
-                                    Collection<V> records,
+                                    Iterator<V> records,
                                     BiFunction<Query, V, Boolean> match,
                                     Map<Id, V> addedTxRecords,
                                     Map<Id, V> removedTxRecords,
@@ -1019,38 +1031,29 @@ public class GraphTransaction extends IndexableTransaction {
             return records;
         }
 
-        Set<V> results = this.newSetWithInsertionOrder();
+        Set<V> txResults = this.newSetWithInsertionOrder();
 
         /* Collect added records
          * Records in memory have higher priority than query from backend store
          */
         for (V i : addedTxRecords.values()) {
             if (match.apply(query, i)) {
-                results.add(i);
+                txResults.add(i);
             }
         }
         for (V i : updatedTxRecords.values()) {
             if (match.apply(query, i)) {
-                results.add(i);
+                txResults.add(i);
             }
         }
 
-        // Filter removed records
-        if (removedTxRecords.size() < records.size()) {
-            for (V i : removedTxRecords.values()) {
-                // NOTE: this will change value of the input parameter
-                records.remove(i);
-            }
-            results.addAll(records);
-        } else {
-            for (V i : records) {
-                if (!removedTxRecords.containsKey(i.id())) {
-                    results.add(i);
-                }
-            }
-        }
+        // Filter removed/added records
+        Iterator<V> backendResults = new FilterIterator<>(records, i -> {
+            return (!removedTxRecords.containsKey(i.id()) &&
+                    !txResults.contains(i.id()));
+        });
 
-        return results;
+        return new ExtendableIterator<V>(txResults.iterator(), backendResults);
     }
 
     private void checkTxVerticesCapacity() {
@@ -1122,7 +1125,7 @@ public class GraphTransaction extends IndexableTransaction {
                 query.showHidden(true);
             }
 
-            for (Iterator<Vertex> vertices = queryVertices(query).iterator();
+            for (Iterator<Vertex> vertices = queryVertices(query);
                  vertices.hasNext();) {
                 this.removeVertex((HugeVertex) vertices.next());
             }
@@ -1154,7 +1157,7 @@ public class GraphTransaction extends IndexableTransaction {
                 if (edgeLabel.hidden()) {
                     query.showHidden(true);
                 }
-                for (Iterator<Edge> edges = queryEdges(query).iterator();
+                for (Iterator<Edge> edges = queryEdges(query);
                      edges.hasNext();) {
                     this.removeEdge((HugeEdge) edges.next());
                 }
