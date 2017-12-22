@@ -251,29 +251,29 @@ public class HugeGraph implements Graph {
     @Override
     public Iterator<Vertex> vertices(Object... objects) {
         if (objects.length == 0) {
-            return this.graphTransaction().queryVertices().iterator();
+            return this.graphTransaction().queryVertices();
         }
-        return this.graphTransaction().queryVertices(objects).iterator();
+        return this.graphTransaction().queryVertices(objects);
     }
 
     public Iterator<Vertex> vertices(Query query) {
-        return this.graphTransaction().queryVertices(query).iterator();
+        return this.graphTransaction().queryVertices(query);
     }
 
     public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
-        return this.graphTransaction().queryAdjacentVertices(edges).iterator();
+        return this.graphTransaction().queryAdjacentVertices(edges);
     }
 
     @Override
     public Iterator<Edge> edges(Object... objects) {
         if (objects.length == 0) {
-            return this.graphTransaction().queryEdges().iterator();
+            return this.graphTransaction().queryEdges();
         }
-        return this.graphTransaction().queryEdges(objects).iterator();
+        return this.graphTransaction().queryEdges(objects);
     }
 
     public Iterator<Edge> edges(Query query) {
-        return this.graphTransaction().queryEdges(query).iterator();
+        return this.graphTransaction().queryEdges(query);
     }
 
     public PropertyKey propertyKey(Id id) {

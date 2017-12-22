@@ -285,9 +285,7 @@ public abstract class HugeElement implements Element, GraphType {
 
     @Override
     public int hashCode() {
-        if (this.id() == null) {
-            return super.hashCode();
-        }
+        E.checkState(this.id() != null, "Element id can't be null");
         return ElementHelper.hashCode(this);
     }
 

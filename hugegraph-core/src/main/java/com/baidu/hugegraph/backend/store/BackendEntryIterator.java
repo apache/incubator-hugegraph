@@ -21,34 +21,22 @@ package com.baidu.hugegraph.backend.store;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.function.Function;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Query;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
-import com.baidu.hugegraph.util.E;
 
-public class BackendEntryIterator implements Iterator<BackendEntry> {
+public class BackendEntryIterator<T> implements Iterator<BackendEntry> {
 
-    private final Iterator<BackendColumn> columns;
-    private final Query query;
+    protected final Query query;
 
-    private Function<BackendColumn, BackendEntry> entryCreater;
-    private BackendEntry current;
-    private BackendEntry next;
+    protected BackendEntry current;
 
     private long count;
 
-    public BackendEntryIterator(Iterator<BackendColumn> columns, Query query,
-                                Function<BackendColumn, BackendEntry> entry) {
-        E.checkNotNull(columns, "columns");
-        E.checkNotNull(entry, "entry");
-
-        this.columns = columns;
-        this.entryCreater = entry;
+    public BackendEntryIterator(Query query) {
         this.query = query;
         this.count = 0L;
         this.current = null;
-        this.next = null;
     }
 
     @Override
@@ -80,7 +68,7 @@ public class BackendEntryIterator implements Iterator<BackendEntry> {
         }
 
         this.current = null;
-        this.count++;
+        this.count += this.sizeOf(current);
         return current;
     }
 
@@ -94,44 +82,45 @@ public class BackendEntryIterator implements Iterator<BackendEntry> {
         // Skip offset
         while (this.count < this.query.offset() && this.fetch()) {
             assert this.current != null;
-            this.current = null;
-            this.count++;
+            final long size = this.sizeOf(this.current);
+            this.count += size;
+            if (this.count > this.query.offset()) {
+                // Skip part of sub-items in an entry
+                final long skip = size - (this.count - this.query.offset());
+                this.count -= this.skip(this.current, skip);
+                assert this.count == this.query.offset();
+            } else {
+                // Skip entry
+                this.current = null;
+            }
+        }
+
+        // Stop if reach capacity
+        if (this.count > this.query.capacity()) {
+            throw new BackendException(
+                      "Too many records(must <=%s) for a query",
+                      this.query.capacity());
         }
 
         // Stop if reach limit
         if (this.query.limit() != Query.NO_LIMIT &&
-            this.count >= this.query.limit()) {
+            this.count >= (this.query.offset() + this.query.limit())) {
             return true;
         }
         return false;
     }
 
-    protected final boolean fetch() {
-        assert this.current == null;
-        if (this.next != null) {
-            this.current = this.next;
-            this.next = null;
-        }
+    protected boolean fetch() {
+        return false;
+    }
 
-        while (this.columns.hasNext()) {
-            BackendColumn col = this.columns.next();
-            if (this.current == null) {
-                // The first time to read
-                this.current = this.entryCreater.apply(col);
-                assert this.current != null;
-                this.current.columns(col);
-            } else if (this.current.belongToMe(col)) {
-                // Does the column belongs to the current entry
-                this.current.columns(col);
-            } else {
-                // New entry
-                assert this.next == null;
-                this.next = this.entryCreater.apply(col);
-                assert this.next != null;
-                this.next.columns(col);
-                return true;
-            }
-        }
-        return this.current != null;
+    protected long sizeOf(BackendEntry entry) {
+        return 1;
+    }
+
+    protected long skip(BackendEntry entry, long skip) {
+        assert this.sizeOf(entry) == 1;
+        // Return the remained sub-items(items)
+        return this.sizeOf(entry);
     }
 }

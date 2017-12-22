@@ -169,15 +169,18 @@ public class CassandraSerializer extends AbstractSerializer {
         }
 
         HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
+        edge.name(sortValues);
 
         if (isOutEdge) {
             edge.sourceVertex(vertex);
             edge.targetVertex(otherVertex);
+            edge.assignId();
             vertex.addOutEdge(edge);
             otherVertex.addInEdge(edge.switchOwner());
         } else {
             edge.sourceVertex(otherVertex);
             edge.targetVertex(vertex);
+            edge.assignId();
             vertex.addInEdge(edge);
             otherVertex.addOutEdge(edge.switchOwner());
         }
@@ -191,9 +194,6 @@ public class CassandraSerializer extends AbstractSerializer {
             Id pkeyId = toId(prop.getKey());
             this.parseProperty(pkeyId, prop.getValue(), edge);
         }
-
-        edge.name(sortValues);
-        edge.assignId();
 
         return edge;
     }
@@ -234,6 +234,7 @@ public class CassandraSerializer extends AbstractSerializer {
         }
 
         CassandraBackendEntry entry = this.convertEntry(backendEntry);
+        assert entry.type() == HugeType.VERTEX;
 
         Id id = IdGenerator.of(entry.<String>column(HugeKeys.ID));
         Number label = entry.column(HugeKeys.LABEL);

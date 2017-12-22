@@ -20,11 +20,9 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -397,31 +395,43 @@ public class CassandraTables {
         }
 
         @Override
-        protected List<BackendEntry> mergeEntries(List<BackendEntry> entries) {
-            // TODO: merge rows before calling result2Entry()
-
+        protected BackendEntry mergeEntries(BackendEntry e1, BackendEntry e2) {
             // Merge edges into vertex
-            Map<Id, CassandraBackendEntry> vertices = new HashMap<>();
+            // TODO: merge rows before calling row2Entry()
 
-            for (BackendEntry i : entries) {
-                CassandraBackendEntry entry = (CassandraBackendEntry) i;
-                Id ownerVertexId = IdGenerator.of(
-                                   entry.<String>column(HugeKeys.OWNER_VERTEX));
-                if (!vertices.containsKey(ownerVertexId)) {
-                    CassandraBackendEntry vertex = new CassandraBackendEntry(
-                            HugeType.VERTEX, ownerVertexId);
+            CassandraBackendEntry current = (CassandraBackendEntry) e1;
+            CassandraBackendEntry next = (CassandraBackendEntry) e2;
 
-                    vertex.column(HugeKeys.ID,
-                                  entry.column(HugeKeys.OWNER_VERTEX));
-                    vertex.column(HugeKeys.PROPERTIES, ImmutableMap.of());
+            E.checkState(current == null || current.type() == HugeType.VERTEX,
+                         "The current entry must be null or VERTEX");
+            E.checkState(next != null && next.type() == HugeType.EDGE,
+                         "The next entry must be EDGE");
 
-                    vertices.put(ownerVertexId, vertex);
+            if (current != null) {
+                Id nextVertexId = IdGenerator.of(
+                                  next.<String>column(HugeKeys.OWNER_VERTEX));
+                if (current.id().equals(nextVertexId)) {
+                    current.subRow(next.row());
+                    return current;
                 }
-                // Add edge into vertex as a sub row
-                vertices.get(ownerVertexId).subRow(entry.row());
             }
 
-            return ImmutableList.copyOf(vertices.values());
+            return this.wrapByVertex(next);
+        }
+
+        private CassandraBackendEntry wrapByVertex(CassandraBackendEntry edge) {
+            assert edge.type() == HugeType.EDGE;
+            String ownerVertex = edge.column(HugeKeys.OWNER_VERTEX);
+            E.checkState(ownerVertex != null, "Invalid backend entry");
+            Id vertexId = IdGenerator.of(ownerVertex);
+            CassandraBackendEntry vertex = new CassandraBackendEntry(
+                                               HugeType.VERTEX, vertexId);
+
+            vertex.column(HugeKeys.ID, ownerVertex);
+            vertex.column(HugeKeys.PROPERTIES, ImmutableMap.of());
+
+            vertex.subRow(edge.row());
+            return vertex;
         }
     }
 

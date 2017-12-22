@@ -115,10 +115,7 @@ public class Query implements Cloneable {
         this.offset(start);
 
         // Update limit
-        if (end == -1L) {
-            // Keep the origin limit
-            assert this.limit() >= 0;
-        } else {
+        if (end != -1L) {
             if (this.limit() != Query.NO_LIMIT) {
                 end = Math.min(end, offset + this.limit());
             } else {
@@ -127,6 +124,9 @@ public class Query implements Cloneable {
             E.checkArgument(end >= start,
                             "Invalid range: [%s, %s)", start, end);
             this.limit(end - start);
+        } else {
+            // Keep the origin limit
+            assert this.limit() <= Query.NO_LIMIT;
         }
     }
 

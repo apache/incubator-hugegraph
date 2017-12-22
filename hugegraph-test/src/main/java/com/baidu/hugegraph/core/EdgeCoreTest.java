@@ -550,7 +550,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryEdgesWithLimit() {
+    public void testQueryAllWithLimit() {
         HugeGraph graph = graph();
         init18Edges();
 
@@ -562,6 +562,132 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         edges = graph.traversal().E().limit(10).limit(12).toList();
         Assert.assertEquals(10, edges.size());
+    }
+
+    @Test
+    public void testQueryAllWithLimit0() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        // Query all with limit 0
+        List<Edge> edges = graph.traversal().E().limit(0).toList();
+
+        Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
+    public void testQueryAllWithNoLimit() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        // Query all with limit -1 (mean no-limit)
+        List<Edge> edges = graph.traversal().E().limit(-1).toList();
+        Assert.assertEquals(18, edges.size());
+    }
+
+    @Test
+    public void testQueryAllWithIllegalLimit() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().limit(-2).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().limit(-20).toList();
+        });
+    }
+
+// TODO: uncomment after split edges table into OUT&IN table
+//    @Test
+//    public void testQueryAllWithOffset() {
+//        HugeGraph graph = graph();
+//        init18Edges();
+//
+//        List<Edge> edges = graph.traversal().E().range(8, 100).toList();
+//        Assert.assertEquals(10, edges.size());
+//
+//        List<Edge> edges2 = graph.traversal().E().range(8, -1).toList();
+//        Assert.assertEquals(edges, edges2);
+//    }
+//
+//    @Test
+//    public void testQueryAllWithOffsetAndLimit() {
+//        HugeGraph graph = graph();
+//        init18Edges();
+//
+//        List<Edge> edges = graph.traversal().E().range(8, 9).toList();
+//        Assert.assertEquals(1, edges.size());
+//
+//        edges = graph.traversal().E().range(0, 4).toList();
+//        Assert.assertEquals(4, edges.size());
+//
+//        edges = graph.traversal().E().range(-2, 4).toList();
+//        Assert.assertEquals(4, edges.size());
+//
+//        edges = graph.traversal().E().range(18, -1).toList();
+//        Assert.assertEquals(0, edges.size());
+//
+//        edges = graph.traversal().E().range(0, -1).toList();
+//        Assert.assertEquals(18, edges.size());
+//
+//        edges = graph.traversal().E().range(-2, -1).toList();
+//        Assert.assertEquals(18, edges.size());
+//    }
+
+    @Test
+    public void testQueryAllWithOffsetAndLimitWithMultiTimes() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E()
+                                .range(1, 6)
+                                .range(4, 8)
+                                .toList();
+        // [4, 6)
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().E()
+                                 .range(1, -1)
+                                 .range(6, 8)
+                                 .toList();
+        // [6, 8)
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().E()
+                                 .range(1, 6)
+                                 .range(6, 8)
+                                 .toList();
+        // [6, 6)
+        Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
+    public void testQueryAllWithIllegalOffsetOrLimit() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().range(8, 7).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().range(-1, -2).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().range(0, -2).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().range(-4, -2).toList();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // [7, 6)
+            graph.traversal().E().range(1, 6).range(7, 8).toList();
+        });
     }
 
     @Test

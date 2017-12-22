@@ -38,17 +38,15 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.Query.Order;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Clauses;
@@ -109,25 +107,25 @@ public abstract class CassandraTable {
 
     public Iterator<BackendEntry> query(CassandraSessionPool.Session session,
                                         Query query) {
-        List<BackendEntry> rs = new ArrayList<>();
+        ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
-            return rs.iterator();
+            return rs;
         }
 
         List<Select> selections = query2Select(this.table, query);
         try {
             for (Select selection : selections) {
                 ResultSet results = session.query(selection);
-                rs.addAll(this.results2Entries(query, results));
+                rs.extend(this.results2Entries(query, results));
             }
         } catch (DriverException e) {
             throw new BackendException("Failed to query [%s]", e, query);
         }
 
         LOG.debug("Return {} for query {}", rs, query);
-        return rs.iterator();
+        return rs;
     }
 
     protected List<Select> query2Select(String table, Query query) {
@@ -322,43 +320,10 @@ public abstract class CassandraTable {
         return value;
     }
 
-    protected List<BackendEntry> results2Entries(Query query,
-                                                 ResultSet results) {
-        final int atLeastSize = results.getAvailableWithoutFetching();
-        List<BackendEntry> entries = new ArrayList<>(atLeastSize);
-
-        final long offset = query.offset();
-        final long capacity = query.capacity();
-        long count = 0L;
-        for (Iterator<Row> iter = results.iterator(); iter.hasNext(); ++count) {
-            Row row = iter.next();
-            // Skip offset (limit has been implemented by CQL)
-            if (count < offset) {
-                continue;
-            }
-            // Stop if reach capacity
-            if (count > capacity) {
-                throw new BackendException(
-                          "Too many records(must <=%s) for a query",
-                          query.capacity());
-            }
-            entries.add(result2Entry(query.resultType(), row));
-        }
-
-        return this.mergeEntries(entries);
-    }
-
-    protected CassandraBackendEntry result2Entry(HugeType type, Row row) {
-        CassandraBackendEntry entry = new CassandraBackendEntry(type);
-
-        List<Definition> cols = row.getColumnDefinitions().asList();
-        for (Definition col : cols) {
-            String name = col.getName();
-            Object value = row.getObject(name);
-            entry.column(parseKey(name), value);
-        }
-
-        return entry;
+    protected Iterator<BackendEntry> results2Entries(Query query,
+                                                     ResultSet results) {
+        return new CassandraEntryIterator(results.iterator(), query,
+                                          this::mergeEntries);
     }
 
     protected List<HugeKeys> pkColumnName() {
@@ -381,8 +346,9 @@ public abstract class CassandraTable {
         return ImmutableList.of(HugeKeys.PROPERTIES);
     }
 
-    protected List<BackendEntry> mergeEntries(List<BackendEntry> entries) {
-        return entries;
+    protected BackendEntry mergeEntries(BackendEntry e1, BackendEntry e2) {
+        // Return the next entry (not merged)
+        return e2;
     }
 
     public static final String formatKey(HugeKeys key) {

@@ -24,6 +24,10 @@ import org.junit.runners.Suite;
 
 import com.baidu.hugegraph.unit.common.CacheManagerTest;
 import com.baidu.hugegraph.unit.common.EventHubTest;
+import com.baidu.hugegraph.unit.common.FilterIteratorTest;
+import com.baidu.hugegraph.unit.common.FlatMapperFilterIteratorTest;
+import com.baidu.hugegraph.unit.common.FlatMapperIteratorTest;
+import com.baidu.hugegraph.unit.common.MapperIteratorTest;
 import com.baidu.hugegraph.unit.common.RamCacheTest;
 import com.baidu.hugegraph.unit.core.BackendMutationTest;
 import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
@@ -35,6 +39,11 @@ import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
     RamCacheTest.class,
     CacheManagerTest.class,
     EventHubTest.class,
+
+    FilterIteratorTest.class,
+    MapperIteratorTest.class,
+    FlatMapperIteratorTest.class,
+    FlatMapperFilterIteratorTest.class,
 
     BackendMutationTest.class,
     ConditionQueryFlattenTest.class,

@@ -42,6 +42,7 @@ import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
+import com.google.common.collect.ImmutableList;
 
 public class CachedGraphTransaction extends GraphTransaction {
 
@@ -67,23 +68,23 @@ public class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    public Iterable<Vertex> queryVertices(Object... vertexIds) {
+    public Iterator<Vertex> queryVertices(Object... vertexIds) {
         List<Vertex> vertices = new ArrayList<>(vertexIds.length);
         for (Object i : vertexIds) {
             Id vid = HugeElement.getIdValue(i);
             Object v = this.verticesCache.getOrFetch(vid, id -> {
-                Iterator<Vertex> iterator = super.queryVertices(id).iterator();
+                Iterator<Vertex> iterator = super.queryVertices(id);
                 return iterator.hasNext() ? iterator.next() : null;
             });
             if (v != null) {
                 vertices.add((Vertex) v);
             }
         }
-        return vertices;
+        return vertices.iterator();
     }
 
     @Override
-    public Iterable<Vertex> queryVertices(Query query) {
+    public Iterator<Vertex> queryVertices(Query query) {
         if (!query.ids().isEmpty() && query.conditions().isEmpty()) {
             return this.queryVertices(query.ids().toArray());
         } else {
@@ -92,18 +93,19 @@ public class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    public Iterable<Edge> queryEdges(Query query) {
+    public Iterator<Edge> queryEdges(Query query) {
         if (query.empty()) {
             // Query all edges, don't cache it
             return super.queryEdges(query);
         }
 
         Object result = this.edgesCache.getOrFetch(new QueryId(query), id -> {
-            return super.queryEdges(query);
+            // Iterator can't be cached, caching list instead
+            return ImmutableList.copyOf(super.queryEdges(query));
         });
         @SuppressWarnings("unchecked")
-        Iterable<Edge> edges = (Iterable<Edge>) result;
-        return edges;
+        List<Edge> edges = (List<Edge>) result;
+        return edges.iterator();
     }
 
     @Override

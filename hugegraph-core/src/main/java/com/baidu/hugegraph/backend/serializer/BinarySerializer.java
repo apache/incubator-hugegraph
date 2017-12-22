@@ -221,15 +221,18 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
+        edge.name(sk);
 
         if (isOutEdge) {
             edge.sourceVertex(vertex);
             edge.targetVertex(otherVertex);
+            edge.assignId();
             vertex.addOutEdge(edge);
             otherVertex.addInEdge(edge.switchOwner());
         } else {
             edge.sourceVertex(otherVertex);
             edge.targetVertex(vertex);
+            edge.assignId();
             vertex.addInEdge(edge);
             otherVertex.addOutEdge(edge.switchOwner());
         }
@@ -247,9 +250,6 @@ public class BinarySerializer extends AbstractSerializer {
         for (int i = 0; i < size; i++) {
             this.parseProperty(buffer.readId(), buffer.readBytes(), edge);
         }
-
-        edge.name(sk);
-        edge.assignId();
     }
 
     protected void parseColumn(BackendColumn col, HugeVertex vertex) {

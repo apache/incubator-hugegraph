@@ -41,6 +41,7 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -53,7 +54,6 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
@@ -556,7 +556,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     public void rebuildIndex(HugeType type, Id label,
                              Collection<Id> indexLabelIds) {
-        GraphTransaction graphTransaction = graph().graphTransaction();
+        GraphTransaction tx = graph().graphTransaction();
         // Manually commit avoid deletion override add/update
         boolean autoCommit = this.autoCommit();
         this.autoCommit(false);
@@ -579,21 +579,24 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (type == HugeType.VERTEX_LABEL) {
                 ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
                 query.eq(HugeKeys.LABEL, label);
-                for (Vertex vertex : graphTransaction.queryVertices(query)) {
+                for (Iterator<Vertex> itor = tx.queryVertices(query);
+                     itor.hasNext();) {
+                    HugeVertex vertex = (HugeVertex) itor.next();
                     for (Id id : indexLabelIds) {
-                        this.updateIndex(id, (HugeVertex) vertex, false);
+                        this.updateIndex(id, vertex, false);
                     }
                 }
             } else {
                 assert type == HugeType.EDGE_LABEL;
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
                 query.eq(HugeKeys.LABEL, label);
-                for (Edge edge : graphTransaction.queryEdges(query)) {
+                for (Iterator<Edge> itor = tx.queryEdges(query);
+                     itor.hasNext();) {
+                    HugeEdge edge = (HugeEdge) itor.next();
                     for (Id id : indexLabelIds) {
-                        this.updateIndex(id, (HugeEdge) edge, false);
+                        this.updateIndex(id, edge, false);
                     }
                 }
-
             }
             this.commit();
         } finally {

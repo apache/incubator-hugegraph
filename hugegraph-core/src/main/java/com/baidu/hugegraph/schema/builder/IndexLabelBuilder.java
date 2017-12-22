@@ -342,7 +342,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             query.eq(HugeKeys.LABEL, indexLabel.baseValue());
             query.limit(1L);
             if (this.transaction.graph().graphTransaction()
-                    .queryVertices(query).iterator().hasNext()) {
+                    .queryVertices(query).hasNext()) {
                 this.transaction.rebuildIndex(indexLabel);
             }
         } else {
@@ -351,7 +351,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             query.eq(HugeKeys.LABEL, indexLabel.baseValue());
             query.limit(1L);
             if (this.transaction.graph().graphTransaction()
-                    .queryEdges(query).iterator().hasNext()) {
+                    .queryEdges(query).hasNext()) {
                 this.transaction.rebuildIndex(indexLabel);
             }
         }
