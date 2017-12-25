@@ -37,7 +37,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class TextBackendEntry implements BackendEntry {
 
-    public static final String COLUME_SPLITOR = "\u0001";
+    public static final String COLUMN_SPLITOR = "\u0001";
     public static final String VALUE_SPLITOR = "\u0002";
 
     private final HugeType type;
@@ -83,21 +83,21 @@ public class TextBackendEntry implements BackendEntry {
         this.columns.put(column, value);
     }
 
-    public String column(HugeKeys colume) {
-        return this.columns.get(colume.string());
+    public String column(HugeKeys column) {
+        return this.columns.get(column.string());
     }
 
-    public String column(String colume) {
-        return this.columns.get(colume);
+    public String column(String column) {
+        return this.columns.get(column);
     }
 
-    public boolean contains(String colume) {
-        return this.columns.containsKey(colume);
+    public boolean contains(String column) {
+        return this.columns.containsKey(column);
     }
 
-    public boolean contains(String colume, String value) {
-        return this.columns.containsKey(colume) &&
-               this.columns.get(colume).equals(value);
+    public boolean contains(String column, String value) {
+        return this.columns.containsKey(column) &&
+               this.columns.get(column).equals(value);
     }
 
     public boolean containsPrefix(String column) {

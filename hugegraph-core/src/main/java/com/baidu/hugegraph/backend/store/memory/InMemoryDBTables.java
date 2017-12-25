@@ -19,12 +19,21 @@
 
 package com.baidu.hugegraph.backend.store.memory;
 
+import java.util.Iterator;
+import java.util.Set;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdQuery;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 
 public class InMemoryDBTables {
 
@@ -81,6 +90,42 @@ public class InMemoryDBTables {
             assert entry.type() == HugeType.EDGE;
             String vertexId = SplicingIdGenerator.split(entry.id())[0];
             return IdGenerator.of(vertexId);
+        }
+    }
+
+    public static class SecondaryIndex extends InMemoryDBTable {
+
+        public SecondaryIndex() {
+            super(HugeType.SECONDARY_INDEX);
+        }
+
+        @Override
+        public Iterator<BackendEntry> query(final Query query) {
+            Set<Condition> conditions = query.conditions();
+            E.checkState(query instanceof ConditionQuery &&
+                         conditions.size() == 2,
+                         "Secondary index query must be condition query " +
+                         "and have two conditions, but got: %s", query);
+            String fieldValue = null;
+            String indexLabelId = null;
+            for (Condition c : conditions) {
+                assert c instanceof Condition.Relation;
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.key() == HugeKeys.FIELD_VALUES) {
+                    fieldValue = r.value().toString();
+                } else if (r.key() == HugeKeys.INDEX_LABEL_ID) {
+                    indexLabelId = r.value().toString();
+                } else {
+                    E.checkState(false,
+                                 "Secondary index query conditions must be" +
+                                 "field_values or index_label_id, but got: %s",
+                                 r.key());
+                }
+            }
+            assert fieldValue != null && indexLabelId != null;
+            Id id = SplicingIdGenerator.splicing(fieldValue, indexLabelId);
+            IdQuery q = new IdQuery(query.resultType(), id);
+            return super.query(q);
         }
     }
 }

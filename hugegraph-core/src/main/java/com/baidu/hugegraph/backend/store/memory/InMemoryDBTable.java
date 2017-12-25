@@ -41,7 +41,7 @@ import com.baidu.hugegraph.util.E;
 public class InMemoryDBTable {
 
     private final String name;
-    private final Map<Id, BackendEntry> store;
+    protected final Map<Id, BackendEntry> store;
 
     public InMemoryDBTable(HugeType type) {
         this.name = type.name();
@@ -105,12 +105,12 @@ public class InMemoryDBTable {
         // Query by id(s)
         if (!query.ids().isEmpty()) {
             if (query.resultType() == HugeType.EDGE) {
-                // Query edge(in a vertex) by id (or v-id + column-name prefix)
-                // TODO: separate this method into table Edge
-                rs = this.queryEdgeById(query.ids(), rs);
                 E.checkState(query.conditions().isEmpty(),
                              "Not support querying edge by %s",
                              query);
+                // Query edge(in a vertex) by id (or v-id + column-name prefix)
+                // TODO: separate this method into table Edge
+                rs = this.queryEdgeById(query.ids(), rs);
             } else {
                 rs = this.queryById(query.ids(), rs);
             }
@@ -161,7 +161,7 @@ public class InMemoryDBTable {
             String column = null;
             if (parts.length > 1) {
                 parts = Arrays.copyOfRange(parts, 1, parts.length);
-                column = String.join(TextBackendEntry.COLUME_SPLITOR, parts);
+                column = String.join(TextBackendEntry.COLUMN_SPLITOR, parts);
             } else {
                 // All edges
                 assert parts.length == 1;

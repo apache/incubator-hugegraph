@@ -164,11 +164,11 @@ public class HugeIndex implements GraphType {
         return index;
     }
 
-    public static Id formatIndexId(HugeType type, Id indexlabel,
+    public static Id formatIndexId(HugeType type, Id indexLabel,
                                    Object fieldValues) {
         if (type == HugeType.SECONDARY_INDEX) {
             String value = fieldValues == null ? "<?>" : fieldValues.toString();
-            return SplicingIdGenerator.splicing(value, indexlabel.asString());
+            return SplicingIdGenerator.splicing(value, indexLabel.asString());
         } else {
             assert type == HugeType.RANGE_INDEX;
             String value = "";
@@ -179,7 +179,7 @@ public class HugeIndex implements GraphType {
                 value = number2string((Number) fieldValues);
             }
             // TODO: use bytes id
-            String index = number2string((int) indexlabel.asLong());
+            String index = number2string((int) indexLabel.asLong());
             return IdGenerator.of(index + value);
         }
     }

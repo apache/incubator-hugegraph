@@ -64,7 +64,7 @@ import com.google.common.collect.ImmutableList;
 
 public class TextSerializer extends AbstractSerializer {
 
-    private static final String COLUME_SPLITOR = TextBackendEntry.COLUME_SPLITOR;
+    private static final String COLUMN_SPLITOR = TextBackendEntry.COLUMN_SPLITOR;
     private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
 
     @Override
@@ -94,7 +94,7 @@ public class TextSerializer extends AbstractSerializer {
     protected String formatSyspropName(String name) {
         return String.format("%s%s%s",
                              writeType(HugeType.SYS_PROPERTY),
-                             COLUME_SPLITOR, name);
+                             COLUMN_SPLITOR, name);
     }
 
     protected String formatSyspropName(HugeKeys col) {
@@ -103,7 +103,7 @@ public class TextSerializer extends AbstractSerializer {
 
     protected String formatPropertyName(Object key) {
         return String.format("%s%s%s",
-                             writeType(HugeType.PROPERTY), COLUME_SPLITOR, key);
+                             writeType(HugeType.PROPERTY), COLUMN_SPLITOR, key);
     }
 
     protected String formatPropertyName(HugeProperty<?> prop) {
@@ -117,7 +117,7 @@ public class TextSerializer extends AbstractSerializer {
 
     protected void parseProperty(String colName, String colValue,
                                  HugeElement owner) {
-        String[] colParts = colName.split(COLUME_SPLITOR);
+        String[] colParts = colName.split(COLUMN_SPLITOR);
         assert colParts.length == 2 : colName;
 
         // Get PropertyKey by PropertyKey id
@@ -145,11 +145,11 @@ public class TextSerializer extends AbstractSerializer {
         // Edge name: type + edge-label-name + sortKeys + targetVertex
         StringBuilder sb = new StringBuilder(256);
         sb.append(writeType(edge.type()));
-        sb.append(COLUME_SPLITOR);
+        sb.append(COLUMN_SPLITOR);
         sb.append(writeId(edge.schemaLabel().id()));
-        sb.append(COLUME_SPLITOR);
+        sb.append(COLUMN_SPLITOR);
         sb.append(edge.name());
-        sb.append(COLUME_SPLITOR);
+        sb.append(COLUMN_SPLITOR);
         sb.append(writeId(edge.otherVertex().id()));
         return sb.toString();
     }
@@ -173,7 +173,7 @@ public class TextSerializer extends AbstractSerializer {
      */
     protected void parseEdge(String colName, String colValue,
                              HugeVertex vertex) {
-        String[] colParts = colName.split(COLUME_SPLITOR);
+        String[] colParts = colName.split(COLUMN_SPLITOR);
 
         HugeGraph graph = vertex.graph();
         EdgeLabel label = graph.edgeLabel(readId(colParts[1]));
@@ -219,7 +219,7 @@ public class TextSerializer extends AbstractSerializer {
     protected void parseColumn(String colName, String colValue,
                                HugeVertex vertex) {
         // Column name
-        String type = colName.split(COLUME_SPLITOR, 2)[0];
+        String type = colName.split(COLUMN_SPLITOR, 2)[0];
         // Parse property
         if (type.equals(writeType(HugeType.PROPERTY))) {
             this.parseProperty(colName, colValue, vertex);
@@ -543,15 +543,15 @@ public class TextSerializer extends AbstractSerializer {
                                         String.class);
         String idStrategy = entry.column(HugeKeys.ID_STRATEGY);
         String properties = entry.column(HugeKeys.PROPERTIES);
-        String primarykeys = entry.column(HugeKeys.PRIMARY_KEYS);
-        String nullablekeys = entry.column(HugeKeys.NULLABLE_KEYS);
+        String primaryKeys = entry.column(HugeKeys.PRIMARY_KEYS);
+        String nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         String indexLabels = entry.column(HugeKeys.INDEX_LABELS);
 
         VertexLabel vertexLabel = new VertexLabel(readId(entry.id()), name);
         vertexLabel.idStrategy(JsonUtil.fromJson(idStrategy, IdStrategy.class));
         vertexLabel.properties(readIds(properties));
-        vertexLabel.primaryKeys(readIds(primarykeys));
-        vertexLabel.nullableKeys(readIds(nullablekeys));
+        vertexLabel.primaryKeys(readIds(primaryKeys));
+        vertexLabel.nullableKeys(readIds(nullableKeys));
         vertexLabel.indexLabels(readIds(indexLabels));
         readUserData(vertexLabel, entry);
         return vertexLabel;

@@ -224,7 +224,7 @@ public class InMemoryDBStore implements BackendStore {
             registerTableManager(HugeType.INDEX_LABEL,
                                  new InMemoryDBTable(HugeType.INDEX_LABEL));
             registerTableManager(HugeType.SECONDARY_INDEX,
-                                 new InMemoryDBTable(HugeType.SECONDARY_INDEX));
+                                 new InMemoryDBTables.SecondaryIndex());
         }
     }
 
@@ -240,7 +240,7 @@ public class InMemoryDBStore implements BackendStore {
             registerTableManager(HugeType.EDGE, edge);
 
             registerTableManager(HugeType.SECONDARY_INDEX,
-                                 new InMemoryDBTable(HugeType.SECONDARY_INDEX));
+                                 new InMemoryDBTables.SecondaryIndex());
             registerTableManager(HugeType.RANGE_INDEX,
                                  new InMemoryDBTable(HugeType.RANGE_INDEX));
         }
