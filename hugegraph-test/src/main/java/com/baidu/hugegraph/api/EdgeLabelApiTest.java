@@ -23,7 +23,6 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 

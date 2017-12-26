@@ -21,7 +21,6 @@ package com.baidu.hugegraph.api;
 
 import javax.ws.rs.core.Response;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 public class PropertyKeyApiTest extends BaseApiTest {

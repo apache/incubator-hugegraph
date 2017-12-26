@@ -33,6 +33,9 @@ public class JsonUtil {
     }
 
     public static <T> T fromJson(String json, Class<T> clazz) {
+        E.checkState(json != null,
+                     "Json value can't be null for '%s'",
+                     clazz.getSimpleName());
         return gson.fromJson(json, clazz);
     }
 

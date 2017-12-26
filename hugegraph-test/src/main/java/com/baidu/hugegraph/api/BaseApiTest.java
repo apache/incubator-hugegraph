@@ -307,7 +307,6 @@ public class BaseApiTest {
                 + "}");
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     protected String getVertexId(String label, String key, String value)
                                  throws IOException {
         String props = mapper.writeValueAsString(ImmutableMap.of(key, value));
@@ -321,6 +320,7 @@ public class BaseApiTest {
             throw new HugeException("Failed to get vertex id: %s", content);
         }
 
+        @SuppressWarnings("rawtypes")
         List<Map> list = readList(content, "vertices", Map.class);
         if (list.size() != 1) {
             throw new HugeException("Failed to get vertex id: %s", content);
