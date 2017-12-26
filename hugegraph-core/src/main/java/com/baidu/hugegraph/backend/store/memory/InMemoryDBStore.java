@@ -242,7 +242,7 @@ public class InMemoryDBStore implements BackendStore {
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new InMemoryDBTables.SecondaryIndex());
             registerTableManager(HugeType.RANGE_INDEX,
-                                 new InMemoryDBTable(HugeType.RANGE_INDEX));
+                                 new InMemoryDBTables.RangeIndex());
         }
     }
 
@@ -280,7 +280,7 @@ public class InMemoryDBStore implements BackendStore {
 
         @Override
         public boolean supportsQueryWithRangeCondition() {
-            return false;
+            return true;
         }
 
         @Override
