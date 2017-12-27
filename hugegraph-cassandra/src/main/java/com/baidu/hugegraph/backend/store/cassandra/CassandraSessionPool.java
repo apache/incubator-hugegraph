@@ -28,6 +28,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.SocketOptions;
@@ -54,6 +55,10 @@ public class CassandraSessionPool extends BackendSessionPool {
 
         String hosts = config.get(CassandraOptions.CASSANDRA_HOST);
         int port = config.get(CassandraOptions.CASSANDRA_PORT);
+
+        String username = config.get(CassandraOptions.CASSANDRA_USERNAME);
+        String password = config.get(CassandraOptions.CASSANDRA_PASSWORD);
+
         int connTimeout = config.get(CassandraOptions.CASSANDRA_CONN_TIMEOUT);
         int readTimeout = config.get(CassandraOptions.CASSANDRA_READ_TIMEOUT);
 
@@ -62,11 +67,15 @@ public class CassandraSessionPool extends BackendSessionPool {
         socketOptions.setReadTimeoutMillis(readTimeout * SECOND);
 
         assert this.cluster == null || this.cluster.isClosed();
-        this.cluster = Cluster.builder()
-                       .addContactPoints(hosts.split(","))
-                       .withPort(port)
-                       .withSocketOptions(socketOptions)
-                       .build();
+        Builder builder = Cluster.builder()
+                                 .addContactPoints(hosts.split(","))
+                                 .withPort(port)
+                                 .withSocketOptions(socketOptions);
+        if (!username.isEmpty()) {
+            builder.withCredentials(username, password);
+        }
+
+        this.cluster = builder.build();
     }
 
     public final synchronized boolean opened() {

@@ -58,6 +58,20 @@ public class CassandraOptions extends OptionHolder {
                     9042
             );
 
+    public static final ConfigOption<String> CASSANDRA_USERNAME =
+            new ConfigOption<>(
+                    "cassandra.username",
+                    "The username to use to login to cassandra cluster.",
+                    ""
+            );
+
+    public static final ConfigOption<String> CASSANDRA_PASSWORD =
+            new ConfigOption<>(
+                    "cassandra.password",
+                    "The password corresponding to cassandra.username.",
+                    ""
+            );
+
     public static final ConfigOption<Integer> CASSANDRA_CONN_TIMEOUT =
             new ConfigOption<>(
                     "cassandra.connect_timeout",
