@@ -63,6 +63,10 @@ public class ConfigOption<T> {
     private final T defaultValue;
     private final Predicate<T> checkFunc;
 
+    public ConfigOption(String name, String desc, T value) {
+        this(name, desc, null, value);
+    }
+
     @SuppressWarnings("unchecked")
     public ConfigOption(String name, String desc, Predicate<T> func, T value) {
         this(name, false, desc, func, (Class<T>) value.getClass(), value);
@@ -81,9 +85,7 @@ public class ConfigOption<T> {
         this.desc = desc;
         this.checkFunc = func;
 
-        if (this.checkFunc != null) {
-            check(this.defaultValue);
-        }
+        this.check(this.defaultValue);
     }
 
     private Class<?> checkAndAssignDataType(Class<T> dataType) {
@@ -150,10 +152,12 @@ public class ConfigOption<T> {
         E.checkArgument(this.dataType.isInstance(value),
                         "Invalid type of value '%s' for option '%s'",
                         value, this.name);
-        @SuppressWarnings("unchecked")
-        T result = (T) value;
-        E.checkArgument(this.checkFunc.apply(result),
-                        "Invalid option value for '%s': %s",
-                        this.name, value);
+        if (this.checkFunc != null) {
+            @SuppressWarnings("unchecked")
+            T result = (T) value;
+            E.checkArgument(this.checkFunc.apply(result),
+                            "Invalid option value for '%s': %s",
+                            this.name, value);
+        }
     }
 }
