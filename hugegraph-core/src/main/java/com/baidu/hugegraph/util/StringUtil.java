@@ -23,6 +23,8 @@ import java.util.Collection;
 
 import com.baidu.hugegraph.backend.id.Id;
 
+import org.apache.commons.lang3.StringUtils;
+
 public class StringUtil {
 
     public static String desc(String prefix, Collection<Id> elems) {
@@ -35,7 +37,7 @@ public class StringUtil {
     }
 
     public static String escape(char splitor, char escape, String... values) {
-        StringBuilder escaped = new StringBuilder((values.length + 1) * 16);
+        StringBuilder escaped = new StringBuilder((values.length + 1) << 4);
         // Do escape for every item in values
         for (String value : values) {
             if (escaped.length() > 0) {
@@ -46,8 +48,9 @@ public class StringUtil {
                 escaped.append(value);
                 continue;
             }
+
             // Do escape for current item
-            for (int i = 0; i < value.length(); i++) {
+            for (int i = 0, n = value.length(); i < n; i++) {
                 char ch = value.charAt(i);
                 if (ch == splitor) {
                     escaped.append(escape);
@@ -60,7 +63,7 @@ public class StringUtil {
 
     public static String[] unescape(String id, String splitor, String escape) {
         /*
-         * NOTE: The `splitor`/`escape` may be special characters in regular
+         * Note that the `splitor`/`escape` maybe special characters in regular
          * expressions, but this is a frequently called method, for faster
          * execution, we forbid the use of special characters as delimiter
          * or escape sign.
@@ -69,7 +72,7 @@ public class StringUtil {
          */
         String[] parts = id.split("(?<!" + escape + ")" + splitor, -1);
         for (int i = 0; i < parts.length; i++) {
-            parts[i] = parts[i].replaceAll(escape + splitor, splitor);
+            parts[i] = StringUtils.replace(parts[i], escape + splitor, splitor);
         }
         return parts;
     }
