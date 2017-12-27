@@ -90,7 +90,7 @@ public class VariablesAPI extends API {
         Optional<?> object = g.variables().get(key);
         if (!object.isPresent()) {
             throw new NotFoundException(String.format(
-                      "Not exist variable with key: '%s'", key));
+                      "Variable '%s' does not exist", key));
         }
         result.put(key, object.get());
         return result;

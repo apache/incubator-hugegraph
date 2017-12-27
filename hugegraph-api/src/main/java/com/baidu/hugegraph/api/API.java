@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.function.Function;
 
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
@@ -58,8 +57,8 @@ public class API {
     public static HugeGraph graph(GraphManager manager, String graph) {
         HugeGraph g = manager.graph(graph);
         if (g == null) {
-            String msg = String.format("Not found graph '%s'", graph);
-            throw new NotFoundException(msg);
+            throw new NotFoundException(String.format(
+                      "Graph '%s' does not exist",  graph));
         }
         return g;
     }
@@ -101,9 +100,8 @@ public class API {
                                      HugeType type,
                                      String id) {
         if (!iter.hasNext()) {
-            String msg = String.format("Not found the %s with id '%s'",
-                                       type, id);
-            throw new NotFoundException(msg);
+            throw new NotFoundException(String.format(
+                      "%s with id '%s' does not exist", type, id));
         }
     }
 
