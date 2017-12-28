@@ -66,7 +66,7 @@ public class RocksDBTables {
                     break;
                 }
                 // Increase local counter
-                expect = counter + 1;
+                expect = counter + 1L;
                 // Increase 1, the default value of counter is 0 in RocksDB
                 session.merge(this.table(), key, ONE);
                 session.commit();
