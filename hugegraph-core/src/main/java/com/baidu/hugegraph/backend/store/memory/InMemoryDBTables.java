@@ -38,6 +38,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.structure.HugeIndex;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
@@ -95,7 +96,8 @@ public class InMemoryDBTables {
 
         private static Id vertexIdOfEdge(TextBackendEntry entry) {
             assert entry.type() == HugeType.EDGE;
-            String vertexId = SplicingIdGenerator.split(entry.id())[0];
+            // Assume the first part is owner vertex id
+            String vertexId = EdgeId.split(entry.id())[0];
             return IdGenerator.of(vertexId);
         }
     }
@@ -191,6 +193,7 @@ public class InMemoryDBTables {
                     default:
                         E.checkArgument(false, "Unsupported relation '%s'",
                                         r.relation());
+                        break;
                 }
             }
 

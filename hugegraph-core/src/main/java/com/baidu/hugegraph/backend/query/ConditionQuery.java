@@ -57,8 +57,9 @@ public class ConditionQuery extends IdQuery {
             Relation relation = (Relation) condition;
             if (relation.key().equals(HugeKeys.ID) &&
                 relation.relation() == RelationType.EQ) {
-
-                super.query(HugeElement.getIdValue(relation.value()));
+                E.checkArgument(relation.value() instanceof Id,
+                                "Invalid id value '%s'", relation.value());
+                super.query((Id) relation.value());
                 return this;
             }
         }

@@ -26,6 +26,7 @@ import java.util.Set;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 
 public class IdQuery extends Query {
 
@@ -43,13 +44,13 @@ public class IdQuery extends Query {
     }
 
     public IdQuery(HugeType resultType, Set<Id> ids) {
-        super(resultType);
-        this.ids = new LinkedHashSet<>(ids);
+        this(resultType);
+        this.query(ids);
     }
 
     public IdQuery(Query originQuery, Set<Id> ids) {
-        super(originQuery.resultType(), originQuery);
-        this.ids = new LinkedHashSet<>(ids);
+        this(originQuery.resultType(), originQuery);
+        this.query(ids);
     }
 
     public IdQuery(HugeType resultType, Id id) {
@@ -67,12 +68,15 @@ public class IdQuery extends Query {
     }
 
     public IdQuery query(Id id) {
+        E.checkArgumentNotNull(id, "Query id can't be null");
         this.ids.add(id);
         return this;
     }
 
     public IdQuery query(Set<Id> ids) {
-        this.ids.addAll(ids);
+        for (Id id : ids) {
+            this.query(id);
+        }
         return this;
     }
 

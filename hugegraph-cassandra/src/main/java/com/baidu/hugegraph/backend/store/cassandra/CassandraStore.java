@@ -155,7 +155,7 @@ public abstract class CassandraStore implements BackendStore {
 
         for (List<MutateItem> items : mutation.mutation().values()) {
             for (MutateItem item : items) {
-               this.mutate(session, item);
+                this.mutate(session, item);
             }
         }
     }

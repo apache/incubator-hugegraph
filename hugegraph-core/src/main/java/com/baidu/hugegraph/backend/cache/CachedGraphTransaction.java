@@ -39,7 +39,6 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
-import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.google.common.collect.ImmutableList;
@@ -71,7 +70,7 @@ public class CachedGraphTransaction extends GraphTransaction {
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
         List<Vertex> vertices = new ArrayList<>(vertexIds.length);
         for (Object i : vertexIds) {
-            Id vid = HugeElement.getIdValue(i);
+            Id vid = HugeVertex.getIdValue(i);
             Object v = this.verticesCache.getOrFetch(vid, id -> {
                 Iterator<Vertex> iterator = super.queryVertices(id);
                 return iterator.hasNext() ? iterator.next() : null;

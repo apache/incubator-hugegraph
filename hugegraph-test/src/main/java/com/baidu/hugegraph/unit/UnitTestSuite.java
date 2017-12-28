@@ -31,6 +31,7 @@ import com.baidu.hugegraph.unit.common.MapperIteratorTest;
 import com.baidu.hugegraph.unit.common.RamCacheTest;
 import com.baidu.hugegraph.unit.core.BackendMutationTest;
 import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
+import com.baidu.hugegraph.unit.core.EdgeIdTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
 
@@ -47,6 +48,7 @@ import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
 
     BackendMutationTest.class,
     ConditionQueryFlattenTest.class,
+    EdgeIdTest.class,
 
     RocksDBSessionsTest.class,
     RocksDBCountersTest.class

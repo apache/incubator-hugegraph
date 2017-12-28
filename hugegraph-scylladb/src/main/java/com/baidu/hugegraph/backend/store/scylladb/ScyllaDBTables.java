@@ -22,7 +22,7 @@ package com.baidu.hugegraph.backend.store.scylladb;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -35,8 +35,11 @@ import com.baidu.hugegraph.backend.store.cassandra.CassandraBackendEntry;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraSessionPool;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTable;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTables;
+import com.baidu.hugegraph.backend.id.EdgeId;
+import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.SerialEnum;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -80,7 +83,8 @@ public class ScyllaDBTables {
                                          CassandraBackendEntry.Row entry) {
         Update update = QueryBuilder.update(table);
 
-        update.with(QueryBuilder.append(ELEMENT_IDS, entry.id().asString()));
+        update.with(QueryBuilder.append(ELEMENT_IDS,
+                                        IdUtil.writeString(entry.id())));
         update.where(CassandraTable.formatEQ(HugeKeys.LABEL,
                                              entry.column(HugeKeys.LABEL)));
         session.add(update);
@@ -100,7 +104,8 @@ public class ScyllaDBTables {
             assert entry.id().asString().indexOf(':') < 0 : entry;
             return;
         }
-        update.with(QueryBuilder.remove(ELEMENT_IDS, entry.id().asString()));
+        update.with(QueryBuilder.remove(ELEMENT_IDS,
+                                        IdUtil.writeString(entry.id())));
         update.where(CassandraTable.formatEQ(HugeKeys.LABEL, label));
         session.add(update);
     }
@@ -129,6 +134,10 @@ public class ScyllaDBTables {
 
             q.resetConditions();
             for (String id : ids) {
+                /*
+                 * NOTE: Do not need to deserialize, because can directly
+                 * use the element id to do query from the vertex/edge table
+                 */
                 q.query(IdGenerator.of(id));
             }
         }
@@ -221,7 +230,11 @@ public class ScyllaDBTables {
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             super.insert(session, entry);
-            appendLabelIndex(session, LABEL_INDEX_TABLE, entry);
+            Byte dir = entry.column(HugeKeys.DIRECTION);
+            Directions direction = SerialEnum.fromCode(Directions.class, dir);
+            if (direction == Directions.OUT) {
+                appendLabelIndex(session, LABEL_INDEX_TABLE, entry);
+            }
         }
 
         @Override
@@ -251,8 +264,8 @@ public class ScyllaDBTables {
             // Delete edges by id(s)
             List<HugeKeys> idNames = idColumnName();
 
-            BiConsumer<Id, Directions> deleteEdge = (id, direction) -> {
-                List<Object> idValues = idColumnValue(id, direction);
+            Consumer<Id> deleteEdge = (id) -> {
+                List<Object> idValues = idColumnValue(id);
                 assert idNames.size() == idValues.size();
 
                 Delete delete = QueryBuilder.delete().from(this.table());
@@ -262,10 +275,11 @@ public class ScyllaDBTables {
                 session.add(delete);
             };
 
-            for (String s : ids) {
-                Id id = IdGenerator.of(s);
-                deleteEdge.accept(id, Directions.OUT);
-                deleteEdge.accept(id, Directions.IN);
+            for (String idValue : ids) {
+                Id rawId = IdUtil.readString(idValue);
+                EdgeId id = EdgeId.parse(rawId.asString()).directed(true);
+                deleteEdge.accept(id);
+                deleteEdge.accept(id.switchDirection());
             }
         }
 
@@ -273,6 +287,7 @@ public class ScyllaDBTables {
         public Iterator<BackendEntry> query(
                CassandraSessionPool.Session session, Query query) {
             query = queryByLabelIndex(session, LABEL_INDEX_TABLE, query);
+
             if (query == null) {
                 return ImmutableList.<BackendEntry>of().iterator();
             }

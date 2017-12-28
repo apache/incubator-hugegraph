@@ -72,6 +72,7 @@ import com.baidu.hugegraph.structure.HugeFeatures.HugeVertexFeatures;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.type.define.Directions;
@@ -316,7 +317,7 @@ public class GraphTransaction extends IndexableTransaction {
         HugeElement.ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
 
         VertexLabel vertexLabel = this.checkVertexLabel(elemKeys.label());
-        Id id = HugeElement.getIdValue(elemKeys.id());
+        Id id = HugeVertex.getIdValue(elemKeys.id());
 
         IdStrategy strategy = vertexLabel.idStrategy();
         // Check weather id strategy match with id
@@ -386,7 +387,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         for (Object vertexId : vertexIds) {
             Vertex vertex;
-            Id id = HugeElement.getIdValue(vertexId);
+            Id id = HugeVertex.getIdValue(vertexId);
             if (this.removedVertexes.containsKey(id)) {
                 // The record has been deleted
                 continue;
@@ -500,7 +501,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         for (Object edgeId : edgeIds) {
             Edge edge;
-            Id id = HugeElement.getIdValue(edgeId);
+            Id id = HugeEdge.getIdValue(edgeId);
             if (this.removedEdges.containsKey(id)) {
                 // The record has been deleted
                 continue;
@@ -818,14 +819,6 @@ public class GraphTransaction extends IndexableTransaction {
     public static void verifyEdgesConditionQuery(ConditionQuery query) {
         assert query.resultType() == HugeType.EDGE;
 
-        final HugeKeys[] keys = new HugeKeys[] {
-                HugeKeys.OWNER_VERTEX,
-                HugeKeys.DIRECTION,
-                HugeKeys.LABEL,
-                HugeKeys.SORT_VALUES,
-                HugeKeys.OTHER_VERTEX
-        };
-
         int total = query.conditions().size();
         if (total == 1) {
             // Supported: 1.query just by edge label, 2.query with scan
@@ -836,7 +829,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         int matched = 0;
-        for (HugeKeys key : keys) {
+        for (HugeKeys key : EdgeId.KEYS) {
             Object value = query.condition(key);
             if (value == null) {
                 break;
@@ -846,7 +839,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (matched != total) {
             throw new BackendException(
                       "Not supported querying edges by %s, expect %s",
-                      query.conditions(), keys[matched]);
+                      query.conditions(), EdgeId.KEYS[matched]);
         }
     }
 

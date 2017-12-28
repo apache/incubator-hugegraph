@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.id;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.TimeUtil;
@@ -58,11 +57,6 @@ public class SnowflakeIdGenerator extends IdGenerator {
 
     @Override
     public Id generate(HugeVertex vertex) {
-        return this.generate();
-    }
-
-    @Override
-    public Id generate(HugeEdge edge, boolean directed) {
         return this.generate();
     }
 

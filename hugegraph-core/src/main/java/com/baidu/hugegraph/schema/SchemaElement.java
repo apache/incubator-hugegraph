@@ -100,13 +100,10 @@ public abstract class SchemaElement
     }
 
     public static boolean isSchema(HugeType type) {
-        if (type == HugeType.VERTEX_LABEL ||
-            type == HugeType.EDGE_LABEL ||
-            type == HugeType.PROPERTY_KEY ||
-            type == HugeType.INDEX_LABEL) {
-            return true;
-        }
-        return false;
+        return type == HugeType.VERTEX_LABEL ||
+               type == HugeType.EDGE_LABEL ||
+               type == HugeType.PROPERTY_KEY ||
+               type == HugeType.INDEX_LABEL;
     }
 
     public static void checkName(String name, HugeConfig config) {

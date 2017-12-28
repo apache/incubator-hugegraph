@@ -27,14 +27,12 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
-import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -47,6 +45,8 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
+import com.baidu.hugegraph.backend.id.EdgeId;
+import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
@@ -224,14 +224,12 @@ public class BinarySerializer extends AbstractSerializer {
         edge.name(sk);
 
         if (isOutEdge) {
-            edge.sourceVertex(vertex);
-            edge.targetVertex(otherVertex);
+            edge.vertices(vertex, vertex, otherVertex);
             edge.assignId();
             vertex.addOutEdge(edge);
             otherVertex.addInEdge(edge.switchOwner());
         } else {
-            edge.sourceVertex(otherVertex);
-            edge.targetVertex(vertex);
+            edge.vertices(vertex, otherVertex, vertex);
             edge.assignId();
             vertex.addInEdge(edge);
             otherVertex.addOutEdge(edge.switchOwner());
@@ -363,6 +361,7 @@ public class BinarySerializer extends AbstractSerializer {
                                                       1 + elemId.length() + 1);
             buffer.write(indexId);
             buffer.writeId(elemId);
+            buffer.writeId(IdGenerator.of(IdUtil.writeString(elemId)));
             buffer.writeUInt8(indexId.length);
 
             // Ensure the original look of the index key
@@ -407,17 +406,9 @@ public class BinarySerializer extends AbstractSerializer {
 
         // Serialize edge condition query (TODO: add VEQ(for EOUT/EIN))
         if (type == HugeType.EDGE && !query.conditions().isEmpty()) {
-            HugeKeys[] keys = new HugeKeys[] {
-                    HugeKeys.OWNER_VERTEX,
-                    HugeKeys.DIRECTION,
-                    HugeKeys.LABEL,
-                    HugeKeys.SORT_VALUES,
-                    HugeKeys.OTHER_VERTEX
-            };
-
             int count = 0;
             BytesBuffer buffer = BytesBuffer.allocate(256);
-            for (HugeKeys key : keys) {
+            for (HugeKeys key : EdgeId.KEYS) {
                 Object value = ((ConditionQuery) query).condition(key);
 
                 if (value != null) {
@@ -432,7 +423,7 @@ public class BinarySerializer extends AbstractSerializer {
 
                 if (key == HugeKeys.OWNER_VERTEX ||
                     key == HugeKeys.OTHER_VERTEX) {
-                    Id id = HugeElement.getIdValue(value);
+                    Id id = HugeVertex.getIdValue(value);
                     buffer.writeId(id);
                 } else if (key == HugeKeys.DIRECTION) {
                     byte t = ((Directions) value).type().code();
@@ -463,7 +454,7 @@ public class BinarySerializer extends AbstractSerializer {
             for (Id id : query.ids()) {
                 if (type == HugeType.EDGE) {
                     // Serialize edge id query (TODO: add class EdgeId)
-                    result.query(edgeId(id, Directions.OUT));
+                    result.query(edgeId(id));
                 } else {
                     BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
                     result.query(new BinaryId(buffer.writeId(id).bytes(), id));
@@ -475,39 +466,19 @@ public class BinarySerializer extends AbstractSerializer {
         return query;
     }
 
-    private static BinaryId edgeId(Id id, Directions dir) {
-        BytesBuffer buffer = BytesBuffer.allocate(256);
-
-        // TODO: improve Id split()
-        String[] idParts = SplicingIdGenerator.split(id);
-
-        // Ensure edge id with Direction
-        // NOTE: we assume the id without Direction if it contains 4 parts
-        if (idParts.length == 4) {
-            if (dir == Directions.IN) {
-                // Swap source-vertex and target-vertex
-                String tmp = idParts[0];
-                idParts[0] = idParts[3];
-                idParts[3] = tmp;
-            }
-            buffer.writeId(IdGenerator.of(idParts[0])); // long or string
-            buffer.write(dir.type().code());
-            buffer.writeId(SchemaElement.schemaId(idParts[1]));
-            buffer.writeString(idParts[2]); // TODO: write if need
-            buffer.writeId(IdGenerator.of(idParts[3]));
-        } else if (idParts.length == 5) {
-            buffer.writeId(IdGenerator.of(idParts[0])); // long or string
-            buffer.write(idParts[1].equals("OUT") ?
-                         HugeType.EDGE_OUT.code() :
-                         HugeType.EDGE_IN.code());
-            buffer.writeId(SchemaElement.schemaId(idParts[2]));
-            buffer.writeString(idParts[3]); // TODO: write if need
-            buffer.writeId(IdGenerator.of(idParts[4]));
-
+    private static BinaryId edgeId(Id id) {
+        EdgeId edgeId;
+        if (id instanceof EdgeId) {
+            edgeId = (EdgeId) id;
         } else {
-            throw new NotFoundException("Unsupported ID format: %s", id);
+            edgeId = EdgeId.parse(id.asString());
         }
-
+        BytesBuffer buffer = BytesBuffer.allocate(256);
+        buffer.writeId(edgeId.ownerVertexId());
+        buffer.write(edgeId.direction().type().code());
+        buffer.writeId(edgeId.edgeLabelId());
+        buffer.writeString(edgeId.sortValues());
+        buffer.writeId(edgeId.otherVertexId());
         return new BinaryId(buffer.bytes(), id);
     }
 

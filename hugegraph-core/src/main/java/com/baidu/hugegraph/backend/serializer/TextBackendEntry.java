@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -37,7 +38,6 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class TextBackendEntry implements BackendEntry {
 
-    public static final String COLUMN_SPLITOR = "\u0001";
     public static final String VALUE_SPLITOR = "\u0002";
 
     private final HugeType type;
@@ -46,6 +46,7 @@ public class TextBackendEntry implements BackendEntry {
     private Map<String, String> columns;
 
     public TextBackendEntry(HugeType type, Id id) {
+        assert id instanceof IdGenerator.StringId;
         this.type = type;
         this.id = id;
         this.subId = null;

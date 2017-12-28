@@ -788,7 +788,6 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, edges.size());
 
         schema.edgeLabel("write").remove();
-
         Assert.assertThrows(NotFoundException.class, () -> {
             schema.getEdgeLabel("write");
         });

@@ -40,6 +40,8 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.backend.id.EdgeId;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -316,8 +318,25 @@ public abstract class HugeElement implements Element, GraphType {
         return elemKeys;
     }
 
+    public static boolean isGraph(HugeType type) {
+        return type == HugeType.VERTEX ||
+               type == HugeType.EDGE ||
+               type == HugeType.EDGE_OUT ||
+               type == HugeType.EDGE_IN;
+    }
+
+    public static Id getIdValue(HugeType type, Object idValue) {
+        assert isGraph(type);
+        Id id = getIdValue(idValue);
+        if (type == HugeType.VERTEX) {
+            return id;
+        } else {
+            return EdgeId.parse(id.asString());
+        }
+    }
+
     @Watched(prefix = "element")
-    public static Id getIdValue(Object idValue) {
+    protected static Id getIdValue(Object idValue) {
         if (idValue == null) {
             return null;
         }
@@ -325,6 +344,9 @@ public abstract class HugeElement implements Element, GraphType {
         if (idValue instanceof String) {
             // String id
             return IdGenerator.of((String) idValue);
+        } else if (idValue instanceof Number) {
+            // Long id
+            return IdGenerator.of(((Number) idValue).longValue());
         } else if (idValue instanceof Id) {
             // Id itself
             return (Id) idValue;
