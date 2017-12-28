@@ -21,7 +21,6 @@ package com.baidu.hugegraph.backend.id;
 
 import java.util.List;
 
-import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.StringUtil;
 
@@ -57,29 +56,6 @@ public class SplicingIdGenerator extends IdGenerator {
     /****************************** id generate ******************************/
 
     /**
-     * Generate a string id of HugeEdge from:
-     * { source-vertex-id + edge-label + edge-name + target-vertex-id }
-     * NOTE: if we use `entry.type()` which is IN or OUT as a part of id,
-     * an edge's id will be different due to different directions (belongs
-     * to 2 vertex)
-     */
-    @Override
-    public Id generate(HugeEdge edge, boolean directed) {
-        if (directed) {
-            return concat(edge.ownerVertex().id().asString(),
-                          edge.type().string(),
-                          edge.schemaLabel().id().asString(),
-                          edge.name(),
-                          edge.otherVertex().id().asString());
-        } else {
-            return concat(edge.sourceVertex().id().asString(),
-                          edge.schemaLabel().id().asString(),
-                          edge.name(),
-                          edge.targetVertex().id().asString());
-        }
-    }
-
-    /**
      * Generate a string id of HugeVertex from Vertex name
      */
     @Override
@@ -97,17 +73,16 @@ public class SplicingIdGenerator extends IdGenerator {
     /**
      * Concat multiple ids into one composite id with IDS_SPLITOR
      */
-    public static Id concat(String... ids) {
+    public static String concat(String... ids) {
         // NOTE: must support string id when using this method
-        String escaped = StringUtil.escape(IDS_SPLITOR, ESCAPE, ids);
-        return IdGenerator.of(escaped);
+        return StringUtil.escape(IDS_SPLITOR, ESCAPE, ids);
     }
 
     /**
      * Split a composite id into multiple ids with IDS_SPLITOR
      */
-    public static String[] split(Id id) {
-        return StringUtil.unescape(id.asString(), IDS_SPLITOR_STR, ESCAPE_STR);
+    public static String[] split(String ids) {
+        return StringUtil.unescape(ids, IDS_SPLITOR_STR, ESCAPE_STR);
     }
 
     /**

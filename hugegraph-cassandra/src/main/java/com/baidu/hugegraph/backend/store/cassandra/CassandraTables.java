@@ -19,18 +19,18 @@
 
 package com.baidu.hugegraph.backend.store.cassandra;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.id.EdgeId;
+import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.DataType;
@@ -262,14 +262,6 @@ public class CassandraTables {
 
         public static final String TABLE = "edges";
 
-        private static final HugeKeys[] KEYS = new HugeKeys[] {
-                HugeKeys.OWNER_VERTEX,
-                HugeKeys.DIRECTION,
-                HugeKeys.LABEL,
-                HugeKeys.SORT_VALUES,
-                HugeKeys.OTHER_VERTEX
-        };
-
         public Edge() {
             super(TABLE);
         }
@@ -301,44 +293,31 @@ public class CassandraTables {
 
         @Override
         protected List<HugeKeys> idColumnName() {
-            return Arrays.asList(KEYS);
+            return Arrays.asList(EdgeId.KEYS);
         }
 
         @Override
         protected List<Object> idColumnValue(Id id) {
-            return idColumnValue(id, Directions.OUT);
-        }
-
-        protected List<Object> idColumnValue(Id id, Directions dir) {
-            // TODO: improve Id split()
-            String[] idParts = SplicingIdGenerator.split(id);
-
-            // Ensure edge id with Direction
-            // NOTE: we assume the id without Direction if it contains 4 parts
-            // TODO: should move to Serializer
-            if (idParts.length == 4) {
-                if (dir == Directions.IN) {
-                    // Swap source-vertex and target-vertex
-                    String tmp = idParts[0];
-                    idParts[0] = idParts[3];
-                    idParts[3] = tmp;
+            EdgeId edgeId;
+            if (!(id instanceof EdgeId)) {
+                String[] idParts = EdgeId.split(id);
+                if (idParts.length == 1) {
+                    // Delete edge by label
+                    return Arrays.asList((Object[]) idParts);
                 }
-                List<Object> list = new LinkedList<>(Arrays.asList(idParts));
-                list.add(1, dir.code());
-                list.remove(2);
-                list.add(2, Long.valueOf(idParts[1]));
-                return list;
-            } else if (idParts.length == 5) {
-                List<Object> list = new LinkedList<>(Arrays.asList(idParts));
-                list.remove(1);
-                HugeType edgeType = HugeType.fromString(idParts[1]);
-                list.add(1, Directions.convert(edgeType).code());
-                list.remove(2);
-                list.add(2, Long.valueOf(idParts[2]));
-                return list;
+                id = IdUtil.readString(id.asString());
+                edgeId = EdgeId.parse(id.asString());
+            } else {
+                edgeId = (EdgeId) id;
             }
 
-            return Arrays.asList((Object[]) idParts);
+            List<Object> list = new ArrayList<>(5);
+            list.add(IdUtil.writeString(edgeId.ownerVertexId()));
+            list.add(edgeId.direction().code());
+            list.add(edgeId.edgeLabelId().asLong());
+            list.add(edgeId.sortValues());
+            list.add(IdUtil.writeString(edgeId.otherVertexId()));
+            return list;
         }
 
         @Override

@@ -44,6 +44,14 @@ public enum Directions implements SerialEnum {
         }
     }
 
+    public Directions opposite() {
+        if (this.equals(OUT)) {
+            return IN;
+        } else {
+            return this.equals(IN) ? OUT : BOTH;
+        }
+    }
+
     public static Directions convert(Direction direction) {
         switch (direction) {
             case OUT:

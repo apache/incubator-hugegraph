@@ -102,7 +102,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 this.name = parts[1];
             } else {
                 assert this.id == null;
-                List<Object> propValues = primaryValues();
+                List<Object> propValues = this.primaryValues();
                 E.checkState(!propValues.isEmpty(),
                              "Primary values must not be empty " +
                              "(has properties %s)", hasProperties());
@@ -160,8 +160,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         List<Object> propValues = new ArrayList<>(primaryKeys.size());
         for (Id pk : primaryKeys) {
-            PropertyKey propertyKey = this.graph().propertyKey(pk);
-            propValues.add(this.property(propertyKey.name()).value());
+            HugeProperty<?> property = this.getProperty(pk);
+            E.checkState(property != null,
+                         "The value of primary key '%s' can't be null", pk);
+            propValues.add(property.value());
         }
         return propValues;
     }
@@ -477,5 +479,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public String toString() {
         return StringFactory.vertexString(this);
+    }
+
+    public static Id getIdValue(Object idValue) {
+        return HugeElement.getIdValue(idValue);
     }
 }

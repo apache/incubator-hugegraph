@@ -322,7 +322,8 @@ public class BackendMutationTest extends BaseUnitTest {
         assert (columns.length == 0 || columns.length == 2);
         TextBackendEntry entry = new TextBackendEntry(null, IdGenerator.of(id));
         if (columns.length == 2) {
-            entry.subId(SplicingIdGenerator.concat(id, columns[0]));
+            String subId = SplicingIdGenerator.concat(id, columns[0]);
+            entry.subId(IdGenerator.of(subId));
         }
         for (int i = 0; i < columns.length; i = i + 2) {
             entry.column(columns[i], columns[i + 1]);

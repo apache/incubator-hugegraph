@@ -29,8 +29,6 @@ public abstract class IdGenerator {
 
     public abstract Id generate(HugeVertex vertex);
 
-    public abstract Id generate(HugeEdge edge, boolean directed);
-
     public static Id of(String id) {
         return new StringId(id);
     }

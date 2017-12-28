@@ -60,7 +60,6 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
@@ -289,7 +288,7 @@ public class EdgeAPI extends API {
         // NOTE: Not use SchemaManager because it will throw 404
         VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
         E.checkArgumentNotNull(vl, "Invalid vertex label '%s'", label);
-        Id idValue = HugeElement.getIdValue(id);
+        Id idValue = HugeVertex.getIdValue(id);
         return new HugeVertex(graph, idValue, vl);
     }
 

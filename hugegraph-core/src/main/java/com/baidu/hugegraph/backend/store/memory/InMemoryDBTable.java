@@ -27,9 +27,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
@@ -140,6 +140,7 @@ public class InMemoryDBTable {
         Map<Id, BackendEntry> rs = new HashMap<>();
 
         for (Id id : ids) {
+            assert !id.number();
             if (entries.containsKey(id)) {
                 rs.put(id, entries.get(id));
             }
@@ -155,13 +156,13 @@ public class InMemoryDBTable {
 
         for (Id id : ids) {
             // TODO: improve id split
-            String[] parts = SplicingIdGenerator.split(id);
+            String[] parts = EdgeId.split(id);
             Id entryId = IdGenerator.of(parts[0]);
 
             String column = null;
             if (parts.length > 1) {
                 parts = Arrays.copyOfRange(parts, 1, parts.length);
-                column = String.join(TextBackendEntry.COLUMN_SPLITOR, parts);
+                column = EdgeId.concat(parts);
             } else {
                 // All edges
                 assert parts.length == 1;
@@ -233,15 +234,16 @@ public class InMemoryDBTable {
                      ((Condition.Relation) cond).key().equals(HugeKeys.LABEL),
                      "Not support querying edge by %s",
                      conditions);
-        Id label = (Id) ((Condition.Relation) cond).serialValue();
+        Condition.Relation relation = (Condition.Relation) cond;
+        String label = ((Id) relation.serialValue()).asString();
 
         Map<Id, BackendEntry> rs = new HashMap<>();
 
         for (BackendEntry value : entries.values()) {
             // TODO: Compatible with BackendEntry
             TextBackendEntry entry = (TextBackendEntry) value;
-            String out = HugeType.EDGE_OUT.string() + "\u0001" + label;
-            String in = HugeType.EDGE_IN.string() + "\u0001" + label;
+            String out = EdgeId.concat(HugeType.EDGE_OUT.string(), label);
+            String in = EdgeId.concat(HugeType.EDGE_IN.string(), label);
             if (entry.containsPrefix(out)) {
                 BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
                                                           entry.id());

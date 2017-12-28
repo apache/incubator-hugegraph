@@ -100,7 +100,7 @@ public abstract class CassandraTable {
             long splitSize = (long) args[0];
             CassandraShard spliter = new CassandraShard(session,
                                                         session.keyspace(),
-                                                        table());
+                                                        this.table());
             return spliter.getSplits(0, splitSize);
         });
     }
@@ -114,7 +114,7 @@ public abstract class CassandraTable {
             return rs;
         }
 
-        List<Select> selections = query2Select(this.table, query);
+        List<Select> selections = this.query2Select(this.table, query);
         try {
             for (Select selection : selections) {
                 ResultSet results = session.query(selection);

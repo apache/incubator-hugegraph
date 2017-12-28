@@ -32,6 +32,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
@@ -79,6 +80,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.ownerVertex == this.sourceVertex ?
                                    HugeType.EDGE_OUT :
                                    HugeType.EDGE_IN;
+    }
+
+    @Override
+    public EdgeId id() {
+        return (EdgeId) this.id;
     }
 
     @Override
@@ -132,16 +138,15 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Watched(prefix = "edge")
     public void assignId() {
-        assert this.id == null;
         // Generate an id and assign
-        if (this.id == null) {
-            this.id = SplicingIdGenerator.instance().generate(this, false);
-        }
+        this.id = new EdgeId(this.ownerVertex(), this.direction(),
+                             this.schemaLabel().id(), this.name(),
+                             this.otherVertex());
     }
 
     @Watched(prefix = "edge")
-    public Id idWithDirection() {
-        return SplicingIdGenerator.instance().generate(this, true);
+    public EdgeId idWithDirection() {
+        return ((EdgeId) this.id).directed(true);
     }
 
     @Watched(prefix = "edge")
@@ -152,7 +157,10 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
         List<Object> propValues = new ArrayList<>(sortKeys.size());
         for (Id sk : sortKeys) {
-            propValues.add(this.getProperty(sk).value());
+            HugeProperty<?> property = this.getProperty(sk);
+            E.checkState(property != null,
+                         "The value of sort key '%s' can't be null", sk);
+            propValues.add(property.value());
         }
         return propValues;
     }
@@ -302,6 +310,14 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.targetVertex = target;
     }
 
+    public void vertices(HugeVertex owner,
+                         HugeVertex source,
+                         HugeVertex target) {
+        this.ownerVertex = owner;
+        this.sourceVertex = source;
+        this.targetVertex = target;
+    }
+
     public HugeEdge switchOwner() {
         HugeEdge edge = this.clone();
         if (edge.ownerVertex == edge.sourceVertex) {
@@ -310,7 +326,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             assert edge.ownerVertex == this.targetVertex;
             edge.ownerVertex = edge.sourceVertex;
         }
-
+        edge.assignId();
         return edge;
     }
 
@@ -408,5 +424,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public String toString() {
         return StringFactory.edgeString(this);
+    }
+
+    public static Id getIdValue(Object idValue) {
+        Id id = HugeElement.getIdValue(idValue);
+        if (id == null || id instanceof EdgeId) {
+            return id;
+        }
+        return EdgeId.parse(id.asString());
     }
 }

@@ -27,10 +27,13 @@ import java.util.stream.Collectors;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -110,14 +113,15 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     protected CassandraBackendEntry.Row formatEdge(HugeEdge edge) {
+        EdgeId id = edge.idWithDirection();
         CassandraBackendEntry.Row row = new CassandraBackendEntry.Row(
-                                        HugeType.EDGE, edge.idWithDirection());
-        // sourceVertex + direction + edge-label + sortValues + targetVertex
-        row.column(HugeKeys.OWNER_VERTEX, edge.ownerVertex().id().asString());
-        row.column(HugeKeys.DIRECTION, edge.direction().code());
-        row.column(HugeKeys.LABEL, edge.schemaLabel().id().asLong());
-        row.column(HugeKeys.SORT_VALUES, edge.name());
-        row.column(HugeKeys.OTHER_VERTEX, edge.otherVertex().id().asString());
+                                        HugeType.EDGE, id);
+        // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
+        row.column(HugeKeys.OWNER_VERTEX, IdUtil.writeString(id.ownerVertexId()));
+        row.column(HugeKeys.DIRECTION, id.direction().code());
+        row.column(HugeKeys.LABEL, id.edgeLabelId().asLong());
+        row.column(HugeKeys.SORT_VALUES, id.sortValues());
+        row.column(HugeKeys.OTHER_VERTEX, IdUtil.writeString(id.otherVertexId()));
 
         if (!edge.hasProperties() && !edge.removed()) {
             row.column(HugeKeys.PROPERTIES, ImmutableMap.of());
@@ -129,7 +133,6 @@ public class CassandraSerializer extends AbstractSerializer {
                            JsonUtil.toJson(prop.value()));
             }
         }
-
         return row;
     }
 
@@ -149,7 +152,7 @@ public class CassandraSerializer extends AbstractSerializer {
         String otherVertexId = row.column(HugeKeys.OTHER_VERTEX);
 
         if (vertex == null) {
-            Id ownerId = IdGenerator.of(ownerVertexId);
+            Id ownerId = IdUtil.readString(ownerVertexId);
             vertex = new HugeVertex(graph, ownerId, null);
         }
 
@@ -157,7 +160,7 @@ public class CassandraSerializer extends AbstractSerializer {
         VertexLabel srcLabel = graph.vertexLabel(edgeLabel.sourceLabel());
         VertexLabel tgtLabel = graph.vertexLabel(edgeLabel.targetLabel());
 
-        Id otherId = IdGenerator.of(otherVertexId);
+        Id otherId = IdUtil.readString(otherVertexId);
         boolean isOutEdge = direction == Directions.OUT;
         HugeVertex otherVertex;
         if (isOutEdge) {
@@ -172,14 +175,12 @@ public class CassandraSerializer extends AbstractSerializer {
         edge.name(sortValues);
 
         if (isOutEdge) {
-            edge.sourceVertex(vertex);
-            edge.targetVertex(otherVertex);
+            edge.vertices(vertex, vertex, otherVertex);
             edge.assignId();
             vertex.addOutEdge(edge);
             otherVertex.addInEdge(edge.switchOwner());
         } else {
-            edge.sourceVertex(otherVertex);
-            edge.targetVertex(vertex);
+            edge.vertices(vertex, otherVertex, vertex);
             edge.assignId();
             vertex.addInEdge(edge);
             otherVertex.addOutEdge(edge.switchOwner());
@@ -202,7 +203,7 @@ public class CassandraSerializer extends AbstractSerializer {
     public BackendEntry writeVertex(HugeVertex vertex) {
         CassandraBackendEntry entry = newBackendEntry(vertex);
 
-        entry.column(HugeKeys.ID, vertex.id().asString());
+        entry.column(HugeKeys.ID, IdUtil.writeString(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
 
         // Add all properties of a Vertex
@@ -219,7 +220,7 @@ public class CassandraSerializer extends AbstractSerializer {
         HugeVertex vertex = prop.element();
         CassandraBackendEntry entry = newBackendEntry(vertex);
         entry.subId(IdGenerator.of(prop.key()));
-        entry.column(HugeKeys.ID, vertex.id().asString());
+        entry.column(HugeKeys.ID, IdUtil.writeString(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
         entry.column(HugeKeys.PROPERTIES, prop.propertyKey().id().asLong(),
                      JsonUtil.toJson(prop.value()));
@@ -236,7 +237,7 @@ public class CassandraSerializer extends AbstractSerializer {
         CassandraBackendEntry entry = this.convertEntry(backendEntry);
         assert entry.type() == HugeType.VERTEX;
 
-        Id id = IdGenerator.of(entry.<String>column(HugeKeys.ID));
+        Id id = IdUtil.readString(entry.column(HugeKeys.ID));
         Number label = entry.column(HugeKeys.LABEL);
 
         VertexLabel vertexLabel = null;
@@ -267,14 +268,15 @@ public class CassandraSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop) {
         HugeEdge edge = prop.element();
+        EdgeId id = edge.idWithDirection();
         CassandraBackendEntry.Row row = new CassandraBackendEntry.Row(
-                                        HugeType.EDGE, edge.idWithDirection());
-        // sourceVertex + direction + edge-label + sortValues + targetVertex
-        row.column(HugeKeys.OWNER_VERTEX, edge.ownerVertex().id().asString());
-        row.column(HugeKeys.DIRECTION, edge.direction().code());
-        row.column(HugeKeys.LABEL, edge.schemaLabel().id().asLong());
-        row.column(HugeKeys.SORT_VALUES, edge.name());
-        row.column(HugeKeys.OTHER_VERTEX, edge.otherVertex().id().asString());
+                                        HugeType.EDGE, id);
+        // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
+        row.column(HugeKeys.OWNER_VERTEX, IdUtil.writeString(id.ownerVertexId()));
+        row.column(HugeKeys.DIRECTION, id.direction().code());
+        row.column(HugeKeys.LABEL, id.edgeLabelId().asLong());
+        row.column(HugeKeys.SORT_VALUES, id.sortValues());
+        row.column(HugeKeys.OTHER_VERTEX, IdUtil.writeString(id.otherVertexId()));
         // Format edge property
         row.column(HugeKeys.PROPERTIES, prop.propertyKey().id().asLong(),
                    JsonUtil.toJson(prop.value()));
@@ -308,7 +310,8 @@ public class CassandraSerializer extends AbstractSerializer {
         } else {
             entry.column(HugeKeys.FIELD_VALUES, index.fieldValues());
             entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().asLong());
-            entry.column(HugeKeys.ELEMENT_IDS, index.elementId().asString());
+            entry.column(HugeKeys.ELEMENT_IDS,
+                         IdUtil.writeString(index.elementId()));
             entry.subId(index.elementId());
         }
         return entry;
@@ -332,7 +335,7 @@ public class CassandraSerializer extends AbstractSerializer {
         index.fieldValues(indexValues);
 
         for (String id : elementIds) {
-            index.elementIds(IdGenerator.of(id));
+            index.elementIds(IdUtil.readString(id));
         }
         return index;
     }
@@ -345,21 +348,35 @@ public class CassandraSerializer extends AbstractSerializer {
 
     @Override
     public Query writeQuery(Query query) {
-        // NOTE: Cassandra does not need to add type prefix for id
+        // Serialize id
+        if (query instanceof IdQuery && !query.ids().isEmpty()) {
+            IdQuery result = (IdQuery) query.copy();
+            result.resetIds();
+            for (Id id : query.ids()) {
+                if (query.resultType() == HugeType.VERTEX) {
+                    result.query(IdGenerator.of(IdUtil.writeString(id)));
+                } else if (query.resultType() == HugeType.EDGE) {
+                    result.query(EdgeId.parse(id.asString()));
+                }
+            }
+            return result;
+        }
 
-        // Serialize query value for CONTAINS VALUE query
-        if ((query.resultType() == HugeType.VERTEX ||
-             query.resultType() == HugeType.EDGE) &&
-            !query.conditions().isEmpty() && query instanceof ConditionQuery) {
+        // Serialize condition
+        if (query instanceof ConditionQuery &&
+            !query.conditions().isEmpty() &&
+            HugeElement.isGraph(query.resultType())) {
             ConditionQuery result = (ConditionQuery) query;
             // No user-prop when serialize
             assert result.allSysprop();
-            if (result.containsCondition(Condition.RelationType.CONTAINS)) {
-                for (Condition.Relation r : result.relations()) {
-                    // Serialize has-value
-                    if (r.relation() == Condition.RelationType.CONTAINS) {
-                        r.serialValue(JsonUtil.toJson(r.value()));
-                    }
+            for (Condition.Relation r : result.relations()) {
+                if (r.key() == HugeKeys.OWNER_VERTEX ||
+                    r.key() == HugeKeys.OTHER_VERTEX) {
+                    // Serialize id(vertex) value
+                    r.serialValue(IdUtil.writeString((Id) r.value()));
+                } else if (r.relation() == Condition.RelationType.CONTAINS) {
+                    // Serialize other type value
+                    r.serialValue(JsonUtil.toJson(r.value()));
                 }
             }
         }
