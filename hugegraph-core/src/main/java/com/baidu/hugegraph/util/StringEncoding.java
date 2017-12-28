@@ -35,14 +35,17 @@ public class StringEncoding {
             array[startPos++] = (byte) 0x80;
             return startPos;
         }
-        for (int i = 0; i < len;) {
+
+        int i = 0;
+        do {
             int c = attribute.charAt(i);
             assert c <= 127;
             byte b = (byte) c;
             if (++i == len)
                 b |= 0x80; // End marker
             array[startPos++] = b;
-        }
+        } while (i < len);
+
         return startPos;
     }
 
