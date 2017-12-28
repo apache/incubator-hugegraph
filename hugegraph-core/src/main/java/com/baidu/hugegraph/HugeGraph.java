@@ -95,7 +95,7 @@ public class HugeGraph implements Graph {
     private EventHub indexEventHub;
     private HugeFeatures features;
     private HugeConfig configuration;
-    private HugeVariables veriables;
+    private HugeVariables variables;
 
     private BackendStoreProvider storeProvider;
 
@@ -111,7 +111,7 @@ public class HugeGraph implements Graph {
         this.name = configuration.get(CoreOptions.STORE);
         this.closed = false;
 
-        this.veriables = null;
+        this.variables = null;
 
         try {
             this.storeProvider = this.loadStoreProvider();
@@ -349,11 +349,11 @@ public class HugeGraph implements Graph {
 
     @Override
     public synchronized Variables variables() {
-        if (this.veriables == null) {
-            this.veriables = new HugeVariables(this);
+        if (this.variables == null) {
+            this.variables = new HugeVariables(this);
         }
-        this.veriables.initSchema();
-        return this.veriables;
+        this.variables.initSchema();
+        return this.variables;
     }
 
     @Override
