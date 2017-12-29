@@ -42,8 +42,7 @@ public class JsonSerializer implements Serializer {
     }
 
     private String writeObject(Object object) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             this.writer.writeObject(out, object);
             return out.toString(API.CHARSET);
         } catch (Exception e) {
