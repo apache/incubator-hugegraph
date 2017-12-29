@@ -52,8 +52,7 @@ public class JsonSerializer implements Serializer {
     }
 
     private String writeList(String label, Object object) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             out.write(String.format("{\"%s\": ", label).getBytes(API.CHARSET));
             this.writer.writeObject(out, object);
             out.write("}".getBytes(API.CHARSET));
