@@ -72,7 +72,7 @@ public class RocksDBTables {
                 session.commit();
             }
 
-            E.checkState(counter != 0, "Please check whether RocksDB is OK");
+            E.checkState(counter != 0L, "Please check whether RocksDB is OK");
             E.checkState(counter == expect, "RocksDB is busy please try again");
             return IdGenerator.of(counter);
         }

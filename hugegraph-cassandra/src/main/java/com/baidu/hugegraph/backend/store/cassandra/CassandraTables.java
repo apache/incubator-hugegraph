@@ -86,7 +86,7 @@ public class CassandraTables {
 
             Update update = QueryBuilder.update(TABLE);
             // Id increase 1
-            update.with(QueryBuilder.incr(formatKey(HugeKeys.ID), 1));
+            update.with(QueryBuilder.incr(formatKey(HugeKeys.ID), 1L));
             update.where(where);
 
             // Do get-increase-get-compare operation
@@ -102,12 +102,12 @@ public class CassandraTables {
                     break;
                 }
                 // Increase local counter
-                expect = counter + 1;
+                expect = counter + 1L;
                 // Increase remote counter
                 session.execute(update);
             }
 
-            E.checkState(counter != 0, "Please check whether Cassandra is OK");
+            E.checkState(counter != 0L, "Please check whether Cassandra is OK");
             E.checkState(counter == expect,
                          "Cassandra is busy please try again");
             return IdGenerator.of(expect);
