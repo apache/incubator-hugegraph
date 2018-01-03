@@ -117,12 +117,12 @@ public class CachedSchemaTransaction extends SchemaTransaction {
         Object value = this.idCache.get(prefixedId);
         if (value == null) {
             value = fetcher.apply(id);
-        }
-        if (value != null) {
-            this.idCache.update(prefixedId, value);
-            SchemaElement schema = (SchemaElement) value;
-            Id prefixedName = generateId(schema.type(), schema.name());
-            this.nameCache.update(prefixedName, schema);
+            if (value != null) {
+                this.idCache.update(prefixedId, value);
+                SchemaElement schema = (SchemaElement) value;
+                Id prefixedName = generateId(schema.type(), schema.name());
+                this.nameCache.update(prefixedName, schema);
+            }
         }
         return value;
     }
@@ -133,12 +133,12 @@ public class CachedSchemaTransaction extends SchemaTransaction {
         Object value = this.nameCache.get(prefixedName);
         if (value == null) {
             value = fetcher.apply(name);
-        }
-        if (value != null) {
-            this.nameCache.update(prefixedName, value);
-            SchemaElement schema = (SchemaElement) value;
-            Id prefixedId = generateId(schema.type(), schema.id());
-            this.idCache.update(prefixedId, schema);
+            if (value != null) {
+                this.nameCache.update(prefixedName, value);
+                SchemaElement schema = (SchemaElement) value;
+                Id prefixedId = generateId(schema.type(), schema.id());
+                this.idCache.update(prefixedId, schema);
+            }
         }
         return value;
     }
