@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.id;
 
-import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;

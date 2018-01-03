@@ -284,7 +284,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Wrap id(s) by IdQuery
-        return new IdQuery(query.resultType(), ids);
+        return new IdQuery(query, ids);
     }
 
     @Watched(prefix = "index")

@@ -25,10 +25,11 @@ import org.apache.commons.lang.NotImplementedException;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -45,8 +46,6 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
-import com.baidu.hugegraph.backend.id.EdgeId;
-import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
@@ -401,72 +400,65 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public Query writeQuery(Query query) {
-        HugeType type = query.resultType();
-
-        // Serialize edge condition query (TODO: add VEQ(for EOUT/EIN))
-        if (type == HugeType.EDGE && !query.conditions().isEmpty()) {
-            int count = 0;
-            BytesBuffer buffer = BytesBuffer.allocate(256);
-            for (HugeKeys key : EdgeId.KEYS) {
-                Object value = ((ConditionQuery) query).condition(key);
-
-                if (value != null) {
-                    count++;
-                } else {
-                    if (key == HugeKeys.DIRECTION) {
-                        value = Directions.OUT;
-                    } else {
-                        break;
-                    }
-                }
-
-                if (key == HugeKeys.OWNER_VERTEX ||
-                    key == HugeKeys.OTHER_VERTEX) {
-                    Id id = HugeVertex.getIdValue(value);
-                    buffer.writeId(id);
-                } else if (key == HugeKeys.DIRECTION) {
-                    byte t = ((Directions) value).type().code();
-                    buffer.write(t);
-                } else if (key == HugeKeys.LABEL) {
-                    assert value instanceof Id;
-                    buffer.writeId((Id) value);
-                } else if (key == HugeKeys.SORT_VALUES) {
-                    assert value instanceof String;
-                    buffer.writeString((String) value);
-                } else {
-                    assert false : key;
-                }
-            }
-
-            if (count > 0) {
-                assert count == query.conditions().size();
-                IdQuery result = new IdQuery(type, query);
-                result.query(new BinaryId(buffer.bytes(), null));
-                return result;
-            }
+    protected Id writeQueryId(HugeType type, Id id) {
+        if (type == HugeType.EDGE) {
+            id = writeEdgeId(id);
+        } else {
+            BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
+            id = new BinaryId(buffer.writeId(id).bytes(), id);
         }
-
-        // Serialize id in query
-        if (query instanceof IdQuery) {
-            IdQuery result = (IdQuery) query.copy();
-            result.resetIds();
-            for (Id id : query.ids()) {
-                if (type == HugeType.EDGE) {
-                    // Serialize edge id query (TODO: add class EdgeId)
-                    result.query(edgeId(id));
-                } else {
-                    BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
-                    result.query(new BinaryId(buffer.writeId(id).bytes(), id));
-                }
-            }
-            return result;
-        }
-
-        return query;
+        return id;
     }
 
-    private static BinaryId edgeId(Id id) {
+    @Override
+    protected Id writeQueryEdgeCondition(Query query) {
+        int count = 0;
+        BytesBuffer buffer = BytesBuffer.allocate(256);
+        for (HugeKeys key : EdgeId.KEYS) {
+            Object value = ((ConditionQuery) query).condition(key);
+
+            if (value != null) {
+                count++;
+            } else {
+                if (key == HugeKeys.DIRECTION) {
+                    value = Directions.OUT;
+                } else {
+                    break;
+                }
+            }
+
+            if (key == HugeKeys.OWNER_VERTEX ||
+                key == HugeKeys.OTHER_VERTEX) {
+                Id id = HugeVertex.getIdValue(value);
+                buffer.writeId(id);
+            } else if (key == HugeKeys.DIRECTION) {
+                byte t = ((Directions) value).type().code();
+                buffer.write(t);
+            } else if (key == HugeKeys.LABEL) {
+                assert value instanceof Id;
+                buffer.writeId((Id) value);
+            } else if (key == HugeKeys.SORT_VALUES) {
+                assert value instanceof String;
+                buffer.writeString((String) value);
+            } else {
+                assert false : key;
+            }
+        }
+
+        if (count > 0) {
+            assert count == query.conditions().size();
+            return new BinaryId(buffer.bytes(), null);
+        }
+
+        return null;
+    }
+
+    @Override
+    protected void writeQueryCondition(Query query) {
+        return;
+    }
+
+    private static BinaryId writeEdgeId(Id id) {
         EdgeId edgeId;
         if (id instanceof EdgeId) {
             edgeId = (EdgeId) id;

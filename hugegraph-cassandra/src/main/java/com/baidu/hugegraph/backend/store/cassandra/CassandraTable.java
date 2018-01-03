@@ -40,7 +40,6 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.Shard;
-import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
 import com.baidu.hugegraph.util.E;
@@ -314,8 +313,6 @@ public abstract class CassandraTable {
         // Serialize value (TODO: should move to Serializer)
         if (value instanceof Id) {
             value = ((Id) value).asObject();
-        } else if (value instanceof Directions) {
-            value = ((Directions) value).code();
         }
         return value;
     }
