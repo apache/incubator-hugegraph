@@ -20,49 +20,20 @@
 package com.baidu.hugegraph.core;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.util.Log;
 
 public class BaseCoreTest {
 
     protected static final Logger LOG = Log.logger(BaseCoreTest.class);
 
-    private static HugeGraph graph = null;
-
-    @BeforeClass
-    public static void init() {
-        graph = Utils.open();
-        graph.clearBackend();
-        graph.initBackend();
-    }
-
-    @AfterClass
-    public static void clear() throws Exception {
-        if (graph == null) {
-            return;
-        }
-
-        try {
-            graph.clearBackend();
-        } finally {
-            try {
-                graph.close();
-            } catch (Throwable e) {
-                LOG.error("Error when close()", e);
-            }
-        }
-    }
-
     public HugeGraph graph() {
-        return graph;
+        return CoreTestSuite.graph();
     }
 
     @Before

@@ -320,7 +320,7 @@ public class Example1 {
         String book1Id = String.format("%s:%s", book.id().asString(), "java-1");
         String book2Id = String.format("%s:%s", book.id().asString(), "java-2");
 
-        String edgeId = String.format("%s>%s>%s>%s",
+        String edgeId = String.format("S%s>%s>%s>S%s",
                                       authorId, authored.id(), "", book2Id);
         edges = graph.traversal().E(edgeId);
         edgeList = edges.toList();
@@ -335,11 +335,11 @@ public class Example1 {
 
         // query edge by condition
         q = new ConditionQuery(HugeType.EDGE);
-        q.eq(HugeKeys.OWNER_VERTEX, authorId);
+        q.eq(HugeKeys.OWNER_VERTEX, IdGenerator.of(authorId));
         q.eq(HugeKeys.DIRECTION, Directions.OUT);
         q.eq(HugeKeys.LABEL, authored.id());
         q.eq(HugeKeys.SORT_VALUES, "");
-        q.eq(HugeKeys.OTHER_VERTEX, book1Id);
+        q.eq(HugeKeys.OTHER_VERTEX, IdGenerator.of(book1Id));
         // NOTE: query edge by has-key just supported by Cassandra
         // q.hasKey(HugeKeys.PROPERTIES, "contribution");
 
@@ -407,7 +407,7 @@ public class Example1 {
         VertexLabel book = graph.schema().getVertexLabel("book");
         String book2Id = String.format("%s:%s", book.id().asString(), "java-2");
 
-        String edgeId = String.format("%s>%s>%s>%s",
+        String edgeId = String.format("S%s>%s>%s>S%s",
                                       authorId, authored.id(), "", book2Id);
 
         List <Edge> edges = graph.traversal().E(edgeId).toList();

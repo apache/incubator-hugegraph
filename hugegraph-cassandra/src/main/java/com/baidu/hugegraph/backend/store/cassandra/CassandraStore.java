@@ -431,7 +431,7 @@ public abstract class CassandraStore implements BackendStore {
 
     protected static final CassandraBackendEntry castBackendEntry(
               BackendEntry entry) {
-        assert entry instanceof CassandraBackendEntry;
+        assert entry instanceof CassandraBackendEntry : entry.getClass();
         if (!(entry instanceof CassandraBackendEntry)) {
             throw new BackendException(
                       "Cassandra store only supports CassandraBackendEntry");

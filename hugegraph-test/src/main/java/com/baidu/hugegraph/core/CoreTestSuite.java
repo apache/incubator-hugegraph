@@ -20,11 +20,17 @@
 package com.baidu.hugegraph.core;
 
 import org.apache.commons.configuration.ConfigurationException;
+import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.dist.RegisterUtil;
+import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.util.Log;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -37,8 +43,43 @@ import com.baidu.hugegraph.dist.RegisterUtil;
 })
 public class CoreTestSuite {
 
+    private static final Logger LOG = Log.logger(BaseCoreTest.class);
+
+    private static HugeGraph graph = null;
+
     @BeforeClass
     public static void initEnv() throws ConfigurationException {
         RegisterUtil.registerBackends();
+    }
+
+    @BeforeClass
+    public static void init() {
+        graph = Utils.open();
+        graph.clearBackend();
+        graph.initBackend();
+    }
+
+    @AfterClass
+    public static void clear() throws Exception {
+        if (graph == null) {
+            return;
+        }
+
+        try {
+            graph.clearBackend();
+        } finally {
+            try {
+                graph.close();
+            } catch (Throwable e) {
+                LOG.error("Error when close()", e);
+            }
+            graph = null;
+        }
+    }
+
+    protected static HugeGraph graph() {
+        Assert.assertNotNull(graph);
+        //Assert.assertFalse(graph.closed());
+        return graph;
     }
 }

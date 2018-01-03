@@ -129,7 +129,8 @@ public class PropertyKey extends SchemaElement {
             return null;
         }
 
-        if (this.dataType().isNumberType()) {
+        if (this.dataType().isNumberType() &&
+            this.cardinality == Cardinality.SINGLE) {
             @SuppressWarnings("unchecked")
             V number = (V) this.dataType().valueToNumber(value);
             return number;
