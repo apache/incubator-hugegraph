@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
@@ -136,7 +137,7 @@ public class HugeGraph implements Graph {
     }
 
     public boolean closed() {
-        return this.closed;
+        return this.closed && this.tx.closed();
     }
 
     public EventHub schemaEventHub() {
@@ -331,12 +332,12 @@ public class HugeGraph implements Graph {
 
     @Override
     public void close() throws HugeException {
+        this.closed = true;
         try {
             if (this.tx.isOpen()) {
                 this.tx.close();
             }
         } finally {
-            this.closed = true;
             this.tx.destroyTransaction();
             this.storeProvider.close();
         }
@@ -404,6 +405,8 @@ public class HugeGraph implements Graph {
 
     private class TinkerpopTransaction extends AbstractThreadLocalTransaction {
 
+        private AtomicInteger refs;
+
         private ThreadLocal<Boolean> opened;
 
         // Backend transactions
@@ -413,9 +416,16 @@ public class HugeGraph implements Graph {
         public TinkerpopTransaction(Graph graph) {
             super(graph);
 
+            this.refs = new AtomicInteger(0);
+
             this.opened = ThreadLocal.withInitial(() -> false);
             this.graphTransaction = ThreadLocal.withInitial(() -> null);
             this.schemaTransaction = ThreadLocal.withInitial(() -> null);
+        }
+
+        public boolean closed() {
+            assert this.refs.get() >= 0 : this.refs.get();
+            return this.refs.get() == 0;
         }
 
         @Override
@@ -455,7 +465,7 @@ public class HugeGraph implements Graph {
         }
 
         @Override
-        public void doCommit() {
+        protected void doCommit() {
             this.verifyOpened();
 
             this.schemaTransaction().commit();
@@ -463,7 +473,7 @@ public class HugeGraph implements Graph {
         }
 
         @Override
-        public void doRollback() {
+        protected void doRollback() {
             this.verifyOpened();
 
             try {
@@ -474,7 +484,7 @@ public class HugeGraph implements Graph {
         }
 
         @Override
-        public void doClose() {
+        protected void doClose() {
             this.verifyOpened();
 
             try {
@@ -508,12 +518,17 @@ public class HugeGraph implements Graph {
 
         private void setOpened() {
             // The backend tx may be reused, here just set a flag
+            assert this.opened.get() == false;
             this.opened.set(true);
+            this.refs.incrementAndGet();
         }
 
         private void setClosed() {
             // Just set flag opened=false to reuse the backend tx
-            this.opened.set(false);
+            if (this.opened.get()) {
+                this.opened.set(false);
+                this.refs.decrementAndGet();
+            }
         }
 
         private SchemaTransaction schemaTransaction() {
