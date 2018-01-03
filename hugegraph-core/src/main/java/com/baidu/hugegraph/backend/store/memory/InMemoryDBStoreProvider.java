@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.backend.store.memory;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
@@ -32,13 +35,17 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     private static final Logger LOG = Log.logger(InMemoryDBStore.class);
 
-    private static InMemoryDBStoreProvider single = null;
+    private static Map<String, InMemoryDBStoreProvider> providers = null;
 
     public static synchronized InMemoryDBStoreProvider instance(String name) {
-        if (single == null) {
-            single = new InMemoryDBStoreProvider(name);
+        if (providers == null) {
+            providers = new ConcurrentHashMap<>();
         }
-        return single;
+        if (!providers.containsKey(name)) {
+            InMemoryDBStoreProvider p = new InMemoryDBStoreProvider(name);
+            providers.putIfAbsent(name, p);
+        }
+        return providers.get(name);
     }
 
     public InMemoryDBStoreProvider(String name) {

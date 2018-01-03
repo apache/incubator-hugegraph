@@ -117,7 +117,7 @@ public abstract class RocksDBStore implements BackendStore {
         E.checkNotNull(config, "config");
         this.conf = config;
 
-        if (this.sessions != null) {
+        if (this.sessions != null && !this.sessions.closed()) {
             LOG.debug("Store {} has been opened before", this.name);
             this.sessions.useSession();
             return;
@@ -156,7 +156,7 @@ public abstract class RocksDBStore implements BackendStore {
         }
 
         if (this.sessions != null) {
-            dbs.putIfAbsent(dataPath, this.sessions);
+            dbs.put(dataPath, this.sessions);
             LOG.debug("Store opened: {}", this.name);
         }
     }
