@@ -236,7 +236,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             }
         } else {
             for (String key : keys) {
-                PropertyKey propertyKey = this.graph().propertyKey(key);
+                PropertyKey propertyKey = this.graph().schemaTransaction()
+                                              .getPropertyKey(key);
+                if (propertyKey == null) {
+                    continue;
+                }
                 HugeProperty<?> prop = this.getProperty(propertyKey.id());
                 if (prop == null) {
                     // Not found

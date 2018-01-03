@@ -69,7 +69,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         INSTANCES = new ConcurrentHashMap<>();
         TYPE_DEFINITIONS = new ConcurrentHashMap<>();
         TYPE_DEFINITIONS.put(Optional.class, "Optional");
-        // HugeGraph releated serializer
+        // HugeGraph related serializer
         TYPE_DEFINITIONS.put(IdGenerator.StringId.class, "StringId");
         TYPE_DEFINITIONS.put(IdGenerator.LongId.class, "LongId");
         TYPE_DEFINITIONS.put(EdgeId.class, "EdgeId");

@@ -62,5 +62,4 @@ public final class HugeGraphStepStrategy
     public static HugeGraphStepStrategy instance() {
         return INSTANCE;
     }
-
 }

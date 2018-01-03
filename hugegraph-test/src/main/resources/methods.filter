@@ -49,6 +49,13 @@ org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.Diffe
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateSameGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: Replicated edges treated as one
 org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.DifferentDistributionsTest.shouldGenerateDifferentGraph[test(PowerLawDistribution{gamma=2.3, multiplier=0.0},PowerLawDistribution{gamma=2.8, multiplier=0.0})]: Replicated edges treated as one
 
+## user supplied numeric id
+org.apache.tinkerpop.gremlin.structure.FeatureSupportTest.VertexFunctionalityTest.shouldSupportUserSuppliedIdsOfTypeNumericLong: Not open the feature 'support user supplied id of numeric long' although numeric long id is allowed
+org.apache.tinkerpop.gremlin.structure.FeatureSupportTest.VertexFunctionalityTest.shouldSupportUserSuppliedIdsOfTypeNumericInt: Not open the feature 'support user supplied id of numeric long' although numeric long id is allowed
+
+## edge id format validate firstly and throw NotFoundException if invalid
+org.apache.tinkerpop.gremlin.structure.GraphTest.shouldHaveExceptionConsistencyWhenFindEdgeByIdThatIsNonExistentViaIterator: Invalid format of edge id will introduce throwing NotFoundException before try to query in backend store
+
 ## not bugs
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UUID as edge label
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label

@@ -96,6 +96,10 @@ public abstract class BackendSessionPool {
                   this, this.sessionCount.get(), ref);
     }
 
+    public boolean closed() {
+        return this.sessionCount.get() == 0;
+    }
+
     @Override
     public String toString() {
         return String.format("%s@%08X",
