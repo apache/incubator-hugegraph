@@ -48,14 +48,19 @@ public class IdQuery extends Query {
         this.query(ids);
     }
 
-    public IdQuery(Query originQuery, Set<Id> ids) {
-        this(originQuery.resultType(), originQuery);
-        this.query(ids);
-    }
-
     public IdQuery(HugeType resultType, Id id) {
         this(resultType);
         this.query(id);
+    }
+
+    public IdQuery(Query originQuery, Id id) {
+        this(originQuery.resultType(), originQuery);
+        this.query(id);
+    }
+
+    public IdQuery(Query originQuery, Set<Id> ids) {
+        this(originQuery.resultType(), originQuery);
+        this.query(ids);
     }
 
     @Override

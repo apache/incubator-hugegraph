@@ -235,7 +235,7 @@ public class InMemoryDBTable {
                      "Not support querying edge by %s",
                      conditions);
         Condition.Relation relation = (Condition.Relation) cond;
-        String label = ((Id) relation.serialValue()).asString();
+        String label = (String) relation.serialValue();
 
         Map<Id, BackendEntry> rs = new HashMap<>();
 

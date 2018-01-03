@@ -28,6 +28,7 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
@@ -38,7 +39,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.structure.HugeIndex;
-import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
@@ -132,7 +132,7 @@ public class InMemoryDBTables {
             }
             assert fieldValue != null && indexLabelId != null;
             Id id = SplicingIdGenerator.splicing(fieldValue, indexLabelId);
-            IdQuery q = new IdQuery(query.resultType(), id);
+            IdQuery q = new IdQuery(query, id);
             return super.query(q);
         }
     }
@@ -200,8 +200,7 @@ public class InMemoryDBTables {
             if (keyEq != null) {
                 Id id = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
                                                 indexLabelId, keyEq);
-                IdQuery q = new IdQuery(query.resultType(), query);
-                q.query(id);
+                IdQuery q = new IdQuery(query, id);
                 return super.query(q);
             } else {
                 if (keyMin == null) {

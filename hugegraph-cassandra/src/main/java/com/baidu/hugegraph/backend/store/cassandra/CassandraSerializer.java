@@ -33,7 +33,6 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -347,40 +346,50 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public Query writeQuery(Query query) {
-        // Serialize id
-        if (query instanceof IdQuery && !query.ids().isEmpty()) {
-            IdQuery result = (IdQuery) query.copy();
-            result.resetIds();
-            for (Id id : query.ids()) {
-                if (query.resultType() == HugeType.VERTEX) {
-                    result.query(IdGenerator.of(IdUtil.writeString(id)));
-                } else if (query.resultType() == HugeType.EDGE) {
-                    result.query(EdgeId.parse(id.asString()));
-                }
+    protected Id writeQueryId(HugeType type, Id id) {
+        if (type == HugeType.EDGE) {
+            if (!(id instanceof EdgeId)) {
+                id = EdgeId.parse(id.asString());
             }
-            return result;
+        } else if (HugeElement.isGraph(type)) {
+            id = IdGenerator.of(IdUtil.writeString(id));
         }
+        return id;
+    }
 
-        // Serialize condition
-        if (query instanceof ConditionQuery &&
-            !query.conditions().isEmpty() &&
-            HugeElement.isGraph(query.resultType())) {
+    @Override
+    protected Id writeQueryEdgeCondition(Query query) {
+        ConditionQuery result = (ConditionQuery) query;
+        for (Condition.Relation r : result.relations()) {
+            Object value = r.value();
+            if (value instanceof Id) {
+                if (r.key() == HugeKeys.OWNER_VERTEX ||
+                    r.key() == HugeKeys.OTHER_VERTEX) {
+                    // Serialize vertex id
+                    r.serialValue(IdUtil.writeString((Id) value));
+                } else {
+                    // Serialize label id
+                    r.serialValue(((Id) value).asObject());
+                }
+            } else if (value instanceof Directions) {
+                r.serialValue(((Directions) value).code());
+            }
+        }
+        return null;
+    }
+
+    @Override
+    protected void writeQueryCondition(Query query) {
+        if (HugeElement.isGraph(query.resultType())) {
             ConditionQuery result = (ConditionQuery) query;
             // No user-prop when serialize
             assert result.allSysprop();
             for (Condition.Relation r : result.relations()) {
-                if (r.key() == HugeKeys.OWNER_VERTEX ||
-                    r.key() == HugeKeys.OTHER_VERTEX) {
-                    // Serialize id(vertex) value
-                    r.serialValue(IdUtil.writeString((Id) r.value()));
-                } else if (r.relation() == Condition.RelationType.CONTAINS) {
-                    // Serialize other type value
+                if (r.relation() == Condition.RelationType.CONTAINS) {
                     r.serialValue(JsonUtil.toJson(r.value()));
                 }
             }
         }
-        return query;
     }
 
     @Override

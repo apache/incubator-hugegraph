@@ -36,7 +36,6 @@ import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -356,6 +355,12 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     public TextBackendEntry writeId(HugeType type, Id id) {
+        id = this.writeQueryId(type, id);
+        return newBackendEntry(type, id);
+    }
+
+    @Override
+    protected Id writeQueryId(HugeType type, Id id) {
         if (type == HugeType.EDGE) {
             id = IdGenerator.of(writeEdgeId(id, true));
         } else if (HugeElement.isGraph(type)) {
@@ -364,79 +369,12 @@ public class TextSerializer extends AbstractSerializer {
             assert SchemaElement.isSchema(type);
             id = IdGenerator.of(writeId(id));
         }
-        return newBackendEntry(type, id);
+        return id;
     }
 
     @Override
-    public Query writeQuery(Query query) {
-        /*
-         * Serialize edge query by id/conditions to query by
-         * src-vertex + edge-name.
-         */
-        if (query.resultType() == HugeType.EDGE && query instanceof IdQuery) {
-            return this.writeEdgeQuery((IdQuery) query);
-        }
-
-        // Serialize id
-        if (query instanceof IdQuery && !query.ids().isEmpty()) {
-            IdQuery result = (IdQuery) query.copy();
-            result.resetIds();
-            for (Id id : query.ids()) {
-                // TODO: Need optimize
-                result.query(this.writeId(query.resultType(), id).id());
-            }
-            return result;
-        }
-
-        // Serialize query key/value
-        if (!query.conditions().isEmpty() && query instanceof ConditionQuery) {
-            ConditionQuery result = (ConditionQuery) query;
-            // No user-prop when serialize
-            assert result.allSysprop();
-            for (Condition.Relation r : result.relations()) {
-                // Serialize key
-                if (SchemaElement.isSchema(query.resultType())) {
-                    r.serialKey(((HugeKeys) r.key()).string());
-                } else {
-                    r.serialKey(formatSyspropName((HugeKeys) r.key()));
-                }
-
-                if (r.value() instanceof Id) {
-                    // Serialize id value
-                    r.serialValue(writeId((Id) r.value()));
-                } else {
-                    // Serialize other type value
-                    r.serialValue(JsonUtil.toJson(r.value()));
-                }
-
-                if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
-                    // Serialize has-key
-                    String key = (String) r.serialValue();
-                    r.serialValue(formatPropertyName(key));
-                }
-            }
-        }
-        return query;
-    }
-
-    private IdQuery writeEdgeQuery(IdQuery query) {
-        if (!query.conditions().isEmpty() && !query.ids().isEmpty()) {
-            throw new BackendException("Not supported query edge by id(s) " +
-                                       "and condition(s) at the same time");
-        }
-
-        IdQuery result = query.copy();
-        result.resetIds();
-        // By id
-        if (query.ids().size() > 0) {
-            assert query.conditions().isEmpty();
-            for (Id id : query.ids()) {
-                result.query(IdGenerator.of(writeEdgeId(id, true)));
-            }
-            return result;
-        }
-
-        // By condition (then convert the query to query by id)
+    protected Id writeQueryEdgeCondition(Query query) {
+        // Convert query-by-condition to query-by-id
         List<String> condParts = new ArrayList<>(query.conditions().size());
 
         for (HugeKeys key : EdgeId.KEYS) {
@@ -444,7 +382,7 @@ public class TextSerializer extends AbstractSerializer {
             if (value == null) {
                 break;
             }
-            // Serialize value
+            // Serialize condition value
             if (key == HugeKeys.OWNER_VERTEX || key == HugeKeys.OTHER_VERTEX) {
                 condParts.add(writeEntryId((Id) value));
             } else if (key == HugeKeys.DIRECTION) {
@@ -454,36 +392,44 @@ public class TextSerializer extends AbstractSerializer {
             } else {
                 condParts.add(value.toString());
             }
-            ((ConditionQuery) result).unsetCondition(key);
         }
 
         if (condParts.size() > 0) {
             // Conditions to id
             String id = EdgeId.concat(condParts.toArray(new String[0]));
-            result.query(IdGenerator.of(id));
+            return IdGenerator.of(id);
         }
 
-        return result;
+        return null;
     }
 
-    private static String writeEdgeId(Id id, boolean withOwnerVertex) {
-        EdgeId edgeId;
-        if (id instanceof EdgeId) {
-            edgeId = (EdgeId) id;
-        } else {
-            edgeId = EdgeId.parse(id.asString());
-        }
-        List<String> list = new ArrayList<>(5);
-        if (withOwnerVertex) {
-            list.add(writeEntryId(edgeId.ownerVertexId()));
-        }
-        // Edge name: type + edge-label-name + sortKeys + targetVertex
-        list.add(writeType(edgeId.direction().type()));
-        list.add(writeId(edgeId.edgeLabelId()));
-        list.add(edgeId.sortValues());
-        list.add(writeEntryId(edgeId.otherVertexId()));
+    @Override
+    protected void writeQueryCondition(Query query) {
+        ConditionQuery result = (ConditionQuery) query;
+        // No user-prop when serialize
+        assert result.allSysprop();
+        for (Condition.Relation r : result.relations()) {
+            // Serialize key
+            if (SchemaElement.isSchema(query.resultType())) {
+                r.serialKey(((HugeKeys) r.key()).string());
+            } else {
+                r.serialKey(formatSyspropName((HugeKeys) r.key()));
+            }
 
-        return EdgeId.concat(list.toArray(new String[0]));
+            if (r.value() instanceof Id) {
+                // Serialize id value
+                r.serialValue(writeId((Id) r.value()));
+            } else {
+                // Serialize other type value
+                r.serialValue(JsonUtil.toJson(r.value()));
+            }
+
+            if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
+                // Serialize has-key
+                String key = (String) r.serialValue();
+                r.serialValue(formatPropertyName(key));
+            }
+        }
     }
 
     @Override
@@ -511,7 +457,7 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         TextBackendEntry entry = this.convertEntry(backendEntry);
-        Id id = readId(entry.id().asString());
+        Id id = readId(entry.id());
         String name = JsonUtil.fromJson(entry.column(HugeKeys.NAME),
                                         String.class);
         String idStrategy = entry.column(HugeKeys.ID_STRATEGY);
@@ -557,7 +503,7 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         TextBackendEntry entry = this.convertEntry(backendEntry);
-        Id id = readId(entry.id().asString());
+        Id id = readId(entry.id());
         String name = JsonUtil.fromJson(entry.column(HugeKeys.NAME),
                                         String.class);
         String sourceLabel = entry.column(HugeKeys.SOURCE_LABEL);
@@ -601,7 +547,7 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         TextBackendEntry entry = this.convertEntry(backendEntry);
-        Id id = readId(entry.id().asString());
+        Id id = readId(entry.id());
         String name = JsonUtil.fromJson(entry.column(HugeKeys.NAME),
                                         String.class);
         String dataType = entry.column(HugeKeys.DATA_TYPE);
@@ -638,7 +584,7 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         TextBackendEntry entry = this.convertEntry(backendEntry);
-        Id id = readId(entry.id().asString());
+        Id id = readId(entry.id());
         String name = JsonUtil.fromJson(entry.column(HugeKeys.NAME),
                                         String.class);
         String baseType = entry.column(HugeKeys.BASE_TYPE);
@@ -652,6 +598,26 @@ public class TextSerializer extends AbstractSerializer {
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
         indexLabel.indexFields(readIds(indexFields));
         return indexLabel;
+    }
+
+    private static String writeEdgeId(Id id, boolean withOwnerVertex) {
+        EdgeId edgeId;
+        if (id instanceof EdgeId) {
+            edgeId = (EdgeId) id;
+        } else {
+            edgeId = EdgeId.parse(id.asString());
+        }
+        List<String> list = new ArrayList<>(5);
+        if (withOwnerVertex) {
+            list.add(writeEntryId(edgeId.ownerVertexId()));
+        }
+        // Edge name: type + edge-label-name + sortKeys + targetVertex
+        list.add(writeType(edgeId.direction().type()));
+        list.add(writeId(edgeId.edgeLabelId()));
+        list.add(edgeId.sortValues());
+        list.add(writeEntryId(edgeId.otherVertexId()));
+
+        return EdgeId.concat(list.toArray(new String[0]));
     }
 
     private static String writeType(HugeType type) {
