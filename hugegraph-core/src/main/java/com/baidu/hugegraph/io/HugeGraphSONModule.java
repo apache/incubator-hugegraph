@@ -33,6 +33,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
@@ -62,6 +63,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         // HugeGraph releated serializer
         TYPE_DEFINITIONS.put(IdGenerator.StringId.class, "StringId");
         TYPE_DEFINITIONS.put(IdGenerator.LongId.class, "LongId");
+        TYPE_DEFINITIONS.put(EdgeId.class, "EdgeId");
         TYPE_DEFINITIONS.put(PropertyKey.class, "PropertyKey");
         TYPE_DEFINITIONS.put(VertexLabel.class, "VertexLabel");
         TYPE_DEFINITIONS.put(EdgeLabel.class, "EdgeLabel");
@@ -77,8 +79,16 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     public HugeGraphSONModule() {
         super(TYPE_NAMESPACE);
 
-        addSerializer(Id.class, new IdSerializer());
-        addDeserializer(Id.class, new IdDeserializer());
+        addSerializer(IdGenerator.StringId.class,
+                      new IdSerializer<>(IdGenerator.StringId.class));
+        addDeserializer(IdGenerator.StringId.class,
+                        new IdDeserializer<>(IdGenerator.StringId.class));
+        addSerializer(IdGenerator.LongId.class,
+                      new IdSerializer<>(IdGenerator.LongId.class));
+        addDeserializer(IdGenerator.LongId.class,
+                        new IdDeserializer<>(IdGenerator.LongId.class));
+        addSerializer(EdgeId.class, new IdSerializer<>(EdgeId.class));
+        addDeserializer(EdgeId.class, new IdDeserializer<>(EdgeId.class));
 
         addSerializer(PropertyKey.class, new PropertyKeySerializer());
         addDeserializer(PropertyKey.class, new PropertyKeyDeserializer());
@@ -138,43 +148,59 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    private class IdSerializer extends StdSerializer<Id> {
+    private class IdSerializer<T extends Id> extends StdSerializer<T> {
 
-        public IdSerializer() {
-            super(Id.class);
+        public IdSerializer(Class<T> clazz) {
+            super(clazz);
         }
 
         @Override
-        public void serialize(Id id, JsonGenerator jsonGenerator,
+        public void serialize(T value,
+                              JsonGenerator jsonGenerator,
                               SerializerProvider serializer)
                               throws IOException {
-            jsonGenerator.writeString(id.asString());
+            if (value.number()) {
+                jsonGenerator.writeNumber(value.asLong());
+            } else {
+                jsonGenerator.writeString(value.asString());
+            }
         }
 
         @Override
-        public void serializeWithType(Id id, JsonGenerator jsonGenerator,
+        public void serializeWithType(T value,
+                                      JsonGenerator jsonGenerator,
                                       SerializerProvider serializers,
                                       TypeSerializer typeSer)
                                       throws IOException {
-            typeSer.writeTypePrefixForScalar(id, jsonGenerator);
-            jsonGenerator.writeString(id.asString());
-            typeSer.writeTypeSuffixForScalar(id, jsonGenerator);
+            typeSer.writeTypePrefixForScalar(value, jsonGenerator);
+            this.serialize(value, jsonGenerator, serializers);
+            typeSer.writeTypeSuffixForScalar(value, jsonGenerator);
         }
-
     }
 
-    private class IdDeserializer extends StdDeserializer<Id> {
+    @SuppressWarnings("unchecked")
+    private class IdDeserializer<T extends Id> extends StdDeserializer<T> {
 
-        public IdDeserializer() {
-            super(Id.class);
+        public IdDeserializer(Class<T> clazz) {
+            super(clazz);
         }
 
         @Override
-        public Id deserialize(JsonParser jsonParser,
-                              DeserializationContext ctxt)
-                              throws IOException {
-            String idValue = ctxt.readValue(jsonParser, String.class);
-            return IdGenerator.of(idValue);
+        public T deserialize(JsonParser jsonParser,
+                             DeserializationContext ctxt)
+                             throws IOException {
+            Class<?> clazz = this.handledType();
+            if (clazz.equals(IdGenerator.LongId.class)) {
+                Number idValue = ctxt.readValue(jsonParser, Number.class);
+                return (T) IdGenerator.of(idValue.longValue());
+            } else if (clazz.equals(IdGenerator.StringId.class)) {
+                String idValue = ctxt.readValue(jsonParser, String.class);
+                return (T) IdGenerator.of(idValue);
+            } else {
+                assert clazz.equals(EdgeId.class);
+                String idValue = ctxt.readValue(jsonParser, String.class);
+                return (T) EdgeId.parse(idValue);
+            }
         }
     }
 
