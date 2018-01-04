@@ -135,6 +135,8 @@ public class VertexLabelAPI extends API {
      */
     private static class JsonVertexLabel implements Checkable {
 
+        @JsonProperty("id")
+        public long id;
         @JsonProperty("name")
         public String name;
         @JsonProperty("id_strategy")

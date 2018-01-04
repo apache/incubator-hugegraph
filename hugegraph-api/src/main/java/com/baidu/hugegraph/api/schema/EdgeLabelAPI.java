@@ -132,6 +132,8 @@ public class EdgeLabelAPI extends API {
      */
     private static class JsonEdgeLabel implements Checkable {
 
+        @JsonProperty("id")
+        public long id;
         @JsonProperty("name")
         public String name;
         @JsonProperty("source_label")

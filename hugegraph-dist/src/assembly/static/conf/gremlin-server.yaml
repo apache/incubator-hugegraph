@@ -17,32 +17,27 @@ scriptEngines: {
 serializers:
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoLiteMessageSerializerV1d0,
       config: {
-        serializeResultToString: false,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+        serializeResultToString: false
       }
     }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV1d0,
       config: {
-        serializeResultToString: true,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+        serializeResultToString: true
       }
     }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerGremlinV1d0,
       config: {
-        serializeResultToString: false,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+        serializeResultToString: false
       }
     }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerGremlinV2d0,
       config: {
-        serializeResultToString: false,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+        serializeResultToString: false
       }
     }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
       config: {
-        serializeResultToString: false,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+        serializeResultToString: false
       }
     }
 metrics: {

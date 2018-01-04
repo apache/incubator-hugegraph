@@ -20,9 +20,12 @@
 package com.baidu.hugegraph.io;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.tinkerpop.gremlin.structure.io.graphson.TinkerPopJacksonModule;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
@@ -33,6 +36,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -42,8 +46,11 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.JsonUtil;
 
 @SuppressWarnings("serial")
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
@@ -52,13 +59,15 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     private static final String TYPE_NAMESPACE = "hugegraph";
 
-    private static TextSerializer textSerializer = new TextSerializer();
-
+    private static final Map<HugeGraph, HugeGraphSONModule> INSTANCES;
     @SuppressWarnings("rawtypes")
     private static final Map<Class, String> TYPE_DEFINITIONS;
 
+    private GraphSONSerializer textSerializer;
+
     static {
-        TYPE_DEFINITIONS = new HashMap<>();
+        INSTANCES = new ConcurrentHashMap<>();
+        TYPE_DEFINITIONS = new ConcurrentHashMap<>();
         TYPE_DEFINITIONS.put(Optional.class, "Optional");
         // HugeGraph releated serializer
         TYPE_DEFINITIONS.put(IdGenerator.StringId.class, "StringId");
@@ -70,14 +79,18 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         TYPE_DEFINITIONS.put(IndexLabel.class, "IndexLabel");
     }
 
-    private static final HugeGraphSONModule INSTANCE = new HugeGraphSONModule();
-
-    public static final HugeGraphSONModule getInstance() {
-        return INSTANCE;
+    public static HugeGraphSONModule instance(HugeGraph graph) {
+        HugeGraphSONModule instance = INSTANCES.get(graph);
+        if (instance == null) {
+            instance = new HugeGraphSONModule(graph);
+            INSTANCES.putIfAbsent(graph, instance);
+        }
+        return instance;
     }
 
-    public HugeGraphSONModule() {
+    private HugeGraphSONModule(HugeGraph graph) {
         super(TYPE_NAMESPACE);
+        this.textSerializer = new GraphSONSerializer(graph);
 
         addSerializer(IdGenerator.StringId.class,
                       new IdSerializer<>(IdGenerator.StringId.class));
@@ -112,6 +125,47 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     @Override
     public String getTypeNamespace() {
         return TYPE_NAMESPACE;
+    }
+
+    private static class GraphSONSerializer extends TextSerializer {
+
+        private final HugeGraph graph;
+
+        public GraphSONSerializer(HugeGraph graph) {
+            this.graph = graph;
+        }
+
+        private String getSchema(Id id, HugeType type) {
+            switch (type) {
+                case PROPERTY_KEY:
+                    return graph.propertyKey(id).name();
+                case VERTEX_LABEL:
+                    return graph.vertexLabel(id).name();
+                case EDGE_LABEL:
+                    return graph.edgeLabel(id).name();
+                case INDEX_LABEL:
+                    return graph.indexLabel(id).name();
+                default:
+                    throw new AssertionError(
+                              String.format("Unknown schema type '%s'", type));
+            }
+        }
+
+        @Override
+        protected String writeId(Id id, HugeType type) {
+            assert SchemaElement.isSchema(type);
+            return JsonUtil.toJson(this.getSchema(id, type));
+        }
+
+        @Override
+        protected String writeIds(Collection<Id> ids, HugeType type) {
+            assert SchemaElement.isSchema(type);
+            List<String> names = new ArrayList<>(ids.size());
+            for (Id id : ids) {
+                names.add(this.getSchema(id, type));
+            }
+            return JsonUtil.toJson(names);
+        }
     }
 
     @SuppressWarnings("rawtypes")

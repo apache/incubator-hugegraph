@@ -189,7 +189,7 @@ public class TestGraph implements Graph {
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         return (I) builder.graph(this).onMapper(mapper ->
-            mapper.addRegistry(HugeGraphIoRegistry.getInstance())
+            mapper.addRegistry(HugeGraphIoRegistry.instance(this.graph))
         ).create();
     }
 

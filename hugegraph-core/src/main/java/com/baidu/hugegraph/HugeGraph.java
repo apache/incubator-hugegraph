@@ -245,8 +245,8 @@ public class HugeGraph implements Graph {
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         return (I) builder.graph(this).onMapper(mapper ->
-                mapper.addRegistry(HugeGraphIoRegistry.getInstance()))
-                .create();
+                mapper.addRegistry(HugeGraphIoRegistry.instance(this))
+        ).create();
     }
 
     @Override

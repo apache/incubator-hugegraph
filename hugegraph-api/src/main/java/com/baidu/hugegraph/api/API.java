@@ -23,6 +23,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
@@ -64,18 +66,26 @@ public class API {
     }
 
     public static <R> R commit(HugeGraph g, Callable<R> callable) {
+        Consumer<Throwable> rollback = (error) -> {
+            LOG.error("Failed to commit", error);
+            try {
+                g.tx().rollback();
+            } catch (Throwable e) {
+                LOG.error("Failed to rollback", e);
+            }
+        };
+
         try {
             R result = callable.call();
             g.tx().commit();
             return result;
-        } catch (Exception e1) {
-            LOG.error("Failed to commit", e1);
-            try {
-                g.tx().rollback();
-            } catch (Exception e2) {
-                LOG.error("Failed to rollback", e2);
-            }
-            throw new HugeException("Failed to commit", e1);
+        } catch (RuntimeException e) {
+            rollback.accept(e);
+            throw e;
+        } catch (Throwable e) {
+            rollback.accept(e);
+            // TODO: throw the origin exception 'e'
+            throw new HugeException("Failed to commit", e);
         }
     }
 

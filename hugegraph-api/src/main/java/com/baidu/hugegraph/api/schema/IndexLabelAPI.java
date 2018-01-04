@@ -109,6 +109,8 @@ public class IndexLabelAPI extends API {
      */
     private static class JsonIndexLabel implements Checkable {
 
+        @JsonProperty("id")
+        public long id;
         @JsonProperty("name")
         public String name;
         @JsonProperty("base_type")
