@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.cache;
 
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -34,6 +35,8 @@ public interface Cache {
     public void updateIfAbsent(Id id, Object value) ;
 
     public void invalidate(Id id);
+
+    public void traverse(Consumer<Object> consumer);
 
     public void clear();
 
