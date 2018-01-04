@@ -111,6 +111,8 @@ public class PropertyKeyAPI extends API {
      */
     private static class JsonPropertyKey implements Checkable {
 
+        @JsonProperty("id")
+        public long id;
         @JsonProperty("name")
         public String name;
         @JsonProperty("cardinality")

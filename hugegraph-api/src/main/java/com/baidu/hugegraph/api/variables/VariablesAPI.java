@@ -63,7 +63,7 @@ public class VariablesAPI extends API {
         LOG.debug("Graph [{}] set variable for {}: {}", graph, key, value);
 
         HugeGraph g = graph(manager, graph);
-        g.variables().set(key, value.data);
+        commit(g, () -> g.variables().set(key, value.data));
         return ImmutableMap.of(key, value);
     }
 
@@ -105,7 +105,7 @@ public class VariablesAPI extends API {
         LOG.debug("Graph [{}] remove variable by key '{}'", graph, key);
 
         HugeGraph g = graph(manager, graph);
-        g.variables().remove(key);
+        commit(g, () -> g.variables().remove(key));
     }
 
     private static class JsonVariableValue {

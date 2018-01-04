@@ -32,6 +32,7 @@ import org.apache.tinkerpop.shaded.kryo.io.Input;
 import org.apache.tinkerpop.shaded.kryo.io.Output;
 
 import com.baidu.hugegraph.backend.id.EdgeId;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
@@ -45,15 +46,22 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
-    private static HugeGraphIoRegistry INSTANCE = new HugeGraphIoRegistry();
+    private static HugeGraphIoRegistry instance;
 
-    public static HugeGraphIoRegistry getInstance() {
-        return INSTANCE;
+    public static HugeGraphIoRegistry instance(HugeGraph graph) {
+        if (instance == null) {
+            synchronized (HugeGraphIoRegistry.class) {
+                if (instance == null) {
+                    instance = new HugeGraphIoRegistry(graph);
+                }
+            }
+        }
+        return instance;
     }
 
     private static TextSerializer textSerializer = new TextSerializer();
 
-    public HugeGraphIoRegistry() {
+    private HugeGraphIoRegistry(HugeGraph graph) {
         register(GryoIo.class, Optional.class, new OptionalSerializer());
         // HugeGraph related serializer
         register(GryoIo.class, IdGenerator.StringId.class, new IdSerializer());
@@ -69,7 +77,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         register(GryoIo.class, IndexLabel.class,
                  new IndexLabelKryoSerializer());
 
-        register(GraphSONIo.class, null, HugeGraphSONModule.getInstance());
+        register(GraphSONIo.class, null, HugeGraphSONModule.instance(graph));
     }
 
     private class OptionalSerializer extends Serializer<Optional<?>> {

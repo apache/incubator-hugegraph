@@ -204,7 +204,6 @@ public class VertexAPI extends API {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
         HugeGraph g = graph(manager, graph);
-
         // TODO: add removeVertex(id) to improve
         commit(g, () -> g.vertices(id).next().remove());
     }
