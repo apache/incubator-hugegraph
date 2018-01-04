@@ -73,17 +73,6 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
-    private <T> List<T> getAllSchema(HugeType type) {
-        Query query = new Query(type);
-        Iterator<BackendEntry> entries = this.query(query);
-
-        List<T> result = new ArrayList<>();
-        entries.forEachRemaining(entry -> {
-            result.add(this.deserialize(entry, type));
-        });
-        return result;
-    }
-
     public List<PropertyKey> getPropertyKeys() {
         return this.getAllSchema(HugeType.PROPERTY_KEY);
     }
@@ -144,7 +133,7 @@ public class SchemaTransaction extends IndexableTransaction {
             }
         }
 
-        this.removeSchema(HugeType.PROPERTY_KEY, id);
+        this.removeSchema(propertyKey);
     }
 
     public void addVertexLabel(VertexLabel vertexLabel) {
@@ -196,7 +185,7 @@ public class SchemaTransaction extends IndexableTransaction {
             // TODO: use event to replace direct call
             // Deleting a vertex will automatically deletes the held edge
             this.graph().graphTransaction().removeVertices(vertexLabel);
-            this.removeSchema(HugeType.VERTEX_LABEL, vertexLabel.id());
+            this.removeSchema(vertexLabel);
         } finally {
             locks.unlock();
         }
@@ -236,7 +225,7 @@ public class SchemaTransaction extends IndexableTransaction {
             }
             // Remove all edges which has matched label
             this.graph().graphTransaction().removeEdges(edgeLabel);
-            this.removeSchema(HugeType.EDGE_LABEL, edgeLabel.id());
+            this.removeSchema(edgeLabel);
         } finally {
             locks.unlock();
         }
@@ -273,8 +262,8 @@ public class SchemaTransaction extends IndexableTransaction {
             // TODO: use event to replace direct call
             this.graph().graphTransaction().removeIndex(indexLabel);
             // Remove label from indexLabels of vertex or edge label
-            this.removeIndexLabelFromBaseLabel(id);
-            this.removeSchema(HugeType.INDEX_LABEL, id);
+            this.removeIndexLabelFromBaseLabel(indexLabel);
+            this.removeSchema(indexLabel);
         } finally {
             locks.unlock();
         }
@@ -326,34 +315,38 @@ public class SchemaTransaction extends IndexableTransaction {
         return null;
     }
 
-    protected void removeSchema(HugeType type, Id id) {
-        LOG.debug("SchemaTransaction remove {} with id {}", type, id);
-        SchemaElement schema = this.getSchema(type, id);
-        E.checkArgumentNotNull(schema,
-                               "Can't remove schema '%s': '%s' because " +
-                               "it doesn't exist", type, id);
+    protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
+        Query query = new Query(type);
+        Iterator<BackendEntry> entries = this.query(query);
 
+        List<T> result = new ArrayList<>();
+        while (entries.hasNext()) {
+            result.add(this.deserialize(entries.next(), type));
+        }
+        return result;
+    }
+
+    protected void removeSchema(SchemaElement schema) {
+        LOG.debug("SchemaTransaction remove {} with id {}",
+                  schema.type(), schema.id());
         this.beforeWrite();
         this.indexTx.updateNameIndex(schema, true);
-        BackendEntry entry = this.serializer.writeId(type, id);
-        this.doAction(MutateAction.DELETE, entry);
+        BackendEntry e = this.serializer.writeId(schema.type(), schema.id());
+        this.doAction(MutateAction.DELETE, e);
         this.afterWrite();
     }
 
-    protected void removeIndexLabelFromBaseLabel(Id id) {
-        LOG.debug("SchemaTransaction remove index label from base label {} ",
-                  id);
-        IndexLabel label = this.getIndexLabel(id);
+    protected void removeIndexLabelFromBaseLabel(IndexLabel label) {
         HugeType baseType = label.baseType();
         Id baseValue = label.baseValue();
         if (baseType == HugeType.VERTEX_LABEL) {
             VertexLabel vertexLabel = this.getVertexLabel(baseValue);
-            vertexLabel.removeIndexLabel(id);
+            vertexLabel.removeIndexLabel(label.id());
             addVertexLabel(vertexLabel);
         } else {
             assert baseType == HugeType.EDGE_LABEL;
             EdgeLabel edgeLabel = this.getEdgeLabel(baseValue);
-            edgeLabel.removeIndexLabel(id);
+            edgeLabel.removeIndexLabel(label.id());
             addEdgeLabel(edgeLabel);
         }
     }

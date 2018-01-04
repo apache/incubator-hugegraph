@@ -130,14 +130,6 @@ public class CoreOptions extends OptionHolder {
                     (1024 * 1024 * 1)
             );
 
-    public static final ConfigOption<Integer> SCHEMA_CACHE_EXPIRE =
-            new ConfigOption<>(
-                    "schema.cache_expire",
-                    "The expire time in seconds of schema data.",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    (60 * 30)
-            );
-
     public static final ConfigOption<Integer> GRAPH_CACHE_CAPACITY =
             new ConfigOption<>(
                     "graph.cache_capacity",

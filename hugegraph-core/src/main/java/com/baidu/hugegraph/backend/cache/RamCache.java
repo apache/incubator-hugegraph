@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.concurrent.KeyLock;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class RamCache implements Cache {
@@ -241,6 +243,15 @@ public class RamCache implements Cache {
             return;
         }
         this.remove(id);
+    }
+
+    @Watched(prefix = "ramcache")
+    @Override
+    public void traverse(Consumer<Object> consumer) {
+        E.checkNotNull(consumer, "consumer");
+        for (LinkNode<Id, Object> node : this.map.values()) {
+            consumer.accept(node.value());
+        }
     }
 
     @Watched(prefix = "ramcache")

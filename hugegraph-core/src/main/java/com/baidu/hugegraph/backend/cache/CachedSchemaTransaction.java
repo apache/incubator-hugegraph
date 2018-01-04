@@ -19,7 +19,10 @@
 
 package com.baidu.hugegraph.backend.cache;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -30,11 +33,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
-import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.schema.IndexLabel;
-import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
-import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableList;
@@ -44,10 +43,15 @@ public class CachedSchemaTransaction extends SchemaTransaction {
     private final Cache idCache;
     private final Cache nameCache;
 
+    private final Map<HugeType, Boolean> cachedTypes;
+
     public CachedSchemaTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
+
         this.idCache = this.cache("schema-id");
         this.nameCache = this.cache("schema-name");
+
+        this.cachedTypes = new ConcurrentHashMap<>();
 
         this.listenChanges();
     }
@@ -57,11 +61,8 @@ public class CachedSchemaTransaction extends SchemaTransaction {
 
         final String name = prefix + "-" + super.graph().name();
         final int capacity = conf.get(CoreOptions.SCHEMA_CACHE_CAPACITY);
-        final int expire = conf.get(CoreOptions.SCHEMA_CACHE_EXPIRE);
-
-        Cache cache = CacheManager.instance().cache(name, capacity);
-        cache.expire(expire);
-        return cache;
+        // NOTE: must disable schema cache-expire due to getAllSchema()
+        return CacheManager.instance().cache(name, capacity);
     }
 
     private void listenChanges() {
@@ -73,6 +74,7 @@ public class CachedSchemaTransaction extends SchemaTransaction {
                 LOG.info("Clear cache on event '{}'", event.name());
                 this.idCache.clear();
                 this.nameCache.clear();
+                this.cachedTypes.clear();
                 return true;
             }
             return false;
@@ -88,16 +90,28 @@ public class CachedSchemaTransaction extends SchemaTransaction {
                 if (args[0].equals("invalid")) {
                     Id id = (Id) args[1];
                     Object value = this.idCache.get(id);
-                    this.idCache.invalidate(id);
                     if (value != null) {
+                        // Invalidate id cache
+                        this.idCache.invalidate(id);
+
+                        // Invalidate name cache
                         SchemaElement schema = (SchemaElement) value;
-                        this.nameCache.invalidate(generateId(schema.type(),
-                                                             schema.name()));
+                        Id prefixedName = generateId(schema.type(),
+                                                     schema.name());
+                        this.nameCache.invalidate(prefixedName);
                     }
                     return true;
                 }
                 return false;
             });
+        }
+    }
+
+    private void resetCachedAllIfReachedCapacity() {
+        if (this.idCache.size() >= this.idCache.capacity()) {
+            LOG.warn("Schema cache reached capacity({}): {}",
+                     this.idCache.capacity(), this.idCache.size());
+            this.cachedTypes.clear();
         }
     }
 
@@ -118,7 +132,10 @@ public class CachedSchemaTransaction extends SchemaTransaction {
         if (value == null) {
             value = fetcher.apply(id);
             if (value != null) {
+                this.resetCachedAllIfReachedCapacity();
+
                 this.idCache.update(prefixedId, value);
+
                 SchemaElement schema = (SchemaElement) value;
                 Id prefixedName = generateId(schema.type(), schema.name());
                 this.nameCache.update(prefixedName, schema);
@@ -134,7 +151,10 @@ public class CachedSchemaTransaction extends SchemaTransaction {
         if (value == null) {
             value = fetcher.apply(name);
             if (value != null) {
+                this.resetCachedAllIfReachedCapacity();
+
                 this.nameCache.update(prefixedName, value);
+
                 SchemaElement schema = (SchemaElement) value;
                 Id prefixedId = generateId(schema.type(), schema.id());
                 this.idCache.update(prefixedId, schema);
@@ -144,64 +164,11 @@ public class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     @Override
-    public VertexLabel getVertexLabel(Id id) {
-        Object value = this.getOrFetch(HugeType.VERTEX_LABEL, id,
-                                       k -> super.getVertexLabel(id));
-        return (VertexLabel) value;
-    }
-
-    @Override
-    public VertexLabel getVertexLabel(String name) {
-        Object value = this.getOrFetch(HugeType.VERTEX_LABEL, name,
-                                       k -> super.getVertexLabel(name));
-        return (VertexLabel) value;
-    }
-
-    @Override
-    public EdgeLabel getEdgeLabel(Id id) {
-        Object value = this.getOrFetch(HugeType.EDGE_LABEL, id,
-                                       k -> super.getEdgeLabel(id));
-        return (EdgeLabel) value;
-    }
-
-    @Override
-    public EdgeLabel getEdgeLabel(String name) {
-        Object value = this.getOrFetch(HugeType.EDGE_LABEL, name,
-                                       k -> super.getEdgeLabel(name));
-        return (EdgeLabel) value;
-    }
-
-    @Override
-    public PropertyKey getPropertyKey(Id id) {
-        Object value = this.getOrFetch(HugeType.PROPERTY_KEY, id,
-                                       k -> super.getPropertyKey(id));
-        return (PropertyKey) value;
-    }
-
-    @Override
-    public PropertyKey getPropertyKey(String name) {
-        Object value = this.getOrFetch(HugeType.PROPERTY_KEY, name,
-                                       k -> super.getPropertyKey(name));
-        return (PropertyKey) value;
-    }
-
-    @Override
-    public IndexLabel getIndexLabel(Id id) {
-        Object value = this.getOrFetch(HugeType.INDEX_LABEL, id,
-                                       k -> super.getIndexLabel(id));
-        return (IndexLabel) value;
-    }
-
-    @Override
-    public IndexLabel getIndexLabel(String name) {
-        Object value = this.getOrFetch(HugeType.INDEX_LABEL, name,
-                                       k -> super.getIndexLabel(name));
-        return (IndexLabel) value;
-    }
-
-    @Override
     protected void addSchema(SchemaElement schema) {
         super.addSchema(schema);
+
+        this.resetCachedAllIfReachedCapacity();
+
         Id prefixedId = generateId(schema.type(), schema.id());
         this.idCache.update(prefixedId, schema);
 
@@ -227,14 +194,49 @@ public class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     @Override
-    protected void removeSchema(HugeType type, Id id) {
-        super.removeSchema(type, id);
-        Id prefixedId = generateId(type, id);
+    protected void removeSchema(SchemaElement schema) {
+        super.removeSchema(schema);
+
+        Id prefixedId = generateId(schema.type(), schema.id());
         Object value = this.idCache.get(prefixedId);
         if (value != null) {
             this.idCache.invalidate(prefixedId);
-            SchemaElement schema = (SchemaElement) value;
-            this.nameCache.invalidate(generateId(type, schema.name()));
+
+            schema = (SchemaElement) value;
+            Id prefixedName = generateId(schema.type(), schema.name());
+            this.nameCache.invalidate(prefixedName);
+        }
+    }
+
+    @Override
+    protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
+        Boolean cachedAll = this.cachedTypes.getOrDefault(type, false);
+        if (cachedAll) {
+            List<T> results = new ArrayList<>();
+            // Get from cache
+            this.idCache.traverse(value -> {
+                @SuppressWarnings("unchecked")
+                T schema = (T) value;
+                if (schema.type() == type) {
+                    results.add(schema);
+                }
+            });
+            return results;
+        } else {
+            List<T> results = super.getAllSchema(type);
+            long free = this.idCache.capacity() - this.idCache.size();
+            if (results.size() < free) {
+                // Update cache
+                for (T schema : results) {
+                    Id prefixedId = generateId(schema.type(), schema.id());
+                    this.idCache.update(prefixedId, schema);
+
+                    Id prefixedName = generateId(schema.type(), schema.name());
+                    this.nameCache.update(prefixedName, schema);
+                }
+                this.cachedTypes.putIfAbsent(type, true);
+            }
+            return results;
         }
     }
 }
