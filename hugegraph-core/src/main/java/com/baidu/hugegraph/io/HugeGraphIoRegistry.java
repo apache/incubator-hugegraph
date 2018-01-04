@@ -31,6 +31,7 @@ import org.apache.tinkerpop.shaded.kryo.Serializer;
 import org.apache.tinkerpop.shaded.kryo.io.Input;
 import org.apache.tinkerpop.shaded.kryo.io.Output;
 
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
@@ -40,6 +41,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
@@ -56,6 +58,8 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         // HugeGraph related serializer
         register(GryoIo.class, IdGenerator.StringId.class, new IdSerializer());
         register(GryoIo.class, IdGenerator.LongId.class, new IdSerializer());
+        register(GryoIo.class, EdgeId.class, new EdgeIdSerializer());
+
         register(GryoIo.class, PropertyKey.class,
                  new PropertyKeyKryoSerializer());
         register(GryoIo.class, VertexLabel.class,
@@ -64,8 +68,6 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
                  new EdgeLabelKryoSerializer());
         register(GryoIo.class, IndexLabel.class,
                  new IndexLabelKryoSerializer());
-
-
 
         register(GraphSONIo.class, null, HugeGraphSONModule.getInstance());
     }
@@ -89,14 +91,38 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
     }
 
     public static class IdSerializer extends Serializer<Id> {
+
         @Override
         public void write(Kryo kryo, Output output, Id id) {
-            output.writeString(id.asString());
+            output.writeBoolean(id.number());
+            byte[] idBytes = id.asBytes();
+            output.write(idBytes.length);
+            output.writeBytes(id.asBytes());
         }
 
         @Override
         public Id read(Kryo kryo, Input input, Class<Id> clazz) {
-            return IdGenerator.of(input.readString());
+            boolean number = input.readBoolean();
+            int length = input.read();
+            byte[] idBytes = input.readBytes(length);
+            return IdGenerator.of(idBytes, number);
+        }
+    }
+
+    public static class EdgeIdSerializer extends Serializer<EdgeId> {
+
+        @Override
+        public void write(Kryo kryo, Output output, EdgeId edgeId) {
+            byte[] idBytes = edgeId.asBytes();
+            output.write(idBytes.length);
+            output.writeBytes(edgeId.asBytes());
+        }
+
+        @Override
+        public EdgeId read(Kryo kryo, Input input, Class<EdgeId> aClass) {
+            int length = input.read();
+            byte[] idBytes = input.readBytes(length);
+            return EdgeId.parse(StringEncoding.decode(idBytes));
         }
     }
 
