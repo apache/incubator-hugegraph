@@ -234,8 +234,6 @@ public class Example2 {
               .ifNotExist()
               .create();
 
-        schema.getAllSchema();
-
         graph.tx().open();
 
         Vertex marko = graph.addVertex(T.label, "person", "name", "marko",

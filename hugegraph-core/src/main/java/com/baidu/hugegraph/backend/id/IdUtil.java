@@ -30,19 +30,19 @@ public class IdUtil {
         return (id.number() ? NUMBER_PREFIX : STRING_PREFIX) + id.asObject();
     }
 
-    public static Id readString(String idValue) {
-        String signal = idValue.substring(0, 1);
+    public static Id readString(String id) {
+        E.checkNotNull(id, "id");
+        String signal = id.substring(0, 1);
         E.checkState(signal.equals(NUMBER_PREFIX) ||
                      signal.equals(STRING_PREFIX),
                      "The serialized id value must start with '%s' or '%s', " +
-                     "but got a string '%s'",
-                     NUMBER_PREFIX, STRING_PREFIX, idValue);
-        idValue = idValue.substring(1);
+                     "but got '%s'", NUMBER_PREFIX, STRING_PREFIX, id);
+        id = id.substring(1);
         boolean number = signal.equals(NUMBER_PREFIX);
         if (number) {
-            return IdGenerator.of(Long.valueOf(idValue));
+            return IdGenerator.of(Long.valueOf(id));
         } else {
-            return IdGenerator.of(idValue);
+            return IdGenerator.of(id);
         }
     }
 }

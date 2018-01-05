@@ -245,7 +245,7 @@ public class HugeGraph implements Graph {
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         return (I) builder.graph(this).onMapper(mapper ->
-                mapper.addRegistry(HugeGraphIoRegistry.instance(this))
+            mapper.addRegistry(HugeGraphIoRegistry.instance(this))
         ).create();
     }
 
@@ -353,6 +353,7 @@ public class HugeGraph implements Graph {
         if (this.variables == null) {
             this.variables = new HugeVariables(this);
         }
+        // Ensure variables() work after variables schema was cleared
         this.variables.initSchema();
         return this.variables;
     }

@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.schema;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -109,15 +108,6 @@ public class SchemaManager {
         return this.transaction.getIndexLabels().stream()
                    .filter(il -> !Graph.Hidden.isHidden(il.name()))
                    .collect(Collectors.toList());
-    }
-
-    public List<SchemaElement> getAllSchema() {
-        List<SchemaElement> elements = new ArrayList<>();
-        elements.addAll(this.getPropertyKeys());
-        elements.addAll(this.getVertexLabels());
-        elements.addAll(this.getEdgeLabels());
-        elements.addAll(this.getIndexLabels());
-        return elements;
     }
 
     private static void checkExists(HugeType type, Object object, String name) {

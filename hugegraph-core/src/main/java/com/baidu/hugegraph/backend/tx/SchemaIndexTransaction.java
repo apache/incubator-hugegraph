@@ -31,8 +31,8 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeIndex;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
@@ -42,7 +42,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         super(graph, store);
     }
 
-    @Watched(prefix = "schema_index")
+    @Watched(prefix = "index")
     public void updateNameIndex(SchemaElement element, boolean removed) {
         if (!this.needIndexForName()) {
             return;
@@ -65,7 +65,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         return !this.store().features().supportsQuerySchemaByName();
     }
 
-    @Watched(prefix = "schema_index")
+    @Watched(prefix = "index")
     @Override
     public Iterator<BackendEntry> query(Query query) {
         if (query instanceof ConditionQuery) {
@@ -78,7 +78,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         return super.query(query);
     }
 
-    @Watched(prefix = "schema_index")
+    @Watched(prefix = "index")
     private Iterator<BackendEntry> queryByName(ConditionQuery query) {
         if (!this.needIndexForName()) {
             return super.query(query);

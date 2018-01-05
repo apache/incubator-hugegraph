@@ -45,10 +45,10 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeVariables implements Graph.Variables {
@@ -109,6 +109,7 @@ public class HugeVariables implements Graph.Variables {
 
         try {
             schema.getVertexLabel(Hidden.hide(VARIABLES));
+            // Ignore if exist
             return;
         } catch (NotFoundException ignored) {
             LOG.debug("Variables schema not exist, create them...");
@@ -165,13 +166,13 @@ public class HugeVariables implements Graph.Variables {
                                Hidden.hide(VARIABLE_TYPE)};
         properties = ArrayUtils.addAll(properties, TYPES);
 
-        VertexLabel.Builder builder = schema.vertexLabel(Hidden.hide(
-                                                         VARIABLES));
-        builder.properties(properties);
-        builder.usePrimaryKeyId();
-        builder.primaryKeys(Hidden.hide(VARIABLE_KEY));
-        builder.nullableKeys(TYPES);
-        this.graph.schemaTransaction().addVertexLabel(builder.build());
+        VertexLabel variables = schema.vertexLabel(Hidden.hide(VARIABLES))
+                                      .properties(properties)
+                                      .usePrimaryKeyId()
+                                      .primaryKeys(Hidden.hide(VARIABLE_KEY))
+                                      .nullableKeys(TYPES)
+                                      .build();
+        this.graph.schemaTransaction().addVertexLabel(variables);
 
         LOG.debug("Variables schema created");
     }
