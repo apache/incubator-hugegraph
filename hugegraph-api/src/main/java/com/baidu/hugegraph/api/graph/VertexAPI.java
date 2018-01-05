@@ -49,6 +49,7 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.api.schema.Checkable;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -57,6 +58,7 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -113,18 +115,13 @@ public class VertexAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         @PathParam("id") String id,
+                         @PathParam("id") String idValue,
                          @QueryParam("action") String action,
                          JsonVertex jsonVertex) {
         LOG.debug("Graph [{}] update vertex: {}", graph, jsonVertex);
         checkBody(jsonVertex);
 
-        if (jsonVertex.id != null) {
-            E.checkArgument(id.equals(jsonVertex.id),
-                            "The ids are different between url('%s') and " +
-                            "request body('%s')", id, jsonVertex.id);
-        }
-
+        Id id = checkAndParseVertexId(idValue);
         // Parse action param
         boolean append = checkAndParseAction(action);
 
@@ -160,7 +157,7 @@ public class VertexAPI extends API {
                        @PathParam("graph") String graph,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
-                       @DefaultValue("100") @QueryParam("limit") long limit) {
+                       @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] query vertices by label: {}, properties: {}",
                   graph, label, properties);
 
@@ -186,12 +183,13 @@ public class VertexAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
-                      @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get vertex by id '{}'", graph, id);
+                      @PathParam("id") String idValue) {
+        LOG.debug("Graph [{}] get vertex by id '{}'", graph, idValue);
 
+        Id id = checkAndParseVertexId(idValue);
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> vertices = g.vertices(id);
-        checkExist(vertices, HugeType.VERTEX, id);
+        checkExist(vertices, HugeType.VERTEX, idValue);
         return manager.serializer(g).writeVertex(vertices.next());
     }
 
@@ -200,12 +198,27 @@ public class VertexAPI extends API {
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
+                       @PathParam("id") String idValue) {
+        LOG.debug("Graph [{}] remove vertex by id '{}'", graph, idValue);
 
+        Id id = checkAndParseVertexId(idValue);
         HugeGraph g = graph(manager, graph);
         // TODO: add removeVertex(id) to improve
         commit(g, () -> g.vertices(id).next().remove());
+    }
+
+    protected static Id checkAndParseVertexId(String idValue) {
+        if (idValue == null) {
+            return null;
+        }
+        try {
+            Object id = JsonUtil.fromJson(idValue, Object.class);
+            return HugeVertex.getIdValue(id);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format(
+                      "The vertex id must be formatted as 'string' or " +
+                      "'number', but got '%s'", idValue));
+        }
     }
 
     private static void checkBatchCount(HugeGraph g,

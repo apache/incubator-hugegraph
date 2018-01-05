@@ -131,7 +131,11 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public void assignId(Id id) {
         IdStrategy strategy = this.label.idStrategy();
         // Generate an id and assign
-        if (strategy == IdStrategy.CUSTOMIZE) {
+        if (strategy == IdStrategy.CUSTOMIZE_STRING) {
+            assert !id.number();
+            this.id = id;
+        } else if (strategy == IdStrategy.CUSTOMIZE_NUMBER) {
+            assert id.number();
             this.id = id;
         } else {
             this.id = IdGeneratorFactory.generator(strategy).generate(this);

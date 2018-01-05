@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -424,12 +425,12 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithCustomizeIdStrategyAndPassedId() {
+    public void testAddVertexWithCustomizeStringIdStrategy() {
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .useCustomizeId()
+              .useCustomizeStringId()
               .properties("name", "age", "city")
               .create();
         graph.addVertex(T.label, "programmer", T.id, "123456", "name", "marko",
@@ -438,25 +439,54 @@ public class VertexCoreTest extends BaseCoreTest {
 
         List<Vertex> vertices = graph.traversal().V("123456").toList();
         Assert.assertEquals(1, vertices.size());
-        Assert.assertEquals("123456", vertices.get(0).id().toString());
+        Object id = vertices.get(0).id();
+        Assert.assertEquals(IdGenerator.StringId.class, id.getClass());
+        Assert.assertEquals("123456", ((IdGenerator.StringId) id).asString());
         assertContains(vertices,
                        T.label, "programmer", "name", "marko",
                        "age", 18, "city", "Beijing");
-    }
-
-    @Test
-    public void testAddVertexWithCustomizeIdStrategyButNotPassedId() {
-        HugeGraph graph = graph();
-        SchemaManager schema = graph.schema();
-
-        schema.vertexLabel("programmer")
-              .useCustomizeId()
-              .properties("name", "age", "city")
-              .create();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "programmer", "name", "marko",
                             "age", 18, "city", "Beijing");
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "programmer", T.id, 123456,
+                            "name", "marko", "age", 18, "city", "Beijing");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithCustomizeNumberIdStrategy() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .useCustomizeNumberId()
+              .properties("name", "age", "city")
+              .create();
+        graph.addVertex(T.label, "programmer", T.id, 123456, "name", "marko",
+                        "age", 18, "city", "Beijing");
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V(123456).toList();
+        Assert.assertEquals(1, vertices.size());
+        Object id = vertices.get(0).id();
+        Assert.assertEquals(IdGenerator.LongId.class, id.getClass());
+        Assert.assertEquals(123456, ((IdGenerator.LongId) id).asLong());
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 18, "city", "Beijing");
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "programmer", "name", "marko",
+                            "age", 18, "city", "Beijing");
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "programmer", T.id, "123456",
+                            "name", "marko", "age", 18, "city", "Beijing");
         });
     }
 

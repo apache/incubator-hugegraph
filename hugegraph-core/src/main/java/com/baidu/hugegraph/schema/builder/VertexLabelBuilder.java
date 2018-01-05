@@ -171,22 +171,32 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     @Override
-    public VertexLabelBuilder useCustomizeId() {
-        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
-                        this.idStrategy == IdStrategy.CUSTOMIZE,
-                        "Not allowed to change id strategy for " +
-                        "vertex label '%s'", this.name);
-        this.idStrategy = IdStrategy.CUSTOMIZE;
-        return this;
-    }
-
-    @Override
     public VertexLabelBuilder usePrimaryKeyId() {
         E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
                         this.idStrategy == IdStrategy.PRIMARY_KEY,
                         "Not allowed to change id strategy for " +
                         "vertex label '%s'", this.name);
         this.idStrategy = IdStrategy.PRIMARY_KEY;
+        return this;
+    }
+
+    @Override
+    public VertexLabelBuilder useCustomizeStringId() {
+        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
+                        this.idStrategy == IdStrategy.CUSTOMIZE_STRING,
+                        "Not allowed to change id strategy for " +
+                        "vertex label '%s'", this.name);
+        this.idStrategy = IdStrategy.CUSTOMIZE_STRING;
+        return this;
+    }
+
+    @Override
+    public VertexLabelBuilder useCustomizeNumberId() {
+        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
+                        this.idStrategy == IdStrategy.CUSTOMIZE_NUMBER,
+                        "Not allowed to change id strategy for " +
+                        "vertex label '%s'", this.name);
+        this.idStrategy = IdStrategy.CUSTOMIZE_NUMBER;
         return this;
     }
 
@@ -305,7 +315,8 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
                 }
                 break;
             case AUTOMATIC:
-            case CUSTOMIZE:
+            case CUSTOMIZE_STRING:
+            case CUSTOMIZE_NUMBER:
                 E.checkArgument(!hasPrimaryKey,
                                 "Not allowed to assign primary keys " +
                                 "when using '%s' id strategy", strategy);
