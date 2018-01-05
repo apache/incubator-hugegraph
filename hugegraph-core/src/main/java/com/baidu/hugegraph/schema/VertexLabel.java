@@ -72,9 +72,11 @@ public class VertexLabel extends SchemaLabel {
 
         Builder useAutomaticId();
 
-        Builder useCustomizeId();
-
         Builder usePrimaryKeyId();
+
+        Builder useCustomizeStringId();
+
+        Builder useCustomizeNumberId();
 
         Builder properties(String... properties);
 

@@ -117,11 +117,11 @@ public class EdgeAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public List<String> create(
-            @Context GraphManager manager,
-            @PathParam("graph") String graph,
-            @QueryParam("checkVertex") @DefaultValue("true") boolean checkV,
-            List<JsonEdge> jsonEdges) {
+    public List<String> create(@Context GraphManager manager,
+                               @PathParam("graph") String graph,
+                               @QueryParam("checkVertex")
+                               @DefaultValue("true") boolean checkVertex,
+                               List<JsonEdge> jsonEdges) {
         LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
         checkBody(jsonEdges);
 
@@ -129,7 +129,7 @@ public class EdgeAPI extends API {
         checkBatchCount(g, jsonEdges);
 
         TriFunction<HugeGraph, String, String, Vertex> getVertex =
-                    checkV ? EdgeAPI::getVertex : EdgeAPI::newVertex;
+                    checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return commit(g, () -> {
             List<String> ids = new ArrayList<>(jsonEdges.size());
@@ -202,15 +202,16 @@ public class EdgeAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @QueryParam("vertex_id") String vertexId,
+                       @QueryParam("vertex_id") String vertexIdValue,
                        @QueryParam("direction") String direction,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] query edges by vertex: {}, direction: {}, " +
                   "label: {}, properties: {}",
-                  vertexId, direction, label, properties);
+                  vertexIdValue, direction, label, properties);
 
+        Id vertexId = VertexAPI.checkAndParseVertexId(vertexIdValue);
         Direction dir = parseDirection(direction);
         Map<String, Object> props = parseProperties(properties);
 

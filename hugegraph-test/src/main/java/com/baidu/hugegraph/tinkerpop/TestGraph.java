@@ -108,7 +108,7 @@ public class TestGraph implements Graph {
         String defaultVL = DEFAULT_VL;
 
         for (int i = 0; i < keyValues.length; i += 2) {
-            if(keyValues[i] == null){
+            if (keyValues[i] == null) {
                 continue;
             }
 
@@ -116,7 +116,7 @@ public class TestGraph implements Graph {
                 hasId = true;
                 if (!this.isLastIdCustomized) {
                     needRedefineSchema = true;
-                    idStrategy = IdStrategy.CUSTOMIZE;
+                    idStrategy = IdStrategy.CUSTOMIZE_STRING;
                 }
             }
 
@@ -141,7 +141,7 @@ public class TestGraph implements Graph {
                 this.autoPerson = true;
             }
 
-            this.isLastIdCustomized = idStrategy == IdStrategy.CUSTOMIZE;
+            this.isLastIdCustomized = idStrategy == IdStrategy.CUSTOMIZE_STRING;
         }
 
         if (!hasId && (this.isLastIdCustomized || needAddIdToLoadGraph())) {
@@ -321,7 +321,8 @@ public class TestGraph implements Graph {
         schema.propertyKey("performances").asInt().ifNotExist().create();
 
         IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
-                                IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
+                                IdStrategy.AUTOMATIC :
+                                IdStrategy.CUSTOMIZE_STRING;
         switch (idStrategy) {
             case AUTOMATIC:
                 schema.vertexLabel("song")
@@ -333,15 +334,15 @@ public class TestGraph implements Graph {
                       .nullableKeys("id", "name")
                       .ifNotExist().create();
                 break;
-            case CUSTOMIZE:
+            case CUSTOMIZE_STRING:
                 schema.vertexLabel("song")
                       .properties("id", "name", "songType", "performances")
                       .nullableKeys("id", "name", "songType", "performances")
-                      .useCustomizeId().ifNotExist().create();
+                      .useCustomizeStringId().ifNotExist().create();
                 schema.vertexLabel("artist")
                       .properties("id", "name")
                       .nullableKeys("id", "name")
-                      .useCustomizeId().ifNotExist().create();
+                      .useCustomizeStringId().ifNotExist().create();
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -389,7 +390,8 @@ public class TestGraph implements Graph {
 
 
         IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
-                                IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
+                                IdStrategy.AUTOMATIC :
+                                IdStrategy.CUSTOMIZE_STRING;
         switch (idStrategy) {
             case AUTOMATIC:
                 schema.vertexLabel("person")
@@ -415,27 +417,27 @@ public class TestGraph implements Graph {
                                     "vadas", "ripple", "lop")
                       .ifNotExist().create();
                 break;
-            case CUSTOMIZE:
+            case CUSTOMIZE_STRING:
                 schema.vertexLabel("person")
                       .properties("name", "age")
                       .nullableKeys("name", "age")
-                      .useCustomizeId().ifNotExist().create();
+                      .useCustomizeStringId().ifNotExist().create();
                 schema.vertexLabel("software")
                       .properties("name", "lang")
                       .nullableKeys("name", "lang")
-                      .useCustomizeId().ifNotExist().create();
+                      .useCustomizeStringId().ifNotExist().create();
                 schema.vertexLabel("dog")
                       .properties("name")
                       .nullableKeys("name")
-                      .useCustomizeId().ifNotExist().create();
+                      .useCustomizeStringId().ifNotExist().create();
                 schema.vertexLabel(DEFAULT_VL)
                       .properties("name", "age")
                       .nullableKeys("name", "age")
-                      .useCustomizeId().ifNotExist().create();
+                      .useCustomizeStringId().ifNotExist().create();
                 schema.vertexLabel("animal")
                       .properties("name", "age")
                       .nullableKeys("name", "age")
-                      .useCustomizeId().ifNotExist().create();
+                      .useCustomizeStringId().ifNotExist().create();
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -499,7 +501,8 @@ public class TestGraph implements Graph {
         schema.propertyKey("age").asInt().ifNotExist().create();
 
         IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
-                                IdStrategy.AUTOMATIC : IdStrategy.CUSTOMIZE;
+                                IdStrategy.AUTOMATIC :
+                                IdStrategy.CUSTOMIZE_STRING;
         switch (idStrategy) {
             case AUTOMATIC:
                 schema.vertexLabel("vertex")
@@ -507,11 +510,11 @@ public class TestGraph implements Graph {
                       .nullableKeys("id", "name", "age", "lang")
                       .ifNotExist().create();
                 break;
-            case CUSTOMIZE:
+            case CUSTOMIZE_STRING:
                 schema.vertexLabel("vertex")
                       .properties("id", "name", "age", "lang")
                       .nullableKeys("id", "name", "age", "lang")
-                      .useCustomizeId().ifNotExist().create();
+                      .useCustomizeStringId().ifNotExist().create();
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -610,7 +613,7 @@ public class TestGraph implements Graph {
                                        String defaultVL) {
         SchemaManager schema = this.graph.schema();
         switch (idStrategy) {
-            case CUSTOMIZE:
+            case CUSTOMIZE_STRING:
                 schema.vertexLabel(defaultVL)
                       .properties("__id", "oid", "name", "state", "status",
                                   "some", "that", "any", "this", "lang", "b",
@@ -632,7 +635,7 @@ public class TestGraph implements Graph {
                                     "to-remove", "to-keep", "old", "new",
                                     "gremlin.partitionGraphStrategy.partition",
                                     "color", "blah")
-                      .useCustomizeId().ifNotExist().create();
+                      .useCustomizeStringId().ifNotExist().create();
                 break;
             case AUTOMATIC:
                 schema.vertexLabel(defaultVL)

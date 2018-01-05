@@ -28,9 +28,11 @@ public enum IdStrategy implements SerialEnum {
 
     AUTOMATIC(1, "automatic"),
 
-    CUSTOMIZE(2, "customize"),
+    PRIMARY_KEY(2, "primary_key"),
 
-    PRIMARY_KEY(3, "primary_key");
+    CUSTOMIZE_STRING(3, "customize_string"),
+
+    CUSTOMIZE_NUMBER(4, "customize_number");
 
     private byte code = 0;
     private String name = null;
@@ -55,16 +57,22 @@ public enum IdStrategy implements SerialEnum {
     }
 
     public void checkId(Id id, String name) {
-        if (this != IdStrategy.CUSTOMIZE) {
+        if (this != IdStrategy.CUSTOMIZE_STRING &&
+            this != IdStrategy.CUSTOMIZE_NUMBER) {
             E.checkArgument(id == null,
                             "Not allowed to customize vertex id when the id " +
                             "strategy is '%s' for vertex label '%s'",
                             this, name);
+        } else if (this == IdStrategy.CUSTOMIZE_STRING) {
+            E.checkArgument(id != null && !id.number(),
+                            "Must customize vertex string id when the " +
+                            "id strategy is '%s' for vertex label '%s'",
+                            this, name);
         } else {
-            assert this == IdStrategy.CUSTOMIZE;
-            E.checkArgument(id != null,
-                            "Must customize vertex id when the id strategy " +
-                            "is '%s' for vertex label '%s'",
+            assert this == IdStrategy.CUSTOMIZE_NUMBER;
+            E.checkArgument(id != null && id.number(),
+                            "Must customize vertex number id when the " +
+                            "id strategy is '%s' for vertex label '%s'",
                             this, name);
         }
     }
