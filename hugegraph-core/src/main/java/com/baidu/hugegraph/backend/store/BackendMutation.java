@@ -28,6 +28,7 @@ import java.util.Map;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.util.E;
 
 public class BackendMutation {
@@ -38,41 +39,44 @@ public class BackendMutation {
         this.updates = new HashMap<>();
     }
 
+    @Watched(prefix = "bm")
     /**
      * Add an action with data entry to updates collections
      */
     public void add(BackendEntry entry, MutateAction action) {
         Id id = entry.id();
-        List<MutateItem> items = this.updates.get(id);
-        if (items != null) {
+        assert id != null;
+        if (this.updates.containsKey(id)) {
             this.optimizeUpdates(entry, action);
         } else {
             // If there is no entity of this id, add it
-            items = new LinkedList<>();
+            List<MutateItem> items = new LinkedList<>();
             items.add(MutateItem.of(entry, action));
             this.updates.put(id, items);
         }
     }
 
+    @Watched(prefix = "bm")
     /**
      * The Optimized scenes include but are not limited to：
      * 1.If you want to delete an entry, the other mutations previously
      *   can be ignored.
-     * 2.As similar to the item No.1, If you want to insert an entry,
+     * 2.As similar to the No.1 item, If you want to insert an entry,
      *   the other mutations previously also can be ignored.
      * 3.If you append an entry and then eliminate it, the new action
      *   can override the old one.
      */
     private void optimizeUpdates(BackendEntry entry, MutateAction action) {
-        Id id = entry.id();
+        final Id id = entry.id();
+        assert id != null;
+        final List<MutateItem> items = this.updates.get(id);
         boolean ignoreCurrent = false;
-        for (Iterator<MutateItem> items = this.updates.get(id).iterator();
-             items.hasNext(); ) {
-            MutateItem originItem = items.next();
+        for (Iterator<MutateItem> itor = items.iterator(); itor.hasNext();) {
+            MutateItem originItem = itor.next();
             MutateAction originAction = originItem.action();
             switch (action) {
                 case INSERT:
-                    items.remove();
+                    itor.remove();
                     break;
                 case DELETE:
                     if (originAction == MutateAction.INSERT) {
@@ -80,7 +84,7 @@ public class BackendMutation {
                     } else if (originAction == MutateAction.DELETE) {
                         ignoreCurrent = true;
                     } else {
-                        items.remove();
+                        itor.remove();
                     }
                     break;
                 case APPEND:
@@ -92,7 +96,7 @@ public class BackendMutation {
                         assert entry.subId() != null;
                         if (entry.subId() == originItem.entry().subId() ||
                             entry.subId().equals(originItem.entry().subId())) {
-                            items.remove();
+                            itor.remove();
                         }
                     }
                     break;
@@ -102,12 +106,13 @@ public class BackendMutation {
             }
         }
         if (!ignoreCurrent) {
-            this.updates.get(id).add(MutateItem.of(entry, action));
+            items.add(MutateItem.of(entry, action));
         }
     }
 
     private static HugeException incompatibleActionException(
-            MutateAction newAction, MutateAction originAction) {
+                                 MutateAction newAction,
+                                 MutateAction originAction) {
         return new HugeException("The action '%s' is incompatible with " +
                                  "action '%s'", newAction, originAction);
     }

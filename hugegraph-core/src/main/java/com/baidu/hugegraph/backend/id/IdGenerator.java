@@ -119,7 +119,7 @@ public abstract class IdGenerator {
 
         @Override
         public String toString() {
-            return this.asString();
+            return this.id;
         }
     }
 
@@ -147,6 +147,7 @@ public abstract class IdGenerator {
 
         @Override
         public String asString() {
+            // TODO: encode with base64
             return String.valueOf(this.id);
         }
 
@@ -186,7 +187,7 @@ public abstract class IdGenerator {
 
         @Override
         public String toString() {
-            return this.asString();
+            return String.valueOf(this.id);
         }
     }
 }

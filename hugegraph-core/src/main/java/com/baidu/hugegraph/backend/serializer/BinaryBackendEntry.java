@@ -196,7 +196,10 @@ public class BinaryBackendEntry implements BackendEntry {
 
         @Override
         public boolean equals(Object other) {
-            return ByteBuffer.wrap(this.bytes).equals(other);
+            if (!(other instanceof BinaryId)) {
+                return false;
+            }
+            return Arrays.equals(this.bytes, ((BinaryId) other).bytes);
         }
 
         @Override

@@ -267,11 +267,9 @@ public abstract class AbstractTransaction implements Transaction {
         }
     }
 
-    @Watched(prefix = "tx")
-    public void doAction(MutateAction action, BackendEntry entry) {
+    protected void doAction(MutateAction action, BackendEntry entry) {
         LOG.debug("Transaction {} entry {}", action, entry);
         E.checkNotNull(entry, "entry");
-        E.checkNotNull(entry.id(), "entry id");
         this.mutation.add(entry, action);
     }
 
