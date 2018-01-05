@@ -95,7 +95,14 @@ public class Example2 {
         System.out.println(">>>> edges with weight < 1.0: " + edges);
         assert edges.size() == 4;
 
-        vertex = g.V("person:josh")
+        String person = graph.schema().getVertexLabel("person").id().asString();
+        String software = graph.schema().getVertexLabel("software").id()
+                          .asString();
+        String markoId = String.format("%s:%s", person, "marko");
+        String joshId = String.format("%s:%s", person, "josh");
+        String lopId = String.format("%s:%s", software, "lop");
+
+        vertex = g.V(joshId)
                   .bothE("created")
                   .has("weight", P.lt(1.0))
                   .otherV()
@@ -104,8 +111,7 @@ public class Example2 {
                            vertex);
         assert vertex.size() == 1 && vertex.get(0).value("name").equals("lop");
 
-        List<Path> paths = g.V("person:marko")
-                            .out().out().path().by("name").toList();
+        List<Path> paths = g.V(markoId).out().out().path().by("name").toList();
         System.out.println(">>>> test out path: " + paths);
         assert paths.size() == 2;
         assert paths.get(0).get(0).equals("marko");
@@ -115,11 +121,6 @@ public class Example2 {
         assert paths.get(1).get(1).equals("josh");
         assert paths.get(1).get(2).equals("ripple");
 
-        VertexLabel person = graph.schema().getVertexLabel("person");
-        VertexLabel software = graph.schema().getVertexLabel("software");
-        String markoId = String.format("%s:%s", person.id().asString(),
-                                       "marko");
-        String lopId = String.format("%s:%s", software.id().asString(), "lop");
         paths = shortestPath(graph, markoId, lopId, 5);
         System.out.println(">>>> test shortest path: " + paths.get(0));
         assert paths.get(0).get(0).equals("marko");
