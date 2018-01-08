@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.example;
 
+import java.io.File;
+
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.dist.RegisterUtil;
@@ -53,8 +55,12 @@ public class ExampleUtil {
 
         String conf = "hugegraph.properties";
         try {
-            conf = ExampleUtil.class.getClassLoader()
-                              .getResource(conf).getPath();
+            String path = ExampleUtil.class.getClassLoader()
+                                     .getResource(conf).getPath();
+            File file = new File(path);
+            if (file.exists() && file.isFile()) {
+                conf = path;
+            }
         } catch (Exception ignored) {
         }
 
