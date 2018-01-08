@@ -77,7 +77,7 @@ public class PerfExample1 extends PerfExampleBase {
     }
 
     @Override
-    protected void testInsertPerf(GraphManager graph, int times, int multiple) {
+    protected void testInsert(GraphManager graph, int times, int multiple) {
         List<Object> personIds = new ArrayList<>(PERSON_NUM * multiple);
         List<Object> softwareIds = new ArrayList<>(SOFTWARE_NUM * multiple);
 
@@ -129,6 +129,10 @@ public class PerfExample1 extends PerfExampleBase {
                     throw e;
                 }
             }
+
+            this.vertices.addAll(personIds);
+            this.vertices.addAll(softwareIds);
+
             personIds.clear();
             softwareIds.clear();
         }
