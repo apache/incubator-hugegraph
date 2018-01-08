@@ -259,19 +259,22 @@ public class RocksDBSessions extends BackendSessionPool {
          * Commit all updates(put/delete) to DB
          */
         @Override
-        public Object commit() {
+        public Integer commit() {
             int count = this.batch.count();
             if (count <= 0) {
                 return 0;
             }
+
             try {
                 rocksdb().write(this.writeOptions, this.batch);
             } catch (RocksDBException e) {
                 //this.batch.rollbackToSavePoint();
                 throw new BackendException(e);
-            } finally {
-                this.batch.clear();
             }
+
+            // Clear batch if write() successfully (retained if failed)
+            this.batch.clear();
+
             return count;
         }
 

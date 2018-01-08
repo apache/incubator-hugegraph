@@ -263,7 +263,7 @@ public abstract class RocksDBStore implements BackendStore {
         this.checkOpened();
         RocksDBSessions.Session session = this.sessions.session();
 
-        Object count = session.commit();
+        int count = session.commit();
         if (LOG.isDebugEnabled()) {
             LOG.debug("Store {} committed {} items", this.name, count);
         }
@@ -271,7 +271,10 @@ public abstract class RocksDBStore implements BackendStore {
 
     @Override
     public void rollbackTx() {
-        // pass
+        this.checkOpened();
+        RocksDBSessions.Session session = this.sessions.session();
+
+        session.clear();
     }
 
     @Override

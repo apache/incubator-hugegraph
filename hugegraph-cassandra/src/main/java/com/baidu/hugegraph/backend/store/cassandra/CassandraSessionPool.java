@@ -150,11 +150,10 @@ public class CassandraSessionPool extends BackendSessionPool {
 
         @Override
         public ResultSet commit() {
-            try {
-                return this.session.execute(this.batch);
-            } finally {
-                this.batch.clear();
-            }
+            ResultSet rs = this.session.execute(this.batch);
+            // Clear batch if execute() successfully (retained if failed)
+            this.batch.clear();
+            return rs;
         }
 
         public ResultSet query(Statement statement) {

@@ -59,8 +59,9 @@ public abstract class CassandraStore implements BackendStore {
 
     private final BackendStoreProvider provider;
 
-    private CassandraSessionPool sessions;
-    private Map<HugeType, CassandraTable> tables;
+    private final CassandraSessionPool sessions;
+    private final Map<HugeType, CassandraTable> tables;
+
     private HugeConfig conf;
 
     public CassandraStore(final BackendStoreProvider provider,
@@ -281,7 +282,6 @@ public abstract class CassandraStore implements BackendStore {
             LOG.warn("Store {} expect state BEGIN than {} when commit()",
                      this.name, session.txState());
         }
-        session.txState(TxState.COMMITTING);
 
         if (!session.hasChanges()) {
             session.txState(TxState.CLEAN);
@@ -297,6 +297,7 @@ public abstract class CassandraStore implements BackendStore {
         // TODO how to implement tx perfectly?
 
         // Do update
+        session.txState(TxState.COMMITTING);
         try {
             session.commit();
             session.txState(TxState.CLEAN);
@@ -320,13 +321,12 @@ public abstract class CassandraStore implements BackendStore {
         // TODO how to implement perfectly?
 
         if (session.txState() != TxState.COMMITT_FAIL &&
-            session.txState() != TxState.COMMITTING &&
             session.txState() != TxState.CLEAN) {
             LOG.warn("Store {} expect state COMMITT_FAIL/COMMITTING/CLEAN " +
                      "than {} when rollback()", this.name, session.txState());
         }
-        session.txState(TxState.ROLLBACKING);
 
+        session.txState(TxState.ROLLBACKING);
         try {
             session.clear();
         } finally {
@@ -464,9 +464,17 @@ public abstract class CassandraStore implements BackendStore {
         @Override
         protected void initTables() {
             super.initTables();
-            this.checkSessionConnected();
+
             CassandraSessionPool.Session session = super.sessions.session();
             this.counters.init(session);
+        }
+
+        @Override
+        protected void clearTables() {
+            super.clearTables();
+
+            CassandraSessionPool.Session session = super.sessions.session();
+            this.counters.clear(session);
         }
 
         @Override
