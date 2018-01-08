@@ -25,11 +25,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.IdUtil;
+import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
@@ -140,8 +140,7 @@ public class CassandraTables {
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
-            this.createIndex(session, "vertex_label_name_index",
-                             HugeKeys.NAME);
+            this.createIndex(session, "vertex_label_name_index", HugeKeys.NAME);
         }
     }
 
@@ -200,8 +199,7 @@ public class CassandraTables {
             );
 
             this.createTable(session, pkeys, ckeys, columns);
-            this.createIndex(session, "property_key_name_index",
-                             HugeKeys.NAME);
+            this.createIndex(session, "property_key_name_index", HugeKeys.NAME);
         }
     }
 
