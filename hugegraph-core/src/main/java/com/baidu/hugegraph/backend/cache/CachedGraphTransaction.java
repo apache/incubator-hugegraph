@@ -69,8 +69,11 @@ public class CachedGraphTransaction extends GraphTransaction {
     @Override
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
         List<Vertex> vertices = new ArrayList<>(vertexIds.length);
-        for (Object i : vertexIds) {
-            Id vid = HugeVertex.getIdValue(i);
+        for (Object vertexId : vertexIds) {
+            if (vertexId == null) {
+                continue;
+            }
+            Id vid = HugeVertex.getIdValue(vertexId);
             Object v = this.verticesCache.getOrFetch(vid, id -> {
                 Iterator<Vertex> iterator = super.queryVertices(id);
                 return iterator.hasNext() ? iterator.next() : null;

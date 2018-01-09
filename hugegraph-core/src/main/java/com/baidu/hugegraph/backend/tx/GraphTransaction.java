@@ -43,6 +43,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -72,7 +73,6 @@ import com.baidu.hugegraph.structure.HugeFeatures.HugeVertexFeatures;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
-import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.type.define.Directions;
@@ -388,7 +388,7 @@ public class GraphTransaction extends IndexableTransaction {
         for (Object vertexId : vertexIds) {
             Vertex vertex;
             Id id = HugeVertex.getIdValue(vertexId);
-            if (this.removedVertexes.containsKey(id)) {
+            if (id == null || this.removedVertexes.containsKey(id)) {
                 // The record has been deleted
                 continue;
             } else if ((vertex = this.addedVertexes.get(id)) != null ||
@@ -502,7 +502,7 @@ public class GraphTransaction extends IndexableTransaction {
         for (Object edgeId : edgeIds) {
             Edge edge;
             Id id = HugeEdge.getIdValue(edgeId);
-            if (this.removedEdges.containsKey(id)) {
+            if (id == null || this.removedEdges.containsKey(id)) {
                 // The record has been deleted
                 continue;
             } else if ((edge = this.addedEdges.get(id)) != null ||
