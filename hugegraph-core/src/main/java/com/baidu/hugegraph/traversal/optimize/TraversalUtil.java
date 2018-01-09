@@ -213,59 +213,86 @@ public final class TraversalUtil {
             throw new IllegalArgumentException(
                       "Not support three layers or more logical conditions");
         }
+
+        boolean isSyspropKey = true;
         try {
-            HugeKeys key = string2HugeKey(has.getKey());
-            Object value = has.getValue();
+            string2HugeKey(has.getKey());
+        } catch (IllegalArgumentException ignored) {
+            isSyspropKey = false;
+        }
 
-            if (key == HugeKeys.LABEL && !(value instanceof Id)) {
-                value = SchemaLabel.getLabelId(graph, type, value);
-            } else if (key == HugeKeys.ID && !(value instanceof Id)) {
-                if (type == HugeType.VERTEX) {
-                    value = HugeVertex.getIdValue(value);
-                } else {
-                    value = HugeEdge.getIdValue(value);
-                }
-            }
+        return isSyspropKey ?
+               convCompare2SyspropRelation(graph, type, has) :
+               convCompare2UserpropRelation(graph, type, has);
+    }
 
-            switch ((Compare) bp) {
-                case eq:
-                    return Condition.eq(key, value);
-                case gt:
-                    return Condition.gt(key, value);
-                case gte:
-                    return Condition.gte(key, value);
-                case lt:
-                    return Condition.lt(key, value);
-                case lte:
-                    return Condition.lte(key, value);
-                case neq:
-                    return Condition.neq(key, value);
-            }
-        } catch (IllegalArgumentException e) {
-            String key = has.getKey();
-            PropertyKey pkey = graph.propertyKey(key);
-            Id pkeyId = pkey.id();
-            Object value = pkey.validValue(has.getValue());
-            E.checkArgumentNotNull(value,
-                                   "Invalid data type of query value, " +
-                                   "expect '%s', actual '%s'",
-                                   pkey.dataType().clazz(),
-                                   has.getValue().getClass());
 
-            switch ((Compare) bp) {
-                case eq:
-                    return Condition.eq(pkeyId, value);
-                case gt:
-                    return Condition.gt(pkeyId, value);
-                case gte:
-                    return Condition.gte(pkeyId, value);
-                case lt:
-                    return Condition.lt(pkeyId, value);
-                case lte:
-                    return Condition.lte(pkeyId, value);
-                case neq:
-                    return Condition.neq(pkeyId, value);
+    private static Relation convCompare2SyspropRelation(HugeGraph graph,
+                                                        HugeType type,
+                                                        HasContainer has) {
+        BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+        assert bp instanceof Compare;
+
+        HugeKeys key = string2HugeKey(has.getKey());
+        Object value = has.getValue();
+
+        if (key == HugeKeys.LABEL && !(value instanceof Id)) {
+            value = SchemaLabel.getLabelId(graph, type, value);
+        } else if (key == HugeKeys.ID && !(value instanceof Id)) {
+            if (type == HugeType.VERTEX) {
+                value = HugeVertex.getIdValue(value);
+            } else {
+                value = HugeEdge.getIdValue(value);
             }
+        }
+
+        switch ((Compare) bp) {
+            case eq:
+                return Condition.eq(key, value);
+            case gt:
+                return Condition.gt(key, value);
+            case gte:
+                return Condition.gte(key, value);
+            case lt:
+                return Condition.lt(key, value);
+            case lte:
+                return Condition.lte(key, value);
+            case neq:
+                return Condition.neq(key, value);
+        }
+
+        throw newUnsupportedPredicate(has.getPredicate());
+    }
+
+    private static Relation convCompare2UserpropRelation(HugeGraph graph,
+                                                         HugeType type,
+                                                         HasContainer has) {
+        BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+        assert bp instanceof Compare;
+
+        String key = has.getKey();
+        PropertyKey pkey = graph.propertyKey(key);
+        Id pkeyId = pkey.id();
+        Object value = pkey.validValue(has.getValue());
+        E.checkArgumentNotNull(value,
+                               "Invalid data type of query value, " +
+                               "expect '%s', actual '%s'",
+                               pkey.dataType().clazz(),
+                               has.getValue().getClass());
+
+        switch ((Compare) bp) {
+            case eq:
+                return Condition.eq(pkeyId, value);
+            case gt:
+                return Condition.gt(pkeyId, value);
+            case gte:
+                return Condition.gte(pkeyId, value);
+            case lt:
+                return Condition.lt(pkeyId, value);
+            case lte:
+                return Condition.lte(pkeyId, value);
+            case neq:
+                return Condition.neq(pkeyId, value);
         }
 
         throw newUnsupportedPredicate(has.getPredicate());
