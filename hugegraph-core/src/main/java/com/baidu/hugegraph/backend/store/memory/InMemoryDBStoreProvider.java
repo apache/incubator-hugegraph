@@ -54,7 +54,7 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public BackendStore loadSchemaStore(String name) {
-        LOG.info("InMemoryDBStoreProvider load '{}'", name);
+        LOG.debug("InMemoryDBStoreProvider load '{}'", name);
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {
@@ -67,7 +67,7 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public BackendStore loadGraphStore(String name) {
-        LOG.info("InMemoryDBStoreProvider load '{}'", name);
+        LOG.debug("InMemoryDBStoreProvider load '{}'", name);
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {
