@@ -1029,21 +1029,21 @@ public class GraphTransaction extends IndexableTransaction {
         /* Collect added records
          * Records in memory have higher priority than query from backend store
          */
-        for (V i : addedTxRecords.values()) {
-            if (match.apply(query, i)) {
-                txResults.add(i);
+        for (V elem : addedTxRecords.values()) {
+            if (match.apply(query, elem)) {
+                txResults.add(elem);
             }
         }
-        for (V i : updatedTxRecords.values()) {
-            if (match.apply(query, i)) {
-                txResults.add(i);
+        for (V elem : updatedTxRecords.values()) {
+            if (match.apply(query, elem)) {
+                txResults.add(elem);
             }
         }
 
         // Filter removed/added records
-        Iterator<V> backendResults = new FilterIterator<>(records, i -> {
-            return (!removedTxRecords.containsKey(i.id()) &&
-                    !txResults.contains(i.id()));
+        Iterator<V> backendResults = new FilterIterator<>(records, elem -> {
+            return (!txResults.contains(elem) &&
+                    !removedTxRecords.containsKey(elem.id()));
         });
 
         return new ExtendableIterator<V>(txResults.iterator(), backendResults);
