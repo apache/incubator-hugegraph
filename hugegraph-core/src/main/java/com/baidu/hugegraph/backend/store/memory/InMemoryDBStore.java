@@ -149,17 +149,17 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public void open(HugeConfig config) {
-        LOG.info("open()");
+        LOG.debug("open()");
     }
 
     @Override
     public void close() throws BackendException {
-        LOG.info("close()");
+        LOG.debug("close()");
     }
 
     @Override
     public void init() {
-        // pass
+        LOG.info("init()");
     }
 
     @Override
