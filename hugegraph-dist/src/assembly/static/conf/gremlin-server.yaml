@@ -41,10 +41,10 @@ serializers:
       }
     }
 metrics: {
-  consoleReporter: {enabled: true, interval: 180000},
+  consoleReporter: {enabled: false, interval: 180000},
   csvReporter: {enabled: true, interval: 180000, fileName: /tmp/gremlin-server-metrics.csv},
-  jmxReporter: {enabled: true},
-  slf4jReporter: {enabled: true, interval: 180000},
+  jmxReporter: {enabled: false},
+  slf4jReporter: {enabled: false, interval: 180000},
   gangliaReporter: {enabled: false, interval: 180000, addressingMode: MULTICAST},
   graphiteReporter: {enabled: false, interval: 180000}}
 maxInitialLineLength: 4096
