@@ -96,7 +96,8 @@ public class BackendEntryIterator<T> implements Iterator<BackendEntry> {
         }
 
         // Stop if reach capacity
-        if (this.count > this.query.capacity()) {
+        if (this.query.capacity() != Query.NO_CAPACITY &&
+            this.count > this.query.capacity()) {
             throw new BackendException(
                       "Too many records(must <=%s) for a query",
                       this.query.capacity());

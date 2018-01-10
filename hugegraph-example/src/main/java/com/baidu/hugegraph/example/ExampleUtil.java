@@ -43,10 +43,10 @@ public class ExampleUtil {
     }
 
     public static HugeGraph loadGraph() {
-        return loadGraph(false);
+        return loadGraph(true, false);
     }
 
-    public static HugeGraph loadGraph(boolean needProfile) {
+    public static HugeGraph loadGraph(boolean needClear, boolean needProfile) {
         if (needProfile) {
             profile();
         }
@@ -66,7 +66,9 @@ public class ExampleUtil {
 
         HugeGraph graph = HugeFactory.open(conf);
 
-        graph.clearBackend();
+        if (needClear) {
+            graph.clearBackend();
+        }
         graph.initBackend();
 
         return graph;

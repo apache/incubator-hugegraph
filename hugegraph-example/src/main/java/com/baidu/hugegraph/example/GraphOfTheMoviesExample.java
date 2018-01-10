@@ -39,7 +39,7 @@ public class GraphOfTheMoviesExample {
     public static void main(String[] args) {
         LOG.info("ExampleGraphFactory start!");
 
-        HugeGraph graph = ExampleUtil.loadGraph(true);
+        HugeGraph graph = ExampleUtil.loadGraph(true, true);
 
         long startTime = System.currentTimeMillis();
         GraphOfTheMoviesExample.load(graph);

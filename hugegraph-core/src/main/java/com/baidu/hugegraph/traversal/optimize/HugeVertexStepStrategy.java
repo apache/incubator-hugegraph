@@ -51,11 +51,16 @@ public final class HugeVertexStepStrategy
         for (VertexStep originStep : steps) {
             HugeVertexStep<?> newStep = new HugeVertexStep<>(originStep);
             TraversalHelper.replaceStep(originStep, newStep, traversal);
+
             TraversalUtil.extractHasContainer(newStep, traversal);
+
             // TODO: support order-by optimize
             // TraversalUtil.extractOrder(newStep, traversal);
+
             // TODO: support range optimize
             // TraversalUtil.extractRange(newStep, traversal);
+
+            TraversalUtil.extractCount(newStep, traversal);
         }
     }
 

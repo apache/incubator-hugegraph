@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
@@ -149,9 +148,7 @@ public final class HugeVertexStep<E extends Element>
                 LOG.warn("It's not recommended to query by has(id)");
             }
 
-            query.orders(this.queryInfo.orders());
-            query.offset(this.queryInfo.offset());
-            query.limit(this.queryInfo.limit());
+            query = this.injectQueryInfo(query);
 
             // Do query
             Iterator<Edge> edges = graph.edges(query);
@@ -191,15 +188,8 @@ public final class HugeVertexStep<E extends Element>
     }
 
     @Override
-    public void orderBy(String key, Order order) {
-        this.queryInfo.order(TraversalUtil.string2HugeKey(key),
-                             TraversalUtil.convOrder(order));
-    }
-
-    @Override
-    public long setRange(long start, long end) {
-        this.queryInfo.range(start, end);
-        return this.queryInfo.limit();
+    public Query queryInfo() {
+        return this.queryInfo;
     }
 
     @Override
