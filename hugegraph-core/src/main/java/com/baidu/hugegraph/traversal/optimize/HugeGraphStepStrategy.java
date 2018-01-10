@@ -52,10 +52,15 @@ public final class HugeGraphStepStrategy
         for (GraphStep originStep : steps) {
             HugeGraphStep<?, ?> newStep = new HugeGraphStep<>(originStep);
             TraversalHelper.replaceStep(originStep, newStep, traversal);
+
             TraversalUtil.extractHasContainer(newStep, traversal);
+
             // TODO: support order-by optimize
             // TraversalUtil.extractOrder(newStep, traversal);
+
             TraversalUtil.extractRange(newStep, traversal);
+
+            TraversalUtil.extractCount(newStep, traversal);
         }
     }
 

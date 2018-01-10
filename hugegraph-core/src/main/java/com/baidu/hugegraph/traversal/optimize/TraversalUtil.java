@@ -33,6 +33,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.RangeGlobalStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.CountGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.NoOpBarrierStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.OrderGlobalStep;
@@ -146,6 +147,20 @@ public final class TraversalUtil {
                 TraversalHelper.replaceStep(range, newRange, traversal);
             }
         } while (step instanceof RangeGlobalStep ||
+                 step instanceof IdentityStep ||
+                 step instanceof NoOpBarrierStep);
+    }
+
+    public static void extractCount(Step<?, ?> newStep,
+                                    Traversal.Admin<?, ?> traversal) {
+        Step<?, ?> step = newStep;
+        do {
+            step = step.getNextStep();
+            if (step instanceof CountGlobalStep) {
+                QueryHolder holder = (QueryHolder) newStep;
+                holder.setCount();
+            }
+        } while (step instanceof CountGlobalStep ||
                  step instanceof IdentityStep ||
                  step instanceof NoOpBarrierStep);
     }

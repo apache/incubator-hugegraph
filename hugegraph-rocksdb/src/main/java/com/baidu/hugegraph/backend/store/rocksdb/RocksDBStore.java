@@ -111,7 +111,7 @@ public abstract class RocksDBStore implements BackendStore {
     }
 
     @Override
-    public void open(HugeConfig config) {
+    public synchronized void open(HugeConfig config) {
         LOG.debug("Store open: {}", this.name);
 
         E.checkNotNull(config, "config");
@@ -157,6 +157,7 @@ public abstract class RocksDBStore implements BackendStore {
 
         if (this.sessions != null) {
             dbs.put(dataPath, this.sessions);
+            this.sessions.session();
             LOG.debug("Store opened: {}", this.name);
         }
     }
@@ -283,8 +284,8 @@ public abstract class RocksDBStore implements BackendStore {
     }
 
     private void checkOpened() {
-        E.checkState(this.sessions != null,
-                     "RocksDB store has not been initialized");
+        E.checkState(this.sessions != null && !this.sessions.closed(),
+                     "RocksDB store has not been opened");
     }
 
     /***************************** Store defines *****************************/

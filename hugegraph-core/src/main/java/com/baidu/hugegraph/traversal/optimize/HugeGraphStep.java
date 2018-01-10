@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -117,15 +116,14 @@ public final class HugeGraphStep<S, E extends Element>
                                                      q, graph);
         }
 
-        query.orders(this.queryInfo.orders());
-        query.offset(this.queryInfo.offset());
+        query = this.injectQueryInfo(query);
         /*
          * NOTE: double limit because of duplicate edges(when BOTH Direction)
          * TODO: the `this.limit * 2` maybe will overflow.
          */
-        query.limit(this.queryInfo.limit() == Query.NO_LIMIT ?
+        query.limit(query.limit() == Query.NO_LIMIT ?
                     Query.NO_LIMIT :
-                    this.queryInfo.limit() << 1);
+                    query.limit() << 1);
 
         @SuppressWarnings("unchecked")
         Iterator<E> result = (Iterator<E>) graph.edges(query);
@@ -159,15 +157,8 @@ public final class HugeGraphStep<S, E extends Element>
     }
 
     @Override
-    public void orderBy(String key, Order order) {
-        this.queryInfo.order(TraversalUtil.string2HugeKey(key),
-                             TraversalUtil.convOrder(order));
-    }
-
-    @Override
-    public long setRange(long start, long end) {
-        this.queryInfo.range(start, end);
-        return this.queryInfo.limit();
+    public Query queryInfo() {
+        return this.queryInfo;
     }
 
     @Override

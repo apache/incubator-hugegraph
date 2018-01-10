@@ -66,7 +66,7 @@ public abstract class PerfExampleBase {
 
         // NOTE: this test with HugeGraph is for local, change it into
         // client if test with restful server from remote
-        HugeGraph hugegraph = ExampleUtil.loadGraph(true);
+        HugeGraph hugegraph = ExampleUtil.loadGraph(true, true);
         GraphManager graph = new GraphManager(hugegraph);
 
         initSchema(hugegraph.schema());

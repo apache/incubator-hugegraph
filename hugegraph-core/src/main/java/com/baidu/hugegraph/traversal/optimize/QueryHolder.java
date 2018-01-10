@@ -22,9 +22,31 @@ package com.baidu.hugegraph.traversal.optimize;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
 
+import com.baidu.hugegraph.backend.query.Query;
+
 public interface QueryHolder extends HasContainerHolder {
 
-    public void orderBy(String key, Order order);
+    public Query queryInfo();
 
-    public long setRange(long start, long end);
+    public default void orderBy(String key, Order order) {
+        this.queryInfo().order(TraversalUtil.string2HugeKey(key),
+                               TraversalUtil.convOrder(order));
+    }
+
+    public default long setRange(long start, long end) {
+        this.queryInfo().range(start, end);
+        return this.queryInfo().limit();
+    }
+
+    public default void setCount() {
+        this.queryInfo().capacity(Query.NO_CAPACITY);
+    }
+
+    public default <Q extends Query> Q injectQueryInfo(Q query) {
+        query.orders(this.queryInfo().orders());
+        query.offset(this.queryInfo().offset());
+        query.limit(this.queryInfo().limit());
+        query.capacity(this.queryInfo().capacity());
+        return query;
+    }
 }
