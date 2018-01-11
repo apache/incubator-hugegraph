@@ -148,6 +148,9 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
+        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
+            edgeLabel.userData(entry.getKey(), entry.getValue());
+        }
         this.transaction.addEdgeLabel(edgeLabel);
         return edgeLabel;
     }

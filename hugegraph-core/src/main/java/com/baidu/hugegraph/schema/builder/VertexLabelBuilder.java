@@ -137,6 +137,9 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
+        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
+            vertexLabel.userData(entry.getKey(), entry.getValue());
+        }
         this.transaction.addVertexLabel(vertexLabel);
         return vertexLabel;
     }
