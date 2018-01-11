@@ -226,7 +226,7 @@ public final class TraversalUtil {
 
         if (!(bp instanceof Compare)) {
             throw new IllegalArgumentException(
-                      "Not support three layers or more logical conditions");
+                      "Three layers or more logical conditions are not supported");
         }
 
         boolean isSyspropKey = true;
@@ -347,7 +347,7 @@ public final class TraversalUtil {
                                                    HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         E.checkArgument(bp == Compare.eq,
-                        "Not support CONTAINS query with relation '%s'", bp);
+                        "CONTAINS query with relation '%s' is not supported", bp);
 
         HugeKeys key = string2HugeKey(has.getKey());
         Object value = has.getValue();
