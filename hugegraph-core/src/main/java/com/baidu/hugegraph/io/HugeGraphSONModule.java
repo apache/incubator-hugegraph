@@ -20,13 +20,11 @@
 package com.baidu.hugegraph.io;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.TinkerPopJacksonModule;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
@@ -36,21 +34,14 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
-import com.baidu.hugegraph.backend.serializer.TextSerializer;
-import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.JsonUtil;
 
 @SuppressWarnings("serial")
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
@@ -59,39 +50,39 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     private static final String TYPE_NAMESPACE = "hugegraph";
 
-    private static final Map<HugeGraph, HugeGraphSONModule> INSTANCES;
     @SuppressWarnings("rawtypes")
     private static final Map<Class, String> TYPE_DEFINITIONS;
 
-    private GraphSONSerializer textSerializer;
+    private static final GraphSONSchemaSerializer schemaSerializer =
+                         new GraphSONSchemaSerializer();
 
     static {
-        INSTANCES = new ConcurrentHashMap<>();
         TYPE_DEFINITIONS = new ConcurrentHashMap<>();
+
         TYPE_DEFINITIONS.put(Optional.class, "Optional");
-        // HugeGraph related serializer
+
+        // HugeGraph id serializer
         TYPE_DEFINITIONS.put(IdGenerator.StringId.class, "StringId");
         TYPE_DEFINITIONS.put(IdGenerator.LongId.class, "LongId");
         TYPE_DEFINITIONS.put(EdgeId.class, "EdgeId");
+
+        // HugeGraph schema serializer
         TYPE_DEFINITIONS.put(PropertyKey.class, "PropertyKey");
         TYPE_DEFINITIONS.put(VertexLabel.class, "VertexLabel");
         TYPE_DEFINITIONS.put(EdgeLabel.class, "EdgeLabel");
         TYPE_DEFINITIONS.put(IndexLabel.class, "IndexLabel");
     }
 
-    public static HugeGraphSONModule instance(HugeGraph graph) {
-        HugeGraphSONModule instance = INSTANCES.get(graph);
-        if (instance == null) {
-            instance = new HugeGraphSONModule(graph);
-            INSTANCES.putIfAbsent(graph, instance);
-        }
-        return instance;
+    public static void register(HugeGraphIoRegistry io) {
+        io.register(GraphSONIo.class, null, new HugeGraphSONModule());
     }
 
-    private HugeGraphSONModule(HugeGraph graph) {
+    private HugeGraphSONModule() {
         super(TYPE_NAMESPACE);
-        this.textSerializer = new GraphSONSerializer(graph);
 
+        addSerializer(Optional.class, new OptionalSerializer());
+
+        // HugeGraph id serializer
         addSerializer(IdGenerator.StringId.class,
                       new IdSerializer<>(IdGenerator.StringId.class));
         addDeserializer(IdGenerator.StringId.class,
@@ -103,17 +94,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         addSerializer(EdgeId.class, new IdSerializer<>(EdgeId.class));
         addDeserializer(EdgeId.class, new IdDeserializer<>(EdgeId.class));
 
+        // HugeGraph schema serializer
         addSerializer(PropertyKey.class, new PropertyKeySerializer());
-        addDeserializer(PropertyKey.class, new PropertyKeyDeserializer());
         addSerializer(VertexLabel.class, new VertexLabelSerializer());
-        addDeserializer(VertexLabel.class, new VertexLabelDeserializer());
         addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
-        addDeserializer(EdgeLabel.class, new EdgeLabelDeserializer());
         addSerializer(IndexLabel.class, new IndexLabelSerializer());
-        addDeserializer(IndexLabel.class, new IndexLabelDeserializer());
-
-        addSerializer(Optional.class, new OptionalSerializer());
-        addDeserializer(Optional.class, new OptionalDeserializer());
     }
 
     @Override
@@ -125,47 +110,6 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     @Override
     public String getTypeNamespace() {
         return TYPE_NAMESPACE;
-    }
-
-    private static class GraphSONSerializer extends TextSerializer {
-
-        private final HugeGraph graph;
-
-        public GraphSONSerializer(HugeGraph graph) {
-            this.graph = graph;
-        }
-
-        private String getSchema(Id id, HugeType type) {
-            switch (type) {
-                case PROPERTY_KEY:
-                    return graph.propertyKey(id).name();
-                case VERTEX_LABEL:
-                    return graph.vertexLabel(id).name();
-                case EDGE_LABEL:
-                    return graph.edgeLabel(id).name();
-                case INDEX_LABEL:
-                    return graph.indexLabel(id).name();
-                default:
-                    throw new AssertionError(
-                              String.format("Unknown schema type '%s'", type));
-            }
-        }
-
-        @Override
-        protected String writeId(Id id, HugeType type) {
-            assert SchemaElement.isSchema(type);
-            return JsonUtil.toJson(this.getSchema(id, type));
-        }
-
-        @Override
-        protected String writeIds(Collection<Id> ids, HugeType type) {
-            assert SchemaElement.isSchema(type);
-            List<String> names = new ArrayList<>(ids.size());
-            for (Id id : ids) {
-                names.add(this.getSchema(id, type));
-            }
-            return JsonUtil.toJson(names);
-        }
     }
 
     @SuppressWarnings("rawtypes")
@@ -185,20 +129,6 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             } else {
                 jsonGenerator.writeObject(null);
             }
-        }
-    }
-
-    private class OptionalDeserializer extends StdDeserializer<Optional<?>> {
-
-        public OptionalDeserializer() {
-            super(Optional.class);
-        }
-
-        @Override
-        public Optional<?> deserialize(JsonParser jsonParser,
-                                       DeserializationContext context)
-                                       throws IOException {
-            return null;
         }
     }
 
@@ -259,17 +189,12 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     }
 
     private static void writeEntry(JsonGenerator jsonGenerator,
-                                   TextBackendEntry entry)
+                                   Map<HugeKeys, Object> schema)
                                    throws IOException {
         jsonGenerator.writeStartObject();
-        // Write id
-        jsonGenerator.writeNumberField(HugeKeys.ID.string(),
-                                       entry.id().asLong());
-
-        // Write columns size and data
-        for (String name : entry.columnNames()) {
-            jsonGenerator.writeFieldName(name);
-            jsonGenerator.writeRawValue(entry.column(name));
+        for (Map.Entry<HugeKeys, Object> entry : schema.entrySet()) {
+            jsonGenerator.writeFieldName(entry.getKey().string());
+            jsonGenerator.writeObject(entry.getValue());
         }
         jsonGenerator.writeEndObject();
     }
@@ -281,26 +206,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
 
         @Override
-        public void serialize(PropertyKey propertyKey,
+        public void serialize(PropertyKey pk,
                               JsonGenerator jsonGenerator,
                               SerializerProvider serializer)
                               throws IOException {
-            BackendEntry entry = textSerializer.writePropertyKey(propertyKey);
-            writeEntry(jsonGenerator, (TextBackendEntry) entry);
-        }
-    }
-
-    private class PropertyKeyDeserializer extends StdDeserializer<PropertyKey> {
-
-        public PropertyKeyDeserializer() {
-            super(PropertyKey.class);
-        }
-
-        @Override
-        public PropertyKey deserialize(JsonParser jsonParser,
-                                       DeserializationContext ctxt)
-                                       throws IOException {
-            return null;
+            writeEntry(jsonGenerator, schemaSerializer.writePropertyKey(pk));
         }
     }
 
@@ -311,38 +221,12 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
 
         @Override
-        public void serialize(VertexLabel vertexLabel,
+        public void serialize(VertexLabel vl,
                               JsonGenerator jsonGenerator,
                               SerializerProvider serializer)
                               throws IOException {
-            BackendEntry entry = textSerializer.writeVertexLabel(vertexLabel);
-            writeEntry(jsonGenerator, (TextBackendEntry) entry);
+            writeEntry(jsonGenerator, schemaSerializer.writeVertexLabel(vl));
         }
-
-        @Override
-        public void serializeWithType(VertexLabel vertexLabel,
-                                      JsonGenerator jsonGenerator,
-                                      SerializerProvider serializer,
-                                      TypeSerializer typeSer)
-                                      throws IOException {
-            BackendEntry entry = textSerializer.writeVertexLabel(vertexLabel);
-            writeEntry(jsonGenerator, (TextBackendEntry) entry);
-        }
-    }
-
-    private class VertexLabelDeserializer extends StdDeserializer<VertexLabel> {
-
-        public VertexLabelDeserializer() {
-            super(VertexLabel.class);
-        }
-
-        @Override
-        public VertexLabel deserialize(JsonParser jsonParser,
-                                       DeserializationContext ctxt)
-                                       throws IOException {
-            return null;
-        }
-
     }
 
     private class EdgeLabelSerializer extends StdSerializer<EdgeLabel> {
@@ -352,26 +236,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
 
         @Override
-        public void serialize(EdgeLabel edgeLabel,
+        public void serialize(EdgeLabel el,
                               JsonGenerator jsonGenerator,
                               SerializerProvider serializer)
                               throws IOException {
-            BackendEntry entry = textSerializer.writeEdgeLabel(edgeLabel);
-            writeEntry(jsonGenerator, (TextBackendEntry) entry);
-        }
-    }
-
-    private class EdgeLabelDeserializer extends StdDeserializer<EdgeLabel> {
-
-        public EdgeLabelDeserializer() {
-            super(EdgeLabel.class);
-        }
-
-        @Override
-        public EdgeLabel deserialize(JsonParser jsonParser,
-                                     DeserializationContext ctxt)
-                                     throws IOException {
-            return null;
+            writeEntry(jsonGenerator, schemaSerializer.writeEdgeLabel(el));
         }
     }
 
@@ -382,26 +251,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
 
         @Override
-        public void serialize(IndexLabel indexLabel,
+        public void serialize(IndexLabel il,
                               JsonGenerator jsonGenerator,
                               SerializerProvider serializer)
                               throws IOException {
-            BackendEntry entry = textSerializer.writeIndexLabel(indexLabel);
-            writeEntry(jsonGenerator, (TextBackendEntry) entry);
-        }
-    }
-
-    private class IndexLabelDeserializer extends StdDeserializer<IndexLabel> {
-
-        public IndexLabelDeserializer() {
-            super(IndexLabel.class);
-        }
-
-        @Override
-        public IndexLabel deserialize(JsonParser jsonParser,
-                                      DeserializationContext ctxt)
-                                      throws IOException {
-            return null;
+            writeEntry(jsonGenerator, schemaSerializer.writeIndexLabel(il));
         }
     }
 }

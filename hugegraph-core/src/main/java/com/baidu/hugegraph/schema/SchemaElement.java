@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -40,18 +41,25 @@ import com.baidu.hugegraph.util.E;
 public abstract class SchemaElement
                 implements Namifiable, Typifiable, Propfiable {
 
+    protected final HugeGraph graph;
+
     protected Id id;
     protected String name;
     protected Set<Id> properties;
     protected Map<String, Object> userData;
 
-    public SchemaElement(Id id, String name) {
-        E.checkNotNull(id, "id");
-        E.checkNotNull(name, "name");
+    public SchemaElement(final HugeGraph graph, Id id, String name) {
+        E.checkArgumentNotNull(id, "SchemaElement id can't be null");
+        E.checkArgumentNotNull(name, "SchemaElement name can't be null");
+        this.graph = graph;
         this.id = id;
         this.name = name;
         this.properties = new HashSet<>();
         this.userData = new HashMap<>();
+    }
+
+    public HugeGraph graph() {
+        return this.graph;
     }
 
     public Id id() {

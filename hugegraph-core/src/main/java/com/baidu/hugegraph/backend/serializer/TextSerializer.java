@@ -258,7 +258,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeVertex readVertex(BackendEntry backendEntry, HugeGraph graph) {
+    public HugeVertex readVertex(HugeGraph graph, BackendEntry backendEntry) {
         E.checkNotNull(graph, "serializer graph");
         if (backendEntry == null) {
             return null;
@@ -302,7 +302,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeEdge readEdge(BackendEntry backendEntry, HugeGraph graph) {
+    public HugeEdge readEdge(HugeGraph graph, BackendEntry backendEntry) {
         E.checkNotNull(graph, "serializer graph");
         // TODO: implement
         throw new NotImplementedException("Unsupported readEdge()");
@@ -332,7 +332,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeIndex readIndex(BackendEntry backendEntry, HugeGraph graph) {
+    public HugeIndex readIndex(HugeGraph graph, BackendEntry backendEntry) {
         E.checkNotNull(graph, "serializer graph");
         if (backendEntry == null) {
             return null;
@@ -439,19 +439,20 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.ID_STRATEGY,
                      JsonUtil.toJson(vertexLabel.idStrategy()));
         entry.column(HugeKeys.PRIMARY_KEYS,
-                     writeIds(vertexLabel.primaryKeys(), HugeType.PROPERTY_KEY));
+                     writeIds(vertexLabel.primaryKeys()));
         entry.column(HugeKeys.NULLABLE_KEYS,
-                     writeIds(vertexLabel.nullableKeys(), HugeType.PROPERTY_KEY));
+                     writeIds(vertexLabel.nullableKeys()));
         entry.column(HugeKeys.INDEX_LABELS,
-                     writeIds(vertexLabel.indexLabels(), HugeType.INDEX_LABEL));
+                     writeIds(vertexLabel.indexLabels()));
         entry.column(HugeKeys.PROPERTIES,
-                     writeIds(vertexLabel.properties(), HugeType.PROPERTY_KEY));
+                     writeIds(vertexLabel.properties()));
         writeUserData(vertexLabel, entry);
         return entry;
     }
 
     @Override
-    public VertexLabel readVertexLabel(BackendEntry backendEntry) {
+    public VertexLabel readVertexLabel(HugeGraph graph,
+                                       BackendEntry backendEntry) {
         if (backendEntry == null) {
             return null;
         }
@@ -466,7 +467,7 @@ public class TextSerializer extends AbstractSerializer {
         String nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         String indexLabels = entry.column(HugeKeys.INDEX_LABELS);
 
-        VertexLabel vertexLabel = new VertexLabel(id, name);
+        VertexLabel vertexLabel = new VertexLabel(graph, id, name);
         vertexLabel.idStrategy(JsonUtil.fromJson(idStrategy, IdStrategy.class));
         vertexLabel.properties(readIds(properties));
         vertexLabel.primaryKeys(readIds(primaryKeys));
@@ -480,26 +481,22 @@ public class TextSerializer extends AbstractSerializer {
     public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel) {
         TextBackendEntry entry = newBackendEntry(edgeLabel);
         entry.column(HugeKeys.NAME, JsonUtil.toJson(edgeLabel.name()));
-        entry.column(HugeKeys.SOURCE_LABEL, writeId(edgeLabel.sourceLabel(),
-                                                    HugeType.VERTEX_LABEL));
-        entry.column(HugeKeys.TARGET_LABEL, writeId(edgeLabel.targetLabel(),
-                                                    HugeType.VERTEX_LABEL));
+        entry.column(HugeKeys.SOURCE_LABEL, writeId(edgeLabel.sourceLabel()));
+        entry.column(HugeKeys.TARGET_LABEL, writeId(edgeLabel.targetLabel()));
         entry.column(HugeKeys.FREQUENCY,
                      JsonUtil.toJson(edgeLabel.frequency()));
-        entry.column(HugeKeys.SORT_KEYS,
-                     writeIds(edgeLabel.sortKeys(), HugeType.PROPERTY_KEY));
+        entry.column(HugeKeys.SORT_KEYS, writeIds(edgeLabel.sortKeys()));
         entry.column(HugeKeys.NULLABLE_KEYS,
-                     writeIds(edgeLabel.nullableKeys(), HugeType.PROPERTY_KEY));
-        entry.column(HugeKeys.INDEX_LABELS,
-                     writeIds(edgeLabel.indexLabels(), HugeType.INDEX_LABEL));
-        entry.column(HugeKeys.PROPERTIES,
-                     writeIds(edgeLabel.properties(), HugeType.PROPERTY_KEY));
+                     writeIds(edgeLabel.nullableKeys()));
+        entry.column(HugeKeys.INDEX_LABELS, writeIds(edgeLabel.indexLabels()));
+        entry.column(HugeKeys.PROPERTIES, writeIds(edgeLabel.properties()));
         writeUserData(edgeLabel, entry);
         return entry;
     }
 
     @Override
-    public EdgeLabel readEdgeLabel(BackendEntry backendEntry) {
+    public EdgeLabel readEdgeLabel(HugeGraph graph,
+                                   BackendEntry backendEntry) {
         if (backendEntry == null) {
             return null;
         }
@@ -516,7 +513,7 @@ public class TextSerializer extends AbstractSerializer {
         String properties = entry.column(HugeKeys.PROPERTIES);
         String indexLabels = entry.column(HugeKeys.INDEX_LABELS);
 
-        EdgeLabel edgeLabel = new EdgeLabel(id, name);
+        EdgeLabel edgeLabel = new EdgeLabel(graph, id, name);
         edgeLabel.sourceLabel(readId(sourceLabel));
         edgeLabel.targetLabel(readId(targetLabel));
         edgeLabel.frequency(JsonUtil.fromJson(frequency, Frequency.class));
@@ -536,14 +533,14 @@ public class TextSerializer extends AbstractSerializer {
                      JsonUtil.toJson(propertyKey.dataType()));
         entry.column(HugeKeys.CARDINALITY,
                      JsonUtil.toJson(propertyKey.cardinality()));
-        entry.column(HugeKeys.PROPERTIES,
-                     writeIds(propertyKey.properties(), HugeType.PROPERTY_KEY));
+        entry.column(HugeKeys.PROPERTIES, writeIds(propertyKey.properties()));
         writeUserData(propertyKey, entry);
         return entry;
     }
 
     @Override
-    public PropertyKey readPropertyKey(BackendEntry backendEntry) {
+    public PropertyKey readPropertyKey(HugeGraph graph,
+                                       BackendEntry backendEntry) {
         if (backendEntry == null) {
             return null;
         }
@@ -556,7 +553,7 @@ public class TextSerializer extends AbstractSerializer {
         String cardinality = entry.column(HugeKeys.CARDINALITY);
         String properties = entry.column(HugeKeys.PROPERTIES);
 
-        PropertyKey propertyKey = new PropertyKey(id, name);
+        PropertyKey propertyKey = new PropertyKey(graph, id, name);
         propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
         propertyKey.cardinality(JsonUtil.fromJson(cardinality,
                                                   Cardinality.class));
@@ -571,17 +568,16 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.NAME, JsonUtil.toJson(indexLabel.name()));
         entry.column(HugeKeys.BASE_TYPE,
                      JsonUtil.toJson(indexLabel.baseType()));
-        entry.column(HugeKeys.BASE_VALUE, writeId(indexLabel.baseValue(),
-                                                  indexLabel.baseType()));
+        entry.column(HugeKeys.BASE_VALUE, writeId(indexLabel.baseValue()));
         entry.column(HugeKeys.INDEX_TYPE,
                      JsonUtil.toJson(indexLabel.indexType()));
-        entry.column(HugeKeys.FIELDS,
-                     writeIds(indexLabel.indexFields(), HugeType.PROPERTY_KEY));
+        entry.column(HugeKeys.FIELDS, writeIds(indexLabel.indexFields()));
         return entry;
     }
 
     @Override
-    public IndexLabel readIndexLabel(BackendEntry backendEntry) {
+    public IndexLabel readIndexLabel(HugeGraph graph,
+                                     BackendEntry backendEntry) {
         if (backendEntry == null) {
             return null;
         }
@@ -595,7 +591,7 @@ public class TextSerializer extends AbstractSerializer {
         String indexType = entry.column(HugeKeys.INDEX_TYPE);
         String indexFields = entry.column(HugeKeys.FIELDS);
 
-        IndexLabel indexLabel = new IndexLabel(id, name);
+        IndexLabel indexLabel = new IndexLabel(graph, id, name);
         indexLabel.baseType(JsonUtil.fromJson(baseType, HugeType.class));
         indexLabel.baseValue(readId(baseValue));
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
@@ -635,10 +631,6 @@ public class TextSerializer extends AbstractSerializer {
         return IdUtil.readString(id);
     }
 
-    protected String writeId(Id id, HugeType type) {
-        return writeId(id);
-    }
-
     private static String writeId(Id id) {
         if (id.number()) {
             return JsonUtil.toJson(id.asLong());
@@ -659,10 +651,6 @@ public class TextSerializer extends AbstractSerializer {
 
     private static Id readId(Id id) {
         return readId(id.asString());
-    }
-
-    protected String writeIds(Collection<Id> ids, HugeType type) {
-        return writeIds(ids);
     }
 
     private static String writeIds(Collection<Id> ids) {

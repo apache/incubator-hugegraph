@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
@@ -35,8 +36,8 @@ public class VertexLabel extends SchemaLabel {
     private IdStrategy idStrategy;
     private List<Id> primaryKeys;
 
-    public VertexLabel(Id id, String name) {
-        super(id, name);
+    public VertexLabel(final HugeGraph graph, Id id, String name) {
+        super(graph, id, name);
         this.idStrategy = IdStrategy.DEFAULT;
         this.primaryKeys = new ArrayList<>();
     }

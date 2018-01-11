@@ -245,7 +245,7 @@ public class HugeGraph implements Graph {
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         return (I) builder.graph(this).onMapper(mapper ->
-            mapper.addRegistry(HugeGraphIoRegistry.instance(this))
+            mapper.addRegistry(HugeGraphIoRegistry.instance())
         ).create();
     }
 
@@ -369,12 +369,39 @@ public class HugeGraph implements Graph {
     }
 
     public List<String> mapPkId2Name(Collection<Id> ids) {
-        List<String> properties = new ArrayList<>(ids.size());
+        List<String> names = new ArrayList<>(ids.size());
         for (Id id : ids) {
             SchemaElement schema = this.propertyKey(id);
-            properties.add(schema.name());
+            names.add(schema.name());
         }
-        return properties;
+        return names;
+    }
+
+    public List<String> mapVlId2Name(Collection<Id> ids) {
+        List<String> names = new ArrayList<>(ids.size());
+        for (Id id : ids) {
+            SchemaElement schema = this.vertexLabel(id);
+            names.add(schema.name());
+        }
+        return names;
+    }
+
+    public List<String> mapElId2Name(Collection<Id> ids) {
+        List<String> names = new ArrayList<>(ids.size());
+        for (Id id : ids) {
+            SchemaElement schema = this.edgeLabel(id);
+            names.add(schema.name());
+        }
+        return names;
+    }
+
+    public List<String> mapIlId2Name(Collection<Id> ids) {
+        List<String> names = new ArrayList<>(ids.size());
+        for (Id id : ids) {
+            SchemaElement schema = this.indexLabel(id);
+            names.add(schema.name());
+        }
+        return names;
     }
 
     public List<Id> mapPkName2Id(Collection<String> pkeys) {

@@ -97,7 +97,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         IdQuery idQuery = new IdQuery(query.resultType(), query);
         while (entries.hasNext()) {
             BackendEntry entry = entries.next();
-            HugeIndex index = this.serializer.readIndex(entry, graph());
+            HugeIndex index = this.serializer.readIndex(graph(), entry);
             idQuery.query(index.elementIds());
         }
         if (idQuery.ids().isEmpty()) {

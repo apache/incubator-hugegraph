@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -67,8 +68,9 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
 
     @Override
     public IndexLabel build() {
+        HugeGraph graph = this.transaction.graph();
         Id id = this.transaction.getNextId(HugeType.INDEX_LABEL);
-        IndexLabel indexLabel = new IndexLabel(id, this.name);
+        IndexLabel indexLabel = new IndexLabel(graph, id, this.name);
         indexLabel.baseType(this.baseType);
         SchemaLabel schemaLabel = this.loadElement();
         indexLabel.baseValue(schemaLabel.id());

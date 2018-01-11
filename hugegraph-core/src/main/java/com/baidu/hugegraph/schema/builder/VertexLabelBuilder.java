@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
@@ -72,8 +73,9 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
 
     @Override
     public VertexLabel build() {
+        HugeGraph graph = this.transaction.graph();
         Id id = this.transaction.getNextId(HugeType.VERTEX_LABEL);
-        VertexLabel vertexLabel = new VertexLabel(id, this.name);
+        VertexLabel vertexLabel = new VertexLabel(graph, id, this.name);
         vertexLabel.idStrategy(this.idStrategy);
         // Assign properties
         for (String key : this.properties) {

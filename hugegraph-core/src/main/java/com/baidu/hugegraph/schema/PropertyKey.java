@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
@@ -38,8 +39,8 @@ public class PropertyKey extends SchemaElement {
     private DataType dataType;
     private Cardinality cardinality;
 
-    public PropertyKey(Id id, String name) {
-        super(id, name);
+    public PropertyKey(final HugeGraph graph, Id id, String name) {
+        super(graph, id, name);
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
     }

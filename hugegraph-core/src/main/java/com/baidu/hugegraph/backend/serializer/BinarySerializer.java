@@ -293,7 +293,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeVertex readVertex(BackendEntry bytesEntry, HugeGraph graph) {
+    public HugeVertex readVertex(HugeGraph graph, BackendEntry bytesEntry) {
         if (bytesEntry == null) {
             return null;
         }
@@ -333,7 +333,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeEdge readEdge(BackendEntry entry, HugeGraph graph) {
+    public HugeEdge readEdge(HugeGraph graph, BackendEntry entry) {
         throw new NotImplementedException("Unsupported readEdge()");
     }
 
@@ -373,7 +373,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeIndex readIndex(BackendEntry bytesEntry, HugeGraph graph) {
+    public HugeIndex readIndex(HugeGraph graph, BackendEntry bytesEntry) {
         if (bytesEntry == null) {
             return null;
         }
@@ -537,9 +537,9 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public VertexLabel readVertexLabel(BackendEntry entry) {
+    public VertexLabel readVertexLabel(HugeGraph graph, BackendEntry entry) {
         // TODO Auto-generated method stub
-        return this.textSerializer.readVertexLabel(bin2text(entry));
+        return this.textSerializer.readVertexLabel(graph, bin2text(entry));
     }
 
     @Override
@@ -549,9 +549,9 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public EdgeLabel readEdgeLabel(BackendEntry entry) {
+    public EdgeLabel readEdgeLabel(HugeGraph graph, BackendEntry entry) {
         // TODO Auto-generated method stub
-        return this.textSerializer.readEdgeLabel(bin2text(entry));
+        return this.textSerializer.readEdgeLabel(graph, bin2text(entry));
     }
 
     @Override
@@ -561,9 +561,9 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public PropertyKey readPropertyKey(BackendEntry entry) {
+    public PropertyKey readPropertyKey(HugeGraph graph, BackendEntry entry) {
         // TODO Auto-generated method stub
-        return this.textSerializer.readPropertyKey(bin2text(entry));
+        return this.textSerializer.readPropertyKey(graph, bin2text(entry));
     }
 
     @Override
@@ -573,8 +573,8 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public IndexLabel readIndexLabel(BackendEntry entry) {
+    public IndexLabel readIndexLabel(HugeGraph graph, BackendEntry entry) {
         // TODO Auto-generated method stub
-        return this.textSerializer.readIndexLabel(bin2text(entry));
+        return this.textSerializer.readIndexLabel(graph, bin2text(entry));
     }
 }

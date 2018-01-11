@@ -389,13 +389,13 @@ public class SchemaTransaction extends IndexableTransaction {
     private <T> T deserialize(BackendEntry entry, HugeType type) {
         switch (type) {
             case PROPERTY_KEY:
-                return (T) this.serializer.readPropertyKey(entry);
+                return (T) this.serializer.readPropertyKey(this.graph(), entry);
             case VERTEX_LABEL:
-                return (T) this.serializer.readVertexLabel(entry);
+                return (T) this.serializer.readVertexLabel(this.graph(), entry);
             case EDGE_LABEL:
-                return (T) this.serializer.readEdgeLabel(entry);
+                return (T) this.serializer.readEdgeLabel(this.graph(), entry);
             case INDEX_LABEL:
-                return (T) this.serializer.readIndexLabel(entry);
+                return (T) this.serializer.readIndexLabel(this.graph(), entry);
             default:
                 throw new AssertionError(String.format(
                           "Unknown schema type '%s'", type));

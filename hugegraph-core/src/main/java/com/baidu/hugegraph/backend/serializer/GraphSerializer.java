@@ -34,14 +34,14 @@ public interface GraphSerializer {
 
     public BackendEntry writeVertex(HugeVertex vertex);
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop);
-    public HugeVertex readVertex(BackendEntry entry, HugeGraph graph);
+    public HugeVertex readVertex(HugeGraph graph, BackendEntry entry);
 
     public BackendEntry writeEdge(HugeEdge edge);
     public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop);
-    public HugeEdge readEdge(BackendEntry entry, HugeGraph graph);
+    public HugeEdge readEdge(HugeGraph graph, BackendEntry entry);
 
     public BackendEntry writeIndex(HugeIndex index);
-    public HugeIndex readIndex(BackendEntry entry, HugeGraph graph);
+    public HugeIndex readIndex(HugeGraph graph, BackendEntry entry);
 
     public BackendEntry writeId(HugeType type, Id id);
     public Query writeQuery(Query query);
