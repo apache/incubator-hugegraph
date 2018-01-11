@@ -38,8 +38,8 @@ public abstract class SchemaLabel extends SchemaElement
     private Set<Id> nullableKeys;
     private Set<Id> indexLabels;
 
-    public SchemaLabel(Id id, String name) {
-        super(id, name);
+    public SchemaLabel(final HugeGraph graph, Id id, String name) {
+        super(graph, id, name);
         this.nullableKeys = new HashSet<>();
         this.indexLabels = new HashSet<>();
     }

@@ -22,6 +22,7 @@ package com.baidu.hugegraph.schema.builder;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
@@ -56,8 +57,9 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
 
     @Override
     public PropertyKey build() {
+        HugeGraph graph = this.transaction.graph();
         Id id = this.transaction.getNextId(HugeType.PROPERTY_KEY);
-        PropertyKey propertyKey = new PropertyKey(id, this.name);
+        PropertyKey propertyKey = new PropertyKey(graph, id, this.name);
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
         for (String key : this.userData.keySet()) {

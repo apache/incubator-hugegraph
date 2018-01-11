@@ -399,7 +399,7 @@ public class GraphTransaction extends IndexableTransaction {
                 // Query from backend store
                 try {
                     BackendEntry entry = this.get(HugeType.VERTEX, id);
-                    vertex = this.serializer.readVertex(entry, this.graph());
+                    vertex = this.serializer.readVertex(this.graph(), entry);
                 } catch (NotFoundException ignored) {
                     continue;
                 }
@@ -422,7 +422,7 @@ public class GraphTransaction extends IndexableTransaction {
         Iterator<BackendEntry> entries = this.query(query);
 
         Iterator<HugeVertex> results = new MapperIterator<>(entries, entry -> {
-            HugeVertex vertex = this.serializer.readVertex(entry, graph());
+            HugeVertex vertex = this.serializer.readVertex(graph(), entry);
             assert vertex != null;
             return vertex;
         });
@@ -517,7 +517,7 @@ public class GraphTransaction extends IndexableTransaction {
                 } catch (NotFoundException ignored) {
                     continue;
                 }
-                HugeVertex vertex = this.serializer.readVertex(entry, graph());
+                HugeVertex vertex = this.serializer.readVertex(graph(), entry);
                 assert vertex != null;
                 assert vertex.getEdges().size() == 1;
                 results.addAll(vertex.getEdges());
@@ -539,7 +539,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         Function<BackendEntry, Iterator<HugeEdge>> mapper = entry -> {
             // Edges are in a vertex
-            HugeVertex vertex = this.serializer.readVertex(entry, graph());
+            HugeVertex vertex = this.serializer.readVertex(graph(), entry);
             assert vertex != null;
             // Copy to avoid ConcurrentModificationException when removing edge
             return ImmutableList.copyOf(vertex.getEdges()).iterator();

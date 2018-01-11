@@ -108,7 +108,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             for (Iterator<BackendEntry> itor = super.query(q);
                  itor.hasNext();) {
                 BackendEntry entry = itor.next();
-                HugeIndex index = this.serializer.readIndex(entry, graph());
+                HugeIndex index = this.serializer.readIndex(graph(), entry);
                 if (index.elementIds().contains(element.id())) {
                     index.resetElementIds();
                     index.elementIds(element.id());
@@ -352,7 +352,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             Iterator<BackendEntry> entries = super.query(query);
             while(entries.hasNext()) {
                 BackendEntry entry = entries.next();
-                HugeIndex index = this.serializer.readIndex(entry, graph());
+                HugeIndex index = this.serializer.readIndex(graph(), entry);
                 ids.addAll(index.elementIds());
             }
         } finally {

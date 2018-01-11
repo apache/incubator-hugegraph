@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
@@ -74,8 +75,9 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
 
     @Override
     public EdgeLabel build() {
+        HugeGraph graph = this.transaction.graph();
         Id id = this.transaction.getNextId(HugeType.EDGE_LABEL);
-        EdgeLabel edgeLabel = new EdgeLabel(id, this.name);
+        EdgeLabel edgeLabel = new EdgeLabel(graph, id, this.name);
         edgeLabel.sourceLabel(this.transaction.getVertexLabel(
                               this.sourceLabel).id());
         edgeLabel.targetLabel(this.transaction.getVertexLabel(

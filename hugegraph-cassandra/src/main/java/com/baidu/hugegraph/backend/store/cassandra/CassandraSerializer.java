@@ -227,7 +227,7 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeVertex readVertex(BackendEntry backendEntry, HugeGraph graph) {
+    public HugeVertex readVertex(HugeGraph graph, BackendEntry backendEntry) {
         E.checkNotNull(graph, "serializer graph");
         if (backendEntry == null) {
             return null;
@@ -286,7 +286,7 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeEdge readEdge(BackendEntry backendEntry, HugeGraph graph) {
+    public HugeEdge readEdge(HugeGraph graph, BackendEntry backendEntry) {
         E.checkNotNull(graph, "serializer graph");
         if (backendEntry == null) {
             return null;
@@ -317,7 +317,7 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeIndex readIndex(BackendEntry backendEntry, HugeGraph graph) {
+    public HugeIndex readIndex(HugeGraph graph, BackendEntry backendEntry) {
         E.checkNotNull(graph, "serializer graph");
         if (backendEntry == null) {
             return null;
@@ -440,7 +440,8 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public VertexLabel readVertexLabel(BackendEntry backendEntry) {
+    public VertexLabel readVertexLabel(HugeGraph graph,
+                                       BackendEntry backendEntry) {
         if (backendEntry == null) {
             return null;
         }
@@ -455,7 +456,7 @@ public class CassandraSerializer extends AbstractSerializer {
         Set<Number> nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         Set<Number> indexLabels = entry.column(HugeKeys.INDEX_LABELS);
 
-        VertexLabel vertexLabel = new VertexLabel(toId(id), name);
+        VertexLabel vertexLabel = new VertexLabel(graph, toId(id), name);
         vertexLabel.idStrategy(SerialEnum.fromCode(IdStrategy.class,
                                                    idStrategy));
         vertexLabel.properties(toIdArray(properties));
@@ -467,7 +468,7 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public EdgeLabel readEdgeLabel(BackendEntry backendEntry) {
+    public EdgeLabel readEdgeLabel(HugeGraph graph, BackendEntry backendEntry) {
         if (backendEntry == null) {
             return null;
         }
@@ -484,7 +485,7 @@ public class CassandraSerializer extends AbstractSerializer {
         Set<Number> properties = entry.column(HugeKeys.PROPERTIES);
         Set<Number> indexLabels = entry.column(HugeKeys.INDEX_LABELS);
 
-        EdgeLabel edgeLabel = new EdgeLabel(toId(id), name);
+        EdgeLabel edgeLabel = new EdgeLabel(graph, toId(id), name);
         edgeLabel.frequency(SerialEnum.fromCode(Frequency.class, frequency));
         edgeLabel.sourceLabel(toId(sourceLabel));
         edgeLabel.targetLabel(toId(targetLabel));
@@ -497,7 +498,8 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public PropertyKey readPropertyKey(BackendEntry backendEntry) {
+    public PropertyKey readPropertyKey(HugeGraph graph,
+                                       BackendEntry backendEntry) {
         if (backendEntry == null) {
             return null;
         }
@@ -510,7 +512,7 @@ public class CassandraSerializer extends AbstractSerializer {
         Byte cardinality = entry.column(HugeKeys.CARDINALITY);
         Set<Number> properties = entry.column(HugeKeys.PROPERTIES);
 
-        PropertyKey propertyKey = new PropertyKey(toId(id),name);
+        PropertyKey propertyKey = new PropertyKey(graph, toId(id),name);
         propertyKey.dataType(SerialEnum.fromCode(DataType.class, dataType));
         propertyKey.cardinality(SerialEnum.fromCode(Cardinality.class,
                                                     cardinality));
@@ -533,8 +535,8 @@ public class CassandraSerializer extends AbstractSerializer {
     }
 
     @Override
-    public IndexLabel readIndexLabel(BackendEntry backendEntry) {
-
+    public IndexLabel readIndexLabel(HugeGraph graph,
+                                     BackendEntry backendEntry) {
         if (backendEntry == null) {
             return null;
         }
@@ -548,7 +550,7 @@ public class CassandraSerializer extends AbstractSerializer {
         Byte indexType = entry.column(HugeKeys.INDEX_TYPE);
         List<Number> indexFields = entry.column(HugeKeys.FIELDS);
 
-        IndexLabel indexLabel = new IndexLabel(toId(id), name);
+        IndexLabel indexLabel = new IndexLabel(graph, toId(id), name);
         indexLabel.baseType(SerialEnum.fromCode(HugeType.class, baseType));
         indexLabel.baseValue(toId(baseValueId));
         indexLabel.indexType(SerialEnum.fromCode(IndexType.class, indexType));

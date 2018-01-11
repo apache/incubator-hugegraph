@@ -41,14 +41,14 @@ public class IndexLabel extends SchemaElement {
     private IndexType indexType;
     private List<Id> indexFields;
 
-    public IndexLabel(Id id, String name) {
-        super(id, name);
+    public IndexLabel(final HugeGraph graph, Id id, String name) {
+        super(graph, id, name);
         this.indexType = IndexType.SECONDARY;
         this.indexFields = new ArrayList<>();
     }
 
     protected IndexLabel(long id, String name) {
-        this(IdGenerator.of(id), name);
+        this(null, IdGenerator.of(id), name);
     }
 
     @Override
