@@ -279,7 +279,7 @@ public class HugeGraph implements Graph {
 
     public PropertyKey propertyKey(Id id) {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(id);
-        E.checkArgument(pk != null, "Undefined property key: '%s'", id);
+        E.checkArgument(pk != null, "Undefined property key id: '%s'", id);
         return pk;
     }
 
@@ -291,7 +291,7 @@ public class HugeGraph implements Graph {
 
     public VertexLabel vertexLabel(Id id) {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(id);
-        E.checkArgument(vl != null, "Undefined vertex label: '%s'", id);
+        E.checkArgument(vl != null, "Undefined vertex label id: '%s'", id);
         return vl;
     }
 
@@ -303,7 +303,7 @@ public class HugeGraph implements Graph {
 
     public EdgeLabel edgeLabel(Id id) {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(id);
-        E.checkArgument(el != null, "Undefined edge label: '%s'", id);
+        E.checkArgument(el != null, "Undefined edge label id: '%s'", id);
         return el;
     }
 
@@ -315,7 +315,7 @@ public class HugeGraph implements Graph {
 
     public IndexLabel indexLabel(Id id) {
         IndexLabel il = this.schemaTransaction().getIndexLabel(id);
-        E.checkArgument(il != null, "Undefined index label: '%s'", id);
+        E.checkArgument(il != null, "Undefined index label id: '%s'", id);
         return il;
     }
 

@@ -191,7 +191,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(indexLabelId);
         E.checkArgumentNotNull(indexLabel,
-                               "Not exist index label: '%s'", indexLabelId);
+                               "Not exist index label id: '%s'", indexLabelId);
 
         List<Object> propValues = new ArrayList<>();
         for (Id fieldId : indexLabel.indexFields()) {
@@ -199,7 +199,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (property == null) {
                 E.checkState(hasNullableProp(element, fieldId),
                              "Non-null property '%s' is null for '%s'",
-                             fieldId, element);
+                             this.graph().propertyKey(fieldId) , element);
                 // Not build index for record with nullable field
                 break;
             }
@@ -307,7 +307,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // related index labels
         Set<MatchedLabel> labels = collectMatchedLabels(query);
         if (labels.isEmpty()) {
-            throw noIndexException(query, "<any label>");
+            throw noIndexException(this.graph(), query, "<any label>");
         }
 
         // Value type of Condition not matched
@@ -702,7 +702,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return null;
         }
         LOG.debug("Matched index fields: {} of index '{}'",
-                  indexFields, indexLabel.name());
+                  indexFields, indexLabel);
 
         ConditionQuery indexQuery;
         if (indexLabel.indexType() == IndexType.SECONDARY) {
@@ -758,7 +758,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             Set<Object> values = query.userpropValue(key);
             E.checkState(!values.isEmpty(),
                          "Expect user property values for key '%s', " +
-                         "but got null", key);
+                         "but got null", this.graph().propertyKey(key));
             for (Object value : values) {
                 if (!pk.checkValue(value)) {
                     return false;
@@ -768,11 +768,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return true;
     }
 
-    private static BackendException noIndexException(ConditionQuery query,
+    private static BackendException noIndexException(HugeGraph graph,
+                                                     ConditionQuery query,
                                                      String label) {
         return new BackendException("Don't accept query based on properties " +
                                     "%s that are not indexed in label '%s'",
-                                    query.userpropKeys(), label);
+                                    graph.mapPkId2Name(query.userpropKeys()),
+                                    label);
     }
 
     private static boolean hasNullableProp(HugeElement element, Id key) {
