@@ -35,6 +35,7 @@ import org.rocksdb.ColumnFamilyOptionsInterface;
 import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
 import org.rocksdb.Options;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
@@ -170,10 +171,15 @@ public class RocksDBSessions extends BackendSessionPool {
             db.setCreateIfMissing(true);
 
             // Optimize RocksDB
-            //db.setIncreaseParallelism(4);
+            final int processors = Runtime.getRuntime().availableProcessors();
+            db.setIncreaseParallelism(processors);
         }
 
         if (cf != null) {
+            // Optimize RocksDB
+            cf.optimizeLevelStyleCompaction();
+            cf.optimizeUniversalStyleCompaction();
+
             // https://github.com/facebook/rocksdb/tree/master/utilities/merge_operators
             cf.setMergeOperatorName("uint64add"); // uint64add/stringappend
         }
@@ -335,14 +341,20 @@ public class RocksDBSessions extends BackendSessionPool {
          * Scan all records from a table
          */
         public Iterator<BackendColumn> scan(String table) {
-            return scan(table, null, null, false);
+            assert !this.hasChanges();
+            RocksIterator itor = rocksdb().newIterator(cf(table));
+            return new ColumnIterator(table, itor, null, null, false);
         }
 
         /**
          * Scan records by key prefix from a table
          */
-        public Iterator<BackendColumn> scan(String table, byte[] key) {
-            return scan(table, key, null, true);
+        public Iterator<BackendColumn> scan(String table, byte[] prefix) {
+            assert !this.hasChanges();
+            // NOTE: Options.prefix_extractor is a prerequisite
+            //ReadOptions.setPrefixSameAsStart(true);
+            RocksIterator itor = rocksdb().newIterator(cf(table));
+            return new ColumnIterator(table, itor, prefix, null, true);
         }
 
         /**
@@ -351,19 +363,11 @@ public class RocksDBSessions extends BackendSessionPool {
         public Iterator<BackendColumn> scan(String table,
                                             byte[] keyFrom,
                                             byte[] keyTo) {
-            return scan(table, keyFrom, keyTo, false);
-        }
-
-        /**
-         * Scan records by key prefix or key range from a table
-         */
-        public Iterator<BackendColumn> scan(String table,
-                                            byte[] keyFrom,
-                                            byte[] keyTo,
-                                            boolean matchPrefix) {
             assert !this.hasChanges();
-            RocksIterator itor = rocksdb().newIterator(cf(table));
-            return new ColumnIterator(table, itor, keyFrom, keyTo, matchPrefix);
+            ReadOptions options = new ReadOptions();
+            options.setTotalOrderSeek(true); // Not sure if it must be set
+            RocksIterator itor = rocksdb().newIterator(cf(table), options);
+            return new ColumnIterator(table, itor, keyFrom, keyTo, false);
         }
     }
 
@@ -431,7 +435,7 @@ public class RocksDBSessions extends BackendSessionPool {
             boolean matched = false;
             if (this.itor.isOwningHandle() && this.itor.isValid()) {
                 if (this.matchPrefix) {
-                    // Prefix match? TODO: use prefix_extractor instead
+                    // Prefix match? TODO: use custom prefix_extractor instead
                     matched = Bytes.prefixWith(this.itor.key(), this.keyBegin);
                 } else if (this.keyEnd != null) {
                     // Range match?
