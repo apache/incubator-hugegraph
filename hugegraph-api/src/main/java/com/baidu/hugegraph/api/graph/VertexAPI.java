@@ -77,7 +77,7 @@ public class VertexAPI extends API {
                          @PathParam("graph") String graph,
                          JsonVertex jsonVertex) {
         LOG.debug("Graph [{}] create vertex: {}", graph, jsonVertex);
-        checkBody(jsonVertex);
+        checkCreatingBody(jsonVertex);
 
         HugeGraph g = graph(manager, graph);
         Vertex vertex = commit(g, () -> g.addVertex(jsonVertex.properties()));
@@ -95,7 +95,7 @@ public class VertexAPI extends API {
                                @PathParam("graph") String graph,
                                List<JsonVertex> jsonVertices) {
         LOG.debug("Graph [{}] create vertices: {}", graph, jsonVertices);
-        checkBody(jsonVertices);
+        checkCreatingBody(jsonVertices);
 
         HugeGraph g = graph(manager, graph);
         checkBatchCount(g, jsonVertices);
@@ -119,7 +119,7 @@ public class VertexAPI extends API {
                          @QueryParam("action") String action,
                          JsonVertex jsonVertex) {
         LOG.debug("Graph [{}] update vertex: {}", graph, jsonVertex);
-        checkBody(jsonVertex);
+        checkUpdatingBody(jsonVertex);
 
         Id id = checkAndParseVertexId(idValue);
         // Parse action param
@@ -244,9 +244,14 @@ public class VertexAPI extends API {
         public String type;
 
         @Override
-        public void check(boolean isBatch) {
+        public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.label,
                                    "The label of vertex can't be null");
+            this.checkUpdate();
+        }
+
+        @Override
+        public void checkUpdate() {
             E.checkArgumentNotNull(this.properties,
                                    "The properties of vertex can't be null");
 

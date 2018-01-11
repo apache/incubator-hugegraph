@@ -114,15 +114,20 @@ public class API {
         }
     }
 
-    protected static void checkBody(Checkable body) {
+    protected static void checkCreatingBody(Checkable body) {
         E.checkArgumentNotNull(body, "The request body can't be empty");
-        body.check(false);
+        body.checkCreate(false);
     }
 
-    protected static void checkBody(Collection<? extends Checkable> bodys) {
+    protected static void checkUpdatingBody(Checkable body) {
+        E.checkArgumentNotNull(body, "The request body can't be empty");
+        body.checkUpdate();
+    }
+
+    protected static void checkCreatingBody(Collection<? extends Checkable> bodys) {
         E.checkArgumentNotNull(bodys, "The request body can't be empty");
         for (Checkable body : bodys) {
-            body.check(true);
+            body.checkCreate(true);
         }
     }
 
