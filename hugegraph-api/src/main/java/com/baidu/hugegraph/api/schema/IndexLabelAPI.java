@@ -58,7 +58,7 @@ public class IndexLabelAPI extends API {
                          @PathParam("graph") String graph,
                          JsonIndexLabel jsonIndexLabel) {
         LOG.debug("Graph [{}] create index label: {}", graph, jsonIndexLabel);
-        checkBody(jsonIndexLabel);
+        checkCreatingBody(jsonIndexLabel);
 
         HugeGraph g = graph(manager, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
@@ -125,7 +125,7 @@ public class IndexLabelAPI extends API {
         public Boolean checkExist;
 
         @Override
-        public void check(boolean isBatch) {
+        public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
                                    "The name of index label can't be null");
             E.checkArgumentNotNull(this.baseType,

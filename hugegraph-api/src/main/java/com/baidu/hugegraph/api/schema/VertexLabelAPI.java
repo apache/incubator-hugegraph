@@ -61,7 +61,7 @@ public class VertexLabelAPI extends API {
                          JsonVertexLabel jsonVertexLabel) {
         LOG.debug("Graph [{}] create vertex label: {}",
                   graph, jsonVertexLabel);
-        checkBody(jsonVertexLabel);
+        checkCreatingBody(jsonVertexLabel);
 
         HugeGraph g = graph(manager, graph);
         VertexLabel.Builder builder = jsonVertexLabel.convert2Builder(g);
@@ -80,7 +80,10 @@ public class VertexLabelAPI extends API {
                          JsonVertexLabel jsonVertexLabel) {
         LOG.debug("Graph [{}] {} vertex label: {}",
                   graph, action, jsonVertexLabel);
-        checkBody(jsonVertexLabel);
+        checkUpdatingBody(jsonVertexLabel);
+        E.checkArgument(name.equals(jsonVertexLabel.name),
+                        "The name in url(%s) and body(%s) are different",
+                        name, jsonVertexLabel.name);
         // Parse action param
         boolean append = checkAndParseAction(action);
 
@@ -153,7 +156,7 @@ public class VertexLabelAPI extends API {
         public Boolean checkExist;
 
         @Override
-        public void check(boolean isBatch) {
+        public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
                                    "The name of vertex label can't be null");
         }

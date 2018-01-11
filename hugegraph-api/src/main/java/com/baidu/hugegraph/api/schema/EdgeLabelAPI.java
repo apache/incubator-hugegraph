@@ -60,7 +60,7 @@ public class EdgeLabelAPI extends API {
                          @PathParam("graph") String graph,
                          JsonEdgeLabel jsonEdgeLabel) {
         LOG.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
-        checkBody(jsonEdgeLabel);
+        checkCreatingBody(jsonEdgeLabel);
 
         HugeGraph g = graph(manager, graph);
         EdgeLabel.Builder builder = jsonEdgeLabel.convert2Builder(g);
@@ -79,7 +79,10 @@ public class EdgeLabelAPI extends API {
                          JsonEdgeLabel jsonEdgeLabel) {
         LOG.debug("Graph [{}] {} edge label: {}",
                   graph, action, jsonEdgeLabel);
-        checkBody(jsonEdgeLabel);
+        checkUpdatingBody(jsonEdgeLabel);
+        E.checkArgument(name.equals(jsonEdgeLabel.name),
+                        "The name in url(%s) and body(%s) are different",
+                        name, jsonEdgeLabel.name);
         // Parse action param
         boolean append = checkAndParseAction(action);
 
@@ -154,7 +157,7 @@ public class EdgeLabelAPI extends API {
         public Boolean checkExist;
 
         @Override
-        public void check(boolean isBatch) {
+        public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
                                    "The name of edge label can't be null");
         }

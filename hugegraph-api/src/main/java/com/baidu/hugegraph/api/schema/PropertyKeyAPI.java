@@ -60,7 +60,7 @@ public class PropertyKeyAPI extends API {
                          JsonPropertyKey jsonPropertyKey) {
         LOG.debug("Graph [{}] create property key: {}",
                   graph, jsonPropertyKey);
-        checkBody(jsonPropertyKey);
+        checkCreatingBody(jsonPropertyKey);
 
         HugeGraph g = graph(manager, graph);
         PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
@@ -127,7 +127,7 @@ public class PropertyKeyAPI extends API {
         public Boolean checkExist;
 
         @Override
-        public void check(boolean isBatch) {
+        public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
                                    "The name of property key can't be null");
             E.checkArgument(this.properties == null ||

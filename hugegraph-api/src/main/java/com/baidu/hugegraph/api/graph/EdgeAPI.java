@@ -81,7 +81,7 @@ public class EdgeAPI extends API {
                          @PathParam("graph") String graph,
                          JsonEdge jsonEdge) {
         LOG.debug("Graph [{}] create edge: {}", graph, jsonEdge);
-        checkBody(jsonEdge);
+        checkCreatingBody(jsonEdge);
 
         HugeGraph g = graph(manager, graph);
 
@@ -123,7 +123,7 @@ public class EdgeAPI extends API {
                                @DefaultValue("true") boolean checkVertex,
                                List<JsonEdge> jsonEdges) {
         LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
-        checkBody(jsonEdges);
+        checkCreatingBody(jsonEdges);
 
         HugeGraph g = graph(manager, graph);
         checkBatchCount(g, jsonEdges);
@@ -161,7 +161,7 @@ public class EdgeAPI extends API {
                          @QueryParam("action") String action,
                          JsonEdge jsonEdge) {
         LOG.debug("Graph [{}] update edge: {}", graph, jsonEdge);
-        checkBody(jsonEdge);
+        checkUpdatingBody(jsonEdge);
 
         if (jsonEdge.id != null) {
             E.checkArgument(id.equals(jsonEdge.id),
@@ -327,7 +327,7 @@ public class EdgeAPI extends API {
         public String type;
 
         @Override
-        public void check(boolean isBatch) {
+        public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.label, "Expect the label of edge");
             E.checkArgumentNotNull(this.source, "Expect source vertex id");
             E.checkArgumentNotNull(this.target, "Expect target vertex id");
@@ -344,6 +344,11 @@ public class EdgeAPI extends API {
                                 "The both source and target vertex label " +
                                 "are either passed in, or not passed in");
             }
+            this.checkUpdate();
+        }
+
+        @Override
+        public void checkUpdate() {
             E.checkArgumentNotNull(this.properties,
                                    "The properties of edge can't be null");
 
