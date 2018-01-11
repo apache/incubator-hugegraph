@@ -331,20 +331,24 @@ public class GraphTransaction extends IndexableTransaction {
             E.checkArgument(CollectionUtil.containsAll(keys, primaryKeys),
                             "The primary keys: %s of vertex label '%s' " +
                             "must be set when using '%s' id strategy",
-                            primaryKeys, vertexLabel.name(), strategy);
-
+                            this.graph().mapPkId2Name(primaryKeys),
+                            vertexLabel.name(), strategy);
         }
 
         // Check weather passed all non-null props
-        Collection<?> nonNullKeys = CollectionUtils.subtract(
-                                    vertexLabel.properties(),
-                                    vertexLabel.nullableKeys());
+        @SuppressWarnings("unchecked")
+        Collection<Id> nonNullKeys = CollectionUtils.subtract(
+                                     vertexLabel.properties(),
+                                     vertexLabel.nullableKeys());
         if (!keys.containsAll(nonNullKeys)) {
+            @SuppressWarnings("unchecked")
+            Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             E.checkArgument(false, "All non-null property keys: %s " +
                             "of vertex label '%s' must be setted, " +
                             "but missed keys: %s",
-                            nonNullKeys, vertexLabel.name(),
-                            CollectionUtils.subtract(nonNullKeys, keys));
+                            this.graph().mapPkId2Name(nonNullKeys),
+                            vertexLabel.name(),
+                            this.graph().mapPkId2Name(missed));
         }
 
         // Create HugeVertex

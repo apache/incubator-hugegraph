@@ -166,7 +166,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         for (Id pk : primaryKeys) {
             HugeProperty<?> property = this.getProperty(pk);
             E.checkState(property != null,
-                         "The value of primary key '%s' can't be null", pk);
+                         "The value of primary key '%s' can't be null",
+                         this.graph().propertyKey(pk).name());
             propValues.add(property.value());
         }
         return propValues;
@@ -218,22 +219,26 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                         "Undefined link of edge label '%s': '%s' -> '%s'",
                         label, this.label(), vertex.label());
         // Check sortKeys
-        List<Id> pkeys = this.graph().mapPkName2Id(elemKeys.keys());
-        E.checkArgument(CollectionUtil.containsAll(pkeys,
+        List<Id> keys = this.graph().mapPkName2Id(elemKeys.keys());
+        E.checkArgument(CollectionUtil.containsAll(keys,
                         edgeLabel.sortKeys()),
                         "The sort key(s) must be setted for the edge " +
                         "with label: '%s'", edgeLabel.name());
 
         // Check weather passed all non-null props
-        Collection<?> nonNullKeys = CollectionUtils.subtract(
+        @SuppressWarnings("unchecked")
+        Collection<Id> nonNullKeys = CollectionUtils.subtract(
                                     edgeLabel.properties(),
                                     edgeLabel.nullableKeys());
-        if (!pkeys.containsAll(nonNullKeys)) {
+        if (!keys.containsAll(nonNullKeys)) {
+            @SuppressWarnings("unchecked")
+            Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             E.checkArgument(false, "All non-null property keys: %s " +
                             "of edge label '%s' must be setted, " +
                             "but missed keys: %s",
-                            nonNullKeys, edgeLabel.name(),
-                            CollectionUtils.subtract(nonNullKeys, pkeys));
+                            this.graph().mapPkId2Name(nonNullKeys),
+                            edgeLabel.name(),
+                            this.graph().mapPkId2Name(missed));
         }
 
         HugeEdge edge = new HugeEdge(this, id, edgeLabel);

@@ -119,7 +119,7 @@ public class SchemaTransaction extends IndexableTransaction {
                 throw new NotAllowException(
                           "Not allowed to remove property key: '%s' " +
                           "because the vertex label '%s' is still using it.",
-                          id, vertexLabel.name());
+                          propertyKey, vertexLabel.name());
             }
         }
 
@@ -129,7 +129,7 @@ public class SchemaTransaction extends IndexableTransaction {
                 throw new NotAllowException(
                           "Not allowed to remove property key: '%s' " +
                           "because the edge label '%s' is still using it.",
-                          id, edgeLabel.name());
+                          propertyKey, edgeLabel.name());
             }
         }
 
