@@ -86,9 +86,7 @@ public final class HugeGraphStep<S, E extends Element>
                                                      q, graph);
         }
 
-        query.orders(this.queryInfo.orders());
-        query.offset(this.queryInfo.offset());
-        query.limit(this.queryInfo.limit());
+        query = this.injectQueryInfo(query);
 
         @SuppressWarnings("unchecked")
         Iterator<E> result = (Iterator<E>) graph.vertices(query);
@@ -117,6 +115,7 @@ public final class HugeGraphStep<S, E extends Element>
         }
 
         query = this.injectQueryInfo(query);
+
         /*
          * NOTE: double limit because of duplicate edges(when BOTH Direction)
          * TODO: the `this.limit * 2` maybe will overflow.
