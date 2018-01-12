@@ -65,6 +65,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.variables.HugeVariables;
+import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * HugeGraph is the entrance of the graph system, you can modify or query
@@ -89,30 +90,35 @@ public class HugeGraph implements Graph {
         LockUtil.init();
     }
 
-    private String name;
+    private final String name;
     private boolean closed;
 
-    private EventHub schemaEventHub;
-    private EventHub indexEventHub;
-    private HugeFeatures features;
-    private HugeConfig configuration;
+    private final HugeConfig configuration;
+
+    private final EventHub schemaEventHub;
+    private final EventHub indexEventHub;
+    private final RateLimiter rateLimiter;
+
+    private final HugeFeatures features;
+
+    private final BackendStoreProvider storeProvider;
+    private final TinkerpopTransaction tx;
+
     private HugeVariables variables;
-
-    private BackendStoreProvider storeProvider;
-
-    private TinkerpopTransaction tx;
 
     public HugeGraph(HugeConfig configuration) {
         this.configuration = configuration;
 
         this.schemaEventHub = new EventHub("schema");
         this.indexEventHub = new EventHub("index");
+
+        final int limit = configuration.get(CoreOptions.RATE_LIMIT);
+        this.rateLimiter = limit > 0 ? RateLimiter.create(limit) : null;
+
         this.features = new HugeFeatures(this, true);
 
         this.name = configuration.get(CoreOptions.STORE);
         this.closed = false;
-
-        this.variables = null;
 
         try {
             this.storeProvider = this.loadStoreProvider();
@@ -123,6 +129,8 @@ public class HugeGraph implements Graph {
         }
 
         this.tx = new TinkerpopTransaction(this);
+
+        this.variables = null;
     }
 
     private BackendStoreProvider loadStoreProvider() {
@@ -146,6 +154,10 @@ public class HugeGraph implements Graph {
 
     public EventHub indexEventHub() {
         return this.indexEventHub;
+    }
+
+    public RateLimiter rateLimiter() {
+        return this.rateLimiter;
     }
 
     public void initBackend() {

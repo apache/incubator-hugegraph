@@ -90,6 +90,14 @@ public class CoreOptions extends OptionHolder {
                     "text"
             );
 
+    public static final ConfigOption<Integer> RATE_LIMIT =
+            new ConfigOption<>(
+                    "rate_limit",
+                    "The max rate(items/s) to add/update/delete vertices/edges.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    0
+            );
+
     public static final ConfigOption<String> VERTEX_DEFAULT_LABEL =
             new ConfigOption<>(
                     "vertex.default_label",

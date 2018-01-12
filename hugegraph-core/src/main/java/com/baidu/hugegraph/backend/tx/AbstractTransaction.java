@@ -39,6 +39,7 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.util.concurrent.RateLimiter;
 
 public abstract class AbstractTransaction implements Transaction {
 
@@ -140,18 +141,28 @@ public abstract class AbstractTransaction implements Transaction {
             // It is not allowed to recursively commit in a transaction
             return;
         }
+
+        if (!this.hasUpdates()) {
+            LOG.debug("Transaction has no data to commit({})", store());
+            return;
+        }
+
+        // Do rate limit if need
+        RateLimiter rateLimiter = this.graph.rateLimiter();
+        if (rateLimiter != null) {
+            int size = this.mutationSize();
+            assert size > 0;
+            double time = rateLimiter.acquire(size);
+            if (time > 0) {
+                LOG.debug("Waited for {}s to mutate {} item(s)", time, size);
+            }
+        }
+
+        // Do commit
         assert !this.committing : "Not allowed to commit when it's committing";
         this.committing = true;
         try {
-            BackendMutation mutation = this.prepareCommit();
-            if (mutation.isEmpty()) {
-                LOG.debug("Transaction has no data to commit({})", store());
-                return;
-            }
-
-            this.committing2Backend = true;
-            this.commit2Backend(mutation);
-            this.committing2Backend = false;
+            this.commit2Backend();
         } finally {
             this.committing = false;
             this.reset();
@@ -169,13 +180,69 @@ public abstract class AbstractTransaction implements Transaction {
         }
     }
 
+    @Watched(prefix = "tx")
+    @Override
+    public void close() {
+        if (this.hasUpdates()) {
+            throw new BackendException("There are still changes to commit");
+        }
+        if (this.closed) {
+            return;
+        }
+        this.closed = true;
+        this.autoCommit = true; /* Let call after close() fail to commit */
+        this.store().close();
+    }
+
     @Override
     public boolean autoCommit() {
         return this.autoCommit;
     }
 
+    public boolean hasUpdates() {
+        return !this.mutation.isEmpty();
+    }
+
+    public int mutationSize() {
+        return this.mutation.size();
+    }
+
     protected void autoCommit(boolean autoCommit) {
         this.autoCommit = autoCommit;
+    }
+
+    protected void reset() {
+        this.mutation = new BackendMutation();
+    }
+
+    protected BackendMutation mutation() {
+        return this.mutation;
+    }
+
+    protected void commit2Backend() {
+        BackendMutation mutation = this.prepareCommit();
+        assert !mutation.isEmpty();
+        this.commitMutation2Backend(mutation);
+    }
+
+    protected void commitMutation2Backend(BackendMutation... mutations) {
+        assert mutations.length > 0;
+        this.committing2Backend = true;
+
+        // If an exception occurred, catch in the upper layer and rollback
+        this.store.beginTx();
+        for (BackendMutation mutation : mutations) {
+            this.store.mutate(mutation);
+        }
+        this.store.commitTx();
+
+        this.committing2Backend = false;
+    }
+
+    protected BackendMutation prepareCommit() {
+        // For sub-class preparing data, nothing to do here
+        LOG.debug("Transaction prepareCommit()...");
+        return this.mutation();
     }
 
     protected void beforeWrite() {
@@ -196,41 +263,6 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected void afterRead() {
         // pass
-    }
-
-    @Watched(prefix = "tx")
-    @Override
-    public void close() {
-        if (this.hasUpdates()) {
-            throw new BackendException("There are still changes to commit");
-        }
-        if (this.closed) {
-            return;
-        }
-        this.closed = true;
-        this.autoCommit = true; /* Let call after close() fail to commit */
-        this.store().close();
-    }
-
-    protected void reset() {
-        this.mutation = new BackendMutation();
-    }
-
-    protected BackendMutation mutation() {
-        return this.mutation;
-    }
-
-    protected BackendMutation prepareCommit() {
-        // For sub-class preparing data, nothing to do here
-        LOG.debug("Transaction prepareCommit()...");
-        return this.mutation();
-    }
-
-    protected void commit2Backend(BackendMutation mutation) {
-        // If an exception occurred, catch in the upper layer and rollback
-        this.store.beginTx();
-        this.store.mutate(mutation);
-        this.store.commitTx();
     }
 
     @Watched(prefix = "tx")
@@ -291,9 +323,5 @@ public abstract class AbstractTransaction implements Transaction {
     @Watched(prefix = "tx")
     public void doRemove(BackendEntry entry) {
         this.doAction(MutateAction.DELETE, entry);
-    }
-
-    public boolean hasUpdates() {
-        return !this.mutation.isEmpty();
     }
 }
