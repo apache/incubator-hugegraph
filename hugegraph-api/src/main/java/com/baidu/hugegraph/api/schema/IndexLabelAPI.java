@@ -129,19 +129,20 @@ public class IndexLabelAPI extends API {
             E.checkArgumentNotNull(this.name,
                                    "The name of index label can't be null");
             E.checkArgumentNotNull(this.baseType,
-                                   "The base type of index label " +
-                                   "can't be null");
+                                   "The base type of index label '%s' " +
+                                   "can't be null", this.name);
             E.checkArgument(this.baseType == HugeType.VERTEX_LABEL ||
                             this.baseType == HugeType.EDGE_LABEL,
                             "The base type of index label '%s' can only be " +
                             "either VERTEX_LABEL or EDGE_LABEL", this.name);
+            E.checkArgumentNotNull(this.baseValue,
+                                   "The base value of index label '%s' " +
+                                   "can't be null", this.name);
         }
 
         private IndexLabel.Builder convert2Builder(HugeGraph g) {
             IndexLabel.Builder builder = g.schema().indexLabel(this.name);
-            if (this.baseValue != null) {
-                builder.on(this.baseType, this.baseValue);
-            }
+            builder.on(this.baseType, this.baseValue);
             if (this.indexType != null) {
                 builder.indexType(this.indexType);
             }
