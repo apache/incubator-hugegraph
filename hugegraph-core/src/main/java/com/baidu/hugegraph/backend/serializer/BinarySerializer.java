@@ -51,7 +51,7 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.KryoUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public class BinarySerializer extends AbstractSerializer {
@@ -117,15 +117,10 @@ public class BinarySerializer extends AbstractSerializer {
         return buffer.bytes();
     }
 
-    protected byte[] formatPropertyValue(HugeProperty<?> prop) {
-        // TODO: serialize to bin instead of json
-        return StringEncoding.encode(JsonUtil.toJson(prop.value()));
-    }
-
     protected BackendColumn formatProperty(HugeProperty<?> prop) {
         BackendColumn col = new BackendColumn();
         col.name = this.formatPropertyName(prop);
-        col.value = this.formatPropertyValue(prop);
+        col.value = KryoUtil.toKryo(prop.value());
         return col;
     }
 
@@ -133,8 +128,8 @@ public class BinarySerializer extends AbstractSerializer {
         PropertyKey pkey = owner.graph().propertyKey(pkeyId);
 
         // Parse value
-        Object value = JsonUtil.fromJson(StringEncoding.decode(val),
-                                         pkey.clazz());
+        Object value = KryoUtil.fromKryo(val, pkey.clazz());
+
         // Set properties of vertex/edge
         if (pkey.cardinality() == Cardinality.SINGLE) {
             owner.addProperty(pkey, value);
@@ -144,7 +139,6 @@ public class BinarySerializer extends AbstractSerializer {
                           "Invalid value of non-single property: %s", value);
             }
             for (Object v : (Collection<?>) value) {
-                v = JsonUtil.castNumber(v, pkey.dataType().clazz());
                 owner.addProperty(pkey, v);
             }
         }
@@ -177,7 +171,7 @@ public class BinarySerializer extends AbstractSerializer {
         // Write edge properties data
         for (HugeProperty<?> property : edge.getProperties().values()) {
             buffer.writeId(property.propertyKey().id());
-            buffer.writeBytes(this.formatPropertyValue(property));
+            buffer.writeBytes(KryoUtil.toKryo(property.value()));
         }
 
         return buffer.bytes();

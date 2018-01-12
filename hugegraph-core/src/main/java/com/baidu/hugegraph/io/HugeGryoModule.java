@@ -130,6 +130,7 @@ public class HugeGryoModule {
         }
     }
 
+    @SuppressWarnings("unused")
     private static Map<HugeKeys, Object> readEntry(Kryo kryo, Input input) {
         int columnSize = input.readInt();
         Map<HugeKeys, Object> map = new LinkedHashMap<>();

@@ -28,6 +28,8 @@ import org.junit.runners.Suite;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.core.PropertyCoreTest.EdgePropertyCoreTest;
+import com.baidu.hugegraph.core.PropertyCoreTest.VertexPropertyCoreTest;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.util.Log;
@@ -39,7 +41,9 @@ import com.baidu.hugegraph.util.Log;
     EdgeLabelCoreTest.class,
     IndexLabelCoreTest.class,
     VertexCoreTest.class,
-    EdgeCoreTest.class
+    EdgeCoreTest.class,
+    VertexPropertyCoreTest.class,
+    EdgePropertyCoreTest.class
 })
 public class CoreTestSuite {
 

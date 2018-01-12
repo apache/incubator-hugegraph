@@ -22,7 +22,7 @@ import com.google.common.base.CharMatcher;
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
  */
-public class StringEncoding {
+public final class StringEncoding {
 
     // Similar to {@link StringSerializer}
     public static int writeAsciiString(byte[] array,

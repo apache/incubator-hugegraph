@@ -19,21 +19,22 @@
 
 package com.baidu.hugegraph.type.define;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
 
 public enum DataType implements SerialEnum {
 
     // This property has sub properties
-    OBJECT(1, "object", Object.class),
+    OBJECT(1, "object", Serializable.class),
     BOOLEAN(2, "boolean", Boolean.class),
     BYTE(3, "byte", Byte.class),
-    BLOB(4, "blob", byte[].class),
-    DOUBLE(5, "double", Double.class),
+    INT(4, "int", Integer.class),
+    LONG(5, "long", Long.class),
     FLOAT(6, "float", Float.class),
-    INT(7, "int", Integer.class),
-    LONG(8, "long", Long.class),
-    TEXT(9, "text", String.class),
+    DOUBLE(7, "double", Double.class),
+    TEXT(8, "text", String.class),
+    BLOB(9, "blob", byte[].class),
     DATE(10, "date", Date.class),
     UUID(11, "uuid", UUID.class);
 
