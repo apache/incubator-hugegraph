@@ -21,7 +21,6 @@ package com.baidu.hugegraph.io;
 
 import org.apache.tinkerpop.gremlin.structure.io.AbstractIoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
-import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 
 public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
@@ -37,6 +36,7 @@ public class HugeGraphIoRegistry extends AbstractIoRegistry {
         HugeGraphSONModule.register(this);
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     public void register(Class<? extends Io> ioClass, Class clazz, Object ser) {
         super.register(ioClass, clazz, ser);

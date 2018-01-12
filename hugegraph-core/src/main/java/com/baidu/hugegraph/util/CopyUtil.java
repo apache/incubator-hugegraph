@@ -24,7 +24,7 @@ import java.lang.reflect.Modifier;
 
 import com.baidu.hugegraph.HugeException;
 
-public class CopyUtil {
+public final class CopyUtil {
 
     @SuppressWarnings("unchecked")
     public static <T> T cloneObject(T o, T clone) throws Exception {

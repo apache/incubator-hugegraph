@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.util;
 
-public class Events {
+public final class Events {
 
     public static final String CACHE = "cache";
 

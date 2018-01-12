@@ -31,7 +31,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.concurrent.LockManager;
 
-public class LockUtil {
+public final class LockUtil {
 
     private static final Logger LOG = Log.logger(LockUtil.class);
 

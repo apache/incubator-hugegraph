@@ -21,11 +21,11 @@ package com.baidu.hugegraph.util;
 
 import java.util.Collection;
 
-import com.baidu.hugegraph.backend.id.Id;
-
 import org.apache.commons.lang3.StringUtils;
 
-public class StringUtil {
+import com.baidu.hugegraph.backend.id.Id;
+
+public final class StringUtil {
 
     public static String desc(String prefix, Collection<Id> elems) {
         StringBuilder sb = new StringBuilder();
