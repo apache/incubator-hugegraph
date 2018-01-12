@@ -21,8 +21,8 @@ package com.baidu.hugegraph.backend.store;
 
 public class MutateItem {
 
-    private BackendEntry entry;
-    private MutateAction action;
+    private final BackendEntry entry;
+    private final MutateAction action;
 
     public static MutateItem of(BackendEntry entry, MutateAction action) {
         return new MutateItem(entry, action);
@@ -37,16 +37,8 @@ public class MutateItem {
         return this.entry;
     }
 
-    public void entry(BackendEntry entry) {
-        this.entry = entry;
-    }
-
     public MutateAction action() {
         return this.action;
-    }
-
-    public void action(MutateAction action) {
-        this.action = action;
     }
 
     @Override

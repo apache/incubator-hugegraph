@@ -125,6 +125,17 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Override
+    public int mutationSize() {
+        int size = (this.addedVertexes.size() +
+                    this.removedVertexes.size() +
+                    this.updatedVertexes.size() +
+                    this.addedEdges.size() +
+                    this.removedEdges.size() +
+                    this.updatedEdges.size());
+        return size;
+    }
+
+    @Override
     protected void reset() {
         super.reset();
 
@@ -1069,15 +1080,15 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private void propertyUpdated(HugeEdge edge, HugeProperty<?> property) {
-        this.updatedEdges.put(edge.id(), edge);
+    private void propertyUpdated(HugeVertex vertex, HugeProperty<?> property) {
+        this.updatedVertexes.put(vertex.id(), vertex);
         if (property != null) {
             this.updatedProps.add(property);
         }
     }
 
-    private void propertyUpdated(HugeVertex vertex, HugeProperty<?> property) {
-        this.updatedVertexes.put(vertex.id(), vertex);
+    private void propertyUpdated(HugeEdge edge, HugeProperty<?> property) {
+        this.updatedEdges.put(edge.id(), edge);
         if (property != null) {
             this.updatedProps.add(property);
         }

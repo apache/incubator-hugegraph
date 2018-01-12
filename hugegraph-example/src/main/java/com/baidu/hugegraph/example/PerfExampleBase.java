@@ -99,16 +99,20 @@ public abstract class PerfExampleBase {
                                int times,
                                int multiple)
                                throws InterruptedException {
-        // Total edges
-        long edges = EDGE_NUM * threadCount * times * multiple;
+        // Total vertices/edges
+        long n = threadCount * times * multiple;
+        long vertices = (PERSON_NUM + SOFTWARE_NUM) * n;
+        long edges = EDGE_NUM * n;
+
         long cost = this.execute(i -> {
             this.testInsert(graph, times, multiple);
             graph.close();
         }, threadCount);
 
-        LOG.info("Insert rate with threads: {} edges/s, " +
-                 "insert total edges: {}, cost time: {}ms",
-                 edges * 1000 / cost, edges, cost);
+        LOG.info("Insert rate with threads: {} vertices/s & {} edges/s, " +
+                 "insert total {} vertices & {} edges, cost time: {}ms",
+                 vertices * 1000 / cost, edges * 1000 / cost,
+                 vertices, edges, cost);
     }
 
     public void testQueryVertexPerf(GraphManager graph,

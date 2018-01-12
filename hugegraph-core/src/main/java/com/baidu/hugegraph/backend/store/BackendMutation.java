@@ -50,26 +50,25 @@ public class BackendMutation {
         return new LinkedHashSet<V>();
     }
 
-    @Watched(prefix = "bm")
     /**
-     * Add an action with data entry to updates collections
+     * Add data entry with an action to collection `updates`
      */
+    @Watched(prefix = "bm")
     public void add(BackendEntry entry, MutateAction action) {
         Id id = entry.id();
         assert id != null;
         if (this.updates.containsKey(id)) {
             this.optimizeUpdates(entry, action);
         } else {
-            // If there is no entity of this id, add it
+            // If there is no entity with this id, add it
             List<MutateItem> items = new LinkedList<>();
             items.add(MutateItem.of(entry, action));
             this.updates.put(id, items);
         }
     }
 
-    @Watched(prefix = "bm")
     /**
-     * The Optimized scenes include but are not limited to：
+     * The optimized scenes include but are not limited to：
      * 1.If you want to delete an entry, the other mutations previously
      *   can be ignored.
      * 2.As similar to the No.1 item, If you want to insert an entry,
@@ -77,6 +76,7 @@ public class BackendMutation {
      * 3.If you append an entry and then eliminate it, the new action
      *   can override the old one.
      */
+    @Watched(prefix = "bm")
     private void optimizeUpdates(BackendEntry entry, MutateAction action) {
         final Id id = entry.id();
         assert id != null;
@@ -104,9 +104,10 @@ public class BackendMutation {
                         originAction == MutateAction.DELETE) {
                         throw incompatibleActionException(action, originAction);
                     } else {
-                        assert entry.subId() != null;
-                        if (entry.subId() == originItem.entry().subId() ||
-                            entry.subId().equals(originItem.entry().subId())) {
+                        Id subId = entry.subId();
+                        Id originSubId = originItem.entry().subId();
+                        assert subId != null;
+                        if (subId == originSubId || subId.equals(originSubId)) {
                             itor.remove();
                         }
                     }
@@ -136,6 +137,24 @@ public class BackendMutation {
         this.updates.replace(id, new LinkedList<>());
     }
 
+    /**
+     * Merges another mutation into this mutation. Ensures that all additions
+     * and deletions are added to this mutation. Does not remove duplicates
+     * if such exist - this needs to be ensured by the caller.
+     */
+    public void merge(BackendMutation mutation) {
+        E.checkNotNull(mutation, "mutation");
+        for (List<MutateItem> items : mutation.mutation().values()) {
+            for (MutateItem item : items) {
+                this.add(item.entry(), item.action());
+            }
+        }
+    }
+
+    /**
+     * Get all updates
+     * @return Map<Id, List<MutateItem>>
+     */
     public Map<Id, List<MutateItem>> mutation() {
         return Collections.unmodifiableMap(this.updates);
     }
@@ -149,17 +168,11 @@ public class BackendMutation {
     }
 
     /**
-     * Merges another mutation into this mutation. Ensures that all additions
-     * and deletions are added to this mutation. Does not remove duplicates
-     * if such exist - this needs to be ensured by the caller.
+     * Get size of id(s) to update
+     * @return int
      */
-    public void merge(BackendMutation mutation) {
-        E.checkNotNull(mutation, "mutation");
-        for (List<MutateItem> items : mutation.mutation().values()) {
-            for (MutateItem item : items) {
-                this.add(item.entry(), item.action());
-            }
-        }
+    public int size() {
+        return this.updates.size();
     }
 
     @Override
