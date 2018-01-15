@@ -128,7 +128,7 @@ public class EdgeAPI extends API {
         HugeGraph g = graph(manager, graph);
         checkBatchCount(g, jsonEdges);
 
-        TriFunction<HugeGraph, String, String, Vertex> getVertex =
+        TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return commit(g, () -> {
@@ -276,7 +276,7 @@ public class EdgeAPI extends API {
         }
     }
 
-    private static Vertex getVertex(HugeGraph graph, String id, String label) {
+    private static Vertex getVertex(HugeGraph graph, Object id, String label) {
         try {
             return graph.traversal().V(id).next();
         } catch (NoSuchElementException e) {
@@ -285,7 +285,7 @@ public class EdgeAPI extends API {
         }
     }
 
-    private static Vertex newVertex(HugeGraph graph, String id, String label) {
+    private static Vertex newVertex(HugeGraph graph, Object id, String label) {
         // NOTE: Not use SchemaManager because it will throw 404
         VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
         E.checkArgumentNotNull(vl, "Invalid vertex label '%s'", label);
@@ -312,13 +312,13 @@ public class EdgeAPI extends API {
         @JsonProperty("id")
         public String id;
         @JsonProperty("outV")
-        public String source;
+        public Object source;
         @JsonProperty("outVLabel")
         public String sourceLabel;
         @JsonProperty("label")
         public String label;
         @JsonProperty("inV")
-        public String target;
+        public Object target;
         @JsonProperty("inVLabel")
         public String targetLabel;
         @JsonProperty("properties")
