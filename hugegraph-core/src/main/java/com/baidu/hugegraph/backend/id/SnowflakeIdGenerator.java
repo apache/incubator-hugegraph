@@ -19,32 +19,42 @@
 
 package com.baidu.hugegraph.backend.id;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.TimeUtil;
 
 public class SnowflakeIdGenerator extends IdGenerator {
 
-    private static volatile SnowflakeIdGenerator instance;
+    private static Map<String, SnowflakeIdGenerator> INSTANCES;
 
+    private final boolean forceString;
     private IdWorker idWorker = null;
 
-    public static SnowflakeIdGenerator instance() {
-        if (instance == null) {
-            synchronized (SnowflakeIdGenerator.class) {
-                if (instance == null) {
-                    // TODO: workerId, datacenterId should read from conf
-                    instance = new SnowflakeIdGenerator(0, 0);
-                }
-            }
+    public static SnowflakeIdGenerator instance(HugeGraph graph) {
+        if (INSTANCES == null) {
+            INSTANCES = new ConcurrentHashMap<>();
         }
-        return instance;
+        if (!INSTANCES.containsKey(graph.name())) {
+            HugeConfig config = graph.configuration();
+            SnowflakeIdGenerator instance = new SnowflakeIdGenerator(config);
+            INSTANCES.put(graph.name(), instance);
+        }
+        return INSTANCES.get(graph.name());
     }
 
-    public SnowflakeIdGenerator(long workerId, long datacenterId) {
+    private SnowflakeIdGenerator(HugeConfig config) {
+        long workerId = config.get(CoreOptions.SNOWFLAKE_WORKER_ID);
+        long datacenterId = config.get(CoreOptions.SNOWFLAKE_DATACENTER_ID);
+        this.forceString = config.get(CoreOptions.SNOWFLAKE_FORCE_STRING);
         this.idWorker = new IdWorker(workerId, datacenterId);
     }
 
@@ -52,7 +62,12 @@ public class SnowflakeIdGenerator extends IdGenerator {
         if (this.idWorker == null) {
             throw new HugeException("Please initialize before using");
         }
-        return this.generate(this.idWorker.nextId());
+        Id id = this.generate(this.idWorker.nextId());
+        if (!this.forceString) {
+            return id;
+        } else {
+            return IdGenerator.of(id.asString());
+        }
     }
 
     @Override
