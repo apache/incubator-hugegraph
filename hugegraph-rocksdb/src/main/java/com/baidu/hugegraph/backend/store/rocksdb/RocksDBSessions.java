@@ -32,6 +32,7 @@ import java.util.Set;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptionsInterface;
+import org.rocksdb.CompactionStyle;
 import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
 import org.rocksdb.Options;
@@ -45,6 +46,7 @@ import org.rocksdb.WriteOptions;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
@@ -52,11 +54,13 @@ import com.google.common.primitives.UnsignedBytes;
 
 public class RocksDBSessions extends BackendSessionPool {
 
+    private final HugeConfig conf;
     private final RocksDB rocksdb;
     private final Map<String, ColumnFamilyHandle> cfs;
 
-    public RocksDBSessions(String path, String walPath)
+    public RocksDBSessions(HugeConfig conf, String path, String walPath)
                            throws RocksDBException {
+        this.conf = conf;
         this.cfs = new HashMap<>();
 
         // Don't merge old CFs, we expect a clear DB when using this one
@@ -66,8 +70,9 @@ public class RocksDBSessions extends BackendSessionPool {
         this.rocksdb = RocksDB.open(options, path);
     }
 
-    public RocksDBSessions(String path, String walPath, List<String> cfNames)
-                           throws RocksDBException {
+    public RocksDBSessions(HugeConfig conf, String path, String walPath,
+                           List<String> cfNames) throws RocksDBException {
+        this.conf = conf;
         this.cfs = new HashMap<>();
 
         // Old CFs should always be opened
@@ -167,18 +172,55 @@ public class RocksDBSessions extends BackendSessionPool {
 
     private void initOptions(DBOptionsInterface<?> db,
                              ColumnFamilyOptionsInterface<?> cf) {
+        boolean optimize = this.conf.get(RocksDBOptions.OPTIMIZE_MODE);
+
         if (db != null) {
             db.setCreateIfMissing(true);
 
             // Optimize RocksDB
-            final int processors = Runtime.getRuntime().availableProcessors();
-            db.setIncreaseParallelism(processors);
+            if (optimize) {
+                int processors = Runtime.getRuntime().availableProcessors();
+                db.setIncreaseParallelism(Math.max(processors / 2, 1));
+
+                db.setAllowConcurrentMemtableWrite(true);
+                db.setEnableWriteThreadAdaptiveYield(true);
+            }
+
+            db.setMaxBackgroundCompactions(
+                    this.conf.get(RocksDBOptions.MAX_BG_COMPACTIONS));
+            db.setMaxSubcompactions(
+                    this.conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
+            db.setMaxBackgroundFlushes(
+                    this.conf.get(RocksDBOptions.MAX_BG_FLUSHES));
+
+            db.setAllowMmapWrites(
+                    this.conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
+            db.setAllowMmapReads(
+                    this.conf.get(RocksDBOptions.ALLOW_MMAP_READS));
+
+            db.setUseDirectReads(
+                    this.conf.get(RocksDBOptions.USE_DIRECT_READS));
+            db.setUseDirectIoForFlushAndCompaction(
+                    this.conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
+
+            db.setMaxOpenFiles(this.conf.get(RocksDBOptions.MAX_OPEN_FILES));
         }
 
         if (cf != null) {
             // Optimize RocksDB
-            cf.optimizeLevelStyleCompaction();
-            cf.optimizeUniversalStyleCompaction();
+            if (optimize) {
+                cf.optimizeLevelStyleCompaction();
+                cf.optimizeUniversalStyleCompaction();
+            }
+
+            cf.setNumLevels(this.conf.get(RocksDBOptions.NUM_LEVELS));
+            cf.setCompactionStyle(CompactionStyle.valueOf(
+                    this.conf.get(RocksDBOptions.COMPACTION_STYLE)));
+
+            cf.setMinWriteBufferNumberToMerge(
+                    this.conf.get(RocksDBOptions.MIN_MEMTABLES_TO_MERGE));
+            cf.setMaxWriteBufferNumberToMaintain(
+                    this.conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
 
             // https://github.com/facebook/rocksdb/tree/master/utilities/merge_operators
             cf.setMergeOperatorName("uint64add"); // uint64add/stringappend

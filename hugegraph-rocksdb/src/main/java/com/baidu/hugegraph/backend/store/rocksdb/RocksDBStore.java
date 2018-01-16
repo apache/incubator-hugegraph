@@ -123,14 +123,14 @@ public abstract class RocksDBStore implements BackendStore {
             return;
         }
 
-        String dataPath = this.conf.get(RocksDBOptions.ROCKS_DATA_PATH);
+        String dataPath = this.conf.get(RocksDBOptions.DATA_PATH);
         dataPath = Paths.get(dataPath, this.name).toString();
 
-        String walPath = this.conf.get(RocksDBOptions.ROCKS_WAL_PATH);
+        String walPath = this.conf.get(RocksDBOptions.WAL_PATH);
         walPath = Paths.get(walPath, this.name).toString();
 
         try {
-            this.sessions = new RocksDBSessions(dataPath, walPath,
+            this.sessions = new RocksDBSessions(this.conf, dataPath, walPath,
                                                 this.tableNames());
         } catch (RocksDBException e) {
             if (e.getMessage().contains("Column family not found")) {
@@ -138,7 +138,8 @@ public abstract class RocksDBStore implements BackendStore {
                 LOG.info("Failed to open RocksDB '{}' with database '{}', " +
                          "try to init CF later", this.name, this.database);
                 try {
-                    this.sessions = new RocksDBSessions(dataPath, walPath);
+                    this.sessions = new RocksDBSessions(this.conf,
+                                                        dataPath, walPath);
                 } catch (RocksDBException e1) {
                     LOG.error("Failed to open RocksDB with default CF", e1);
                 }
