@@ -145,4 +145,28 @@ public class CoreOptions extends OptionHolder {
                     rangeInt(0, Integer.MAX_VALUE),
                     (60 * 10)
             );
+
+    public static final ConfigOption<Long> SNOWFLAKE_WORKER_ID =
+            new ConfigOption<>(
+                    "snowflake.worker_id",
+                    "The worker id of snowflake id generator.",
+                    disallowEmpty(),
+                    0L
+            );
+
+    public static final ConfigOption<Long> SNOWFLAKE_DATACENTER_ID =
+            new ConfigOption<>(
+                    "snowflake.datecenter_id",
+                    "The datacenter id of snowflake id generator.",
+                    disallowEmpty(),
+                    0L
+            );
+
+    public static final ConfigOption<Boolean> SNOWFLAKE_FORCE_STRING =
+            new ConfigOption<>(
+                    "snowflake.force_string",
+                    "Whether to force the snowflake long id to be a string.",
+                    disallowEmpty(),
+                    false
+            );
 }

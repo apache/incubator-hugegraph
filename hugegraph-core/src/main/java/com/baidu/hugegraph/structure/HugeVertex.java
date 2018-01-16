@@ -41,7 +41,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGeneratorFactory;
+import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
@@ -131,16 +131,26 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public void assignId(Id id) {
         IdStrategy strategy = this.label.idStrategy();
         // Generate an id and assign
-        if (strategy == IdStrategy.CUSTOMIZE_STRING) {
-            assert !id.number();
-            this.id = id;
-        } else if (strategy == IdStrategy.CUSTOMIZE_NUMBER) {
-            assert id.number();
-            this.id = id;
-        } else {
-            this.id = IdGeneratorFactory.generator(strategy).generate(this);
+        switch (strategy) {
+            case CUSTOMIZE_STRING:
+                assert !id.number();
+                this.id = id;
+                break;
+            case CUSTOMIZE_NUMBER:
+                assert id.number();
+                this.id = id;
+                break;
+            case PRIMARY_KEY:
+                this.id = SplicingIdGenerator.instance().generate(this);
+                break;
+            case AUTOMATIC:
+                this.id = SnowflakeIdGenerator.instance(this.graph())
+                                              .generate(this);
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown id strategy '%s'", strategy));
         }
-        assert this.id != null;
     }
 
     @Override
