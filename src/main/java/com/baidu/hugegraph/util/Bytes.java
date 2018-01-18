@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.util;
 
+import java.util.Arrays;
+
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 
@@ -26,6 +28,11 @@ import org.apache.commons.codec.binary.Hex;
  * TODO: extends com.google.common.primitives.Bytes
  */
 public final class Bytes {
+
+    public static final long BASE = 1024L;
+    public static final long KB = BASE;
+    public static final long MB = KB * BASE;
+    public static final long GB = MB * BASE;
 
     public static boolean prefixWith(byte[] bytes, byte[] prefix) {
         if (bytes.length < prefix.length) {
@@ -37,6 +44,10 @@ public final class Bytes {
             }
         }
         return true;
+    }
+
+    public static boolean equals(byte[] bytes1, byte[] bytes2) {
+        return Arrays.equals(bytes1, bytes2);
     }
 
     public static String toHex(byte[] bytes) {
