@@ -31,10 +31,14 @@ import java.util.Set;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.ColumnFamilyOptionsInterface;
 import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
+import org.rocksdb.InfoLogLevel;
+import org.rocksdb.MutableColumnFamilyOptionsInterface;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
@@ -63,10 +67,15 @@ public class RocksDBSessions extends BackendSessionPool {
         this.conf = conf;
         this.cfs = new HashMap<>();
 
-        // Don't merge old CFs, we expect a clear DB when using this one
+        // Init options
         Options options = new Options();
-        this.initOptions(options, options);
+        initOptions(this.conf, options, options, options);
         options.setWalDir(walPath);
+
+        /*
+         * Open RocksDB at the first time
+         * Don't merge old CFs, we expect a clear DB when using this one
+         */
         this.rocksdb = RocksDB.open(options, path);
     }
 
@@ -78,21 +87,27 @@ public class RocksDBSessions extends BackendSessionPool {
         // Old CFs should always be opened
         List<String> cfs = this.mergeOldCFs(path, cfNames);
 
+        // Init CFs options
         List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfs.size());
         for (String cf : cfs) {
             ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
-            this.initOptions(null, cfd.columnFamilyOptions());
+            ColumnFamilyOptions options = cfd.columnFamilyOptions();
+            initOptions(this.conf, null, options, options);
             cfds.add(cfd);
         }
 
-        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
+        // Init DB options
         DBOptions options = new DBOptions();
-        this.initOptions(options, null);
+        initOptions(this.conf, options, null, null);
         options.setWalDir(walPath);
-        this.rocksdb = RocksDB.open(options, path, cfds, cfhs);
 
+        // Open RocksDB with CFs
+        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
+        this.rocksdb = RocksDB.open(options, path, cfds, cfhs);
         E.checkState(cfhs.size() == cfs.size(),
                      "Excepct same size of cf-handles and cf-names");
+
+        // Collect CF Handles
         for (int i = 0; i < cfs.size(); i++) {
             this.cfs.put(cfs.get(i), cfhs.get(i));
         }
@@ -108,7 +123,8 @@ public class RocksDBSessions extends BackendSessionPool {
         }
         // Should we use options.setCreateMissingColumnFamilies() to create CF
         ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(table));
-        this.initOptions(null, cfd.columnFamilyOptions());
+        ColumnFamilyOptions options = cfd.columnFamilyOptions();
+        initOptions(this.conf, null, options, options);
         this.cfs.put(table, this.rocksdb.createColumnFamily(cfd));
     }
 
@@ -127,7 +143,7 @@ public class RocksDBSessions extends BackendSessionPool {
     protected final synchronized Session newSession() {
         E.checkState(this.rocksdb != null,
                      "RocksDB has not been initialized");
-        return new Session();
+        return new Session(this.conf);
     }
 
     @Override
@@ -170,9 +186,11 @@ public class RocksDBSessions extends BackendSessionPool {
         return cfs;
     }
 
-    private void initOptions(DBOptionsInterface<?> db,
-                             ColumnFamilyOptionsInterface<?> cf) {
-        boolean optimize = this.conf.get(RocksDBOptions.OPTIMIZE_MODE);
+    public static void initOptions(HugeConfig conf,
+                                   DBOptionsInterface<?> db,
+                                   ColumnFamilyOptionsInterface<?> cf,
+                                   MutableColumnFamilyOptionsInterface<?> mcf) {
+        final boolean optimize = conf.get(RocksDBOptions.OPTIMIZE_MODE);
 
         if (db != null) {
             db.setCreateIfMissing(true);
@@ -186,24 +204,27 @@ public class RocksDBSessions extends BackendSessionPool {
                 db.setEnableWriteThreadAdaptiveYield(true);
             }
 
+            db.setInfoLogLevel(InfoLogLevel.valueOf(
+                    conf.get(RocksDBOptions.LOG_LEVEL) + "_LEVEL"));
+
             db.setMaxBackgroundCompactions(
-                    this.conf.get(RocksDBOptions.MAX_BG_COMPACTIONS));
+                    conf.get(RocksDBOptions.MAX_BG_COMPACTIONS));
             db.setMaxSubcompactions(
-                    this.conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
+                    conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
             db.setMaxBackgroundFlushes(
-                    this.conf.get(RocksDBOptions.MAX_BG_FLUSHES));
+                    conf.get(RocksDBOptions.MAX_BG_FLUSHES));
 
             db.setAllowMmapWrites(
-                    this.conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
+                    conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
             db.setAllowMmapReads(
-                    this.conf.get(RocksDBOptions.ALLOW_MMAP_READS));
+                    conf.get(RocksDBOptions.ALLOW_MMAP_READS));
 
             db.setUseDirectReads(
-                    this.conf.get(RocksDBOptions.USE_DIRECT_READS));
+                    conf.get(RocksDBOptions.USE_DIRECT_READS));
             db.setUseDirectIoForFlushAndCompaction(
-                    this.conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
+                    conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
 
-            db.setMaxOpenFiles(this.conf.get(RocksDBOptions.MAX_OPEN_FILES));
+            db.setMaxOpenFiles(conf.get(RocksDBOptions.MAX_OPEN_FILES));
         }
 
         if (cf != null) {
@@ -213,17 +234,54 @@ public class RocksDBSessions extends BackendSessionPool {
                 cf.optimizeUniversalStyleCompaction();
             }
 
-            cf.setNumLevels(this.conf.get(RocksDBOptions.NUM_LEVELS));
+            cf.setNumLevels(conf.get(RocksDBOptions.NUM_LEVELS));
             cf.setCompactionStyle(CompactionStyle.valueOf(
-                    this.conf.get(RocksDBOptions.COMPACTION_STYLE)));
+                    conf.get(RocksDBOptions.COMPACTION_STYLE)));
 
             cf.setMinWriteBufferNumberToMerge(
-                    this.conf.get(RocksDBOptions.MIN_MEMTABLES_TO_MERGE));
+                    conf.get(RocksDBOptions.MIN_MEMTABLES_TO_MERGE));
             cf.setMaxWriteBufferNumberToMaintain(
-                    this.conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
+                    conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
 
             // https://github.com/facebook/rocksdb/tree/master/utilities/merge_operators
             cf.setMergeOperatorName("uint64add"); // uint64add/stringappend
+        }
+
+        if (mcf != null) {
+            mcf.setCompressionType(CompressionType.getCompressionType(
+                    conf.get(RocksDBOptions.COMPRESSION_TYPE)));
+
+            mcf.setWriteBufferSize(
+                    conf.get(RocksDBOptions.MEMTABLE_SIZE));
+            mcf.setMaxWriteBufferNumber(
+                    conf.get(RocksDBOptions.MAX_MEMTABLES));
+
+            mcf.setMaxBytesForLevelBase(
+                    conf.get(RocksDBOptions.MAX_LEVEL1_BYTES));
+            mcf.setMaxBytesForLevelMultiplier(
+                    conf.get(RocksDBOptions.MAX_LEVEL_BYTES_MULTIPLIER));
+
+            mcf.setTargetFileSizeBase(
+                    conf.get(RocksDBOptions.TARGET_FILE_SIZE_BASE));
+            mcf.setTargetFileSizeMultiplier(
+                    conf.get(RocksDBOptions.TARGET_FILE_SIZE_MULTIPLIER));
+
+            boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
+            if (bulkload) {
+                // Disable automatic compaction
+                mcf.setDisableAutoCompactions(true);
+
+                int trigger = Integer.MAX_VALUE;
+                mcf.setLevel0FileNumCompactionTrigger(trigger);
+                mcf.setLevel0SlowdownWritesTrigger(trigger);
+                mcf.setLevel0StopWritesTrigger(trigger);
+
+                long limit = Long.MAX_VALUE;
+                mcf.setSoftPendingCompactionBytesLimit(limit);
+                mcf.setHardPendingCompactionBytesLimit(limit);
+
+                //cf.setMemTableConfig(new VectorMemTableConfig());
+            }
         }
     }
 
@@ -267,12 +325,13 @@ public class RocksDBSessions extends BackendSessionPool {
         private WriteBatch batch;
         private WriteOptions writeOptions;
 
-        public Session() {
+        public Session(HugeConfig conf) {
             this.closed = false;
 
+            boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
             this.batch = new WriteBatch();
             this.writeOptions = new WriteOptions();
-            //this.writeOptions.setDisableWAL(true);
+            this.writeOptions.setDisableWAL(bulkload);
             //this.writeOptions.setSync(false);
         }
 
