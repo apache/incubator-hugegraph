@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.unit.BaseUnitTest;
@@ -114,7 +115,8 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
         } catch (ConfigurationException | IOException e) {
             throw new BackendException(e);
         }
-        RocksDBSessions rocks = new RocksDBSessions(config, DB_PATH, DB_PATH);
+        RocksDBSessions rocks = new RocksDBStdSessions(config,
+                                                       DB_PATH, DB_PATH);
         rocks.createTable(table);
         return rocks;
     }

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -28,7 +29,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public interface BackendEntry {
 
-    public static class BackendColumn {
+    public static class BackendColumn implements Comparable<BackendColumn> {
         public byte[] name;
         public byte[] value;
 
@@ -37,6 +38,14 @@ public interface BackendEntry {
             return String.format("%s=%s",
                                  StringEncoding.decode(name),
                                  StringEncoding.decode(value));
+        }
+
+        @Override
+        public int compareTo(BackendColumn other) {
+            if (other == null) {
+                return 1;
+            }
+            return ByteBuffer.wrap(name).compareTo(ByteBuffer.wrap(other.name));
         }
     }
 

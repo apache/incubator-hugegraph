@@ -39,6 +39,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.MutateItem;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
@@ -123,29 +124,28 @@ public abstract class RocksDBStore implements BackendStore {
             return;
         }
 
-        String dataPath = this.conf.get(RocksDBOptions.DATA_PATH);
-        dataPath = Paths.get(dataPath, this.name).toString();
+        String data = this.conf.get(RocksDBOptions.DATA_PATH);
+        data = Paths.get(data, this.name).toString();
 
-        String walPath = this.conf.get(RocksDBOptions.WAL_PATH);
-        walPath = Paths.get(walPath, this.name).toString();
+        String wal = this.conf.get(RocksDBOptions.WAL_PATH);
+        wal = Paths.get(wal, this.name).toString();
 
         try {
-            this.sessions = new RocksDBSessions(this.conf, dataPath, walPath,
-                                                this.tableNames());
+            this.sessions = newSessions(this.conf, data, wal,
+                                        this.tableNames());
         } catch (RocksDBException e) {
             if (e.getMessage().contains("Column family not found")) {
                 // Before init
                 LOG.info("Failed to open RocksDB '{}' with database '{}', " +
                          "try to init CF later", this.name, this.database);
                 try {
-                    this.sessions = new RocksDBSessions(this.conf,
-                                                        dataPath, walPath);
+                    this.sessions = newSessions(this.conf, data, wal, null);
                 } catch (RocksDBException e1) {
                     LOG.error("Failed to open RocksDB with default CF", e1);
                 }
             } else if (e.getMessage().contains("No locks available")) {
                 // Open twice, but we should support keyspace
-                this.sessions = dbs.get(dataPath);
+                this.sessions = dbs.get(data);
             }
 
             if (this.sessions == null) {
@@ -157,9 +157,20 @@ public abstract class RocksDBStore implements BackendStore {
         }
 
         if (this.sessions != null) {
-            dbs.put(dataPath, this.sessions);
+            dbs.put(data, this.sessions);
             this.sessions.session();
             LOG.debug("Store opened: {}", this.name);
+        }
+    }
+
+    protected RocksDBSessions newSessions(HugeConfig config,
+                                          String data, String wal,
+                                          List<String> tableNames)
+                                          throws RocksDBException {
+        if (tableNames == null) {
+            return new RocksDBStdSessions(config, data, wal);
+        } else {
+            return new RocksDBStdSessions(config, data, wal, tableNames);
         }
     }
 
@@ -177,9 +188,7 @@ public abstract class RocksDBStore implements BackendStore {
             LOG.debug("Store {} mutation: {}", this.name, mutation);
         }
 
-        this.checkOpened();
-        RocksDBSessions.Session session = this.sessions.session();
-
+        Session session = this.session();
         for (List<MutateItem> items : mutation.mutation().values()) {
             for (MutateItem item : items) {
                this.mutate(session, item);
@@ -187,7 +196,7 @@ public abstract class RocksDBStore implements BackendStore {
         }
     }
 
-    private void mutate(RocksDBSessions.Session session, MutateItem item) {
+    private void mutate(Session session, MutateItem item) {
         BackendEntry entry = item.entry();
         RocksDBTable table = this.table(entry.type());
 
@@ -212,10 +221,8 @@ public abstract class RocksDBStore implements BackendStore {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        this.checkOpened();
-        RocksDBSessions.Session session = this.sessions.session();
         RocksDBTable table = this.table(query.resultType());
-        return table.query(session, query);
+        return table.query(this.session(), query);
     }
 
     @Override
@@ -263,9 +270,9 @@ public abstract class RocksDBStore implements BackendStore {
     @Override
     public void commitTx() {
         this.checkOpened();
-        RocksDBSessions.Session session = this.sessions.session();
+        Session session = this.session();
 
-        int count = session.commit();
+        Object count = session.commit();
         if (LOG.isDebugEnabled()) {
             LOG.debug("Store {} committed {} items", this.name, count);
         }
@@ -274,7 +281,7 @@ public abstract class RocksDBStore implements BackendStore {
     @Override
     public void rollbackTx() {
         this.checkOpened();
-        RocksDBSessions.Session session = this.sessions.session();
+        Session session = this.session();
 
         session.clear();
     }
@@ -282,6 +289,11 @@ public abstract class RocksDBStore implements BackendStore {
     @Override
     public Object metadata(HugeType type, String meta, Object[] args) {
         throw new UnsupportedOperationException("RocksDBStore.metadata()");
+    }
+
+    private Session session() {
+        this.checkOpened();
+        return this.sessions.session();
     }
 
     private void checkOpened() {
@@ -324,7 +336,7 @@ public abstract class RocksDBStore implements BackendStore {
         @Override
         public Id nextId(HugeType type) {
             super.checkOpened();
-            RocksDBSessions.Session session = super.sessions.session();
+            Session session = super.sessions.session();
             return this.counters.nextId(session, type);
         }
     }

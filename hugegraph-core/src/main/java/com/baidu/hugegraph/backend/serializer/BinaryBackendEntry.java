@@ -23,6 +23,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -37,11 +39,12 @@ public class BinaryBackendEntry implements BackendEntry {
     private final HugeType type;
     private final BinaryId id;
     private Id subId;
-    private Collection<BackendColumn> columns;
+    private final List<BackendColumn> columns;
 
     public BinaryBackendEntry(HugeType type, BinaryId id) {
         this.type = type;
         this.id = id;
+        this.subId = null;
         this.columns = new ArrayList<>();
     }
 
@@ -92,7 +95,10 @@ public class BinaryBackendEntry implements BackendEntry {
 
     @Override
     public Collection<BackendColumn> columns() {
-        return this.columns;
+        if (this.columns.size() > 1) {
+            Collections.sort(this.columns);
+        }
+        return Collections.unmodifiableCollection(this.columns);
     }
 
     @Override

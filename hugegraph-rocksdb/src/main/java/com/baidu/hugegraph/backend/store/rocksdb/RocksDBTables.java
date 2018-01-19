@@ -236,7 +236,7 @@ public class RocksDBTables {
                 Id min = HugeIndex.formatIndexId(type, index, keyMin);
                 byte[] begin = min.asBytes();
                 if (!keyMinEq) {
-                    begin = RocksDBSessions.increase(begin);
+                    begin = RocksDBStdSessions.increase(begin);
                 }
 
                 if (keyMax == null) {
@@ -245,7 +245,7 @@ public class RocksDBTables {
                     Id max = HugeIndex.formatIndexId(type, index, keyMax);
                     byte[] end = max.asBytes();
                     if (keyMaxEq) {
-                        end = RocksDBSessions.increase(end);
+                        end = RocksDBStdSessions.increase(end);
                     }
                     itor = session.scan(table(), begin, end);
                 }

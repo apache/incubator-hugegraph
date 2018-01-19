@@ -20,11 +20,13 @@
 package com.baidu.hugegraph.backend.store;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -36,7 +38,16 @@ public class BackendMutation {
     private final Map<Id, List<MutateItem>> updates;
 
     public BackendMutation() {
-        this.updates = new HashMap<>();
+        // NOTE: ensure insert order
+        this.updates = newMapWithInsertionOrder();
+    }
+
+    public static final <V> Map<Id, V> newMapWithInsertionOrder() {
+        return new LinkedHashMap<Id, V>();
+    }
+
+    public static final <V> Set<V> newSetWithInsertionOrder() {
+        return new LinkedHashSet<V>();
     }
 
     @Watched(prefix = "bm")
