@@ -45,7 +45,7 @@ public class RocksDBTable {
     private final String table;
 
     public RocksDBTable(String database, String table) {
-        this.table = String.format("%s/%s", database, table);
+        this.table = String.format("%s+%s", database, table);
     }
 
     public final String table() {

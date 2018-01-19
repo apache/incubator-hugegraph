@@ -105,6 +105,8 @@ public class RegisterUtil {
         // Register backend
         BackendProviderFactory.register("rocksdb",
                 "com.baidu.hugegraph.backend.store.rocksdb.RocksDBStoreProvider");
+        BackendProviderFactory.register("rocksdbsst",
+                "com.baidu.hugegraph.backend.store.rocksdbsst.RocksDBSstStoreProvider");
     }
 
     public static void registerServer() {

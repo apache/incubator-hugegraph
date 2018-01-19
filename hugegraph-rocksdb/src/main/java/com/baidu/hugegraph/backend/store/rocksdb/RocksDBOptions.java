@@ -64,6 +64,14 @@ public class RocksDBOptions extends OptionHolder {
                     "rocksdbwal"
             );
 
+    public static final ConfigOption<String> SST_PATH =
+            new ConfigOption<>(
+                    "rocksdb.sst_path",
+                    "The path for ingesting SST file into RocksDB.",
+                    null,
+                    ""
+            );
+
     // TODO: support ConfigOption<InfoLogLevel>
     public static final ConfigOption<String> LOG_LEVEL =
             new ConfigOption<>(

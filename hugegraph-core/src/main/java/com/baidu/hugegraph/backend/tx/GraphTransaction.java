@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -131,15 +129,15 @@ public class GraphTransaction extends IndexableTransaction {
         super.reset();
 
         // Clear mutation
-        this.addedVertexes = this.newMapWithInsertionOrder();
-        this.removedVertexes = this.newMapWithInsertionOrder();
-        this.updatedVertexes = this.newMapWithInsertionOrder();
+        this.addedVertexes = BackendMutation.newMapWithInsertionOrder();
+        this.removedVertexes = BackendMutation.newMapWithInsertionOrder();
+        this.updatedVertexes = BackendMutation.newMapWithInsertionOrder();
 
-        this.addedEdges = this.newMapWithInsertionOrder();
-        this.removedEdges = this.newMapWithInsertionOrder();
-        this.updatedEdges = this.newMapWithInsertionOrder();
+        this.addedEdges = BackendMutation.newMapWithInsertionOrder();
+        this.removedEdges = BackendMutation.newMapWithInsertionOrder();
+        this.updatedEdges = BackendMutation.newMapWithInsertionOrder();
 
-        this.updatedProps = this.newSetWithInsertionOrder();
+        this.updatedProps = BackendMutation.newSetWithInsertionOrder();
     }
 
     @Override
@@ -167,14 +165,6 @@ public class GraphTransaction extends IndexableTransaction {
         ids.addAll(this.removedEdges.keySet());
         ids.addAll(this.updatedEdges.keySet());
         return ids;
-    }
-
-    protected <V> Map<Id, V> newMapWithInsertionOrder() {
-        return new LinkedHashMap<Id, V>();
-    }
-
-    protected <V> Set<V> newSetWithInsertionOrder() {
-        return new LinkedHashSet<V>();
     }
 
     @Watched(prefix = "tx")
@@ -223,11 +213,11 @@ public class GraphTransaction extends IndexableTransaction {
 
     protected void prepareDeletions(Map<Id, HugeVertex> removedVertexes,
                                     Map<Id, HugeEdge> removedEdges) {
-
-        Map<Id, HugeVertex> vertexes = this.newMapWithInsertionOrder();
+        Map<Id, HugeVertex> vertexes =
+                            BackendMutation.newMapWithInsertionOrder();
         vertexes.putAll(removedVertexes);
 
-        Map<Id, HugeEdge> edges = this.newMapWithInsertionOrder();
+        Map<Id, HugeEdge> edges = BackendMutation.newMapWithInsertionOrder();
         edges.putAll(removedEdges);
 
         // Clear updates
@@ -1032,7 +1022,7 @@ public class GraphTransaction extends IndexableTransaction {
             return records;
         }
 
-        Set<V> txResults = this.newSetWithInsertionOrder();
+        Set<V> txResults = BackendMutation.newSetWithInsertionOrder();
 
         /* Collect added records
          * Records in memory have higher priority than query from backend store

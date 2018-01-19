@@ -31,6 +31,9 @@ import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 
+/**
+ * Perf test for: vertex with properties
+ */
 public class PerfExample1 extends PerfExampleBase {
 
     public static void main(String[] args) throws InterruptedException {
