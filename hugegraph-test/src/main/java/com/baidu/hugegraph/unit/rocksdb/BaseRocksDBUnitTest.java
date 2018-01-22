@@ -50,7 +50,11 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
 
     @AfterClass
     public static void clear() throws IOException {
-        FileUtils.forceDelete(DB_PATH);
+        /*
+         * The FileUtils.forceDelete() can only accept a `File`
+         * in `org.apache.commons.io` version 2.4
+         */
+        FileUtils.forceDelete(FileUtils.getFile(DB_PATH));
     }
 
     @Before
