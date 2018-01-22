@@ -9,7 +9,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>hugegraph-core</artifactId>
-    <name>hugegraph-core: Core Library for hugegraph</name>
+    <name>hugegraph-core</name>
     <url>http://hugegraph.org</url>
     <properties>
         <top.level.dir>${basedir}/..</top.level.dir>
