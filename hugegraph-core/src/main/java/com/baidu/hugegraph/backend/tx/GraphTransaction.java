@@ -181,9 +181,13 @@ public class GraphTransaction extends IndexableTransaction {
     @Override
     protected BackendMutation prepareCommit() {
         // Serialize and add updates into super.deletions
-        this.prepareDeletions(this.removedVertexes, this.removedEdges);
+        if (this.removedVertexes.size() > 0 || this.removedEdges.size() > 0) {
+            this.prepareDeletions(this.removedVertexes, this.removedEdges);
+        }
         // Serialize and add updates into super.additions
-        this.prepareAdditions(this.addedVertexes, this.addedEdges);
+        if (this.addedVertexes.size() > 0 || this.addedEdges.size() > 0) {
+            this.prepareAdditions(this.addedVertexes, this.addedEdges);
+        }
         return this.mutation();
     }
 
