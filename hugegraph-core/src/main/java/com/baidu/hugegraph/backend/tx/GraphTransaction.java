@@ -593,6 +593,7 @@ public class GraphTransaction extends IndexableTransaction {
         return queryEdges(constructEdgesQuery(id, null));
     }
 
+    @Watched(prefix = "graph")
     public <V> void addVertexProperty(HugeVertexProperty<V> prop) {
         // NOTE: this method can also be used to update property
 
@@ -634,6 +635,7 @@ public class GraphTransaction extends IndexableTransaction {
         });
     }
 
+    @Watched(prefix = "graph")
     public <V> void removeVertexProperty(HugeVertexProperty<V> prop) {
         HugeVertex vertex = prop.element();
         PropertyKey propertyKey = prop.propertyKey();
@@ -679,6 +681,7 @@ public class GraphTransaction extends IndexableTransaction {
         });
     }
 
+    @Watched(prefix = "graph")
     public <V> void addEdgeProperty(HugeEdgeProperty<V> prop) {
         // NOTE: this method can also be used to update property
 
@@ -728,6 +731,7 @@ public class GraphTransaction extends IndexableTransaction {
         });
     }
 
+    @Watched(prefix = "graph")
     public <V> void removeEdgeProperty(HugeEdgeProperty<V> prop) {
         HugeEdge edge = prop.element();
         PropertyKey propertyKey = prop.propertyKey();

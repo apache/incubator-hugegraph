@@ -21,7 +21,6 @@ package com.baidu.hugegraph.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.UUID;
 
 import org.apache.tinkerpop.shaded.kryo.Kryo;
@@ -60,10 +59,11 @@ public final class KryoUtil {
     }
 
     public static byte[] toKryo(Object value) {
-        try (OutputStream bos = new ByteArrayOutputStream();
-             Output output = new Output(bos)) {
-            kryo().writeObject(output , value);
-            return output.toBytes();
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             Output output = new Output(bos, 256)) {
+            kryo().writeObject(output, value);
+            output.flush();
+            return bos.toByteArray();
         } catch (IOException e) {
             throw new BackendException("Failed to serialize: %s", e, value);
         }

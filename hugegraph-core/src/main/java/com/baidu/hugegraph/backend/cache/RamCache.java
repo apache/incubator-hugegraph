@@ -100,8 +100,11 @@ public class RamCache implements Cache {
             }
 
             // Ignore concurrent write for hits
-            LOG.debug("RamCache cached '{}' (hits={}, miss={})",
-                      id, ++this.hits, this.miss);
+            ++this.hits;
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("RamCache cached '{}' (hits={}, miss={})",
+                          id, this.hits, this.miss);
+            }
 
             assert id.equals(node.key());
             return node.value();
@@ -139,8 +142,10 @@ public class RamCache implements Cache {
                  * NOTE: it maybe return null if other threads are doing remove
                  */
                 this.map.remove(removed.key());
-                LOG.debug("RamCache replaced '{}' with '{}' (capacity={})",
-                          removed.key(), id, this.capacity);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("RamCache replaced '{}' with '{}' (capacity={})",
+                              removed.key(), id, this.capacity);
+                }
                 /*
                  * Release the object
                  * NOTE: we can't reuse the removed node due to someone else
@@ -191,8 +196,11 @@ public class RamCache implements Cache {
             value = this.access(id);
         }
         if (value == null) {
-            LOG.debug("RamCache missed '{}' (miss={}, hits={})",
-                      id, ++this.miss, this.hits);
+            ++this.miss;
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("RamCache missed '{}' (miss={}, hits={})",
+                          id, this.miss, this.hits);
+            }
         }
         return value;
     }
@@ -206,8 +214,11 @@ public class RamCache implements Cache {
             value = this.access(id);
         }
         if (value == null) {
-            LOG.debug("RamCache missed '{}' (miss={}, hits={})",
-                      id, ++this.miss, this.hits);
+            ++this.miss;
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("RamCache missed '{}' (miss={}, hits={})",
+                          id, this.miss, this.hits);
+            }
             // Do fetch and update the cache
             value = fetcher.apply(id);
             this.update(id, value);
@@ -218,8 +229,7 @@ public class RamCache implements Cache {
     @Watched(prefix = "ramcache")
     @Override
     public void update(Id id, Object value) {
-        if (id == null || value == null ||
-            this.capacity <= 0) {
+        if (id == null || value == null || this.capacity <= 0) {
             return;
         }
         this.write(id, value);
@@ -229,8 +239,7 @@ public class RamCache implements Cache {
     @Override
     public void updateIfAbsent(Id id, Object value) {
         if (id == null || value == null ||
-            this.capacity <= 0 ||
-            this.map.containsKey(id)) {
+            this.capacity <= 0 || this.map.containsKey(id)) {
             return;
         }
         this.write(id, value);
@@ -258,6 +267,9 @@ public class RamCache implements Cache {
     @Override
     public void clear() {
         // TODO: synchronized
+        if (this.capacity <= 0 || this.map.isEmpty()) {
+            return;
+        }
         this.map.clear();
         this.queue.clear();
     }
