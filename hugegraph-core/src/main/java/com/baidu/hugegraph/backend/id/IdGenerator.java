@@ -123,7 +123,7 @@ public abstract class IdGenerator {
         }
     }
 
-    public static class LongId implements Id {
+    public static class LongId extends Number implements Id {
 
         private long id;
 
@@ -188,6 +188,26 @@ public abstract class IdGenerator {
         @Override
         public String toString() {
             return String.valueOf(this.id);
+        }
+
+        @Override
+        public int intValue() {
+            return (int) this.id;
+        }
+
+        @Override
+        public long longValue() {
+            return this.id;
+        }
+
+        @Override
+        public float floatValue() {
+            return this.id;
+        }
+
+        @Override
+        public double doubleValue() {
+            return this.id;
         }
     }
 }
