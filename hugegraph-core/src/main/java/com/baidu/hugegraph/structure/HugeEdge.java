@@ -201,7 +201,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                                         HugeProperty<V> prop) {
         if (prop != null) {
             assert prop instanceof HugeEdgeProperty;
-            // Use addEdgeProperty() to update
+            // Use tx to update property (should update cache even if it's new)
             this.tx().addEdgeProperty((HugeEdgeProperty<V>) prop);
         }
     }

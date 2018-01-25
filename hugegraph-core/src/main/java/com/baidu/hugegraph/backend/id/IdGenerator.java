@@ -56,9 +56,9 @@ public abstract class IdGenerator {
 
     /****************************** id defines ******************************/
 
-    public static class StringId implements Id {
+    public static final class StringId implements Id {
 
-        private String id;
+        private final String id;
 
         public StringId(String id) {
             E.checkArgument(!id.isEmpty(), "The id can't be empty");
@@ -101,7 +101,7 @@ public abstract class IdGenerator {
 
         @Override
         public int compareTo(Id other) {
-            return this.id.compareTo(((StringId) other).id);
+            return this.id.compareTo(other.asString());
         }
 
         @Override
@@ -123,9 +123,11 @@ public abstract class IdGenerator {
         }
     }
 
-    public static class LongId extends Number implements Id {
+    public static final class LongId extends Number implements Id {
 
-        private long id;
+        private static final long serialVersionUID = -7732461469037400190L;
+
+        private final long id;
 
         public LongId(long id) {
             this.id = id;
@@ -168,13 +170,12 @@ public abstract class IdGenerator {
 
         @Override
         public int compareTo(Id other) {
-            long otherId = ((LongId) other).id;
-            return Long.compare(this.id, otherId);
+            return Long.compare(this.id, other.asLong());
         }
 
         @Override
         public int hashCode() {
-            return (int) this.id;
+            return Long.hashCode(this.id);
         }
 
         @Override
