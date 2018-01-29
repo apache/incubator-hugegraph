@@ -43,7 +43,7 @@ public interface SerialEnum {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends SerialEnum> T fromCode(Class<T> clazz, Byte code) {
+    public static <T extends SerialEnum> T fromCode(Class<T> clazz, byte code) {
         return (T) table.get(clazz, code);
     }
 }

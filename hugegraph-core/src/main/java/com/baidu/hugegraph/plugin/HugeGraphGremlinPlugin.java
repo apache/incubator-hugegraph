@@ -27,7 +27,6 @@ import org.apache.tinkerpop.gremlin.groovy.plugin.PluginAcceptor;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.google.common.collect.ImmutableSet;
 
-
 @SuppressWarnings("deprecation") // TODO: use new Plugin API
 public class HugeGraphGremlinPlugin implements GremlinPlugin {
 

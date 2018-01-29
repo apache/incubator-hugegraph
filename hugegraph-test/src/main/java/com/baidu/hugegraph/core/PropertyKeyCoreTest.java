@@ -51,13 +51,9 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
 
         // One space and single char
         schema.propertyKey(" s").create();
-        schema.propertyKey("s ").create();
-        schema.propertyKey(" s ").create();
         schema.propertyKey("s s").create();
 
         schema.propertyKey(" .").create();
-        schema.propertyKey(". ").create();
-        schema.propertyKey(" . ").create();
         schema.propertyKey(". .").create();
 
         schema.propertyKey("@$%^&*()_+`-={}|[]\"<?;'~,./\\").create();
@@ -79,13 +75,17 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.propertyKey(" ").create();
         });
-        // Two spaces
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            schema.propertyKey("  ").create();
-        });
         // Multi spaces
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.propertyKey("    ").create();
+        });
+
+        // End with spaces
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey("s ").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.propertyKey(" . ").create();
         });
 
         // Internal characters

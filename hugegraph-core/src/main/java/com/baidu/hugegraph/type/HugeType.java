@@ -79,6 +79,10 @@ public enum HugeType implements SerialEnum {
         return this.name;
     }
 
+    public boolean isIndex() {
+        return this == HugeType.SECONDARY_INDEX || this == HugeType.RANGE_INDEX;
+    }
+
     public static HugeType fromString(String type) {
         return ALL_NAME.get(type);
     }

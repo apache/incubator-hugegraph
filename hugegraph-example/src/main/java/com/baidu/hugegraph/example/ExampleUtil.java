@@ -40,6 +40,7 @@ public class ExampleUtil {
         RegisterUtil.registerScyllaDB();
         RegisterUtil.registerHBase();
         RegisterUtil.registerRocksDB();
+        RegisterUtil.registerMysql();
     }
 
     public static HugeGraph loadGraph() {
