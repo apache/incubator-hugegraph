@@ -26,6 +26,8 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -836,5 +838,86 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, write.userData().size());
         Assert.assertEquals("many-to-many",
                             write.userData().get("multiplicity"));
+    }
+
+    @Test
+    public void testAddEdgeLabelWithEnableLabelIndex() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
+                                .properties("time", "weight")
+                                .enableLabelIndex(true)
+                                .create();
+        Assert.assertEquals(true, write.enableLabelIndex());
+
+        Vertex marko = graph().addVertex(T.label, "person", "name", "marko",
+                                         "age", 22);
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "java in action");
+        Vertex hadoop = graph().addVertex(T.label, "book",
+                                          "name", "hadoop mapreduce");
+
+        marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
+        marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
+        graph().tx().commit();
+
+        List<Edge> edges = graph().traversal().E().hasLabel("write").toList();
+        Assert.assertEquals(2, edges.size());
+    }
+
+    @Test
+    public void testAddEdgeLabelWithDisableeLabelIndex() {
+        super.initPropertyKeys();
+        HugeGraph graph =  graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
+                                .properties("time", "weight")
+                                .enableLabelIndex(false)
+                                .create();
+        Assert.assertEquals(false, write.enableLabelIndex());
+
+        Vertex marko = graph.addVertex(T.label, "person", "name", "marko",
+                                       "age", 22);
+        Vertex java = graph.addVertex(T.label, "book",
+                                      "name", "java in action");
+        Vertex hadoop = graph.addVertex(T.label, "book",
+                                        "name", "hadoop mapreduce");
+
+        marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
+        marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().hasLabel("write").toList();
+
+        BackendFeatures features = graph.graphTransaction().store().features();
+        if (!features.supportsQueryByLabel()) {
+            Assert.assertEquals(0, edges.size());
+        } else {
+            Assert.assertEquals(2, edges.size());
+        }
     }
 }

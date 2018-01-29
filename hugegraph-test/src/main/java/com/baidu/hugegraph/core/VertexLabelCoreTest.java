@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -794,5 +795,56 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         // The same key user data will be overwritten
         Assert.assertEquals(1, runner.userData().size());
         Assert.assertEquals("player", runner.userData().get("super_vl"));
+    }
+
+    @Test
+    public void testAddVertexLabelWithEnableLabelIndex() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .nullableKeys("city")
+                                   .enableLabelIndex(true)
+                                   .create();
+        Assert.assertEquals(true, person.enableLabelIndex());
+
+        graph().addVertex(T.label, "person", "name", "marko", "age", 18);
+        graph().addVertex(T.label, "person", "name", "josh", "age", 20);
+        graph().tx().commit();
+
+        List<Vertex> persons = graph().traversal().V()
+                                      .hasLabel("person").toList();
+        Assert.assertEquals(2, persons.size());
+    }
+
+    @Test
+    public void testAddVertexLabelWithDisableLabelIndex() {
+        super.initPropertyKeys();
+        HugeGraph graph =  graph();
+        SchemaManager schema = graph.schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .nullableKeys("city")
+                                   .enableLabelIndex(false)
+                                   .create();
+        Assert.assertEquals(false, person.enableLabelIndex());
+
+        graph.addVertex(T.label, "person", "name", "marko", "age", 18);
+        graph.addVertex(T.label, "person", "name", "josh", "age", 20);
+        graph().tx().commit();
+
+        List<Vertex> persons = graph.traversal().V()
+                                    .hasLabel("person").toList();
+
+        BackendFeatures features = graph.graphTransaction().store().features();
+        if (!features.supportsQueryByLabel()) {
+            Assert.assertEquals(0, persons.size());
+        } else {
+            Assert.assertEquals(2, persons.size());
+        }
     }
 }

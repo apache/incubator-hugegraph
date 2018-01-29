@@ -398,13 +398,15 @@ public class CassandraSerializer extends AbstractSerializer {
         entry.column(HugeKeys.ID, vertexLabel.id().asLong());
         entry.column(HugeKeys.NAME, vertexLabel.name());
         entry.column(HugeKeys.ID_STRATEGY, vertexLabel.idStrategy().code());
+        entry.column(HugeKeys.PROPERTIES, toLongSet(vertexLabel.properties()));
         entry.column(HugeKeys.PRIMARY_KEYS,
                      toLongList(vertexLabel.primaryKeys()));
         entry.column(HugeKeys.NULLABLE_KEYS,
                      toLongSet(vertexLabel.nullableKeys()));
         entry.column(HugeKeys.INDEX_LABELS,
                      toLongSet(vertexLabel.indexLabels()));
-        entry.column(HugeKeys.PROPERTIES, toLongSet(vertexLabel.properties()));
+        entry.column(HugeKeys.ENABLE_LABEL_INDEX,
+                     vertexLabel.enableLabelIndex());
         writeUserData(vertexLabel, entry);
         return entry;
     }
@@ -417,12 +419,12 @@ public class CassandraSerializer extends AbstractSerializer {
         entry.column(HugeKeys.FREQUENCY, edgeLabel.frequency().code());
         entry.column(HugeKeys.SOURCE_LABEL, edgeLabel.sourceLabel().asLong());
         entry.column(HugeKeys.TARGET_LABEL, edgeLabel.targetLabel().asLong());
+        entry.column(HugeKeys.PROPERTIES, toLongSet(edgeLabel.properties()));
         entry.column(HugeKeys.SORT_KEYS, toLongList(edgeLabel.sortKeys()));
         entry.column(HugeKeys.NULLABLE_KEYS,
                      toLongSet(edgeLabel.nullableKeys()));
-        entry.column(HugeKeys.INDEX_LABELS,
-                     toLongSet(edgeLabel.indexLabels()));
-        entry.column(HugeKeys.PROPERTIES, toLongSet(edgeLabel.properties()));
+        entry.column(HugeKeys.INDEX_LABELS, toLongSet(edgeLabel.indexLabels()));
+        entry.column(HugeKeys.ENABLE_LABEL_INDEX, edgeLabel.enableLabelIndex());
         writeUserData(edgeLabel, entry);
         return entry;
     }
@@ -455,6 +457,7 @@ public class CassandraSerializer extends AbstractSerializer {
         List<Number> primaryKeys = entry.column(HugeKeys.PRIMARY_KEYS);
         Set<Number> nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         Set<Number> indexLabels = entry.column(HugeKeys.INDEX_LABELS);
+        Boolean enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
 
         VertexLabel vertexLabel = new VertexLabel(graph, toId(id), name);
         vertexLabel.idStrategy(SerialEnum.fromCode(IdStrategy.class,
@@ -463,6 +466,7 @@ public class CassandraSerializer extends AbstractSerializer {
         vertexLabel.primaryKeys(toIdArray(primaryKeys));
         vertexLabel.nullableKeys(toIdArray(nullableKeys));
         vertexLabel.indexLabels(toIdArray(indexLabels));
+        vertexLabel.enableLabelIndex(enableLabelIndex);
         readUserData(vertexLabel, entry);
         return vertexLabel;
     }
@@ -484,6 +488,7 @@ public class CassandraSerializer extends AbstractSerializer {
         Set<Number> nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         Set<Number> properties = entry.column(HugeKeys.PROPERTIES);
         Set<Number> indexLabels = entry.column(HugeKeys.INDEX_LABELS);
+        Boolean enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
 
         EdgeLabel edgeLabel = new EdgeLabel(graph, toId(id), name);
         edgeLabel.frequency(SerialEnum.fromCode(Frequency.class, frequency));
@@ -493,6 +498,7 @@ public class CassandraSerializer extends AbstractSerializer {
         edgeLabel.sortKeys(toIdArray(sortKeys));
         edgeLabel.nullableKeys(toIdArray(nullableKeys));
         edgeLabel.indexLabels(toIdArray(indexLabels));
+        edgeLabel.enableLabelIndex(enableLabelIndex);
         readUserData(edgeLabel, entry);
         return edgeLabel;
     }

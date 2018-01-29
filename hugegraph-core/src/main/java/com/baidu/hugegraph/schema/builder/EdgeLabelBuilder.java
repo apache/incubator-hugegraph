@@ -55,6 +55,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     private Set<String> properties;
     private List<String> sortKeys;
     private Set<String> nullableKeys;
+    private Boolean enableLabelIndex;
     private Map<String, Object> userData;
     private boolean checkExist;
 
@@ -64,10 +65,13 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         E.checkNotNull(name, "name");
         E.checkNotNull(transaction, "transaction");
         this.name = name;
+        this.sourceLabel = null;
+        this.targetLabel = null;
         this.frequency = Frequency.DEFAULT;
         this.properties = new HashSet<>();
         this.sortKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
+        this.enableLabelIndex = null;
         this.userData = new HashMap<>();
         this.checkExist = true;
         this.transaction = transaction;
@@ -83,6 +87,8 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         edgeLabel.targetLabel(this.transaction.getVertexLabel(
                               this.targetLabel).id());
         edgeLabel.frequency(this.frequency);
+        edgeLabel.enableLabelIndex(this.enableLabelIndex == null ||
+                                   this.enableLabelIndex);
         for (String key : this.properties) {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             edgeLabel.property(propertyKey.id());
@@ -188,12 +194,6 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     }
 
     @Override
-    public EdgeLabelBuilder userData(String key, Object value) {
-        this.userData.put(key, value);
-        return this;
-    }
-
-    @Override
     public EdgeLabelBuilder sortKeys(String... keys) {
         if (keys.length == 0) {
             return this;
@@ -250,6 +250,18 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     @Override
     public EdgeLabelBuilder frequency(Frequency frequency) {
         this.frequency = frequency;
+        return this;
+    }
+
+    @Override
+    public EdgeLabelBuilder enableLabelIndex(boolean enable) {
+        this.enableLabelIndex = enable;
+        return this;
+    }
+
+    @Override
+    public EdgeLabelBuilder userData(String key, Object value) {
+        this.userData.put(key, value);
         return this;
     }
 
@@ -363,16 +375,19 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
                       "Not allowed to update target label " +
                       "for edge label '%s', it must be null", this.name);
         }
-
         if (this.frequency != Frequency.DEFAULT) {
             throw new NotAllowException(
                       "Not allowed to update frequency " +
                       "for edge label '%s'", this.name);
         }
-        // Don't allow to append sort keys.
         if (!this.sortKeys.isEmpty()) {
             throw new NotAllowException(
                       "Not allowed to update sort keys " +
+                      "for edge label '%s'", this.name);
+        }
+        if (this.enableLabelIndex != null) {
+            throw new NotAllowException(
+                      "Not allowed to update enable_label_index " +
                       "for edge label '%s'", this.name);
         }
     }

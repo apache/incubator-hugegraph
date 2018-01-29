@@ -37,6 +37,7 @@ public enum HugeKeys {
     PRIMARY_KEYS(52, "primary_keys"),
     INDEX_LABELS(53, "index_labels"),
     NULLABLE_KEYS(54, "nullable_keys"),
+    ENABLE_LABEL_INDEX(55, "enable_label_index"),
 
     /* Column names of schema type (EdgeLabel) */
     LINKS(80, "links"),
