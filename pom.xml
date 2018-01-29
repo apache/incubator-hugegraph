@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph</artifactId>
-    <version>0.5.1-SNAPSHOT</version>
+    <version>0.5.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <prerequisites>
         <maven>3.3.9</maven>
@@ -52,8 +52,10 @@
         <tinkerpop.version>3.2.5</tinkerpop.version>
         <commons.io.version>2.4</commons.io.version>
         <guava.version>19.0</guava.version>
+        <httpclient.version>4.5.2</httpclient.version>
         <datastax.cassandra.version>3.2.0</datastax.cassandra.version>
         <apache.cassandra.version>3.10</apache.cassandra.version>
+        <mysql.driver.version>6.0.6</mysql.driver.version>
         <gson.version>2.8.0</gson.version>
         <jersey.version>2.25.1</jersey.version>
         <javassist.version>3.21.0-GA</javassist.version>
@@ -68,6 +70,7 @@
         <module>hugegraph-cassandra</module>
         <module>hugegraph-scylladb</module>
         <module>hugegraph-rocksdb</module>
+        <module>hugegraph-mysql</module>
     </modules>
 
     <dependencyManagement>
@@ -180,6 +183,11 @@
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${httpclient.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.apache.cassandra</groupId>
@@ -190,6 +198,11 @@
                 <groupId>com.datastax.cassandra</groupId>
                 <artifactId>cassandra-driver-core</artifactId>
                 <version>${datastax.cassandra.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>${mysql.driver.version}</version>
             </dependency>
 
             <!-- jersey -->

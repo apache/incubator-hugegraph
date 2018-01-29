@@ -28,6 +28,7 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
+import com.baidu.hugegraph.backend.store.mysql.MysqlOptions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -78,6 +79,9 @@ public class RegisterUtil {
             case "rocksdb":
                 registerRocksDB();
                 break;
+            case "mysql":
+                registerMysql();
+                break;
             default:
                 throw new HugeException("Unsupported backend type '%s'", backend);
         }
@@ -116,6 +120,17 @@ public class RegisterUtil {
                 "com.baidu.hugegraph.backend.store.rocksdb.RocksDBStoreProvider");
         BackendProviderFactory.register("rocksdbsst",
                 "com.baidu.hugegraph.backend.store.rocksdbsst.RocksDBSstStoreProvider");
+    }
+
+    public static void registerMysql() {
+        // Register config
+        OptionSpace.register(MysqlOptions.instance());
+        // Register serializer
+        SerializerFactory.register("mysql",
+                "com.baidu.hugegraph.backend.store.mysql.MysqlSerializer");
+        // Register backend
+        BackendProviderFactory.register("mysql",
+                "com.baidu.hugegraph.backend.store.mysql.MysqlStoreProvider");
     }
 
     public static void registerServer() {

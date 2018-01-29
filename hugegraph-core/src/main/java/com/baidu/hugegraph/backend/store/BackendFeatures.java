@@ -41,6 +41,8 @@ public interface BackendFeatures {
 
     public boolean supportsDeleteEdgeByLabel();
 
+    public boolean supportsUpdateVertexProperty();
+
     public boolean supportsUpdateEdgeProperty();
 
     public boolean supportsTransaction();

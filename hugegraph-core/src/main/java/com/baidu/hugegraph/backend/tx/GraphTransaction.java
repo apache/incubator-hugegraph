@@ -608,7 +608,8 @@ public class GraphTransaction extends IndexableTransaction {
             return;
         }
         // Check is updating property of added/removed vertex
-        E.checkArgument(!this.addedVertexes.containsKey(vertex.id()),
+        E.checkArgument(!this.addedVertexes.containsKey(vertex.id()) ||
+                        this.updatedVertexes.containsKey(vertex.id()),
                         "Can't update property '%s' for adding-state vertex",
                         prop.key());
         E.checkArgument(!vertex.removed() &&
@@ -630,8 +631,13 @@ public class GraphTransaction extends IndexableTransaction {
             this.propertyUpdated(vertex, vertex.setProperty(prop));
             this.indexTx.updateVertexIndex(vertex, false);
 
-            // Append new property
-            this.doAppend(this.serializer.writeVertexProperty(prop));
+            if (this.store().features().supportsUpdateVertexProperty()) {
+                // Append new property(OUT and IN owner edge)
+                this.doAppend(this.serializer.writeVertexProperty(prop));
+            } else {
+                // Override vertex
+                this.addVertex(vertex);
+            }
         });
     }
 
@@ -676,8 +682,13 @@ public class GraphTransaction extends IndexableTransaction {
                                  vertex.removeProperty(propertyKey.id()));
             this.indexTx.updateVertexIndex(vertex, false);
 
-            // Eliminate the property
-            this.doEliminate(this.serializer.writeVertexProperty(prop));
+            if (this.store().features().supportsUpdateVertexProperty()) {
+                // Eliminate the property(OUT and IN owner edge)
+                this.doEliminate(this.serializer.writeVertexProperty(prop));
+            } else {
+                // Override vertex
+                this.addVertex(vertex);
+            }
         });
     }
 

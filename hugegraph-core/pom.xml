@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.baidu.hugegraph</groupId>
         <artifactId>hugegraph</artifactId>
-        <version>0.5.1-SNAPSHOT</version>
+        <version>0.5.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>hugegraph-core</artifactId>
@@ -47,6 +47,11 @@
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-driver</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
         </dependency>
 
         <!-- Utility -->

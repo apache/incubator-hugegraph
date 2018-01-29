@@ -17,11 +17,11 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store.rocksdb;
+package com.baidu.hugegraph.backend.store.mysql;
 
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 
-public class RocksDBFeatures implements BackendFeatures {
+public class MysqlFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsScanToken() {
@@ -30,24 +30,24 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsScanKeyPrefix() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean supportsScanKeyRange() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean supportsQuerySchemaByName() {
-        // No index in RocksDB
-        return false;
+        // MySQL support secondary index
+        return true;
     }
 
     @Override
     public boolean supportsQueryByLabel() {
-        // No index in RocksDB
-        return false;
+        // MySQL support secondary index
+        return true;
     }
 
     @Override
@@ -62,41 +62,37 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsQueryWithContains() {
-        // TODO: Need to traversal all items
         return false;
     }
 
     @Override
     public boolean supportsQueryWithContainsKey() {
-        // TODO: Need to traversal all items
         return false;
     }
 
     @Override
     public boolean supportsDeleteEdgeByLabel() {
-        // No index in RocksDB
-        return false;
-    }
-
-    @Override
-    public boolean supportsUpdateVertexProperty() {
         return true;
     }
 
     @Override
+    public boolean supportsUpdateVertexProperty() {
+        return false;
+    }
+
+    @Override
     public boolean supportsUpdateEdgeProperty() {
-        // Edge properties are stored in a cell(column value)
         return false;
     }
 
     @Override
     public boolean supportsTransaction() {
-        // Supports tx with WriteBatch
+        // MySQL support tx
         return true;
     }
 
     @Override
     public boolean supportsNumberType() {
-        return false;
+        return true;
     }
 }

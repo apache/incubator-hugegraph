@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store.cassandra;
+package com.baidu.hugegraph.backend.store.mysql;
 
 import java.util.Collection;
 
@@ -26,58 +26,58 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.TableBackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 
-public class CassandraBackendEntry extends TableBackendEntry {
+public class MysqlBackendEntry extends TableBackendEntry {
 
-    public CassandraBackendEntry(Id id) {
+    public MysqlBackendEntry(Id id) {
         super(id);
     }
 
-    public CassandraBackendEntry(HugeType type) {
+    public MysqlBackendEntry(HugeType type) {
         this(type, null);
     }
 
-    public CassandraBackendEntry(HugeType type, Id id) {
+    public MysqlBackendEntry(HugeType type, Id id) {
         this(new Row(type, id));
     }
 
-    public CassandraBackendEntry(TableBackendEntry.Row row) {
+    public MysqlBackendEntry(TableBackendEntry.Row row) {
         super(row);
     }
 
     @Override
     public String toString() {
-        return String.format("CassandraBackendEntry{%s, sub-rows: %s}",
+        return String.format("MysqlBackendEntry{%s, sub-rows: %s}",
                              this.row().toString(),
                              this.subRows().toString());
     }
 
     @Override
     public int columnsSize() {
-        throw new RuntimeException("Not supported by Cassandra");
+        throw new RuntimeException("Not supported by MySQL");
     }
 
     @Override
     public Collection<BackendColumn> columns() {
-        throw new RuntimeException("Not supported by Cassandra");
+        throw new RuntimeException("Not supported by MySQL");
     }
 
     @Override
     public void columns(Collection<BackendColumn> bytesColumns) {
-        throw new RuntimeException("Not supported by Cassandra");
+        throw new RuntimeException("Not supported by MySQL");
     }
 
     @Override
     public void columns(BackendColumn... bytesColumns) {
-        throw new RuntimeException("Not supported by Cassandra");
+        throw new RuntimeException("Not supported by MySQL");
     }
 
     @Override
     public void merge(BackendEntry other) {
-        throw new RuntimeException("Not supported by Cassandra");
+        throw new RuntimeException("Not supported by MySQL");
     }
 
     @Override
     public void clear() {
-        throw new RuntimeException("Not supported by Cassandra");
+        throw new RuntimeException("Not supported by MySQL");
     }
 }

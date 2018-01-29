@@ -447,8 +447,8 @@ public final class TraversalUtil {
     }
 
     public static QueryHolder rootStep(GraphTraversal<?, ?> traversal) {
-        for(final Step<?, ?> step : traversal.asAdmin().getSteps()) {
-            if(step instanceof QueryHolder) {
+        for (final Step<?, ?> step : traversal.asAdmin().getSteps()) {
+            if (step instanceof QueryHolder) {
                 return ((QueryHolder) step);
             }
         }

@@ -122,12 +122,17 @@ public class CoreOptions extends OptionHolder {
                     10000
             );
 
+    /**
+     * The schema name rule:
+     * 1、Not allowed end with spaces
+     * 2、Not allowed start with '~'
+     */
     public static final ConfigOption<String> SCHEMA_ILLEGAL_NAME_REGEX =
             new ConfigOption<>(
                     "schema.illegal_name_regex",
                     "The regex specified the illegal format for schema name.",
                     disallowEmpty(),
-                    "\\s+|~.*"
+                    ".*\\s+$|~.*"
             );
 
     public static final ConfigOption<Integer> SCHEMA_CACHE_CAPACITY =

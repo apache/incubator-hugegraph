@@ -76,6 +76,11 @@ public class CassandraFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsUpdateVertexProperty() {
+        return true;
+    }
+
+    @Override
     public boolean supportsUpdateEdgeProperty() {
         return true;
     }
