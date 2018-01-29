@@ -28,8 +28,8 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaLabel extends SchemaElement
@@ -37,11 +37,13 @@ public abstract class SchemaLabel extends SchemaElement
 
     private Set<Id> nullableKeys;
     private Set<Id> indexLabels;
+    private boolean enableLabelIndex;
 
     public SchemaLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
         this.nullableKeys = new HashSet<>();
         this.indexLabels = new HashSet<>();
+        this.enableLabelIndex = true;
     }
 
     public void property(Id id) {
@@ -84,6 +86,14 @@ public abstract class SchemaLabel extends SchemaElement
 
     public void removeIndexLabel(Id id) {
         this.indexLabels.remove(id);
+    }
+
+    public boolean enableLabelIndex() {
+        return this.enableLabelIndex;
+    }
+
+    public void enableLabelIndex(boolean enable) {
+        this.enableLabelIndex = enable;
     }
 
     public static Id getLabelId(HugeGraph graph, HugeType type, Object label) {

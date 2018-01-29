@@ -154,6 +154,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return;
         }
 
+        // Don't update label index if it's not enabled
+        if (!element.schemaLabel().enableLabelIndex()) {
+            return;
+        }
+
         // Update label index if backend store not supports label-query
         HugeIndex index = new HugeIndex(IndexLabel.label(element.type()));
         index.fieldValues(element.schemaLabel().id().asLong());

@@ -144,12 +144,14 @@ public class VertexLabelAPI extends API {
         public String name;
         @JsonProperty("id_strategy")
         public IdStrategy idStrategy;
+        @JsonProperty("properties")
+        public String[] properties;
         @JsonProperty("primary_keys")
         public String[] primaryKeys;
         @JsonProperty("nullable_keys")
         public String[] nullableKeys;
-        @JsonProperty("properties")
-        public String[] properties;
+        @JsonProperty("enable_label_index")
+        public Boolean enableLabelIndex;
         @JsonProperty("user_data")
         public Map<String, Object> userData;
         @JsonProperty("check_exist")
@@ -166,14 +168,17 @@ public class VertexLabelAPI extends API {
             if (this.idStrategy != null) {
                 builder.idStrategy(this.idStrategy);
             }
+            if (this.properties != null) {
+                builder.properties(this.properties);
+            }
             if (this.primaryKeys != null) {
                 builder.primaryKeys(this.primaryKeys);
             }
             if (this.nullableKeys != null) {
                 builder.nullableKeys(this.nullableKeys);
             }
-            if (this.properties != null) {
-                builder.properties(this.properties);
+            if (this.enableLabelIndex != null) {
+                builder.enableLabelIndex(this.enableLabelIndex);
             }
             if (this.userData != null) {
                 builder.userData(this.userData);

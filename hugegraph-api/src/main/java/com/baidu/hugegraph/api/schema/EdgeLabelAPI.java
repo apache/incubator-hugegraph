@@ -145,12 +145,14 @@ public class EdgeLabelAPI extends API {
         public String targetLabel;
         @JsonProperty("frequency")
         public Frequency frequency;
+        @JsonProperty("properties")
+        public String[] properties;
         @JsonProperty("sort_keys")
         public String[] sortKeys;
         @JsonProperty("nullable_keys")
         public String[] nullableKeys;
-        @JsonProperty("properties")
-        public String[] properties;
+        @JsonProperty("enable_label_index")
+        public Boolean enableLabelIndex;
         @JsonProperty("user_data")
         public Map<String, Object> userData;
         @JsonProperty("check_exist")
@@ -173,14 +175,17 @@ public class EdgeLabelAPI extends API {
             if (this.frequency != null) {
                 builder.frequency(this.frequency);
             }
+            if (this.properties != null) {
+                builder.properties(this.properties);
+            }
             if (this.sortKeys != null) {
                 builder.sortKeys(this.sortKeys);
             }
             if (this.nullableKeys != null) {
                 builder.nullableKeys(this.nullableKeys);
             }
-            if (this.properties != null) {
-                builder.properties(this.properties);
+            if (this.enableLabelIndex != null) {
+                builder.enableLabelIndex(this.enableLabelIndex);
             }
             if (this.userData != null) {
                 builder.userData(this.userData);

@@ -126,9 +126,11 @@ public class EdgeLabel extends SchemaLabel {
 
         Builder nullableKeys(String... keys);
 
-        Builder userData(String key, Object value);
-
         Builder frequency(Frequency frequency);
+
+        Builder enableLabelIndex(boolean enable);
+
+        Builder userData(String key, Object value);
 
         Builder userData(Map<String, Object> userData);
     }

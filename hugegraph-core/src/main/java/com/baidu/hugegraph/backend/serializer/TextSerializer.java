@@ -438,14 +438,16 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.NAME, JsonUtil.toJson(vertexLabel.name()));
         entry.column(HugeKeys.ID_STRATEGY,
                      JsonUtil.toJson(vertexLabel.idStrategy()));
+        entry.column(HugeKeys.PROPERTIES,
+                     writeIds(vertexLabel.properties()));
         entry.column(HugeKeys.PRIMARY_KEYS,
                      writeIds(vertexLabel.primaryKeys()));
         entry.column(HugeKeys.NULLABLE_KEYS,
                      writeIds(vertexLabel.nullableKeys()));
         entry.column(HugeKeys.INDEX_LABELS,
                      writeIds(vertexLabel.indexLabels()));
-        entry.column(HugeKeys.PROPERTIES,
-                     writeIds(vertexLabel.properties()));
+        entry.column(HugeKeys.ENABLE_LABEL_INDEX,
+                     JsonUtil.toJson(vertexLabel.enableLabelIndex()));
         writeUserData(vertexLabel, entry);
         return entry;
     }
@@ -466,13 +468,17 @@ public class TextSerializer extends AbstractSerializer {
         String primaryKeys = entry.column(HugeKeys.PRIMARY_KEYS);
         String nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         String indexLabels = entry.column(HugeKeys.INDEX_LABELS);
+        String enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
 
         VertexLabel vertexLabel = new VertexLabel(graph, id, name);
-        vertexLabel.idStrategy(JsonUtil.fromJson(idStrategy, IdStrategy.class));
+        vertexLabel.idStrategy(JsonUtil.fromJson(idStrategy,
+                                                 IdStrategy.class));
         vertexLabel.properties(readIds(properties));
         vertexLabel.primaryKeys(readIds(primaryKeys));
         vertexLabel.nullableKeys(readIds(nullableKeys));
         vertexLabel.indexLabels(readIds(indexLabels));
+        vertexLabel.enableLabelIndex(JsonUtil.fromJson(enableLabelIndex,
+                                                       Boolean.class));
         readUserData(vertexLabel, entry);
         return vertexLabel;
     }
@@ -485,11 +491,13 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.TARGET_LABEL, writeId(edgeLabel.targetLabel()));
         entry.column(HugeKeys.FREQUENCY,
                      JsonUtil.toJson(edgeLabel.frequency()));
+        entry.column(HugeKeys.PROPERTIES, writeIds(edgeLabel.properties()));
         entry.column(HugeKeys.SORT_KEYS, writeIds(edgeLabel.sortKeys()));
         entry.column(HugeKeys.NULLABLE_KEYS,
                      writeIds(edgeLabel.nullableKeys()));
         entry.column(HugeKeys.INDEX_LABELS, writeIds(edgeLabel.indexLabels()));
-        entry.column(HugeKeys.PROPERTIES, writeIds(edgeLabel.properties()));
+        entry.column(HugeKeys.ENABLE_LABEL_INDEX,
+                     JsonUtil.toJson(edgeLabel.enableLabelIndex()));
         writeUserData(edgeLabel, entry);
         return entry;
     }
@@ -512,6 +520,7 @@ public class TextSerializer extends AbstractSerializer {
         String nullablekeys = entry.column(HugeKeys.NULLABLE_KEYS);
         String properties = entry.column(HugeKeys.PROPERTIES);
         String indexLabels = entry.column(HugeKeys.INDEX_LABELS);
+        String enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
 
         EdgeLabel edgeLabel = new EdgeLabel(graph, id, name);
         edgeLabel.sourceLabel(readId(sourceLabel));
@@ -521,6 +530,8 @@ public class TextSerializer extends AbstractSerializer {
         edgeLabel.sortKeys(readIds(sortKeys));
         edgeLabel.nullableKeys(readIds(nullablekeys));
         edgeLabel.indexLabels(readIds(indexLabels));
+        edgeLabel.enableLabelIndex(JsonUtil.fromJson(enableLabelIndex,
+                                                     Boolean.class));
         readUserData(edgeLabel, entry);
         return edgeLabel;
     }

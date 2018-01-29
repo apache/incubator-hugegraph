@@ -53,6 +53,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     private Set<String> properties;
     private List<String> primaryKeys;
     private Set<String> nullableKeys;
+    private Boolean enableLabelIndex;
     private Map<String, Object> userData;
     private boolean checkExist;
 
@@ -66,8 +67,10 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.properties = new HashSet<>();
         this.primaryKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
+        this.enableLabelIndex = null;
         this.userData = new HashMap<>();
         this.checkExist = true;
+
         this.transaction = transaction;
     }
 
@@ -77,6 +80,8 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         Id id = this.transaction.getNextId(HugeType.VERTEX_LABEL);
         VertexLabel vertexLabel = new VertexLabel(graph, id, this.name);
         vertexLabel.idStrategy(this.idStrategy);
+        vertexLabel.enableLabelIndex(this.enableLabelIndex == null ||
+                                     this.enableLabelIndex);
         // Assign properties
         for (String key : this.properties) {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
@@ -166,6 +171,16 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     @Override
+    public VertexLabelBuilder idStrategy(IdStrategy idStrategy) {
+        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
+                        this.idStrategy == idStrategy,
+                        "Not allowed to change id strategy for " +
+                        "vertex label '%s'", this.name);
+        this.idStrategy = idStrategy;
+        return this;
+    }
+
+    @Override
     public VertexLabelBuilder useAutomaticId() {
         E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
                         this.idStrategy == IdStrategy.AUTOMATIC,
@@ -235,18 +250,14 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     @Override
-    public VertexLabelBuilder userData(String key, Object value) {
-        this.userData.put(key, value);
+    public VertexLabelBuilder enableLabelIndex(boolean enable) {
+        this.enableLabelIndex = enable;
         return this;
     }
 
     @Override
-    public VertexLabelBuilder idStrategy(IdStrategy idStrategy) {
-        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
-                        this.idStrategy == idStrategy,
-                        "Not allowed to change id strategy for " +
-                        "vertex label '%s'", this.name);
-        this.idStrategy = idStrategy;
+    public VertexLabelBuilder userData(String key, Object value) {
+        this.userData.put(key, value);
         return this;
     }
 
@@ -363,7 +374,6 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     private void checkStableVars() {
-        // Don't allow to append primary keys.
         if (!this.primaryKeys.isEmpty()) {
             throw new NotAllowException(
                       "Not allowed to update primary keys " +
@@ -372,6 +382,11 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         if (this.idStrategy != IdStrategy.DEFAULT) {
             throw new NotAllowException(
                       "Not allowed to update id strategy " +
+                      "for vertex label '%s'", this.name);
+        }
+        if (this.enableLabelIndex != null) {
+            throw new NotAllowException(
+                      "Not allowed to update enable_label_index " +
                       "for vertex label '%s'", this.name);
         }
     }

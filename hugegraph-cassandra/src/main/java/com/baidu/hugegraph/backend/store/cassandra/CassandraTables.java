@@ -136,6 +136,7 @@ public class CassandraTables {
                     .put(HugeKeys.NULLABLE_KEYS, DataType.set(DATATYPE_PK))
                     .put(HugeKeys.INDEX_LABELS, DataType.set(DATATYPE_IL))
                     .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
+                    .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, DATATYPE_UD)
                     .build();
 
@@ -168,6 +169,7 @@ public class CassandraTables {
                     .put(HugeKeys.NULLABLE_KEYS, DataType.set(DATATYPE_PK))
                     .put(HugeKeys.INDEX_LABELS, DataType.set(DATATYPE_IL))
                     .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
+                    .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, DATATYPE_UD)
                     .build();
 

@@ -71,6 +71,8 @@ public class VertexLabel extends SchemaLabel {
 
         void rebuildIndex();
 
+        Builder idStrategy(IdStrategy idStrategy);
+
         Builder useAutomaticId();
 
         Builder usePrimaryKeyId();
@@ -85,9 +87,9 @@ public class VertexLabel extends SchemaLabel {
 
         Builder nullableKeys(String... keys);
 
-        Builder userData(String key, Object value);
+        Builder enableLabelIndex(boolean enable);
 
-        Builder idStrategy(IdStrategy idStrategy);
+        Builder userData(String key, Object value);
 
         Builder userData(Map<String, Object> userData);
     }
