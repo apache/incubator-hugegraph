@@ -28,7 +28,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
@@ -354,7 +353,6 @@ public class BinarySerializer extends AbstractSerializer {
                                                       1 + elemId.length() + 1);
             buffer.write(indexId);
             buffer.writeId(elemId);
-            buffer.writeId(IdGenerator.of(IdUtil.writeString(elemId)));
             buffer.writeUInt8(indexId.length);
 
             // Ensure the original look of the index key
