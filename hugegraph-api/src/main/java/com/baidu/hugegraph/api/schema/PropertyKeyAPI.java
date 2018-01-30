@@ -101,7 +101,7 @@ public class PropertyKeyAPI extends API {
         LOG.debug("Graph [{}] remove property key by name '{}'", graph, name);
 
         HugeGraph g = graph(manager, graph);
-        // Just check exists
+        // Throw 404 if not exists
         g.schema().getPropertyKey(name);
         g.schema().propertyKey(name).remove();
     }
@@ -139,7 +139,6 @@ public class PropertyKeyAPI extends API {
 
         private PropertyKey.Builder convert2Builder(HugeGraph g) {
             PropertyKey.Builder builder = g.schema().propertyKey(this.name);
-            // Weather it can be replacee by java 8 function or consumer
             if (this.cardinality != null) {
                 builder.cardinality(this.cardinality);
             }

@@ -98,7 +98,7 @@ public class VertexAPI extends API {
         checkCreatingBody(jsonVertices);
 
         HugeGraph g = graph(manager, graph);
-        checkBatchCount(g, jsonVertices);
+        checkBatchSize(g, jsonVertices);
 
         return commit(g, () -> {
             List<String> ids = new ArrayList<>(jsonVertices.size());
@@ -221,10 +221,9 @@ public class VertexAPI extends API {
         }
     }
 
-    private static void checkBatchCount(HugeGraph g,
-                                        List<JsonVertex> jsonVertices) {
+    private static void checkBatchSize(HugeGraph g, List<JsonVertex> vertices) {
         int max = g.configuration().get(ServerOptions.MAX_VERTICES_PER_BATCH);
-        if (jsonVertices.size() > max) {
+        if (vertices.size() > max) {
             throw new IllegalArgumentException(String.format(
                       "Too many counts of vertices for one time post, " +
                       "the maximum number is '%s'", max));
@@ -259,7 +258,7 @@ public class VertexAPI extends API {
                 Object value = this.properties.get(key);
                 E.checkArgumentNotNull(value, "Not allowed to set value of " +
                                        "property '%s' to null for vertex '%s'",
-                                       key, id);
+                                       key, this.id);
             }
         }
 

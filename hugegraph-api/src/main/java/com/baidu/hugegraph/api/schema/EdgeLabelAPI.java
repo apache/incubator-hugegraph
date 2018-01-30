@@ -125,7 +125,7 @@ public class EdgeLabelAPI extends API {
         LOG.debug("Graph [{}] remove edge label by name '{}'", graph, name);
 
         HugeGraph g = graph(manager, graph);
-        // Just check exists
+        // Throw 404 if not exists
         g.schema().getEdgeLabel(name);
         g.schema().edgeLabel(name).remove();
     }

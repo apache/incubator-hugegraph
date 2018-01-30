@@ -60,7 +60,8 @@ public class ApplicationConfig extends ResourceConfig {
         Map<String, String> graphMap = new HashMap<>();
         for (String graph : graphs) {
             String[] graphPair = graph.split(":");
-            assert graphPair.length == 2;
+            E.checkState(graphPair.length == 2,
+                         "Invalid graph format(expect NAME:CONF): %s", graph);
             graphMap.put(graphPair[0], graphPair[1]);
         }
         return graphMap;

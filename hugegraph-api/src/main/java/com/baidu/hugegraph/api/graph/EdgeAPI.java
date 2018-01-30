@@ -126,7 +126,7 @@ public class EdgeAPI extends API {
         checkCreatingBody(jsonEdges);
 
         HugeGraph g = graph(manager, graph);
-        checkBatchCount(g, jsonEdges);
+        checkBatchSize(g, jsonEdges);
 
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
@@ -267,9 +267,9 @@ public class EdgeAPI extends API {
         commit(g, () -> g.edges(id).next().remove());
     }
 
-    private static void checkBatchCount(HugeGraph g, List<JsonEdge> jsonEdges) {
+    private static void checkBatchSize(HugeGraph g, List<JsonEdge> edges) {
         int max = g.configuration().get(ServerOptions.MAX_EDGES_PER_BATCH);
-        if (jsonEdges.size() > max) {
+        if (edges.size() > max) {
             throw new IllegalArgumentException(String.format(
                       "Too many counts of edges for one time post, " +
                       "the maximum number is '%s'", max));
@@ -356,7 +356,7 @@ public class EdgeAPI extends API {
                 Object value = this.properties.get(key);
                 E.checkArgumentNotNull(value, "Not allowed to set value of " +
                                        "property '%s' to null for edge '%s'",
-                                       key, id);
+                                       key, this.id);
             }
         }
 
