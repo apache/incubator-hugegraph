@@ -134,7 +134,7 @@ public abstract class CassandraTable {
         // NOTE: Cassandra does not support query.offset()
         if (query.offset() != 0) {
             LOG.warn("Query offset is not supported currently " +
-                    "on Cassandra strore, it will be ignored");
+                     "on Cassandra strore, it will be ignored");
         }
 
         // Set limit

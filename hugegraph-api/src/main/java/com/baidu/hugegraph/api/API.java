@@ -128,8 +128,8 @@ public class API {
                           Collection<? extends Checkable> bodys) {
         E.checkArgumentNotNull(bodys, "The request body can't be empty");
         for (Checkable body : bodys) {
-            E.checkArgumentNotNull(body, "The batch body can't contain " +
-                                   "null record");
+            E.checkArgumentNotNull(body,
+                                   "The batch body can't contain null record");
             body.checkCreate(true);
         }
     }
@@ -143,13 +143,9 @@ public class API {
         Map<String, Object> props = null;
         try {
             props = mapper.readValue(properties, Map.class);
-        } catch (Exception ignore) {
-        }
+        } catch (Exception ignored) {}
         // If properties is the string "null", props will be null
-        if (props == null) {
-            throw new IllegalArgumentException(String.format(
-                      "Invalid request with properties: %s", properties));
-        }
+        E.checkArgument(props != null, "Invalid request with none properties");
         return props;
     }
 

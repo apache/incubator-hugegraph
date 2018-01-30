@@ -99,7 +99,7 @@ public class IndexLabelAPI extends API {
         LOG.debug("Graph [{}] remove index label by name '{}'", graph, name);
 
         HugeGraph g = graph(manager, graph);
-        // Just check exists
+        // Throw 404 if not exists
         g.schema().getIndexLabel(name);
         g.schema().indexLabel(name).remove();
     }

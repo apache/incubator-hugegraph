@@ -84,7 +84,7 @@ public class VertexLabelAPI extends API {
         E.checkArgument(name.equals(jsonVertexLabel.name),
                         "The name in url(%s) and body(%s) are different",
                         name, jsonVertexLabel.name);
-        // Parse action param
+        // Parse action parameter
         boolean append = checkAndParseAction(action);
 
         HugeGraph g = graph(manager, graph);
@@ -128,7 +128,7 @@ public class VertexLabelAPI extends API {
         LOG.debug("Graph [{}] remove vertex label by name '{}'", graph, name);
 
         HugeGraph g = graph(manager, graph);
-        // Just check exists
+        // Throw 404 if not exists
         g.schema().getVertexLabel(name);
         g.schema().vertexLabel(name).remove();
     }
