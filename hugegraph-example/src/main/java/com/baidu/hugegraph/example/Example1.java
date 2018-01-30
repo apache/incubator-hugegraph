@@ -444,6 +444,7 @@ public class Example1 {
                         "city", "Shanghai", "age", 28);
         graph.addVertex(T.label, "person", "name", "Curry",
                         "city", "Shanghai", "age", 30);
+        graph.tx().commit();
         // set breakpoint here to see secondary_indexes and range_indexes table
         List<Vertex> vertices = graph.traversal().V().has("age", 27)
                                      .has("city", "Hangzhou").toList();
