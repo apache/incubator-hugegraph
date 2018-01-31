@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.config;
 
+import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
@@ -102,5 +103,13 @@ public class CassandraOptions extends OptionHolder {
                     "The keyspace replication factor",
                     rangeInt(1, 100),
                     3
+            );
+
+    public static final ConfigOption<String> CASSANDRA_COMPRESSION =
+            new ConfigOption<>(
+                    "cassandra.compression_type",
+                    "The compression algorithm of cassandra transport: none/snappy/lz4.",
+                    allowValues("none", "snappy", "lz4"),
+                    "none"
             );
 }
