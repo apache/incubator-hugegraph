@@ -32,6 +32,7 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.ProtocolOptions.Compression;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.SocketOptions;
@@ -56,12 +57,16 @@ public class CassandraSessionPool extends BackendSessionPool {
                                        "before opening a new one");
         }
 
+        // Contact options
         String hosts = config.get(CassandraOptions.CASSANDRA_HOST);
         int port = config.get(CassandraOptions.CASSANDRA_PORT);
 
-        String username = config.get(CassandraOptions.CASSANDRA_USERNAME);
-        String password = config.get(CassandraOptions.CASSANDRA_PASSWORD);
+        assert this.cluster == null || this.cluster.isClosed();
+        Builder builder = Cluster.builder()
+                                 .addContactPoints(hosts.split(","))
+                                 .withPort(port);
 
+        // Timeout options
         int connTimeout = config.get(CassandraOptions.CASSANDRA_CONN_TIMEOUT);
         int readTimeout = config.get(CassandraOptions.CASSANDRA_READ_TIMEOUT);
 
@@ -69,14 +74,18 @@ public class CassandraSessionPool extends BackendSessionPool {
         socketOptions.setConnectTimeoutMillis(connTimeout * SECOND);
         socketOptions.setReadTimeoutMillis(readTimeout * SECOND);
 
-        assert this.cluster == null || this.cluster.isClosed();
-        Builder builder = Cluster.builder()
-                                 .addContactPoints(hosts.split(","))
-                                 .withPort(port)
-                                 .withSocketOptions(socketOptions);
+        builder.withSocketOptions(socketOptions);
+
+        // Credential options
+        String username = config.get(CassandraOptions.CASSANDRA_USERNAME);
+        String password = config.get(CassandraOptions.CASSANDRA_PASSWORD);
         if (!username.isEmpty()) {
             builder.withCredentials(username, password);
         }
+
+        // Compression options
+        String compression = config.get(CassandraOptions.CASSANDRA_COMPRESSION);
+        builder.withCompression(Compression.valueOf(compression.toUpperCase()));
 
         this.cluster = builder.build();
     }
