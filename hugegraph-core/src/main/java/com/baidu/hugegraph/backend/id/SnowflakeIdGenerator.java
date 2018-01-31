@@ -34,21 +34,26 @@ import com.baidu.hugegraph.util.TimeUtil;
 
 public class SnowflakeIdGenerator extends IdGenerator {
 
-    private static Map<String, SnowflakeIdGenerator> INSTANCES;
+    private static Map<String, SnowflakeIdGenerator> INSTANCES =
+                                                     new ConcurrentHashMap<>();
 
     private final boolean forceString;
-    private IdWorker idWorker = null;
+    private final IdWorker idWorker;
 
     public static SnowflakeIdGenerator instance(HugeGraph graph) {
-        if (INSTANCES == null) {
-            INSTANCES = new ConcurrentHashMap<>();
+        String graphname = graph.name();
+        SnowflakeIdGenerator generator = INSTANCES.get(graphname);
+        if (generator == null) {
+            synchronized (INSTANCES) {
+                if (!INSTANCES.containsKey(graphname)) {
+                    HugeConfig conf = graph.configuration();
+                    INSTANCES.put(graphname, new SnowflakeIdGenerator(conf));
+                }
+                generator = INSTANCES.get(graphname);
+                assert generator != null;
+            }
         }
-        if (!INSTANCES.containsKey(graph.name())) {
-            HugeConfig config = graph.configuration();
-            SnowflakeIdGenerator instance = new SnowflakeIdGenerator(config);
-            INSTANCES.put(graph.name(), instance);
-        }
-        return INSTANCES.get(graph.name());
+        return generator;
     }
 
     private SnowflakeIdGenerator(HugeConfig config) {
