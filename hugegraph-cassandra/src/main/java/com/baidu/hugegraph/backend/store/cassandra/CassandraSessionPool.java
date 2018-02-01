@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.backend.store.cassandra;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
@@ -31,6 +33,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
@@ -133,7 +136,7 @@ public class CassandraSessionPool extends BackendSessionPool {
 
         public Session() {
             this.session = null;
-            this.batch = new BatchStatement();
+            this.batch = new BatchStatement(); // LOGGED
             try {
                 this.open();
             } catch (InvalidQueryException ignored) {}
@@ -154,6 +157,30 @@ public class CassandraSessionPool extends BackendSessionPool {
             // Clear batch if execute() successfully (retained if failed)
             this.batch.clear();
             return rs;
+        }
+
+        public void commitAsync() {
+            Collection<Statement> statements = this.batch.getStatements();
+
+            int count = 0;
+            int processors = Math.min(statements.size(), 1023);
+            List<ResultSetFuture> results = new ArrayList<>(processors + 1);
+            for (Statement s : statements) {
+                ResultSetFuture future = this.session.executeAsync(s);
+                results.add(future);
+
+                if (++count > processors) {
+                    results.forEach(ResultSetFuture::getUninterruptibly);
+                    results.clear();
+                    count = 0;
+                }
+            }
+            for (ResultSetFuture future : results) {
+                future.getUninterruptibly();
+            }
+
+            // Clear batch if execute() successfully (retained if failed)
+            this.batch.clear();
         }
 
         public ResultSet query(Statement statement) {
