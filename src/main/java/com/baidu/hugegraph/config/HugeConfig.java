@@ -20,8 +20,6 @@
 package com.baidu.hugegraph.config;
 
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Iterator;
 import java.util.List;
 
@@ -61,26 +59,23 @@ public class HugeConfig extends PropertiesConfiguration {
     }
 
     public HugeConfig(String configFile) throws ConfigurationException {
-        super(loadConfigFile(configFile));
-        this.checkRequiredOptions();
+        this(loadConfigFile(configFile));
     }
 
-    public HugeConfig(InputStream is) throws ConfigurationException {
-        E.checkNotNull(is, "config input stream");
-        this.load(new InputStreamReader(is));
-        this.checkRequiredOptions();
-    }
+    private static PropertiesConfiguration loadConfigFile(String path) {
+        E.checkNotNull(path, "config path");
+        E.checkArgument(!path.isEmpty(),
+                        "The config path can't be empty");
 
-    private static File loadConfigFile(String fileName) {
-        E.checkNotNull(fileName, "config file");
-        E.checkArgument(!fileName.isEmpty(),
-                        "The config file can't be empty");
-
-        File file = new File(fileName);
+        File file = new File(path);
         E.checkArgument(file.exists() && file.isFile() && file.canRead(),
-                        "Need to specify a readable config file, but got: %s",
+                        "Need to specify a readable config, but got: %s",
                         file.toString());
-        return file;
+        try {
+            return new PropertiesConfiguration(file);
+        } catch (ConfigurationException e) {
+            throw new ConfigException("Unable to load config: %s", e, path);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -103,7 +98,7 @@ public class HugeConfig extends PropertiesConfiguration {
 
     private Object validateOption(String key, Object value) {
         E.checkArgument(value instanceof String,
-                        "Invalid value for key '%s'", key);
+                        "Invalid value for key '%s': %s", key, value);
 
         ConfigOption<?> option = OptionSpace.get(key);
         Class<?> dataType = option.dataType();
