@@ -411,7 +411,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         Iterator<Vertex> vertices = tx().queryVertices(this.id());
-        assert vertices.hasNext();
+        E.checkState(vertices.hasNext(), "Vertex '%s' does not exist", this.id);
         this.copyProperties((HugeVertex) vertices.next());
     }
 

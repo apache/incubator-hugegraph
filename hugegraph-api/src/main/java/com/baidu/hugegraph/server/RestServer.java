@@ -25,17 +25,16 @@ import java.util.Arrays;
 
 import javax.ws.rs.core.UriBuilder;
 
-import org.apache.commons.configuration.ConfigurationException;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.version.ApiVersion;
 
 public class RestServer {
@@ -69,19 +68,11 @@ public class RestServer {
         LOG.info("RestServer starting...");
         ApiVersion.check();
 
-        RestServer server = new RestServer(RestServer.loadConf(conf));
+        RestServer server = new RestServer(new HugeConfig(conf));
         server.start();
         LOG.info("RestServer started");
 
         return server;
-    }
-
-    protected static HugeConfig loadConf(String conf) throws HugeException {
-        try {
-            return new HugeConfig(conf);
-        } catch (ConfigurationException e) {
-            throw new HugeException("Failed to load config file", e);
-        }
     }
 
     public static void main(String[] args) throws Exception {
