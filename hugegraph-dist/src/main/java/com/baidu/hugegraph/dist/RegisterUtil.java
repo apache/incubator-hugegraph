@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.util.List;
 
 import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
@@ -42,13 +43,21 @@ public class RegisterUtil {
         OptionSpace.register(DistOptions.instance());
     }
 
-    public static void registerBackends() throws ConfigurationException {
+    public static void registerBackends() {
         String confFile = "/backend.properties";
-        InputStream is = RegisterUtil.class.getClass()
-                         .getResourceAsStream(confFile);
-        E.checkState(is != null, "Can't read file '%s' as stream", confFile);
+        InputStream input = RegisterUtil.class.getClass()
+                                        .getResourceAsStream(confFile);
+        E.checkState(input != null, "Can't read file '%s' as stream", confFile);
 
-        HugeConfig config = new HugeConfig(is);
+        PropertiesConfiguration props = new PropertiesConfiguration();
+        props.setDelimiterParsingDisabled(true);
+        try {
+            props.load(input);
+        } catch (ConfigurationException e) {
+            throw new HugeException("Can't load config file: %s", e, confFile);
+        }
+
+        HugeConfig config = new HugeConfig(props);
         List<String> backends = config.get(DistOptions.BACKENDS);
         for (String backend : backends) {
             registerBackend(backend);

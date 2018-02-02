@@ -213,7 +213,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
 
         Iterator<Edge> edges = tx().queryEdges(this.id());
-        assert edges.hasNext();
+        E.checkState(edges.hasNext(), "Edge '%s' does not exist", this.id);
         this.copyProperties((HugeEdge) edges.next());
     }
 

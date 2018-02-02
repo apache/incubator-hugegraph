@@ -19,23 +19,20 @@
 
 package com.baidu.hugegraph.unit.rocksdb;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 
-import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.rocksdb.RocksDBException;
 
-import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 
@@ -113,14 +110,9 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
     }
 
     private static RocksDBSessions open(String table) throws RocksDBException {
-        HugeConfig config;
-        try (InputStream in = new ByteArrayInputStream(new byte[]{})) {
-            config = new HugeConfig(in);
-        } catch (ConfigurationException | IOException e) {
-            throw new BackendException(e);
-        }
-        RocksDBSessions rocks = new RocksDBStdSessions(config,
-                                                       DB_PATH, DB_PATH);
+        HugeConfig config = new HugeConfig(new PropertiesConfiguration());
+        final String path = DB_PATH;
+        RocksDBSessions rocks = new RocksDBStdSessions(config, path, path);
         rocks.createTable(table);
         return rocks;
     }
