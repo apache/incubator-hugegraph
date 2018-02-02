@@ -58,7 +58,7 @@ public class HugeConfig extends PropertiesConfiguration {
         this.checkRequiredOptions();
     }
 
-    public HugeConfig(String configFile) throws ConfigurationException {
+    public HugeConfig(String configFile) {
         this(loadConfigFile(configFile));
     }
 
@@ -71,11 +71,15 @@ public class HugeConfig extends PropertiesConfiguration {
         E.checkArgument(file.exists() && file.isFile() && file.canRead(),
                         "Need to specify a readable config, but got: %s",
                         file.toString());
+
+        PropertiesConfiguration config = new PropertiesConfiguration();
+        config.setDelimiterParsingDisabled(true);
         try {
-            return new PropertiesConfiguration(file);
+            config.load(file);
         } catch (ConfigurationException e) {
             throw new ConfigException("Unable to load config: %s", e, path);
         }
+        return config;
     }
 
     @SuppressWarnings("unchecked")
