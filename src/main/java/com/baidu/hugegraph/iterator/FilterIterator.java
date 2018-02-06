@@ -33,6 +33,11 @@ public class FilterIterator<T> extends WrappedIterator<T> {
     }
 
     @Override
+    protected Iterator<T> originIterator() {
+        return this.originIterator;
+    }
+
+    @Override
     protected final boolean fetch() {
         while (this.originIterator.hasNext()) {
             T next = this.originIterator.next();

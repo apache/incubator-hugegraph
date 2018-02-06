@@ -39,6 +39,11 @@ public class FlatMapperIterator<T, R> extends WrappedIterator<R> {
     }
 
     @Override
+    protected Iterator<?> originIterator() {
+        return this.originIterator;
+    }
+
+    @Override
     protected final boolean fetch() {
         if (this.results != null && this.fetchMapped()) {
             return true;

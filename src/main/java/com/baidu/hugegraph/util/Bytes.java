@@ -20,9 +20,12 @@
 package com.baidu.hugegraph.util;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+
+import com.google.common.primitives.UnsignedBytes;
 
 /**
  * TODO: extends com.google.common.primitives.Bytes
@@ -33,6 +36,13 @@ public final class Bytes {
     public static final long KB = BASE;
     public static final long MB = KB * BASE;
     public static final long GB = MB * BASE;
+
+    private static final Comparator<byte[]> CMP =
+                         UnsignedBytes.lexicographicalComparator();
+
+    public static int compare(byte[] bytes1, byte[] bytes2) {
+        return CMP.compare(bytes1, bytes2);
+    }
 
     public static boolean prefixWith(byte[] bytes, byte[] prefix) {
         if (bytes.length < prefix.length) {

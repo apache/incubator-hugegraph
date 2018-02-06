@@ -22,7 +22,8 @@ package com.baidu.hugegraph.iterator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public abstract class WrappedIterator<R> implements Iterator<R> {
+public abstract class WrappedIterator<R>
+                implements Iterator<R>, AutoCloseable, Metadatable {
 
     protected R current;
 
@@ -50,6 +51,25 @@ public abstract class WrappedIterator<R> implements Iterator<R> {
         this.current = null;
         return current;
     }
+
+    @Override
+    public void close() throws Exception {
+        Iterator<?> iterator = this.originIterator();
+        if (iterator instanceof AutoCloseable) {
+            ((AutoCloseable) iterator).close();
+        }
+    }
+
+    @Override
+    public Object metadata(String meta, Object... args) {
+        Iterator<?> iterator = this.originIterator();
+        if (iterator instanceof Metadatable) {
+            return ((Metadatable) iterator).metadata(meta, args);
+        }
+        throw new IllegalStateException("Original iterator is not Metadatable");
+    }
+
+    protected abstract Iterator<?> originIterator();
 
     protected abstract boolean fetch();
 }

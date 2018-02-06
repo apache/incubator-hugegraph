@@ -33,6 +33,11 @@ public class MapperIterator<T, R> extends WrappedIterator<R> {
     }
 
     @Override
+    protected Iterator<?> originIterator() {
+        return this.originIterator;
+    }
+
+    @Override
     protected final boolean fetch() {
         while (this.originIterator.hasNext()) {
             T next = this.originIterator.next();
