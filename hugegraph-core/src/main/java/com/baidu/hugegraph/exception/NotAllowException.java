@@ -21,7 +21,6 @@ package com.baidu.hugegraph.exception;
 
 import com.baidu.hugegraph.HugeException;
 
-
 public class NotAllowException extends HugeException {
 
     private static final long serialVersionUID = 5152465646323494842L;

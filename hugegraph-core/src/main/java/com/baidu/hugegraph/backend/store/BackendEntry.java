@@ -19,8 +19,9 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.HugeType;
@@ -45,8 +46,38 @@ public interface BackendEntry {
             if (other == null) {
                 return 1;
             }
-            return ByteBuffer.wrap(name).compareTo(ByteBuffer.wrap(other.name));
+            return Bytes.compare(name, other.name);
         }
+    }
+
+    public interface BackendColumnIterator extends Iterator<BackendColumn> {
+
+        public void close();
+
+        public byte[] position();
+
+        public final BackendColumnIterator EMPTY = new BackendColumnIterator() {
+
+            @Override
+            public boolean hasNext() {
+                return false;
+            }
+
+            @Override
+            public BackendColumn next() {
+                throw new NoSuchElementException();
+            }
+
+            @Override
+            public void close() {
+                // pass
+            }
+
+            @Override
+            public byte[] position() {
+                return null;
+            }
+        };
     }
 
     public HugeType type();
@@ -55,6 +86,7 @@ public interface BackendEntry {
 
     public Id subId();
 
+    public int columnsSize();
     public Collection<BackendColumn> columns();
 
     public void columns(Collection<BackendColumn> columns);

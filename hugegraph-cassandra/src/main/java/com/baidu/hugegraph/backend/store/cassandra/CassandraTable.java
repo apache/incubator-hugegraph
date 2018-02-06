@@ -45,8 +45,10 @@ import com.baidu.hugegraph.util.CopyUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.PagingState;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.exceptions.PagingStateException;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Clauses;
 import com.datastax.driver.core.querybuilder.Delete;
@@ -139,7 +141,21 @@ public abstract class CassandraTable {
 
         // Set limit
         if (query.limit() != Query.NO_LIMIT) {
-            select.limit((int) (query.limit() + query.offset()));
+            long total = query.limit() + query.offset();
+            String page = query.page();
+            if (page == null) {
+                select.limit((int) total);
+            } else {
+                select.setFetchSize((int) total);
+                // It's the first time if page is empty
+                if (!page.isEmpty()) {
+                    try {
+                        select.setPagingState(PagingState.fromString(page));
+                    } catch (PagingStateException e) {
+                        throw new BackendException(e.getMessage());
+                    }
+                }
+            }
         }
 
         // Set order-by
@@ -317,10 +333,8 @@ public abstract class CassandraTable {
         return value;
     }
 
-    protected Iterator<BackendEntry> results2Entries(Query query,
-                                                     ResultSet results) {
-        return new CassandraEntryIterator(results.iterator(), query,
-                                          this::mergeEntries);
+    protected Iterator<BackendEntry> results2Entries(Query q, ResultSet r) {
+        return new CassandraEntryIterator(r, q, this::mergeEntries);
     }
 
     protected List<HugeKeys> pkColumnName() {

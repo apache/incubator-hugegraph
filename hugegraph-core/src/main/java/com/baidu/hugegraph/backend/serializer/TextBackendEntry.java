@@ -190,6 +190,11 @@ public class TextBackendEntry implements BackendEntry {
     }
 
     @Override
+    public int columnsSize() {
+        return this.columns.size();
+    }
+
+    @Override
     public Collection<BackendColumn> columns() {
         List<BackendColumn> list = new ArrayList<>(this.columns.size());
         for (Entry<String, String> column : this.columns.entrySet()) {

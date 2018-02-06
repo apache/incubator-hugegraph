@@ -17,16 +17,22 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.exception;
+package com.baidu.hugegraph.util;
 
-import com.baidu.hugegraph.HugeException;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
-public class ExistedException extends HugeException {
+import com.baidu.hugegraph.backend.id.Id;
 
-    private static final long serialVersionUID = 5152465646323494840L;
+public final class InsertionOrderUtil {
 
-    public ExistedException(String type, Object arg) {
-        super("The %s '%s' has existed", type, arg);
+    public static <V> Map<Id, V> newMap() {
+        return new LinkedHashMap<Id, V>();
     }
 
+    public static <V> Set<V> newSet() {
+        return new LinkedHashSet<V>();
+    }
 }

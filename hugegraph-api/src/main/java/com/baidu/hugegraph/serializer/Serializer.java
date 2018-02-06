@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.serializer;
 
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -49,9 +50,9 @@ public interface Serializer {
 
     public String writeVertex(Vertex v);
 
-    public String writeVertices(List<Vertex> vertices);
+    public String writeVertices(Iterator<Vertex> vertices, boolean paging);
 
     public String writeEdge(Edge e);
 
-    public String writeEdges(List<Edge> edges);
+    public String writeEdges(Iterator<Edge> edges, boolean paging);
 }

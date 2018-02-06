@@ -157,6 +157,7 @@ public class VertexAPI extends API {
                        @PathParam("graph") String graph,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
+                       @QueryParam("page") String page,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] query vertices by label: {}, properties: {}",
                   graph, label, properties);
@@ -174,8 +175,13 @@ public class VertexAPI extends API {
             traversal = traversal.has(entry.getKey(), entry.getValue());
         }
 
-        List<Vertex> vertices = traversal.limit(limit).toList();
-        return manager.serializer(g).writeVertices(vertices);
+        if (page == null) {
+            traversal = traversal.limit(limit);
+        } else {
+            traversal = traversal.has("~page", page).limit(limit);
+        }
+
+        return manager.serializer(g).writeVertices(traversal, page != null);
     }
 
     @GET

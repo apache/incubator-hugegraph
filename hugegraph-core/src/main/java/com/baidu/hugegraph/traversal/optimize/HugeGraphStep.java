@@ -27,9 +27,7 @@ import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
@@ -49,7 +47,9 @@ public final class HugeGraphStep<S, E extends Element>
     private final List<HasContainer> hasContainers = new ArrayList<>();
 
     // Store limit/order-by
-    private final Query queryInfo = new Query(null);
+    private final Query queryInfo = new Query(HugeType.UNKNOWN);
+
+    private Iterator<E> lastTimeResults = null;
 
     public HugeGraphStep(final GraphStep<S, E> originGraphStep) {
         super(originGraphStep.getTraversal(),
@@ -59,11 +59,13 @@ public final class HugeGraphStep<S, E extends Element>
 
         originGraphStep.getLabels().forEach(this::addLabel);
 
-        boolean queryVertex = Vertex.class.isAssignableFrom(this.returnClass);
-        boolean queryEdge = Edge.class.isAssignableFrom(this.returnClass);
+        boolean queryVertex = this.returnsVertex();
+        boolean queryEdge = this.returnsEdge();
         assert queryVertex || queryEdge;
         this.setIteratorSupplier(() -> {
-            return queryVertex ? this.vertices() : this.edges();
+            Iterator<E> results = queryVertex ? this.vertices() : this.edges();
+            this.lastTimeResults = results;
+            return results;
         });
     }
 
@@ -151,13 +153,22 @@ public final class HugeGraphStep<S, E extends Element>
     }
 
     @Override
-    public void addHasContainer(final HasContainer hasContainer) {
-        this.hasContainers.add(hasContainer);
+    public void addHasContainer(final HasContainer has) {
+        if (SYSPROP_PAGE.equals(has.getKey())) {
+            this.setPage((String) has.getValue());
+            return;
+        }
+        this.hasContainers.add(has);
     }
 
     @Override
     public Query queryInfo() {
         return this.queryInfo;
+    }
+
+    @Override
+    public Iterator<?> lastTimeResults() {
+        return this.lastTimeResults;
     }
 
     @Override

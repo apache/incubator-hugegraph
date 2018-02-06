@@ -24,8 +24,11 @@ import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.iterator.Metadatable;
 
-public class BackendEntryIterator<T> implements Iterator<BackendEntry> {
+public abstract class BackendEntryIterator<T>
+                implements Iterator<BackendEntry>, AutoCloseable, Metadatable {
 
     protected final Query query;
 
@@ -41,7 +44,7 @@ public class BackendEntryIterator<T> implements Iterator<BackendEntry> {
 
     @Override
     public boolean hasNext() {
-        if (this.reachLimit()) {
+        if (this.exceedLimit()) {
             return false;
         }
 
@@ -54,7 +57,11 @@ public class BackendEntryIterator<T> implements Iterator<BackendEntry> {
 
     @Override
     public BackendEntry next() {
-        if (this.reachLimit()) {
+        // Stop if reach capacity
+        this.checkCapacity();
+
+        // Stop if reach limit
+        if (this.exceedLimit()) {
             throw new NoSuchElementException();
         }
 
@@ -72,29 +79,15 @@ public class BackendEntryIterator<T> implements Iterator<BackendEntry> {
         return current;
     }
 
-    protected final boolean reachLimit() {
-        /*
-         * TODO: if the query is separated with multi sub-queries(like query
-         * id in [id1, id2, ...]), then each BackendEntryIterator is only
-         * result(s) of one sub-query, so the query offset/limit is inaccurate.
-         */
-
-        // Skip offset
-        while (this.count < this.query.offset() && this.fetch()) {
-            assert this.current != null;
-            final long size = this.sizeOf(this.current);
-            this.count += size;
-            if (this.count > this.query.offset()) {
-                // Skip part of sub-items in an entry
-                final long skip = size - (this.count - this.query.offset());
-                this.count -= this.skip(this.current, skip);
-                assert this.count == this.query.offset();
-            } else {
-                // Skip entry
-                this.current = null;
-            }
+    @Override
+    public Object metadata(String meta, Object... args) {
+        if ("page".equals(meta)) {
+            return this.pageState();
         }
+        throw new NotSupportException("Invalid meta '%s'", meta);
+    }
 
+    protected final void checkCapacity() {
         // Stop if reach capacity
         if (this.query.capacity() != Query.NO_CAPACITY &&
             this.count > this.query.capacity()) {
@@ -102,17 +95,46 @@ public class BackendEntryIterator<T> implements Iterator<BackendEntry> {
                       "Too many records(must <=%s) for a query",
                       this.query.capacity());
         }
+    }
+
+    protected final boolean exceedLimit() {
+        /*
+         * TODO: if the query is separated with multi sub-queries(like query
+         * id in [id1, id2, ...]), then each BackendEntryIterator is only
+         * result(s) of one sub-query, so the query offset/limit is inaccurate.
+         */
 
         // Stop if reach limit
         if (this.query.limit() != Query.NO_LIMIT &&
-            this.count >= (this.query.offset() + this.query.limit())) {
+            this.count >= (this.offset() + this.query.limit())) {
             return true;
         }
+
         return false;
     }
 
-    protected boolean fetch() {
-        return false;
+    protected void skipOffset() {
+        long offset = this.offset();
+
+        // Skip offset
+        while (this.count < offset && this.fetch()) {
+            assert this.current != null;
+            final long size = this.sizeOf(this.current);
+            this.count += size;
+            if (this.count > offset) {
+                // Skip part of sub-items in an entry
+                final long skip = size - (this.count - offset);
+                this.count -= this.skip(this.current, skip);
+                assert this.count == offset;
+            } else {
+                // Skip entry
+                this.current = null;
+            }
+        }
+    }
+
+    protected long offset() {
+        return this.query.offset();
     }
 
     protected long sizeOf(BackendEntry entry) {
@@ -124,4 +146,8 @@ public class BackendEntryIterator<T> implements Iterator<BackendEntry> {
         // Return the remained sub-items(items)
         return this.sizeOf(entry);
     }
+
+    protected abstract boolean fetch();
+
+    protected abstract String pageState();
 }

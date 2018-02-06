@@ -102,6 +102,11 @@ public class BinaryBackendEntry implements BackendEntry {
     }
 
     @Override
+    public int columnsSize() {
+        return this.columns.size();
+    }
+
+    @Override
     public void columns(Collection<BackendColumn> bytesColumns) {
         this.columns.addAll(bytesColumns);
     }
@@ -109,6 +114,10 @@ public class BinaryBackendEntry implements BackendEntry {
     @Override
     public void columns(BackendColumn... bytesColumns) {
         this.columns.addAll(Arrays.asList(bytesColumns));
+    }
+
+    public BackendColumn removeColumn(int index) {
+        return this.columns.remove(index);
     }
 
     @Override

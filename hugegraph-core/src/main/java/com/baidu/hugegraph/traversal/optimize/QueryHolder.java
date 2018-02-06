@@ -19,12 +19,28 @@
 
 package com.baidu.hugegraph.traversal.optimize;
 
+import java.util.Iterator;
+
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
 
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.iterator.Metadatable;
 
-public interface QueryHolder extends HasContainerHolder {
+public interface QueryHolder extends HasContainerHolder, Metadatable {
+
+    public static final String SYSPROP_PAGE = "~page";
+
+    public Iterator<?> lastTimeResults();
+
+    @Override
+    public default Object metadata(String meta, Object... args) {
+        Iterator<?> results = this.lastTimeResults();
+        if (results instanceof Metadatable) {
+            return ((Metadatable) results).metadata(meta, args);
+        }
+        throw new IllegalStateException("Original results is not Metadatable");
+    }
 
     public Query queryInfo();
 
@@ -38,6 +54,10 @@ public interface QueryHolder extends HasContainerHolder {
         return this.queryInfo().limit();
     }
 
+    public default void setPage(String page) {
+        this.queryInfo().page(page);
+    }
+
     public default void setCount() {
         this.queryInfo().capacity(Query.NO_CAPACITY);
     }
@@ -46,6 +66,7 @@ public interface QueryHolder extends HasContainerHolder {
         query.orders(this.queryInfo().orders());
         query.offset(this.queryInfo().offset());
         query.limit(this.queryInfo().limit());
+        query.page(this.queryInfo().page());
         query.capacity(this.queryInfo().capacity());
         return query;
     }

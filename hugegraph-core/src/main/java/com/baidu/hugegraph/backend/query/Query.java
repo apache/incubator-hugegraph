@@ -30,6 +30,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
@@ -43,6 +44,7 @@ public class Query implements Cloneable {
     private Map<HugeKeys, Order> orders;
     private long offset;
     private long limit;
+    private String page;
     private long capacity;
     private boolean showHidden;
 
@@ -55,10 +57,15 @@ public class Query implements Cloneable {
     public Query(HugeType resultType, Query originQuery) {
         this.resultType = resultType;
         this.originQuery = originQuery;
+
         this.orders = new LinkedHashMap<>();
+
         this.offset = 0L;
         this.limit = NO_LIMIT;
+        this.page = null;
+
         this.capacity = DEFAULT_CAPACITY;
+
         this.showHidden = false;
     }
 
@@ -130,6 +137,27 @@ public class Query implements Cloneable {
         }
     }
 
+    public String page() {
+        if (this.page != null) {
+            E.checkState(this.limit != Query.NO_LIMIT,
+                         "Must set limit when using paging");
+            E.checkState(this.limit != 0L,
+                         "Can't set limit=0 when using paging");
+            E.checkState(this.offset == 0L,
+                         "Can't set offset when using paging, but got '%s'",
+                         this.offset);
+        }
+        return this.page;
+    }
+
+    public void page(String page) {
+        this.page = page;
+    }
+
+    public boolean paging() {
+        return this.page != null;
+    }
+
     public long capacity() {
         return this.capacity;
     }
@@ -180,6 +208,8 @@ public class Query implements Cloneable {
                this.orders.equals(other.orders) &&
                this.offset == other.offset &&
                this.limit == other.limit &&
+               ((this.page == null && other.page == null) ||
+                this.page.equals(other.page)) &&
                this.ids().equals(other.ids()) &&
                this.conditions().equals(other.conditions());
     }
@@ -188,8 +218,9 @@ public class Query implements Cloneable {
     public int hashCode() {
         return this.resultType.hashCode() ^
                this.orders.hashCode() ^
-               (int) this.offset ^
-               (int) this.limit ^
+               Long.hashCode(this.offset) ^
+               Long.hashCode(this.limit) ^
+               Objects.hashCode(this.page) ^
                this.ids().hashCode() ^
                this.conditions().hashCode();
     }

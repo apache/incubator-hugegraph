@@ -78,6 +78,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -140,15 +141,15 @@ public class GraphTransaction extends IndexableTransaction {
         super.reset();
 
         // Clear mutation
-        this.addedVertexes = BackendMutation.newMapWithInsertionOrder();
-        this.removedVertexes = BackendMutation.newMapWithInsertionOrder();
-        this.updatedVertexes = BackendMutation.newMapWithInsertionOrder();
+        this.addedVertexes = InsertionOrderUtil.newMap();
+        this.removedVertexes = InsertionOrderUtil.newMap();
+        this.updatedVertexes = InsertionOrderUtil.newMap();
 
-        this.addedEdges = BackendMutation.newMapWithInsertionOrder();
-        this.removedEdges = BackendMutation.newMapWithInsertionOrder();
-        this.updatedEdges = BackendMutation.newMapWithInsertionOrder();
+        this.addedEdges = InsertionOrderUtil.newMap();
+        this.removedEdges = InsertionOrderUtil.newMap();
+        this.updatedEdges = InsertionOrderUtil.newMap();
 
-        this.updatedProps = BackendMutation.newSetWithInsertionOrder();
+        this.updatedProps = InsertionOrderUtil.newSet();
     }
 
     @Override
@@ -224,11 +225,10 @@ public class GraphTransaction extends IndexableTransaction {
 
     protected void prepareDeletions(Map<Id, HugeVertex> removedVertexes,
                                     Map<Id, HugeEdge> removedEdges) {
-        Map<Id, HugeVertex> vertexes =
-                            BackendMutation.newMapWithInsertionOrder();
+        Map<Id, HugeVertex> vertexes = InsertionOrderUtil.newMap();
         vertexes.putAll(removedVertexes);
 
-        Map<Id, HugeEdge> edges = BackendMutation.newMapWithInsertionOrder();
+        Map<Id, HugeEdge> edges = InsertionOrderUtil.newMap();
         edges.putAll(removedEdges);
 
         // Clear updates
@@ -1037,7 +1037,7 @@ public class GraphTransaction extends IndexableTransaction {
             return records;
         }
 
-        Set<V> txResults = BackendMutation.newSetWithInsertionOrder();
+        Set<V> txResults = InsertionOrderUtil.newSet();
 
         /* Collect added records
          * Records in memory have higher priority than query from backend store
