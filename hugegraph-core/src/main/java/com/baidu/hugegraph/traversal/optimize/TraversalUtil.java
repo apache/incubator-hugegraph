@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Compare;
 import org.apache.tinkerpop.gremlin.process.traversal.Contains;
@@ -30,6 +31,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.FilterStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasStep;
@@ -228,7 +230,7 @@ public final class TraversalUtil {
 
         if (!(bp instanceof Compare)) {
             throw new IllegalArgumentException(
-                      "Three layers or more logical conditions are not supported");
+                      "Three layers or more conditions are not supported");
         }
 
         boolean isSyspropKey = true;
@@ -425,5 +427,31 @@ public final class TraversalUtil {
 
     public static Query.Order convOrder(Order order) {
         return order == Order.decr ? Query.Order.DESC : Query.Order.ASC;
+    }
+
+    public static void retriveSysprop(List<HasContainer> hasContainers,
+                                      Function<HasContainer, Boolean> func) {
+        for (Iterator<HasContainer> itor = hasContainers.iterator();
+             itor.hasNext();) {
+            HasContainer container = itor.next();
+            if (container.getKey().startsWith("~") && func.apply(container)) {
+                itor.remove();
+            }
+        }
+    }
+
+    public static String page(GraphTraversal<?, ?> traversal) {
+        QueryHolder holder = rootStep(traversal);
+        E.checkState(holder != null, "Invalid traversal: %s", traversal);
+        return (String) holder.metadata("page");
+    }
+
+    public static QueryHolder rootStep(GraphTraversal<?, ?> traversal) {
+        for(final Step<?, ?> step : traversal.asAdmin().getSteps()) {
+            if(step instanceof QueryHolder) {
+                return ((QueryHolder) step);
+            }
+        }
+        return null;
     }
 }

@@ -205,6 +205,11 @@ public class CassandraBackendEntry implements BackendEntry {
     }
 
     @Override
+    public int columnsSize() {
+        throw new RuntimeException("Not supported by Cassandra");
+    }
+
+    @Override
     public Collection<BackendColumn> columns() {
         throw new RuntimeException("Not supported by Cassandra");
     }

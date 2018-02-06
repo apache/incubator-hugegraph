@@ -206,6 +206,7 @@ public class EdgeAPI extends API {
                        @QueryParam("direction") String direction,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
+                       @QueryParam("page") String page,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] query edges by vertex: {}, direction: {}, " +
                   "label: {}, properties: {}",
@@ -236,8 +237,13 @@ public class EdgeAPI extends API {
             traversal = traversal.has(entry.getKey(), entry.getValue());
         }
 
-        List<Edge> edges = traversal.limit(limit).toList();
-        return manager.serializer(g).writeEdges(edges);
+        if (page == null) {
+            traversal = traversal.limit(limit);
+        } else {
+            traversal = traversal.has("~page", page).limit(limit);
+        }
+
+        return manager.serializer(g).writeEdges(traversal, page != null);
     }
 
     @GET

@@ -24,7 +24,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,13 +37,12 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.SstFileWriter;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableList;
 
 public class RocksDBSstSessions extends RocksDBSessions {
 
@@ -135,8 +133,6 @@ public class RocksDBSstSessions extends RocksDBSessions {
      * SstSession implement for RocksDB
      */
     private final class SstSession extends Session {
-
-        private final List<BackendColumn> EMPTY = ImmutableList.of();
 
         private boolean closed;
         private Map<String, Changes> batch;
@@ -266,29 +262,29 @@ public class RocksDBSstSessions extends RocksDBSessions {
          * Scan all records from a table
          */
         @Override
-        public Iterator<BackendColumn> scan(String table) {
+        public BackendColumnIterator scan(String table) {
             assert !this.hasChanges();
-            return this.EMPTY.iterator();
+            return BackendColumnIterator.EMPTY;
         }
 
         /**
          * Scan records by key prefix from a table
          */
         @Override
-        public Iterator<BackendColumn> scan(String table, byte[] prefix) {
+        public BackendColumnIterator scan(String table, byte[] prefix) {
             assert !this.hasChanges();
-            return this.EMPTY.iterator();
+            return BackendColumnIterator.EMPTY;
         }
 
         /**
          * Scan records by key range from a table
          */
         @Override
-        public Iterator<BackendColumn> scan(String table,
-                                            byte[] keyFrom,
-                                            byte[] keyTo) {
+        public BackendColumnIterator scan(String table,
+                                          byte[] keyFrom,
+                                          byte[] keyTo) {
             assert !this.hasChanges();
-            return this.EMPTY.iterator();
+            return BackendColumnIterator.EMPTY;
         }
     }
 

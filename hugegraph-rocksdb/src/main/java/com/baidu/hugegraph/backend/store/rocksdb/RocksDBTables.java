@@ -30,7 +30,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.HugeType;
@@ -223,7 +223,7 @@ public class RocksDBTables {
             }
 
             HugeType type = query.resultType();
-            Iterator<BackendColumn> itor;
+            BackendColumnIterator itor;
             if (keyEq != null) {
                 Id id = HugeIndex.formatIndexId(type, index, keyEq);
                 itor = queryById(session, id);

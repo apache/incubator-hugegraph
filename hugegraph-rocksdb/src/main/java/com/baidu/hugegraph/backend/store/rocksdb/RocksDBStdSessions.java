@@ -23,9 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -51,11 +49,11 @@ import org.rocksdb.WriteOptions;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
-import com.google.common.primitives.UnsignedBytes;
 
 public class RocksDBStdSessions extends RocksDBSessions {
 
@@ -472,7 +470,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Scan all records from a table
          */
         @Override
-        public Iterator<BackendColumn> scan(String table) {
+        public BackendColumnIterator scan(String table) {
             assert !this.hasChanges();
             RocksIterator itor = rocksdb().newIterator(cf(table));
             return new ColumnIterator(table, itor, null, null, false);
@@ -482,7 +480,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Scan records by key prefix from a table
          */
         @Override
-        public Iterator<BackendColumn> scan(String table, byte[] prefix) {
+        public BackendColumnIterator scan(String table, byte[] prefix) {
             assert !this.hasChanges();
             // NOTE: Options.prefix_extractor is a prerequisite
             //ReadOptions.setPrefixSameAsStart(true);
@@ -494,9 +492,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Scan records by key range from a table
          */
         @Override
-        public Iterator<BackendColumn> scan(String table,
-                                            byte[] keyFrom,
-                                            byte[] keyTo) {
+        public BackendColumnIterator scan(String table,
+                                          byte[] keyFrom,
+                                          byte[] keyTo) {
             assert !this.hasChanges();
             ReadOptions options = new ReadOptions();
             options.setTotalOrderSeek(true); // Not sure if it must be set
@@ -508,17 +506,15 @@ public class RocksDBStdSessions extends RocksDBSessions {
     /**
      * A wrapper for RocksIterator that convert RocksDB results to std Iterator
      */
-    private static class ColumnIterator implements Iterator<BackendColumn> {
+    private static class ColumnIterator implements BackendColumnIterator {
 
         private final String table;
         private final RocksIterator itor;
-        private byte[] keyBegin;
-        private byte[] keyEnd;
-        private boolean matchPrefix;
+        private final byte[] keyBegin;
+        private final byte[] keyEnd;
+        private final boolean matchPrefix;
 
-        // Don't use BytewiseComparator
-        private static final Comparator<byte[]> C =
-                             UnsignedBytes.lexicographicalComparator();
+        private byte[] position;
 
         public ColumnIterator(String table,
                               RocksIterator itor,
@@ -532,6 +528,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
             this.keyBegin = keyBegin;
             this.keyEnd = keyEnd;
             this.matchPrefix = matchPrefix;
+
+            this.position = keyBegin;
 
             if (matchPrefix && keyEnd != null) {
                 throw new IllegalArgumentException(
@@ -572,8 +570,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
                     // Prefix match? TODO: use custom prefix_extractor instead
                     matched = Bytes.prefixWith(this.itor.key(), this.keyBegin);
                 } else if (this.keyEnd != null) {
-                    // Range match?
-                    matched = C.compare(this.itor.key(), this.keyEnd) < 0;
+                    // Range match? NOTE: don't use BytewiseComparator
+                    matched = Bytes.compare(this.itor.key(), this.keyEnd) < 0;
                 } else {
                     // Any match
                     matched = true;
@@ -591,11 +589,29 @@ public class RocksDBStdSessions extends RocksDBSessions {
             if (!this.itor.isOwningHandle() || !this.itor.isValid()) {
                 throw new NoSuchElementException();
             }
+
             BackendColumn entry = new BackendColumn();
             entry.name = this.itor.key();
             entry.value = this.itor.value();
+
             this.itor.next();
+
             return entry;
+        }
+
+        @Override
+        public byte[] position() {
+            if (this.itor.isOwningHandle() && this.itor.isValid()) {
+                this.position = this.itor.key();
+            }
+            return this.position;
+        }
+
+        @Override
+        public void close() {
+            if (this.itor.isOwningHandle()) {
+                this.itor.close();
+            }
         }
     }
 }

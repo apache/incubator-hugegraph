@@ -20,11 +20,14 @@
 package com.baidu.hugegraph.serializer;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Iterator;
 import java.util.List;
 
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONWriter;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
@@ -32,17 +35,21 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 
 public class JsonSerializer implements Serializer {
 
     private GraphSONWriter writer;
+
+    private static final int BUF_SIZE = 128;
+    private static final int LBUF_SIZE = 1024;
 
     public JsonSerializer(GraphSONWriter writer) {
         this.writer = writer;
     }
 
     private String writeObject(Object object) {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream(BUF_SIZE)) {
             this.writer.writeObject(out, object);
             return out.toString(API.CHARSET);
         } catch (Exception e) {
@@ -51,14 +58,54 @@ public class JsonSerializer implements Serializer {
         }
     }
 
-    private String writeList(String label, Object object) {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+    private String writeList(String label, List<?> list) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {
             out.write(String.format("{\"%s\": ", label).getBytes(API.CHARSET));
-            this.writer.writeObject(out, object);
+            this.writer.writeObject(out, list);
             out.write("}".getBytes(API.CHARSET));
             return out.toString(API.CHARSET);
         } catch (Exception e) {
             throw new HugeException("Failed to serialize %s", e, label);
+        }
+    }
+
+    private String writeList(String label, Iterator<?> itor, boolean paging) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {
+            out.write("{".getBytes(API.CHARSET));
+
+            out.write(String.format("\"%s\": [", label).getBytes(API.CHARSET));
+
+            // Write data
+            boolean first = true;
+            while (itor.hasNext()) {
+                if (!first) {
+                    out.write(",".getBytes(API.CHARSET));
+                } else {
+                    first = false;
+                }
+                this.writer.writeObject(out, itor.next());
+            }
+            out.write("]".getBytes(API.CHARSET));
+
+            // Write page
+            if (paging) {
+                String page = TraversalUtil.page((GraphTraversal<?, ?>) itor);
+                page = String.format(",\"page\": \"%s\"", page);
+                out.write(page.getBytes(API.CHARSET));
+            }
+
+            out.write("}".getBytes(API.CHARSET));
+            return out.toString(API.CHARSET);
+        } catch (HugeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HugeException("Failed to serialize %s", e, label);
+        } finally {
+            try {
+                CloseableIterator.closeIterator(itor);
+            } catch (Exception e) {
+                throw new HugeException("Failed to close for %s", e, label);
+            }
         }
     }
 
@@ -108,8 +155,8 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeVertices(List<Vertex> vertices) {
-        return writeList("vertices", vertices);
+    public String writeVertices(Iterator<Vertex> vertices, boolean paging) {
+        return writeList("vertices", vertices, paging);
     }
 
     @Override
@@ -118,7 +165,7 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeEdges(List<Edge> edges) {
-        return writeList("edges", edges);
+    public String writeEdges(Iterator<Edge> edges, boolean paging) {
+        return writeList("edges", edges, paging);
     }
 }

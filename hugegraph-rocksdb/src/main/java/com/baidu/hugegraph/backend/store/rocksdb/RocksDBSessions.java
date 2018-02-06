@@ -19,12 +19,11 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
-import java.util.Iterator;
 import java.util.Set;
 
 import org.rocksdb.RocksDBException;
 
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 
 public abstract class RocksDBSessions extends BackendSessionPool {
@@ -50,11 +49,11 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
         public abstract byte[] get(String table, byte[] key);
 
-        public abstract Iterator<BackendColumn> scan(String table);
-        public abstract Iterator<BackendColumn> scan(String table,
-                                                     byte[] prefix);
-        public abstract Iterator<BackendColumn> scan(String table,
-                                                     byte[] keyFrom,
-                                                     byte[] keyTo);
+        public abstract BackendColumnIterator scan(String table);
+        public abstract BackendColumnIterator scan(String table,
+                                                   byte[] prefix);
+        public abstract BackendColumnIterator scan(String table,
+                                                   byte[] keyFrom,
+                                                   byte[] keyTo);
     }
 }

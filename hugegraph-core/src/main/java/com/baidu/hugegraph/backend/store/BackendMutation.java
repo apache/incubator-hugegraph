@@ -21,17 +21,15 @@ package com.baidu.hugegraph.backend.store;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class BackendMutation {
 
@@ -39,15 +37,7 @@ public class BackendMutation {
 
     public BackendMutation() {
         // NOTE: ensure insert order
-        this.updates = newMapWithInsertionOrder();
-    }
-
-    public static final <V> Map<Id, V> newMapWithInsertionOrder() {
-        return new LinkedHashMap<Id, V>();
-    }
-
-    public static final <V> Set<V> newSetWithInsertionOrder() {
-        return new LinkedHashSet<V>();
+        this.updates = InsertionOrderUtil.newMap();
     }
 
     /**

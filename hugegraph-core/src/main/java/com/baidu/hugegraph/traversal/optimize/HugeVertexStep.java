@@ -56,6 +56,8 @@ public final class HugeVertexStep<E extends Element>
     // Store limit/order-by
     private final Query queryInfo = new Query(null);
 
+    private Iterator<E> lastTimeResults = null;
+
     public HugeVertexStep(final VertexStep<E> originVertexStep) {
         super(originVertexStep.getTraversal(),
               originVertexStep.getReturnClass(),
@@ -67,15 +69,18 @@ public final class HugeVertexStep<E extends Element>
     @SuppressWarnings("unchecked")
     @Override
     protected Iterator<E> flatMap(final Traverser.Admin<Vertex> traverser) {
-        boolean queryVertex = Vertex.class.isAssignableFrom(getReturnClass());
-        boolean queryEdge = Edge.class.isAssignableFrom(getReturnClass());
+        Iterator<E> results;
+        boolean queryVertex = this.returnsVertex();
+        boolean queryEdge = this.returnsEdge();
         assert queryVertex || queryEdge;
         if (queryVertex) {
-            return (Iterator<E>) this.vertices(traverser);
+            results = (Iterator<E>) this.vertices(traverser);
         } else {
             assert queryEdge;
-            return (Iterator<E>) this.edges(traverser);
+            results = (Iterator<E>) this.edges(traverser);
         }
+        this.lastTimeResults = results;
+        return results;
     }
 
     private Iterator<Vertex> vertices(Traverser.Admin<Vertex> traverser) {
@@ -183,13 +188,22 @@ public final class HugeVertexStep<E extends Element>
     }
 
     @Override
-    public void addHasContainer(final HasContainer hasContainer) {
-        this.hasContainers.add(hasContainer);
+    public void addHasContainer(final HasContainer has) {
+        if (SYSPROP_PAGE.equals(has.getKey())) {
+            this.setPage((String) has.getValue());
+            return;
+        }
+        this.hasContainers.add(has);
     }
 
     @Override
     public Query queryInfo() {
         return this.queryInfo;
+    }
+
+    @Override
+    public Iterator<?> lastTimeResults() {
+        return this.lastTimeResults;
     }
 
     @Override

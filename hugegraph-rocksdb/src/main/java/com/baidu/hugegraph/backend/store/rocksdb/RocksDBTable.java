@@ -28,9 +28,11 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
+import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator.PageState;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
@@ -89,7 +91,7 @@ public class RocksDBTable {
 
         // Query all
         if (query.empty()) {
-            return newEntryIterator(session.scan(this.table), query);
+            return newEntryIterator(this.queryAll(session, query), query);
         }
 
         // Query by id
@@ -106,12 +108,21 @@ public class RocksDBTable {
         return this.queryByCond(session, (ConditionQuery) query);
     }
 
-    protected Iterator<BackendColumn> queryById(Session session, Id id) {
+    protected BackendColumnIterator queryAll(Session session, Query query) {
+        if (query.paging()) {
+            PageState page = PageState.fromString(query.page());
+            return session.scan(this.table, page.position(), null);
+        } else {
+            return session.scan(this.table);
+        }
+    }
+
+    protected BackendColumnIterator queryById(Session session, Id id) {
         return session.scan(this.table, id.asBytes());
     }
 
-    protected Iterator<BackendColumn> queryByRange(Session session,
-                                                   Id begin, Id end) {
+    protected BackendColumnIterator queryByRange(Session session,
+                                                 Id begin, Id end) {
         return session.scan(this.table, begin.asBytes(), end.asBytes());
     }
 
@@ -121,7 +132,7 @@ public class RocksDBTable {
     }
 
     protected static BinaryEntryIterator newEntryIterator(
-                                         Iterator<BackendColumn> cols,
+                                         BackendColumnIterator cols,
                                          Query query) {
         HugeType t = query.resultType();
         return new BinaryEntryIterator(cols, query, c ->

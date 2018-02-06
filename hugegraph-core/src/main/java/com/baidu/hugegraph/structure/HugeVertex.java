@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -57,6 +56,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableSet;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
@@ -76,7 +76,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
         super(graph, id);
         this.label = label;
-        this.edges = new LinkedHashSet<>();
+        this.edges = InsertionOrderUtil.newSet();
         this.tx = null;
         this.name = null;
     }
@@ -192,7 +192,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public void resetEdges() {
-        this.edges = new LinkedHashSet<>();
+        this.edges = InsertionOrderUtil.newSet();
     }
 
     public void removeEdge(HugeEdge edge) {

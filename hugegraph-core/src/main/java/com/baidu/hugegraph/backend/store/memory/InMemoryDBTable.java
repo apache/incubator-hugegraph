@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
@@ -100,14 +101,17 @@ public class InMemoryDBTable {
     }
 
     public Iterator<BackendEntry> query(final Query query) {
+        if (query.paging()) {
+            throw new NotSupportException("paging by InMemoryDBStore");
+        }
+
         Map<Id, BackendEntry> rs = this.store;
 
         // Query by id(s)
         if (!query.ids().isEmpty()) {
             if (query.resultType() == HugeType.EDGE) {
                 E.checkState(query.conditions().isEmpty(),
-                             "Not support querying edge by %s",
-                             query);
+                             "Not support querying edge by %s", query);
                 // Query edge(in a vertex) by id (or v-id + column-name prefix)
                 // TODO: separate this method into table Edge
                 rs = this.queryEdgeById(query.ids(), rs);
@@ -227,13 +231,11 @@ public class InMemoryDBTable {
 
         // Only support querying edge by label
         E.checkState(conditions.size() == 1,
-                     "Not support querying edge by %s",
-                     conditions);
+                     "Not support querying edge by %s", conditions);
         Condition cond = conditions.iterator().next();
         E.checkState(cond.isRelation() &&
                      ((Condition.Relation) cond).key().equals(HugeKeys.LABEL),
-                     "Not support querying edge by %s",
-                     conditions);
+                     "Not support querying edge by %s", conditions);
         Condition.Relation relation = (Condition.Relation) cond;
         String label = (String) relation.serialValue();
 

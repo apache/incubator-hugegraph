@@ -29,21 +29,40 @@ import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.ColumnDefinitions.Definition;
+import com.datastax.driver.core.PagingState;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 
 public class CassandraEntryIterator extends BackendEntryIterator<Row> {
 
+    private final ResultSet results;
     private final Iterator<Row> rows;
     private final BiFunction<BackendEntry, BackendEntry, BackendEntry> merger;
 
+    private long remaining;
     private BackendEntry next;
 
-    public CassandraEntryIterator(Iterator<Row> rows, Query query,
+    public CassandraEntryIterator(ResultSet results, Query query,
            BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
         super(query);
-        this.rows = rows;
+        this.results = results;
+        this.rows = results.iterator();
+        this.remaining = results.getAvailableWithoutFetching();
         this.merger = merger;
         this.next = null;
+
+        this.skipOffset();
+
+        if (query.page() != null) {
+            E.checkState(this.remaining == query.limit() ||
+                         results.isFullyFetched(),
+                         "Unexpected fetched page size: %s", this.remaining);
+        }
+    }
+
+    @Override
+    public void close() throws Exception {
+        // pass
     }
 
     @Override
@@ -54,7 +73,10 @@ public class CassandraEntryIterator extends BackendEntryIterator<Row> {
             this.next = null;
         }
 
-        while (this.rows.hasNext()) {
+        while (this.remaining > 0 && this.rows.hasNext()) {
+            if (this.query.paging()) {
+                this.remaining--;
+            }
             CassandraBackendEntry e = this.row2Entry(this.rows.next());
             BackendEntry merged = this.merger.apply(this.current, e);
             if (this.current == null) {
@@ -88,6 +110,15 @@ public class CassandraEntryIterator extends BackendEntryIterator<Row> {
             e.subRows().remove(0);
         }
         return e.subRows().size();
+    }
+
+    @Override
+    protected String pageState() {
+        PagingState page = this.results.getExecutionInfo().getPagingState();
+        if (page == null) {
+            return null;
+        }
+        return page.toString();
     }
 
     private CassandraBackendEntry row2Entry(Row row) {
