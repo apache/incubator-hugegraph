@@ -5,8 +5,7 @@ scriptEvaluationTimeout: 30000
 # please change `HttpChannelizer` to `WebSocketChannelizer` or comment this line.
 channelizer: org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
 graphs: {
-  hugegraph: conf/hugegraph.properties,
-  hugegraph1: conf/hugegraph1.properties
+  hugegraph: conf/hugegraph.properties
 }
 plugins:
   - com.baidu.hugegraph
