@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 
@@ -124,11 +126,9 @@ public abstract class RocksDBStore implements BackendStore {
             return;
         }
 
-        String data = this.conf.get(RocksDBOptions.DATA_PATH);
-        data = Paths.get(data, this.name).toString();
-
-        String wal = this.conf.get(RocksDBOptions.WAL_PATH);
-        wal = Paths.get(wal, this.name).toString();
+        String data = wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
+        String wal = wrapPath(this.conf.get(RocksDBOptions.WAL_PATH));
+        LOG.info("Opening RocksDB with data path: {}", data);
 
         try {
             this.sessions = newSessions(this.conf, data, wal,
@@ -299,6 +299,17 @@ public abstract class RocksDBStore implements BackendStore {
     private void checkOpened() {
         E.checkState(this.sessions != null && !this.sessions.closed(),
                      "RocksDB store has not been opened");
+    }
+
+    private String wrapPath(String path) {
+        // Ensure the `path` exists
+        try {
+            FileUtils.forceMkdir(FileUtils.getFile(path));
+        } catch (IOException e) {
+            throw new BackendException(e.getMessage(), e);
+        }
+        // Join with store type
+        return Paths.get(path, this.name).toString();
     }
 
     /***************************** Store defines *****************************/

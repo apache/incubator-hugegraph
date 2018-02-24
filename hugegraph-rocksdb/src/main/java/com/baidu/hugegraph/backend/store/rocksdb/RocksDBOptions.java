@@ -53,7 +53,7 @@ public class RocksDBOptions extends OptionHolder {
                     "rocksdb.data_path",
                     "The path for storing data of RocksDB.",
                     disallowEmpty(),
-                    "rocksdbdata"
+                    "rocksdb-data"
             );
 
     public static final ConfigOption<String> WAL_PATH =
@@ -61,7 +61,7 @@ public class RocksDBOptions extends OptionHolder {
                     "rocksdb.wal_path",
                     "The path for storing WAL of RocksDB.",
                     disallowEmpty(),
-                    "rocksdbwal"
+                    "rocksdb-data"
             );
 
     public static final ConfigOption<String> SST_PATH =
