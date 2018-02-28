@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.tx;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -44,7 +45,9 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -53,7 +56,6 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperFilterIterator;
@@ -281,19 +283,30 @@ public class GraphTransaction extends IndexableTransaction {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
+        List<Query> queries = new ArrayList<>();
         if (query instanceof ConditionQuery) {
-            query = this.optimizeQuery((ConditionQuery) query);
-            /*
-             * NOTE: There are two possibilities for this query:
-             * 1.sysprop-query, which would not be empty.
-             * 2.index-query result(ids after optimize), which may be empty.
-             */
-            if (query.empty()) {
-                // Return empty if there is no result after index-query
-                return ImmutableList.<BackendEntry>of().iterator();
+            for (ConditionQuery cq: ConditionQueryFlatten.flatten(
+                                    (ConditionQuery) query)) {
+                Query q = this.optimizeQuery(cq);
+                /*
+                 * NOTE: There are two possibilities for this query:
+                 * 1.sysprop-query, which would not be empty.
+                 * 2.index-query result(ids after optimize), which may be empty.
+                 */
+                if (!q.empty()) {
+                    // Return empty if there is no result after index-query
+                    queries.add(q);
+                }
             }
+        } else {
+            queries = ImmutableList.of(query);
         }
-        return super.query(query);
+
+        ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
+        for (Query q : queries) {
+            rs.extend(super.query(q));
+        }
+        return rs;
     }
 
     @Watched("graph.addVertex-with-instance")
@@ -819,9 +832,8 @@ public class GraphTransaction extends IndexableTransaction {
         if (edgeLabels.length == 1) {
             query.eq(HugeKeys.LABEL, edgeLabels[0]);
         } else if (edgeLabels.length > 1) {
-            // TODO: support query by multi edge labels like:
-            // query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
-            throw new NotSupportException("querying by multi edge-labels");
+            query.query(Condition.in(HugeKeys.LABEL,
+                                     Arrays.asList(edgeLabels)));
         } else {
             assert edgeLabels.length == 0;
         }
@@ -1007,16 +1019,17 @@ public class GraphTransaction extends IndexableTransaction {
     private Iterator<?> joinTxVertices(Query query,
                                        Iterator<HugeVertex> vertices) {
         assert query.resultType().isVertex();
-        return this.joinTxRecords(query, vertices, (q, v) -> q.test(v),
+        return this.joinTxRecords(query, vertices,
+                                  (q, v) -> q.test(v) ? v : null,
                                   this.addedVertexes, this.removedVertexes,
                                   this.updatedVertexes);
     }
 
     private Iterator<?> joinTxEdges(Query query, Iterator<HugeEdge> edges) {
         assert query.resultType().isEdge();
-        final BiFunction<Query, HugeEdge, Boolean> matchTxEdges = (q, e) -> {
-            assert q.resultType().isEdge();
-            return q.test(e) || q.test(e.switchOwner());
+        final BiFunction<Query, HugeEdge, HugeEdge> matchTxEdges = (q, e) -> {
+            assert q.resultType() == HugeType.EDGE;
+            return q.test(e) ? e : q.test(e = e.switchOwner()) ? e : null;
         };
         edges = this.joinTxRecords(query, edges, matchTxEdges,
                                    this.addedEdges, this.removedEdges,
@@ -1038,7 +1051,7 @@ public class GraphTransaction extends IndexableTransaction {
     private <V extends HugeElement> Iterator<V> joinTxRecords(
                                     Query query,
                                     Iterator<V> records,
-                                    BiFunction<Query, V, Boolean> match,
+                                    BiFunction<Query, V, V> match,
                                     Map<Id, V> addedTxRecords,
                                     Map<Id, V> removedTxRecords,
                                     Map<Id, V> updatedTxRecords) {
@@ -1059,7 +1072,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (query.reachLimit(txResults.size())) {
                 break;
             }
-            if (match.apply(query, elem)) {
+            if ((elem = match.apply(query, elem)) != null) {
                 txResults.add(elem);
             }
         }
@@ -1067,7 +1080,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (query.reachLimit(txResults.size())) {
                 break;
             }
-            if (match.apply(query, elem)) {
+            if ((elem = match.apply(query, elem)) != null) {
                 txResults.add(elem);
             }
         }

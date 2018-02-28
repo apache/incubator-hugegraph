@@ -24,23 +24,18 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.google.common.collect.ImmutableSet;
 
 public class ConditionQueryFlattenTest extends BaseUnitTest {
-
-    @Before
-    public void setup() {
-        // pass
-    }
 
     @After
     public void teardown() {
@@ -55,7 +50,7 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.and(c2));
         Assert.assertEquals(1, query.conditions().size());
-        List<ConditionQuery> queries = query.flatten();
+        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
         Assert.assertEquals(1, queries.size());
         Set<Set<Condition>> expect;
         expect = ImmutableSet.of(ImmutableSet.of(c1, c2));
@@ -79,7 +74,8 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         query.query(c3);
         query.query(c4);
         Assert.assertEquals(4, query.conditions().size());
-        List<ConditionQuery> queries = query.flatten();
+        List<ConditionQuery> queries =
+                ConditionQueryFlatten.flatten(query);
         Assert.assertEquals(1, queries.size());
         Set<Set<Condition>> expect;
         expect = ImmutableSet.of(ImmutableSet.of(c1, c2, c3, c4));
@@ -100,7 +96,7 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.and(c2).and(c3.and(c4)));
         Assert.assertEquals(1, query.conditions().size());
-        List<ConditionQuery> queries = query.flatten();
+        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
         Assert.assertEquals(1, queries.size());
         Set<Set<Condition>> expect;
         expect = ImmutableSet.of(ImmutableSet.of(c1, c2, c3, c4));
@@ -119,7 +115,7 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.or(c2));
         Assert.assertEquals(1, query.conditions().size());
-        List<ConditionQuery> queries = query.flatten();
+        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
         Assert.assertEquals(2, queries.size());
         Set<Set<Condition>> expect;
         expect = ImmutableSet.of(ImmutableSet.of(c1), ImmutableSet.of(c2));
@@ -141,7 +137,7 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         query.query(c1.or(c2));
         query.query(c3.or(c4));
         Assert.assertEquals(2, query.conditions().size());
-        List<ConditionQuery> queries = query.flatten();
+        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
         Assert.assertEquals(4, queries.size());
         Set<Set<Condition>> expect;
         expect = ImmutableSet.of(ImmutableSet.of(c1, c3),
@@ -165,7 +161,7 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.or(c2).or(c3.or(c4)));
         Assert.assertEquals(1, query.conditions().size());
-        List<ConditionQuery> queries = query.flatten();
+        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
         Assert.assertEquals(4, queries.size());
         Set<Set<Condition>> expect;
         expect = ImmutableSet.of(ImmutableSet.of(c1), ImmutableSet.of(c2),
@@ -187,7 +183,7 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.or(c2).and(c3.or(c4)));
         Assert.assertEquals(1, query.conditions().size());
-        List<ConditionQuery> queries = query.flatten();
+        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
         Assert.assertEquals(4, queries.size());
         Set<Set<Condition>> expect;
         expect = ImmutableSet.of(ImmutableSet.of(c1, c3),
@@ -211,7 +207,7 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.query(c1.and(c2).or(c3.and(c4)));
         Assert.assertEquals(1, query.conditions().size());
-        List<ConditionQuery> queries = query.flatten();
+        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
         Assert.assertEquals(2, queries.size());
         Set<Set<Condition>> expect;
         expect = ImmutableSet.of(ImmutableSet.of(c1, c2),

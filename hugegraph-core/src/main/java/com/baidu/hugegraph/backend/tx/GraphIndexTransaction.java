@@ -252,13 +252,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
      */
     @Watched(prefix = "index")
     public Query query(ConditionQuery query) {
-        // TODO: replace flatten when query is flattened in Graph tx with
-        // query.checkFlatten();
-        List<ConditionQuery> queries = query.flatten();
-        E.checkState(queries.size() == 1,
-                     "Flatten queries must only have one query, " +
-                     "but got: '%s'", queries);
-        query = queries.get(0);
+        // Index query must have been flattened in Graph tx
+        query.checkFlattened();
 
         // NOTE: Currently we can't support filter changes in memory
         if (this.hasUpdates()) {

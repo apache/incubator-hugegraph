@@ -790,5 +790,14 @@ public class TestGraph implements Graph {
         schema.indexLabel("selfByGremlinPartition").onV(defaultVL)
               .by("gremlin.partitionGraphStrategy.partition")
               .ifNotExist().create();
+        schema.indexLabel("aTOaByGremlinPartition").onE("aTOa")
+              .by("gremlin.partitionGraphStrategy.partition")
+              .ifNotExist().create();
+        schema.indexLabel("aTOcByGremlinPartition").onE("aTOc")
+              .by("gremlin.partitionGraphStrategy.partition")
+              .ifNotExist().create();
+        schema.indexLabel("bTOcByGremlinPartition").onE("bTOc")
+              .by("gremlin.partitionGraphStrategy.partition")
+              .ifNotExist().create();
     }
 }
