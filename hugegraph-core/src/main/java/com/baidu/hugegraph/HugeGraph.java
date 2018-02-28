@@ -185,7 +185,7 @@ public class HugeGraph implements Graph {
             return new CachedSchemaTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
-            LOG.error("{}: {}", message, e.getMessage());
+            LOG.error("{}", message, e);
             throw new HugeException(message);
         }
     }
@@ -198,7 +198,7 @@ public class HugeGraph implements Graph {
             return new CachedGraphTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";
-            LOG.error("{}: {}", message, e.getMessage());
+            LOG.error("{}", message, e);
             throw new HugeException(message);
         }
     }

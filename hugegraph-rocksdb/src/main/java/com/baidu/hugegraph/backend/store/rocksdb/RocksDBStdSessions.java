@@ -124,6 +124,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
         if (this.cfs.containsKey(table)) {
             return;
         }
+
+        this.checkValid();
+
         // Should we use options.setCreateMissingColumnFamilies() to create CF
         ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(table));
         ColumnFamilyOptions options = cfd.columnFamilyOptions();
@@ -135,6 +138,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     @Override
     public void dropTable(String table) throws RocksDBException {
+        this.checkValid();
+
         ColumnFamilyHandle cfh = cf(table);
         this.rocksdb.dropColumnFamily(cfh);
         cfh.close();
@@ -155,6 +160,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     @Override
     protected synchronized void doClose() {
+        this.checkValid();
+
         for (ColumnFamilyHandle cf : this.cfs.values()) {
             cf.close();
         }
@@ -163,7 +170,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.rocksdb.close();
     }
 
+    private void checkValid() {
+        E.checkState(this.rocksdb.isOwningHandle(),
+                     "It seems RocksDB has been closed");
+    }
+
     private RocksDB rocksdb() {
+        assert this.rocksdb.isOwningHandle();
         return this.rocksdb;
     }
 

@@ -46,6 +46,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.collect.ImmutableList;
 
 public abstract class RocksDBStore implements BackendStore {
 
@@ -131,25 +132,37 @@ public abstract class RocksDBStore implements BackendStore {
         LOG.info("Opening RocksDB with data path: {}", data);
 
         try {
-            this.sessions = newSessions(this.conf, data, wal,
-                                        this.tableNames());
+            this.sessions = newSessions(this.conf, data, wal, tableNames());
         } catch (RocksDBException e) {
-            if (e.getMessage().contains("Column family not found")) {
-                // Before init
+            if (dbs.containsKey(data)) {
+                if (e.getMessage().contains("No locks available")) {
+                    // Open twice, but we should support keyspace
+                    this.sessions = dbs.get(data);
+                } else if (e.getMessage().contains("Column family not found")) {
+                    // Open a keyspace after other keyspace closed
+                    try {
+                        // Will open old CFs(of other keyspace)
+                        final List<String> none = ImmutableList.of();
+                        this.sessions = newSessions(this.conf, data, wal, none);
+                    } catch (RocksDBException e1) {
+                        // Let it throw later
+                        e = e1;
+                    }
+                }
+            } else if (e.getMessage().contains("Column family not found")) {
+                // Before init the first keyspace
                 LOG.info("Failed to open RocksDB '{}' with database '{}', " +
                          "try to init CF later", this.name, this.database);
                 try {
+                    // Only open default CF, won't open old CFs
                     this.sessions = newSessions(this.conf, data, wal, null);
                 } catch (RocksDBException e1) {
                     LOG.error("Failed to open RocksDB with default CF", e1);
                 }
-            } else if (e.getMessage().contains("No locks available")) {
-                // Open twice, but we should support keyspace
-                this.sessions = dbs.get(data);
             }
 
             if (this.sessions == null) {
-                // Error
+                // Error after trying other ways
                 LOG.error("Failed to open RocksDB '{}'", this.name, e);
                 throw new BackendException("Failed to open RocksDB '%s'",
                                            e, this.name);
