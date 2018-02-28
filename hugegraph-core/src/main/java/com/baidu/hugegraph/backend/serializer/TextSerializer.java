@@ -286,7 +286,7 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeEdge(HugeEdge edge) {
         Id id = IdGenerator.of(edge.idWithDirection().asString());
-        TextBackendEntry entry = newBackendEntry(HugeType.EDGE, id);
+        TextBackendEntry entry = newBackendEntry(edge.type(), id);
         entry.column(this.formatEdgeName(edge), this.formatEdgeValue(edge));
         return entry;
     }
@@ -295,7 +295,7 @@ public class TextSerializer extends AbstractSerializer {
     public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop) {
         HugeEdge edge = prop.element();
         Id id = IdGenerator.of(edge.idWithDirection().asString());
-        TextBackendEntry entry = newBackendEntry(HugeType.EDGE, id);
+        TextBackendEntry entry = newBackendEntry(edge.type(), id);
         entry.subId(IdGenerator.of(prop.key()));
         entry.column(this.formatEdgeName(edge), this.formatEdgeValue(edge));
         return entry;
@@ -361,12 +361,12 @@ public class TextSerializer extends AbstractSerializer {
 
     @Override
     protected Id writeQueryId(HugeType type, Id id) {
-        if (type == HugeType.EDGE) {
+        if (type.isEdge()) {
             id = IdGenerator.of(writeEdgeId(id, true));
-        } else if (HugeElement.isGraph(type)) {
+        } else if (type.isGraph()) {
             id = IdGenerator.of(writeEntryId(id));
         } else {
-            assert SchemaElement.isSchema(type);
+            assert type.isSchema();
             id = IdGenerator.of(writeId(id));
         }
         return id;
@@ -410,7 +410,7 @@ public class TextSerializer extends AbstractSerializer {
         assert result.allSysprop();
         for (Condition.Relation r : result.relations()) {
             // Serialize key
-            if (SchemaElement.isSchema(query.resultType())) {
+            if (query.resultType().isSchema()) {
                 r.serialKey(((HugeKeys) r.key()).string());
             } else {
                 r.serialKey(formatSyspropName((HugeKeys) r.key()));

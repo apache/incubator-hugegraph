@@ -391,17 +391,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Query-condition has label
         if (label != null) {
             SchemaLabel schemaLabel;
-            switch (query.resultType()) {
-                case VERTEX:
-                    schemaLabel = schema.getVertexLabel(label);
-                    break;
-                case EDGE:
-                    schemaLabel = schema.getEdgeLabel(label);
-                    break;
-                default:
-                    throw new AssertionError(String.format(
-                              "Unsupported index query type: %s",
-                              query.resultType()));
+            if (query.resultType().isVertex()) {
+                schemaLabel = schema.getVertexLabel(label);
+            } else if (query.resultType().isEdge()) {
+                schemaLabel = schema.getEdgeLabel(label);
+            } else {
+                throw new AssertionError(String.format(
+                          "Unsupported index query type: %s",
+                          query.resultType()));
             }
             MatchedLabel info = this.collectMatchedLabel(schemaLabel, query);
             return info == null ? ImmutableSet.of() : ImmutableSet.of(info);
@@ -409,17 +406,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Query-condition doesn't have label
         List<? extends SchemaLabel> schemaLabels;
-        switch (query.resultType()) {
-            case VERTEX:
-                schemaLabels = schema.getVertexLabels();
-                break;
-            case EDGE:
-                schemaLabels = schema.getEdgeLabels();
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unsupported index query type: %s",
-                          query.resultType()));
+        if (query.resultType().isVertex()) {
+            schemaLabels = schema.getVertexLabels();
+        } else if (query.resultType().isEdge()) {
+            schemaLabels = schema.getEdgeLabels();
+        } else {
+            throw new AssertionError(String.format(
+                      "Unsupported index query type: %s",
+                      query.resultType()));
         }
 
         Set<MatchedLabel> labels = new HashSet<>();

@@ -33,6 +33,7 @@ import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
@@ -40,49 +41,58 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
-public class RocksDBTable {
+public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
     private static final Logger LOG = Log.logger(RocksDBStore.class);
 
-    private final String table;
-
     public RocksDBTable(String database, String table) {
-        this.table = String.format("%s+%s", database, table);
+        super(String.format("%s+%s", database, table));
     }
 
-    public final String table() {
-        return this.table;
+    @Override
+    public void init(Session session) {
+        // pass
     }
 
+    @Override
+    public void clear(Session session) {
+        // pass
+    }
+
+    @Override
     public void insert(Session session, BackendEntry entry) {
         assert !entry.columns().isEmpty();
         for (BackendColumn col : entry.columns()) {
             assert entry.belongToMe(col) : entry;
-            session.put(this.table, col.name, col.value);
+            session.put(this.table(), col.name, col.value);
         }
     }
 
+    @Override
     public void delete(Session session, BackendEntry entry) {
         if (entry.columns().isEmpty()) {
-            session.delete(this.table, entry.id().asBytes());
+            session.delete(this.table(), entry.id().asBytes());
         } else {
             for (BackendColumn col : entry.columns()) {
                 assert entry.belongToMe(col) : entry;
-                session.remove(this.table, col.name);
+                session.remove(this.table(), col.name);
             }
         }
     }
 
+    @Override
     public void append(Session session, BackendEntry entry) {
         assert entry.columns().size() == 1;
         this.insert(session, entry);
     }
 
+    @Override
     public void eliminate(Session session, BackendEntry entry) {
         assert entry.columns().size() == 1;
         this.delete(session, entry);
     }
 
+    @Override
     public Iterator<BackendEntry> query(Session session, Query query) {
         if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
@@ -111,19 +121,19 @@ public class RocksDBTable {
     protected BackendColumnIterator queryAll(Session session, Query query) {
         if (query.paging()) {
             PageState page = PageState.fromString(query.page());
-            return session.scan(this.table, page.position(), null);
+            return session.scan(this.table(), page.position(), null);
         } else {
-            return session.scan(this.table);
+            return session.scan(this.table());
         }
     }
 
     protected BackendColumnIterator queryById(Session session, Id id) {
-        return session.scan(this.table, id.asBytes());
+        return session.scan(this.table(), id.asBytes());
     }
 
     protected BackendColumnIterator queryByRange(Session session,
                                                  Id begin, Id end) {
-        return session.scan(this.table, begin.asBytes(), end.asBytes());
+        return session.scan(this.table(), begin.asBytes(), end.asBytes());
     }
 
     protected Iterator<BackendEntry> queryByCond(Session session,

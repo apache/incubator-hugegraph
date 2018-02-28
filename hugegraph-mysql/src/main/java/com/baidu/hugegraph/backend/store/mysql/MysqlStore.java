@@ -38,6 +38,7 @@ import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -205,7 +206,7 @@ public abstract class MysqlStore implements BackendStore {
     public Iterator<BackendEntry> query(Query query) {
         this.checkSessionConnected();
 
-        MysqlTable table = this.table(query.resultType());
+        MysqlTable table = this.table(MysqlTable.tableType(query));
         return table.query(this.sessions.session(), query);
     }
 
@@ -347,8 +348,12 @@ public abstract class MysqlStore implements BackendStore {
 
             registerTableManager(HugeType.VERTEX,
                                  new MysqlTables.Vertex());
-            registerTableManager(HugeType.EDGE,
-                                 new MysqlTables.Edge());
+
+            registerTableManager(HugeType.EDGE_OUT,
+                                 new MysqlTables.Edge(Directions.OUT));
+            registerTableManager(HugeType.EDGE_IN,
+                                 new MysqlTables.Edge(Directions.IN));
+
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new MysqlTables.SecondaryIndex());
             registerTableManager(HugeType.RANGE_INDEX,

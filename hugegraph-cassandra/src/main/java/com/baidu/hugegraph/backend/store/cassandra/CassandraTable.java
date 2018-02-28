@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
@@ -37,6 +36,7 @@ import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.Query.Order;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.Shard;
@@ -62,40 +62,19 @@ import com.datastax.driver.core.schemabuilder.SchemaStatement;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public abstract class CassandraTable {
-
-    private interface MetaHandler {
-        public Object handle(CassandraSessionPool.Session session,
-                             String meta, Object... args);
-    }
+public abstract class CassandraTable
+                extends BackendTable<CassandraSessionPool.Session,
+                                     CassandraBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
 
-    private final String table;
-
-    private final Map<String, MetaHandler> metaHandlers;
-
     public CassandraTable(String table) {
-        this.table = table;
-        this.metaHandlers = new ConcurrentHashMap<>();
-
-        this.registerMetaHandlers();
+        super(table);
     }
 
-    public String table() {
-        return this.table;
-    }
-
-    public Object metadata(CassandraSessionPool.Session session,
-                           String meta, Object... args) {
-        if (!this.metaHandlers.containsKey(meta)) {
-            throw new BackendException("Invalid metadata name '%s'", meta);
-        }
-        return this.metaHandlers.get(meta).handle(session, meta, args);
-    }
-
-    private void registerMetaHandlers() {
-        this.metaHandlers.put("splits", (session, meta, args) -> {
+    @Override
+    protected void registerMetaHandlers() {
+        this.registerMetaHandler("splits", (session, meta, args) -> {
             E.checkArgument(args.length == 1,
                             "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
@@ -106,6 +85,7 @@ public abstract class CassandraTable {
         });
     }
 
+    @Override
     public Iterator<BackendEntry> query(CassandraSessionPool.Session session,
                                         Query query) {
         ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
@@ -115,7 +95,7 @@ public abstract class CassandraTable {
             return rs;
         }
 
-        List<Select> selections = this.query2Select(this.table, query);
+        List<Select> selections = this.query2Select(this.table(), query);
         try {
             for (Select selection : selections) {
                 ResultSet results = session.query(selection);
@@ -229,7 +209,7 @@ public abstract class CassandraTable {
             assert nameParts.size() == id.size();
             // NOTE: there is no Select.clone(), just use copy instead
             Select idSelection = CopyUtil.copy(select,
-                                 QueryBuilder.select().from(this.table));
+                                 QueryBuilder.select().from(this.table()));
             /*
              * NOTE: concat with AND relation, like:
              * "pk = id and ck1 = v1 and ck2 = v2"
@@ -377,10 +357,11 @@ public abstract class CassandraTable {
     /**
      * Insert an entire row
      */
+    @Override
     public void insert(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
         assert entry.columns().size() > 0;
-        Insert insert = QueryBuilder.insertInto(this.table);
+        Insert insert = QueryBuilder.insertInto(this.table());
 
         for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
             insert.value(formatKey(c.getKey()), c.getValue());
@@ -392,6 +373,7 @@ public abstract class CassandraTable {
     /**
      * Append several elements to the collection column of a row
      */
+    @Override
     public void append(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
 
@@ -430,6 +412,7 @@ public abstract class CassandraTable {
     /**
      * Eliminate several elements from the collection column of a row
      */
+    @Override
     public void eliminate(CassandraSessionPool.Session session,
                           CassandraBackendEntry.Row entry) {
 
@@ -480,10 +463,11 @@ public abstract class CassandraTable {
     /**
      * Delete an entire row
      */
+    @Override
     public void delete(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
-        Delete delete = QueryBuilder.delete().from(this.table);
+        Delete delete = QueryBuilder.delete().from(this.table());
 
         if (entry.columns().isEmpty()) {
             // Delete just by id
@@ -513,7 +497,7 @@ public abstract class CassandraTable {
                                ImmutableMap<HugeKeys, DataType> clusteringKeys,
                                ImmutableMap<HugeKeys, DataType> columns) {
 
-        Create table = SchemaBuilder.createTable(this.table).ifNotExists();
+        Create table = SchemaBuilder.createTable(this.table()).ifNotExists();
 
         for (Map.Entry<HugeKeys, DataType> entry : partitionKeys.entrySet()) {
             table.addPartitionKey(formatKey(entry.getKey()), entry.getValue());
@@ -531,25 +515,22 @@ public abstract class CassandraTable {
     }
 
     public void dropTable(CassandraSessionPool.Session session) {
-        LOG.debug("Drop table: {}", this.table);
-        session.execute(SchemaBuilder.dropTable(this.table).ifExists());
+        LOG.debug("Drop table: {}", this.table());
+        session.execute(SchemaBuilder.dropTable(this.table()).ifExists());
     }
 
     protected void createIndex(CassandraSessionPool.Session session,
                                String indexLabel,
                                HugeKeys column) {
         SchemaStatement createIndex = SchemaBuilder.createIndex(indexLabel)
-                                      .ifNotExists().onTable(this.table)
+                                      .ifNotExists().onTable(this.table())
                                       .andColumn(formatKey(column));
 
         LOG.debug("Create index: {}", createIndex);
         session.execute(createIndex);
     }
 
-    /*************************** abstract methods ***************************/
-
-    public abstract void init(CassandraSessionPool.Session session);
-
+    @Override
     public void clear(CassandraSessionPool.Session session) {
         this.dropTable(session);
     }

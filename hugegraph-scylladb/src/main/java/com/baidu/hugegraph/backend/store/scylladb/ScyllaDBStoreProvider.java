@@ -109,13 +109,17 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
             if (version >= 20) {
                 registerTableManager(HugeType.VERTEX,
                                      new ScyllaDBTablesWithMV.Vertex());
-                registerTableManager(HugeType.EDGE,
-                                     new ScyllaDBTablesWithMV.Edge());
+                registerTableManager(HugeType.EDGE_OUT,
+                                     ScyllaDBTablesWithMV.Edge.out());
+                registerTableManager(HugeType.EDGE_IN,
+                                     ScyllaDBTablesWithMV.Edge.in());
             } else {
-                registerTableManager(HugeType.VERTEX,
+                registerTableManager(HugeType.EDGE_OUT,
                                      new ScyllaDBTables.Vertex());
-                registerTableManager(HugeType.EDGE,
-                                     new ScyllaDBTables.Edge());
+                registerTableManager(HugeType.EDGE_OUT,
+                                     ScyllaDBTables.Edge.out());
+                registerTableManager(HugeType.EDGE_IN,
+                                     ScyllaDBTables.Edge.in());
             }
         }
 

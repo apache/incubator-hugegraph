@@ -32,7 +32,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.Typifiable;
@@ -105,13 +104,6 @@ public abstract class SchemaElement
 
     public static Id schemaId(String id) {
         return IdGenerator.of(Long.valueOf(id));
-    }
-
-    public static boolean isSchema(HugeType type) {
-        return type == HugeType.VERTEX_LABEL ||
-               type == HugeType.EDGE_LABEL ||
-               type == HugeType.PROPERTY_KEY ||
-               type == HugeType.INDEX_LABEL;
     }
 
     public static void checkName(String name, HugeConfig config) {

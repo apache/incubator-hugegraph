@@ -138,10 +138,19 @@ public class RocksDBTables {
 
     public static class Edge extends RocksDBTable {
 
-        public static final String TABLE = "e";
+        public static final String TABLE_SUFFIX = "e";
 
-        public Edge(String database) {
-            super(database, TABLE);
+        public Edge(boolean out, String database) {
+            // Edge out/in table
+            super(database, (out ? 'o' : 'i') + TABLE_SUFFIX);
+        }
+
+        public static Edge out(String database) {
+            return new Edge(true, database);
+        }
+
+        public static Edge in(String database) {
+            return new Edge(false, database);
         }
     }
 

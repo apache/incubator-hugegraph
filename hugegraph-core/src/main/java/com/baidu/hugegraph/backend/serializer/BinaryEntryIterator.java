@@ -28,7 +28,6 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 
@@ -108,7 +107,7 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
     @Override
     protected final long sizeOf(BackendEntry entry) {
         // One edge per column (entry <==> vertex)
-        return entry.type() == HugeType.EDGE ? entry.columnsSize() : 1;
+        return entry.type().isEdge() ? entry.columnsSize() : 1;
     }
 
     @Override

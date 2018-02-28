@@ -31,6 +31,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.DataType;
@@ -260,10 +261,13 @@ public class CassandraTables {
 
     public static class Edge extends CassandraTable {
 
-        public static final String TABLE = "edges";
+        public static final String TABLE_PREFIX = "edges";
 
-        public Edge() {
-            super(TABLE);
+        private final Directions direction;
+
+        public Edge(Directions direction) {
+            super(table(direction));
+            this.direction = direction;
         }
 
         @Override
@@ -311,6 +315,14 @@ public class CassandraTables {
                 edgeId = (EdgeId) id;
             }
 
+            E.checkState(edgeId.direction() == this.direction,
+                         "Can't query %s edges from %s edges table",
+                         edgeId.direction(), this.direction);
+
+            return idColumnValue(edgeId);
+        }
+
+        protected final List<Object> idColumnValue(EdgeId edgeId) {
             List<Object> list = new ArrayList<>(5);
             list.add(IdUtil.writeString(edgeId.ownerVertexId()));
             list.add(edgeId.direction().code());
@@ -381,9 +393,9 @@ public class CassandraTables {
             CassandraBackendEntry current = (CassandraBackendEntry) e1;
             CassandraBackendEntry next = (CassandraBackendEntry) e2;
 
-            E.checkState(current == null || current.type() == HugeType.VERTEX,
+            E.checkState(current == null || current.type().isVertex(),
                          "The current entry must be null or VERTEX");
-            E.checkState(next != null && next.type() == HugeType.EDGE,
+            E.checkState(next != null && next.type().isEdge(),
                          "The next entry must be EDGE");
 
             if (current != null) {
@@ -399,7 +411,7 @@ public class CassandraTables {
         }
 
         private CassandraBackendEntry wrapByVertex(CassandraBackendEntry edge) {
-            assert edge.type() == HugeType.EDGE;
+            assert edge.type().isEdge();
             String ownerVertex = edge.column(HugeKeys.OWNER_VERTEX);
             E.checkState(ownerVertex != null, "Invalid backend entry");
             Id vertexId = IdGenerator.of(ownerVertex);
@@ -411,6 +423,11 @@ public class CassandraTables {
 
             vertex.subRow(edge.row());
             return vertex;
+        }
+
+        public static String table(Directions direction) {
+            assert direction == Directions.OUT || direction == Directions.IN;
+            return TABLE_PREFIX + "_" + direction.string();
         }
     }
 

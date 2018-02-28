@@ -92,9 +92,9 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     @Override
-    public Iterator<BackendEntry> query(final Query query) {
-        InMemoryDBTable table = this.table(query.resultType());
-        Iterator<BackendEntry> rs = table.query(query);
+    public Iterator<BackendEntry> query(Query query) {
+        InMemoryDBTable table = this.table(InMemoryDBTable.tableType(query));
+        Iterator<BackendEntry> rs = table.query(null, query);
         LOG.debug("[store {}] has result({}) for query: {}",
                   this.name, rs.hasNext(), query);
         return rs;
@@ -117,19 +117,19 @@ public class InMemoryDBStore implements BackendStore {
         switch (item.action()) {
             case INSERT:
                 LOG.debug("[store {}] add entry: {}", this.name, entry);
-                table.insert(entry);
+                table.insert(null, entry);
                 break;
             case DELETE:
                 LOG.debug("[store {}] remove id: {}", this.name, entry.id());
-                table.delete(entry);
+                table.delete(null, entry);
                 break;
             case APPEND:
                 LOG.debug("[store {}] append entry: {}", this.name, entry);
-                table.append(entry);
+                table.append(null, entry);
                 break;
             case ELIMINATE:
                 LOG.debug("[store {}] eliminate entry: {}", this.name, entry);
-                table.eliminate(entry);
+                table.eliminate(null, entry);
                 break;
             default:
                 throw new BackendException("Unsupported mutate type: %s",
@@ -160,13 +160,16 @@ public class InMemoryDBStore implements BackendStore {
     @Override
     public void init() {
         LOG.info("init()");
+        for (InMemoryDBTable table : this.tables.values()) {
+            table.init(null);
+        }
     }
 
     @Override
     public void clear() {
         LOG.info("clear()");
         for (InMemoryDBTable table : this.tables.values()) {
-            table.clear();
+            table.clear(null);
         }
     }
 
@@ -235,9 +238,13 @@ public class InMemoryDBStore implements BackendStore {
 
             // TODO: separate edges from vertices
             InMemoryDBTables.Vertex vertex = new InMemoryDBTables.Vertex();
-            InMemoryDBTables.Edge edge = new InMemoryDBTables.Edge(vertex);
             registerTableManager(HugeType.VERTEX, vertex);
-            registerTableManager(HugeType.EDGE, edge);
+
+            InMemoryDBTables.Edge edgeOut = new InMemoryDBTables.Edge(vertex);
+            registerTableManager(HugeType.EDGE_OUT, edgeOut);
+
+            InMemoryDBTables.Edge edgeIn = new InMemoryDBTables.Edge(vertex);
+            registerTableManager(HugeType.EDGE_IN, edgeIn);
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new InMemoryDBTables.SecondaryIndex());

@@ -1079,7 +1079,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         long splitSize = 1 * 1024 * 1024;
         Object splits = graph.graphTransaction()
-                        .metadata(HugeType.EDGE, "splits", splitSize);
+                             .metadata(HugeType.EDGE_OUT, "splits", splitSize);
         for (Shard split : (List<Shard>) splits) {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
             q.scan(split.start(), split.end());

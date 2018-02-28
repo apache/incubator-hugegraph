@@ -234,7 +234,7 @@ public abstract class RocksDBStore implements BackendStore {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        RocksDBTable table = this.table(query.resultType());
+        RocksDBTable table = this.table(RocksDBTable.tableType(query));
         return table.query(this.session(), query);
     }
 
@@ -373,8 +373,11 @@ public abstract class RocksDBStore implements BackendStore {
 
             registerTableManager(HugeType.VERTEX,
                                  new RocksDBTables.Vertex(database));
-            registerTableManager(HugeType.EDGE,
-                                 new RocksDBTables.Edge(database));
+
+            registerTableManager(HugeType.EDGE_OUT,
+                                 RocksDBTables.Edge.out(database));
+            registerTableManager(HugeType.EDGE_IN,
+                                 RocksDBTables.Edge.in(database));
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new RocksDBTables.SecondaryIndex(database));

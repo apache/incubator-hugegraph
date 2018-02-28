@@ -34,23 +34,24 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendSessionPool.Session;
+import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 
-public class InMemoryDBTable {
+public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
 
-    private final String name;
     protected final Map<Id, BackendEntry> store;
 
     public InMemoryDBTable(HugeType type) {
-        this.name = type.name();
+        super(type.name());
         this.store = new ConcurrentSkipListMap<>();
     }
 
     public InMemoryDBTable(HugeType type, Map<Id, BackendEntry> store) {
-        this.name = type.name();
+        super(type.name());
         this.store = store;
     }
 
@@ -58,15 +59,18 @@ public class InMemoryDBTable {
         return this.store;
     }
 
-    public String table() {
-        return this.name;
+    @Override
+    public void init(Session session) {
+        // pass
     }
 
-    public void clear() {
+    @Override
+    public void clear(Session session) {
         this.store.clear();
     }
 
-    public void insert(TextBackendEntry entry) {
+    @Override
+    public void insert(Session session, TextBackendEntry entry) {
         if (!this.store.containsKey(entry.id())) {
             this.store.put(entry.id(), entry);
         } else {
@@ -77,12 +81,14 @@ public class InMemoryDBTable {
         }
     }
 
-    public void delete(TextBackendEntry entry) {
+    @Override
+    public void delete(Session session, TextBackendEntry entry) {
         // Remove by id (TODO: support remove by id + condition)
         this.store.remove(entry.id());
     }
 
-    public void append(TextBackendEntry entry) {
+    @Override
+    public void append(Session session, TextBackendEntry entry) {
         BackendEntry parent = this.store.get(entry.id());
         if (parent == null) {
             this.store.put(entry.id(), entry);
@@ -92,7 +98,8 @@ public class InMemoryDBTable {
         }
     }
 
-    public void eliminate(TextBackendEntry entry) {
+    @Override
+    public void eliminate(Session session, TextBackendEntry entry) {
         BackendEntry parent = this.store.get(entry.id());
         // TODO: Compatible with BackendEntry
         if (parent != null) {
@@ -100,7 +107,8 @@ public class InMemoryDBTable {
         }
     }
 
-    public Iterator<BackendEntry> query(final Query query) {
+    @Override
+    public Iterator<BackendEntry> query(Session session, Query query) {
         if (query.paging()) {
             throw new NotSupportException("paging by InMemoryDBStore");
         }
@@ -109,7 +117,7 @@ public class InMemoryDBTable {
 
         // Query by id(s)
         if (!query.ids().isEmpty()) {
-            if (query.resultType() == HugeType.EDGE) {
+            if (query.resultType().isEdge()) {
                 E.checkState(query.conditions().isEmpty(),
                              "Not support querying edge by %s", query);
                 // Query edge(in a vertex) by id (or v-id + column-name prefix)
@@ -122,7 +130,7 @@ public class InMemoryDBTable {
 
         // Query by condition(s)
         if (!query.conditions().isEmpty()) {
-            if (query.resultType() == HugeType.EDGE) {
+            if (query.resultType().isEdge()) {
                 // TODO: separate this method into table Edge
                 rs = this.queryEdgeByFilter(query.conditions(), rs);
             } else {
