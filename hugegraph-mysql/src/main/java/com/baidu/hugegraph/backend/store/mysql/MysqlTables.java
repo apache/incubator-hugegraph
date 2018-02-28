@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -253,15 +254,20 @@ public class MysqlTables {
 
     public static class Edge extends MysqlTable {
 
-        public static final String TABLE = "edges";
+        public static final String TABLE_PREFIX = "edges";
 
-        private String deleteByLabelTemplate;
+        private final Directions direction;
 
-        public Edge() {
-            super(TABLE);
-            this.deleteByLabelTemplate = String.format(
-                                         "DELETE FROM %s WHERE %s = ?;",
-                                         TABLE, formatKey(HugeKeys.LABEL));
+        private final String delByLabelTemplate;
+
+        public Edge(Directions direction) {
+            super(TABLE_PREFIX + "_" + direction.string());
+            assert direction == Directions.OUT || direction == Directions.IN;
+            this.direction = direction;
+
+            this.delByLabelTemplate = String.format(
+                                      "DELETE FROM %s WHERE %s = ?;",
+                                      table(), formatKey(HugeKeys.LABEL));
         }
 
         @Override
@@ -305,6 +311,10 @@ public class MysqlTables {
                 edgeId = (EdgeId) id;
             }
 
+            E.checkState(edgeId.direction() == this.direction,
+                         "Can't query %s edges from %s edges table",
+                         edgeId.direction(), this.direction);
+
             List<Object> list = new ArrayList<>(5);
             list.add(IdUtil.writeString(edgeId.ownerVertexId()));
             list.add(edgeId.direction().code());
@@ -333,13 +343,12 @@ public class MysqlTables {
             PreparedStatement deleteStmt;
             try {
                 // Create or get insert prepare statement
-                deleteStmt = session.prepareStatement(
-                                     this.deleteByLabelTemplate);
+                deleteStmt = session.prepareStatement(this.delByLabelTemplate);
                 // Delete edges
                 deleteStmt.setObject(1, label.asLong());
             } catch (SQLException e) {
                 throw new BackendException("Failed to prepare statment '%s'",
-                                           this.deleteByLabelTemplate);
+                                           this.delByLabelTemplate);
             }
             session.add(deleteStmt);
         }
@@ -352,9 +361,9 @@ public class MysqlTables {
             MysqlBackendEntry current = (MysqlBackendEntry) e1;
             MysqlBackendEntry next = (MysqlBackendEntry) e2;
 
-            E.checkState(current == null || current.type() == HugeType.VERTEX,
+            E.checkState(current == null || current.type().isVertex(),
                          "The current entry must be null or VERTEX");
-            E.checkState(next != null && next.type() == HugeType.EDGE,
+            E.checkState(next != null && next.type().isEdge(),
                          "The next entry must be EDGE");
 
             if (current != null) {
@@ -370,7 +379,7 @@ public class MysqlTables {
         }
 
         private MysqlBackendEntry wrapByVertex(MysqlBackendEntry edge) {
-            assert edge.type() == HugeType.EDGE;
+            assert edge.type().isEdge();
             String ownerVertex = edge.column(HugeKeys.OWNER_VERTEX);
             E.checkState(ownerVertex != null, "Invalid backend entry");
             Id vertexId = IdGenerator.of(ownerVertex);

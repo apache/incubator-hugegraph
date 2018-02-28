@@ -79,8 +79,28 @@ public enum HugeType implements SerialEnum {
         return this.name;
     }
 
+    public boolean isSchema() {
+        return this == HugeType.VERTEX_LABEL ||
+               this == HugeType.EDGE_LABEL ||
+               this == HugeType.PROPERTY_KEY ||
+               this == HugeType.INDEX_LABEL;
+    }
+
+    public boolean isGraph() {
+        return this.isVertex() || this.isEdge() ;
+    }
+
+    public boolean isVertex() {
+        return this == HugeType.VERTEX;
+    }
+
+    public boolean isEdge() {
+        return this == EDGE || this == EDGE_OUT || this == EDGE_IN;
+    }
+
     public boolean isIndex() {
-        return this == HugeType.SECONDARY_INDEX || this == HugeType.RANGE_INDEX;
+        return this == HugeType.SECONDARY_INDEX ||
+               this == HugeType.RANGE_INDEX;
     }
 
     public static HugeType fromString(String type) {

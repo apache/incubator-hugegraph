@@ -25,8 +25,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -35,8 +37,6 @@ import com.baidu.hugegraph.backend.store.cassandra.CassandraBackendEntry;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraSessionPool;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTable;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTables;
-import com.baidu.hugegraph.backend.id.EdgeId;
-import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.SerialEnum;
@@ -166,19 +166,18 @@ public class ScyllaDBTables {
 
     public static class Vertex extends CassandraTables.Vertex {
 
-        private static final String LABEL_INDEX_TABLE = "vertex_label_index";
+        private static final String LIDX_TABLE = "vertex_label_index";
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel,
                                    HugeKeys column) {
-            createIndexTable(session, LABEL_INDEX_TABLE);
+            createIndexTable(session, LIDX_TABLE);
         }
 
         @Override
         public void dropTable(CassandraSessionPool.Session session) {
-            session.execute(SchemaBuilder.dropTable(LABEL_INDEX_TABLE)
-                                         .ifExists());
+            session.execute(SchemaBuilder.dropTable(LIDX_TABLE).ifExists());
             super.dropTable(session);
         }
 
@@ -186,13 +185,13 @@ public class ScyllaDBTables {
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             super.insert(session, entry);
-            appendLabelIndex(session, LABEL_INDEX_TABLE, entry);
+            appendLabelIndex(session, LIDX_TABLE, entry);
         }
 
         @Override
         public void delete(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            removeLabelIndex(session, LABEL_INDEX_TABLE, entry);
+            removeLabelIndex(session, LIDX_TABLE, entry);
             super.delete(session, entry);
         }
 
@@ -200,7 +199,7 @@ public class ScyllaDBTables {
         public Iterator<BackendEntry> query(
                CassandraSessionPool.Session session,
                Query query) {
-            query = queryByLabelIndex(session, LABEL_INDEX_TABLE, query);
+            query = queryByLabelIndex(session, LIDX_TABLE, query);
             if (query == null) {
                 return ImmutableList.<BackendEntry>of().iterator();
             }
@@ -210,19 +209,22 @@ public class ScyllaDBTables {
 
     public static class Edge extends CassandraTables.Edge {
 
-        private static final String LABEL_INDEX_TABLE = "edge_label_index";
+        private static final String LIDX_TABLE = "edge_label_index";
+
+        public Edge(Directions direction) {
+            super(direction);
+        }
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel,
                                    HugeKeys column) {
-            createIndexTable(session, LABEL_INDEX_TABLE);
+            createIndexTable(session, LIDX_TABLE);
         }
 
         @Override
         public void dropTable(CassandraSessionPool.Session session) {
-            session.execute(SchemaBuilder.dropTable(LABEL_INDEX_TABLE)
-                                         .ifExists());
+            session.execute(SchemaBuilder.dropTable(LIDX_TABLE).ifExists());
             super.dropTable(session);
         }
 
@@ -233,14 +235,14 @@ public class ScyllaDBTables {
             Byte dir = entry.column(HugeKeys.DIRECTION);
             Directions direction = SerialEnum.fromCode(Directions.class, dir);
             if (direction == Directions.OUT) {
-                appendLabelIndex(session, LABEL_INDEX_TABLE, entry);
+                appendLabelIndex(session, LIDX_TABLE, entry);
             }
         }
 
         @Override
         public void delete(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            removeLabelIndex(session, LABEL_INDEX_TABLE, entry);
+            removeLabelIndex(session, LIDX_TABLE, entry);
             super.delete(session, entry);
         }
 
@@ -249,26 +251,26 @@ public class ScyllaDBTables {
                                           Id label) {
 
             // Query edge id(s) by label index
-            Set<String> ids = queryByLabelIndex(session,
-                                                LABEL_INDEX_TABLE,
-                                                label);
+            Set<String> ids = queryByLabelIndex(session, LIDX_TABLE, label);
             if (ids.isEmpty()) {
                 return;
             }
 
             // Delete index
-            Delete del = QueryBuilder.delete().from(LABEL_INDEX_TABLE);
+            Delete del = QueryBuilder.delete().from(LIDX_TABLE);
             del.where(formatEQ(HugeKeys.LABEL, label.asLong()));
             session.add(del);
 
             // Delete edges by id(s)
             List<HugeKeys> idNames = idColumnName();
 
-            Consumer<Id> deleteEdge = (id) -> {
+            Consumer<EdgeId> deleteEdge = (id) -> {
                 List<Object> idValues = idColumnValue(id);
                 assert idNames.size() == idValues.size();
 
-                Delete delete = QueryBuilder.delete().from(this.table());
+                // Delete edges in OUT and IN table
+                String table = table(id.direction());
+                Delete delete = QueryBuilder.delete().from(table);
                 for (int i = 0, n = idNames.size(); i < n; i++) {
                     delete.where(formatEQ(idNames.get(i), idValues.get(i)));
                 }
@@ -278,6 +280,7 @@ public class ScyllaDBTables {
             for (String idValue : ids) {
                 Id rawId = IdUtil.readString(idValue);
                 EdgeId id = EdgeId.parse(rawId.asString()).directed(true);
+                assert id.direction() == Directions.OUT;
                 deleteEdge.accept(id);
                 deleteEdge.accept(id.switchDirection());
             }
@@ -286,12 +289,20 @@ public class ScyllaDBTables {
         @Override
         public Iterator<BackendEntry> query(
                CassandraSessionPool.Session session, Query query) {
-            query = queryByLabelIndex(session, LABEL_INDEX_TABLE, query);
+            query = queryByLabelIndex(session, LIDX_TABLE, query);
 
             if (query == null) {
                 return ImmutableList.<BackendEntry>of().iterator();
             }
             return super.query(session, query);
+        }
+
+        public static Edge out() {
+            return new Edge(Directions.OUT);
+        }
+
+        public static Edge in() {
+            return new Edge(Directions.IN);
         }
     }
 

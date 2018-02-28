@@ -318,17 +318,10 @@ public abstract class HugeElement implements Element, GraphType {
         return elemKeys;
     }
 
-    public static boolean isGraph(HugeType type) {
-        return type == HugeType.VERTEX ||
-               type == HugeType.EDGE ||
-               type == HugeType.EDGE_OUT ||
-               type == HugeType.EDGE_IN;
-    }
-
     public static Id getIdValue(HugeType type, Object idValue) {
-        assert isGraph(type);
+        assert type.isGraph();
         Id id = getIdValue(idValue);
-        if (type == HugeType.VERTEX) {
+        if (type.isVertex()) {
             return id;
         } else {
             return EdgeId.parse(id.asString());

@@ -30,6 +30,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraSessionPool;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTable;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTables;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.datastax.driver.core.querybuilder.Select;
 
@@ -106,6 +107,10 @@ public class ScyllaDBTablesWithMV {
         private final String PRKEYS_NN = this.KEYS.stream().collect(
                              Collectors.joining(" IS NOT NULL AND "));
 
+        public Edge(Directions direction) {
+            super(direction);
+        }
+
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel,
@@ -140,6 +145,14 @@ public class ScyllaDBTablesWithMV {
                 return super.query2Select(MV_LABEL2EDGE, query);
             }
             return super.query2Select(table, query);
+        }
+
+        public static Edge out() {
+            return new Edge(Directions.OUT);
+        }
+
+        public static Edge in() {
+            return new Edge(Directions.IN);
         }
     }
 }

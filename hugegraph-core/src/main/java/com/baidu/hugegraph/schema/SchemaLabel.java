@@ -103,9 +103,9 @@ public abstract class SchemaLabel extends SchemaElement
         if (label instanceof Number) {
             return IdGenerator.of(((Number) label).longValue());
         } else if (label instanceof String) {
-            if (type == HugeType.VERTEX) {
+            if (type.isVertex()) {
                 return graph.vertexLabel((String) label).id();
-            } else if (type == HugeType.EDGE) {
+            } else if (type.isEdge()) {
                 return graph.edgeLabel((String) label).id();
             } else {
                 throw new HugeException(

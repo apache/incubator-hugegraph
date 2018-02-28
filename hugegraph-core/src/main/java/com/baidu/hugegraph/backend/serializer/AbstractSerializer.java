@@ -47,7 +47,7 @@ public abstract class AbstractSerializer
         HugeType type = query.resultType();
 
         // Serialize edge condition query (TODO: add VEQ(for EOUT/EIN))
-        if (type == HugeType.EDGE && !query.conditions().isEmpty()) {
+        if (type.isEdge() && !query.conditions().isEmpty()) {
             if (!query.ids().isEmpty()) {
                 throw new BackendException("Not supported query edge by id " +
                                            "and by condition at the same time");

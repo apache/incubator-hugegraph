@@ -69,7 +69,7 @@ public class BinarySerializer extends AbstractSerializer {
     private BinaryBackendEntry newBackendEntry(HugeEdge edge) {
         BinaryId id = new BinaryId(formatEdgeName(edge),
                                    edge.idWithDirection());
-        return new BinaryBackendEntry(HugeType.EDGE, id);
+        return new BinaryBackendEntry(edge.type(), id);
     }
 
     @SuppressWarnings("unused")
@@ -393,7 +393,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     protected Id writeQueryId(HugeType type, Id id) {
-        if (type == HugeType.EDGE) {
+        if (type.isEdge()) {
             id = writeEdgeId(id);
         } else {
             BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());

@@ -118,14 +118,6 @@ public final class HugeGraphStep<S, E extends Element>
 
         query = this.injectQueryInfo(query);
 
-        /*
-         * NOTE: double limit because of duplicate edges(when BOTH Direction)
-         * TODO: the `this.limit * 2` maybe will overflow.
-         */
-        query.limit(query.limit() == Query.NO_LIMIT ?
-                    Query.NO_LIMIT :
-                    query.limit() << 1);
-
         @SuppressWarnings("unchecked")
         Iterator<E> result = (Iterator<E>) graph.edges(query);
         return result;

@@ -38,6 +38,7 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendSessionPool.Session;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -60,7 +61,7 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public void insert(TextBackendEntry entry) {
+        public void insert(Session session, TextBackendEntry entry) {
             Id id = vertexIdOfEdge(entry);
 
             if (!this.store().containsKey(id)) {
@@ -75,7 +76,7 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public void delete(TextBackendEntry entry) {
+        public void delete(Session session, TextBackendEntry entry) {
             Id id = vertexIdOfEdge(entry);
 
             BackendEntry vertex = this.store().get(id);
@@ -85,17 +86,17 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public void append(TextBackendEntry entry) {
+        public void append(Session session, TextBackendEntry entry) {
             throw new UnsupportedOperationException("Edge append");
         }
 
         @Override
-        public void eliminate(TextBackendEntry entry) {
+        public void eliminate(Session session, TextBackendEntry entry) {
             throw new UnsupportedOperationException("Edge eliminate");
         }
 
         private static Id vertexIdOfEdge(TextBackendEntry entry) {
-            assert entry.type() == HugeType.EDGE;
+            assert entry.type().isEdge();
             // Assume the first part is owner vertex id
             String vertexId = EdgeId.split(entry.id())[0];
             return IdGenerator.of(vertexId);
@@ -107,8 +108,9 @@ public class InMemoryDBTables {
         public SecondaryIndex() {
             super(HugeType.SECONDARY_INDEX);
         }
+
         @Override
-        public Iterator<BackendEntry> query(final Query query) {
+        public Iterator<BackendEntry> query(Session session, Query query) {
             Set<Condition> conditions = query.conditions();
             E.checkState(query instanceof ConditionQuery &&
                          conditions.size() == 2,
@@ -133,7 +135,7 @@ public class InMemoryDBTables {
             assert fieldValue != null && indexLabelId != null;
             Id id = SplicingIdGenerator.splicing(fieldValue, indexLabelId);
             IdQuery q = new IdQuery(query, id);
-            return super.query(q);
+            return super.query(session, q);
         }
     }
 
@@ -149,7 +151,7 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public Iterator<BackendEntry> query(final Query query) {
+        public Iterator<BackendEntry> query(Session session, Query query) {
             Set<Condition> conditions = query.conditions();
             E.checkState(query instanceof ConditionQuery &&
                          (conditions.size() == 3 || conditions.size() == 2),
@@ -201,7 +203,7 @@ public class InMemoryDBTables {
                 Id id = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
                                                 indexLabelId, keyEq);
                 IdQuery q = new IdQuery(query, id);
-                return super.query(q);
+                return super.query(session, q);
             } else {
                 if (keyMin == null) {
                     // Field value < keyMax

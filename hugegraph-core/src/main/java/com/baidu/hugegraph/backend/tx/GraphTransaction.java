@@ -426,7 +426,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query query) {
-        assert query.resultType() == HugeType.VERTEX;
+        assert query.resultType().isVertex();
 
         Iterator<BackendEntry> entries = this.query(query);
 
@@ -442,7 +442,7 @@ public class GraphTransaction extends IndexableTransaction {
                 return false;
             }
             // Process results that query from left index
-            if (query.resultType() == HugeType.VERTEX &&
+            if (query.resultType().isVertex() &&
                 !filterResultFromIndexQuery(query, vertex)) {
                 return false;
             }
@@ -542,7 +542,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Query query) {
-        assert query.resultType() == HugeType.EDGE;
+        assert query.resultType().isEdge();
 
         Iterator<BackendEntry> entries = this.query(query);
 
@@ -795,11 +795,11 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,
-                                                     Directions directions,
+                                                     Directions direction,
                                                      Id... edgeLabels) {
         E.checkState(sourceVertex != null,
                      "The edge query must contain source vertex");
-        E.checkState((directions != null || edgeLabels.length == 0),
+        E.checkState((direction != null || edgeLabels.length == 0),
                      "The edge query must contain direction " +
                      "if it contains edge label");
 
@@ -809,9 +809,9 @@ public class GraphTransaction extends IndexableTransaction {
         query.eq(HugeKeys.OWNER_VERTEX, sourceVertex);
 
         // Edge direction
-        if (directions != null) {
-            assert directions == Directions.OUT || directions == Directions.IN;
-            query.eq(HugeKeys.DIRECTION, directions);
+        if (direction != null) {
+            assert direction == Directions.OUT || direction == Directions.IN;
+            query.eq(HugeKeys.DIRECTION, direction);
         }
 
         // Edge labels
@@ -830,7 +830,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     public static boolean matchEdgeSortKeys(ConditionQuery query,
                                             HugeGraph graph) {
-        assert query.resultType() == HugeType.EDGE;
+        assert query.resultType().isEdge();
 
         Id label = (Id) query.condition(HugeKeys.LABEL);
         if (label == null) {
@@ -841,7 +841,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public static void verifyEdgesConditionQuery(ConditionQuery query) {
-        assert query.resultType() == HugeType.EDGE;
+        assert query.resultType().isEdge();
 
         int total = query.conditions().size();
         if (total == 1) {
@@ -871,7 +871,7 @@ public class GraphTransaction extends IndexableTransaction {
         Id label = (Id) query.condition(HugeKeys.LABEL);
 
         // Optimize vertex query
-        if (label != null && query.resultType() == HugeType.VERTEX) {
+        if (label != null && query.resultType().isVertex()) {
             VertexLabel vertexLabel = this.graph().vertexLabel(label);
             if (vertexLabel.idStrategy() == IdStrategy.PRIMARY_KEY) {
                 List<Id> keys = vertexLabel.primaryKeys();
@@ -898,7 +898,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         // Optimize edge query
-        if (label != null && query.resultType() == HugeType.EDGE) {
+        if (label != null && query.resultType().isEdge()) {
             List<Id> keys = this.graph().edgeLabel(label).sortKeys();
             if (query.condition(HugeKeys.OWNER_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&
@@ -918,7 +918,7 @@ public class GraphTransaction extends IndexableTransaction {
          * but we don't support query edges only by direction/targetVertex.
          */
         if (query.allSysprop()) {
-            if (query.resultType() == HugeType.EDGE) {
+            if (query.resultType().isEdge()) {
                 verifyEdgesConditionQuery(query);
             }
             if (this.store().features().supportsQueryByLabel() ||
@@ -1005,16 +1005,16 @@ public class GraphTransaction extends IndexableTransaction {
 
     private Iterator<?> joinTxVertices(Query query,
                                        Iterator<HugeVertex> vertices) {
-        assert query.resultType() == HugeType.VERTEX;
+        assert query.resultType().isVertex();
         return this.joinTxRecords(query, vertices, (q, v) -> q.test(v),
                                   this.addedVertexes, this.removedVertexes,
                                   this.updatedVertexes);
     }
 
     private Iterator<?> joinTxEdges(Query query, Iterator<HugeEdge> edges) {
-        assert query.resultType() == HugeType.EDGE;
+        assert query.resultType().isEdge();
         final BiFunction<Query, HugeEdge, Boolean> matchTxEdges = (q, e) -> {
-            assert q.resultType() == HugeType.EDGE;
+            assert q.resultType().isEdge();
             return q.test(e) || q.test(e.switchOwner());
         };
         edges = this.joinTxRecords(query, edges, matchTxEdges,
@@ -1165,7 +1165,9 @@ public class GraphTransaction extends IndexableTransaction {
         try {
             if (this.store().features().supportsDeleteEdgeByLabel()) {
                 // TODO: Need to change to writeQuery!
-                this.doRemove(this.serializer.writeId(HugeType.EDGE,
+                this.doRemove(this.serializer.writeId(HugeType.EDGE_OUT,
+                                                      edgeLabel.id()));
+                this.doRemove(this.serializer.writeId(HugeType.EDGE_IN,
                                                       edgeLabel.id()));
             } else {
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);

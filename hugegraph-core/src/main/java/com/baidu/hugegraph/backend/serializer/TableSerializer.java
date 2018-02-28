@@ -106,8 +106,7 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     protected TableBackendEntry.Row formatEdge(HugeEdge edge) {
         EdgeId id = edge.idWithDirection();
-        TableBackendEntry.Row row = new TableBackendEntry.Row(
-                                    HugeType.EDGE, id);
+        TableBackendEntry.Row row = new TableBackendEntry.Row(edge.type(), id);
         // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
         row.column(HugeKeys.OWNER_VERTEX, IdUtil.writeString(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.direction().code());
@@ -208,7 +207,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         }
 
         TableBackendEntry entry = this.convertEntry(backendEntry);
-        assert entry.type() == HugeType.VERTEX;
+        assert entry.type().isVertex();
 
         Id id = IdUtil.readString(entry.column(HugeKeys.ID));
         Number label = entry.column(HugeKeys.LABEL);
@@ -237,8 +236,7 @@ public abstract class TableSerializer extends AbstractSerializer {
     public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop) {
         HugeEdge edge = prop.element();
         EdgeId id = edge.idWithDirection();
-        TableBackendEntry.Row row = new TableBackendEntry.Row(
-                                    HugeType.EDGE, id);
+        TableBackendEntry.Row row = new TableBackendEntry.Row(edge.type(), id);
         // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
         row.column(HugeKeys.OWNER_VERTEX, IdUtil.writeString(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.direction().code());
@@ -312,11 +310,11 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     @Override
     protected Id writeQueryId(HugeType type, Id id) {
-        if (type == HugeType.EDGE) {
+        if (type.isEdge()) {
             if (!(id instanceof EdgeId)) {
                 id = EdgeId.parse(id.asString());
             }
-        } else if (HugeElement.isGraph(type)) {
+        } else if (type.isGraph()) {
             id = IdGenerator.of(IdUtil.writeString(id));
         }
         return id;
@@ -345,7 +343,7 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     @Override
     protected void writeQueryCondition(Query query) {
-        if (HugeElement.isGraph(query.resultType())) {
+        if (query.resultType().isGraph()) {
             ConditionQuery result = (ConditionQuery) query;
             // No user-prop when serialize
             assert result.allSysprop();

@@ -39,6 +39,7 @@ import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.Cluster;
@@ -220,7 +221,7 @@ public abstract class CassandraStore implements BackendStore {
     public Iterator<BackendEntry> query(Query query) {
         this.checkSessionConnected();
 
-        CassandraTable table = this.table(query.resultType());
+        CassandraTable table = this.table(CassandraTable.tableType(query));
         return table.query(this.sessions.session(), query);
     }
 
@@ -493,8 +494,12 @@ public abstract class CassandraStore implements BackendStore {
 
             registerTableManager(HugeType.VERTEX,
                                  new CassandraTables.Vertex());
-            registerTableManager(HugeType.EDGE,
-                                 new CassandraTables.Edge());
+
+            registerTableManager(HugeType.EDGE_OUT,
+                                 new CassandraTables.Edge(Directions.OUT));
+            registerTableManager(HugeType.EDGE_IN,
+                                 new CassandraTables.Edge(Directions.IN));
+
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new CassandraTables.SecondaryIndex());
             registerTableManager(HugeType.RANGE_INDEX,

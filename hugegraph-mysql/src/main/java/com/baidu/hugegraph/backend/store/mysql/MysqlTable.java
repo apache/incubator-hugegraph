@@ -35,6 +35,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -43,17 +44,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-public abstract class MysqlTable {
+public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
+                                                      MysqlBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
 
-    private final String table;
     // The template for insert and delete statements
     private String insertTemplate;
     private String deleteTemplate;
 
     public MysqlTable(String table) {
-        this.table = table;
+        super(table);
         this.insertTemplate = null;
         this.deleteTemplate = null;
     }
@@ -63,7 +64,7 @@ public abstract class MysqlTable {
                             ImmutableSet<HugeKeys> pkeys) {
         StringBuilder sql = new StringBuilder();
         sql.append("CREATE TABLE IF NOT EXISTS ");
-        sql.append(this.table).append(" (");
+        sql.append(this.table()).append(" (");
         // Add columns
         for (Map.Entry<HugeKeys, String> entry : columns.entrySet()) {
             sql.append(formatKey(entry.getKey()));
@@ -93,9 +94,9 @@ public abstract class MysqlTable {
     }
 
     public void dropTable(MysqlSessions.Session session) {
-        LOG.debug("Drop table: {}", this.table);
+        LOG.debug("Drop table: {}", this.table());
         StringBuilder sql = new StringBuilder();
-        sql.append("DROP TABLE IF EXISTS ").append(this.table).append(";");
+        sql.append("DROP TABLE IF EXISTS ").append(this.table()).append(";");
         try {
             session.execute(sql.toString());
         } catch (SQLException e) {
@@ -122,7 +123,7 @@ public abstract class MysqlTable {
         }
 
         StringBuilder insert = new StringBuilder();
-        insert.append("REPLACE INTO ").append(this.table).append(" (");
+        insert.append("REPLACE INTO ").append(this.table()).append(" (");
 
         int i = 0;
         int n = entry.columns().size();
@@ -152,7 +153,7 @@ public abstract class MysqlTable {
         }
 
         StringBuilder delete = new StringBuilder();
-        delete.append("DELETE FROM ").append(this.table);
+        delete.append("DELETE FROM ").append(this.table());
 
         WhereBuilder where = new WhereBuilder();
         where.and(formatKeys(idNames), "?");
@@ -165,6 +166,7 @@ public abstract class MysqlTable {
     /**
      * Insert an entire row
      */
+    @Override
     public void insert(MysqlSessions.Session session,
                        MysqlBackendEntry.Row entry) {
         String template = this.buildInsertTemplate(entry);
@@ -184,6 +186,7 @@ public abstract class MysqlTable {
         session.add(insertStmt);
     }
 
+    @Override
     public void delete(MysqlSessions.Session session,
                        MysqlBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
@@ -217,16 +220,19 @@ public abstract class MysqlTable {
         session.add(deleteStmt);
     }
 
+    @Override
     public void append(MysqlSessions.Session session,
                        MysqlBackendEntry.Row entry) {
         this.insert(session, entry);
     }
 
+    @Override
     public void eliminate(MysqlSessions.Session session,
                           MysqlBackendEntry.Row entry) {
         this.delete(session, entry);
     }
 
+    @Override
     public Iterator<BackendEntry> query(MysqlSessions.Session session,
                                         Query query) {
         ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
@@ -236,7 +242,7 @@ public abstract class MysqlTable {
             return rs;
         }
 
-        List<StringBuilder> selections = this.query2Select(this.table, query);
+        List<StringBuilder> selections = this.query2Select(this.table(), query);
         try {
             for (StringBuilder selection : selections) {
                 ResultSet results = session.select(selection.toString());
@@ -480,8 +486,7 @@ public abstract class MysqlTable {
         return e2;
     }
 
-    public abstract void init(MysqlSessions.Session session);
-
+    @Override
     public void clear(MysqlSessions.Session session) {
         this.dropTable(session);
     }

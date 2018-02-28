@@ -60,8 +60,11 @@ public abstract class RocksDBSstStore extends RocksDBStore {
 
             registerTableManager(HugeType.VERTEX,
                                  new RocksDBTables.Vertex(database));
-            registerTableManager(HugeType.EDGE,
-                                 new RocksDBTables.Edge(database));
+
+            registerTableManager(HugeType.EDGE_OUT,
+                                 RocksDBTables.Edge.out(database));
+            registerTableManager(HugeType.EDGE_IN,
+                                 RocksDBTables.Edge.in(database));
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new RocksDBTables.SecondaryIndex(database));
