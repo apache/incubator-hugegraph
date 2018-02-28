@@ -1267,13 +1267,24 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init5Persons();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            graph.traversal().V().hasLabel("person").has(
-                    "age",
-                    P.not(P.lte(10).and(P.not(P.between(11, 20))))
-                     .and(P.lt(29).or(P.eq(35))))
-                    .values("name").next();
-        });
+        List<Object> vertices = graph.traversal().V().hasLabel("person").has(
+                "age",
+                P.not(P.lte(10).and(P.not(P.between(11, 20))))
+                 .and(P.lt(29).or(P.eq(35)).or(P.gt(45))))
+                .values("name").toList();
+
+        Assert.assertEquals(5, vertices.size());
+
+        Set<String> names = ImmutableSet.of("Hebe", "James",
+                                            "Tom Cat", "Lisa");
+        int numJames = 0;
+        for (Object name : vertices) {
+            Assert.assertTrue(names.contains(name));
+            if (name.equals("James")) {
+                numJames++;
+            }
+        }
+        Assert.assertEquals(2, numJames);
     }
 
     @Test

@@ -63,24 +63,6 @@ org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetin
 
 ####################    process suite    ####################
 
-# multi label query
-org.apache.tinkerpop.gremlin.process.traversal.step.branch.LocalTest.Traversals.g_VX4X_localXbothEXknows_createdX_limitX1XX: Not support querying by multi edge-labels
-org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasLabelXsoftwareX: Not support querying by multi vertex-labels
-org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1X_outEXknows_createdX_inV: Not support querying by multi edge-labels
-org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest.Traversals.g_VX1X_outXknows_createdX: Not support querying by multi edge-labels
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterEdgeCriterion: Not support querying by multi edge-labels
-org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.playlistPaths: Don't accept query based on properties '[name]' that are not indexed
-
-# unsupported IN index query
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterMixedCriteria: Unsupported IN index query
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterVertexCriterion: Unsupported IN index query
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategyProcessTest.shouldFilterVertexCriterionAndKeepLabels: Unsupported IN index query
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldWriteVerticesToMultiplePartitions: Only support one element IN index query
-org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.PartitionStrategyProcessTest.shouldWriteToMultiplePartitions: Only support one element IN index query
-
-# unsupported OrP
-org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasLabelXpersonX_hasXage_notXlteX10X_andXnotXbetweenX11_20XXXX_andXltX29X_orXeqX35XXXX_name: Unsupported OrP
-
 # unsupported automatic edge id, therefore number of edge is wrong
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdge: Unsupported automatic edge id, therefore number of edge is wrong
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdgeByPath: Unsupported automatic edge id, therefore number of edge is wrong

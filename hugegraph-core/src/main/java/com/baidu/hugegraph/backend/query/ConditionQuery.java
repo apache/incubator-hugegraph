@@ -129,8 +129,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public Object condition(Object key) {
-        // TODO: uncomment checkFlattened when query flattened in Graph tx
-        // this.checkFlattened();
+        this.checkFlattened();
         List<Object> values = new ArrayList<>();
         for (Condition c : this.conditions) {
             if (c.isRelation()) {
@@ -253,8 +252,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public void resetUserpropConditions() {
-        // TODO: uncomment checkFlattened when query flattened in Graph tx
-        // this.checkFlattened();
+        this.checkFlattened();
         this.conditions.removeIf(condition -> !condition.isSysprop());
     }
 
@@ -359,11 +357,7 @@ public class ConditionQuery extends IdQuery {
         return true;
     }
 
-    public List<ConditionQuery> flatten() {
-        return ConditionQueryFlatten.flatten(this);
-    }
-
-    private void checkFlattened() {
+    public void checkFlattened() {
         for (Condition condition : this.conditions) {
             E.checkState(condition.isRelation(),
                          "Condition Query has none-flatten condition '%s'",

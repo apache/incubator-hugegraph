@@ -173,25 +173,34 @@ public final class TraversalUtil {
                                  ConditionQuery query,
                                  HugeGraph graph) {
         HugeType resultType = query.resultType();
-        for (HasContainer has : hasContainers) {
-            BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
-            if (keyForContains(has.getKey())) {
-                query.query(convContains2Condition(graph, has));
-            } else if (bp instanceof Compare) {
-                query.query(convCompare2Relation(graph, resultType, has));
-            } else if (bp instanceof Contains) {
-                query.query(convIn2Relation(graph, has));
-            } else if (has.getPredicate() instanceof AndP) {
-                query.query(convAnd(graph, resultType, has));
-            } else if (has.getPredicate() instanceof OrP) {
-                query.query(convOr(graph, resultType, has));
-            } else {
-                // TODO: deal with other Predicate
-                throw newUnsupportedPredicate(has.getPredicate());
-            }
-        }
 
+        for (HasContainer has : hasContainers) {
+            Condition condition = convHas2Condition(has, resultType, graph);
+            query.query(condition);
+        }
         return query;
+    }
+
+    public static Condition convHas2Condition(HasContainer has,
+                                              HugeType type,
+                                              HugeGraph graph) {
+        BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+        Condition condition;
+        if (keyForContains(has.getKey())) {
+            condition = convContains2Condition(graph, has);
+        } else if (bp instanceof Compare) {
+            condition = convCompare2Relation(graph, type, has);
+        } else if (bp instanceof Contains) {
+            condition = convIn2Relation(graph, has);
+        } else if (has.getPredicate() instanceof AndP) {
+            condition = convAnd(graph, type, has);
+        } else if (has.getPredicate() instanceof OrP) {
+            condition = convOr(graph, type, has);
+        } else {
+            // TODO: deal with other Predicate
+            throw newUnsupportedPredicate(has.getPredicate());
+        }
+        return condition;
     }
 
     public static Condition convAnd(HugeGraph graph,
@@ -201,15 +210,21 @@ public final class TraversalUtil {
         assert p instanceof AndP;
         @SuppressWarnings("unchecked")
         List<P<Object>> predicates = ((AndP<Object>) p).getPredicates();
-        if (predicates.size() != 2) {
+        if (predicates.size() < 2) {
             throw newUnsupportedPredicate(p);
         }
 
-        HasContainer left = new HasContainer(has.getKey(), predicates.get(0));
-        HasContainer right = new HasContainer(has.getKey(), predicates.get(1));
-        // Just for supporting P.inside() / P.between()
-        return Condition.and(convCompare2Relation(graph, type, left),
-                             convCompare2Relation(graph, type, right));
+        Condition cond = null;
+        for (P<Object> predicate : predicates) {
+            HasContainer newHas = new HasContainer(has.getKey(), predicate);
+            Condition newCond = convHas2Condition(newHas, type, graph);
+            if (cond == null) {
+                cond = newCond;
+            } else {
+                cond = Condition.and(newCond, cond);
+            }
+        }
+        return cond;
     }
 
     public static Condition convOr(HugeGraph graph,
@@ -217,8 +232,23 @@ public final class TraversalUtil {
                                    HasContainer has) {
         P<?> p = has.getPredicate();
         assert p instanceof OrP;
-        // TODO: support P.outside() which is implemented by OR
-        throw newUnsupportedPredicate(p);
+        @SuppressWarnings("unchecked")
+        List<P<Object>> predicates = ((OrP<Object>) p).getPredicates();
+        if (predicates.size() < 2) {
+            throw newUnsupportedPredicate(p);
+        }
+
+        Condition cond = null;
+        for (P<Object> predicate : predicates) {
+            HasContainer newHas = new HasContainer(has.getKey(), predicate);
+            Condition newCond = convHas2Condition(newHas, type, graph);
+            if (cond == null) {
+                cond = newCond;
+            } else {
+                cond = Condition.or(newCond, cond);
+            }
+        }
+        return cond;
     }
 
     public static Relation convCompare2Relation(HugeGraph graph,
