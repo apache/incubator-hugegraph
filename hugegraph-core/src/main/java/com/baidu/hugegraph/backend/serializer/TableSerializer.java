@@ -212,7 +212,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         Id id = IdUtil.readString(entry.column(HugeKeys.ID));
         Number label = entry.column(HugeKeys.LABEL);
 
-        VertexLabel vertexLabel = null;
+        VertexLabel vertexLabel = VertexLabel.NONE;
         if (label != null) {
             vertexLabel = graph.vertexLabel(this.toId(label));
         }

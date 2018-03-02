@@ -306,6 +306,11 @@ public class InMemoryDBStore implements BackendStore {
         }
 
         @Override
+        public boolean supportsQueryByPage() {
+            return false;
+        }
+
+        @Override
         public boolean supportsDeleteEdgeByLabel() {
             return false;
         }

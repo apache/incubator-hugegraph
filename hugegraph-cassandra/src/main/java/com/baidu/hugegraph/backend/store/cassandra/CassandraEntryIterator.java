@@ -115,7 +115,7 @@ public class CassandraEntryIterator extends BackendEntryIterator<Row> {
     @Override
     protected String pageState() {
         PagingState page = this.results.getExecutionInfo().getPagingState();
-        if (page == null) {
+        if (page == null || this.results.isExhausted()) {
             return null;
         }
         return page.toString();

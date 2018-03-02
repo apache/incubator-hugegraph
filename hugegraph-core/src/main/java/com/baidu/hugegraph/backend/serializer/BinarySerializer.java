@@ -295,7 +295,7 @@ public class BinarySerializer extends AbstractSerializer {
         // Parse label
         final byte[] VL = this.formatSyspropName(entry.id(), HugeKeys.LABEL);
         BackendColumn vl = entry.column(VL);
-        VertexLabel label = null;
+        VertexLabel label = VertexLabel.NONE;
         if (vl != null) {
             label = graph.vertexLabel(BytesBuffer.wrap(vl.value).readId());
         }

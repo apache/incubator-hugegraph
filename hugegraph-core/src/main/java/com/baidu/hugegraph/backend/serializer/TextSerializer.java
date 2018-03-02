@@ -267,7 +267,7 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = this.convertEntry(backendEntry);
         // Parse label
         String labelId = entry.column(this.formatSyspropName(HugeKeys.LABEL));
-        VertexLabel label = null;
+        VertexLabel label = VertexLabel.NONE;
         if (labelId != null) {
             label = graph.vertexLabel(readId(labelId));
         }

@@ -111,6 +111,13 @@ public class Query implements Cloneable {
         this.limit = limit;
     }
 
+    public boolean reachLimit(long count) {
+        if (this.limit == NO_LIMIT) {
+            return false;
+        }
+        return count >= (this.offset + this.limit);
+    }
+
     /**
      * Set or update the offset and limit by a range [start, end)
      * NOTE: it will use the min range one: max start and min end

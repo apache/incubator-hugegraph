@@ -67,6 +67,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     public HugeEdge(final HugeGraph graph, Id id, EdgeLabel label) {
         super(graph, id);
 
+        E.checkArgumentNotNull(label, "Edge label can't be null");
         this.label = label;
 
         this.name = null;

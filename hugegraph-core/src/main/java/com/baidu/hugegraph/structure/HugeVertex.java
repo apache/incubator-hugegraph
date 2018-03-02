@@ -71,12 +71,11 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this(tx.graph(), id, label);
         this.tx = tx;
         this.fresh = true;
-        E.checkNotNull(label, "label");
     }
 
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
         super(graph, id);
-        this.label = label;
+        this.vertexLabel(label);
         this.edges = InsertionOrderUtil.newSet();
         this.tx = null;
         this.name = null;
@@ -171,6 +170,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public void vertexLabel(VertexLabel label) {
+        E.checkArgumentNotNull(label, "Vertex label can't be null");
         this.label = label;
     }
 

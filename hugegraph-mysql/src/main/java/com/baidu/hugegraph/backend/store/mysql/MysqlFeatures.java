@@ -71,6 +71,12 @@ public class MysqlFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsQueryByPage() {
+        // TODO: support it
+        return false;
+    }
+
+    @Override
     public boolean supportsDeleteEdgeByLabel() {
         return true;
     }
