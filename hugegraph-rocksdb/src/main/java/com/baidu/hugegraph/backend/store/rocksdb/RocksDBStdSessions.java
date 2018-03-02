@@ -609,14 +609,17 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             this.itor.next();
 
+            if (this.itor.isValid()) {
+                this.position = entry.name;
+            } else {
+                this.position = null;
+            }
+
             return entry;
         }
 
         @Override
         public byte[] position() {
-            if (this.itor.isOwningHandle() && this.itor.isValid()) {
-                this.position = this.itor.key();
-            }
             return this.position;
         }
 

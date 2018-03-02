@@ -36,7 +36,6 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
     private final BackendColumnIterator columns;
     private final Function<BackendColumn, BackendEntry> entryCreater;
 
-    private long remaining;
     private BackendEntry next;
 
     public BinaryEntryIterator(BackendColumnIterator columns, Query query,
@@ -48,7 +47,6 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
 
         this.columns = columns;
         this.entryCreater = entry;
-        this.remaining = query.limit();
         this.next = null;
 
         this.skipOffset();
@@ -78,11 +76,9 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
             this.next = null;
         }
 
-        while (this.remaining > 0 && this.columns.hasNext()) {
-            if (this.query.paging()) {
-                this.remaining--;
-            }
+        while (this.columns.hasNext()) {
             BackendColumn col = this.columns.next();
+
             if (this.current == null) {
                 // The first time to read
                 this.current = this.entryCreater.apply(col);
@@ -97,7 +93,12 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
                 this.next = this.entryCreater.apply(col);
                 assert this.next != null;
                 this.next.columns(col);
-                return true;
+                break;
+            }
+
+            // When limit exceed, stop fetching(also need to keep page position)
+            if (this.query.reachLimit(this.count() - 1)) {
+                break;
             }
         }
 
@@ -106,7 +107,7 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
 
     @Override
     protected final long sizeOf(BackendEntry entry) {
-        // One edge per column (entry <==> vertex)
+        // One edge per column (one entry <==> a vertex)
         return entry.type().isEdge() ? entry.columnsSize() : 1;
     }
 

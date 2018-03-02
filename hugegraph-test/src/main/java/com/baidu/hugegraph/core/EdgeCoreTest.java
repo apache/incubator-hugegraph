@@ -26,10 +26,12 @@ import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,6 +46,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -1769,6 +1772,136 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, (int) el.get(0).value("id"));
     }
 
+    @Test
+    public void testQueryEdgeByPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100LookEdges();
+
+        GraphTraversal<Edge, Edge> itor = graph.traversal().E()
+                                               .has("~page", "").limit(10);
+        Assert.assertEquals(10, IteratorUtils.count(itor));
+        String page = TraversalUtil.page(itor);
+
+        List<Edge> edges;
+
+        edges = graph.traversal().E()//.hasLabel("look")
+                     .has("~page", page).limit(1)
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().E()
+                     .has("~page", page).limit(33)
+                     .toList();
+        Assert.assertEquals(33, edges.size());
+
+        edges = graph.traversal().E()
+                     .has("~page", page).limit(89)
+                     .toList();
+        Assert.assertEquals(89, edges.size());
+
+        edges = graph.traversal().E()
+                     .has("~page", page).limit(91)
+                     .toList();
+        Assert.assertEquals(90, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgeByPageResultsMatched() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100LookEdges();
+
+        List<Edge> all = graph.traversal().E().toList();
+
+        GraphTraversal<Edge, Edge> itor;
+
+        String page = "";
+        int size = 20;
+
+        for (int i = 0; i < 100 / size; i++) {
+            itor = graph.traversal().E()
+                        .has("~page", page).limit(size);
+            List<?> vertexes = IteratorUtils.asList(itor);
+            Assert.assertEquals(size, vertexes.size());
+
+            List<Edge> expected = all.subList(i * size, (i + 1) * size);
+            Assert.assertEquals(expected, vertexes);
+
+            page = TraversalUtil.page(itor);
+        }
+        Assert.assertNull(page);
+    }
+
+    @Test
+    public void testQueryEdgeByPageWithInvalidPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100LookEdges();
+
+        // Illegal base64 character
+        Assert.assertThrows(BackendException.class, () -> {
+            graph.traversal().E()
+                 .has("~page", "!abc123#").limit(10)
+                 .toList();
+        });
+
+        // Invalid page
+        Assert.assertThrows(BackendException.class, () -> {
+            graph.traversal().E()
+                 .has("~page", "abc123").limit(10)
+                 .toList();
+        });
+    }
+
+    @Test
+    public void testQueryEdgeByPageWithInvalidLimit() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100LookEdges();
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().E()
+                 .has("~page", "").limit(0)
+                 .toList();
+        });
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().E()
+                 .has("~page", "").limit(-1)
+                 .toList();
+        });
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().E()
+                 .has("~page", "")
+                 .toList();
+        });
+    }
+
+    @Test
+    public void testQueryEdgeByPageWithOffset() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100LookEdges();
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().E()
+                 .has("~page", "").range(2, 10)
+                 .toList();
+        });
+    }
+
     private void init18Edges() {
         HugeGraph graph = graph();
 
@@ -1818,6 +1951,27 @@ public class EdgeCoreTest extends BaseCoreTest {
         louise.addEdge("friend", selina);
         jeff.addEdge("friend", sean);
         jeff.addEdge("follow", james);
+
+        graph.tx().commit();
+    }
+
+    private void init100LookEdges() {
+        HugeGraph graph = graph();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex jeff = graph.addVertex(T.label, "person", "name", "Jeff",
+                                      "city", "Beijing", "age", 22);
+
+        Vertex java = graph.addVertex(T.label, "book", "name", "java-book");
+
+        for (int i = 0; i < 50; i++) {
+            louise.addEdge("look", java, "time", "time-" + i);
+        }
+
+        for (int i = 0; i < 50; i++) {
+            jeff.addEdge("look", java, "time", "time-" + i);
+        }
 
         graph.tx().commit();
     }

@@ -27,11 +27,15 @@ import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 
 public class VertexLabel extends SchemaLabel {
+
+    public static final VertexLabel NONE =
+                        new VertexLabel(null, IdGenerator.of(0), "");
 
     private IdStrategy idStrategy;
     private List<Id> primaryKeys;

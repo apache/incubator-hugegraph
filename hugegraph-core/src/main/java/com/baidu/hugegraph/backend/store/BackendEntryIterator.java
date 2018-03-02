@@ -87,6 +87,11 @@ public abstract class BackendEntryIterator<T>
         throw new NotSupportException("Invalid meta '%s'", meta);
     }
 
+    protected final long count() {
+        long ccount = this.current == null ? 0 : this.sizeOf(this.current);
+        return this.count + ccount;
+    }
+
     protected final void checkCapacity() {
         // Stop if reach capacity
         if (this.query.capacity() != Query.NO_CAPACITY &&
@@ -104,13 +109,8 @@ public abstract class BackendEntryIterator<T>
          * result(s) of one sub-query, so the query offset/limit is inaccurate.
          */
 
-        // Stop if reach limit
-        if (this.query.limit() != Query.NO_LIMIT &&
-            this.count >= (this.offset() + this.query.limit())) {
-            return true;
-        }
-
-        return false;
+        // Stop if it has reached limit after the previous next()
+        return this.query.reachLimit(this.count);
     }
 
     protected void skipOffset() {

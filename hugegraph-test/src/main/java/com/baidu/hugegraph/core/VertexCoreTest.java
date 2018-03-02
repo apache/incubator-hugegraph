@@ -27,13 +27,16 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
@@ -46,6 +49,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -2502,6 +2506,136 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(0, vertexes.size());
     }
 
+    @Test
+    public void testQueryByPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        GraphTraversal<Vertex, Vertex> itor = graph.traversal().V()
+                                                   .has("~page", "").limit(10);
+        Assert.assertEquals(10, IteratorUtils.count(itor));
+        String page = TraversalUtil.page(itor);
+
+        List<Vertex> vertexes;
+
+        vertexes = graph.traversal().V()
+                        .has("~page", page).limit(1)
+                        .toList();
+        Assert.assertEquals(1, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                        .has("~page", page).limit(33)
+                        .toList();
+        Assert.assertEquals(33, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                        .has("~page", page).limit(89)
+                        .toList();
+        Assert.assertEquals(89, vertexes.size());
+
+        vertexes = graph.traversal().V()
+                        .has("~page", page).limit(91)
+                        .toList();
+        Assert.assertEquals(90, vertexes.size());
+    }
+
+    @Test
+    public void testQueryByPageResultsMatched() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        List<Vertex> all = graph.traversal().V().toList();
+
+        GraphTraversal<Vertex, Vertex> itor;
+
+        String page = "";
+        int size = 20;
+
+        for (int i = 0; i < 100 / size; i++) {
+            itor = graph.traversal().V()
+                        .has("~page", page).limit(size);
+            List<?> vertexes = IteratorUtils.asList(itor);
+            Assert.assertEquals(size, vertexes.size());
+
+            List<Vertex> expected = all.subList(i * size, (i + 1) * size);
+            Assert.assertEquals(expected, vertexes);
+
+            page = TraversalUtil.page(itor);
+        }
+        Assert.assertNull(page);
+    }
+
+    @Test
+    public void testQueryByPageWithInvalidPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        // Illegal base64 character
+        Assert.assertThrows(BackendException.class, () -> {
+            graph.traversal().V()
+                 .has("~page", "!abc123#").limit(10)
+                 .toList();
+        });
+
+        // Invalid page
+        Assert.assertThrows(BackendException.class, () -> {
+            graph.traversal().V()
+                 .has("~page", "abc123").limit(10)
+                 .toList();
+        });
+    }
+
+    @Test
+    public void testQueryByPageWithInvalidLimit() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().V()
+                 .has("~page", "").limit(0)
+                 .toList();
+        });
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().V()
+                 .has("~page", "").limit(-1)
+                 .toList();
+        });
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().V()
+                 .has("~page", "")
+                 .toList();
+        });
+    }
+
+    @Test
+    public void testQueryByPageWithOffset() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().V()
+                 .has("~page", "").range(2, 10)
+                 .toList();
+        });
+    }
+
     private void init10Vertices() {
         HugeGraph graph = graph();
 
@@ -2522,6 +2656,16 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "book", "name", "java-3");
         graph.addVertex(T.label, "book", "name", "java-4");
         graph.addVertex(T.label, "book", "name", "java-5");
+
+        graph.tx().commit();
+    }
+
+    private void init100Books() {
+        HugeGraph graph = graph();
+
+        for (int i = 0; i < 100; i++) {
+            graph.addVertex(T.label, "book", "name", "java-" + i);
+        }
 
         graph.tx().commit();
     }

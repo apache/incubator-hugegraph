@@ -437,6 +437,7 @@ public class GraphTransaction extends IndexableTransaction {
         });
 
         results = new FilterIterator<>(results, vertex -> {
+            assert vertex.schemaLabel() != VertexLabel.NONE;
             // Filter hidden results
             if (!query.showHidden() && Graph.Hidden.isHidden(vertex.label())) {
                 return false;
@@ -1050,15 +1051,22 @@ public class GraphTransaction extends IndexableTransaction {
 
         Set<V> txResults = InsertionOrderUtil.newSet();
 
-        /* Collect added records
+        /*
+         * Collect added records
          * Records in memory have higher priority than query from backend store
          */
         for (V elem : addedTxRecords.values()) {
+            if (query.reachLimit(txResults.size())) {
+                break;
+            }
             if (match.apply(query, elem)) {
                 txResults.add(elem);
             }
         }
         for (V elem : updatedTxRecords.values()) {
+            if (query.reachLimit(txResults.size())) {
+                break;
+            }
             if (match.apply(query, elem)) {
                 txResults.add(elem);
             }
