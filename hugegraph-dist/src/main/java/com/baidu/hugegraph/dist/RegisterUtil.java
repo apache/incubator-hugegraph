@@ -79,6 +79,9 @@ public class RegisterUtil {
             case "mysql":
                 registerMysql();
                 break;
+            case "palo":
+                registerPalo();
+                break;
             default:
                 throw new HugeException("Unsupported backend type '%s'", backend);
         }
@@ -132,6 +135,18 @@ public class RegisterUtil {
         // Register backend
         BackendProviderFactory.register("mysql",
                 "com.baidu.hugegraph.backend.store.mysql.MysqlStoreProvider");
+    }
+
+    public static void registerPalo() {
+        // Register config
+        OptionSpace.register("palo",
+                "com.baidu.hugegraph.backend.store.palo.PaloOptions");
+        // Register serializer
+        SerializerFactory.register("palo",
+                "com.baidu.hugegraph.backend.store.palo.PaloSerializer");
+        // Register backend
+        BackendProviderFactory.register("palo",
+                "com.baidu.hugegraph.backend.store.palo.PaloStoreProvider");
     }
 
     public static void registerServer() {

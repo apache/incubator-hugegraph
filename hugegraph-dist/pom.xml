@@ -5,7 +5,7 @@
     <parent>
         <artifactId>hugegraph</artifactId>
         <groupId>com.baidu.hugegraph</groupId>
-        <version>0.5.5-SNAPSHOT</version>
+        <version>0.5.6-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <name>hugegraph-dist</name>
@@ -52,6 +52,16 @@
                 <serializer>mysql</serializer>
             </properties>
         </profile>
+        <profile>
+            <id>palo</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <backend>palo</backend>
+                <serializer>palo</serializer>
+            </properties>
+        </profile>
     </profiles>
 
     <properties>
@@ -90,6 +100,11 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-mysql</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-palo</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

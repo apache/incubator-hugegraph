@@ -74,6 +74,14 @@ public abstract class MysqlStore implements BackendStore {
         this.tables.put(type, table);
     }
 
+    protected MysqlSessions newSessionPool(HugeConfig config, String database) {
+        return new MysqlSessions(config, database);
+    }
+
+    public Map<HugeType, MysqlTable> tables() {
+        return this.tables;
+    }
+
     @Override
     public String name() {
         return this.name;
@@ -85,7 +93,7 @@ public abstract class MysqlStore implements BackendStore {
     }
 
     @Override
-    public void open(HugeConfig config) {
+    public synchronized void open(HugeConfig config) {
         LOG.debug("Store open: {}", this.name);
 
         E.checkNotNull(config, "config");
@@ -96,7 +104,7 @@ public abstract class MysqlStore implements BackendStore {
             return;
         }
 
-        this.sessions = new MysqlSessions(config, this.database);
+        this.sessions = this.newSessionPool(config, this.database);
 
         LOG.debug("Store connect with database: {}", this.database);
         try {
@@ -135,15 +143,6 @@ public abstract class MysqlStore implements BackendStore {
     public void init() {
         this.checkClusterConnected();
         this.sessions.createDatabase();
-
-        // Open a new session connected with database
-        try {
-            this.sessions.session().open();
-        } catch (SQLException e) {
-            throw new BackendException("Failed to connect database '%s'",
-                                       this.database);
-        }
-
         this.checkSessionConnected();
         this.initTables();
 

@@ -41,6 +41,7 @@ public class ExampleUtil {
         RegisterUtil.registerHBase();
         RegisterUtil.registerRocksDB();
         RegisterUtil.registerMysql();
+        RegisterUtil.registerPalo();
     }
 
     public static HugeGraph loadGraph() {

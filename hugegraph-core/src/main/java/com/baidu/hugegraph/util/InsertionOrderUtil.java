@@ -19,18 +19,24 @@
 
 package com.baidu.hugegraph.util;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public final class InsertionOrderUtil {
 
     public static <K, V> Map<K, V> newMap() {
-        return new LinkedHashMap<K, V>();
+        return new LinkedHashMap<>();
     }
 
     public static <V> Set<V> newSet() {
-        return new LinkedHashSet<V>();
+        return new LinkedHashSet<>();
+    }
+
+    public static <V> List<V> newList() {
+        return new ArrayList<>();
     }
 }

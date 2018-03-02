@@ -22,14 +22,12 @@ package com.baidu.hugegraph.backend.store.memory;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.LocalCounter;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendAction;
@@ -61,15 +59,15 @@ public class InMemoryDBStore implements BackendStore {
 
     private final BackendStoreProvider provider;
     private final String name;
-    private Map<HugeType, InMemoryDBTable> tables;
-    private Map<HugeType, AtomicLong> counters;
+    private final Map<HugeType, InMemoryDBTable> tables;
+    private final LocalCounter counter;
 
     public InMemoryDBStore(final BackendStoreProvider provider,
                            final String name) {
         this.provider = provider;
         this.name = name;
         this.tables = new HashMap<>();
-        this.counters = new ConcurrentHashMap<>();
+        this.counter = new LocalCounter();
     }
 
     @Override
@@ -193,14 +191,7 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public Id nextId(HugeType type) {
-        AtomicLong counter = this.counters.get(type);
-        if (counter == null) {
-            counter = new AtomicLong(1);
-            this.counters.put(type, counter);
-        } else {
-            counter.incrementAndGet();
-        }
-        return IdGenerator.of(counter.longValue());
+        return this.counter.nextId(type);
     }
 
     @Override

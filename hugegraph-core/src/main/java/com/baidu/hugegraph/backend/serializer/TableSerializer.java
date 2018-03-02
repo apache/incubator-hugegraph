@@ -37,6 +37,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
@@ -376,8 +377,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                      this.toLongSet(vertexLabel.nullableKeys()));
         entry.column(HugeKeys.INDEX_LABELS,
                      this.toLongSet(vertexLabel.indexLabels()));
-        entry.column(HugeKeys.ENABLE_LABEL_INDEX,
-                     vertexLabel.enableLabelIndex());
+        this.writeEnableLabelIndex(vertexLabel, entry);
         this.writeUserData(vertexLabel, entry);
         return entry;
     }
@@ -398,8 +398,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                      this.toLongSet(edgeLabel.nullableKeys()));
         entry.column(HugeKeys.INDEX_LABELS,
                      this.toLongSet(edgeLabel.indexLabels()));
-        entry.column(HugeKeys.ENABLE_LABEL_INDEX,
-                     edgeLabel.enableLabelIndex());
+        this.writeEnableLabelIndex(edgeLabel, entry);
         this.writeUserData(edgeLabel, entry);
         return entry;
     }
@@ -434,7 +433,6 @@ public abstract class TableSerializer extends AbstractSerializer {
         Object primaryKeys = entry.column(HugeKeys.PRIMARY_KEYS);
         Object nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         Object indexLabels = entry.column(HugeKeys.INDEX_LABELS);
-        Boolean enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
 
         VertexLabel vertexLabel = new VertexLabel(graph, this.toId(id), name);
         vertexLabel.idStrategy(SerialEnum.fromCode(IdStrategy.class,
@@ -443,7 +441,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         vertexLabel.primaryKeys(this.toIdArray(primaryKeys));
         vertexLabel.nullableKeys(this.toIdArray(nullableKeys));
         vertexLabel.indexLabels(this.toIdArray(indexLabels));
-        vertexLabel.enableLabelIndex(enableLabelIndex);
+        this.readEnableLabelIndex(vertexLabel, entry);
         this.readUserData(vertexLabel, entry);
         return vertexLabel;
     }
@@ -465,7 +463,6 @@ public abstract class TableSerializer extends AbstractSerializer {
         Object nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         Object properties = entry.column(HugeKeys.PROPERTIES);
         Object indexLabels = entry.column(HugeKeys.INDEX_LABELS);
-        Boolean enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
 
         EdgeLabel edgeLabel = new EdgeLabel(graph, this.toId(id), name);
         edgeLabel.frequency(SerialEnum.fromCode(Frequency.class,
@@ -476,7 +473,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         edgeLabel.sortKeys(this.toIdArray(sortKeys));
         edgeLabel.nullableKeys(this.toIdArray(nullableKeys));
         edgeLabel.indexLabels(this.toIdArray(indexLabels));
-        edgeLabel.enableLabelIndex(enableLabelIndex);
+        this.readEnableLabelIndex(edgeLabel, entry);
         this.readUserData(edgeLabel, entry);
         return edgeLabel;
     }
@@ -561,6 +558,17 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     protected abstract void parseProperties(HugeElement element,
                                             TableBackendEntry.Row row);
+
+    protected void writeEnableLabelIndex(SchemaLabel schema,
+                                         TableBackendEntry entry) {
+        entry.column(HugeKeys.ENABLE_LABEL_INDEX, schema.enableLabelIndex());
+    }
+
+    protected void readEnableLabelIndex(SchemaLabel schema,
+                                        TableBackendEntry entry) {
+        Boolean enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
+        schema.enableLabelIndex(enableLabelIndex);
+    }
 
     protected abstract void writeUserData(SchemaElement schema,
                                           TableBackendEntry entry);
