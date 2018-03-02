@@ -194,7 +194,6 @@ public class HugeGraph implements Graph {
         try {
             String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
             BackendStore store = this.storeProvider.loadGraphStore(graph);
-
             return new CachedGraphTransaction(this, store);
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";

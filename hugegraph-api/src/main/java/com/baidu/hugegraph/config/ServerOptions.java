@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.config;
 
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 public class ServerOptions extends OptionHolder {
@@ -70,7 +71,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "max_vertices_per_batch",
                     "The maximum number of vertices submitted per batch.",
-                    rangeInt(100, 1000),
+                    positiveInt(),
                     500
             );
 
@@ -78,7 +79,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "max_edges_per_batch",
                     "The maximum number of edges submitted per batch.",
-                    rangeInt(100, 1000),
+                    positiveInt(),
                     500
             );
 

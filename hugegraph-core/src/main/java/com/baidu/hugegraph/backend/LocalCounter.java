@@ -17,28 +17,33 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.backend;
 
-import com.baidu.hugegraph.util.VersionUtil;
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
-public class CoreVersion {
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.type.HugeType;
 
-    static {
-        // Check versions of the dependency packages
-        CoreVersion.check();
+public class LocalCounter {
+
+    private final Map<HugeType, AtomicLong> counters;
+
+    public LocalCounter() {
+        this.counters = new ConcurrentHashMap<>();
     }
 
-    public static final String NAME = "hugegraph-core";
-
-    // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(CoreVersion.class, "0.5");
-
-    public static final String GREMLIN_VERSION = "3.2.5";
-
-    public static void check() {
-        // Check version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "1.4.0", "1.5",
-                          CommonVersion.NAME);
+    public Id nextId(HugeType type) {
+        AtomicLong counter = this.counters.get(type);
+        if (counter == null) {
+            counter = new AtomicLong(0);
+            AtomicLong previous = this.counters.putIfAbsent(type, counter);
+            if (previous != null) {
+                counter = previous;
+            }
+        }
+        return IdGenerator.of(counter.incrementAndGet());
     }
 }

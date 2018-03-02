@@ -36,14 +36,13 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendTable;
+import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PageState;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
                                                       MysqlBackendEntry.Row> {
@@ -60,14 +59,21 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         this.deleteTemplate = null;
     }
 
+    public abstract TableDefine tableDefine();
+
+    @Override
+    public void init(MysqlSessions.Session session) {
+        this.createTable(session, this.tableDefine());
+    }
+
     public void createTable(MysqlSessions.Session session,
-                            ImmutableMap<HugeKeys, String> columns,
-                            ImmutableSet<HugeKeys> pkeys) {
+                            TableDefine tableDefine) {
         StringBuilder sql = new StringBuilder();
         sql.append("CREATE TABLE IF NOT EXISTS ");
         sql.append(this.table()).append(" (");
         // Add columns
-        for (Map.Entry<HugeKeys, String> entry : columns.entrySet()) {
+        for (Map.Entry<HugeKeys, String> entry :
+             tableDefine.columns().entrySet()) {
             sql.append(formatKey(entry.getKey()));
             sql.append(" ");
             sql.append(entry.getValue());
@@ -76,9 +82,9 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         // Specified primary keys
         sql.append(" PRIMARY KEY (");
         int i = 0;
-        for (HugeKeys key : pkeys) {
+        for (HugeKeys key : tableDefine.keys()) {
             sql.append(key);
-            if (++i != pkeys.size()) {
+            if (++i != tableDefine.keys().size()) {
                 sql.append(", ");
             }
         }
@@ -107,7 +113,7 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
     }
 
     protected List<HugeKeys> idColumnName() {
-        return ImmutableList.of(HugeKeys.ID);
+        return this.tableDefine().keys();
     }
 
     protected List<Long> idColumnValue(MysqlBackendEntry.Row entry) {
@@ -118,7 +124,7 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         return ImmutableList.of(id.asObject());
     }
 
-    private String buildInsertTemplate(MysqlBackendEntry.Row entry) {
+    protected String buildInsertTemplate(MysqlBackendEntry.Row entry) {
         if (this.insertTemplate != null) {
             return this.insertTemplate;
         }
@@ -148,13 +154,14 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         return this.insertTemplate;
     }
 
-    private String buildDeleteTemplate(List<HugeKeys> idNames) {
+    protected String buildDeleteTemplate(List<HugeKeys> idNames) {
         if (this.deleteTemplate != null) {
             return this.deleteTemplate;
         }
 
         StringBuilder delete = new StringBuilder();
         delete.append("DELETE FROM ").append(this.table());
+        this.appendPartition(delete);
 
         WhereBuilder where = new WhereBuilder();
         where.and(formatKeys(idNames), "?");
@@ -517,7 +524,10 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         return e2;
     }
 
-    @Override
+    protected void appendPartition(StringBuilder delete) {
+        // pass
+    }
+
     public void clear(MysqlSessions.Session session) {
         this.dropTable(session);
     }

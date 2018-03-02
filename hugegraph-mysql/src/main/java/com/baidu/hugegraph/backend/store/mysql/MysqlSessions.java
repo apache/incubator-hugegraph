@@ -52,6 +52,14 @@ public class MysqlSessions extends BackendSessionPool {
         this.database = database;
     }
 
+    public HugeConfig config() {
+        return this.config;
+    }
+
+    public String database() {
+        return this.database;
+    }
+
     /**
      * Try connect with specified database, will not reconnect if failed
      */
@@ -87,7 +95,6 @@ public class MysqlSessions extends BackendSessionPool {
                   .setParameter("autoReconnect", autoReconnect.toString())
                   .setParameter("maxReconnects", maxTimes.toString())
                   .setParameter("initialTimeout", interval.toString());
-
         return this.connect(uriBuilder.toString());
     }
 
@@ -106,17 +113,17 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     @Override
-    protected final synchronized Session newSession() {
+    protected synchronized Session newSession() {
         return new Session();
-    }
-
-    public final synchronized Session session() {
-        return (Session) super.getOrNewSession();
     }
 
     @Override
     protected void doClose() {
         // pass
+    }
+
+    public synchronized Session session() {
+        return (Session) super.getOrNewSession();
     }
 
     public void checkSessionConnected() {
@@ -129,16 +136,19 @@ public class MysqlSessions extends BackendSessionPool {
         // Create database with non-database-session
         LOG.debug("Create database: {}", this.database);
 
-        String sql = String.format("CREATE DATABASE IF NOT EXISTS %s " +
-                                   "DEFAULT CHARSET utf8 COLLATE " +
-                                   "utf8_general_ci;", this.database);
-
+        String sql = this.buildCreateDatabase(this.database);
         try (Connection conn = this.openWithoutDB(0)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
             throw new BackendException("Failed to create database '%s'",
                                        this.database);
         }
+    }
+
+    protected String buildCreateDatabase(String database) {
+        return String.format("CREATE DATABASE IF NOT EXISTS %s " +
+                             "DEFAULT CHARSET utf8 COLLATE " +
+                             "utf8_general_ci;", database);
     }
 
     public void dropDatabase() {
@@ -191,7 +201,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
     }
 
-    public final class Session extends BackendSessionPool.Session {
+    public class Session extends BackendSessionPool.Session {
 
         private Connection conn;
         private Map<String, PreparedStatement> statements;
