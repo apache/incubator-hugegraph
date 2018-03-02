@@ -76,7 +76,7 @@ public class ExtendableIterator<T>
     }
 
     public ExtendableIterator<T> extend(Iterator<T> itor) {
-        if (itor != null && itor.hasNext()) {
+        if (itor != null) {
             this.itors.addLast(itor);
         }
         return this;
