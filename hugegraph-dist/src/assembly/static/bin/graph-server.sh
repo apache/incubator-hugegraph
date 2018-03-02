@@ -1,5 +1,27 @@
 #!/bin/bash
 
+# The maximum and minium heap memory that service can use
+MAX_MEM=$[32*1024]
+MIN_MEM=512
+
+function cal_xmx() {
+    # Get machine available memory
+    FREE=`free -m | grep '\-\/\+' | awk '{print $4}'`
+    HALF_FREE=$[FREE/2]
+
+    XMX=$MIN_MEM
+    if [[ "$FREE" -lt "$MIN_MEM" ]]; then
+        exit 1
+    elif [[ "$HALF_FREE" -ge "$MAX_MEM" ]]; then
+        XMX=$MAX_MEM
+    elif [[ "$HALF_FREE" -lt "$MIN_MEM" ]]; then
+        XMX=$MIN_MEM
+    else
+        XMX=$HALF_FREE
+    fi
+    echo $XMX
+}
+
 # ${BASH_SOURCE[0]} is the path to this file
 SOURCE="${BASH_SOURCE[0]}"
 # Set $BIN to the absolute, symlinkless path to $SOURCE's parent
@@ -50,7 +72,13 @@ fi
 
 # Set Java options
 if [ "$JAVA_OPTIONS" = "" ] ; then
-    JAVA_OPTIONS="-Xms256m -Xmx2048m -javaagent:$LIB/jamm-0.3.0.jar"
+    XMX=`cal_xmx`
+    if [ $? -ne 0 ]; then
+        echo "Failed to start HugeGraphServer, requires at least ${MIN_MEM}m free memory" \
+        >> $HUGEGRAPH_LOGDIR/hugegraph-server.log
+        exit 1
+    fi
+    JAVA_OPTIONS="-Xms256m -Xmx${XMX}m -javaagent:$LIB/jamm-0.3.0.jar"
 fi
 
 # Execute the application and return its exit code
