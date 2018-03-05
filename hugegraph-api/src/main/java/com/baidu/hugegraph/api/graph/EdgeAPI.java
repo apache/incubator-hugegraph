@@ -299,7 +299,7 @@ public class EdgeAPI extends API {
         return new HugeVertex(graph, idValue, vl);
     }
 
-    private static Direction parseDirection(String direction) {
+    public static Direction parseDirection(String direction) {
         if (direction == null || direction.isEmpty()) {
             return Direction.BOTH;
         }
