@@ -213,7 +213,7 @@ public class VertexAPI extends API {
         commit(g, () -> g.vertices(id).next().remove());
     }
 
-    protected static Id checkAndParseVertexId(String idValue) {
+    public static Id checkAndParseVertexId(String idValue) {
         if (idValue == null) {
             return null;
         }

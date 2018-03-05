@@ -20,11 +20,13 @@
 package com.baidu.hugegraph.serializer;
 
 import java.util.Iterator;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -55,4 +57,6 @@ public interface Serializer {
     public String writeEdge(Edge e);
 
     public String writeEdges(Iterator<Edge> edges, boolean paging);
+
+    public String writeIds(String name, Collection<Id> ids);
 }

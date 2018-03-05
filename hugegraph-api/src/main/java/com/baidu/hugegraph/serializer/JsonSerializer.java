@@ -20,7 +20,9 @@
 package com.baidu.hugegraph.serializer;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -31,6 +33,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -167,5 +170,14 @@ public class JsonSerializer implements Serializer {
     @Override
     public String writeEdges(Iterator<Edge> edges, boolean paging) {
         return writeList("edges", edges, paging);
+    }
+
+    @Override
+    public String writeIds(String name, Collection<Id> ids) {
+        if (ids instanceof List) {
+            return writeList(name, (List<?>) ids);
+        } else {
+            return writeList(name, new ArrayList<>(ids));
+        }
     }
 }
