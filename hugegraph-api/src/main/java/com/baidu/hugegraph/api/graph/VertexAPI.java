@@ -222,8 +222,8 @@ public class VertexAPI extends API {
             return HugeVertex.getIdValue(id);
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
-                      "The vertex id must be formatted as 'string' or " +
-                      "'number', but got '%s'", idValue));
+                      "The vertex id must be formatted as String or " +
+                      "Number, but got '%s'", idValue));
         }
     }
 
