@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.api.variables;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -64,7 +63,7 @@ public class VariablesAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         commit(g, () -> g.variables().set(key, value.data));
-        return ImmutableMap.of(key, value);
+        return ImmutableMap.of(key, value.data);
     }
 
     @GET
@@ -86,14 +85,12 @@ public class VariablesAPI extends API {
         LOG.debug("Graph [{}] get variable by key '{}'", graph, key);
 
         HugeGraph g = graph(manager, graph);
-        Map<String, Object> result = new HashMap<>();
         Optional<?> object = g.variables().get(key);
         if (!object.isPresent()) {
             throw new NotFoundException(String.format(
                       "Variable '%s' does not exist", key));
         }
-        result.put(key, object.get());
-        return result;
+        return ImmutableMap.of(key, object.get());
     }
 
     @DELETE
