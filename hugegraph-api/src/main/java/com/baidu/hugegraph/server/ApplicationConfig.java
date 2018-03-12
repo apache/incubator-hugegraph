@@ -19,23 +19,19 @@
 
 package com.baidu.hugegraph.server;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import javax.ws.rs.ApplicationPath;
 
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 import org.glassfish.jersey.server.monitoring.ApplicationEvent;
 import org.glassfish.jersey.server.monitoring.ApplicationEventListener;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
 
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.E;
 
@@ -48,23 +44,14 @@ public class ApplicationConfig extends ResourceConfig {
         // Register Jackson to support json
         register(org.glassfish.jersey.jackson.JacksonFeature.class);
 
+        // Register to use the jsr250 annotations @RolesAllowed
+        register(RolesAllowedDynamicFeature.class);
+
         // Register HugeConfig to context
         register(new ConfFactory(conf));
 
         // Register GraphManager to context
-        register(new GraphManagerFactory(parseGraphs(conf)));
-    }
-
-    public Map<String, String> parseGraphs(HugeConfig conf) {
-        List<String> graphs = conf.get(ServerOptions.GRAPHS);
-        Map<String, String> graphMap = new HashMap<>();
-        for (String graph : graphs) {
-            String[] graphPair = graph.split(":");
-            E.checkState(graphPair.length == 2,
-                         "Invalid graph format(expect NAME:CONF): %s", graph);
-            graphMap.put(graphPair[0], graphPair[1]);
-        }
-        return graphMap;
+        register(new GraphManagerFactory(conf));
     }
 
     private class ConfFactory extends AbstractBinder
@@ -98,14 +85,14 @@ public class ApplicationConfig extends ResourceConfig {
 
         private GraphManager manager = null;
 
-        public GraphManagerFactory(final Map<String, String> graphConfs) {
+        public GraphManagerFactory(HugeConfig conf) {
             register(new ApplicationEventListener() {
                 private final ApplicationEvent.Type EVENT_INITED =
                               ApplicationEvent.Type.INITIALIZATION_FINISHED;
                 @Override
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
-                        GraphManagerFactory.this.manager = new GraphManager(graphConfs);
+                        GraphManagerFactory.this.manager = new GraphManager(conf);
                     }
                 }
 

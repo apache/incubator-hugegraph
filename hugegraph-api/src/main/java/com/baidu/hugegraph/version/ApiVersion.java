@@ -42,8 +42,8 @@ public final class ApiVersion {
      *       eliminate action
      * [0.7] HugeGraph-245: Add nullable-props for vertex label and edge label
      * [0.8] HugeGraph-396: Continue to improve variables implementation
-     * [0.9] HugeGraph-894: Add vertex/edge update api to addProperty and
-     *       removeProperty
+     * [0.9] HugeGraph-894: Add vertex/edge update api to add property and
+     *       remove property
      * [0.10] HugeGraph-919: Add condition query for vertex/edge list API
      *
      * version 0.4:
@@ -60,16 +60,16 @@ public final class ApiVersion {
      *
      * version 0.6:
      * [0.19] HugeGraph-1195: Support eliminate userdata on schema
-     * [0.20] HugeGraph-1210: Add paths restful api to find paths between
-     *        two nodes
+     * [0.20] HugeGraph-1210: Add paths api to find paths between two nodes
      * [0.21] HugeGraph-1197: Expose scan api for hugegraph-spark
+     * [0.22] HugeGraph-1162: Support authentication and permission control
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.21");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.22");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
-        VersionUtil.check(CoreVersion.VERSION, "0.5", "0.6", CoreVersion.NAME);
+        VersionUtil.check(CoreVersion.VERSION, "0.6", "0.7", CoreVersion.NAME);
     }
 }

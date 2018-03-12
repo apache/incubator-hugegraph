@@ -17,28 +17,22 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.auth;
 
-import com.baidu.hugegraph.util.VersionUtil;
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import org.apache.commons.configuration.Configuration;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 
-public class CoreVersion {
+import com.baidu.hugegraph.HugeFactory;
+import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
+
+public class HugeFactoryAuthProxy {
 
     static {
-        // Check versions of the dependency packages
-        CoreVersion.check();
+        HugeGraphAuthProxy.setContext(Context.admin());
     }
 
-    public static final String NAME = "hugegraph-core";
-
-    // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(CoreVersion.class, "0.6");
-
-    public static final String GREMLIN_VERSION = "3.2.5";
-
-    public static void check() {
-        // Check version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "1.4.0", "1.5",
-                          CommonVersion.NAME);
+    public static Graph open(Configuration config) {
+        // Inject authentication (replace HugeGraph with HugeGraphAuthProxy)
+        return new HugeGraphAuthProxy(HugeFactory.open(config));
     }
 }

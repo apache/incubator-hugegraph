@@ -20,30 +20,31 @@
 package com.baidu.hugegraph.api;
 
 import java.io.File;
+import java.util.Set;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.SecurityContext;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 @Path("graphs")
@@ -56,35 +57,45 @@ public class GraphsAPI extends API {
 
     @GET
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public Object list(@Context GraphManager manager) {
-        return ImmutableMap.of("graphs", manager.graphs().keySet());
+    @RolesAllowed({"admin", "$dynamic"})
+    public Object list(@Context GraphManager manager,
+                       @Context SecurityContext sc) {
+        Set<String> graphs = manager.graphs().keySet();
+        String role = sc.getUserPrincipal().getName();
+        if (role.equals("admin")) {
+            return ImmutableMap.of("graphs", graphs);
+        } else {
+            // Filter by user role
+            String graph = role;
+            if (graphs.contains(graph)) {
+                return ImmutableMap.of("graphs", ImmutableList.of(graph));
+            } else {
+                return ImmutableMap.of("graphs", ImmutableList.of());
+            }
+        }
     }
 
     @GET
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=name"})
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
         LOG.debug("Graphs [{}] get graph by name '{}'", name);
 
         HugeGraph g = graph(manager, name);
-        return ImmutableMap.of("name", g.name());
+        return ImmutableMap.of("name", g.name(), "backend", g.backend());
     }
 
     @GET
     @Path("{name}/conf")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public File getConf(@Context HugeConfig config,
-                        @Context GraphManager manager,
-                        @PathParam("name") String name,
-                        @QueryParam("token") String token) {
+    @RolesAllowed("admin")
+    public File getConf(@Context GraphManager manager,
+                        @PathParam("name") String name) {
         LOG.debug("Graphs [{}] get graph by name '{}'", name);
 
         HugeGraph g = graph(manager, name);
-
-        if (!verifyToken(config, token)) {
-            throw new NotAuthorizedException("Invalid token");
-        }
 
         File file = g.configuration().getFile();
         if (file == null) {
@@ -97,18 +108,14 @@ public class GraphsAPI extends API {
     @DELETE
     @Path("{name}/clear")
     @Consumes(APPLICATION_JSON)
-    public void clear(@Context HugeConfig config,
-                      @Context GraphManager manager,
+    @RolesAllowed("admin")
+    public void clear(@Context GraphManager manager,
                       @PathParam("name") String name,
-                      @QueryParam("token") String token,
                       @QueryParam("confirm_message") String message) {
         LOG.debug("Graphs [{}] clear graph by name '{}'", name);
 
         HugeGraph g = graph(manager, name);
 
-        if (!verifyToken(config, token)) {
-            throw new NotAuthorizedException("Invalid token");
-        }
         if (!CONFIRM_CLEAR.equals(message)) {
             throw new IllegalArgumentException(String.format(
                       "Please take the message: %s", CONFIRM_CLEAR));
@@ -134,10 +141,5 @@ public class GraphsAPI extends API {
         schema.getPropertyKeys().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();
         });
-    }
-
-    private boolean verifyToken(HugeConfig config, String token) {
-        String expected = config.get(ServerOptions.ADMIN_TOKEN);
-        return expected.equals(token);
     }
 }
