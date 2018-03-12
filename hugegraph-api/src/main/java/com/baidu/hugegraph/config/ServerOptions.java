@@ -70,7 +70,7 @@ public class ServerOptions extends OptionHolder {
 
     public static final ConfigOption<Integer> MAX_VERTICES_PER_BATCH =
             new ConfigOption<>(
-                    "max_vertices_per_batch",
+                    "batch.max_vertices_per_batch",
                     "The maximum number of vertices submitted per batch.",
                     positiveInt(),
                     500
@@ -78,36 +78,51 @@ public class ServerOptions extends OptionHolder {
 
     public static final ConfigOption<Integer> MAX_EDGES_PER_BATCH =
             new ConfigOption<>(
-                    "max_edges_per_batch",
+                    "batch.max_edges_per_batch",
                     "The maximum number of edges submitted per batch.",
                     positiveInt(),
                     500
             );
 
-    public static final ConfigOption<String> ADMIN_TOKEN =
-            new ConfigOption<>(
-                    "admin.token",
-                    "Token for administrator operations",
-                    disallowEmpty(),
-                    "162f7848-0b6d-4faf-b557-3a0797869c55"
-            );
-
     public static final ConfigOption<Integer> MAX_WRITE_RATIO =
             new ConfigOption<>(
-                    "max_write_ratio",
+                    "batch.max_write_ratio",
                     "The maximum thread ratio for batch writing, " +
-                    "only take effect if the max_write_threads is 0",
+                    "only take effect if the batch.max_write_threads is 0.",
                     rangeInt(0, 100),
                     50
             );
 
     public static final ConfigOption<Integer> MAX_WRITE_THREADS =
             new ConfigOption<>(
-                    "max_write_threads",
+                    "batch.max_write_threads",
                     "The maximum threads for batch writing, " +
-                    "if the value is 0, the actual value will be set to" +
-                    "max_write_ratio * total-rest-threads",
+                    "if the value is 0, the actual value will be set to " +
+                    "batch.max_write_ratio * total-rest-threads.",
                     nonNegativeInt(),
-                    0
+                    0);
+
+    public static final ConfigOption<Boolean> REQUIRE_AUTH =
+            new ConfigOption<>(
+                    "auth.require_authentication",
+                    "Whether to enable authentication.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<String> ADMIN_TOKEN =
+            new ConfigOption<>(
+                    "auth.admin_token",
+                    "Token for administrator operations.",
+                    disallowEmpty(),
+                    "162f7848-0b6d-4faf-b557-3a0797869c55"
+            );
+
+    public static final ConfigListOption<String> USER_TOKENS =
+            new ConfigListOption<>(
+                    "auth.user_tokens",
+                    "The map of user tokens with name and password.",
+                    disallowEmpty(),
+                    "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
             );
 }

@@ -19,13 +19,12 @@
 
 package com.baidu.hugegraph.dist;
 
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.server.GraphManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.auth.ContextGremlinServer;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeGremlinServer {
@@ -49,7 +48,11 @@ public class HugeGremlinServer {
             LOG.error("HugeGremlinServer error:", e);
             throw e;
         }
-        LOG.info("HugeGremlinServer stopped");
+        LOG.info("HugeGremlinServer started");
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOG.info("HugeGremlinServer stopped");
+        }));
     }
 
     public static void start(String conf) throws Exception {
@@ -71,10 +74,10 @@ public class HugeGremlinServer {
         }
 
         LOG.info("Configuring Gremlin Server from {}", conf);
-        final GremlinServer server = new GremlinServer(settings);
+        ContextGremlinServer server = new ContextGremlinServer(settings);
 
         // Inject customized traversal source
-        injectTraversalSource(server);
+        server.injectTraversalSource(G_PREFIX);
 
         server.start().exceptionally(t -> {
             LOG.error("Gremlin Server was unable to start and will " +
@@ -82,21 +85,5 @@ public class HugeGremlinServer {
             server.stop().join();
             return null;
         }).join();
-    }
-
-    private static void injectTraversalSource(GremlinServer server) {
-        GraphManager graphManager = server.getServerGremlinExecutor()
-                                          .getGraphManager();
-        for (String graph : graphManager.getGraphNames()) {
-            GraphTraversalSource g = graphManager.getGraph(graph).traversal();
-            String gName = G_PREFIX + graph;
-            if (graphManager.getTraversalSource(gName) != null) {
-                throw new HugeException(
-                          "Found existing name '%s' in global bindings, " +
-                          "it may lead to gremlin query error.", gName);
-            }
-            // Add a traversal source for all graphs with customed rule.
-            graphManager.putTraversalSource(gName, g);
-        }
     }
 }

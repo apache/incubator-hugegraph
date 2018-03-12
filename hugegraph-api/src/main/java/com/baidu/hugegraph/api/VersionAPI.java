@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api;
 
 import java.util.Map;
 
+import javax.annotation.security.PermitAll;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -36,6 +37,7 @@ public class VersionAPI extends API {
 
     @GET
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @PermitAll
     public Object list() {
         Map<String, String> versions = ImmutableMap.of("version", "v1",
                                        "core", CoreVersion.VERSION.toString(),

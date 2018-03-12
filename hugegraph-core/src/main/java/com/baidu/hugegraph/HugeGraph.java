@@ -144,6 +144,10 @@ public class HugeGraph implements Graph {
         return this.name;
     }
 
+    public String backend() {
+        return this.storeProvider.type();
+    }
+
     public boolean closed() {
         return this.closed && this.tx.closed();
     }

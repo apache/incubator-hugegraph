@@ -31,29 +31,35 @@ import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.util.Log;
-
+import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
+import com.baidu.hugegraph.auth.StandardAuthenticator;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
+import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.util.Log;
 
 public final class GraphManager {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
-    private final Map<String, HugeGraph> graphs;
+    private final Map<String, Graph> graphs;
+    private final StandardAuthenticator authenticator;
 
-    public GraphManager(final Map<String, String> graphConfs) {
+    public GraphManager(HugeConfig conf) {
         this.graphs = new ConcurrentHashMap<>();
+        this.authenticator = new StandardAuthenticator(conf);
 
-        loadGraphs(graphConfs);
+        this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
     }
 
-    protected void loadGraphs(final Map<String, String> graphConfs) {
+    public void loadGraphs(final Map<String, String> graphConfs) {
         graphConfs.entrySet().forEach(conf -> {
             try {
                 final Graph newGraph = GraphFactory.open(conf.getValue());
-                this.graphs.put(conf.getKey(), (HugeGraph) newGraph);
+                this.graphs.put(conf.getKey(), newGraph);
                 LOG.info("Graph '{}' was successfully configured via '{}'",
                          conf.getKey(), conf.getValue());
             } catch (RuntimeException e) {
@@ -63,18 +69,28 @@ public final class GraphManager {
         });
     }
 
-    public Map<String, HugeGraph> graphs() {
+    public Map<String, Graph> graphs() {
         return this.graphs;
     }
 
     public HugeGraph graph(String name) {
-        return this.graphs.get(name);
+        Graph graph = this.graphs.get(name);
+
+        if (graph == null) {
+            return null;
+        } else if (graph instanceof HugeGraphAuthProxy) {
+            return ((HugeGraphAuthProxy) graph).graph();
+        } else if (graph instanceof HugeGraph) {
+            return (HugeGraph) graph;
+        }
+
+        throw new NotSupportException("graph instance of %s", graph.getClass());
     }
 
     public Serializer serializer(Graph g) {
         // TODO: cache Serializer
         return new JsonSerializer(g.io(IoCore.graphson()).writer()
-                   .wrapAdjacencyList(true).create());
+                                   .wrapAdjacencyList(true).create());
     }
 
     public void rollbackAll() {
@@ -125,5 +141,13 @@ public final class GraphManager {
                 }
             }
         });
+    }
+
+    public boolean requireAuthentication() {
+        return this.authenticator.requireAuthentication();
+    }
+
+    public String authenticate(String username, String password) {
+        return this.authenticator.authenticate(username, password);
     }
 }

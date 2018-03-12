@@ -35,9 +35,9 @@ import javax.ws.rs.ext.WriterInterceptor;
 import javax.ws.rs.ext.WriterInterceptorContext;
 
 import org.slf4j.Logger;
-import com.baidu.hugegraph.util.Log;
 
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.util.Log;
 
 @Provider
 @Singleton
