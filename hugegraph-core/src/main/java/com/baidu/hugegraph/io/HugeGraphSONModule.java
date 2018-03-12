@@ -20,8 +20,10 @@
 package com.baidu.hugegraph.io;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
@@ -32,7 +34,9 @@ import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
+import org.apache.tinkerpop.shaded.jackson.databind.ser.std.DateSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
+import org.apache.tinkerpop.shaded.jackson.databind.ser.std.UUIDSerializer;
 
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
@@ -42,6 +46,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.JsonUtil;
 
 @SuppressWarnings("serial")
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
@@ -60,6 +65,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         TYPE_DEFINITIONS = new ConcurrentHashMap<>();
 
         TYPE_DEFINITIONS.put(Optional.class, "Optional");
+        TYPE_DEFINITIONS.put(Date.class, "Date");
+        TYPE_DEFINITIONS.put(UUID.class, "UUID");
 
         // HugeGraph id serializer
         TYPE_DEFINITIONS.put(IdGenerator.StringId.class, "StringId");
@@ -81,6 +88,10 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         super(TYPE_NAMESPACE);
 
         addSerializer(Optional.class, new OptionalSerializer());
+
+        addSerializer(Date.class, new DateSerializer(false,
+                                                     JsonUtil.DATE_FORMAT));
+        addSerializer(UUID.class, new UUIDSerializer());
 
         // HugeGraph id serializer
         addSerializer(IdGenerator.StringId.class,
