@@ -139,8 +139,9 @@ public class Example1 {
               .primaryKeys("name").create();
         schema.vertexLabel("book").properties("name")
               .primaryKeys("name").create();
-        schema.vertexLabel("reviewer").properties("name")
+        schema.vertexLabel("reviewer").properties("name", "timestamp")
               .primaryKeys("name").create();
+
         // vertex label must have the properties that specified in primary key
         schema.vertexLabel("FridgeSensor").properties("city")
               .primaryKeys("city").create();

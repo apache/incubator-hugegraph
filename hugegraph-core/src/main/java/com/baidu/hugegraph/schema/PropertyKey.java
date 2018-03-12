@@ -130,12 +130,23 @@ public class PropertyKey extends SchemaElement {
             return null;
         }
 
-        if (this.dataType().isNumberType() &&
-            this.cardinality == Cardinality.SINGLE) {
-            @SuppressWarnings("unchecked")
-            V number = (V) this.dataType().valueToNumber(value);
-            return number;
-        } else if (this.checkValue(value)) {
+        if (this.cardinality == Cardinality.SINGLE) {
+            if (this.dataType().isNumber()) {
+                @SuppressWarnings("unchecked")
+                V number = (V) this.dataType().valueToNumber(value);
+                return number;
+            } else if (this.dataType().isDate()) {
+                @SuppressWarnings("unchecked")
+                V date = (V) this.dataType().valueToDate(value);
+                return date;
+            } else if (this.dataType().isUUID()) {
+                @SuppressWarnings("unchecked")
+                V uuid = (V) this.dataType().valueToUUID(value);
+                return uuid;
+            }
+        }
+
+        if (this.checkValue(value)) {
             return value;
         }
 
