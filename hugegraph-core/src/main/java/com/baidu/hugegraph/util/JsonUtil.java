@@ -20,13 +20,16 @@
 package com.baidu.hugegraph.util;
 
 import java.lang.reflect.Type;
+import java.text.SimpleDateFormat;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public final class JsonUtil {
 
-    private static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
+    public static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
+    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat(DF);
+
     private static final Gson gson = new GsonBuilder().setDateFormat(DF)
                                                       .create();
 

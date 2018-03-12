@@ -154,7 +154,7 @@ public class HugeIndex implements GraphType {
             List<Id> fields = indexLabel.indexFields();
             E.checkState(fields.size() == 1, "Invalid range index fields");
             PropertyKey pk = graph.propertyKey(fields.get(0));
-            E.checkState(pk.dataType().isNumberType(),
+            E.checkState(pk.dataType().isNumber(),
                          "Invalid range index field type");
             values = string2number(str.substring(offset),
                                    pk.dataType().clazz());
