@@ -28,7 +28,15 @@ public class WhereBuilder {
     private StringBuilder builder;
 
     public WhereBuilder() {
-        this.builder = new StringBuilder(" WHERE ");
+        this(true);
+    }
+
+    public WhereBuilder(boolean startWithWhere) {
+        if (startWithWhere) {
+            this.builder = new StringBuilder(" WHERE ");
+        } else {
+            this.builder = new StringBuilder(" ");
+        }
     }
 
     /**
@@ -84,6 +92,36 @@ public class WhereBuilder {
     }
 
     /**
+     * Concat as: key1 op1 value1 and key2 op2 value2...
+     */
+    public void and(List<String> keys,
+                    List<String> operators,
+                    List<Object> values) {
+        E.checkArgument(keys.size() == operators.size(),
+                        "The size of keys '%s' is not equal with " +
+                        "operators size '%s'",
+                        keys.size(), operators.size());
+        E.checkArgument(keys.size() == values.size(),
+                        "The size of keys '%s' is not equal with " +
+                        "values size '%s'",
+                        keys.size(), values.size());
+
+        for (int i = 0, n = keys.size(); i < n; i++) {
+            this.builder.append(keys.get(i));
+            this.builder.append(operators.get(i));
+            Object value = values.get(i);
+            if (value instanceof String) {
+                this.builder.append(MysqlUtil.escapeString((String) value));
+            } else {
+                this.builder.append(value);
+            }
+            if (i != n - 1) {
+                this.builder.append(" AND ");
+            }
+        }
+    }
+
+    /**
      * Concat as: clause1 and clause2...
      */
     public void and(List<StringBuilder> clauses) {
@@ -105,6 +143,36 @@ public class WhereBuilder {
      */
     public void in(String key, List<Object> values) {
         this.builder.append(key).append(" IN (");
+        for (int i = 0, n = values.size(); i < n; i++) {
+            Object value = values.get(i);
+            if (value instanceof String) {
+                this.builder.append(MysqlUtil.escapeString((String) value));
+            } else {
+                this.builder.append(value);
+            }
+            if (i != n - 1) {
+                this.builder.append(", ");
+            }
+        }
+        this.builder.append(")");
+    }
+
+    /**
+     * Concat as: (key1, key2...keyn) >= (val1, val2...valn)
+     */
+    public void gte(List<String> keys, List<Object> values) {
+        E.checkArgument(keys.size() == values.size(),
+                        "The size of keys '%s' is not equal with " +
+                        "values size '%s'",
+                        keys.size(), values.size());
+        this.builder.append("(");
+        for (int i = 0, n = keys.size(); i < n; i++) {
+            this.builder.append(keys.get(i));
+            if (i != n - 1) {
+                this.builder.append(", ");
+            }
+        }
+        this.builder.append(") >= (");
         for (int i = 0, n = values.size(); i < n; i++) {
             Object value = values.get(i);
             if (value instanceof String) {

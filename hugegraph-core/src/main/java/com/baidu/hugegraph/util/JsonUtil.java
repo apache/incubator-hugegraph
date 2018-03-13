@@ -19,33 +19,56 @@
 
 package com.baidu.hugegraph.util;
 
-import java.lang.reflect.Type;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
+import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectReader;
+
+import com.baidu.hugegraph.backend.BackendException;
 
 public final class JsonUtil {
 
     public static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat(DF);
 
-    private static final Gson gson = new GsonBuilder().setDateFormat(DF)
-                                                      .create();
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    static {
+        mapper.setDateFormat(DATE_FORMAT);
+    }
 
     public static String toJson(Object object) {
-        return gson.toJson(object);
+        try {
+            return mapper.writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            throw new BackendException(e);
+        }
     }
 
     public static <T> T fromJson(String json, Class<T> clazz) {
         E.checkState(json != null,
                      "Json value can't be null for '%s'",
                      clazz.getSimpleName());
-        return gson.fromJson(json, clazz);
+        try {
+            return mapper.readValue(json, clazz);
+        } catch (IOException e) {
+            throw new BackendException(e);
+        }
     }
 
-    public static <T> T fromJson(String json, Type type) {
-        return gson.fromJson(json, type);
+    public static <T> T fromJson(String json, TypeReference typeRef) {
+        E.checkState(json != null,
+                     "Json value can't be null for '%s'",
+                     typeRef.getType());
+        try {
+            ObjectReader reader = mapper.readerFor(typeRef);
+            return reader.readValue(json);
+        } catch (IOException e) {
+            throw new BackendException(e);
+        }
     }
 
     /**

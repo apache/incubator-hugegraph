@@ -81,6 +81,13 @@ public abstract class TableSerializer extends AbstractSerializer {
     @Override
     protected abstract TableBackendEntry convertEntry(BackendEntry backendEntry);
 
+    protected void formatProperty(HugeProperty<?> prop,
+                                  TableBackendEntry.Row row) {
+        row.column(HugeKeys.PROPERTIES,
+                   prop.propertyKey().id().asLong(),
+                   JsonUtil.toJson(prop.value()));
+    }
+
     protected void parseProperty(Id key, String colValue, HugeElement owner) {
         // Get PropertyKey by PropertyKey name
         PropertyKey pkey = owner.graph().propertyKey(key);
@@ -548,9 +555,6 @@ public abstract class TableSerializer extends AbstractSerializer {
     protected abstract Object toLongList(Collection<Id> ids);
 
     protected abstract Set<String> parseIndexElemIds(TableBackendEntry entry);
-
-    protected abstract void formatProperty(HugeProperty<?> prop,
-                                           TableBackendEntry.Row row);
 
     protected abstract void formatProperties(HugeElement element,
                                              TableBackendEntry.Row row);

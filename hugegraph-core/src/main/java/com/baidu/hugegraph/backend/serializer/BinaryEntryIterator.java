@@ -97,7 +97,7 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
             }
 
             // When limit exceed, stop fetching(also need to keep page position)
-            if (this.query.reachLimit(this.count() - 1)) {
+            if (this.query.reachLimit(this.fetched() - 1)) {
                 break;
             }
         }

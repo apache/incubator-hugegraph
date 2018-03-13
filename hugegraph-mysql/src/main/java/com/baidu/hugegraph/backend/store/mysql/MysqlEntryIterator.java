@@ -19,9 +19,13 @@
 
 package com.baidu.hugegraph.backend.store.mysql;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.BiFunction;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -29,7 +33,9 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.JsonUtil;
 
 public class MysqlEntryIterator extends BackendEntryIterator<ResultSet> {
 
@@ -37,13 +43,15 @@ public class MysqlEntryIterator extends BackendEntryIterator<ResultSet> {
     private final BiFunction<BackendEntry, BackendEntry, BackendEntry> merger;
 
     private BackendEntry next;
+    private BackendEntry last;
 
-    public MysqlEntryIterator(ResultSet results, Query query,
+    public MysqlEntryIterator(ResultSet rs, Query query,
            BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
         super(query);
-        this.results = results;
+        this.results = rs;
         this.merger = merger;
         this.next = null;
+        this.last = null;
     }
 
     @Override
@@ -57,6 +65,7 @@ public class MysqlEntryIterator extends BackendEntryIterator<ResultSet> {
         try {
             while (!this.results.isClosed() && this.results.next()) {
                 MysqlBackendEntry e = this.row2Entry(this.results);
+                this.last = e;
                 BackendEntry merged = this.merger.apply(this.current, e);
                 if (this.current == null) {
                     // The first time to read
@@ -71,9 +80,6 @@ public class MysqlEntryIterator extends BackendEntryIterator<ResultSet> {
                     return true;
                 }
             }
-            if (this.next == null) {
-                this.results.close();
-            }
         } catch (SQLException e) {
             throw new BackendException("Fetch next error", e);
         }
@@ -82,7 +88,16 @@ public class MysqlEntryIterator extends BackendEntryIterator<ResultSet> {
 
     @Override
     protected String pageState() {
-        throw new RuntimeException("Not supported by Mysql");
+        if (this.last == null) {
+            return null;
+        }
+        if (this.fetched() <= query.limit() && this.next == null) {
+            // There is no next page
+            return null;
+        }
+        MysqlBackendEntry entry = (MysqlBackendEntry) this.last;
+        PageState pageState = new PageState(entry.columnsMap());
+        return pageState.toString();
     }
 
     @Override
@@ -122,5 +137,60 @@ public class MysqlEntryIterator extends BackendEntryIterator<ResultSet> {
     @Override
     public void close() throws Exception {
         this.results.close();
+    }
+
+    public static class PageState {
+
+        private static final String CHARSET = "utf-8";
+        private final Map<HugeKeys, Object> columns;
+
+        public PageState(Map<HugeKeys, Object> columns) {
+            this.columns = columns;
+        }
+
+        public Map<HugeKeys, Object> columns() {
+            return this.columns;
+        }
+
+        @Override
+        public String toString() {
+            return Base64.getEncoder().encodeToString(this.toBytes());
+        }
+
+        public byte[] toBytes() {
+            String json = JsonUtil.toJson(this.columns);
+            try {
+                return json.getBytes(CHARSET);
+            } catch (UnsupportedEncodingException e) {
+                throw new BackendException(e);
+            }
+        }
+
+        public static PageState fromString(String page) {
+            byte[] bytes;
+            try {
+                bytes = Base64.getDecoder().decode(page);
+            } catch (Exception e) {
+                throw new BackendException("Invalid page: '%s'", e, page);
+            }
+            return fromBytes(bytes);
+        }
+
+        private static PageState fromBytes(byte[] bytes) {
+            String json;
+            try {
+                json = new String(bytes, CHARSET);
+            } catch (UnsupportedEncodingException e) {
+                throw new BackendException(e);
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> columns = JsonUtil.fromJson(json, Map.class);
+            Map<HugeKeys, Object> keyColumns = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> entry : columns.entrySet()) {
+                HugeKeys key = MysqlTable.parseKey(entry.getKey());
+                keyColumns.put(key, entry.getValue());
+            }
+            return new PageState(keyColumns);
+        }
     }
 }
