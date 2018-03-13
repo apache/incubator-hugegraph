@@ -88,6 +88,10 @@ public abstract class BackendEntryIterator<T>
     }
 
     protected final long count() {
+        return this.count;
+    }
+
+    protected final long fetched() {
         long ccount = this.current == null ? 0 : this.sizeOf(this.current);
         return this.count + ccount;
     }

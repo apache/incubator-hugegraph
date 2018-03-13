@@ -102,14 +102,6 @@ public class CassandraSerializer extends TableSerializer {
     }
 
     @Override
-    protected void formatProperty(HugeProperty<?> prop,
-                                  TableBackendEntry.Row row) {
-        row.column(HugeKeys.PROPERTIES,
-                   prop.propertyKey().id().asLong(),
-                   JsonUtil.toJson(prop.value()));
-    }
-
-    @Override
     protected void formatProperties(HugeElement element,
                                     TableBackendEntry.Row row) {
         if (!element.hasProperties() && !element.removed()) {

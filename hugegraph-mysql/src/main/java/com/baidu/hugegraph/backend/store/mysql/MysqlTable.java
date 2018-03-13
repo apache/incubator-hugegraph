@@ -36,6 +36,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendTable;
+import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PageState;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -263,7 +264,9 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
 
         // Is query by id?
         List<StringBuilder> ids = this.queryId2Select(query, select);
+
         List<StringBuilder> selections;
+
         if (query.conditions().isEmpty()) {
             // Query only by id
             LOG.debug("Query only by id(s): {}", ids);
@@ -276,14 +279,15 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
             }
             LOG.debug("Query by conditions: {}", selections);
         }
-
-        // Set order-by and limit
+        // Set page, order-by and limit
         for (StringBuilder selection : selections) {
             if (!query.orders().isEmpty()) {
                 this.wrapOrderBy(selection, query);
             }
-            if (query.limit() != Query.NO_LIMIT || query.offset() > 0) {
-                this.wrapLimit(selection, query);
+            if (query.paging()) {
+                this.wrapPage(selection, query);
+            } else if (query.limit() != Query.NO_LIMIT || query.offset() > 0) {
+                this.wrapOffset(selection, query);
             }
         }
 
@@ -455,7 +459,34 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         }
     }
 
-    protected void wrapLimit(StringBuilder select, Query query) {
+    protected void wrapPage(StringBuilder select, Query query) {
+        String page = query.page();
+        // It's the first time if page is empty
+        if (!page.isEmpty()) {
+            PageState pageState = PageState.fromString(page);
+            Map<HugeKeys, Object> columns = pageState.columns();
+
+            List<HugeKeys> idColumnNames = this.idColumnName();
+            List<Object> values = new ArrayList<>(idColumnNames.size());
+            for (HugeKeys key : idColumnNames) {
+                values.add(columns.get(key));
+            }
+
+            // Need add `where` to `select` when query is IdQuery
+            boolean startWithWhere = query.conditions().isEmpty();
+            WhereBuilder where = new WhereBuilder(startWithWhere);
+            where.gte(formatKeys(idColumnNames), values);
+            select.append(where.build());
+        }
+
+        assert query.limit() != Query.NO_LIMIT;
+        // Fetch `limit + 1` records for judging whether reached the last page
+        select.append(" limit ");
+        select.append(query.limit() + 1);
+        select.append(";");
+    }
+
+    protected void wrapOffset(StringBuilder select, Query query) {
         assert query.limit() >= 0;
         assert query.offset() >= 0;
         // Set limit and offset
@@ -499,7 +530,7 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         return HugeKeys.valueOf(name.toUpperCase());
     }
 
-    private static List<String> formatKeys(List<HugeKeys> keys) {
+    public static List<String> formatKeys(List<HugeKeys> keys) {
         List<String> names = new ArrayList<>(keys.size());
         for (HugeKeys key : keys) {
             names.add(formatKey(key));

@@ -125,19 +125,21 @@ public class MysqlSerializer extends TableSerializer {
     protected void parseProperties(HugeElement element,
                                    TableBackendEntry.Row row) {
         String properties = row.column(HugeKeys.PROPERTIES);
+        // Query edge will wraped by a vertex, whose properties is empty
+        if (properties.isEmpty()) {
+            return;
+        }
+
         @SuppressWarnings("unchecked")
         Map<String, Object> props = JsonUtil.fromJson(properties, Map.class);
-        // Query edge will wraped by a vertex, whose properties is empty
-        if (props != null) {
-            for (Map.Entry<String, Object> prop : props.entrySet()) {
-                /*
-                 * The key is string instead of int, because the key in json
-                 * must be string: https://github.com/google/gson/issues/589
-                 */
-                Id pkeyId = this.toId(Long.valueOf(prop.getKey()));
-                String colJson = JsonUtil.toJson(prop.getValue());
-                this.parseProperty(pkeyId, colJson, element);
-            }
+        for (Map.Entry<String, Object> prop : props.entrySet()) {
+            /*
+             * The key is string instead of int, because the key in json
+             * must be string
+             */
+            Id pkeyId = this.toId(Long.valueOf(prop.getKey()));
+            String colJson = JsonUtil.toJson(prop.getValue());
+            this.parseProperty(pkeyId, colJson, element);
         }
     }
 

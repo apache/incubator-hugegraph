@@ -72,8 +72,7 @@ public class MysqlFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsQueryByPage() {
-        // TODO: support it
-        return false;
+        return true;
     }
 
     @Override
