@@ -100,8 +100,8 @@ public class HbaseTables {
 
         public static final String TABLE = "v";
 
-        public Vertex() {
-            super(TABLE);
+        public Vertex(String store) {
+            super(joinTableName(store, TABLE));
         }
     }
 
@@ -109,17 +109,21 @@ public class HbaseTables {
 
         public static final String TABLE_SUFFIX = "e";
 
-        public Edge(boolean out) {
+        public Edge(String store, boolean out) {
+            super(joinTableName(store, table(out)));
+        }
+
+        private static String table(boolean out) {
             // Edge out/in table
-            super((out ? 'o' : 'i') + TABLE_SUFFIX);
+            return (out ? 'o' : 'i') + TABLE_SUFFIX;
         }
 
-        public static Edge out() {
-            return new Edge(true);
+        public static Edge out(String store) {
+            return new Edge(store, true);
         }
 
-        public static Edge in() {
-            return new Edge(false);
+        public static Edge in(String store) {
+            return new Edge(store, false);
         }
 
         @Override
@@ -148,8 +152,8 @@ public class HbaseTables {
 
         public static final String TABLE = "si";
 
-        public SecondaryIndex() {
-            super(TABLE);
+        public SecondaryIndex(String store) {
+            super(joinTableName(store, TABLE));
         }
     }
 
@@ -157,8 +161,8 @@ public class HbaseTables {
 
         public static final String TABLE = "ri";
 
-        public RangeIndex() {
-            super(TABLE);
+        public RangeIndex(String store) {
+            super(joinTableName(store, TABLE));
         }
 
         @Override

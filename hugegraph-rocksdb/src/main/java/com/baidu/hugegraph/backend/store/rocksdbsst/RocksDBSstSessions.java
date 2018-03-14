@@ -51,10 +51,10 @@ public class RocksDBSstSessions extends RocksDBSessions {
     private final String dataPath;
     private final Map<String, SstFileWriter> tables;
 
-    public RocksDBSstSessions(HugeConfig config, String store) {
-        super(store);
+    public RocksDBSstSessions(HugeConfig conf, String database, String store) {
+        super(database, store);
 
-        this.conf = config;
+        this.conf = conf;
         this.dataPath = this.wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
         this.tables = new ConcurrentHashMap<>();
 
@@ -64,9 +64,9 @@ public class RocksDBSstSessions extends RocksDBSessions {
         }
     }
 
-    public RocksDBSstSessions(HugeConfig config, String store,
+    public RocksDBSstSessions(HugeConfig config, String database, String store,
                               List<String> tableNames) throws RocksDBException {
-        this(config, store);
+        this(config, database, store);
         for (String table : tableNames) {
             this.createTable(table);
         }

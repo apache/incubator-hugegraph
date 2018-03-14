@@ -557,7 +557,7 @@ public abstract class CassandraTable
 
     protected void createIndex(CassandraSessionPool.Session session,
                                String indexLabel, HugeKeys column) {
-        String indexName = this.table() + "_" + indexLabel;
+        String indexName = joinTableName(this.table(), indexLabel);
         SchemaStatement index = SchemaBuilder.createIndex(indexName)
                                              .ifNotExists()
                                              .onTable(this.table())

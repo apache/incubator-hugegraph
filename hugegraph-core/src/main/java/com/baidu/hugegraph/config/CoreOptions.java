@@ -63,6 +63,14 @@ public class CoreOptions extends OptionHolder {
                     "hugegraph"
             );
 
+    public static final ConfigOption<String> STORE_SYSTEM =
+            new ConfigOption<>(
+                    "store.system",
+                    "The system table name, which store system data.",
+                    disallowEmpty(),
+                    "system"
+            );
+
     public static final ConfigOption<String> STORE_SCHEMA =
             new ConfigOption<>(
                     "store.schema",

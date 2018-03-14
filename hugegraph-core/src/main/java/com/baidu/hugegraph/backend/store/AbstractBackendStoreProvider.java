@@ -128,4 +128,9 @@ public abstract class AbstractBackendStoreProvider
         E.checkNotNull(store, "store");
         return store;
     }
+
+    @Override
+    public BackendStore loadSystemStore(String name) {
+        return this.loadGraphStore(name);
+    }
 }

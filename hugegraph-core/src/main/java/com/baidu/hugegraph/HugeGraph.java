@@ -59,6 +59,7 @@ import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeFeatures;
+import com.baidu.hugegraph.task.HugeTaskManager;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.util.E;
@@ -99,6 +100,7 @@ public class HugeGraph implements Graph {
     private final EventHub schemaEventHub;
     private final EventHub indexEventHub;
     private final RateLimiter rateLimiter;
+    private final HugeTaskManager taskManager;
 
     private final HugeFeatures features;
 
@@ -116,6 +118,8 @@ public class HugeGraph implements Graph {
         final int limit = configuration.get(CoreOptions.RATE_LIMIT);
         this.rateLimiter = limit > 0 ? RateLimiter.create(limit) : null;
 
+        this.taskManager = HugeTaskManager.instance();
+
         this.features = new HugeFeatures(this, true);
 
         this.name = configuration.get(CoreOptions.STORE);
@@ -132,14 +136,9 @@ public class HugeGraph implements Graph {
 
         this.tx = new TinkerpopTransaction(this);
 
-        this.variables = null;
-    }
+        this.taskManager.addScheduler(this);
 
-    private BackendStoreProvider loadStoreProvider() {
-        String backend = this.configuration.get(CoreOptions.BACKEND);
-        LOG.info("Opening backend store '{}' for graph '{}'",
-                 backend, this.name);
-        return BackendProviderFactory.open(backend, this.name);
+        this.variables = null;
     }
 
     public String name() {
@@ -175,28 +174,34 @@ public class HugeGraph implements Graph {
     }
 
     public void initBackend() {
-        this.tx.readWrite();
+        this.loadSchemaStore().open(this.configuration);
+        this.loadSystemStore().open(this.configuration);
+        this.loadGraphStore().open(this.configuration);
         try {
             this.storeProvider.init();
         } finally {
-            this.tx.close();
+            this.loadGraphStore().close();
+            this.loadSystemStore().close();
+            this.loadSchemaStore().close();
         }
     }
 
     public void clearBackend() {
-        this.tx.readWrite();
+        this.loadSchemaStore().open(this.configuration);
+        this.loadSystemStore().open(this.configuration);
+        this.loadGraphStore().open(this.configuration);
         try {
             this.storeProvider.clear();
         } finally {
-            this.tx.close();
+            this.loadGraphStore().close();
+            this.loadSystemStore().close();
+            this.loadSchemaStore().close();
         }
     }
 
     private SchemaTransaction openSchemaTransaction() throws HugeException {
         try {
-            String name = this.configuration.get(CoreOptions.STORE_SCHEMA);
-            BackendStore store = this.storeProvider.loadSchemaStore(name);
-            return new CachedSchemaTransaction(this, store);
+            return new CachedSchemaTransaction(this, this.loadSchemaStore());
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
             LOG.error("{}", message, e);
@@ -206,14 +211,34 @@ public class HugeGraph implements Graph {
 
     private GraphTransaction openGraphTransaction() throws HugeException {
         try {
-            String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
-            BackendStore store = this.storeProvider.loadGraphStore(graph);
-            return new CachedGraphTransaction(this, store);
+            return new CachedGraphTransaction(this, this.loadGraphStore());
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";
             LOG.error("{}", message, e);
             throw new HugeException(message);
         }
+    }
+
+    private BackendStoreProvider loadStoreProvider() {
+        String backend = this.configuration.get(CoreOptions.BACKEND);
+        LOG.info("Opening backend store '{}' for graph '{}'",
+                 backend, this.name);
+        return BackendProviderFactory.open(backend, this.name);
+    }
+
+    private BackendStore loadSchemaStore() {
+        String name = this.configuration.get(CoreOptions.STORE_SCHEMA);
+        return this.storeProvider.loadSchemaStore(name);
+    }
+
+    private BackendStore loadGraphStore() {
+        String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
+        return this.storeProvider.loadGraphStore(graph);
+    }
+
+    public BackendStore loadSystemStore() {
+        String name = this.configuration.get(CoreOptions.STORE_SYSTEM);
+        return this.storeProvider.loadSystemStore(name);
     }
 
     public SchemaTransaction schemaTransaction() {
@@ -238,6 +263,7 @@ public class HugeGraph implements Graph {
     }
 
     public GraphTransaction openTransaction() {
+        // Open a new one
         return this.openGraphTransaction();
     }
 
@@ -362,6 +388,7 @@ public class HugeGraph implements Graph {
             this.closeTx();
         } finally {
             this.storeProvider.close();
+            this.taskManager.closeScheduler(this);
         }
     }
 
@@ -470,6 +497,7 @@ public class HugeGraph implements Graph {
      */
     public static void shutdown(long timout) throws InterruptedException {
         EventHub.destroy(timout);
+        HugeTaskManager.instance().shutdown(timout);
     }
 
     private class TinkerpopTransaction extends AbstractThreadLocalTransaction {

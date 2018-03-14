@@ -66,7 +66,7 @@ public abstract class HbaseStore implements BackendStore {
         this.provider = provider;
         this.namespace = namespace;
         this.store = store;
-        this.sessions =  new HbaseSessions(namespace);
+        this.sessions =  new HbaseSessions(namespace, store);
     }
 
     protected void registerTableManager(HugeType type, HbaseTable table) {
@@ -262,7 +262,7 @@ public abstract class HbaseStore implements BackendStore {
 
     @Override
     public void beginTx() {
-        // TODO Auto-generated method stub
+        // pass
     }
 
     @Override
@@ -279,7 +279,7 @@ public abstract class HbaseStore implements BackendStore {
 
     @Override
     public void rollbackTx() {
-        // TODO Auto-generated method stub
+        // pass
     }
 
     @Override
@@ -318,7 +318,7 @@ public abstract class HbaseStore implements BackendStore {
                                  new HbaseTables.IndexLabel());
 
             registerTableManager(HugeType.SECONDARY_INDEX,
-                                 new HbaseTables.SecondaryIndex());
+                                 new HbaseTables.SecondaryIndex(store));
         }
 
         @Override
@@ -342,17 +342,17 @@ public abstract class HbaseStore implements BackendStore {
             super(provider, namespace, store);
 
             registerTableManager(HugeType.VERTEX,
-                                 new HbaseTables.Vertex());
+                                 new HbaseTables.Vertex(store));
 
             registerTableManager(HugeType.EDGE_OUT,
-                                 HbaseTables.Edge.out());
+                                 HbaseTables.Edge.out(store));
             registerTableManager(HugeType.EDGE_IN,
-                                 HbaseTables.Edge.in());
+                                 HbaseTables.Edge.in(store));
 
             registerTableManager(HugeType.SECONDARY_INDEX,
-                                 new HbaseTables.SecondaryIndex());
+                                 new HbaseTables.SecondaryIndex(store));
             registerTableManager(HugeType.RANGE_INDEX,
-                                 new HbaseTables.RangeIndex());
+                                 new HbaseTables.RangeIndex(store));
         }
 
         @Override

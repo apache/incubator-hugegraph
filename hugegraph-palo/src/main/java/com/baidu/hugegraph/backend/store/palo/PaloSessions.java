@@ -57,9 +57,9 @@ public class PaloSessions extends MysqlSessions {
     private final Timer timer;
     private final PaloLoadTask loadTask;
 
-    public PaloSessions(HugeConfig config, String database,
+    public PaloSessions(HugeConfig config, String database, String store,
                         List<String> tableDirs) {
-        super(config, database);
+        super(config, database, store);
         this.counter = new AtomicInteger();
         this.locks = new ConcurrentHashMap<>();
         // Scan disk files and restore session information
@@ -168,14 +168,14 @@ public class PaloSessions extends MysqlSessions {
 
         private int writeBatch() {
             int updated = 0;
-            locks.get(this.id).writeLock().lock();
+            PaloSessions.this.locks.get(this.id).writeLock().lock();
             try {
                 for (String table : this.batch.keySet()) {
                     PaloFile file = this.getOrCreate(table);
                     updated += file.writeLines(this.batch.get(table));
                 }
             } finally {
-                locks.get(this.id).writeLock().unlock();
+                PaloSessions.this.locks.get(this.id).writeLock().unlock();
             }
             return updated;
         }
@@ -307,7 +307,7 @@ public class PaloSessions extends MysqlSessions {
             int sessionId = file.sessionId();
             LOG.info("Ready to load one batch from file: {}", file);
             // Get write lock because will delete file
-            Lock lock = locks.get(sessionId).writeLock();
+            Lock lock = PaloSessions.this.locks.get(sessionId).writeLock();
             lock.lock();
             try {
                 String table = file.table();;
@@ -322,7 +322,7 @@ public class PaloSessions extends MysqlSessions {
         }
 
         private String formatLabel(String table) {
-            return table + "-" + DATE_FORMAT.format(new Date());
+            return table + "-" + this.DATE_FORMAT.format(new Date());
         }
     }
 }

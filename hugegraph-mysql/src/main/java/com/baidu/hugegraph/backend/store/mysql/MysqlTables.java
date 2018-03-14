@@ -76,10 +76,10 @@ public class MysqlTables {
 
         public Counters() {
             super(TABLE);
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.SCHEMA_TYPE, VARCHAR);
             this.define.column(HugeKeys.ID, INT);
-            // Primary keys
             this.define.keys(HugeKeys.SCHEMA_TYPE);
         }
 
@@ -141,6 +141,7 @@ public class MysqlTables {
 
         public VertexLabel() {
             super(TABLE);
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.ID, DATATYPE_SL);
             this.define.column(HugeKeys.NAME, VARCHAR);
@@ -151,7 +152,6 @@ public class MysqlTables {
             this.define.column(HugeKeys.INDEX_LABELS, SMALL_JSON);
             this.define.column(HugeKeys.ENABLE_LABEL_INDEX, BOOLEAN);
             this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
-            // Primary keys
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -162,6 +162,7 @@ public class MysqlTables {
 
         public EdgeLabel() {
             super(TABLE);
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.ID, DATATYPE_SL);
             this.define.column(HugeKeys.NAME, VARCHAR);
@@ -174,7 +175,6 @@ public class MysqlTables {
             this.define.column(HugeKeys.INDEX_LABELS, SMALL_JSON);
             this.define.column(HugeKeys.ENABLE_LABEL_INDEX, BOOLEAN);
             this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
-            // Primary keys
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -185,6 +185,7 @@ public class MysqlTables {
 
         public PropertyKey() {
             super(TABLE);
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.ID, DATATYPE_PK);
             this.define.column(HugeKeys.NAME, VARCHAR);
@@ -192,7 +193,6 @@ public class MysqlTables {
             this.define.column(HugeKeys.CARDINALITY, TINYINT);
             this.define.column(HugeKeys.PROPERTIES, SMALL_JSON);
             this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
-            // Primary keys
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -203,6 +203,7 @@ public class MysqlTables {
 
         public IndexLabel() {
             super(TABLE);
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.ID, DATATYPE_IL);
             this.define.column(HugeKeys.NAME, VARCHAR);
@@ -210,7 +211,6 @@ public class MysqlTables {
             this.define.column(HugeKeys.BASE_VALUE, DATATYPE_SL);
             this.define.column(HugeKeys.INDEX_TYPE, TINYINT);
             this.define.column(HugeKeys.FIELDS, SMALL_JSON);
-            // Primary keys
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -219,13 +219,13 @@ public class MysqlTables {
 
         public static final String TABLE = "vertices";
 
-        public Vertex() {
-            super(TABLE);
+        public Vertex(String store) {
+            super(joinTableName(store, TABLE));
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.ID, VARCHAR);
             this.define.column(HugeKeys.LABEL, DATATYPE_SL);
             this.define.column(HugeKeys.PROPERTIES, LARGE_JSON);
-            // Primary keys
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -237,13 +237,13 @@ public class MysqlTables {
         private final Directions direction;
         private final String delByLabelTemplate;
 
-        public Edge(Directions direction) {
-            super(table(direction));
-            this.direction = direction;
+        protected Edge(String store, Directions direction) {
+            super(joinTableName(store, table(direction)));
 
+            this.direction = direction;
             this.delByLabelTemplate = String.format(
                                       "DELETE FROM %s WHERE %s = ?;",
-                                      table(), formatKey(HugeKeys.LABEL));
+                                      this.table(), formatKey(HugeKeys.LABEL));
 
             this.define = new TableDefine();
             this.define.column(HugeKeys.OWNER_VERTEX, VARCHAR);
@@ -252,7 +252,6 @@ public class MysqlTables {
             this.define.column(HugeKeys.SORT_VALUES, VARCHAR);
             this.define.column(HugeKeys.OTHER_VERTEX, VARCHAR);
             this.define.column(HugeKeys.PROPERTIES, LARGE_JSON);
-            // Primary keys
             this.define.keys(HugeKeys.OWNER_VERTEX, HugeKeys.DIRECTION,
                              HugeKeys.LABEL, HugeKeys.SORT_VALUES,
                              HugeKeys.OTHER_VERTEX);
@@ -359,6 +358,14 @@ public class MysqlTables {
             assert direction == Directions.OUT || direction == Directions.IN;
             return TABLE_PREFIX + "_" + direction.string();
         }
+
+        public static MysqlTable out(String store) {
+            return new Edge(store, Directions.OUT);
+        }
+
+        public static MysqlTable in(String store) {
+            return new Edge(store, Directions.IN);
+        }
     }
 
     public abstract static class Index extends MysqlTableTemplate {
@@ -395,13 +402,13 @@ public class MysqlTables {
 
         public static final String TABLE = "secondary_indexes";
 
-        public SecondaryIndex() {
-            super(TABLE);
+        public SecondaryIndex(String store) {
+            super(joinTableName(store, TABLE));
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.FIELD_VALUES, VARCHAR);
             this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
             this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR);
-            // Primary keys
             this.define.keys(HugeKeys.FIELD_VALUES,
                              HugeKeys.INDEX_LABEL_ID,
                              HugeKeys.ELEMENT_IDS);
@@ -419,13 +426,13 @@ public class MysqlTables {
 
         public static final String TABLE = "range_indexes";
 
-        public RangeIndex() {
-            super(TABLE);
+        public RangeIndex(String store) {
+            super(joinTableName(store, TABLE));
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
             this.define.column(HugeKeys.FIELD_VALUES, DOUBLE);
             this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR);
-            // Primary keys
             this.define.keys(HugeKeys.INDEX_LABEL_ID,
                              HugeKeys.FIELD_VALUES,
                              HugeKeys.ELEMENT_IDS);

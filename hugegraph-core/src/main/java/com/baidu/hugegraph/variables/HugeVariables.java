@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -272,7 +273,7 @@ public class HugeVariables implements Graph.Variables {
         return StringFactory.graphVariablesString(this);
     }
 
-    private void setProperties(HugeVertex vertex, String key, Object value) {
+    private void setProperty(HugeVertex vertex, String key, Object value) {
         String suffix;
         if (value instanceof List) {
             suffix = UNIFORM_LIST;
@@ -321,16 +322,19 @@ public class HugeVariables implements Graph.Variables {
 
     private void createVariableVertex(String key, Object value) {
         VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
-        HugeVertex vertex = new HugeVertex(this.graph.graphTransaction(),
-                                           null, vl);
+        GraphTransaction tx = this.graph.graphTransaction();
+
+        HugeVertex vertex = new HugeVertex(tx, null, vl);
         try {
-            this.setProperties(vertex, key, value);
+            this.setProperty(vertex, key, value);
         } catch (IllegalArgumentException e) {
             throw Graph.Variables.Exceptions
                        .dataTypeOfVariableValueNotSupported(value);
         }
+        // AUTOMATIC id
         vertex.assignId(null);
-        this.graph.graphTransaction().addVertex(vertex);
+
+        tx.addVertex(vertex);
     }
 
     private void removeVariableVertex(HugeVertex vertex) {

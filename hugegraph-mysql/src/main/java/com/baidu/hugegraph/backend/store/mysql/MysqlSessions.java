@@ -43,13 +43,14 @@ public class MysqlSessions extends BackendSessionPool {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
 
-    private static final Integer DROP_DB_TIMEOUT = 10000;
+    private static final int DROP_DB_TIMEOUT = 10000;
 
     private HugeConfig config;
     private String database;
     private boolean opened;
 
-    public MysqlSessions(HugeConfig config, String database) {
+    public MysqlSessions(HugeConfig config, String database, String store) {
+        super(database + "/" + store);
         this.config = config;
         this.database = database;
         this.opened = false;
@@ -183,8 +184,8 @@ public class MysqlSessions extends BackendSessionPool {
                 }
             }
         } catch (Exception e) {
-            throw new BackendException("Failed to obtain mysql databases " +
-                                       "info, please ensure it is ok", e);
+            throw new BackendException("Failed to obtain MySQL metadata, " +
+                                       "please ensure it is ok", e);
         }
         return false;
     }
@@ -192,14 +193,14 @@ public class MysqlSessions extends BackendSessionPool {
     /**
      * Connect DB without specified database
      */
-    private Connection openWithoutDB(Integer timeout) {
+    private Connection openWithoutDB(int timeout) {
         String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
-
-        URIBuilder url = new URIBuilder();
-        url.setPath(jdbcUrl).setParameter("socketTimeout", timeout.toString());
-
+        String url = new URIBuilder().setPath(jdbcUrl)
+                                     .setParameter("socketTimeout",
+                                                   String.valueOf(timeout))
+                                     .toString();
         try {
-            return connect(url.toString());
+            return connect(url);
         } catch (SQLException e) {
             throw new BackendException("Failed to access %s, " +
                                        "please ensure it is ok", jdbcUrl);

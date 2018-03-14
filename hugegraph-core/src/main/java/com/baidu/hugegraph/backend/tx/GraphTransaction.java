@@ -308,8 +308,13 @@ public class GraphTransaction extends IndexableTransaction {
         return rs;
     }
 
-    @Watched("graph.addVertex-with-instance")
-    public Vertex addVertex(HugeVertex vertex) {
+    @Watched(prefix = "graph")
+    public HugeVertex addVertex(Object... keyValues) {
+        return this.addVertex(this.constructVertex(true, keyValues));
+    }
+
+    @Watched("graph.addVertex-instance")
+    public HugeVertex addVertex(HugeVertex vertex) {
         this.checkOwnerThread();
 
         // Override vertexes in local `removedVertexes`
@@ -335,10 +340,11 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "graph")
-    public Vertex addVertex(Object... keyValues) {
+    public HugeVertex constructVertex(boolean verifyVL, Object... keyValues) {
         HugeElement.ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
 
-        VertexLabel vertexLabel = this.checkVertexLabel(elemKeys.label());
+        VertexLabel vertexLabel = this.checkVertexLabel(elemKeys.label(),
+                                                        verifyVL);
         Id id = HugeVertex.getIdValue(elemKeys.id());
         List<Id> keys = this.graph().mapPkName2Id(elemKeys.keys());
 
@@ -363,7 +369,7 @@ public class GraphTransaction extends IndexableTransaction {
             vertex.assignId(id);
         }
 
-        return this.addVertex(vertex);
+        return vertex;
     }
 
     @Watched(prefix = "graph")
@@ -469,7 +475,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "graph")
-    public Edge addEdge(HugeEdge edge) {
+    public HugeEdge addEdge(HugeEdge edge) {
         this.checkOwnerThread();
 
         // Override edges in local `removedEdges`
@@ -957,7 +963,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private VertexLabel checkVertexLabel(Object label) {
+    private VertexLabel checkVertexLabel(Object label, boolean verifyLabel) {
         HugeVertexFeatures features = graph().features().vertex();
 
         // Check Vertex label
@@ -974,7 +980,9 @@ public class GraphTransaction extends IndexableTransaction {
                         "as the vertex label argument, but got: '%s'", label);
         // The label must be an instance of String or VertexLabel
         if (label instanceof String) {
-            ElementHelper.validateLabel((String) label);
+            if (verifyLabel) {
+                ElementHelper.validateLabel((String) label);
+            }
             label = graph().vertexLabel((String) label);
         }
 

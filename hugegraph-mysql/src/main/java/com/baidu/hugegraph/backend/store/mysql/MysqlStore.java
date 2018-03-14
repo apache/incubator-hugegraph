@@ -37,7 +37,6 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -75,7 +74,7 @@ public abstract class MysqlStore implements BackendStore {
     }
 
     protected MysqlSessions openSessionPool(HugeConfig config) {
-        return new MysqlSessions(config, this.database);
+        return new MysqlSessions(config, this.database, this.store);
     }
 
     public Map<HugeType, MysqlTable> tables() {
@@ -357,17 +356,17 @@ public abstract class MysqlStore implements BackendStore {
             super(provider, database, store);
 
             registerTableManager(HugeType.VERTEX,
-                                 new MysqlTables.Vertex());
+                                 new MysqlTables.Vertex(store));
 
             registerTableManager(HugeType.EDGE_OUT,
-                                 new MysqlTables.Edge(Directions.OUT));
+                                 MysqlTables.Edge.out(store));
             registerTableManager(HugeType.EDGE_IN,
-                                 new MysqlTables.Edge(Directions.IN));
+                                 MysqlTables.Edge.in(store));
 
             registerTableManager(HugeType.SECONDARY_INDEX,
-                                 new MysqlTables.SecondaryIndex());
+                                 new MysqlTables.SecondaryIndex(store));
             registerTableManager(HugeType.RANGE_INDEX,
-                                 new MysqlTables.RangeIndex());
+                                 new MysqlTables.RangeIndex(store));
         }
 
         @Override

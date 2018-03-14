@@ -111,7 +111,7 @@ public class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    public Vertex addVertex(HugeVertex vertex) {
+    public HugeVertex addVertex(HugeVertex vertex) {
         // Update vertex cache
         this.verticesCache.invalidate(vertex.id());
 
@@ -146,7 +146,7 @@ public class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    public Edge addEdge(HugeEdge edge) {
+    public HugeEdge addEdge(HugeEdge edge) {
         // TODO: Use a more precise strategy to update the edge cache
         this.edgesCache.clear();
 

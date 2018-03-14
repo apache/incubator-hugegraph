@@ -119,7 +119,7 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
         HugeConfig config = new HugeConfig(conf);
         config.setProperty(RocksDBOptions.DATA_PATH.name(), DB_PATH);
         config.setProperty(RocksDBOptions.WAL_PATH.name(), DB_PATH);
-        RocksDBSessions rocks = new RocksDBStdSessions(config, "test-store");
+        RocksDBSessions rocks = new RocksDBStdSessions(config, "db", "store");
         rocks.createTable(table);
         return rocks;
     }

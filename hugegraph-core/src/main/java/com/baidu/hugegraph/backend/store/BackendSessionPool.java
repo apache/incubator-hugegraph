@@ -30,10 +30,12 @@ public abstract class BackendSessionPool {
 
     private static final Logger LOG = Log.logger(BackendSessionPool.class);
 
-    private ThreadLocal<BackendSession> threadLocalSession;
-    private AtomicInteger sessionCount;
+    private final String name;
+    private final ThreadLocal<BackendSession> threadLocalSession;
+    private final AtomicInteger sessionCount;
 
-    public BackendSessionPool() {
+    public BackendSessionPool(String name) {
+        this.name = name;
         this.threadLocalSession = new ThreadLocal<>();
         this.sessionCount = new AtomicInteger(0);
     }
@@ -102,9 +104,8 @@ public abstract class BackendSessionPool {
 
     @Override
     public String toString() {
-        return String.format("%s@%08X",
-                             this.getClass().getSimpleName(),
-                             this.hashCode());
+        return String.format("%s-%s@%08X", this.name,
+                             this.getClass().getSimpleName(), this.hashCode());
     }
 
     public abstract void open(HugeConfig config) throws Exception;

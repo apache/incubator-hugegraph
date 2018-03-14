@@ -37,7 +37,6 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.Cluster;
@@ -73,7 +72,7 @@ public abstract class CassandraStore implements BackendStore {
         this.keyspace = keyspace;
         this.store = store;
 
-        this.sessions = new CassandraSessionPool(this.keyspace);
+        this.sessions = new CassandraSessionPool(keyspace, store);
         this.tables = new ConcurrentHashMap<>();
 
         this.conf = null;
@@ -495,17 +494,17 @@ public abstract class CassandraStore implements BackendStore {
             super(provider, keyspace, store);
 
             registerTableManager(HugeType.VERTEX,
-                                 new CassandraTables.Vertex());
+                                 new CassandraTables.Vertex(store));
 
             registerTableManager(HugeType.EDGE_OUT,
-                                 new CassandraTables.Edge(Directions.OUT));
+                                 CassandraTables.Edge.out(store));
             registerTableManager(HugeType.EDGE_IN,
-                                 new CassandraTables.Edge(Directions.IN));
+                                 CassandraTables.Edge.in(store));
 
             registerTableManager(HugeType.SECONDARY_INDEX,
-                                 new CassandraTables.SecondaryIndex());
+                                 new CassandraTables.SecondaryIndex(store));
             registerTableManager(HugeType.RANGE_INDEX,
-                                 new CassandraTables.RangeIndex());
+                                 new CassandraTables.RangeIndex(store));
         }
 
         @Override

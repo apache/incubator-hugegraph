@@ -42,7 +42,8 @@ public abstract class PaloStore extends MysqlStore {
     @Override
     protected PaloSessions openSessionPool(HugeConfig config) {
         LOG.info("Open palo session pool for {}", this);
-        return new PaloSessions(config, this.database(), this.tableNames());
+        return new PaloSessions(config, this.database(), this.store(),
+                                this.tableNames());
     }
 
     private List<String> tableNames() {

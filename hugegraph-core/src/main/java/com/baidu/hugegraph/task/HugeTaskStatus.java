@@ -17,31 +17,41 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store;
+package com.baidu.hugegraph.task;
 
-import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.type.define.SerialEnum;
 
-public interface BackendStoreProvider {
+public enum HugeTaskStatus implements SerialEnum {
 
-    // Backend store type
-    public String type();
+    UNKNOWN(0, "UNKNOWN"),
 
-    // Graph name (that's database name)
-    public String graph();
+    NEW(1, "new"),
+    QUEUED(2, "queued"),
+    RESTORING(4, "restoring"),
+    RUNNING(4, "running"),
+    SUCCESS(5, "success"),
+    CANCELLED(6, "cancelled"),
+    FAILED(7, "failed");
 
-    public BackendStore loadSystemStore(String name);
+    private byte status = 0;
+    private String name;
 
-    public BackendStore loadSchemaStore(String name);
+    static {
+        SerialEnum.register(HugeTaskStatus.class);
+    }
 
-    public BackendStore loadGraphStore(String name);
+    HugeTaskStatus(int status, String name) {
+        assert status < 256;
+        this.status = (byte) status;
+        this.name = name;
+    }
 
-    public void open(String name);
+    @Override
+    public byte code() {
+        return this.status;
+    }
 
-    public void close();
-
-    public void init();
-
-    public void clear();
-
-    public void listen(EventListener listener);
+    public String string() {
+        return this.name;
+    }
 }

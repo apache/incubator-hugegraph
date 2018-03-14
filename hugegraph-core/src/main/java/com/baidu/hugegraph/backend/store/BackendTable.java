@@ -106,6 +106,10 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         return type;
     }
 
+    public static final String joinTableName(String prefix, String table) {
+        return prefix + "_" + table;
+    }
+
     /*************************** abstract methods ***************************/
 
     public abstract void init(Session session);

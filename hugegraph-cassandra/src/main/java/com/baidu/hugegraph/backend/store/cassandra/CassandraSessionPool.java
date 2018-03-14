@@ -46,7 +46,8 @@ public class CassandraSessionPool extends BackendSessionPool {
     private Cluster cluster;
     private String keyspace;
 
-    public CassandraSessionPool(String keyspace) {
+    public CassandraSessionPool(String keyspace, String store) {
+        super(keyspace + "/" + store);
         this.cluster = null;
         this.keyspace = keyspace;
     }
@@ -149,9 +150,6 @@ public class CassandraSessionPool extends BackendSessionPool {
         public Session() {
             this.session = null;
             this.batch = new BatchStatement(); // LOGGED
-            try {
-                this.open();
-            } catch (InvalidQueryException ignored) {}
         }
 
         public BatchStatement add(Statement statement) {
@@ -212,16 +210,24 @@ public class CassandraSessionPool extends BackendSessionPool {
             return this.session.execute(statement, args);
         }
 
+        private void tryOpen() {
+            assert this.session == null;
+            try {
+                this.open();
+            } catch (InvalidQueryException ignored) {}
+        }
+
         public void open() {
+            assert this.session == null;
             this.session = cluster().connect(keyspace());
         }
 
         @Override
         public boolean closed() {
             if (this.session == null) {
-                return true;
+                this.tryOpen();
             }
-            return this.session.isClosed();
+            return this.session == null ? true : this.session.isClosed();
         }
 
         @Override

@@ -201,9 +201,10 @@ public abstract class RocksDBStore implements BackendStore {
                                               List<String> tableNames)
                                               throws RocksDBException {
         if (tableNames == null) {
-            return new RocksDBStdSessions(config, this.store);
+            return new RocksDBStdSessions(config, this.database, this.store);
         } else {
-            return new RocksDBStdSessions(config, this.store, tableNames);
+            return new RocksDBStdSessions(config, this.database, this.store,
+                                          tableNames);
         }
     }
 

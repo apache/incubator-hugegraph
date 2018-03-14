@@ -62,9 +62,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private final HugeConfig conf;
     private final RocksDB rocksdb;
 
-    public RocksDBStdSessions(HugeConfig config, String store)
+    public RocksDBStdSessions(HugeConfig config, String database, String store)
                               throws RocksDBException {
-        super(store);
+        super(database, store);
+
         this.conf = config;
 
         String dataPath = wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
@@ -82,9 +83,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.rocksdb = RocksDB.open(options, dataPath);
     }
 
-    public RocksDBStdSessions(HugeConfig config, String store,
+    public RocksDBStdSessions(HugeConfig config, String database, String store,
                               List<String> cfNames) throws RocksDBException {
-        super(store);
+        super(database, store);
         this.conf = config;
 
         String dataPath = wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));

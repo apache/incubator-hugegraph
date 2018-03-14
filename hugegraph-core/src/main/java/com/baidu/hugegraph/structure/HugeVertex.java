@@ -230,7 +230,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
      */
     @Watched(prefix = "vertex")
     @Override
-    public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
+    public HugeEdge addEdge(String label, Vertex vertex, Object... keyValues) {
         ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
         // Check id (must be null)
         if (elemKeys.id() != null) {

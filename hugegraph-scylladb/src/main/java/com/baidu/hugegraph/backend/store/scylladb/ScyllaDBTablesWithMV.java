@@ -55,6 +55,10 @@ public class ScyllaDBTablesWithMV {
 
         private static final String MV_LABEL2VERTEX = "mv_label2vertex";
 
+        public Vertex(String store) {
+            super(store);
+        }
+
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel,
@@ -107,8 +111,8 @@ public class ScyllaDBTablesWithMV {
         private final String PRKEYS_NN = this.KEYS.stream().collect(
                              Collectors.joining(" IS NOT NULL AND "));
 
-        public Edge(Directions direction) {
-            super(direction);
+        public Edge(String store, Directions direction) {
+            super(store, direction);
         }
 
         @Override
@@ -147,12 +151,12 @@ public class ScyllaDBTablesWithMV {
             return super.query2Select(table, query);
         }
 
-        public static Edge out() {
-            return new Edge(Directions.OUT);
+        public static Edge out(String store) {
+            return new Edge(store, Directions.OUT);
         }
 
-        public static Edge in() {
-            return new Edge(Directions.IN);
+        public static Edge in(String store) {
+            return new Edge(store, Directions.IN);
         }
     }
 }

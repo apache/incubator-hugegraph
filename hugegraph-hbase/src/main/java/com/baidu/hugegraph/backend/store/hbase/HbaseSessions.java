@@ -66,7 +66,8 @@ public class HbaseSessions extends BackendSessionPool {
     private final String namespace;
     private Connection hbase;
 
-    public HbaseSessions(String namespace) {
+    public HbaseSessions(String namespace, String store) {
+        super(namespace + "/" + store);
         this.namespace = namespace;
     }
 

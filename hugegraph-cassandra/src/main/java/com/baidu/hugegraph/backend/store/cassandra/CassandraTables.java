@@ -48,6 +48,9 @@ import com.google.common.collect.ImmutableMap;
 
 public class CassandraTables {
 
+    public static final String LABEL_INDEX = "label_index";
+    public static final String NAME_INDEX = "name_index";
+
     private static final DataType DATATYPE_PK = DataType.cint();
     private static final DataType DATATYPE_SL = DataType.cint(); // VL/EL
     private static final DataType DATATYPE_IL = DataType.cint();
@@ -142,7 +145,7 @@ public class CassandraTables {
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
-            this.createIndex(session, "vertex_label_name_index", HugeKeys.NAME);
+            this.createIndex(session, NAME_INDEX, HugeKeys.NAME);
         }
     }
 
@@ -175,7 +178,7 @@ public class CassandraTables {
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
-            this.createIndex(session, "edge_label_name_index", HugeKeys.NAME);
+            this.createIndex(session, NAME_INDEX, HugeKeys.NAME);
         }
     }
 
@@ -202,7 +205,7 @@ public class CassandraTables {
             );
 
             this.createTable(session, pkeys, ckeys, columns);
-            this.createIndex(session, "property_key_name_index", HugeKeys.NAME);
+            this.createIndex(session, NAME_INDEX, HugeKeys.NAME);
         }
     }
 
@@ -230,7 +233,7 @@ public class CassandraTables {
             );
 
             this.createTable(session, pkeys, ckeys, columns);
-            this.createIndex(session, "index_label_name_index", HugeKeys.NAME);
+            this.createIndex(session, NAME_INDEX, HugeKeys.NAME);
         }
     }
 
@@ -238,8 +241,8 @@ public class CassandraTables {
 
         public static final String TABLE = "vertices";
 
-        public Vertex() {
-            super(TABLE);
+        public Vertex(String store) {
+            super(joinTableName(store, TABLE));
         }
 
         @Override
@@ -255,7 +258,7 @@ public class CassandraTables {
             );
 
             this.createTable(session, pkeys, ckeys, columns);
-            this.createIndex(session, "vertex_label_index", HugeKeys.LABEL);
+            this.createIndex(session, LABEL_INDEX, HugeKeys.LABEL);
         }
     }
 
@@ -263,11 +266,21 @@ public class CassandraTables {
 
         public static final String TABLE_PREFIX = "edges";
 
+        private final String store;
         private final Directions direction;
 
-        public Edge(Directions direction) {
-            super(table(direction));
+        protected Edge(String store, Directions direction) {
+            super(joinTableName(store, table(direction)));
+            this.store = store;
             this.direction = direction;
+        }
+
+        protected String edgesTable(Directions direction) {
+            return joinTableName(this.store, table(direction));
+        }
+
+        protected Directions direction() {
+            return this.direction;
         }
 
         @Override
@@ -293,7 +306,7 @@ public class CassandraTables {
              * by label from out-edges table
              */
             if (this.direction == Directions.OUT) {
-                this.createIndex(session, "edge_label_index", HugeKeys.LABEL);
+                this.createIndex(session, LABEL_INDEX, HugeKeys.LABEL);
             }
         }
 
@@ -395,9 +408,9 @@ public class CassandraTables {
             }
         }
 
-        private static Delete buildDelete(Id label, String ownerVertex,
-                                          Directions direction) {
-            Delete delete = QueryBuilder.delete().from(table(direction));
+        private Delete buildDelete(Id label, String ownerVertex,
+                                   Directions direction) {
+            Delete delete = QueryBuilder.delete().from(edgesTable(direction));
             delete.where(formatEQ(HugeKeys.OWNER_VERTEX, ownerVertex));
             delete.where(formatEQ(HugeKeys.DIRECTION, direction.code()));
             delete.where(formatEQ(HugeKeys.LABEL, label.asLong()));
@@ -444,9 +457,17 @@ public class CassandraTables {
             return vertex;
         }
 
-        public static String table(Directions direction) {
+        private static String table(Directions direction) {
             assert direction == Directions.OUT || direction == Directions.IN;
             return TABLE_PREFIX + "_" + direction.string();
+        }
+
+        public static CassandraTable out(String store) {
+            return new Edge(store, Directions.OUT);
+        }
+
+        public static CassandraTable in(String store) {
+            return new Edge(store, Directions.IN);
         }
     }
 
@@ -454,8 +475,8 @@ public class CassandraTables {
 
         public static final String TABLE = "secondary_indexes";
 
-        public SecondaryIndex() {
-            super(TABLE);
+        public SecondaryIndex(String store) {
+            super(joinTableName(store, TABLE));
         }
 
         @Override
@@ -548,8 +569,8 @@ public class CassandraTables {
 
         public static final String TABLE = "range_indexes";
 
-        public RangeIndex() {
-            super(TABLE);
+        public RangeIndex(String store) {
+            super(joinTableName(store, TABLE));
         }
 
         @Override
