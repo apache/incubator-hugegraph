@@ -39,6 +39,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -231,8 +232,15 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
-    public void addIndexLabel(IndexLabel indexLabel) {
+    public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
         this.addSchema(indexLabel);
+
+        /*
+         * Update index name in base-label(VL/EL)
+         * TODO: should wrap update base-label and create index in one tx.
+         */
+        schemaLabel.indexLabel(indexLabel.id());
+        this.addSchema(schemaLabel);
     }
 
     @Watched(prefix = "schema")
