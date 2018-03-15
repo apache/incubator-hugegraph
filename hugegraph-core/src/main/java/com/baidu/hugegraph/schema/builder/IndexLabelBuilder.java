@@ -31,12 +31,10 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
-import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -95,6 +93,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         }
 
         SchemaLabel schemaLabel = this.loadElement();
+
         /*
          * If new index label is prefix of existed index label, or has
          * the same fields, fail to create new index label.
@@ -102,13 +101,13 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         this.checkFields(schemaLabel.properties());
         this.checkRepeatIndex(schemaLabel);
 
-        indexLabel = this.build();
-        this.transaction.addIndexLabel(indexLabel);
         // Delete index label which is prefix of the new index label
         // TODO: use event to replace direct call
         this.removeSubIndex(schemaLabel);
-        // TODO: should wrap update and add operation in one transaction.
-        this.updateSchemaIndexName(schemaLabel, indexLabel);
+
+        // Create index label
+        indexLabel = this.build();
+        this.transaction.addIndexLabel(schemaLabel, indexLabel);
 
         // TODO: use event to replace direct call
         this.rebuildIndexIfNeeded(indexLabel);
@@ -277,23 +276,6 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                             "Range index can only build on " +
                             "numeric property, but got %s(%s)",
                             pk.dataType(), pk.name());
-        }
-    }
-
-    private void updateSchemaIndexName(SchemaLabel schemaLabel,
-                                       IndexLabel indexLabel) {
-        schemaLabel.indexLabel(indexLabel.id());
-        switch (this.baseType) {
-            case VERTEX_LABEL:
-                this.transaction.addVertexLabel((VertexLabel) schemaLabel);
-                break;
-            case EDGE_LABEL:
-                this.transaction.addEdgeLabel((EdgeLabel) schemaLabel);
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Can't update index name of schema type: %s",
-                          this.baseType));
         }
     }
 

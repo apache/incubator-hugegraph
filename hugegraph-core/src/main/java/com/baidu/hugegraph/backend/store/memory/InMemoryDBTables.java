@@ -128,7 +128,7 @@ public class InMemoryDBTables {
                 } else {
                     E.checkState(false,
                                  "Secondary index query conditions must be" +
-                                 "field_values or index_label_id, but got: %s",
+                                 "FIELD_VALUES or INDEX_LABEL_ID, but got: %s",
                                  r.key());
                 }
             }
