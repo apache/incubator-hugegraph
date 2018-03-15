@@ -98,7 +98,7 @@ public class RegisterUtil {
 
     public static void registerScyllaDB() {
         // Register config
-        OptionSpace.register("cassandra",
+        OptionSpace.register("scylladb",
                 "com.baidu.hugegraph.config.CassandraOptions");
         // Register serializer
         SerializerFactory.register("scylladb",
