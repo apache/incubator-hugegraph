@@ -66,7 +66,9 @@ public class API {
 
     public static <R> R commit(HugeGraph g, Callable<R> callable) {
         Consumer<Throwable> rollback = (error) -> {
-            LOG.error("Failed to commit", error);
+            if (error != null) {
+                LOG.error("Failed to commit", error);
+            }
             try {
                 g.tx().rollback();
             } catch (Throwable e) {
@@ -78,6 +80,9 @@ public class API {
             R result = callable.call();
             g.tx().commit();
             return result;
+        } catch (IllegalArgumentException e) {
+            rollback.accept(null);
+            throw e;
         } catch (RuntimeException e) {
             rollback.accept(e);
             throw e;

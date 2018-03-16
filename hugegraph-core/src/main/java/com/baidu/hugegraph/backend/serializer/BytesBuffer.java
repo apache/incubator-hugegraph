@@ -45,6 +45,9 @@ public final class BytesBuffer {
     public static final int UINT16_MAX = ((short) -1) & 0xffff;
     public static final long UINT32_MAX = (-1) & 0xffffffffL;
 
+    public static final int ID_MAX_LEN = UINT8_MAX & 0x7f + 1; // 128
+    public static final int BIG_ID_MAX_LEN = UINT16_MAX & 0x7fff + 1; // 32768
+
     public static final int DEFAULT_CAPACITY = 64;
     public static final int MAX_BUFFER_CAPACITY = 128 * 1024 * 1024; // 128M
 
@@ -165,6 +168,9 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer writeBytes(byte[] bytes) {
+        E.checkArgument(bytes.length <= UINT16_MAX,
+                        "The max length of bytes is %s, got %s",
+                        UINT16_MAX, bytes.length);
         require(SHORT_LEN + bytes.length);
         this.writeUInt16(bytes.length);
         this.write(bytes);
@@ -268,6 +274,10 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer writeId(Id id) {
+        return this.writeId(id, false);
+    }
+
+    public BytesBuffer writeId(Id id, boolean big) {
         boolean number = id.number();
         if (number) {
             long value = id.asLong();
@@ -275,23 +285,45 @@ public final class BytesBuffer {
         } else {
             byte[] bytes = id.asBytes();
             int len = bytes.length;
-            E.checkArgument(len < 128,
-                            "Id max length is 127, but got {%s}", id);
-            len |= 0x80;
-            this.write((byte) len);
+            E.checkArgument(len > 0, "Can't write empty id");
+            if (!big) {
+                E.checkArgument(len <= ID_MAX_LEN,
+                                "Id max length is %s, but got %s {%s}",
+                                ID_MAX_LEN, len, id);
+                len -= 1; // mapping [1, 128] to [0, 127]
+                this.writeUInt8(len | 0x80);
+            } else {
+                E.checkArgument(len <= BIG_ID_MAX_LEN,
+                                "Big id max length is %s, but got %s",
+                                BIG_ID_MAX_LEN, len);
+                len -= 1;
+                int high = len >> 8;
+                int low = len & 0xff;
+                this.writeUInt8(high | 0x80);
+                this.writeUInt8(low);
+            }
             this.write(bytes);
         }
         return this;
     }
 
     public Id readId() {
-        int b = this.read();
-        int len = b & 0x7f;
+        return this.readId(false);
+    }
+
+    public Id readId(boolean big) {
+        int b = this.readUInt8();
         boolean number = (b & 0x80) == 0;
+        int len = b & 0x7f;
         if (number) {
             return IdGenerator.of(this.readNumber(len));
         } else {
-            byte[] id = this.read(len);
+            if (big) {
+                int high = len << 8;
+                int low = this.readUInt8();
+                len = high + low;
+            }
+            byte[] id = this.read(len + 1);
             return IdGenerator.of(StringEncoding.decode(id));
         }
     }
@@ -308,16 +340,16 @@ public final class BytesBuffer {
 
     private void writeNumber(long val) {
         if (Byte.MIN_VALUE <= val && val <= Byte.MAX_VALUE) {
-            this.write((byte) 1);
+            this.writeUInt8(1);
             this.write((byte) val);
         } else if (Short.MIN_VALUE <= val && val <= Short.MAX_VALUE) {
-            this.write((byte) 2);
+            this.writeUInt8(2);
             this.writeShort((short) val);
         } else if (Integer.MIN_VALUE <= val && val <= Integer.MAX_VALUE) {
-            this.write((byte) 4);
+            this.writeUInt8(4);
             this.writeInt((int) val);
         } else {
-            this.write((byte) 8);
+            this.writeUInt8(8);
             this.writeLong(val);
         }
     }

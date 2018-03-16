@@ -35,6 +35,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -142,6 +143,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.id = new EdgeId(this.ownerVertex(), this.direction(),
                              this.schemaLabel().id(), this.name(),
                              this.otherVertex());
+
+        int len = this.id.length();
+        E.checkArgument(len <= BytesBuffer.BIG_ID_MAX_LEN,
+                        "The max length of edge id is %s, but got %s {%s}",
+                        BytesBuffer.BIG_ID_MAX_LEN, len, this.id);
     }
 
     @Watched(prefix = "edge")

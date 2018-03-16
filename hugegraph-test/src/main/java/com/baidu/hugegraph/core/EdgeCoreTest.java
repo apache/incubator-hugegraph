@@ -37,6 +37,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -404,7 +405,25 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            james.addEdge("look", book);
+            james.addEdge("write", book);
+        });
+    }
+
+    @Test
+    public void testAddEdgeWithLargeSortValues() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+
+        Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            final int LEN = BytesBuffer.BIG_ID_MAX_LEN;
+            String largeTime = new String(new byte[LEN]) + "{large-time}";
+            james.addEdge("write", book, "time", largeTime);
+            graph.tx().commit();
         });
     }
 
