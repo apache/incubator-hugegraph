@@ -365,8 +365,8 @@ public class CassandraTables {
             try {
                 rs = session.execute(select);
             } catch (DriverException e) {
-                throw new BackendException("Failed to query edges with " +
-                          "label '%s' for deleting", label, e);
+                throw new BackendException("Failed to query edges " +
+                          "with label '%s' for deleting", e, label);
             }
 
             // Delete edges

@@ -43,6 +43,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -79,6 +80,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this.edges = InsertionOrderUtil.newSet();
         this.tx = null;
         this.name = null;
+        if (this.id != null) {
+            this.checkIdLength();
+        }
     }
 
     @Override
@@ -151,6 +155,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 throw new AssertionError(String.format(
                           "Unknown id strategy '%s'", strategy));
         }
+        this.checkIdLength();
+    }
+
+    protected void checkIdLength() {
+        int len = this.id.length();
+        E.checkArgument(len <= BytesBuffer.ID_MAX_LEN,
+                        "The max length of vertex id is %s, but got %s {%s}",
+                        BytesBuffer.ID_MAX_LEN, len, this.id);
     }
 
     @Override

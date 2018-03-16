@@ -352,7 +352,7 @@ public class BinarySerializer extends AbstractSerializer {
             BytesBuffer buffer = BytesBuffer.allocate(indexId.length +
                                                       1 + elemId.length() + 1);
             buffer.write(indexId);
-            buffer.writeId(elemId);
+            buffer.writeId(elemId, true);
             buffer.writeUInt8(indexId.length);
 
             // Ensure the original look of the index key
@@ -381,7 +381,7 @@ public class BinarySerializer extends AbstractSerializer {
             int idLength = col.name[col.name.length - 1];
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
             buffer.read(idLength);
-            index.elementIds(buffer.readId());
+            index.elementIds(buffer.readId(true));
         }
         return index;
     }

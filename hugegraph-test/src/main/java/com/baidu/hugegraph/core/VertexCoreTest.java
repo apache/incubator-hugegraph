@@ -445,14 +445,35 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices,
                        T.label, "programmer", "name", "marko",
                        "age", 18, "city", "Beijing");
+    }
 
+    @Test
+    public void testAddVertexWithCustomizeStringIdStrategyWithoutValidId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .useCustomizeStringId()
+              .properties("name", "age", "city")
+              .create();
+
+        // Expect id, but no id
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "programmer", "name", "marko",
                             "age", 18, "city", "Beijing");
         });
 
+        // Expect string id, but got number id
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "programmer", T.id, 123456,
+                            "name", "marko", "age", 18, "city", "Beijing");
+        });
+
+        // Expect id length <= 128
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            String largeId = new String(new byte[128]) + ".";
+            assert largeId.length() == 129;
+            graph.addVertex(T.label, "programmer", T.id, largeId,
                             "name", "marko", "age", 18, "city", "Beijing");
         });
     }
@@ -478,12 +499,25 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices,
                        T.label, "programmer", "name", "marko",
                        "age", 18, "city", "Beijing");
+    }
 
+    @Test
+    public void testAddVertexWithCustomizeNumberIdStrategyWithoutValidId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .useCustomizeNumberId()
+              .properties("name", "age", "city")
+              .create();
+
+        // Expect id, but no id
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "programmer", "name", "marko",
                             "age", 18, "city", "Beijing");
         });
 
+        // Expect number id, but got string id
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "programmer", T.id, "123456",
                             "name", "marko", "age", 18, "city", "Beijing");
