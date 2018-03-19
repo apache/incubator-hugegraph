@@ -33,6 +33,7 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.google.common.collect.ImmutableList;
 
+@SuppressWarnings("resource")
 public class FilterIteratorTest extends BaseUnitTest {
 
     private static final List<Integer> DATA = ImmutableList.of(1, 2, 3, 4);
