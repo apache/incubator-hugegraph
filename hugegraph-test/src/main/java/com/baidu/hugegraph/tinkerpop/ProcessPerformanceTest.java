@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 @RunWith(ProcessPerformanceSuite.class)
 @GraphProviderClass(provider = ProcessTestGraphProvider.class,
                     graph = TestGraph.class)
+@SuppressWarnings("deprecation")
 public class ProcessPerformanceTest {
 }
 

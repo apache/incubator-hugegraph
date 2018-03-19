@@ -35,6 +35,7 @@ import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+@SuppressWarnings("resource")
 public class MapperIteratorTest extends BaseUnitTest {
 
     private static final Map<String, Integer> DATA = ImmutableMap.of(

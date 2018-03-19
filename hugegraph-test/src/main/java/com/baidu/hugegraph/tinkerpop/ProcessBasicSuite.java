@@ -102,6 +102,7 @@ import com.baidu.hugegraph.dist.RegisterUtil;
  *
  * @author Stephen Mallette (http://stephen.genoprime.com)
  */
+@SuppressWarnings("deprecation")
 public class ProcessBasicSuite extends AbstractGremlinSuite {
     /**
      * This list of tests in the suite that will be executed

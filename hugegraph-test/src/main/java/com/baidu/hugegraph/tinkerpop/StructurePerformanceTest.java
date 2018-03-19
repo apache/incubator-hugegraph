@@ -25,5 +25,6 @@ import org.junit.runner.RunWith;
 @RunWith(StructurePerformanceSuite.class)
 @GraphProviderClass(provider = StructureTestGraphProvider.class,
                     graph = TestGraph.class)
+@SuppressWarnings("deprecation")
 public class StructurePerformanceTest {
 }
