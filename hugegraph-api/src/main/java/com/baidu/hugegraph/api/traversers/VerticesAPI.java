@@ -58,7 +58,7 @@ public class VerticesAPI extends API {
         E.checkArgument(stringIds != null && !stringIds.isEmpty(),
                         "Ids can't be null or empty");
 
-        Id[] ids = new Id[stringIds.size()];
+        Object[] ids = new Id[stringIds.size()];
         for (int i = 0; i < ids.length; i++) {
             ids[i] = VertexAPI.checkAndParseVertexId(stringIds.get(i));
         }
