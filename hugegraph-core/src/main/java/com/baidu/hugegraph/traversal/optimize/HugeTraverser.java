@@ -53,9 +53,16 @@ public class HugeTraverser {
 
     public List<Id> shortestPath(Id sourceV, Id targetV, Directions dir,
                                  String label, int maxDepth) {
+        E.checkNotNull(sourceV, "source vertex id");
+        E.checkNotNull(targetV, "target vertex id");
+        E.checkNotNull(dir, "direction");
         E.checkArgument(maxDepth >= 1,
                         "Shortest path step must >= 1, but got '%s'",
                         maxDepth);
+
+        if (sourceV.equals(targetV)) {
+            return ImmutableList.of(sourceV);
+        }
 
         Id labelId = this.getEdgeLabelId(label);
         ShortestPathTraverser traverser = new ShortestPathTraverser(
@@ -77,6 +84,8 @@ public class HugeTraverser {
 
     public Set<Id> kout(Id sourceV, Directions dir, String label,
                         int depth, boolean nearest) {
+        E.checkNotNull(sourceV, "source vertex id");
+        E.checkNotNull(dir, "direction");
         E.checkArgument(depth >= 1,
                         "K-out depth must >= 1, but got '%s'", depth);
 
@@ -102,6 +111,8 @@ public class HugeTraverser {
 
     public Set<Id> kneighbor(Id sourceV, Directions dir,
                              String label, int depth) {
+        E.checkNotNull(sourceV, "source vertex id");
+        E.checkNotNull(dir, "direction");
         E.checkArgument(depth >= 1,
                         "K-neighbor depth must >= 1, but got '%s'", depth);
         Id labelId = this.getEdgeLabelId(label);
@@ -279,6 +290,7 @@ public class HugeTraverser {
             return this.id;
         }
 
+        @SuppressWarnings("unused")
         public Node parent() {
             return this.parent;
         }
