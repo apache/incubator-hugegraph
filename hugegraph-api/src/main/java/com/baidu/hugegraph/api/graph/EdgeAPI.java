@@ -283,12 +283,15 @@ public class EdgeAPI extends API {
     }
 
     private static Vertex getVertex(HugeGraph graph, Object id, String label) {
+        HugeVertex vertex;
         try {
-            return graph.traversal().V(id).next();
+            vertex = (HugeVertex) graph.vertices(id).next();
         } catch (NoSuchElementException e) {
             throw new IllegalArgumentException(String.format(
                       "Invalid vertex id '%s'", id));
         }
+        // Clone a new vertex to support multi-thread access
+        return vertex.copy().resetTx();
     }
 
     private static Vertex newVertex(HugeGraph graph, Object id, String label) {
