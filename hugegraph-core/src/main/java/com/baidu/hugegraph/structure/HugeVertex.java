@@ -215,6 +215,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this.edges.add(edge);
     }
 
+    /**
+     * Add one edge between this vertex and other vertex
+     *
+     * *** this method is not thread safe, must clone this vertex first before
+     * multi thread access e.g. `vertex.copy().resetTx();` ***
+     */
     @Watched(prefix = "vertex")
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
