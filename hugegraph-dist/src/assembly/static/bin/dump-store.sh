@@ -14,13 +14,18 @@ BIN=`abs_path`
 CONF=$BIN/../conf
 LIB=$BIN/../lib
 
-echo "Initing HugeGraph Store..."
-
 if [ -n "$JAVA_HOME" ]; then
     JAVA="$JAVA_HOME"/bin/java
 else
     JAVA=java
 fi
 
+conf=$1
+if [ $# -eq 0 ]; then
+    conf=$CONF/hugegraph.properties
+fi
+
+echo "Dumping HugeGraph Store($conf)..."
+
 exec $JAVA -cp $LIB/hugegraph-dist-*.jar -Djava.ext.dirs=$LIB/ \
-com.baidu.hugegraph.cmd.InitStore $CONF/gremlin-server.yaml | grep INFO
+com.baidu.hugegraph.cmd.StoreDumper $conf $2 $3 $4
