@@ -19,35 +19,64 @@
 
 package com.baidu.hugegraph.config;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.baidu.hugegraph.util.Log;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class OptionSpace {
 
     private static final Logger LOG = Log.logger(OptionSpace.class);
 
+    private static final Map<String, Class<? extends OptionHolder>> holders;
     private static final Map<String, ConfigOption<?>> options;
 
     static {
+        holders = new ConcurrentHashMap<>();
         options = new ConcurrentHashMap<>();
     }
 
-    public static void register(OptionHolder holder) {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public static void register(String module, String holder) {
+        ClassLoader classLoader = OptionSpace.class.getClassLoader();
+        Class<?> clazz;
+        try {
+            clazz = classLoader.loadClass(holder);
+        } catch (Exception e) {
+            throw new ConfigException(
+                      "Failed to load class of option holder '%s'", e, holder);
+        }
+
+        // Check subclass
+        if (!OptionHolder.class.isAssignableFrom(clazz)) {
+            throw new ConfigException(
+                      "Class '%s' is not a subclass of OptionHolder", holder);
+        }
+
+        OptionHolder instance;
+        try {
+            Method method = clazz.getMethod("instance");
+            instance = (OptionHolder) method.invoke(null);
+        } catch (Exception e) {
+            throw new ConfigException(
+                      "Failed to instantiate option holder '%s'", e, holder);
+        }
+
+        register(module, instance);
+    }
+
+    public static void register(String module, OptionHolder holder) {
+        // Check exists
+        if (holders.containsKey(module)) {
+            LOG.warn("Already registered option holder: {} ({})",
+                     module, holders.get(module));
+        }
+        holders.put(module, holder.getClass());
         options.putAll(holder.options());
         LOG.debug("Registered options for OptionHolder: {}",
                   holder.getClass().getSimpleName());
-    }
-
-    public static void register(ConfigOption<?> element) {
-        E.checkArgument(!options.containsKey(element.name()),
-                        "The option '%s' has already been registered",
-                        element.name());
-        options.put(element.name(), element);
     }
 
     public static Boolean containKey(String key) {
