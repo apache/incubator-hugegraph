@@ -28,9 +28,6 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
-import com.baidu.hugegraph.backend.store.mysql.MysqlOptions;
-import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
-import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
@@ -40,8 +37,8 @@ import com.baidu.hugegraph.util.E;
 public class RegisterUtil {
 
     static {
-        OptionSpace.register(CoreOptions.instance());
-        OptionSpace.register(DistOptions.instance());
+        OptionSpace.register("core", CoreOptions.instance());
+        OptionSpace.register("dist", DistOptions.instance());
     }
 
     public static void registerBackends() {
@@ -89,7 +86,8 @@ public class RegisterUtil {
 
     public static void registerCassandra() {
         // Register config
-        OptionSpace.register(CassandraOptions.instance());
+        OptionSpace.register("cassandra",
+                "com.baidu.hugegraph.config.CassandraOptions");
         // Register serializer
         SerializerFactory.register("cassandra",
                 "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
@@ -100,7 +98,8 @@ public class RegisterUtil {
 
     public static void registerScyllaDB() {
         // Register config
-        OptionSpace.register(CassandraOptions.instance());
+        OptionSpace.register("cassandra",
+                "com.baidu.hugegraph.config.CassandraOptions");
         // Register serializer
         SerializerFactory.register("scylladb",
                 "com.baidu.hugegraph.backend.store.scylladb.ScyllaDBSerializer");
@@ -114,7 +113,8 @@ public class RegisterUtil {
 
     public static void registerRocksDB() {
         // Register config
-        OptionSpace.register(RocksDBOptions.instance());
+        OptionSpace.register("rocksdb",
+                "com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions");
         // Register backend
         BackendProviderFactory.register("rocksdb",
                 "com.baidu.hugegraph.backend.store.rocksdb.RocksDBStoreProvider");
@@ -124,7 +124,8 @@ public class RegisterUtil {
 
     public static void registerMysql() {
         // Register config
-        OptionSpace.register(MysqlOptions.instance());
+        OptionSpace.register("mysql",
+                "com.baidu.hugegraph.backend.store.mysql.MysqlOptions");
         // Register serializer
         SerializerFactory.register("mysql",
                 "com.baidu.hugegraph.backend.store.mysql.MysqlSerializer");
@@ -134,6 +135,6 @@ public class RegisterUtil {
     }
 
     public static void registerServer() {
-        OptionSpace.register(ServerOptions.instance());
+        OptionSpace.register("server", ServerOptions.instance());
     }
 }
