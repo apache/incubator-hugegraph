@@ -49,6 +49,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.KryoUtil;
 import com.baidu.hugegraph.util.StringEncoding;
@@ -244,7 +245,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     protected void parseColumn(BackendColumn col, HugeVertex vertex) {
         BytesBuffer buffer = BytesBuffer.wrap(col.name);
-        buffer.readId();
+        Id id = buffer.readId();
         byte type = buffer.read();
         // Parse property
         if (type == HugeType.PROPERTY.code()) {
@@ -255,6 +256,15 @@ public class BinarySerializer extends AbstractSerializer {
         else if (type == HugeType.EDGE_IN.code() ||
                  type == HugeType.EDGE_OUT.code()) {
             this.parseEdge(col, vertex, vertex.graph());
+        }
+        // Parse system property
+        else if (type == HugeType.SYS_PROPERTY.code()) {
+            // pass
+        }
+        // Invalid entry
+        else {
+            E.checkState(false, "Invalid entry(%s) with unknown type(%s): 0x%s",
+                         id, type & 0xff, Bytes.toHex(col.name));
         }
     }
 

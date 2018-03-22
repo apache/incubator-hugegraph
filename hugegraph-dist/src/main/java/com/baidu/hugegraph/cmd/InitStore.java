@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.dist;
+package com.baidu.hugegraph.cmd;
 
 import java.util.Collection;
 import java.util.List;
@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;

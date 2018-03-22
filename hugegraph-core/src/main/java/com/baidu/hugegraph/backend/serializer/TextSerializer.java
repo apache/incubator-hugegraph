@@ -215,9 +215,18 @@ public class TextSerializer extends AbstractSerializer {
             this.parseProperty(colName, colValue, vertex);
         }
         // Parse edge
-        if (type.equals(writeType(HugeType.EDGE_OUT)) ||
+        else if (type.equals(writeType(HugeType.EDGE_OUT)) ||
             type.equals(writeType(HugeType.EDGE_IN))) {
             this.parseEdge(colName, colValue, vertex);
+        }
+        // Parse system property
+        else if (type.equals(writeType(HugeType.SYS_PROPERTY))) {
+            // pass
+        }
+        // Invalid entry
+        else {
+            E.checkState(false, "Invalid entry with unknown type(%s): %s",
+                         type, colName);
         }
     }
 
