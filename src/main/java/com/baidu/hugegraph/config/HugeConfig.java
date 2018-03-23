@@ -19,18 +19,17 @@
 
 package com.baidu.hugegraph.config;
 
-import java.io.File;
-import java.util.Iterator;
-import java.util.List;
-
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import org.apache.commons.configuration.AbstractFileConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
+import java.io.File;
+import java.util.Iterator;
+import java.util.List;
 
 public class HugeConfig extends PropertiesConfiguration {
 
@@ -40,12 +39,8 @@ public class HugeConfig extends PropertiesConfiguration {
         if (config == null) {
             throw new ConfigException("The config object is null");
         }
-        if (config instanceof AbstractFileConfiguration) {
-            File file = ((AbstractFileConfiguration) config).getFile();
-            if (file != null) {
-                this.setFile(file);
-            }
-        }
+
+        this.reloadIfNeed(config);
 
         Iterator<String> keys = config.getKeys();
         while (keys.hasNext()) {
@@ -60,6 +55,34 @@ public class HugeConfig extends PropertiesConfiguration {
 
     public HugeConfig(String configFile) {
         this(loadConfigFile(configFile));
+    }
+
+    private void reloadIfNeed(Configuration config) {
+        if (config instanceof AbstractFileConfiguration) {
+            AbstractFileConfiguration fileConfig =
+                                      (AbstractFileConfiguration) config;
+
+            File file = fileConfig.getFile();
+            if (file != null) {
+                // May need to use the original file
+                this.setFile(file);
+            }
+
+            if (!fileConfig.isDelimiterParsingDisabled()) {
+                /*
+                 * PropertiesConfiguration will parse the containing comma
+                 * config options into list directly, but we want to do
+                 * this work by ourselves, so reload it and parse into `String`
+                 */
+                fileConfig.setDelimiterParsingDisabled(true);
+                try {
+                    fileConfig.refresh();
+                } catch (ConfigurationException e) {
+                    throw new ConfigException("Unable to load config file: %s",
+                                              e, file);
+                }
+            }
+        }
     }
 
     private static PropertiesConfiguration loadConfigFile(String path) {
