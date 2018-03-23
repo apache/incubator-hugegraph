@@ -21,10 +21,13 @@ package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -63,8 +66,11 @@ public abstract class RocksDBStore implements BackendStore {
     private HugeConfig conf;
 
     private RocksDBSessions sessions;
+    private Map<HugeType, String> tableDiskMapping;
 
-    private static Map<String, RocksDBSessions> dbs = new ConcurrentHashMap<>();
+    // DataPath:RocksDB mapping
+    private static final Map<String, RocksDBSessions> dbs =
+                                                      new ConcurrentHashMap<>();
 
     public RocksDBStore(final BackendStoreProvider provider,
                         final String database, final String name) {
@@ -75,6 +81,7 @@ public abstract class RocksDBStore implements BackendStore {
         this.name = name;
         this.conf = null;
         this.sessions = null;
+        this.tableDiskMapping = new HashMap<>();;
     }
 
     protected void registerTableManager(HugeType type, RocksDBTable table) {
@@ -127,23 +134,40 @@ public abstract class RocksDBStore implements BackendStore {
             return;
         }
 
-        String data = wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
-        String wal = wrapPath(this.conf.get(RocksDBOptions.WAL_PATH));
+        // Open base disk
+        String data = this.wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
+        String wal = this.wrapPath(this.conf.get(RocksDBOptions.WAL_PATH));
+        this.sessions = this.open(data, wal, this.tableNames());
+
+        // Open tables with optimized disk
+        List<String> disks = this.conf.get(RocksDBOptions.DATA_DISKS);
+        if (!disks.isEmpty()) {
+            this.parseTableDiskMapping(disks);
+            for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
+                String table = this.table(e.getKey()).table();
+                String disk = e.getValue();
+                this.open(disk, disk, Arrays.asList(table));
+            }
+        }
+    }
+
+    protected RocksDBSessions open(String data, String wal, List<String> tbs) {
         LOG.info("Opening RocksDB with data path: {}", data);
 
+        RocksDBSessions sessions = null;
         try {
-            this.sessions = newSessions(this.conf, data, wal, tableNames());
+            sessions = newSessions(this.conf, data, wal, tbs);
         } catch (RocksDBException e) {
             if (dbs.containsKey(data)) {
                 if (e.getMessage().contains("No locks available")) {
                     // Open twice, but we should support keyspace
-                    this.sessions = dbs.get(data);
+                    sessions = dbs.get(data);
                 } else if (e.getMessage().contains("Column family not found")) {
                     // Open a keyspace after other keyspace closed
                     try {
                         // Will open old CFs(of other keyspace)
                         final List<String> none = ImmutableList.of();
-                        this.sessions = newSessions(this.conf, data, wal, none);
+                        sessions = newSessions(this.conf, data, wal, none);
                     } catch (RocksDBException e1) {
                         // Let it throw later
                         e = e1;
@@ -152,28 +176,30 @@ public abstract class RocksDBStore implements BackendStore {
             } else if (e.getMessage().contains("Column family not found")) {
                 // Before init the first keyspace
                 LOG.info("Failed to open RocksDB '{}' with database '{}', " +
-                         "try to init CF later", this.name, this.database);
+                         "try to init CF later", data, this.database);
                 try {
                     // Only open default CF, won't open old CFs
-                    this.sessions = newSessions(this.conf, data, wal, null);
+                    sessions = newSessions(this.conf, data, wal, null);
                 } catch (RocksDBException e1) {
                     LOG.error("Failed to open RocksDB with default CF", e1);
                 }
             }
 
-            if (this.sessions == null) {
+            if (sessions == null) {
                 // Error after trying other ways
-                LOG.error("Failed to open RocksDB '{}'", this.name, e);
+                LOG.error("Failed to open RocksDB '{}'", data, e);
                 throw new BackendException("Failed to open RocksDB '%s'",
-                                           e, this.name);
+                                           e, data);
             }
         }
 
-        if (this.sessions != null) {
-            dbs.put(data, this.sessions);
-            this.sessions.session();
-            LOG.debug("Store opened: {}", this.name);
+        if (sessions != null) {
+            dbs.put(data, sessions);
+            sessions.session();
+            LOG.debug("Store opened: {}", data);
         }
+
+        return sessions;
     }
 
     protected RocksDBSessions newSessions(HugeConfig config,
@@ -201,9 +227,12 @@ public abstract class RocksDBStore implements BackendStore {
             LOG.debug("Store {} mutation: {}", this.name, mutation);
         }
 
-        Session session = this.session();
-        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
-            this.mutate(session, it.next());
+        for (HugeType type : mutation.types()) {
+            Session session = this.session(type);
+            for (Iterator<BackendAction> it = mutation.mutation(type);
+                 it.hasNext();) {
+                this.mutate(session, it.next());
+            }
         }
     }
 
@@ -232,8 +261,9 @@ public abstract class RocksDBStore implements BackendStore {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        RocksDBTable table = this.table(RocksDBTable.tableType(query));
-        return table.query(this.session(), query);
+        HugeType tableType = RocksDBTable.tableType(query);
+        RocksDBTable table = this.table(tableType);
+        return table.query(this.session(tableType), query);
     }
 
     @Override
@@ -241,15 +271,26 @@ public abstract class RocksDBStore implements BackendStore {
         this.checkOpened();
 
         for (String table : this.tableNames()) {
-            try {
-                this.sessions.createTable(table);
-            } catch (RocksDBException e) {
-                throw new BackendException("Failed to create '%s' for '%s'",
-                                           e, table, this.name);
-            }
+            this.cretaTable(this.sessions, table);
+        }
+
+        // Create table with optimized disk
+        for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
+            String table = this.table(e.getKey()).table();
+            RocksDBSessions db = db(e.getValue());
+            this.cretaTable(db, table);
         }
 
         LOG.info("Store initialized: {}", this.name);
+    }
+
+    private void cretaTable(RocksDBSessions db, String table) {
+        try {
+            db.createTable(table);
+        } catch (RocksDBException e) {
+            throw new BackendException("Failed to create '%s' for '%s'",
+                                       e, table, this.name);
+        }
     }
 
     @Override
@@ -257,20 +298,31 @@ public abstract class RocksDBStore implements BackendStore {
         this.checkOpened();
 
         for (String table : this.tableNames()) {
-            try {
-                this.sessions.dropTable(table);
-            } catch (BackendException e) {
-                if (e.getMessage().contains("is not opened")) {
-                    continue;
-                }
-                throw e;
-            } catch (RocksDBException e) {
-                throw new BackendException("Failed to drop '%s' for '%s'",
-                                           e, table, this.name);
-            }
+            this.dropTable(this.sessions, table);
+        }
+
+        // Drop table with optimized disk
+        for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
+            String table = this.table(e.getKey()).table();
+            RocksDBSessions db = db(e.getValue());
+            this.dropTable(db, table);
         }
 
         LOG.info("Store cleared: {}", this.name);
+    }
+
+    private void dropTable(RocksDBSessions db, String table) {
+        try {
+            this.sessions.dropTable(table);
+        } catch (BackendException e) {
+            if (e.getMessage().contains("is not opened")) {
+                return;
+            }
+            throw e;
+        } catch (RocksDBException e) {
+            throw new BackendException("Failed to drop '%s' for '%s'",
+                                       e, table, this.name);
+        }
     }
 
     @Override
@@ -281,20 +333,22 @@ public abstract class RocksDBStore implements BackendStore {
     @Override
     public void commitTx() {
         this.checkOpened();
-        Session session = this.session();
-
-        Object count = session.commit();
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Store {} committed {} items", this.name, count);
+        // Unable to guarantee atomicity when committing multi sessions
+        for (Session session : this.session()) {
+            Object count = session.commit();
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Store {} committed {} items", this.name, count);
+            }
         }
     }
 
     @Override
     public void rollbackTx() {
         this.checkOpened();
-        Session session = this.session();
 
-        session.clear();
+        for (Session session : this.session()) {
+            session.clear();
+        }
     }
 
     @Override
@@ -302,14 +356,58 @@ public abstract class RocksDBStore implements BackendStore {
         throw new UnsupportedOperationException("RocksDBStore.metadata()");
     }
 
-    private Session session() {
+    private Session session(HugeType tableType) {
         this.checkOpened();
+
+        // Optimized disk
+        String disk = this.tableDiskMapping.get(tableType);
+        if (disk != null) {
+            return db(disk).session();
+        }
+
         return this.sessions.session();
+    }
+
+    private List<Session> session() {
+        this.checkOpened();
+
+        if (this.tableDiskMapping.isEmpty()) {
+            return Arrays.asList(this.sessions.session());
+        }
+
+        // Collect session of each table with optimized disk
+        List<Session> list = new ArrayList<>(this.tableDiskMapping.size() + 1);
+        list.add(this.sessions.session());
+        for (String disk : this.tableDiskMapping.values()) {
+            list.add(db(disk).session());
+        }
+        return list;
     }
 
     private void checkOpened() {
         E.checkState(this.sessions != null && !this.sessions.closed(),
                      "RocksDB store has not been opened");
+    }
+
+    private void parseTableDiskMapping(List<String> disks) {
+        this.tableDiskMapping.clear();
+        for (String disk : disks) {
+            // The format of `disk` like: `graph/vertex: /path/to/disk1`
+            String[] pair = disk.split(":", 2);
+            E.checkState(pair.length == 2,
+                         "Invalid disk format: '%s', expect `NAME:PATH`", disk);
+            String name = pair[0].trim();
+            String path = pair[1].trim();
+            pair = name.split("/", 2);
+            E.checkState(pair.length == 2,
+                         "Invalid disk key format: '%s', expect `STORE/TABLE`",
+                         name);
+            String store = pair[0].trim();
+            HugeType table = HugeType.valueOf(pair[1].trim().toUpperCase());
+            if (this.name.equals(store)) {
+                this.tableDiskMapping.put(table, this.wrapPath(path));
+            }
+        }
     }
 
     private String wrapPath(String path) {
@@ -321,6 +419,13 @@ public abstract class RocksDBStore implements BackendStore {
         }
         // Join with store type
         return Paths.get(path, this.name).toString();
+    }
+
+    private static RocksDBSessions db(String disk) {
+        RocksDBSessions db = dbs.get(disk);
+        E.checkState(db != null && !db.closed(),
+                     "RocksDB store has not been opened: %s", disk);
+        return db;
     }
 
     /***************************** Store defines *****************************/
