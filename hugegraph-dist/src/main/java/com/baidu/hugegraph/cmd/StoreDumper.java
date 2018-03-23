@@ -43,9 +43,9 @@ public class StoreDumper {
     }
 
     public void dump(HugeType table, long offset, long limit) {
-        BackendStore store = table.isGraph() ?
-                             this.graph.graphTransaction().store() :
-                             this.graph.schemaTransaction().store();
+        BackendStore store = table.isSchema() ?
+                             this.graph.schemaTransaction().store() :
+                             this.graph.graphTransaction().store();
 
         Query query = new Query(table);
         Iterator<BackendEntry> rs = store.query(query);
