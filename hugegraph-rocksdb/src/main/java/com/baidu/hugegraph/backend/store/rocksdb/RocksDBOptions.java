@@ -24,9 +24,11 @@ import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
+import com.baidu.hugegraph.config.ConfigListOption;
 import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.OptionHolder;
 import com.baidu.hugegraph.util.Bytes;
+import com.google.common.collect.ImmutableList;
 
 public class RocksDBOptions extends OptionHolder {
 
@@ -54,6 +56,17 @@ public class RocksDBOptions extends OptionHolder {
                     "The path for storing data of RocksDB.",
                     disallowEmpty(),
                     "rocksdb-data"
+            );
+
+    public static final ConfigListOption<String> DATA_DISKS =
+            new ConfigListOption<>(
+                    "rocksdb.data_disks",
+                    false,
+                    "The optimized disks for storing data of RocksDB. " +
+                    "The format of each element: `STORE/TABLE: /path/to/disk`",
+                    null,
+                    String.class,
+                    ImmutableList.of()
             );
 
     public static final ConfigOption<String> WAL_PATH =
