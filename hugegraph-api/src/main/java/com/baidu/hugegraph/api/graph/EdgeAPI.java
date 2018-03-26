@@ -119,7 +119,7 @@ public class EdgeAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public List<String> create(@Context GraphManager manager,
                                @PathParam("graph") String graph,
-                               @QueryParam("checkVertex")
+                               @QueryParam("check_vertex")
                                @DefaultValue("true") boolean checkVertex,
                                List<JsonEdge> jsonEdges) {
         LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
