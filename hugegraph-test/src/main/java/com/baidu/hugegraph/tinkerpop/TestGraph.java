@@ -39,7 +39,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.type.define.IdStrategy;
 
-@Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructureBasicSuite")
+@Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructureStandardTest")
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.ProcessStandardTest")
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructurePerformanceTest")
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.ProcessPerformanceTest")
