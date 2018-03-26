@@ -42,7 +42,6 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.ImmutableSet;
 
 public final class HugeVertexStep<E extends Element>
              extends VertexStep<E> implements QueryHolder {
@@ -112,60 +111,49 @@ public final class HugeVertexStep<E extends Element>
         boolean withEdgeCond = Edge.class.isAssignableFrom(getReturnClass()) &&
                                !conditions.isEmpty();
 
-        Vertex vertex = traverser.get();
+        Id vertex = (Id) traverser.get().id();
         Directions direction = Directions.convert(this.getDirection());
         String[] edgeLabels = this.getEdgeLabels();
 
         LOG.debug("HugeVertexStep.edges(): vertex={}, direction={}, " +
                   "edgeLabels={}, has={}",
-                  vertex.id(), direction, edgeLabels, this.hasContainers);
-
-        ImmutableSet<Directions> directions = ImmutableSet.of(direction);
-        // Deal with direction is BOTH
-        if (direction == Directions.BOTH) {
-            directions = ImmutableSet.of(Directions.OUT, Directions.IN);
-        }
+                  vertex, direction, edgeLabels, this.hasContainers);
 
         Id[] edgeLabelIds = graph.mapElName2Id(edgeLabels);
 
-        ExtendableIterator<Edge> results = new ExtendableIterator<>();
-        for (Directions dir : directions) {
-            ConditionQuery query = GraphTransaction.constructEdgesQuery(
-                                   (Id) vertex.id(), dir, edgeLabelIds);
-
-            // Query by sort-keys
-            boolean bySortKeys = false;
-            if (withEdgeCond && edgeLabels.length > 0) {
-                TraversalUtil.fillConditionQuery(conditions, query, graph);
-                if (GraphTransaction.matchEdgeSortKeys(query, graph)) {
-                    bySortKeys = true;
-                } else {
-                    // Can't query by sysprop and by index(HugeGraph-749)
-                    query.resetUserpropConditions();
-                }
+        ConditionQuery query = GraphTransaction.constructEdgesQuery(
+                               vertex, direction, edgeLabelIds);
+        // Query by sort-keys
+        boolean bySortKeys = false;
+        if (withEdgeCond && edgeLabels.length > 0) {
+            TraversalUtil.fillConditionQuery(conditions, query, graph);
+            if (GraphTransaction.matchEdgeSortKeys(query, graph)) {
+                bySortKeys = true;
+            } else {
+                // Can't query by sysprop and by index(HugeGraph-749)
+                query.resetUserpropConditions();
             }
-
-            // Query by has(id)
-            if (!query.ids().isEmpty()) {
-                // Ignore conditions if query by edge id in has-containers
-                // FIXME: should check that the edge id matches the `vertex`
-                query.resetConditions();
-                LOG.warn("It's not recommended to query by has(id)");
-            }
-
-            query = this.injectQueryInfo(query);
-
-            // Do query
-            Iterator<Edge> edges = graph.edges(query);
-
-            // Do filter by edge conditions
-            if (withEdgeCond && !bySortKeys) {
-                edges = TraversalUtil.filterResult(this.hasContainers, edges);
-            }
-
-            results.extend(edges);
         }
-        return results;
+
+        // Query by has(id)
+        if (!query.ids().isEmpty()) {
+            // Ignore conditions if query by edge id in has-containers
+            // FIXME: should check that the edge id matches the `vertex`
+            query.resetConditions();
+            LOG.warn("It's not recommended to query by has(id)");
+        }
+
+        query = this.injectQueryInfo(query);
+
+        // Do query
+        Iterator<Edge> edges = graph.edges(query);
+
+        // Do filter by edge conditions
+        if (withEdgeCond && !bySortKeys) {
+            edges = TraversalUtil.filterResult(this.hasContainers, edges);
+        }
+
+        return edges;
     }
 
     @Override
