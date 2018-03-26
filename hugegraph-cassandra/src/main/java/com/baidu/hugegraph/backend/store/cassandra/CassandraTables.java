@@ -287,7 +287,14 @@ public class CassandraTables {
             );
 
             this.createTable(session, pkeys, ckeys, columns);
-            this.createIndex(session, "edge_label_index", HugeKeys.LABEL);
+
+            /*
+             * Only out-edges table needs label index because we query edges
+             * by label from out-edges table
+             */
+            if (this.direction == Directions.OUT) {
+                this.createIndex(session, "edge_label_index", HugeKeys.LABEL);
+            }
         }
 
         @Override
