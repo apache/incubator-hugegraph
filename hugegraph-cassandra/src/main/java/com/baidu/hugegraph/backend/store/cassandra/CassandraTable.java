@@ -420,6 +420,7 @@ public abstract class CassandraTable
         List<HugeKeys> colNames = this.modifiableColumnName();
 
         Map<HugeKeys, Object> columns = entry.columns();
+
         // Update by id
         Update update = QueryBuilder.update(table());
 
@@ -520,14 +521,14 @@ public abstract class CassandraTable
     }
 
     protected void createIndex(CassandraSessionPool.Session session,
-                               String indexLabel,
-                               HugeKeys column) {
-        SchemaStatement createIndex = SchemaBuilder.createIndex(indexLabel)
-                                      .ifNotExists().onTable(this.table())
-                                      .andColumn(formatKey(column));
-
-        LOG.debug("Create index: {}", createIndex);
-        session.execute(createIndex);
+                               String indexLabel, HugeKeys column) {
+        String indexName = this.table() + "_" + indexLabel;
+        SchemaStatement index = SchemaBuilder.createIndex(indexName)
+                                             .ifNotExists()
+                                             .onTable(this.table())
+                                             .andColumn(formatKey(column));
+        LOG.debug("Create index: {}", index);
+        session.execute(index);
     }
 
     @Override
