@@ -59,7 +59,7 @@ public final class JsonUtil {
         }
     }
 
-    public static <T> T fromJson(String json, TypeReference typeRef) {
+    public static <T> T fromJson(String json, TypeReference<?> typeRef) {
         E.checkState(json != null,
                      "Json value can't be null for '%s'",
                      typeRef.getType());

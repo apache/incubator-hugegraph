@@ -24,12 +24,10 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.baidu.hugegraph.backend.id.Id;
-
 public final class InsertionOrderUtil {
 
-    public static <V> Map<Id, V> newMap() {
-        return new LinkedHashMap<Id, V>();
+    public static <K, V> Map<K, V> newMap() {
+        return new LinkedHashMap<K, V>();
     }
 
     public static <V> Set<V> newSet() {

@@ -361,6 +361,11 @@ public class CassandraTables {
 
         protected void deleteEdgesByLabel(CassandraSessionPool.Session session,
                                           Id label) {
+            // Edges in edges_in table will be deleted when direction is OUT
+            if (this.direction == Directions.IN) {
+                return;
+            }
+
             final String OWNER_VERTEX = formatKey(HugeKeys.OWNER_VERTEX);
             final String DIRECTION = formatKey(HugeKeys.DIRECTION);
 

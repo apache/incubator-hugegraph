@@ -19,30 +19,58 @@
 
 package com.baidu.hugegraph.backend.store;
 
-public class MutateItem {
+public class BackendAction {
 
+    private final Action action;
     private final BackendEntry entry;
-    private final MutateAction action;
 
-    public static MutateItem of(BackendEntry entry, MutateAction action) {
-        return new MutateItem(entry, action);
+    public static BackendAction of(Action action, BackendEntry entry) {
+        return new BackendAction(entry, action);
     }
 
-    public MutateItem(BackendEntry entry, MutateAction action) {
-        this.entry = entry;
+    public BackendAction(BackendEntry entry, Action action) {
         this.action = action;
+        this.entry = entry;
+    }
+
+    public Action action() {
+        return this.action;
     }
 
     public BackendEntry entry() {
         return this.entry;
     }
 
-    public MutateAction action() {
-        return this.action;
-    }
-
     @Override
     public String toString() {
         return String.format("entry: %s, action: %s", this.entry, this.action);
+    }
+
+    public enum Action {
+
+        INSERT(0, "insert"),
+
+        APPEND(1, "append"),
+
+        ELIMINATE(2, "eliminate"),
+
+        DELETE(3, "delete");
+
+        private final byte code;
+        private final String name;
+
+        private Action(int code, String name) {
+            assert code < 256;
+            this.code = (byte) code;
+            this.name = name;
+        }
+
+        public byte code() {
+            return this.code;
+        }
+
+        public String string() {
+            return this.name;
+        }
     }
 }

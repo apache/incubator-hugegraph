@@ -33,7 +33,7 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.MutateAction;
+import com.baidu.hugegraph.backend.store.BackendAction.Action;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.type.HugeType;
@@ -299,7 +299,7 @@ public abstract class AbstractTransaction implements Transaction {
         }
     }
 
-    protected void doAction(MutateAction action, BackendEntry entry) {
+    protected void doAction(Action action, BackendEntry entry) {
         LOG.debug("Transaction {} entry {}", action, entry);
         E.checkNotNull(entry, "entry");
         this.mutation.add(entry, action);
@@ -307,21 +307,21 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Watched(prefix = "tx")
     public void doInsert(BackendEntry entry) {
-        this.doAction(MutateAction.INSERT, entry);
+        this.doAction(Action.INSERT, entry);
     }
 
     @Watched(prefix = "tx")
     public void doAppend(BackendEntry entry) {
-        this.doAction(MutateAction.APPEND, entry);
+        this.doAction(Action.APPEND, entry);
     }
 
     @Watched(prefix = "tx")
     public void doEliminate(BackendEntry entry) {
-        this.doAction(MutateAction.ELIMINATE, entry);
+        this.doAction(Action.ELIMINATE, entry);
     }
 
     @Watched(prefix = "tx")
     public void doRemove(BackendEntry entry) {
-        this.doAction(MutateAction.DELETE, entry);
+        this.doAction(Action.DELETE, entry);
     }
 }
