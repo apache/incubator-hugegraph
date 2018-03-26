@@ -21,7 +21,6 @@ package com.baidu.hugegraph.backend.store.mysql;
 
 import java.sql.SQLException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,12 +29,12 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -172,14 +171,12 @@ public abstract class MysqlStore implements BackendStore {
         this.checkSessionConnected();
         MysqlSessions.Session session = this.sessions.session();
 
-        for (List<MutateItem> items : mutation.mutation().values()) {
-            for (MutateItem item : items) {
-                this.mutate(session, item);
-            }
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+            this.mutate(session, it.next());
         }
     }
 
-    private void mutate(MysqlSessions.Session session, MutateItem item) {
+    private void mutate(MysqlSessions.Session session, BackendAction item) {
         MysqlBackendEntry entry = castBackendEntry(item.entry());
         MysqlTable table = this.table(entry.type());
 

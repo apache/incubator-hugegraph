@@ -19,41 +19,41 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.store.BackendAction.Action;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class BackendMutation {
 
-    private final Map<Id, List<MutateItem>> updates;
+    private final MutationTable updates;
 
     public BackendMutation() {
-        // NOTE: ensure insert order
-        this.updates = InsertionOrderUtil.newMap();
+        this.updates = new MutationTable();
     }
 
     /**
      * Add data entry with an action to collection `updates`
      */
-    @Watched(prefix = "bm")
-    public void add(BackendEntry entry, MutateAction action) {
+    @Watched(prefix = "mutation")
+    public void add(BackendEntry entry, Action action) {
         Id id = entry.id();
         assert id != null;
-        if (this.updates.containsKey(id)) {
+        if (this.updates.containsKey(entry.type(), id)) {
             this.optimizeUpdates(entry, action);
         } else {
             // If there is no entity with this id, add it
-            List<MutateItem> items = new LinkedList<>();
-            items.add(MutateItem.of(entry, action));
-            this.updates.put(id, items);
+            this.updates.put(entry.type(), id, BackendAction.of(action, entry));
         }
     }
 
@@ -66,23 +66,24 @@ public class BackendMutation {
      * 3.If you append an entry and then eliminate it, the new action
      *   can override the old one.
      */
-    @Watched(prefix = "bm")
-    private void optimizeUpdates(BackendEntry entry, MutateAction action) {
+    @Watched(prefix = "mutation")
+    private void optimizeUpdates(BackendEntry entry, Action action) {
         final Id id = entry.id();
         assert id != null;
-        final List<MutateItem> items = this.updates.get(id);
+        final List<BackendAction> items = this.updates.get(entry.type(), id);
+        assert items != null;
         boolean ignoreCurrent = false;
-        for (Iterator<MutateItem> itor = items.iterator(); itor.hasNext();) {
-            MutateItem originItem = itor.next();
-            MutateAction originAction = originItem.action();
+        for (Iterator<BackendAction> itor = items.iterator(); itor.hasNext();) {
+            BackendAction originItem = itor.next();
+            Action originAction = originItem.action();
             switch (action) {
                 case INSERT:
                     itor.remove();
                     break;
                 case DELETE:
-                    if (originAction == MutateAction.INSERT) {
+                    if (originAction == Action.INSERT) {
                         throw incompatibleActionException(action, originAction);
-                    } else if (originAction == MutateAction.DELETE) {
+                    } else if (originAction == Action.DELETE) {
                         ignoreCurrent = true;
                     } else {
                         itor.remove();
@@ -90,8 +91,8 @@ public class BackendMutation {
                     break;
                 case APPEND:
                 case ELIMINATE:
-                    if (originAction == MutateAction.INSERT ||
-                        originAction == MutateAction.DELETE) {
+                    if (originAction == Action.INSERT ||
+                        originAction == Action.DELETE) {
                         throw incompatibleActionException(action, originAction);
                     } else {
                         Id subId = entry.subId();
@@ -108,23 +109,15 @@ public class BackendMutation {
             }
         }
         if (!ignoreCurrent) {
-            items.add(MutateItem.of(entry, action));
+            items.add(BackendAction.of(action, entry));
         }
     }
 
     private static HugeException incompatibleActionException(
-                                 MutateAction newAction,
-                                 MutateAction originAction) {
+                                 Action newAction,
+                                 Action originAction) {
         return new HugeException("The action '%s' is incompatible with " +
                                  "action '%s'", newAction, originAction);
-    }
-
-
-    /**
-     * Reset all items in mutations of this id.
-     */
-    public void reset(Id id) {
-        this.updates.replace(id, new LinkedList<>());
     }
 
     /**
@@ -134,19 +127,42 @@ public class BackendMutation {
      */
     public void merge(BackendMutation mutation) {
         E.checkNotNull(mutation, "mutation");
-        for (List<MutateItem> items : mutation.mutation().values()) {
-            for (MutateItem item : items) {
-                this.add(item.entry(), item.action());
-            }
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+            BackendAction item = it.next();
+            this.add(item.entry(), item.action());
         }
     }
 
     /**
-     * Get all updates
-     * @return Map<Id, List<MutateItem>>
+     * Get all types of updates
+     * @return Iterator<MutateItem>
      */
-    public Map<Id, List<MutateItem>> mutation() {
-        return Collections.unmodifiableMap(this.updates);
+    public Set<HugeType> types() {
+        return this.updates.keys();
+    }
+
+    /**
+     * Get all updates
+     * @return Iterator<MutateItem>
+     */
+    public Iterator<BackendAction> mutation() {
+        return this.updates.values();
+    }
+
+    /**
+     * Get updates by type
+     * @return Iterator<MutateItem>
+     */
+    public Iterator<BackendAction> mutation(HugeType type) {
+        return this.updates.get(type);
+    }
+
+    /**
+     * Get updates by type and id
+     * @return Iterator<MutateItem>
+     */
+    public List<BackendAction> mutation(HugeType type, Id id) {
+        return this.updates.get(type, id);
     }
 
     /**
@@ -154,7 +170,7 @@ public class BackendMutation {
      * @return boolean
      */
     public boolean isEmpty() {
-        return this.updates.isEmpty();
+        return this.updates.size() == 0;
     }
 
     /**
@@ -168,5 +184,76 @@ public class BackendMutation {
     @Override
     public String toString() {
         return String.format("BackendMutation{mutations=%s}", this.updates);
+    }
+
+    private static class MutationTable {
+
+        // Mapping type => id => mutations
+        private final Map<HugeType, Map<Id, List<BackendAction>>> mutations;
+
+        public MutationTable() {
+            // NOTE: ensure insert order
+            this.mutations = InsertionOrderUtil.newMap();
+        }
+
+        public void put(HugeType type, Id id, BackendAction mutation) {
+            Map<Id, List<BackendAction>> table = this.mutations.get(type);
+            if (table == null) {
+                table = InsertionOrderUtil.newMap();
+                this.mutations.put(type, table);
+            }
+
+            List<BackendAction> items = table.get(id);
+            if (items == null) {
+                items = new ArrayList<>();
+                table.put(id, items);
+            }
+
+            items.add(mutation);
+        }
+
+        public boolean containsKey(HugeType type, Id id) {
+            Map<Id, List<BackendAction>> table = this.mutations.get(type);
+            return table != null && table.containsKey(id);
+        }
+
+        public List<BackendAction> get(HugeType type, Id id) {
+            Map<Id, List<BackendAction>> table = this.mutations.get(type);
+            if (table == null) {
+                return null;
+            }
+            return table.get(id);
+        }
+
+        public Iterator<BackendAction> get(HugeType type) {
+            ExtendableIterator<BackendAction> rs = new ExtendableIterator<>();
+            Map<Id, List<BackendAction>> table = this.mutations.get(type);
+            for (List<BackendAction> items : table.values()) {
+                rs.extend(items.iterator());
+            }
+            return rs;
+        }
+
+        public Set<HugeType> keys() {
+            return this.mutations.keySet();
+        }
+
+        public Iterator<BackendAction> values() {
+            ExtendableIterator<BackendAction> rs = new ExtendableIterator<>();
+            for (Map<Id, List<BackendAction>> table : this.mutations.values()) {
+                for (List<BackendAction> items : table.values()) {
+                    rs.extend(items.iterator());
+                }
+            }
+            return rs;
+        }
+
+        public int size() {
+            int size = 0;
+            for (Map<Id, List<BackendAction>> m : this.mutations.values()) {
+                size += m.size();
+            }
+            return size;
+        }
     }
 }

@@ -21,7 +21,6 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,12 +29,12 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
@@ -155,14 +154,13 @@ public abstract class CassandraStore implements BackendStore {
         this.checkSessionConnected();
         CassandraSessionPool.Session session = this.sessions.session();
 
-        for (List<MutateItem> items : mutation.mutation().values()) {
-            for (MutateItem item : items) {
-                this.mutate(session, item);
-            }
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+            this.mutate(session, it.next());
         }
     }
 
-    private void mutate(CassandraSessionPool.Session session, MutateItem item) {
+    private void mutate(CassandraSessionPool.Session session,
+                        BackendAction item) {
         CassandraBackendEntry entry = castBackendEntry(item.entry());
 
         // Check if the entry has no change

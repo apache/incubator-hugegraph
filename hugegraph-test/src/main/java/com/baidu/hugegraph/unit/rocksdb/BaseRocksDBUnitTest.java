@@ -23,12 +23,15 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Collections;
 
+import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.mockito.Mockito;
 import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions;
@@ -110,7 +113,9 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
     }
 
     private static RocksDBSessions open(String table) throws RocksDBException {
-        HugeConfig config = new HugeConfig(new PropertiesConfiguration());
+        Configuration conf = Mockito.mock(PropertiesConfiguration.class);
+        Mockito.when(conf.getKeys()).thenReturn(Collections.emptyIterator());
+        HugeConfig config = new HugeConfig(conf);
         final String path = DB_PATH;
         RocksDBSessions rocks = new RocksDBStdSessions(config, path, path);
         rocks.createTable(table);

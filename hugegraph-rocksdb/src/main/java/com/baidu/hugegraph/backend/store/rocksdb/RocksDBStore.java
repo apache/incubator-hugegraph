@@ -35,12 +35,12 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.MutateItem;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
@@ -202,14 +202,12 @@ public abstract class RocksDBStore implements BackendStore {
         }
 
         Session session = this.session();
-        for (List<MutateItem> items : mutation.mutation().values()) {
-            for (MutateItem item : items) {
-               this.mutate(session, item);
-            }
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+            this.mutate(session, it.next());
         }
     }
 
-    private void mutate(Session session, MutateItem item) {
+    private void mutate(Session session, BackendAction item) {
         BackendEntry entry = item.entry();
         RocksDBTable table = this.table(entry.type());
 

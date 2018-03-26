@@ -32,7 +32,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.MutateAction;
+import com.baidu.hugegraph.backend.store.BackendAction.Action;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -340,7 +340,7 @@ public class SchemaTransaction extends IndexableTransaction {
         this.beforeWrite();
         this.indexTx.updateNameIndex(schema, true);
         BackendEntry e = this.serializer.writeId(schema.type(), schema.id());
-        this.doAction(MutateAction.DELETE, e);
+        this.doAction(Action.DELETE, e);
         this.afterWrite();
     }
 
