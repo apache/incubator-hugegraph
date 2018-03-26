@@ -261,8 +261,7 @@ public class MysqlTables {
         private final String delByLabelTemplate;
 
         public Edge(Directions direction) {
-            super(TABLE_PREFIX + "_" + direction.string());
-            assert direction == Directions.OUT || direction == Directions.IN;
+            super(table(direction));
             this.direction = direction;
 
             this.delByLabelTemplate = String.format(
@@ -347,7 +346,7 @@ public class MysqlTables {
                 // Delete edges
                 deleteStmt.setObject(1, label.asLong());
             } catch (SQLException e) {
-                throw new BackendException("Failed to prepare statment '%s'",
+                throw new BackendException("Failed to prepare statement '%s'",
                                            this.delByLabelTemplate);
             }
             session.add(deleteStmt);
@@ -391,6 +390,11 @@ public class MysqlTables {
 
             vertex.subRow(edge.row());
             return vertex;
+        }
+
+        public static String table(Directions direction) {
+            assert direction == Directions.OUT || direction == Directions.IN;
+            return TABLE_PREFIX + "_" + direction.string();
         }
     }
 

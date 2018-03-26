@@ -153,9 +153,7 @@ public class HugeTraverser {
         if (label != null) {
             labels = new Id[]{label};
         }
-        if (dir == Directions.BOTH) {
-            dir = null;
-        }
+
         Query query = GraphTransaction.constructEdgesQuery(source, dir, labels);
         return this.graph.edges(query);
     }

@@ -105,7 +105,7 @@ public class StructureBasicSuite extends AbstractGremlinSuite {
                                final RunnerBuilder builder)
                                throws InitializationError,
                                       ConfigurationException {
-        super(klass, builder, allTests, null, false,
+        super(klass, builder, allTests, null, true,
               TraversalEngine.Type.STANDARD);
 
         RegisterUtil.registerBackends();
