@@ -604,7 +604,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdgesByVertex(Id id) {
-        return queryEdges(constructEdgesQuery(id, null));
+        return queryEdges(constructEdgesQuery(id, Directions.BOTH));
     }
 
     @Watched(prefix = "graph")
@@ -808,14 +808,21 @@ public class GraphTransaction extends IndexableTransaction {
         });
     }
 
+    /**
+     * Construct one edge condition query based on source vertex, direction and
+     * edge labels
+     * @param sourceVertex source vertex of edge
+     * @param direction only be "IN", "OUT" or "BOTH"
+     * @param edgeLabels edge labels of queried edges
+     * @return constructed condition query
+     */
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,
                                                      Directions direction,
                                                      Id... edgeLabels) {
         E.checkState(sourceVertex != null,
                      "The edge query must contain source vertex");
-        E.checkState((direction != null || edgeLabels.length == 0),
-                     "The edge query must contain direction " +
-                     "if it contains edge label");
+        E.checkState(direction != null,
+                     "The edge query must contain direction");
 
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
 
@@ -823,7 +830,12 @@ public class GraphTransaction extends IndexableTransaction {
         query.eq(HugeKeys.OWNER_VERTEX, sourceVertex);
 
         // Edge direction
-        if (direction != null) {
+        if (direction == Directions.BOTH) {
+            query.query(Condition.or(
+                    Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
+                    Condition.eq(HugeKeys.DIRECTION, Directions.IN)
+            ));
+        } else {
             assert direction == Directions.OUT || direction == Directions.IN;
             query.eq(HugeKeys.DIRECTION, direction);
         }
