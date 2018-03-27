@@ -362,7 +362,7 @@ public class CassandraTables {
         protected void deleteEdgesByLabel(CassandraSessionPool.Session session,
                                           Id label) {
             final String OWNER_VERTEX = formatKey(HugeKeys.OWNER_VERTEX);
-            final String OTHER_VERTEX = formatKey(HugeKeys.OTHER_VERTEX);
+            final String DIRECTION = formatKey(HugeKeys.DIRECTION);
 
             // Query edges by label index
             Select select = QueryBuilder.select().from(this.table());
@@ -380,23 +380,16 @@ public class CassandraTables {
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 Row row = it.next();
 
-                // Delete OUT edges from edges_out table
                 String ownerVertex = row.get(OWNER_VERTEX, String.class);
-                session.add(buildDelete(label, ownerVertex, Directions.OUT));
+                Byte direction = row.get(DIRECTION, Byte.class);
 
-                // Delete IN edges from edges_in table
-                String otherVertex = row.get(OTHER_VERTEX, String.class);
-                session.add(buildDelete(label, otherVertex, Directions.IN));
+                Delete delete = QueryBuilder.delete().from(this.table());
+                delete.where(formatEQ(HugeKeys.OWNER_VERTEX, ownerVertex));
+                delete.where(formatEQ(HugeKeys.DIRECTION, direction));
+                delete.where(formatEQ(HugeKeys.LABEL, label.asLong()));
+
+                session.add(delete);
             }
-        }
-
-        private static Delete buildDelete(Id label, String ownerVertex,
-                                          Directions direction) {
-            Delete delete = QueryBuilder.delete().from(table(direction));
-            delete.where(formatEQ(HugeKeys.OWNER_VERTEX, ownerVertex));
-            delete.where(formatEQ(HugeKeys.DIRECTION, direction.code()));
-            delete.where(formatEQ(HugeKeys.LABEL, label.asLong()));
-            return delete;
         }
 
         @Override
