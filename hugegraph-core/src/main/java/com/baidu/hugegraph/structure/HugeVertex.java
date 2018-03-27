@@ -45,6 +45,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -57,6 +58,7 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableSet;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
@@ -345,10 +347,20 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             return this.getEdges(direction, edgeLabels);
         }
 
+        // Deal with direction is BOTH
+        ImmutableSet<Directions> directions = ImmutableSet.of(direction);
+        if (direction == Directions.BOTH) {
+            directions = ImmutableSet.of(Directions.OUT, Directions.IN);
+        }
+
         Id[] edgeLabelIds = this.graph().mapElName2Id(edgeLabels);
-        Query query = GraphTransaction.constructEdgesQuery(this.id(), direction,
-                                                           edgeLabelIds);
-        return this.tx().queryEdges(query);
+        ExtendableIterator<Edge> results = new ExtendableIterator<>();
+        for (Directions dir : directions) {
+            Query query = GraphTransaction.constructEdgesQuery(
+                          this.id(), dir, edgeLabelIds);
+            results.extend(this.tx().queryEdges(query));
+        }
+        return results;
     }
 
     @Watched(prefix = "vertex")

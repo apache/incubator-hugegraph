@@ -258,19 +258,16 @@ public class MysqlTables {
 
         private final Directions direction;
 
-        private final String delByLabelOut;
-        private final String delByLabelIn;
+        private final String delByLabelTemplate;
 
         public Edge(Directions direction) {
-            super(table(direction));
+            super(TABLE_PREFIX + "_" + direction.string());
+            assert direction == Directions.OUT || direction == Directions.IN;
             this.direction = direction;
 
-            this.delByLabelOut = String.format("DELETE FROM %s WHERE %s = ?;",
-                                               table(Directions.OUT),
-                                               formatKey(HugeKeys.LABEL));
-            this.delByLabelIn = String.format("DELETE FROM %s WHERE %s = ?;",
-                                              table(Directions.IN),
-                                              formatKey(HugeKeys.LABEL));
+            this.delByLabelTemplate = String.format(
+                                      "DELETE FROM %s WHERE %s = ?;",
+                                      table(), formatKey(HugeKeys.LABEL));
         }
 
         @Override
@@ -343,23 +340,15 @@ public class MysqlTables {
 
         protected void deleteEdgesByLabel(MysqlSessions.Session session,
                                           Id label) {
-            // Delete edges in edges_out table
-            deleteEdgesByLabel(session, label, this.delByLabelOut);
-            // Delete edges in edges_in table
-            deleteEdgesByLabel(session, label, this.delByLabelIn);
-        }
-
-        private static void deleteEdgesByLabel(MysqlSessions.Session session,
-                                               Id label, String delTemplate) {
             PreparedStatement deleteStmt;
             try {
                 // Create or get insert prepare statement
-                deleteStmt = session.prepareStatement(delTemplate);
+                deleteStmt = session.prepareStatement(this.delByLabelTemplate);
                 // Delete edges
                 deleteStmt.setObject(1, label.asLong());
             } catch (SQLException e) {
-                throw new BackendException("Failed to prepare statement '%s'",
-                                           delTemplate);
+                throw new BackendException("Failed to prepare statment '%s'",
+                                           this.delByLabelTemplate);
             }
             session.add(deleteStmt);
         }
@@ -402,11 +391,6 @@ public class MysqlTables {
 
             vertex.subRow(edge.row());
             return vertex;
-        }
-
-        public static String table(Directions direction) {
-            assert direction == Directions.OUT || direction == Directions.IN;
-            return TABLE_PREFIX + "_" + direction.string();
         }
     }
 
