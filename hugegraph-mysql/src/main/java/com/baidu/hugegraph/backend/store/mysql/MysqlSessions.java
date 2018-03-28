@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.mysql;
 
+import java.net.SocketTimeoutException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -40,6 +41,8 @@ import com.baidu.hugegraph.util.Log;
 public class MysqlSessions extends BackendSessionPool {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
+
+    private static final Integer DROP_DB_TIMEOUT = 10000;
 
     private HugeConfig config;
     private String database;
@@ -128,7 +131,7 @@ public class MysqlSessions extends BackendSessionPool {
                                    "DEFAULT CHARSET utf8 COLLATE " +
                                    "utf8_general_ci;", this.database);
 
-        try (Connection conn = this.openWithoutDB()) {
+        try (Connection conn = this.openWithoutDB(0)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
             throw new BackendException("Failed to create database '%s'",
@@ -141,16 +144,20 @@ public class MysqlSessions extends BackendSessionPool {
 
         String sql = String.format("DROP DATABASE IF EXISTS %s;",
                                    this.database);
-        try (Connection conn = this.openWithoutDB()) {
+        try (Connection conn = this.openWithoutDB(DROP_DB_TIMEOUT)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
-            throw new BackendException("Failed to drop database '%s'",
-                                       this.database);
+            if (e.getCause().getCause() instanceof SocketTimeoutException) {
+                LOG.warn("Drop database '%s' timeout", this.database);
+            } else {
+                throw new BackendException("Failed to drop database '%s'",
+                                           this.database);
+            }
         }
     }
 
     public boolean existsDatabase() {
-        try (Connection conn = this.openWithoutDB();
+        try (Connection conn = this.openWithoutDB(0);
              ResultSet result = conn.getMetaData().getCatalogs()) {
             while (result.next()) {
                 String dbName = result.getString(1);
@@ -168,13 +175,17 @@ public class MysqlSessions extends BackendSessionPool {
     /**
      * Connect DB without specified database
      */
-    private Connection openWithoutDB() {
-        String url = config.get(MysqlOptions.JDBC_URL);
+    private Connection openWithoutDB(Integer timeout) {
+        String jdbcUrl = config.get(MysqlOptions.JDBC_URL);
+
+        URIBuilder url = new URIBuilder();
+        url.setPath(jdbcUrl).setParameter("socketTimeout", timeout.toString());
+
         try {
-            return connect(url);
+            return connect(url.toString());
         } catch (SQLException e) {
             throw new BackendException("Failed to access %s, " +
-                                       "please ensure it is ok", url);
+                                       "please ensure it is ok", jdbcUrl);
         }
     }
 
