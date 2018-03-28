@@ -38,7 +38,6 @@ public final class OptionSpace {
         options = new ConcurrentHashMap<>();
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     public static void register(String module, String holder) {
         ClassLoader classLoader = OptionSpace.class.getClassLoader();
         Class<?> clazz;
