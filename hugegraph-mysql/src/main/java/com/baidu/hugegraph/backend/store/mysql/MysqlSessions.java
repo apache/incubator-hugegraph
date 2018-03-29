@@ -53,9 +53,9 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     /**
-     * Connect DB with specified database, if failed will not reconnect
+     * Try connect with specified database, will not reconnect if failed
      */
-    public void open() throws SQLException {
+    public void tryOpen() throws SQLException {
         Connection conn = null;
         try {
             conn = this.open(false);
@@ -82,6 +82,8 @@ public class MysqlSessions extends BackendSessionPool {
 
         URIBuilder uriBuilder = new URIBuilder();
         uriBuilder.setPath(url)
+                  .setParameter("rewriteBatchedStatements", "true")
+                  .setParameter("useServerPrepStmts", "false")
                   .setParameter("autoReconnect", autoReconnect.toString())
                   .setParameter("maxReconnects", maxTimes.toString())
                   .setParameter("initialTimeout", interval.toString());
@@ -147,7 +149,7 @@ public class MysqlSessions extends BackendSessionPool {
         try (Connection conn = this.openWithoutDB(DROP_DB_TIMEOUT)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
-            if (e.getCause().getCause() instanceof SocketTimeoutException) {
+            if (e.getCause() instanceof SocketTimeoutException) {
                 LOG.warn("Drop database '%s' timeout", this.database);
             } else {
                 throw new BackendException("Failed to drop database '%s'",

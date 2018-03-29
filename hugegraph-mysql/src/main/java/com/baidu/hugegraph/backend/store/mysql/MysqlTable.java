@@ -142,7 +142,7 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
                 insert.append(", ");
             }
         }
-        insert.append(");");
+        insert.append(")");
 
         this.insertTemplate = insert.toString();
         return this.insertTemplate;
@@ -158,7 +158,7 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
 
         WhereBuilder where = new WhereBuilder();
         where.and(formatKeys(idNames), "?");
-        delete.append(where.build()).append(";");
+        delete.append(where.build());
 
         this.deleteTemplate = delete.toString();
         return this.deleteTemplate;
