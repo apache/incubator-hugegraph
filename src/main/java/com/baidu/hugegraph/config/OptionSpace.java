@@ -19,13 +19,15 @@
 
 package com.baidu.hugegraph.config;
 
-import com.baidu.hugegraph.util.Log;
-import org.slf4j.Logger;
-
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+
+import com.baidu.hugegraph.util.Log;
 
 public final class OptionSpace {
 
@@ -33,6 +35,7 @@ public final class OptionSpace {
 
     private static final Map<String, Class<? extends OptionHolder>> holders;
     private static final Map<String, ConfigOption<?>> options;
+    private static final String INSTANCE_METHOD = "instance";
 
     static {
         holders = new ConcurrentHashMap<>();
@@ -44,7 +47,7 @@ public final class OptionSpace {
         Class<?> clazz;
         try {
             clazz = classLoader.loadClass(holder);
-        } catch (Exception e) {
+        } catch (ClassNotFoundException e) {
             throw new ConfigException(
                       "Failed to load class of option holder '%s'", e, holder);
         }
@@ -55,13 +58,28 @@ public final class OptionSpace {
                       "Class '%s' is not a subclass of OptionHolder", holder);
         }
 
-        OptionHolder instance;
+        OptionHolder instance = null;
+        Exception exception = null;
         try {
-            Method method = clazz.getMethod("instance");
+            Method method = clazz.getMethod(INSTANCE_METHOD);
             instance = (OptionHolder) method.invoke(null);
-        } catch (Exception e) {
-            throw new ConfigException(
-                      "Failed to instantiate option holder '%s'", e, holder);
+        } catch (NoSuchMethodException e) {
+            LOG.warn("Class {} does not has static method {}.",
+                     holder, INSTANCE_METHOD);
+            exception = e;
+        } catch (InvocationTargetException e) {
+            LOG.warn("Can't call static method {} from class {}.",
+                     INSTANCE_METHOD, holder);
+            exception = e;
+        } catch (IllegalAccessException e) {
+            LOG.warn("Illegal access while calling method {} from class {}.",
+                     INSTANCE_METHOD, holder);
+            exception = e;
+        }
+
+        if (exception != null) {
+            throw new ConfigException("Failed to instantiate option holder: %s",
+                                      exception, holder);
         }
 
         register(module, instance);
