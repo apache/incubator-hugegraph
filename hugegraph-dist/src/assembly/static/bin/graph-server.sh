@@ -4,9 +4,24 @@
 MAX_MEM=$[32*1024]
 MIN_MEM=512
 
+function free_memory() {
+    FREE
+    OS=`uname`
+    if [ "$OS" == "Linux" ]; then
+        FREE=`free -m | grep '\-\/\+' | awk '{print $4}'`
+    elif [ "$OS" == "Darwin" ]; then
+        FREE=`top -l 1 | head -n 10 | grep PhysMem | awk -F',' '{print $2}' \
+             | awk -F'M' '{print $1}' | tr -d " "`
+    else
+        echo "Unsupported operating system " $OS
+        exit 1
+    fi
+    echo $FREE
+}
+
 function cal_xmx() {
     # Get machine available memory
-    FREE=`free -m | grep '\-\/\+' | awk '{print $4}'`
+    FREE=`free_memory`
     HALF_FREE=$[FREE/2]
 
     XMX=$MIN_MEM
