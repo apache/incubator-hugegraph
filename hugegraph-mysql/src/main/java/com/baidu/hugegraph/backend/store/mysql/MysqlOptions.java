@@ -50,7 +50,7 @@ public class MysqlOptions extends OptionHolder {
                     "jdbc.driver",
                     "The JDBC driver class to connect database",
                     disallowEmpty(),
-                    "com.mysql.cj.jdbc.Driver"
+                    "com.mysql.jdbc.Driver"
             );
 
     public static final ConfigOption<String> JDBC_URL =

@@ -90,7 +90,7 @@ public abstract class MysqlStore implements BackendStore {
 
         E.checkNotNull(config, "config");
 
-        if (this.sessions != null && !this.sessions.closed()) {
+        if (this.sessions != null) {
             LOG.debug("Store {} has been opened before", this.name);
             this.sessions.useSession();
             return;
@@ -98,25 +98,27 @@ public abstract class MysqlStore implements BackendStore {
 
         this.sessions = new MysqlSessions(config, this.database);
 
+        LOG.debug("Store connect with database: {}", this.database);
         try {
-            LOG.debug("Store connect with database: {}", this.database);
-            try {
-                this.sessions.open();
-            } catch (SQLException e) {
-                if (!e.getMessage().contains(String.format(
-                    "Unknown database '%s'", this.database))) {
-                    throw e;
-                }
-                LOG.info("Failed to open database '{}', " +
-                         "try to init database later", this.database);
+            this.sessions.tryOpen();
+        } catch (SQLException e) {
+            if (!e.getMessage().startsWith("Unknown database")) {
+                throw new BackendException("Failed connect with mysql, " +
+                                           "please ensure it's ok", e);
             }
+            LOG.info("Failed to open database '{}', " +
+                     "try to init database later", this.database);
+        }
+
+        try {
+            this.sessions.session();
         } catch (Throwable e) {
             try {
                 this.sessions.close();
             } catch (Throwable e2) {
                 LOG.warn("Failed to close connection after an error", e2);
             }
-            throw new BackendException("Failed to open connection", e);
+            throw new BackendException("Failed to open database", e);
         }
 
         LOG.debug("Store opened: {}", this.name);
