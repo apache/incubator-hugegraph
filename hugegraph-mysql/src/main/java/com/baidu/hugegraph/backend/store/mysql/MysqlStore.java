@@ -143,6 +143,13 @@ public abstract class MysqlStore implements BackendStore {
     public void init() {
         this.checkClusterConnected();
         this.sessions.createDatabase();
+        try {
+            // Open a new session connected with specified database
+            this.sessions.session().open();
+        } catch (SQLException e) {
+            throw new BackendException("Failed to connect database '%s'",
+                                       this.database);
+        }
         this.checkSessionConnected();
         this.initTables();
 
