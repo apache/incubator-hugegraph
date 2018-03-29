@@ -169,7 +169,7 @@
                         </manifest>
                         <manifestEntries>
                             <Implementation-Version>
-                                1.4.0.0
+                                1.4.0.1
                             </Implementation-Version>
                         </manifestEntries>
                     </archive>

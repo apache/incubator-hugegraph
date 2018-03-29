@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class OptionSpace {
@@ -76,6 +77,10 @@ public final class OptionSpace {
         options.putAll(holder.options());
         LOG.debug("Registered options for OptionHolder: {}",
                   holder.getClass().getSimpleName());
+    }
+
+    public static Set<String> keys() {
+        return options.keySet();
     }
 
     public static Boolean containKey(String key) {

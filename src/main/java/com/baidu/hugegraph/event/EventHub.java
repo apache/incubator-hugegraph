@@ -129,6 +129,7 @@ public class EventHub {
     }
 
     public void notify(String event, @Nullable Object... args) {
+        @SuppressWarnings("resource")
         ExtendableIterator<EventListener> all = new ExtendableIterator<>();
 
         List<EventListener> ls = this.listeners.get(event);
