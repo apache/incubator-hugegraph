@@ -53,7 +53,7 @@ public class LockManager {
     public LockGroup get(String group) {
         if (!exists(group)) {
             throw new RuntimeException(String.format(
-                      "Not exist LockGroup '%s'", group));
+                      "LockGroup '%s' does not exists", group));
         }
         return this.lockGroupMap.get(group);
     }
@@ -63,7 +63,7 @@ public class LockManager {
             this.lockGroupMap.remove(group);
         } else {
             throw new RuntimeException(String.format(
-                      "Not exist LockGroup '%s'", group));
+                      "LockGroup '%s' does not exists", group));
         }
     }
 }
