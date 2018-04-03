@@ -224,16 +224,12 @@ public class InMemoryDBStore implements BackendStore {
         public InMemoryGraphStore(BackendStoreProvider provider, String name) {
             super(provider, name);
 
-            // TODO: separate edges from vertices
-            InMemoryDBTables.Vertex vertex = new InMemoryDBTables.Vertex();
-            registerTableManager(HugeType.VERTEX, vertex);
-
-            InMemoryDBTables.Edge edgeOut = new InMemoryDBTables.Edge(vertex);
-            registerTableManager(HugeType.EDGE_OUT, edgeOut);
-
-            InMemoryDBTables.Edge edgeIn = new InMemoryDBTables.Edge(vertex);
-            registerTableManager(HugeType.EDGE_IN, edgeIn);
-
+            registerTableManager(HugeType.VERTEX,
+                                 new InMemoryDBTables.Vertex());
+            registerTableManager(HugeType.EDGE_OUT,
+                                 new InMemoryDBTables.Edge(HugeType.EDGE_OUT));
+            registerTableManager(HugeType.EDGE_IN,
+                                 new InMemoryDBTables.Edge(HugeType.EDGE_IN));
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new InMemoryDBTables.SecondaryIndex());
             registerTableManager(HugeType.RANGE_INDEX,

@@ -55,9 +55,8 @@ public class InMemoryDBTables {
 
     public static class Edge extends InMemoryDBTable {
 
-        public Edge(Vertex vertex) {
-            // Edges are stored as columns of corresponding vertices now
-            super(HugeType.EDGE, vertex.store());
+        public Edge(HugeType type) {
+            super(type);
         }
 
         @Override
