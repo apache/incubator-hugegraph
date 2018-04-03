@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -78,13 +79,14 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("band").asText().create();
         schema.propertyKey("price").asInt().create();
         schema.propertyKey("weight").asDouble().create();
+        schema.propertyKey("birth").asDate().create();
 
         LOG.debug("===============  vertexLabel  ================");
 
         schema.vertexLabel("person")
-              .properties("name", "age", "city")
+              .properties("name", "age", "city", "birth")
               .primaryKeys("name")
-              .nullableKeys("age")
+              .nullableKeys("age", "birth")
               .create();
         schema.vertexLabel("computer")
               .properties("name", "band", "cpu", "ram", "price")
@@ -118,6 +120,8 @@ public class VertexCoreTest extends BaseCoreTest {
               .by("city").create();
         schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
+        schema.indexLabel("personByBirth").onV("person").range()
+              .by("birth").create();
 
         schema.indexLabel("pcByBand").onV("computer")
               .secondary().by("band")
@@ -1069,8 +1073,8 @@ public class VertexCoreTest extends BaseCoreTest {
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
-                                .hasLabel("person").has("age", P.gt(1))
-                                .toList();
+                                     .hasLabel("person").has("age", P.gt(1))
+                                     .toList();
 
         Assert.assertEquals(5, vertexes.size());
     }
@@ -1095,8 +1099,8 @@ public class VertexCoreTest extends BaseCoreTest {
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
-                                .hasLabel("person").has("age", P.gte(20))
-                                .toList();
+                                     .hasLabel("person").has("age", P.gte(20))
+                                     .toList();
 
         Assert.assertEquals(3, vertexes.size());
     }
@@ -1260,6 +1264,39 @@ public class VertexCoreTest extends BaseCoreTest {
                    .toList();
 
         Assert.assertEquals(0, vertexes.size());
+    }
+
+    @Test
+    public void testQueryByDateProperty() {
+        this.init5Persons();
+        HugeGraph graph = graph();
+
+        List<Vertex> vertices = null;
+
+        Date[] dates = new Date[]{
+                Utils.date("2012-01-01 12:30:00.100"),
+                Utils.date("2013-01-01 12:30:00.100"),
+                Utils.date("2014-01-01 12:30:00.100"),
+                Utils.date("2015-01-01 12:30:00.100"),
+                Utils.date("2016-01-01 12:30:00.100")
+        };
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", dates[0])
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(dates[0], vertices.get(0).value("birth"));
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.gt(dates[0]))
+                        .toList();
+        Assert.assertEquals(4, vertices.size());
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.between(dates[3], dates[4]))
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(dates[3], vertices.get(0).value("birth"));
     }
 
     @Test
@@ -2685,15 +2722,20 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
 
         graph.addVertex(T.label, "person", "name", "Baby",
-                        "city", "Hongkong", "age", 3);
+                        "city", "Hongkong", "age", 3,
+                        "birth", Utils.date("2012-01-01 12:30:00.100"));
         graph.addVertex(T.label, "person", "name", "James",
-                        "city", "Beijing", "age", 19);
+                        "city", "Beijing", "age", 19,
+                        "birth", Utils.date("2013-01-01 12:30:00.100"));
         graph.addVertex(T.label, "person", "name", "Tom Cat",
-                        "city", "Beijing", "age", 20);
+                        "city", "Beijing", "age", 20,
+                        "birth", Utils.date("2014-01-01 12:30:00.100"));
         graph.addVertex(T.label, "person", "name", "Lisa",
-                        "city", "Beijing", "age", 20);
+                        "city", "Beijing", "age", 20,
+                        "birth", Utils.date("2015-01-01 12:30:00.100"));
         graph.addVertex(T.label, "person", "name", "Hebe",
-                        "city", "Taipei", "age", 21);
+                        "city", "Taipei", "age", 21,
+                        "birth", Utils.date("2016-01-01 12:30:00.100"));
 
         graph.tx().commit();
     }

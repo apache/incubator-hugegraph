@@ -37,11 +37,11 @@ import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.NumericUtil;
 
 public class IndexLabelBuilder implements IndexLabel.Builder {
 
@@ -272,9 +272,10 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                             fields.size(), fields);
             String field = fields.iterator().next();
             PropertyKey pk = this.transaction.getPropertyKey(field);
-            E.checkArgument(NumericUtil.isNumber(pk.dataType().clazz()),
+            DataType dataType = pk.dataType();
+            E.checkArgument(dataType.isNumber() || dataType.isDate(),
                             "Range index can only build on " +
-                            "numeric property, but got %s(%s)",
+                            "numeric or date property, but got %s(%s)",
                             pk.dataType(), pk.name());
         }
     }

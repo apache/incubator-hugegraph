@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 
 public class ConditionQueryFlatten {
@@ -430,16 +432,15 @@ public class ConditionQueryFlatten {
     }
 
     private static int compare(Relation first, Relation second) {
-        assert first.value() instanceof Number &&
-               second.value() instanceof Number;
-        double firstValue = ((Number) first.value()).doubleValue();
-        double secondValue = ((Number) second.value()).doubleValue();
-        if (firstValue > secondValue) {
-            return 1;
-        } else if (firstValue < secondValue) {
-            return -1;
+        Object firstValue = first.value();
+        Object secondValue = second.value();
+        if (firstValue instanceof Number && secondValue instanceof Number) {
+            return NumericUtil.compareNumber(firstValue, (Number) secondValue);
+        } else if (firstValue instanceof Date && secondValue instanceof Date) {
+            return ((Date) firstValue).compareTo((Date) secondValue);
         } else {
-            return 0;
+            throw new IllegalArgumentException(String.format(
+                      "Can't compare between %s and %s", first, second));
         }
     }
 

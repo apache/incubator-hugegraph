@@ -33,9 +33,9 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.IndexLabel;
-import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
@@ -153,11 +153,13 @@ public class HugeIndex implements GraphType {
             indexLabel = IndexLabel.label(graph, label);
             List<Id> fields = indexLabel.indexFields();
             E.checkState(fields.size() == 1, "Invalid range index fields");
-            PropertyKey pk = graph.propertyKey(fields.get(0));
-            E.checkState(pk.dataType().isNumber(),
+            DataType dataType = graph.propertyKey(fields.get(0)).dataType();
+            E.checkState(dataType.isNumber() || dataType.isDate(),
                          "Invalid range index field type");
-            values = string2number(str.substring(offset),
-                                   pk.dataType().clazz());
+            Class<?> clazz = dataType.isNumber() ?
+                             dataType.clazz() :
+                             DataType.LONG.clazz();
+            values = string2number(str.substring(offset), clazz);
         }
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(values);
