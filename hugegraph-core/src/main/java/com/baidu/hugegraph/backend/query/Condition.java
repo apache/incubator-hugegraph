@@ -19,13 +19,12 @@
 
 package com.baidu.hugegraph.backend.query;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -34,6 +33,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -104,31 +104,29 @@ public abstract class Condition {
 
         /**
          * Determine two numbers equal
-         * @param first is actual value, might be Number or String, It is
+         * @param first is actual value, might be Number/Date or String, It is
          *              probably that the `first` is serialized to String.
-         * @param second is value in query condition, must be Number
+         * @param second is value in query condition, must be Number/Date
          */
         protected static int compare(final Object first, final Object second) {
-            if (first == null || second == null ||
-                !(second instanceof Number)) {
+            if (second instanceof Number) {
+                return NumericUtil.compareNumber(first, (Number) second);
+            } else if (second instanceof Date) {
+                return compareDate(first, (Date) second);
+            } else {
                 throw new BackendException("Can't compare between %s and %s",
                                            first, second);
             }
+        }
 
-            Function<Object, BigDecimal> toBig = (number) -> {
-                try {
-                    return new BigDecimal(number.toString());
-                } catch (NumberFormatException e) {
-                    throw new BackendException(
-                              "Can't compare between %s and %s, " +
-                              "must be numbers", first, second);
-                }
-            };
-
-            BigDecimal n1 = toBig.apply(first);
-            BigDecimal n2 = toBig.apply(second);
-
-            return n1.compareTo(n2);
+        protected static int compareDate(Object first, Date second) {
+            if (first instanceof Date) {
+                return ((Date) first).compareTo(second);
+            } else {
+                throw new BackendException(
+                          "Can't compare between %s and %s, they must be date",
+                          first, second);
+            }
         }
 
         public boolean test(Object first, Object second) {
