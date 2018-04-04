@@ -350,7 +350,7 @@ public abstract class TableSerializer extends AbstractSerializer {
     }
 
     @Override
-    protected void writeQueryCondition(Query query) {
+    protected Query writeQueryCondition(Query query) {
         if (query.resultType().isGraph()) {
             ConditionQuery result = (ConditionQuery) query;
             // No user-prop when serialize
@@ -361,6 +361,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                 }
             }
         }
+        return query;
     }
 
     @Override

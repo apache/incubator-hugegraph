@@ -353,7 +353,8 @@ public abstract class RocksDBStore implements BackendStore {
 
     @Override
     public Object metadata(HugeType type, String meta, Object[] args) {
-        throw new UnsupportedOperationException("RocksDBStore.metadata()");
+        RocksDBTable table = this.table(type);
+        return table.metadata(this.session(type), meta, args);
     }
 
     private Session session(HugeType tableType) {

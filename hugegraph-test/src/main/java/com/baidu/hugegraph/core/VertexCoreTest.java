@@ -2369,7 +2369,8 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         // TODO: also support test scan by range
         Assume.assumeTrue("Not support scan",
-                          storeFeatures().supportsScanToken());
+                          storeFeatures().supportsScanToken() ||
+                          storeFeatures().supportsScanKeyRange());
         init10Vertices();
 
         List<Vertex> vertexes = new LinkedList<>();
@@ -2390,7 +2391,8 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testScanVertexWithSplitSizeLt1MB() {
         HugeGraph graph = graph();
         Assume.assumeTrue("Not support scan",
-                          storeFeatures().supportsScanToken());
+                          storeFeatures().supportsScanToken() ||
+                          storeFeatures().supportsScanKeyRange());
         init10Vertices();
 
         long splitSize = 1 * 1024 * 1024 - 1;
@@ -2404,7 +2406,8 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testScanVertexWithSplitSizeTypeError() {
         HugeGraph graph = graph();
         Assume.assumeTrue("Not support scan",
-                          storeFeatures().supportsScanToken());
+                          storeFeatures().supportsScanToken() ||
+                          storeFeatures().supportsScanKeyRange());
         init10Vertices();
 
         String splitSize = "123456";
@@ -2418,11 +2421,18 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testScanVertexWithoutSplitSize() {
         HugeGraph graph = graph();
         Assume.assumeTrue("Not support scan",
-                          storeFeatures().supportsScanToken());
+                          storeFeatures().supportsScanToken() ||
+                          storeFeatures().supportsScanKeyRange());
         init10Vertices();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.graphTransaction().metadata(HugeType.VERTEX, "splits");
+        });
+
+        long splitSize = 1 * 1024 * 1024;
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.graphTransaction().metadata(HugeType.VERTEX, "splits",
+                                              splitSize, "invalid-arg");
         });
     }
 

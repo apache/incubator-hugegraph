@@ -413,7 +413,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    protected void writeQueryCondition(Query query) {
+    protected Query writeQueryCondition(Query query) {
         ConditionQuery result = (ConditionQuery) query;
         // No user-prop when serialize
         assert result.allSysprop();
@@ -439,6 +439,7 @@ public class TextSerializer extends AbstractSerializer {
                 r.serialValue(formatPropertyName(key));
             }
         }
+        return result;
     }
 
     @Override

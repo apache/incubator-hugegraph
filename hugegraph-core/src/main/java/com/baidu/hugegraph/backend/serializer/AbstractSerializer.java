@@ -40,7 +40,7 @@ public abstract class AbstractSerializer
 
     protected abstract Id writeQueryEdgeCondition(Query query);
 
-    protected abstract void writeQueryCondition(Query query);
+    protected abstract Query writeQueryCondition(Query query);
 
     @Override
     public Query writeQuery(Query query) {
@@ -71,7 +71,7 @@ public abstract class AbstractSerializer
 
         // Serialize condition(key/value) in query
         if (query instanceof ConditionQuery && !query.conditions().isEmpty()) {
-            this.writeQueryCondition(query);
+            query = this.writeQueryCondition(query);
         }
 
         return query;

@@ -204,6 +204,14 @@ public class RocksDBSstSessions extends RocksDBSessions {
         }
 
         /**
+         * Get property value by name from specified table
+         */
+        @Override
+        public String property(String table, String property) {
+            throw new NotSupportException("RocksDBSstStore property()");
+        }
+
+        /**
          * Add a KV record to a table
          */
         @Override

@@ -1146,7 +1146,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     public void testScanEdge() {
         HugeGraph graph = graph();
         Assume.assumeTrue("Not support scan",
-                          storeFeatures().supportsScanToken());
+                          storeFeatures().supportsScanToken() ||
+                          storeFeatures().supportsScanKeyRange());
         init18Edges();
 
         Set<Edge> edges = new HashSet<>();

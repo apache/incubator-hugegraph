@@ -400,6 +400,18 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         /**
+         * Get property value by name from specified table
+         */
+        @Override
+        public String property(String table, String property) {
+            try {
+                return rocksdb().getProperty(cf(table), property);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
+        }
+
+        /**
          * Commit all updates(put/delete) to DB
          */
         @Override

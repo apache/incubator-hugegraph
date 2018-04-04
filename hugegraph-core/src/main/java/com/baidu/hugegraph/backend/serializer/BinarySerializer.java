@@ -456,8 +456,8 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    protected void writeQueryCondition(Query query) {
-        return;
+    protected Query writeQueryCondition(Query query) {
+        return query;
     }
 
     private static BinaryId writeEdgeId(Id id) {
