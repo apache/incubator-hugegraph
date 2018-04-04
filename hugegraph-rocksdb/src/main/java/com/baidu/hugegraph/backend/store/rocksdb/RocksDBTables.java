@@ -235,7 +235,7 @@ public class RocksDBTables {
             BackendColumnIterator itor;
             if (keyEq != null) {
                 Id id = HugeIndex.formatIndexId(type, index, keyEq);
-                itor = queryById(session, id);
+                itor = this.queryById(session, id);
             } else {
                 if (keyMin == null) {
                     keyMin = 0L;
@@ -249,14 +249,17 @@ public class RocksDBTables {
                 }
 
                 if (keyMax == null) {
-                    itor = session.scan(table(), begin, null);
+                    Id indexId = HugeIndex.formatIndexId(type, index, null);
+                    byte[] end = indexId.asBytes();
+                    itor = session.scan(table(), begin, end,
+                                        Session.SCAN_PREFIX_WITH_END);
                 } else {
                     Id max = HugeIndex.formatIndexId(type, index, keyMax);
                     byte[] end = max.asBytes();
-                    if (keyMaxEq) {
-                        end = RocksDBStdSessions.increase(end);
-                    }
-                    itor = session.scan(table(), begin, end);
+                    int scanType = keyMaxEq ?
+                                   Session.SCAN_LTE_END :
+                                   Session.SCAN_LT_END;
+                    itor = session.scan(table(), begin, end, scanType);
                 }
             }
             return newEntryIterator(itor, query);

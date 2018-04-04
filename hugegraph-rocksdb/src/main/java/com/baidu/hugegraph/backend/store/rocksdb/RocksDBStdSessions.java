@@ -486,7 +486,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         public BackendColumnIterator scan(String table) {
             assert !this.hasChanges();
             RocksIterator itor = rocksdb().newIterator(cf(table));
-            return new ColumnIterator(table, itor, null, null, false);
+            return new ColumnIterator(table, itor, null, null, SCAN_ANY);
         }
 
         /**
@@ -498,21 +498,21 @@ public class RocksDBStdSessions extends RocksDBSessions {
             // NOTE: Options.prefix_extractor is a prerequisite
             //ReadOptions.setPrefixSameAsStart(true);
             RocksIterator itor = rocksdb().newIterator(cf(table));
-            return new ColumnIterator(table, itor, prefix, null, true);
+            return new ColumnIterator(table, itor, prefix, null,
+                                      SCAN_PREFIX_WITH_BEGIN);
         }
 
         /**
          * Scan records by key range from a table
          */
         @Override
-        public BackendColumnIterator scan(String table,
-                                          byte[] keyFrom,
-                                          byte[] keyTo) {
+        public BackendColumnIterator scan(String table, byte[] keyFrom,
+                                          byte[] keyTo, int scanType) {
             assert !this.hasChanges();
             ReadOptions options = new ReadOptions();
             options.setTotalOrderSeek(true); // Not sure if it must be set
             RocksIterator itor = rocksdb().newIterator(cf(table), options);
-            return new ColumnIterator(table, itor, keyFrom, keyTo, false);
+            return new ColumnIterator(table, itor, keyFrom, keyTo, scanType);
         }
     }
 
@@ -525,37 +525,75 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private final RocksIterator itor;
         private final byte[] keyBegin;
         private final byte[] keyEnd;
-        private final boolean matchPrefix;
+        private final int scanType;
 
         private byte[] position;
 
-        public ColumnIterator(String table,
-                              RocksIterator itor,
-                              byte[] keyBegin,
-                              byte[] keyEnd,
-                              boolean matchPrefix) {
+        public ColumnIterator(String table, RocksIterator itor,
+                              byte[] keyBegin, byte[] keyEnd, int scanType) {
             E.checkNotNull(itor, "itor");
             this.table = table;
 
             this.itor = itor;
             this.keyBegin = keyBegin;
             this.keyEnd = keyEnd;
-            this.matchPrefix = matchPrefix;
+            this.scanType = scanType;
 
             this.position = keyBegin;
 
-            if (matchPrefix && keyEnd != null) {
-                throw new IllegalArgumentException(
-                          "Param keyEnd must be null when matchPrefix=true");
-            }
+            this.checkArguments();
 
             //this.dump();
 
-            if (keyBegin != null) {
-                this.itor.seek(keyBegin);
-            } else {
-                this.itor.seekToFirst();
+            this.seek();
+        }
+
+        private void checkArguments() {
+            E.checkArgument(!(this.match(Session.SCAN_PREFIX_WITH_BEGIN) &&
+                              this.match(Session.SCAN_PREFIX_WITH_END)),
+                            "Can't set SCAN_PREFIX_WITH_BEGIN and " +
+                            "SCAN_PREFIX_WITH_END at the same time");
+
+            E.checkArgument(!(this.match(Session.SCAN_PREFIX_WITH_BEGIN) &&
+                              this.match(Session.SCAN_GT_BEGIN)),
+                            "Can't set SCAN_PREFIX_WITH_BEGIN and " +
+                            "SCAN_GT_BEGIN/SCAN_GTE_BEGIN at the same time");
+
+            E.checkArgument(!(this.match(Session.SCAN_PREFIX_WITH_END) &&
+                              this.match(Session.SCAN_LT_END)),
+                            "Can't set SCAN_PREFIX_WITH_END and " +
+                            "SCAN_LT_END/SCAN_LTE_END at the same time");
+
+            if (this.match(Session.SCAN_PREFIX_WITH_BEGIN)) {
+                E.checkArgument(this.keyBegin != null,
+                                "Parameter `keyBegin` can't be null " +
+                                "if set SCAN_PREFIX_WITH_BEGIN");
+                E.checkArgument(this.keyEnd == null,
+                                "Parameter `keyEnd` must be null " +
+                                "if set SCAN_PREFIX_WITH_BEGIN");
             }
+
+            if (this.match(Session.SCAN_PREFIX_WITH_END)) {
+                E.checkArgument(this.keyEnd != null,
+                                "Parameter `keyEnd` can't be null " +
+                                "if set SCAN_PREFIX_WITH_END");
+            }
+
+            if (this.match(Session.SCAN_GT_BEGIN)) {
+                E.checkArgument(this.keyBegin != null,
+                                "Parameter `keyBegin` can't be null " +
+                                "if set SCAN_GT_BEGIN or SCAN_GTE_BEGIN");
+            }
+
+            if (this.match(Session.SCAN_LT_END)) {
+                E.checkArgument(this.keyEnd != null,
+                                "Parameter `keyEnd` can't be null " +
+                                "if set SCAN_LT_END or SCAN_LTE_END");
+            }
+        }
+
+        private boolean match(int expected) {
+            return (expected & this.scanType) == expected;
         }
 
         /**
@@ -577,24 +615,72 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public boolean hasNext() {
-            boolean matched = false;
-            if (this.itor.isOwningHandle() && this.itor.isValid()) {
-                if (this.matchPrefix) {
-                    // Prefix match? TODO: use custom prefix_extractor instead
-                    matched = Bytes.prefixWith(this.itor.key(), this.keyBegin);
-                } else if (this.keyEnd != null) {
-                    // Range match? NOTE: don't use BytewiseComparator
-                    matched = Bytes.compare(this.itor.key(), this.keyEnd) < 0;
-                } else {
-                    // Any match
-                    matched = true;
-                }
+            boolean matched = this.itor.isOwningHandle() && this.itor.isValid();
+            if (matched && !this.match(Session.SCAN_ANY)) {
+                matched = this.filter(this.itor.key());
             }
             if (!matched) {
-                // Free if finished
+                // Free the iterator if finished
                 this.itor.close();
             }
             return matched;
+        }
+
+        private void seek() {
+            if (this.keyBegin == null) {
+                // Seek to the first if no `keyBegin`
+                this.itor.seekToFirst();
+            } else {
+                /*
+                 * Seek to `keyBegin`:
+                 * if set SCAN_GT_BEGIN/SCAN_GTE_BEGIN (key > / >= 'xx')
+                 * or if set SCAN_PREFIX_WITH_BEGIN (key prefix with 'xx')
+                 */
+                this.itor.seek(this.keyBegin);
+
+                // Skip `keyBegin` if set SCAN_GT_BEGIN (key > 'xx')
+                if (this.match(Session.SCAN_GT_BEGIN) &&
+                    !this.match(Session.SCAN_GTE_BEGIN)) {
+                    while (this.hasNext() && !Bytes.equals(this.itor.key(),
+                                                           this.keyBegin)) {
+                        this.next();
+                    }
+                }
+            }
+        }
+
+        private boolean filter(byte[] key) {
+            if (this.match(Session.SCAN_PREFIX_WITH_BEGIN)) {
+                /*
+                 * Prefix with `keyBegin`?
+                 * TODO: use custom prefix_extractor instead
+                 */
+                return Bytes.prefixWith(key, this.keyBegin);
+            } else if (this.match(Session.SCAN_PREFIX_WITH_END)) {
+                /*
+                 * Prefix with `keyEnd`?
+                 * like the following query for range index:
+                 *  key > 'age:20' and prefix with 'age'
+                 */
+                assert this.keyEnd != null;
+                return Bytes.prefixWith(key, this.keyEnd);
+            } else if (this.match(Session.SCAN_LT_END)) {
+                /*
+                 * Less (equal) than `keyEnd`?
+                 * NOTE: don't use BytewiseComparator due to signed byte
+                 */
+                assert this.keyEnd != null;
+                if (this.match(Session.SCAN_LTE_END)) {
+                    // Just compare the prefix，maybe there are excess tail
+                    key = Arrays.copyOfRange(key, 0, this.keyEnd.length);
+                    return Bytes.compare(key, this.keyEnd) <= 0;
+                } else {
+                    return Bytes.compare(key, this.keyEnd) < 0;
+                }
+            } else {
+                assert this.match(Session.SCAN_ANY) : "Unknow scan type";
+                return true;
+            }
         }
 
         @Override
@@ -612,6 +698,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             if (this.itor.isValid()) {
                 this.position = entry.name;
             } else {
+                // The end
                 this.position = null;
             }
 
