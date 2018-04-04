@@ -282,7 +282,8 @@ public class RocksDBSstSessions extends RocksDBSessions {
         @Override
         public BackendColumnIterator scan(String table,
                                           byte[] keyFrom,
-                                          byte[] keyTo) {
+                                          byte[] keyTo,
+                                          int scanType) {
             assert !this.hasChanges();
             return BackendColumnIterator.EMPTY;
         }

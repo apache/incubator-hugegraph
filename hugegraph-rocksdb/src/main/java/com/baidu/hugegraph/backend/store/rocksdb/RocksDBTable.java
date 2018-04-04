@@ -121,7 +121,8 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
     protected BackendColumnIterator queryAll(Session session, Query query) {
         if (query.paging()) {
             PageState page = PageState.fromString(query.page());
-            return session.scan(this.table(), page.position(), null);
+            byte[] begin = page.position();
+            return session.scan(this.table(), begin, null, Session.SCAN_ANY);
         } else {
             return session.scan(this.table());
         }
