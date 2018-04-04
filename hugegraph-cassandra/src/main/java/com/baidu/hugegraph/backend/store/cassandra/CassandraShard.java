@@ -45,6 +45,7 @@ import org.apache.cassandra.dht.Token.TokenFactory;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.type.Shard;
+import com.baidu.hugegraph.util.Bytes;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
@@ -61,7 +62,7 @@ import com.google.common.collect.ImmutableMap;
 public class CassandraShard {
 
     // The minimal shard size should >= 1M to prevent too many number of shards
-    public static int MIN_SHARD_SIZE = 1024 * 1024;
+    private static final int MIN_SHARD_SIZE = (int) Bytes.MB;
 
     private CassandraSessionPool.Session session;
     private String keyspace;

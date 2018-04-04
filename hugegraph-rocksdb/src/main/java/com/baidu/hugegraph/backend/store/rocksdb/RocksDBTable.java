@@ -24,6 +24,7 @@ import java.util.Iterator;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
@@ -38,6 +39,8 @@ import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Shard;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
@@ -47,6 +50,17 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
     public RocksDBTable(String database, String table) {
         super(String.format("%s+%s", database, table));
+    }
+
+    @Override
+    protected void registerMetaHandlers() {
+        this.registerMetaHandler("splits", (session, meta, args) -> {
+            E.checkArgument(args.length == 1,
+                            "The args count of %s must be 1", meta);
+            long splitSize = (long) args[0];
+            RocksDBRange range = new RocksDBRange(session, this.table());
+            return range.getSplits(splitSize);
+        });
     }
 
     @Override
@@ -115,7 +129,8 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         }
 
         // Query by condition (or condition + id)
-        return this.queryByCond(session, (ConditionQuery) query);
+        ConditionQuery cq = (ConditionQuery) query;
+        return newEntryIterator(this.queryByCond(session, cq), query);
     }
 
     protected BackendColumnIterator queryAll(Session session, Query query) {
@@ -132,14 +147,27 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         return session.scan(this.table(), id.asBytes());
     }
 
+    protected BackendColumnIterator queryByCond(Session session,
+                                                ConditionQuery query) {
+        if (query.containsScanCondition()) {
+            E.checkArgument(query.relations().size() == 1,
+                            "Invalid scan with multi conditions: %s", query);
+            Relation scan = query.relations().iterator().next();
+            Shard shard = (Shard) scan.value();
+            return this.queryByRange(session, shard);
+        }
+        throw new NotSupportException("query: %s", query);
+    }
+
     protected BackendColumnIterator queryByRange(Session session,
                                                  Id begin, Id end) {
         return session.scan(this.table(), begin.asBytes(), end.asBytes());
     }
 
-    protected Iterator<BackendEntry> queryByCond(Session session,
-                                                 ConditionQuery query) {
-        throw new NotSupportException("query: %s", query);
+    protected BackendColumnIterator queryByRange(Session session, Shard shard) {
+        byte[] start = RocksDBRange.position(shard.start());
+        byte[] end = RocksDBRange.position(shard.end());
+        return session.scan(this.table(), start, end);
     }
 
     protected static BinaryEntryIterator newEntryIterator(

@@ -21,7 +21,6 @@ package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Iterator;
 import java.util.List;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -29,7 +28,6 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.structure.HugeIndex;
@@ -163,8 +161,8 @@ public class RocksDBTables {
         }
 
         @Override
-        protected Iterator<BackendEntry> queryByCond(Session session,
-                                                     ConditionQuery query) {
+        protected BackendColumnIterator queryByCond(Session session,
+                                                    ConditionQuery query) {
             E.checkArgument(query.allSysprop() &&
                             query.conditions().size() == 2,
                             "There should be two conditions: " +
@@ -178,7 +176,7 @@ public class RocksDBTables {
             E.checkArgument(key != null, "Please specify the index key");
 
             Id id = HugeIndex.formatIndexId(query.resultType(), index, key);
-            return newEntryIterator(this.queryById(session, id), query);
+            return this.queryById(session, id);
         }
     }
 
@@ -191,8 +189,8 @@ public class RocksDBTables {
         }
 
         @Override
-        protected Iterator<BackendEntry> queryByCond(Session session,
-                                                     ConditionQuery query) {
+        protected BackendColumnIterator queryByCond(Session session,
+                                                    ConditionQuery query) {
             assert !query.conditions().isEmpty();
 
             Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
@@ -262,7 +260,7 @@ public class RocksDBTables {
                     itor = session.scan(table(), begin, end, scanType);
                 }
             }
-            return newEntryIterator(itor, query);
+            return itor;
         }
     }
 }
