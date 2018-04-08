@@ -20,6 +20,7 @@ package com.baidu.hugegraph.util;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Date;
+import java.util.function.Function;
 
 /**
  * This file is copied verbatim from Apache Lucene NumericUtils.java Only the
@@ -183,5 +184,34 @@ public final class NumericUtil {
             }
         }
         return value;
+    }
+
+    /**
+     * Compare object with a number, the object should be a number,
+     * or it can be converted to a BigDecimal
+     * @param first     might be number or string
+     * @param second    must be number
+     */
+    @SuppressWarnings("unchecked")
+    public static int compareNumber(Object first, Number second) {
+        if (first instanceof Number && first instanceof Comparable &&
+            first.getClass().equals(second.getClass())) {
+            return ((Comparable<Number>) first).compareTo(second);
+        }
+
+        Function<Object, BigDecimal> toBig = (number) -> {
+            try {
+                return new BigDecimal(number.toString());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(String.format(
+                          "Can't compare between %s and %s, " +
+                          "they must be numbers", first, second));
+            }
+        };
+
+        BigDecimal n1 = toBig.apply(first);
+        BigDecimal n2 = toBig.apply(second);
+
+        return n1.compareTo(n2);
     }
 }
