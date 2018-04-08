@@ -26,10 +26,12 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
-import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.exception.NotAllowException;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
@@ -62,8 +64,8 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         PropertyKey propertyKey = new PropertyKey(graph, id, this.name);
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
-        for (String key : this.userData.keySet()) {
-            propertyKey.userData(key, this.userData.get(key));
+        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
+            propertyKey.userData(entry.getKey(), entry.getValue());
         }
         return propertyKey;
     }
@@ -79,6 +81,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
             }
             return propertyKey;
         }
+        this.checkUserData(Action.INSERT);
 
         propertyKey = this.build();
         this.transaction.addPropertyKey(propertyKey);
@@ -87,12 +90,36 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
 
     @Override
     public PropertyKey append() {
-        throw new NotSupportException("action append on property key");
+        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        if (propertyKey == null) {
+            throw new NotFoundException("Can't update property key '%s' " +
+                                        "since it doesn't exist", this.name);
+        }
+        this.checkStableVars();
+        this.checkUserData(Action.APPEND);
+
+        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
+            propertyKey.userData(entry.getKey(), entry.getValue());
+        }
+        this.transaction.addPropertyKey(propertyKey);
+        return propertyKey;
     }
 
     @Override
     public PropertyKey eliminate() {
-        throw new NotSupportException("action eliminate on property key");
+        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        if (propertyKey == null) {
+            throw new NotFoundException("Can't update property key '%s' " +
+                                        "since it doesn't exist", this.name);
+        }
+        this.checkStableVars();
+        this.checkUserData(Action.ELIMINATE);
+
+        for (String key : this.userData.keySet()) {
+            propertyKey.removeUserData(key);
+        }
+        this.transaction.addPropertyKey(propertyKey);
+        return propertyKey;
     }
 
     @Override
@@ -216,5 +243,38 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     public PropertyKeyBuilder checkExist(boolean checkExist) {
         this.checkExist = checkExist;
         return this;
+    }
+
+    private void checkStableVars() {
+        if (this.dataType != DataType.TEXT) {
+            throw new NotAllowException("Not allowed to update data type " +
+                                        "for property key '%s'", this.name);
+        }
+        if (this.cardinality != Cardinality.SINGLE) {
+            throw new NotAllowException("Not allowed to update cardinality " +
+                                        "for property key '%s'", this.name);
+        }
+    }
+
+    private void checkUserData(Action action) {
+        switch (action) {
+            case INSERT:
+            case APPEND:
+                for (Map.Entry<String, Object> e : this.userData.entrySet()) {
+                    if (e.getValue() == null) {
+                        throw new NotAllowException(
+                                  "Not allowed pass null userdata value when " +
+                                  "create or append property key");
+                    }
+                }
+                break;
+            case ELIMINATE:
+            case DELETE:
+                // pass
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown schema action '%s'", action));
+        }
     }
 }

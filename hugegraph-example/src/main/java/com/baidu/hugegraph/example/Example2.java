@@ -142,11 +142,6 @@ public class Example2 {
     public static void load(final HugeGraph graph) {
         SchemaManager schema = graph.schema();
 
-        /*
-         * NOTE:
-         * Use schema.propertyKey interface to create propertyKey.
-         * Use schema.propertyKey interface to query propertyKey.
-         */
         schema.propertyKey("name").asText().ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
         schema.propertyKey("city").asText().ifNotExist().create();
@@ -187,7 +182,8 @@ public class Example2 {
               .onV("person")
               .by("age", "city")
               .secondary()
-              .ifNotExist().create();
+              .ifNotExist()
+              .create();
 
         schema.indexLabel("softwareByPrice")
               .onV("software")

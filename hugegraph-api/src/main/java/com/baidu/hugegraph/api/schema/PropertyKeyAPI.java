@@ -27,9 +27,11 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
@@ -65,6 +67,32 @@ public class PropertyKeyAPI extends API {
         HugeGraph g = graph(manager, graph);
         PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
         PropertyKey propertyKey = builder.create();
+        return manager.serializer(g).writePropertyKey(propertyKey);
+    }
+
+    @PUT
+    @Path("{name}")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public String update(@Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         @PathParam("name") String name,
+                         @QueryParam("action") String action,
+                         PropertyKeyAPI.JsonPropertyKey jsonPropertyKey) {
+        LOG.debug("Graph [{}] {} property key: {}",
+                  graph, action, jsonPropertyKey);
+        checkUpdatingBody(jsonPropertyKey);
+        E.checkArgument(name.equals(jsonPropertyKey.name),
+                        "The name in url(%s) and body(%s) are different",
+                        name, jsonPropertyKey.name);
+        // Parse action parameter
+        boolean append = checkAndParseAction(action);
+
+        HugeGraph g = graph(manager, graph);
+        PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
+        PropertyKey propertyKey = append ?
+                                  builder.append() :
+                                  builder.eliminate();
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
 
