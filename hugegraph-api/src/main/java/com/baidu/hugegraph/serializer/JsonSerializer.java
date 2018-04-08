@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -38,6 +39,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.traversal.optimize.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 
 public class JsonSerializer implements Serializer {
@@ -179,5 +181,15 @@ public class JsonSerializer implements Serializer {
         } else {
             return writeList(name, new ArrayList<>(ids));
         }
+    }
+
+    @Override
+    public String writePaths(String name, Collection<HugeTraverser.Path> paths,
+                             boolean withCrossPoint) {
+        List<Map<String, Object>> pathList = new ArrayList<>(paths.size());
+        for (HugeTraverser.Path path : paths) {
+            pathList.add(path.toMap(withCrossPoint));
+        }
+        return writeList(name, pathList);
     }
 }

@@ -31,6 +31,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.traversal.optimize.HugeTraverser;
 
 public interface Serializer {
 
@@ -59,4 +60,7 @@ public interface Serializer {
     public String writeEdges(Iterator<Edge> edges, boolean paging);
 
     public String writeIds(String name, Collection<Id> ids);
+
+    public String writePaths(String name, Collection<HugeTraverser.Path> paths,
+                             boolean withCrossPoint);
 }

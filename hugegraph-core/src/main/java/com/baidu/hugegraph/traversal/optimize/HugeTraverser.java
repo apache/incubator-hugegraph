@@ -28,6 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -40,12 +44,14 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class HugeTraverser {
 
-    public static final List<Id> PATH_NONE = ImmutableList.of();
-
     private HugeGraph graph;
+
+    public static final List<Id> PATH_NONE = ImmutableList.of();
+    public static final long NO_LIMIT = -1L;
 
     public HugeTraverser(HugeGraph graph) {
         this.graph = graph;
@@ -57,7 +63,7 @@ public class HugeTraverser {
         E.checkNotNull(targetV, "target vertex id");
         E.checkNotNull(dir, "direction");
         E.checkArgument(maxDepth >= 1,
-                        "Shortest path step must >= 1, but got '%s'",
+                        "Shortest path step must be >= 1, but got '%s'",
                         maxDepth);
 
         if (sourceV.equals(targetV)) {
@@ -82,12 +88,56 @@ public class HugeTraverser {
         return path;
     }
 
+    public Set<Path> paths(Id sourceV, Directions sourceDir,
+                           Id targetV, Directions targetDir,
+                           String label, int maxDepth, long limit) {
+        E.checkNotNull(sourceV, "source vertex id");
+        E.checkNotNull(targetV, "target vertex id");
+        E.checkNotNull(sourceDir, "source direction");
+        E.checkNotNull(targetDir, "target direction");
+        E.checkArgument(sourceDir == targetDir ||
+                        sourceDir == targetDir.opposite(),
+                        "Source direction must equal to target direction," +
+                        "or opposite to target direction");
+        E.checkArgument(maxDepth >= 1,
+                        "Paths step must be >= 1, but got '%s'",
+                        maxDepth);
+        E.checkArgument(limit >= 1 || limit == NO_LIMIT,
+                        "Limit must be >= 1 or == -1, but got: %s", limit);
+
+        Set<Path> paths = new HashSet<>();
+        if (sourceV.equals(targetV)) {
+            paths.add(new Path(sourceV, ImmutableList.of(sourceV)));
+        }
+
+        Id labelId = this.getEdgeLabelId(label);
+        PathsTraverser traverser = new PathsTraverser(sourceV, targetV,
+                                                      labelId, limit);
+        while (true) {
+            if (--maxDepth < 0 || traverser.reachLimit()) {
+                break;
+            }
+            List<Path> foundPaths = traverser.forward(sourceDir);
+            paths.addAll(foundPaths);
+
+            if (--maxDepth < 0 || traverser.reachLimit()) {
+                break;
+            }
+            foundPaths = traverser.backward(targetDir);
+            for (Path path : foundPaths) {
+                path.reverse();
+                paths.add(path);
+            }
+        }
+        return paths;
+    }
+
     public Set<Id> kout(Id sourceV, Directions dir, String label,
                         int depth, boolean nearest) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
         E.checkArgument(depth >= 1,
-                        "K-out depth must >= 1, but got '%s'", depth);
+                        "K-out depth must be >= 1, but got '%s'", depth);
 
         Id labelId = this.getEdgeLabelId(label);
 
@@ -114,7 +164,7 @@ public class HugeTraverser {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
         E.checkArgument(depth >= 1,
-                        "K-neighbor depth must >= 1, but got '%s'", depth);
+                        "K-neighbor depth must be >= 1, but got '%s'", depth);
         Id labelId = this.getEdgeLabelId(label);
 
         Set<Id> latest = newSet();
@@ -173,6 +223,10 @@ public class HugeTraverser {
         return new HashMap<>();
     }
 
+    private static <K, V> MultivaluedMap<K, V> newMultivalueMap() {
+        return new MultivaluedHashMap<>();
+    }
+
     private class ShortestPathTraverser {
 
         // TODO: change Map to Set to reduce memory cost
@@ -205,8 +259,7 @@ public class HugeTraverser {
 
                     // If cross point exists, shortest path found, concat them
                     if (this.targets.containsKey(target)) {
-                        Node targetNode = new Node(target, v);
-                        return targetNode.joinPath(this.targets.get(target));
+                        return v.joinPath(this.targets.get(target));
                     }
 
                     /*
@@ -244,8 +297,7 @@ public class HugeTraverser {
 
                     // If cross point exists, shortest path found, concat them
                     if (this.sources.containsKey(target)) {
-                        Node targetNode = new Node(target, v);
-                        return targetNode.joinPath(this.sources.get(target));
+                        return v.joinPath(this.sources.get(target));
                     }
 
                     /*
@@ -266,6 +318,133 @@ public class HugeTraverser {
             this.targets = newVertices;
 
             return PATH_NONE;
+        }
+    }
+
+    private class PathsTraverser {
+
+        private MultivaluedMap<Id, Node> sources = newMultivalueMap();
+        private MultivaluedMap<Id, Node> targets = newMultivalueMap();
+        private MultivaluedMap<Id, Node> sourcesAll = newMultivalueMap();
+        private MultivaluedMap<Id, Node> targetsAll = newMultivalueMap();
+
+        private final Id label;
+        private long limit;
+
+        public PathsTraverser(Id sourceV, Id targetV, Id label, long limit) {
+            this.sources.add(sourceV, new Node(sourceV));
+            this.targets.add(targetV, new Node(targetV));
+            this.sourcesAll.putAll(this.sources);
+            this.targetsAll.putAll(this.targets);
+            this.label = label;
+            this.limit = limit;
+        }
+
+        /**
+         * Search forward from source
+         */
+        public List<Path> forward(Directions direction) {
+            List<Path> paths = new ArrayList<>();
+            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
+            // Traversal vertices of previous level
+            for (List<Node> nodes : this.sources.values()) {
+                for (Node n : nodes) {
+                    Iterator<Edge> edges = edgesOfVertex(n.id(), direction,
+                                                         this.label);
+                    while (edges.hasNext()) {
+                        HugeEdge edge = (HugeEdge) edges.next();
+                        Id target = edge.id().otherVertexId();
+
+                        // If have loop, skip target
+                        if (n.contains(target)) {
+                            continue;
+                        }
+
+                        // If cross point exists, path found, concat them
+                        if (this.targetsAll.containsKey(target)) {
+                            for (Node node : this.targetsAll.get(target)) {
+                                List<Id> path = n.joinPath(node);
+                                if (!path.isEmpty()) {
+                                    paths.add(new Path(target, path));
+                                    if (this.decreaseLimit()) {
+                                        return paths;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Add node to next start-nodes
+                        newVertices.add(target, new Node(target, n));
+                    }
+                }
+            }
+            // Re-init sources
+            this.sources = newVertices;
+            // Record all passed vertices
+            this.sourcesAll.putAll(newVertices);
+
+            return paths;
+        }
+
+        /**
+         * Search backward from target
+         */
+        public List<Path> backward(Directions direction) {
+            List<Path> paths = new ArrayList<>();
+            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
+            // Traversal vertices of previous level
+            for (List<Node> nodes : this.targets.values()) {
+                for (Node n : nodes) {
+                    Iterator<Edge> edges = edgesOfVertex(n.id(), direction,
+                                                         this.label);
+                    while (edges.hasNext()) {
+                        HugeEdge edge = (HugeEdge) edges.next();
+                        Id target = edge.id().otherVertexId();
+
+                        // If have loop, skip target
+                        if (n.contains(target)) {
+                            continue;
+                        }
+
+                        // If cross point exists, path found, concat them
+                        if (this.sourcesAll.containsKey(target)) {
+                            for (Node node : this.sourcesAll.get(target)) {
+                                List<Id> path = n.joinPath(node);
+                                if (!path.isEmpty()) {
+                                    paths.add(new Path(target, path));
+                                    if (this.decreaseLimit()) {
+                                        return paths;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Add node to next start-nodes
+                        newVertices.add(target, new Node(target, n));
+                    }
+                }
+            }
+
+            // Re-init targets
+            this.targets = newVertices;
+            // Record all passed vertices
+            this.targetsAll.putAll(newVertices);
+
+            return paths;
+        }
+
+        public boolean decreaseLimit() {
+            if (this.limit != NO_LIMIT && this.limit > 0) {
+                return --this.limit <= 0;
+            }
+            return false;
+        }
+
+        public boolean reachLimit() {
+            if (this.limit == NO_LIMIT || this.limit > 0) {
+                return false;
+            }
+            return true;
         }
     }
 
@@ -311,8 +490,11 @@ public class HugeTraverser {
             // Get reversed other path
             List<Id> backPath = back.path();
             Collections.reverse(backPath);
-            // Remove cross point in back path
-            backPath.remove(0);
+
+            // Avoid loop in path
+            if (!CollectionUtils.intersection(path, backPath).isEmpty()) {
+                return ImmutableList.of();
+            }
 
             // Append other path behind self path
             path.addAll(backPath);
@@ -342,6 +524,58 @@ public class HugeTraverser {
             }
             Node other = (Node) object;
             return this.id.equals(other.id);
+        }
+    }
+
+    public static class Path {
+
+        private Id crosspoint;
+        private List<Id> vertices;
+
+        public Path(Id crosspoint, List<Id> vertices) {
+            this.crosspoint = crosspoint;
+            this.vertices = vertices;
+        }
+
+        public Id crosspoint() {
+            return this.crosspoint;
+        }
+
+        public List<Id> vertices() {
+            return this.vertices;
+        }
+
+        public void reverse() {
+            Collections.reverse(this.vertices);
+        }
+
+        public Map<String, Object> toMap(boolean withCrossPoint) {
+            if (withCrossPoint) {
+                return ImmutableMap.of("crosspoint", this.crosspoint,
+                                       "objects", this.vertices);
+            } else {
+                return ImmutableMap.of("objects", this.vertices);
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return this.vertices.hashCode();
+        }
+
+        /**
+         * Compares the specified object with this path for equality.
+         * Returns <tt>true</tt> if and only if both have same vertices list
+         * without regard of crosspoint.
+         * @param other the object to be compared for equality with this path
+         * @return <tt>true</tt> if the specified object is equal to this path
+         */
+        @Override
+        public boolean equals(Object other) {
+            if (other == null || !(other instanceof Path)) {
+                return false;
+            }
+            return this.vertices.equals(((Path) other).vertices);
         }
     }
 }
