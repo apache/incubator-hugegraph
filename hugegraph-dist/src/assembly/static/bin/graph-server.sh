@@ -8,7 +8,14 @@ function free_memory() {
     FREE
     OS=`uname`
     if [ "$OS" == "Linux" ]; then
-        FREE=`free -m | grep '\-\/\+' | awk '{print $4}'`
+        DISTRIBUTOR=`lsb_release -a | grep 'Distributor ID' | awk -F':' '{print $2}' | tr -d "\t"`
+        if [ "$DISTRIBUTOR" == "CentOS" ]; then
+            FREE=`free -m | grep '\-\/\+' | awk '{print $4}'`
+        elif [ "$DISTRIBUTOR" == "Ubuntu" ]; then
+            FREE=`free -m | grep 'Mem' | awk '{print $7}'`
+        else
+            echo "Unsupported Linux Distributor " $DISTRIBUTOR
+        fi
     elif [ "$OS" == "Darwin" ]; then
         FREE=`top -l 1 | head -n 10 | grep PhysMem | awk -F',' '{print $2}' \
              | awk -F'M' '{print $1}' | tr -d " "`
