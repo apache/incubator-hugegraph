@@ -26,6 +26,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -838,6 +839,138 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, write.userData().size());
         Assert.assertEquals("many-to-many",
                             write.userData().get("multiplicity"));
+    }
+
+    @Test
+    public void testAppendEdgeLabelWithUserData() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
+                                .properties("time", "weight")
+                                .userData("multiplicity", "one-to-many")
+                                .create();
+        // The same key user data will be overwritten
+        Assert.assertEquals(1, write.userData().size());
+        Assert.assertEquals("one-to-many",
+                            write.userData().get("multiplicity"));
+
+        write = schema.edgeLabel("write")
+                      .userData("icon", "picture2")
+                      .append();
+        Assert.assertEquals(2, write.userData().size());
+        Assert.assertEquals("one-to-many",
+                            write.userData().get("multiplicity"));
+        Assert.assertEquals("picture2", write.userData().get("icon"));
+    }
+
+    @Test
+    public void testEliminateEdgeLabelWithUserData() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
+                                .properties("time", "weight")
+                                .userData("multiplicity", "one-to-many")
+                                .userData("icon", "picture2")
+                                .create();
+        Assert.assertEquals(2, write.userData().size());
+        Assert.assertEquals("one-to-many",
+                            write.userData().get("multiplicity"));
+        Assert.assertEquals("picture2", write.userData().get("icon"));
+
+
+        write = schema.edgeLabel("write")
+                      .userData("icon", "")
+                      .eliminate();
+        Assert.assertEquals(1, write.userData().size());
+        Assert.assertEquals("one-to-many",
+                            write.userData().get("multiplicity"));
+    }
+
+    @Test
+    public void testEliminateVertexLabelWithNonUserData() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("person2")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        schema.edgeLabel("write")
+              .link("person", "book")
+              .multiTimes()
+              .properties("time", "weight")
+              .sortKeys("time")
+              .nullableKeys("weight")
+              .userData("multiplicity", "one-to-many")
+              .create();
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.edgeLabel("write").sourceLabel("person2").eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.edgeLabel("write").targetLabel("person2").eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.edgeLabel("write").singleTime().eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.edgeLabel("write").sortKeys("time").eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.edgeLabel("write").enableLabelIndex(false).eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.edgeLabel("write").properties("weight").eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.edgeLabel("write").nullableKeys("weight").eliminate();
+        });
     }
 
     @Test

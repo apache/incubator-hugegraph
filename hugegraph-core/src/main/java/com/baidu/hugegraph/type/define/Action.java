@@ -17,34 +17,32 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store;
+package com.baidu.hugegraph.type.define;
 
-import com.baidu.hugegraph.type.define.Action;
+public enum Action {
 
-public class BackendAction {
+    INSERT(0, "insert"),
 
-    private final Action action;
-    private final BackendEntry entry;
+    APPEND(1, "append"),
 
-    public static BackendAction of(Action action, BackendEntry entry) {
-        return new BackendAction(entry, action);
+    ELIMINATE(2, "eliminate"),
+
+    DELETE(3, "delete");
+
+    private final byte code;
+    private final String name;
+
+    private Action(int code, String name) {
+        assert code < 256;
+        this.code = (byte) code;
+        this.name = name;
     }
 
-    public BackendAction(BackendEntry entry, Action action) {
-        this.action = action;
-        this.entry = entry;
+    public byte code() {
+        return this.code;
     }
 
-    public Action action() {
-        return this.action;
-    }
-
-    public BackendEntry entry() {
-        return this.entry;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("entry: %s, action: %s", this.entry, this.action);
+    public String string() {
+        return this.name;
     }
 }

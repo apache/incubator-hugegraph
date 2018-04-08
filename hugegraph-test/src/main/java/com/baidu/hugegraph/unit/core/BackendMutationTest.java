@@ -11,11 +11,11 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendAction;
-import com.baidu.hugegraph.backend.store.BackendAction.Action;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 
 public class BackendMutationTest extends BaseUnitTest {

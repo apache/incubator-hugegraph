@@ -94,6 +94,11 @@ public abstract class SchemaElement
         this.userData.put(key, value);
     }
 
+    public Object removeUserData(String key) {
+        E.checkArgumentNotNull(key, "user data key");
+        return this.userData.remove(key);
+    }
+
     public boolean primitive() {
         return false;
     }

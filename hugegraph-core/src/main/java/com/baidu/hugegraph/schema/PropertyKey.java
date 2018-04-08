@@ -197,11 +197,11 @@ public class PropertyKey extends SchemaElement {
 
         Builder valueSet();
 
-        Builder userData(String key, Object value);
-
         Builder cardinality(Cardinality cardinality);
 
         Builder dataType(DataType dataType);
+
+        Builder userData(String key, Object value);
 
         Builder userData(Map<String, Object> userData);
     }

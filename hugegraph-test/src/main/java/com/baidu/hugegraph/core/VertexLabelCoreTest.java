@@ -798,6 +798,80 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAppendVertexLabelWithUserData() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel player = schema.vertexLabel("player")
+                                   .properties("name")
+                                   .userData("super_vl", "person")
+                                   .create();
+        Assert.assertEquals(1, player.userData().size());
+        Assert.assertEquals("person", player.userData().get("super_vl"));
+
+        player = schema.vertexLabel("player")
+                       .userData("icon", "picture1")
+                       .append();
+        Assert.assertEquals(2, player.userData().size());
+        Assert.assertEquals("person", player.userData().get("super_vl"));
+        Assert.assertEquals("picture1", player.userData().get("icon"));
+    }
+
+    @Test
+    public void testEliminateVertexLabelWithUserData() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel player = schema.vertexLabel("player")
+                                   .properties("name")
+                                   .userData("super_vl", "person")
+                                   .userData("icon", "picture1")
+                                   .create();
+        Assert.assertEquals(2, player.userData().size());
+        Assert.assertEquals("person", player.userData().get("super_vl"));
+        Assert.assertEquals("picture1", player.userData().get("icon"));
+
+        player = schema.vertexLabel("player")
+                       .userData("icon", "")
+                       .eliminate();
+        Assert.assertEquals(1, player.userData().size());
+        Assert.assertEquals("person", player.userData().get("super_vl"));
+    }
+
+    @Test
+    public void testEliminateVertexLabelWithNonUserData() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("player")
+              .properties("name", "age")
+              .primaryKeys("name")
+              .nullableKeys("age")
+              .userData("super_vl", "person")
+              .create();
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.vertexLabel("player").useCustomizeStringId().eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.vertexLabel("player").primaryKeys("name").eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.vertexLabel("player").enableLabelIndex(false).eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.vertexLabel("player").properties("age").eliminate();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.vertexLabel("player").nullableKeys("age").eliminate();
+        });
+    }
+
+    @Test
     public void testAddVertexLabelWithEnableLabelIndex() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
