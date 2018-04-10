@@ -139,11 +139,7 @@ public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
         }
 
         Iterator<BackendEntry> iterator = rs.values().iterator();
-        // Skip offset (TODO: maybe we can improve when adding items to rs)
-        for (long i = 0; i < query.offset() && iterator.hasNext(); i++) {
-            iterator.next();
-        }
-        return iterator;
+        return this.skipOffset(iterator, query.offset());
     }
 
     protected Map<Id, BackendEntry> queryById(Set<Id> ids,
@@ -274,6 +270,15 @@ public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
         }
 
         return rs;
+    }
+
+    protected Iterator<BackendEntry> skipOffset(Iterator<BackendEntry> iterator,
+                                                long offset) {
+        // Skip offset (TODO: maybe we can improve when adding items to rs)
+        for (long i = 0; i < offset && iterator.hasNext(); i++) {
+            iterator.next();
+        }
+        return iterator;
     }
 
     private static boolean matchCondition(BackendEntry item, Condition c) {

@@ -22,12 +22,14 @@ package com.baidu.hugegraph.backend.serializer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -36,7 +38,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
-public class TextBackendEntry implements BackendEntry {
+public class TextBackendEntry implements BackendEntry, Cloneable {
 
     public static final String VALUE_SPLITOR = "\u0002";
 
@@ -231,6 +233,38 @@ public class TextBackendEntry implements BackendEntry {
     @Override
     public void clear() {
         this.columns.clear();
+    }
+
+    public TextBackendEntry copy() {
+        try {
+            TextBackendEntry clone = (TextBackendEntry) this.clone();
+            clone.columns = new ConcurrentHashMap<>(this.columns);
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new BackendException(e);
+        }
+    }
+
+    public TextBackendEntry copyLast(int count) {
+        TextBackendEntry clone;
+        try {
+            clone = (TextBackendEntry) this.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new BackendException(e);
+        }
+        clone.columns = new ConcurrentHashMap<>();
+
+        // Copy the last count columns
+        Iterator<Entry<String, String>> it = this.columns.entrySet().iterator();
+        final int skip = this.columns.size() - count;
+        for (int i = 0; it.hasNext(); i++) {
+            Entry<String, String> entry = it.next();
+            if (i < skip) {
+                continue;
+            }
+            clone.columns.put(entry.getKey(), entry.getValue());
+        }
+        return clone;
     }
 
     @Override

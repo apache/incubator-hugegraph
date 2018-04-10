@@ -39,10 +39,12 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendSessionPool.Session;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableList;
 
 public class InMemoryDBTables {
 
@@ -92,6 +94,31 @@ public class InMemoryDBTables {
         @Override
         public void eliminate(Session session, TextBackendEntry entry) {
             throw new UnsupportedOperationException("Edge eliminate");
+        }
+
+        @Override
+        protected Iterator<BackendEntry> skipOffset(Iterator<BackendEntry> itor,
+                                                    long offset) {
+            long count = 0;
+            BackendEntry last = null;
+            while (count < offset && itor.hasNext()) {
+                last = itor.next();
+                count += last.columnsSize();
+            }
+            if (count == offset) {
+                return itor;
+            }
+
+            // Collect edges that are over-skipped
+            assert count > offset;
+            assert last != null;
+            int remaining = (int) (count - offset);
+            last = ((TextBackendEntry) last).copyLast(remaining);
+
+            ExtendableIterator<BackendEntry> all = new ExtendableIterator<>();
+            all.extend(ImmutableList.of(last).iterator());
+            all.extend(itor);
+            return all;
         }
 
         private static Id vertexIdOfEdge(TextBackendEntry entry) {
