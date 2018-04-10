@@ -11,8 +11,9 @@ abs_path() {
 }
 
 BIN=`abs_path`
-CONF=$BIN/../conf
-LIB=$BIN/../lib
+TOP="$(cd $BIN/../ && pwd)"
+CONF=$TOP/conf
+LIB=$TOP/lib
 
 if [ -n "$JAVA_HOME" ]; then
     JAVA="$JAVA_HOME"/bin/java
@@ -24,6 +25,8 @@ conf=$1
 if [ $# -eq 0 ]; then
     conf=$CONF/hugegraph.properties
 fi
+
+cd $TOP
 
 echo "Dumping HugeGraph Store($conf)..."
 
