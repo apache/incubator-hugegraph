@@ -22,13 +22,25 @@ function read_property(){
 BIN=`abs_path`
 TOP="$(cd $BIN/../ && pwd)"
 
-HSRV_URL=`read_property "$TOP/conf/rest-server.properties" "restserver.url"`
+SERVER_URL=`read_property "$TOP/conf/rest-server.properties" "restserver.url"`
 
-HSRV_STARTUP_TIMEOUT_S=30
-HSRV_SHUTDOWN_TIMEOUT_S=30
+SERVER_STARTUP_TIMEOUT_S=30
+SERVER_SHUTDOWN_TIMEOUT_S=30
 SLEEP_INTERVAL_S=2
 
 VERBOSE=
+
+# check the port of rest server is occupied
+function check_port() {
+
+    local port=`echo $1 | awk -F':' '{print $3}'`
+    lsof -i :$port >/dev/null
+
+    if [ $? -eq 0 ]; then
+        echo "The port "$port" has already used"
+        exit 1
+    fi
+}
 
 # wait_for_startup friendly_name host port timeout_s
 function wait_for_startup() {
@@ -58,6 +70,8 @@ function wait_for_startup() {
     return 1
 }
 
+check_port $SERVER_URL
+
 echo "Starting HugeGraphServer..."
 if [ -n "$VERBOSE" ]; then
     "$BIN"/graph-server.sh "$TOP"/conf/gremlin-server.yaml \
@@ -67,7 +81,10 @@ else
     "$TOP"/conf/rest-server.properties >/dev/null 2>&1 &
 fi
 
-wait_for_startup 'HugeGraphServer' "$HSRV_URL/graphs" $HSRV_STARTUP_TIMEOUT_S || {
+pid="$!"
+trap 'kill $pid; exit' SIGHUP SIGINT SIGQUIT SIGTERM
+
+wait_for_startup 'HugeGraphServer' "$SERVER_URL/graphs" $SERVER_STARTUP_TIMEOUT_S || {
     echo "See $TOP/logs/hugegraph-server.log for HugeGraphServer log output." >&2
 }
 disown
