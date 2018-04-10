@@ -624,42 +624,41 @@ public class EdgeCoreTest extends BaseCoreTest {
         });
     }
 
-// TODO: uncomment after split edges table into OUT&IN table
-//    @Test
-//    public void testQueryAllWithOffset() {
-//        HugeGraph graph = graph();
-//        init18Edges();
-//
-//        List<Edge> edges = graph.traversal().E().range(8, 100).toList();
-//        Assert.assertEquals(10, edges.size());
-//
-//        List<Edge> edges2 = graph.traversal().E().range(8, -1).toList();
-//        Assert.assertEquals(edges, edges2);
-//    }
-//
-//    @Test
-//    public void testQueryAllWithOffsetAndLimit() {
-//        HugeGraph graph = graph();
-//        init18Edges();
-//
-//        List<Edge> edges = graph.traversal().E().range(8, 9).toList();
-//        Assert.assertEquals(1, edges.size());
-//
-//        edges = graph.traversal().E().range(0, 4).toList();
-//        Assert.assertEquals(4, edges.size());
-//
-//        edges = graph.traversal().E().range(-2, 4).toList();
-//        Assert.assertEquals(4, edges.size());
-//
-//        edges = graph.traversal().E().range(18, -1).toList();
-//        Assert.assertEquals(0, edges.size());
-//
-//        edges = graph.traversal().E().range(0, -1).toList();
-//        Assert.assertEquals(18, edges.size());
-//
-//        edges = graph.traversal().E().range(-2, -1).toList();
-//        Assert.assertEquals(18, edges.size());
-//    }
+    @Test
+    public void testQueryAllWithOffset() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E().range(8, 100).toList();
+        Assert.assertEquals(10, edges.size());
+
+        List<Edge> edges2 = graph.traversal().E().range(8, -1).toList();
+        Assert.assertEquals(edges, edges2);
+    }
+
+    @Test
+    public void testQueryAllWithOffsetAndLimit() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E().range(8, 9).toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().E().range(0, 4).toList();
+        Assert.assertEquals(4, edges.size());
+
+        edges = graph.traversal().E().range(-2, 4).toList();
+        Assert.assertEquals(4, edges.size());
+
+        edges = graph.traversal().E().range(18, -1).toList();
+        Assert.assertEquals(0, edges.size());
+
+        edges = graph.traversal().E().range(0, -1).toList();
+        Assert.assertEquals(18, edges.size());
+
+        edges = graph.traversal().E().range(-2, -1).toList();
+        Assert.assertEquals(18, edges.size());
+    }
 
     @Test
     public void testQueryAllWithOffsetAndLimitWithMultiTimes() {
