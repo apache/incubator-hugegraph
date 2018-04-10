@@ -45,8 +45,8 @@ public class OptionHolder {
                 this.options.put(option.name(), option);
             } catch (Exception e) {
                 LOG.error("Failed to register option: {}", field, e);
-                throw new ConfigException(String.format(
-                          "Failed to register option: %s", field));
+                throw new ConfigException(
+                          "Failed to register option: %s", field);
             }
         }
     }

@@ -60,7 +60,7 @@ public class RestResult {
             return mapper.readValue(this.content, clazz);
         } catch (Exception e) {
             throw new SerializeException(
-                      "Failed to deserialize: %s", this.content, e);
+                      "Failed to deserialize: %s", e, this.content);
         }
     }
 
@@ -77,7 +77,7 @@ public class RestResult {
             return mapper.readValue(element.toString(), type);
         } catch (IOException e) {
             throw new SerializeException(
-                      "Failed to deserialize %s", this.content, e);
+                      "Failed to deserialize %s", e, this.content);
         }
     }
 
@@ -88,7 +88,7 @@ public class RestResult {
             return mapper.readValue(this.content, type);
         } catch (IOException e) {
             throw new SerializeException(
-                      "Failed to deserialize %s", this.content, e);
+                      "Failed to deserialize %s", e, this.content);
         }
     }
 
