@@ -158,6 +158,15 @@ public class RocksDBOptions extends OptionHolder {
                     4
             );
 
+    public static final ConfigOption<Long> DELAYED_WRITE_RATE =
+            new ConfigOption<>(
+                    "rocksdb.delayed_write_rate",
+                    "The rate limit in bytes/s of user write requests " +
+                    "when need to slow down if the compaction gets behind.",
+                    rangeInt(1L, Long.MAX_VALUE),
+                    16L * Bytes.MB
+            );
+
     public static final ConfigOption<Integer> MAX_OPEN_FILES =
             new ConfigOption<>(
                     "rocksdb.max_open_files",
@@ -171,7 +180,7 @@ public class RocksDBOptions extends OptionHolder {
                     "rocksdb.write_buffer_size",
                     "Amount of data in bytes to build up in memory.",
                     rangeInt(Bytes.MB, Long.MAX_VALUE),
-                    128 * Bytes.MB
+                    128L * Bytes.MB
             );
 
     public static final ConfigOption<Integer> MAX_MEMTABLES =
@@ -203,7 +212,7 @@ public class RocksDBOptions extends OptionHolder {
                     "rocksdb.max_bytes_for_level_base",
                     "The upper-bound of the total size of level-1 files in bytes.",
                     rangeInt(Bytes.MB, Long.MAX_VALUE),
-                    512 * Bytes.MB
+                    512L * Bytes.MB
             );
 
     public static final ConfigOption<Double> MAX_LEVEL_BYTES_MULTIPLIER =
@@ -220,7 +229,7 @@ public class RocksDBOptions extends OptionHolder {
                     "rocksdb.target_file_size_base",
                     "The target file size for compaction in bytes.",
                     rangeInt(Bytes.MB, Long.MAX_VALUE),
-                    64 * Bytes.MB
+                    64L * Bytes.MB
             );
 
     public static final ConfigOption<Integer> TARGET_FILE_SIZE_MULTIPLIER =

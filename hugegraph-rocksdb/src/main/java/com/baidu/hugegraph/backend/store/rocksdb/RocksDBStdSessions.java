@@ -249,6 +249,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
             db.setMaxBackgroundFlushes(
                     conf.get(RocksDBOptions.MAX_BG_FLUSHES));
 
+            db.setDelayedWriteRate(conf.get(RocksDBOptions.DELAYED_WRITE_RATE));
+
             db.setAllowMmapWrites(
                     conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
             db.setAllowMmapReads(
