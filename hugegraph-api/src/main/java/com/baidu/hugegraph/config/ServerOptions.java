@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.config;
 
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.nonNegativeInt;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
@@ -89,5 +90,24 @@ public class ServerOptions extends OptionHolder {
                     "Token for administrator operations",
                     disallowEmpty(),
                     "162f7848-0b6d-4faf-b557-3a0797869c55"
+            );
+
+    public static final ConfigOption<Integer> MAX_WRITE_RATIO =
+            new ConfigOption<>(
+                    "max_write_ratio",
+                    "The maximum thread ratio for batch writing, " +
+                    "only take effect if the max_write_threads is 0",
+                    rangeInt(0, 100),
+                    50
+            );
+
+    public static final ConfigOption<Integer> MAX_WRITE_THREADS =
+            new ConfigOption<>(
+                    "max_write_threads",
+                    "The maximum threads for batch writing, " +
+                    "if the value is 0, the actual value will be set to" +
+                    "max_write_ratio * total-rest-threads",
+                    nonNegativeInt(),
+                    0
             );
 }

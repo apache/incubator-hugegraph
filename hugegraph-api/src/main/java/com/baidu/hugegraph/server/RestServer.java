@@ -22,10 +22,12 @@ package com.baidu.hugegraph.server;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collection;
 
 import javax.ws.rs.core.UriBuilder;
 
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
@@ -56,6 +58,8 @@ public class RestServer {
 
         this.httpServer = GrizzlyHttpServerFactory.createHttpServer(uri, rc);
         this.httpServer.start();
+
+        this.calcMaxWriteThreads();
     }
 
     @SuppressWarnings("deprecation") // TODO: use shutdown instead
@@ -73,6 +77,42 @@ public class RestServer {
         LOG.info("RestServer started");
 
         return server;
+    }
+
+    private void calcMaxWriteThreads() {
+        int maxWriteThreads = this.conf.get(ServerOptions.MAX_WRITE_THREADS);
+        if (maxWriteThreads == 0) {
+            int maxWriteRatio = this.conf.get(ServerOptions.MAX_WRITE_RATIO);
+            assert maxWriteRatio >= 0 && maxWriteRatio <= 100;
+            int maxThreadPoolSize = this.maxThreadPoolSize();
+            maxWriteThreads = maxThreadPoolSize * maxWriteRatio / 100;
+            E.checkState(maxWriteThreads >= 0,
+                         "Invalid value of maximum available batch writing" +
+                         "threads '%s'", maxWriteThreads);
+            if (maxWriteThreads == 0) {
+                E.checkState(maxWriteRatio == 0,
+                             "There is no available batch writing thread " +
+                             "due to the max_write_ratio '%s' is too small, " +
+                             "set to '%s' at least to ensure one thread." +
+                             "If you want to disable batch write, " +
+                             "please let max_write_ratio be 0",
+                             maxWriteRatio,
+                             (int) Math.ceil(100.0 / maxThreadPoolSize));
+            }
+            LOG.info("The maximum batch writing threads is {}",
+                     maxWriteThreads);
+            this.conf.addProperty(ServerOptions.MAX_WRITE_THREADS.name(),
+                                  String.valueOf(maxWriteThreads));
+        }
+    }
+
+    private int maxThreadPoolSize() {
+        Collection<NetworkListener> listeners = this.httpServer.getListeners();
+        if (listeners.size() == 0) {
+            return -1;
+        }
+        return listeners.iterator().next().getTransport()
+                        .getWorkerThreadPoolConfig().getMaxPoolSize();
     }
 
     public static void main(String[] args) throws Exception {

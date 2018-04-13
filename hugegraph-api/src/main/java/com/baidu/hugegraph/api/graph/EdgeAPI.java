@@ -53,6 +53,7 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -69,7 +70,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/graph/edges")
 @Singleton
-public class EdgeAPI extends API {
+public class EdgeAPI extends BatchAPI {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -117,7 +118,8 @@ public class EdgeAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public List<String> create(@Context GraphManager manager,
+    public List<String> create(@Context HugeConfig config,
+                               @Context GraphManager manager,
                                @PathParam("graph") String graph,
                                @QueryParam("check_vertex")
                                @DefaultValue("true") boolean checkVertex,
@@ -131,7 +133,7 @@ public class EdgeAPI extends API {
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
-        return commit(g, () -> {
+        return BatchAPI.commit(config, g, () -> {
             List<String> ids = new ArrayList<>(jsonEdges.size());
             for (JsonEdge edge : jsonEdges) {
                 /*
