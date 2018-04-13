@@ -38,6 +38,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -73,14 +74,15 @@ public class GraphsAPI extends API {
     @GET
     @Path("{name}/conf")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public File getConf(@Context GraphManager manager,
+    public File getConf(@Context HugeConfig config,
+                        @Context GraphManager manager,
                         @PathParam("name") String name,
                         @QueryParam("token") String token) {
         LOG.debug("Graphs [{}] get graph by name '{}'", name);
 
         HugeGraph g = graph(manager, name);
 
-        if (!verifyToken(g, token)) {
+        if (!verifyToken(config, token)) {
             throw new NotAuthorizedException("Invalid token");
         }
 
@@ -95,7 +97,8 @@ public class GraphsAPI extends API {
     @DELETE
     @Path("{name}/clear")
     @Consumes(APPLICATION_JSON)
-    public void clear(@Context GraphManager manager,
+    public void clear(@Context HugeConfig config,
+                      @Context GraphManager manager,
                       @PathParam("name") String name,
                       @QueryParam("token") String token,
                       @QueryParam("confirm_message") String message) {
@@ -103,7 +106,7 @@ public class GraphsAPI extends API {
 
         HugeGraph g = graph(manager, name);
 
-        if (!verifyToken(g, token)) {
+        if (!verifyToken(config, token)) {
             throw new NotAuthorizedException("Invalid token");
         }
         if (!CONFIRM_CLEAR.equals(message)) {
@@ -133,8 +136,8 @@ public class GraphsAPI extends API {
         });
     }
 
-    private boolean verifyToken(HugeGraph graph, String token) {
-        String expected = graph.configuration().get(ServerOptions.ADMIN_TOKEN);
+    private boolean verifyToken(HugeConfig config, String token) {
+        String expected = config.get(ServerOptions.ADMIN_TOKEN);
         return expected.equals(token);
     }
 }

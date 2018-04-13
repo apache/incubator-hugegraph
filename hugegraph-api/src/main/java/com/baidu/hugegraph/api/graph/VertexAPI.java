@@ -50,6 +50,7 @@ import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -65,7 +66,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/graph/vertices")
 @Singleton
-public class VertexAPI extends API {
+public class VertexAPI extends BatchAPI {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -91,7 +92,8 @@ public class VertexAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public List<String> create(@Context GraphManager manager,
+    public List<String> create(@Context HugeConfig config,
+                               @Context GraphManager manager,
                                @PathParam("graph") String graph,
                                List<JsonVertex> jsonVertices) {
         LOG.debug("Graph [{}] create vertices: {}", graph, jsonVertices);
@@ -100,7 +102,7 @@ public class VertexAPI extends API {
         HugeGraph g = graph(manager, graph);
         checkBatchSize(g, jsonVertices);
 
-        return commit(g, () -> {
+        return BatchAPI.commit(config, g, () -> {
             List<String> ids = new ArrayList<>(jsonVertices.size());
             for (JsonVertex vertex : jsonVertices) {
                 ids.add(g.addVertex(vertex.properties()).id().toString());
