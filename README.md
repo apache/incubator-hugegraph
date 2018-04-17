@@ -15,4 +15,4 @@ its components.
 - Util, Numeric and Collection utils, log and exception utils etc.
 
 ## Licence
-The same as HugeGraph, hugegraph-client is also licensed under Apache 2.0 License.
+The same as HugeGraph, hugegraph-common is also licensed under Apache 2.0 License.
