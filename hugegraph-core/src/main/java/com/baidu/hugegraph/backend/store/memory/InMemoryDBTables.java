@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -107,6 +108,8 @@ public class InMemoryDBTables {
             }
             if (count == offset) {
                 return itor;
+            } else if (count < offset) {
+                return Collections.emptyIterator();
             }
 
             // Collect edges that are over-skipped
@@ -119,6 +122,31 @@ public class InMemoryDBTables {
             all.extend(ImmutableList.of(last).iterator());
             all.extend(itor);
             return all;
+        }
+
+        @Override
+        protected Iterator<BackendEntry> dropTails(Iterator<BackendEntry> itor,
+                                                   long limit) {
+            long count = 0;
+            BackendEntry last = null;
+            List<BackendEntry> entries = new ArrayList<>();
+            while (count < limit && itor.hasNext()) {
+                last = itor.next();
+                count += last.columnsSize();
+                entries.add(last);
+            }
+            if (count <= limit) {
+                return entries.iterator();
+            }
+
+            // Drop edges that are over-fetched
+            assert count > limit;
+            assert last != null;
+            int head = (int) (limit + last.columnsSize() - count);
+            last = ((TextBackendEntry) last).copyHead(head);
+            entries.remove(entries.size() - 1);
+            entries.add(last);
+            return entries.iterator();
         }
 
         private static Id vertexIdOfEdge(TextBackendEntry entry) {

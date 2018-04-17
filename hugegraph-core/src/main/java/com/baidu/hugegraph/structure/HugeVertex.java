@@ -54,7 +54,6 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
@@ -246,8 +245,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                         label, this.label(), vertex.label());
         // Check sortKeys
         List<Id> keys = this.graph().mapPkName2Id(elemKeys.keys());
-        E.checkArgument(CollectionUtil.containsAll(keys,
-                        edgeLabel.sortKeys()),
+        E.checkArgument(keys.containsAll(edgeLabel.sortKeys()),
                         "The sort key(s) must be setted for the edge " +
                         "with label: '%s'", edgeLabel.name());
 

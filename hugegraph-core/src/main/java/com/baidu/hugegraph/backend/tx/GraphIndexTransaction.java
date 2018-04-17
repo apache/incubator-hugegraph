@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -58,7 +57,9 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
@@ -297,6 +298,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
+        /*
+         * Set offset and limit for single index or composite index
+         * to avoid redundant element ids
+         */
+        indexQuery.limit(query.limit());
+        indexQuery.offset(query.offset());
 
         return this.doIndexQuery(indexQuery, label);
     }
@@ -315,7 +322,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return ImmutableSet.of();
         }
         // Do index query
-        Set<Id> ids = new HashSet<>();
+        Set<Id> ids = InsertionOrderUtil.newSet();
         for (MatchedLabel label : labels) {
             Id labelId = label.schemaLabel().id();
             List<ConditionQuery> indexQueries = new ArrayList<>();
@@ -325,6 +332,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 IndexLabel il = label.indexLabels().iterator().next();
                 ConditionQuery indexQuery = matchIndexLabel(query, il);
                 assert indexQuery != null;
+                /*
+                 * Set limit for single index or composite index
+                 * to avoid redundant element ids
+                 */
+                indexQuery.limit(query.limit());
                 indexQueries.add(indexQuery);
             } else {
                 // Joint indexes
@@ -333,9 +345,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 assert !indexQueryList.isEmpty();
                 indexQueries.addAll(indexQueryList);
             }
+
             ids.addAll(this.doMultiIndexQuery(indexQueries, labelId));
+            if (query.reachLimit(ids.size())) {
+                break;
+            }
         }
-        return ids;
+        return limit(ids, query);
     }
 
     private boolean needIndexForLabel() {
@@ -343,7 +359,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private Set<Id> doIndexQuery(ConditionQuery query, Id label) {
-        Set<Id> ids = new HashSet<>();
+        Set<Id> ids = InsertionOrderUtil.newSet();
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
             locks.lockReads(LockUtil.INDEX_LABEL, label);
@@ -411,7 +427,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                       query.resultType()));
         }
 
-        Set<MatchedLabel> labels = new HashSet<>();
+        Set<MatchedLabel> labels = InsertionOrderUtil.newSet();
         for (SchemaLabel schemaLabel : schemaLabels) {
             MatchedLabel l = this.collectMatchedLabel(schemaLabel, query);
             if (l != null) {
@@ -477,9 +493,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
         Set<Id> propKeys = query.userpropKeys();
-        Set<IndexLabel> ils = new HashSet<>(indexLabels);
+        Set<IndexLabel> ils = InsertionOrderUtil.newSet();
+        ils.addAll(indexLabels);
         // Handle range index first
-        Set<IndexLabel> rangeILs = new HashSet<>();
+        Set<IndexLabel> rangeILs = InsertionOrderUtil.newSet();
         if (query.hasRangeCondition()) {
             rangeILs = matchRangeIndexLabels(query, ils);
             if (rangeILs.isEmpty()) {
@@ -494,8 +511,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return rangeILs;
         }
         // Handle secondary indexes
-        Set<IndexLabel> matchedIndexLabels = new HashSet<>(rangeILs);
-        Set<Id> indexFields = new HashSet<>();
+        Set<IndexLabel> matchedIndexLabels = InsertionOrderUtil.newSet();
+        matchedIndexLabels.addAll(rangeILs);
+        Set<Id> indexFields = InsertionOrderUtil.newSet();
         for (IndexLabel indexLabel : ils) {
             List<Id> fields = indexLabel.indexFields();
             for (Id field : fields) {
@@ -516,7 +534,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static Set<IndexLabel> matchRangeIndexLabels(
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
-        Set<IndexLabel> rangeIL = new HashSet<>();
+        Set<IndexLabel> rangeIL = InsertionOrderUtil.newSet();
         for (Condition.Relation relation : query.userpropRelations()) {
             if (!relation.relation().isRangeType()) {
                 continue;
@@ -549,7 +567,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                             matchRangeIndexLabels(query,info.indexLabels());
             assert !rangeILs.isEmpty();
 
-            Set<Id> propKeys = new HashSet<>();
+            Set<Id> propKeys = InsertionOrderUtil.newSet();
             for (IndexLabel il : rangeILs) {
                 propKeys.add(il.indexField());
             }
@@ -634,8 +652,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private List<ConditionQuery> constructJointSecondaryQueries(
                                  ConditionQuery query,
                                  List<IndexLabel> ils) {
-        Set<IndexLabel> indexLabels =
-                        matchPrefixJointIndexes(query, new HashSet<>(ils));
+        Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
+        indexLabels.addAll(ils);
+        indexLabels = matchPrefixJointIndexes(query, indexLabels);
         if (indexLabels.isEmpty()) {
             return ImmutableList.of();
         }
@@ -669,7 +688,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private Set<ConditionQuery> query2IndexQuery(ConditionQuery query,
                                                  HugeElement element) {
-        Set<ConditionQuery> indexQueries = new HashSet<>();
+        Set<ConditionQuery> indexQueries = InsertionOrderUtil.newSet();
         for (IndexLabel indexLabel : relatedIndexLabels(element)) {
             ConditionQuery indexQuery = matchIndexLabel(query, indexLabel);
             if (indexQuery != null) {
@@ -776,7 +795,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private static Set<IndexLabel> relatedIndexLabels(HugeElement element) {
-        Set<IndexLabel> indexLabels = new HashSet<>();
+        Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
         Set<Id> indexLabelIds = element.schemaLabel().indexLabels();
 
         for (Id id : indexLabelIds) {
@@ -785,6 +804,27 @@ public class GraphIndexTransaction extends AbstractTransaction {
             indexLabels.add(indexLabel);
         }
         return indexLabels;
+    }
+
+    private static Set<Id> limit(Set<Id> ids, Query query) {
+        long fromIndex = query.offset();
+        E.checkArgument(fromIndex <= Integer.MAX_VALUE,
+                        "Offset must be <= 0x7fffffff, but got '%s'",
+                        fromIndex);
+
+        if (query.offset() >= ids.size()) {
+            return ImmutableSet.of();
+        }
+        if (query.limit() == Query.NO_LIMIT && query.offset() == 0) {
+            return ids;
+        }
+        long toIndex = query.offset() + query.limit();
+        if (query.limit() == Query.NO_LIMIT || toIndex > ids.size()) {
+            toIndex = ids.size();
+        }
+        assert fromIndex < ids.size();
+        assert toIndex <= ids.size();
+        return CollectionUtil.subSet(ids, (int) fromIndex, (int) toIndex);
     }
 
     public void removeIndex(IndexLabel indexLabel) {

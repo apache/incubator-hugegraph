@@ -267,6 +267,24 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         return clone;
     }
 
+    public TextBackendEntry copyHead(int count) {
+        TextBackendEntry clone;
+        try {
+            clone = (TextBackendEntry) this.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new BackendException(e);
+        }
+        clone.columns = new ConcurrentHashMap<>();
+
+        // Copy the head count columns
+        Iterator<Entry<String, String>> it = this.columns.entrySet().iterator();
+        for (int i = 0; it.hasNext() && i < count; i++) {
+            Entry<String, String> entry = it.next();
+            clone.columns.put(entry.getKey(), entry.getValue());
+        }
+        return clone;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof TextBackendEntry)) {

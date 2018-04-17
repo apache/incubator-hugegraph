@@ -78,7 +78,6 @@ import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
@@ -346,7 +345,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (strategy == IdStrategy.PRIMARY_KEY) {
             // Check whether primaryKey exists
             List<Id> primaryKeys = vertexLabel.primaryKeys();
-            E.checkArgument(CollectionUtil.containsAll(keys, primaryKeys),
+            E.checkArgument(keys.containsAll(primaryKeys),
                             "The primary keys: %s of vertex label '%s' " +
                             "must be set when using '%s' id strategy",
                             this.graph().mapPkId2Name(primaryKeys),

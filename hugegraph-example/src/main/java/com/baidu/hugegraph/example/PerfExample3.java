@@ -28,7 +28,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.util.Log;
 
 /**
- * Perf test for: insert vertices in order
+ * Perf test for: insert vertices with indexes in order
  */
 public class PerfExample3 extends PerfExampleBase {
 

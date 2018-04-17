@@ -299,14 +299,17 @@ public class Example1 {
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
         q.query(IdGenerator.of(authorId));
         PropertyKey age = graph.propertyKey("age");
-        // TODO: remove the PROPERTIES which may just be used by Cassandra
         q.key(HugeKeys.PROPERTIES, age.id());
-
-        Iterator<Vertex> vertices = graph.vertices(q);
-        assert vertices.hasNext();
-        System.out.println(">>>> queryVertices(age): " + vertices.hasNext());
-        while (vertices.hasNext()) {
-            System.out.println(">>>> queryVertices(age): " + vertices.next());
+        if (graph.graphTransaction().store().features()
+                 .supportsQueryWithContainsKey()) {
+            Iterator<Vertex> vertices = graph.vertices(q);
+            assert vertices.hasNext();
+            System.out.println(">>>> queryVertices(age): " +
+                               vertices.hasNext());
+            while (vertices.hasNext()) {
+                System.out.println(">>>> queryVertices(age): " +
+                                   vertices.next());
+            }
         }
 
         // query all edges

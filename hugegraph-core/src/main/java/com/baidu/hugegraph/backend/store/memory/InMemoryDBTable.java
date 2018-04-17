@@ -19,9 +19,12 @@
 
 package com.baidu.hugegraph.backend.store.memory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -139,7 +142,17 @@ public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
         }
 
         Iterator<BackendEntry> iterator = rs.values().iterator();
-        return this.skipOffset(iterator, query.offset());
+
+        if (query.offset() >= rs.size()) {
+            return Collections.emptyIterator();
+        }
+        iterator = this.skipOffset(iterator, query.offset());
+
+        if (query.limit() != Query.NO_LIMIT &&
+            query.offset() + query.limit() < rs.size()) {
+            iterator = this.dropTails(iterator, query.limit());
+        }
+        return iterator;
     }
 
     protected Map<Id, BackendEntry> queryById(Set<Id> ids,
@@ -279,6 +292,17 @@ public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
             iterator.next();
         }
         return iterator;
+    }
+
+    protected Iterator<BackendEntry> dropTails(Iterator<BackendEntry> iterator,
+                                               long limit) {
+        E.checkArgument(limit <= Integer.MAX_VALUE,
+                        "Limit must be <= 0x7fffffff, but got '%s'", limit);
+        List<BackendEntry> entries = new ArrayList<>((int) limit);
+        for (long i = 0L; i < limit && iterator.hasNext(); i++) {
+            entries.add(iterator.next());
+        }
+        return entries.iterator();
     }
 
     private static boolean matchCondition(BackendEntry item, Condition c) {

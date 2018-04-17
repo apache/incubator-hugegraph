@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -243,6 +244,10 @@ public abstract class PerfExampleBase {
 
         public Transaction tx() {
             return this.hugegraph.tx();
+        }
+
+        public GraphTraversalSource traversal() {
+            return this.hugegraph.traversal();
         }
 
         public void close() {

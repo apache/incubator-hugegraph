@@ -260,7 +260,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
 
         List<String> properties = this.transaction.graph()
                                       .mapPkId2Name(propertyIds);
-        E.checkArgument(CollectionUtil.containsAll(properties, fields),
+        E.checkArgument(properties.containsAll(fields),
                         "Not all index fields '%s' are contained in " +
                         "schema properties '%s'", fields, properties);
 
