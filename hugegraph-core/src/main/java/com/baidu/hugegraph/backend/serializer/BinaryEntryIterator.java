@@ -96,8 +96,12 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
                 break;
             }
 
-            // When limit exceed, stop fetching(also need to keep page position)
-            if (this.query.reachLimit(this.fetched() - 1)) {
+            // When limit exceed, stop fetching
+            if (this.query.reachLimit(this.fetched())) {
+                // Use next() to set page position if paging
+                if (this.query.paging() && this.columns.hasNext()) {
+                    this.columns.next();
+                }
                 break;
             }
         }
@@ -107,8 +111,14 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
 
     @Override
     protected final long sizeOf(BackendEntry entry) {
-        // One edge per column (one entry <==> a vertex)
-        return entry.type().isEdge() ? entry.columnsSize() : 1;
+        /*
+         * One edge per column (one entry <==> a vertex),
+         * or One element id per column (one entry <===> an index)
+         */
+        if (entry.type().isEdge() || entry.type().isIndex()) {
+            return entry.columnsSize();
+        }
+        return 1L;
     }
 
     @Override

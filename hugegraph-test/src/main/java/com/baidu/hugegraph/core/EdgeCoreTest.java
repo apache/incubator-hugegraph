@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -40,6 +41,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -587,6 +589,18 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         edges = graph.traversal().E().limit(10).limit(12).toList();
         Assert.assertEquals(10, edges.size());
+    }
+
+    @Test
+    public void testQueryAllWithLimitByQueryEdges() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Query query = new Query(HugeType.EDGE);
+        query.limit(1);
+        Iterator<Edge> itor = graph.graphTransaction().queryEdges(query);
+        List<Edge> edges = IteratorUtils.list(itor);
+        Assert.assertEquals(1, edges.size());
     }
 
     @Test

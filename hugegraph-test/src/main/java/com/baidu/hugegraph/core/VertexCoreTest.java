@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -42,6 +43,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -578,6 +580,18 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertexes = graph.traversal().V().limit(3).toList();
 
         Assert.assertEquals(3, vertexes.size());
+    }
+
+    @Test
+    public void testQueryAllWithLimitByQueryVertices() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        Query query = new Query(HugeType.VERTEX);
+        query.limit(1);
+        Iterator<Vertex> itor = graph.graphTransaction().queryVertices(query);
+        List<Vertex> vertices = IteratorUtils.list(itor);
+        Assert.assertEquals(1, vertices.size());
     }
 
     @Test
