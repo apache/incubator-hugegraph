@@ -19,14 +19,9 @@
 
 package com.baidu.hugegraph.rest;
 
-import com.google.common.collect.ImmutableMap;
-import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.client.ClientProperties;
-import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
-import org.glassfish.jersey.internal.util.collection.Ref;
-import org.glassfish.jersey.internal.util.collection.Refs;
-import org.glassfish.jersey.message.GZipEncoder;
-import org.glassfish.jersey.uri.UriComponent;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.Callable;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -37,9 +32,16 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Variant;
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.Callable;
+
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
+import org.glassfish.jersey.internal.util.collection.Ref;
+import org.glassfish.jersey.internal.util.collection.Refs;
+import org.glassfish.jersey.message.GZipEncoder;
+import org.glassfish.jersey.uri.UriComponent;
+
+import com.google.common.collect.ImmutableMap;
 
 public abstract class RestClient {
 
@@ -153,7 +155,7 @@ public abstract class RestClient {
         for (String key : params.keySet()) {
             Object value = params.get(key);
             if (value instanceof Collection) {
-                for (Object i : (Collection) value) {
+                for (Object i : (Collection<?>) value) {
                     target.set(target.get().queryParam(key, i));
                 }
             } else {

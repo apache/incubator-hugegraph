@@ -19,17 +19,20 @@
 
 package com.baidu.hugegraph.config;
 
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
+import java.io.File;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.configuration.AbstractFileConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 
-import java.io.File;
-import java.util.Iterator;
-import java.util.List;
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public class HugeConfig extends PropertiesConfiguration {
 
@@ -109,6 +112,19 @@ public class HugeConfig extends PropertiesConfiguration {
     public <T> T get(ConfigOption<T> option) {
         Object value = this.getProperty(option.name());
         return value != null ? (T) value : option.defaultValue();
+    }
+
+    public Map<String, String> getMap(ConfigListOption<String> option) {
+        List<String> values = this.get(option);
+        Map<String, String> result = new HashMap<>();
+        for (String value : values) {
+            String[] pair = value.split(":", 2);
+            E.checkState(pair.length == 2,
+                         "Invalid option format for '%s': %s(expect KEY:VALUE)",
+                         option.name(), value);
+            result.put(pair[0].trim(), pair[1].trim());
+        }
+        return result;
     }
 
     @Override
