@@ -23,14 +23,11 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class CollectionUtil {
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static boolean containsAll(Collection a, Collection b) {
-        return a.containsAll(b);
-    }
 
     @SuppressWarnings("unchecked")
     public static <T> List<T> toList(Object array) {
@@ -70,5 +67,20 @@ public final class CollectionUtil {
 
     public static boolean allUnique(Collection<?> collection){
         return collection.stream().allMatch(new HashSet<>()::add);
+    }
+
+    /**
+     * Get sub-set of a set.
+     * @param original original set
+     * @param from index of start position
+     * @param to index of end position(exclude), but -1 means the last element
+     * @return sub-set of original set [from,to)
+     */
+    public static <T> Set<T> subSet(Set<T> original, int from, int to) {
+        List<T> list = new ArrayList<>(original);
+        if (to == -1) {
+            to = original.size();
+        }
+        return new LinkedHashSet<>(list.subList(from, to));
     }
 }
