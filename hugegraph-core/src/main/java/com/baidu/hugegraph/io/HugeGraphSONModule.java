@@ -45,6 +45,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -78,6 +79,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         TYPE_DEFINITIONS.put(VertexLabel.class, "VertexLabel");
         TYPE_DEFINITIONS.put(EdgeLabel.class, "EdgeLabel");
         TYPE_DEFINITIONS.put(IndexLabel.class, "IndexLabel");
+
+        // HugeGraph shard serializer
+        TYPE_DEFINITIONS.put(Shard.class, "Shard");
     }
 
     public static void register(HugeGraphIoRegistry io) {
@@ -110,6 +114,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         addSerializer(VertexLabel.class, new VertexLabelSerializer());
         addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
         addSerializer(IndexLabel.class, new IndexLabelSerializer());
+
+        addSerializer(Shard.class, new ShardSerializer());
     }
 
     @Override
@@ -267,6 +273,24 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                               SerializerProvider serializer)
                               throws IOException {
             writeEntry(jsonGenerator, schemaSerializer.writeIndexLabel(il));
+        }
+    }
+
+    private class ShardSerializer extends StdSerializer<Shard> {
+
+        public ShardSerializer() {
+            super(Shard.class);
+        }
+
+        @Override
+        public void serialize(Shard shard, JsonGenerator jsonGenerator,
+                              SerializerProvider serializer)
+                              throws IOException {
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeStringField("start", shard.start());
+            jsonGenerator.writeStringField("end", shard.end());
+            jsonGenerator.writeNumberField("length", shard.length());
+            jsonGenerator.writeEndObject();
         }
     }
 }

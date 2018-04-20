@@ -19,8 +19,8 @@
 
 package com.baidu.hugegraph.serializer;
 
-import java.util.Iterator;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -32,6 +32,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.optimize.HugeTraverser;
+import com.baidu.hugegraph.type.Shard;
 
 public interface Serializer {
 
@@ -63,4 +64,6 @@ public interface Serializer {
 
     public String writePaths(String name, Collection<HugeTraverser.Path> paths,
                              boolean withCrossPoint);
+
+    public String writeShards(List<Shard> shards);
 }
