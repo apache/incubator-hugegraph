@@ -52,11 +52,12 @@ public abstract class BackendTable<Session extends BackendSessionPool.Session,
     /**
      * Call metadata API
      */
-    public Object metadata(Session session, String meta, Object... args) {
+    @SuppressWarnings("unchecked")
+    public <R> R metadata(Session session, String meta, Object... args) {
         if (!this.metaHandlers.containsKey(meta)) {
             throw new BackendException("Invalid metadata name '%s'", meta);
         }
-        return this.metaHandlers.get(meta).handle(session, meta, args);
+        return (R) this.metaHandlers.get(meta).handle(session, meta, args);
     }
 
     public void registerMetaHandler(String name, MetaHandler<Session> handler) {

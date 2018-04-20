@@ -271,20 +271,20 @@ public abstract class RocksDBStore implements BackendStore {
         this.checkOpened();
 
         for (String table : this.tableNames()) {
-            this.cretaTable(this.sessions, table);
+            this.createTable(this.sessions, table);
         }
 
         // Create table with optimized disk
         for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
             String table = this.table(e.getKey()).table();
             RocksDBSessions db = db(e.getValue());
-            this.cretaTable(db, table);
+            this.createTable(db, table);
         }
 
         LOG.info("Store initialized: {}", this.name);
     }
 
-    private void cretaTable(RocksDBSessions db, String table) {
+    private void createTable(RocksDBSessions db, String table) {
         try {
             db.createTable(table);
         } catch (RocksDBException e) {
@@ -352,7 +352,7 @@ public abstract class RocksDBStore implements BackendStore {
     }
 
     @Override
-    public Object metadata(HugeType type, String meta, Object[] args) {
+    public <R> R metadata(HugeType type, String meta, Object[] args) {
         RocksDBTable table = this.table(type);
         return table.metadata(this.session(type), meta, args);
     }

@@ -92,7 +92,7 @@ public class CachedBackendStore implements BackendStore {
     }
 
     @Override
-    public Object metadata(HugeType type, String meta, Object[] args) {
+    public <R> R metadata(HugeType type, String meta, Object[] args) {
         return this.store.metadata(type, meta, args);
     }
 

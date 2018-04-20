@@ -82,7 +82,7 @@ public abstract class AbstractTransaction implements Transaction {
         return this.store;
     }
 
-    public <T> T metadata(HugeType type, String meta, Object... args) {
+    public <R> R metadata(HugeType type, String meta, Object... args) {
         return this.store().metadata(type, meta, args);
     }
 

@@ -54,7 +54,7 @@ public interface BackendStore {
     public void rollbackTx();
 
     // Get metadata by key
-    public <T> T metadata(HugeType type, String meta, Object[] args);
+    public <R> R metadata(HugeType type, String meta, Object[] args);
 
     // Backend features
     public BackendFeatures features();
