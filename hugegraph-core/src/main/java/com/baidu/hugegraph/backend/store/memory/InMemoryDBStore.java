@@ -71,7 +71,7 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     @Override
-    public Object metadata(HugeType type, String meta, Object[] args) {
+    public <R> R metadata(HugeType type, String meta, Object[] args) {
         throw new UnsupportedOperationException("InMemoryDBStore.metadata()");
     }
 

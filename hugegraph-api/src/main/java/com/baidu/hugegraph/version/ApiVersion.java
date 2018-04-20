@@ -27,21 +27,49 @@ public final class ApiVersion {
     public static final String NAME = "hugegraph-api";
 
     /**
-     * Api Version change log
+     * API Version change log
      *
-     * 0.3.0: Firstly add version check.
+     * version 0.2:
+     * [0.2] HugeGraph-527: First add the version to the hugegraph module
+     * [0.3] HugeGraph-525: Add versions check of components and api
+     * [0.4] HugeGraph-162: Add schema builder to seperate client and
+     *       inner interface.
+     * [0.5] HugeGraph-498: Support three kind of id strategy
      *
-     * 0.4.0:
-     * 1) Change edge-link to source label and target label
-     * 2) Change `create` and `append` method of schema api to adapt the
-     *    modification of the core module.
+     * version 0.3:
+     *
+     * [0.6] HugeGraph-614: Add update api of VL/EL to support append and
+     *       eliminate action
+     * [0.7] HugeGraph-245: Add nullable-props for vertex label and edge label
+     * [0.8] HugeGraph-396: Continue to improve variables implementation
+     * [0.9] HugeGraph-894: Add vertex/edge update api to addProperty and
+     *       removeProperty
+     * [0.10] HugeGraph-919: Add condition query for vertex/edge list API
+     *
+     * version 0.4:
+     * [0.11] HugeGraph-938: Remove useless indexnames field in VL/EL API
+     * [0.12] HugeGraph-589: Add schema id for all schema element
+     * [0.13] HugeGraph-956: Support customize string/number id strategy
+     *
+     * version 0.5:
+     * [0.14] HugeGraph-1085: Add enable_label_index to VL/EL
+     * [0.15] HugeGraph-1105: Support paging for large amounts of records
+     * [0.16] HugeGraph-944: Support rest shortest path, k-out, k-neighbor
+     * [0.17] HugeGraph-944: Support rest shortest path, k-out, k-neighbor
+     * [0.18] HugeGraph-81: Change argument "checkVertex" to "check_vertex"
+     *
+     * version 0.6:
+     * [0.19] HugeGraph-1195: Support eliminate userdata on schema
+     * [0.20] HugeGraph-1210: Add paths restful api to find paths between
+     *        two nodes
+     * [0.21] HugeGraph-1197: Expose scan api for hugegraph-spark
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
     public static final Version VERSION = Version.of(ApiVersion.class, "0.21");
 
     public static final void check() {
-        // Check version of hugegraph-core
+        // Check version of hugegraph-core. Firstly do check from version 0.3
         VersionUtil.check(CoreVersion.VERSION, "0.5", "0.6", CoreVersion.NAME);
     }
 }
