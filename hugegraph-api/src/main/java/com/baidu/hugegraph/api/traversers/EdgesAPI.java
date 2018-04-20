@@ -30,25 +30,25 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
-import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-@Path("graphs/{graph}/traversers/vertices")
+@Path("graphs/{graph}/traversers/edges")
 @Singleton
-public class VerticesAPI extends API {
+public class EdgesAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -58,20 +58,20 @@ public class VerticesAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("ids") List<String> stringIds) {
-        LOG.debug("Graph [{}] get vertices by ids: {}", graph, stringIds);
+        LOG.debug("Graph [{}] get edges by ids: {}", graph, stringIds);
 
         E.checkArgument(stringIds != null && !stringIds.isEmpty(),
                         "Ids can't be null or empty");
 
         Object[] ids = new Id[stringIds.size()];
         for (int i = 0; i < ids.length; i++) {
-            ids[i] = VertexAPI.checkAndParseVertexId(stringIds.get(i));
+            ids[i] = HugeEdge.getIdValue(stringIds.get(i));
         }
 
         HugeGraph g = graph(manager, graph);
 
-        Iterator<Vertex> vertices = g.vertices(ids);
-        return manager.serializer(g).writeVertices(vertices, false);
+        Iterator<Edge> edges = g.edges(ids);
+        return manager.serializer(g).writeEdges(edges, false);
     }
 
     @GET
@@ -86,7 +86,7 @@ public class VerticesAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<Shard> shards = g.graphTransaction()
-                              .metadata(HugeType.VERTEX, "splits", splitSize);
+                              .metadata(HugeType.EDGE_OUT, "splits", splitSize);
         return manager.serializer(g).writeShards(shards);
     }
 
@@ -98,15 +98,15 @@ public class VerticesAPI extends API {
                        @PathParam("graph") String graph,
                        @QueryParam("start") String start,
                        @QueryParam("end") String end) {
-        LOG.debug("Graph [{}] query vertices by shard(start: {}, end: {}) ",
+        LOG.debug("Graph [{}] query edges by shard(start: {}, end: {}) ",
                   graph, start, end);
 
         HugeGraph g = graph(manager, graph);
 
-        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        ConditionQuery query = new ConditionQuery(HugeType.EDGE_OUT);
         query.scan(start, end);
-        Iterator<Vertex> vertices = g.vertices(query);
+        Iterator<Edge> edges = g.edges(query);
 
-        return manager.serializer(g).writeVertices(vertices, false);
+        return manager.serializer(g).writeEdges(edges, false);
     }
 }

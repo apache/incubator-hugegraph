@@ -21,8 +21,8 @@ package com.baidu.hugegraph.serializer;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +41,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.optimize.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
+import com.baidu.hugegraph.type.Shard;
 
 public class JsonSerializer implements Serializer {
 
@@ -191,5 +192,10 @@ public class JsonSerializer implements Serializer {
             pathList.add(path.toMap(withCrossPoint));
         }
         return writeList(name, pathList);
+    }
+
+    @Override
+    public String writeShards(List<Shard> shards) {
+        return this.writeList("shards", shards);
     }
 }
