@@ -21,7 +21,7 @@
             <artifactId>hugegraph-common</artifactId>
             <version>1.4.3-SNAPSHOT</version>
         </dependency>
-        <!-- TinkerPop -->
+        <!-- tinkerpop -->
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-core</artifactId>
@@ -54,13 +54,7 @@
             <artifactId>guava</artifactId>
         </dependency>
 
-        <!-- Utility -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-        </dependency>
-
-        <!-- Metrics -->
+        <!-- metrics -->
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>

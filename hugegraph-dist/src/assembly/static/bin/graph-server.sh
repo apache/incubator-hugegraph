@@ -3,6 +3,7 @@
 # The maximum and minium heap memory that service can use
 MAX_MEM=$[32*1024]
 MIN_MEM=512
+EXPECT_JDK_VERSION=1.8
 
 function free_memory() {
     FREE
@@ -85,11 +86,23 @@ cd $BIN/..
 
 export HUGEGRAPH_LOGDIR="$BIN/../logs"
 
+if [ ! -d $HUGEGRAPH_LOGDIR ]; then
+    mkdir $HUGEGRAPH_LOGDIR
+fi
+
 # Find Java
 if [ "$JAVA_HOME" = "" ] ; then
     JAVA="java -server"
 else
     JAVA="$JAVA_HOME/bin/java -server"
+fi
+
+JAVA_VERSION=`$JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}' \
+              | awk -F'_' '{print $1}'`
+if [[ $? -ne 0 || $JAVA_VERSION < $EXPECT_JDK_VERSION ]]; then
+    echo "Please make sure that the JDK is installed and the version >= $EXPECT_JDK_VERSION" \
+    >> $HUGEGRAPH_LOGDIR/hugegraph-server.log
+    exit 1
 fi
 
 # Set Java options

@@ -197,6 +197,7 @@ public class PaloSessions extends MysqlSessions {
             return file;
         }
 
+        @SuppressWarnings("unused")
         private PaloLoadInfo getLoadInfoByLabel(String label) {
             String sql = String.format("SHOW LOAD WHERE LABEL = '%s'", label);
             ResultSet result;

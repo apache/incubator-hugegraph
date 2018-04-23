@@ -38,6 +38,8 @@ import com.google.common.collect.ImmutableList;
 
 public class PaloFile extends File {
 
+    private static final long serialVersionUID = -1918775445693598353L;
+
     public PaloFile(String dir, String subDir, String fileName) {
         this(Paths.get(dir, subDir, fileName).toString());
     }
