@@ -35,7 +35,7 @@
     </fileSets>
 
     <dependencySets>
-        <!-- Code jars -->
+        <!-- code jars -->
         <dependencySet>
             <outputDirectory>/lib</outputDirectory>
             <unpack>false</unpack>
