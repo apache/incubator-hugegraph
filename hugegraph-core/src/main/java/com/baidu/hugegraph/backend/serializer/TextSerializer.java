@@ -704,18 +704,18 @@ public class TextSerializer extends AbstractSerializer {
 
     private static void writeUserData(SchemaElement schema,
                                       TextBackendEntry entry) {
-        entry.column(HugeKeys.USER_DATA, JsonUtil.toJson(schema.userData()));
+        entry.column(HugeKeys.USER_DATA, JsonUtil.toJson(schema.userdata()));
     }
 
     private static void readUserData(SchemaElement schema,
                                      TextBackendEntry entry) {
         // Parse all user data of a schema element
-        String userDataStr = entry.column(HugeKeys.USER_DATA);
+        String userdataStr = entry.column(HugeKeys.USER_DATA);
         @SuppressWarnings("unchecked")
-        Map<String, Object> userData = JsonUtil.fromJson(userDataStr,
+        Map<String, Object> userdata = JsonUtil.fromJson(userdataStr,
                                                          Map.class);
-        for (String key : userData.keySet()) {
-            schema.userData(key, userData.get(key));
+        for (String key : userdata.keySet()) {
+            schema.userdata(key, userdata.get(key));
         }
     }
 }

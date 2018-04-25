@@ -49,7 +49,7 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(vertexLabel.properties()));
         map.put(HugeKeys.ENABLE_LABEL_INDEX, vertexLabel.enableLabelIndex());
-        map.put(HugeKeys.USER_DATA, vertexLabel.userData());
+        map.put(HugeKeys.USER_DATA, vertexLabel.userdata());
         return map;
     }
     
@@ -74,7 +74,7 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(edgeLabel.properties()));
         map.put(HugeKeys.ENABLE_LABEL_INDEX, edgeLabel.enableLabelIndex());
-        map.put(HugeKeys.USER_DATA, edgeLabel.userData());
+        map.put(HugeKeys.USER_DATA, edgeLabel.userdata());
         return map;
     }
     
@@ -89,7 +89,7 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.CARDINALITY, propertyKey.cardinality());
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(propertyKey.properties()));
-        map.put(HugeKeys.USER_DATA, propertyKey.userData());
+        map.put(HugeKeys.USER_DATA, propertyKey.userdata());
         return map;
     }
 

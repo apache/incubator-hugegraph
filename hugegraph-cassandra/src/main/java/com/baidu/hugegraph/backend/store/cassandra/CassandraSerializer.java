@@ -130,7 +130,7 @@ public class CassandraSerializer extends TableSerializer {
     protected void writeUserData(SchemaElement schema,
                                  TableBackendEntry entry) {
         assert entry instanceof CassandraBackendEntry;
-        for (Map.Entry<String, Object> e : schema.userData().entrySet()) {
+        for (Map.Entry<String, Object> e : schema.userdata().entrySet()) {
             entry.column(HugeKeys.USER_DATA, e.getKey(),
                          JsonUtil.toJson(e.getValue()));
         }
@@ -141,11 +141,11 @@ public class CassandraSerializer extends TableSerializer {
                                 TableBackendEntry entry) {
         assert entry instanceof CassandraBackendEntry;
         // Parse all user data of a schema element
-        Map<String, String> userData = entry.column(HugeKeys.USER_DATA);
-        for (Map.Entry<String, String> e : userData.entrySet()) {
+        Map<String, String> userdata = entry.column(HugeKeys.USER_DATA);
+        for (Map.Entry<String, String> e : userdata.entrySet()) {
             String key = e.getKey();
             Object value = JsonUtil.fromJson(e.getValue(), Object.class);
-            schema.userData(key, value);
+            schema.userdata(key, value);
         }
     }
 }

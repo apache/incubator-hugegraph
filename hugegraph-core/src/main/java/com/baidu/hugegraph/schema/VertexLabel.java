@@ -93,8 +93,8 @@ public class VertexLabel extends SchemaLabel {
 
         Builder enableLabelIndex(boolean enable);
 
-        Builder userData(String key, Object value);
+        Builder userdata(String key, Object value);
 
-        Builder userData(Map<String, Object> userData);
+        Builder userdata(Map<String, Object> userdata);
     }
 }

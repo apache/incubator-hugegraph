@@ -117,12 +117,12 @@ public class IndexLabel extends SchemaElement {
     }
 
     @Override
-    public Map<String, Object> userData() {
+    public Map<String, Object> userdata() {
         throw new NotSupportException("user data for index label");
     }
 
     @Override
-    public void userData(String key, Object value) {
+    public void userdata(String key, Object value) {
         throw new NotSupportException("user data for index label");
     }
 

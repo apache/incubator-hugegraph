@@ -153,7 +153,7 @@ public class VertexLabelAPI extends API {
         @JsonProperty("enable_label_index")
         public Boolean enableLabelIndex;
         @JsonProperty("user_data")
-        public Map<String, Object> userData;
+        public Map<String, Object> userdata;
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
@@ -180,8 +180,8 @@ public class VertexLabelAPI extends API {
             if (this.enableLabelIndex != null) {
                 builder.enableLabelIndex(this.enableLabelIndex);
             }
-            if (this.userData != null) {
-                builder.userData(this.userData);
+            if (this.userdata != null) {
+                builder.userdata(this.userdata);
             }
             if (this.checkExist != null) {
                 builder.checkExist(this.checkExist);

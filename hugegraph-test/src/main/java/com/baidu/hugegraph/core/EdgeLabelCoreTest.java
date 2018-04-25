@@ -823,22 +823,22 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         EdgeLabel father = schema.edgeLabel("father").link("person", "person")
                                  .properties("weight")
-                                 .userData("multiplicity", "one-to-many")
+                                 .userdata("multiplicity", "one-to-many")
                                  .create();
 
-        Assert.assertEquals(1, father.userData().size());
+        Assert.assertEquals(1, father.userdata().size());
         Assert.assertEquals("one-to-many",
-                            father.userData().get("multiplicity"));
+                            father.userdata().get("multiplicity"));
 
         EdgeLabel write = schema.edgeLabel("write").link("person", "book")
                                 .properties("time", "weight")
-                                .userData("multiplicity", "one-to-many")
-                                .userData("multiplicity", "many-to-many")
+                                .userdata("multiplicity", "one-to-many")
+                                .userdata("multiplicity", "many-to-many")
                                 .create();
         // The same key user data will be overwritten
-        Assert.assertEquals(1, write.userData().size());
+        Assert.assertEquals(1, write.userdata().size());
         Assert.assertEquals("many-to-many",
-                            write.userData().get("multiplicity"));
+                            write.userdata().get("multiplicity"));
     }
 
     @Test
@@ -860,20 +860,20 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         EdgeLabel write = schema.edgeLabel("write").link("person", "book")
                                 .properties("time", "weight")
-                                .userData("multiplicity", "one-to-many")
+                                .userdata("multiplicity", "one-to-many")
                                 .create();
         // The same key user data will be overwritten
-        Assert.assertEquals(1, write.userData().size());
+        Assert.assertEquals(1, write.userdata().size());
         Assert.assertEquals("one-to-many",
-                            write.userData().get("multiplicity"));
+                            write.userdata().get("multiplicity"));
 
         write = schema.edgeLabel("write")
-                      .userData("icon", "picture2")
+                      .userdata("icon", "picture2")
                       .append();
-        Assert.assertEquals(2, write.userData().size());
+        Assert.assertEquals(2, write.userdata().size());
         Assert.assertEquals("one-to-many",
-                            write.userData().get("multiplicity"));
-        Assert.assertEquals("picture2", write.userData().get("icon"));
+                            write.userdata().get("multiplicity"));
+        Assert.assertEquals("picture2", write.userdata().get("icon"));
     }
 
     @Test
@@ -895,21 +895,21 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         EdgeLabel write = schema.edgeLabel("write").link("person", "book")
                                 .properties("time", "weight")
-                                .userData("multiplicity", "one-to-many")
-                                .userData("icon", "picture2")
+                                .userdata("multiplicity", "one-to-many")
+                                .userdata("icon", "picture2")
                                 .create();
-        Assert.assertEquals(2, write.userData().size());
+        Assert.assertEquals(2, write.userdata().size());
         Assert.assertEquals("one-to-many",
-                            write.userData().get("multiplicity"));
-        Assert.assertEquals("picture2", write.userData().get("icon"));
+                            write.userdata().get("multiplicity"));
+        Assert.assertEquals("picture2", write.userdata().get("icon"));
 
 
         write = schema.edgeLabel("write")
-                      .userData("icon", "")
+                      .userdata("icon", "")
                       .eliminate();
-        Assert.assertEquals(1, write.userData().size());
+        Assert.assertEquals(1, write.userdata().size());
         Assert.assertEquals("one-to-many",
-                            write.userData().get("multiplicity"));
+                            write.userdata().get("multiplicity"));
     }
 
     @Test
@@ -941,7 +941,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .properties("time", "weight")
               .sortKeys("time")
               .nullableKeys("weight")
-              .userData("multiplicity", "one-to-many")
+              .userdata("multiplicity", "one-to-many")
               .create();
 
         Assert.assertThrows(HugeException.class, () -> {
