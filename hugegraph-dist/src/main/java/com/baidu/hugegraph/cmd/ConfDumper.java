@@ -47,6 +47,7 @@ public class ConfDumper {
         System.out.println("Output config: " + output.getPath());
 
         RegisterUtil.registerBackends();
+        RegisterUtil.registerServer();
 
         HugeConfig config = new HugeConfig(input);
 
@@ -63,6 +64,6 @@ public class ConfDumper {
         sb.append(option.name()).append("=").append(value).append(EOL);
         sb.append(EOL);
         // Write to output file
-        FileUtils.write(output, sb.toString(), true);;
+        FileUtils.write(output, sb.toString(), true);
     }
 }
