@@ -92,7 +92,7 @@ public class CassandraOptions extends OptionHolder {
     public static final ConfigOption<String> CASSANDRA_STRATEGY =
             new ConfigOption<>(
                     "cassandra.keyspace.strategy",
-                    "The keyspace strategy",
+                    "The keyspace strategy.",
                     disallowEmpty(),
                     "SimpleStrategy"
             );
@@ -100,7 +100,7 @@ public class CassandraOptions extends OptionHolder {
     public static final ConfigOption<Integer> CASSANDRA_REPLICATION =
             new ConfigOption<>(
                     "cassandra.keyspace.replication",
-                    "The keyspace replication factor",
+                    "The keyspace replication factor.",
                     rangeInt(1, 100),
                     3
             );
