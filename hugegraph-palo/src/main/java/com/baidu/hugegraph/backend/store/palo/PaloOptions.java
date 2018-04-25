@@ -50,7 +50,7 @@ public class PaloOptions extends OptionHolder {
     public static final ConfigOption<String> PALO_HOST =
             new ConfigOption<>(
                     "palo.host",
-                    "The host/ip of Palo cluster",
+                    "The host/ip of Palo cluster.",
                     disallowEmpty(),
                     "127.0.0.1"
             );
@@ -58,7 +58,7 @@ public class PaloOptions extends OptionHolder {
     public static final ConfigOption<Integer> PALO_HTTP_PORT =
             new ConfigOption<>(
                     "palo.http_port",
-                    "The http port of Palo cluster",
+                    "The http port of Palo cluster.",
                     positiveInt(),
                     8030
             );
@@ -66,7 +66,7 @@ public class PaloOptions extends OptionHolder {
     public static final ConfigOption<Integer> PALO_HTTP_TIMEOUT =
             new ConfigOption<>(
                     "palo.http_timeout",
-                    "Timeout(second) for connecting and reading Palo",
+                    "Timeout(second) for connecting and reading Palo.",
                     nonNegativeInt(),
                     20
             );
@@ -74,7 +74,7 @@ public class PaloOptions extends OptionHolder {
     public static final ConfigOption<String> PALO_USERNAME =
             new ConfigOption<>(
                     "palo.username",
-                    "The username to login Palo",
+                    "The username to login Palo.",
                     disallowEmpty(),
                     "root"
             );
@@ -82,7 +82,7 @@ public class PaloOptions extends OptionHolder {
     public static final ConfigOption<String> PALO_PASSWORD =
             new ConfigOption<>(
                     "palo.password",
-                    "The password corresponding to palo.username",
+                    "The password corresponding to palo.username.",
                     null,
                     ""
             );
@@ -91,7 +91,7 @@ public class PaloOptions extends OptionHolder {
             new ConfigOption<>(
                     "palo.poll_interval",
                     "The execution peroid of the background thread that " +
-                    "check whether need to load file data into Palo",
+                    "check whether need to load file data into Palo.",
                     rangeInt(5, Integer.MAX_VALUE),
                     5
             );
@@ -99,7 +99,7 @@ public class PaloOptions extends OptionHolder {
     public static final ConfigOption<String> PALO_TEMP_DIR =
             new ConfigOption<>(
                     "palo.temp_dir",
-                    "The temporary directory to store table files",
+                    "The temporary directory to store table files.",
                     null,
                     "palo-data"
             );
@@ -107,7 +107,7 @@ public class PaloOptions extends OptionHolder {
     public static final ConfigOption<Integer> PALO_FILE_LIMIT_SIZE =
             new ConfigOption<>(
                     "palo.file_limit_size",
-                    "The maximum size(MB) of each file for loading into Palo",
+                    "The maximum size(MB) of each file for loading into Palo.",
                     rangeInt(10, 1000),
                     50
             );

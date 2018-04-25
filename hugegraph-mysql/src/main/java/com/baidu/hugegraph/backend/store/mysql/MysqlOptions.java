@@ -48,7 +48,7 @@ public class MysqlOptions extends OptionHolder {
     public static final ConfigOption<String> JDBC_DRIVER =
             new ConfigOption<>(
                     "jdbc.driver",
-                    "The JDBC driver class to connect database",
+                    "The JDBC driver class to connect database.",
                     disallowEmpty(),
                     "com.mysql.jdbc.Driver"
             );
@@ -56,7 +56,7 @@ public class MysqlOptions extends OptionHolder {
     public static final ConfigOption<String> JDBC_URL =
             new ConfigOption<>(
                     "jdbc.url",
-                    "The url of database in JDBC format",
+                    "The url of database in JDBC format.",
                     disallowEmpty(),
                     "jdbc:mysql://127.0.0.1:3306"
             );
@@ -64,7 +64,7 @@ public class MysqlOptions extends OptionHolder {
     public static final ConfigOption<String> JDBC_USERNAME =
             new ConfigOption<>(
                     "jdbc.username",
-                    "The username to login database",
+                    "The username to login database.",
                     disallowEmpty(),
                     "root"
             );
@@ -72,7 +72,7 @@ public class MysqlOptions extends OptionHolder {
     public static final ConfigOption<String> JDBC_PASSWORD =
             new ConfigOption<>(
                     "jdbc.password",
-                    "The password corresponding to jdbc.username",
+                    "The password corresponding to jdbc.username.",
                     null,
                     ""
             );
@@ -80,7 +80,7 @@ public class MysqlOptions extends OptionHolder {
     public static final ConfigOption<Integer> JDBC_RECONNECT_MAX_TIMES =
             new ConfigOption<>(
                     "jdbc.reconnect_max_times",
-                    "The reconnect times when the database connection fails",
+                    "The reconnect times when the database connection fails.",
                     rangeInt(1, 10),
                     3
             );
@@ -89,7 +89,7 @@ public class MysqlOptions extends OptionHolder {
             new ConfigOption<>(
                     "jdbc.reconnect_interval",
                     "The interval(seconds) between reconnections when the " +
-                    "database connection fails",
+                    "database connection fails.",
                     rangeInt(1, 10),
                     3
             );

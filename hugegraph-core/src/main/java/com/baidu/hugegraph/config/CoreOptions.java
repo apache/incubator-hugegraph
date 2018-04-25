@@ -45,7 +45,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<String> GREMLIN_GRAPH =
             new ConfigOption<>(
                     "gremlin.graph",
-                    "Gremlin entrence to create graph",
+                    "Gremlin entrence to create graph.",
                     disallowEmpty(),
                     "com.baidu.hugegraph.HugeFactory"
             );
@@ -85,7 +85,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<String> SERIALIZER =
             new ConfigOption<>(
                     "serializer",
-                    "The serializer for backend store, like: text/binary/cassandra",
+                    "The serializer for backend store, like: text/binary/cassandra.",
                     disallowEmpty(),
                     "text"
             );

@@ -63,7 +63,7 @@ public class RocksDBOptions extends OptionHolder {
                     "rocksdb.data_disks",
                     false,
                     "The optimized disks for storing data of RocksDB. " +
-                    "The format of each element: `STORE/TABLE: /path/to/disk`",
+                    "The format of each element: `STORE/TABLE: /path/to/disk`.",
                     null,
                     String.class,
                     ImmutableList.of()
@@ -219,7 +219,7 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.max_bytes_for_level_multiplier",
                     "The ratio between the total size of level (L+1) files and " +
-                    "the total size of level L files for all L",
+                    "the total size of level L files for all L.",
                     rangeDouble(1.0, Double.MAX_VALUE),
                     10.0
             );
