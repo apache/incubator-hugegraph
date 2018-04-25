@@ -41,7 +41,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     private String name;
     private DataType dataType;
     private Cardinality cardinality;
-    private Map<String, Object> userData;
+    private Map<String, Object> userdata;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -52,7 +52,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.name = name;
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
-        this.userData = new HashMap<>();
+        this.userdata = new HashMap<>();
         this.checkExist = true;
         this.transaction = transaction;
     }
@@ -64,8 +64,8 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         PropertyKey propertyKey = new PropertyKey(graph, id, this.name);
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
-        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
-            propertyKey.userData(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
+            propertyKey.userdata(entry.getKey(), entry.getValue());
         }
         return propertyKey;
     }
@@ -98,8 +98,8 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.checkStableVars();
         this.checkUserData(Action.APPEND);
 
-        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
-            propertyKey.userData(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
+            propertyKey.userdata(entry.getKey(), entry.getValue());
         }
         this.transaction.addPropertyKey(propertyKey);
         return propertyKey;
@@ -115,7 +115,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.checkStableVars();
         this.checkUserData(Action.ELIMINATE);
 
-        for (String key : this.userData.keySet()) {
+        for (String key : this.userdata.keySet()) {
             propertyKey.removeUserData(key);
         }
         this.transaction.addPropertyKey(propertyKey);
@@ -210,8 +210,8 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     }
 
     @Override
-    public PropertyKeyBuilder userData(String key, Object value) {
-        this.userData.put(key, value);
+    public PropertyKeyBuilder userdata(String key, Object value) {
+        this.userdata.put(key, value);
         return this;
     }
 
@@ -228,8 +228,8 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     }
 
     @Override
-    public PropertyKeyBuilder userData(Map<String, Object> userData) {
-        this.userData.putAll(userData);
+    public PropertyKeyBuilder userdata(Map<String, Object> userdata) {
+        this.userdata.putAll(userdata);
         return this;
     }
 
@@ -260,7 +260,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         switch (action) {
             case INSERT:
             case APPEND:
-                for (Map.Entry<String, Object> e : this.userData.entrySet()) {
+                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
                     if (e.getValue() == null) {
                         throw new NotAllowException(
                                   "Not allowed pass null userdata value when " +

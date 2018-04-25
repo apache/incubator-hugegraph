@@ -150,7 +150,7 @@ public class PropertyKeyAPI extends API {
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("user_data")
-        public Map<String, Object> userData;
+        public Map<String, Object> userdata;
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
@@ -173,8 +173,8 @@ public class PropertyKeyAPI extends API {
             if (this.dataType != null) {
                 builder.dataType(this.dataType);
             }
-            if (this.userData != null) {
-                builder.userData(this.userData);
+            if (this.userdata != null) {
+                builder.userdata(this.userdata);
             }
             if (this.checkExist != null) {
                 builder.checkExist(this.checkExist);

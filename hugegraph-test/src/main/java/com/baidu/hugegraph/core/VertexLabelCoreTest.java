@@ -782,19 +782,19 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         VertexLabel player = schema.vertexLabel("player")
                                    .properties("name")
-                                   .userData("super_vl", "person")
+                                   .userdata("super_vl", "person")
                                    .create();
-        Assert.assertEquals(1, player.userData().size());
-        Assert.assertEquals("person", player.userData().get("super_vl"));
+        Assert.assertEquals(1, player.userdata().size());
+        Assert.assertEquals("person", player.userdata().get("super_vl"));
 
         VertexLabel runner = schema.vertexLabel("runner")
                                    .properties("name")
-                                   .userData("super_vl", "person")
-                                   .userData("super_vl", "player")
+                                   .userdata("super_vl", "person")
+                                   .userdata("super_vl", "player")
                                    .create();
         // The same key user data will be overwritten
-        Assert.assertEquals(1, runner.userData().size());
-        Assert.assertEquals("player", runner.userData().get("super_vl"));
+        Assert.assertEquals(1, runner.userdata().size());
+        Assert.assertEquals("player", runner.userdata().get("super_vl"));
     }
 
     @Test
@@ -804,17 +804,17 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         VertexLabel player = schema.vertexLabel("player")
                                    .properties("name")
-                                   .userData("super_vl", "person")
+                                   .userdata("super_vl", "person")
                                    .create();
-        Assert.assertEquals(1, player.userData().size());
-        Assert.assertEquals("person", player.userData().get("super_vl"));
+        Assert.assertEquals(1, player.userdata().size());
+        Assert.assertEquals("person", player.userdata().get("super_vl"));
 
         player = schema.vertexLabel("player")
-                       .userData("icon", "picture1")
+                       .userdata("icon", "picture1")
                        .append();
-        Assert.assertEquals(2, player.userData().size());
-        Assert.assertEquals("person", player.userData().get("super_vl"));
-        Assert.assertEquals("picture1", player.userData().get("icon"));
+        Assert.assertEquals(2, player.userdata().size());
+        Assert.assertEquals("person", player.userdata().get("super_vl"));
+        Assert.assertEquals("picture1", player.userdata().get("icon"));
     }
 
     @Test
@@ -824,18 +824,18 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         VertexLabel player = schema.vertexLabel("player")
                                    .properties("name")
-                                   .userData("super_vl", "person")
-                                   .userData("icon", "picture1")
+                                   .userdata("super_vl", "person")
+                                   .userdata("icon", "picture1")
                                    .create();
-        Assert.assertEquals(2, player.userData().size());
-        Assert.assertEquals("person", player.userData().get("super_vl"));
-        Assert.assertEquals("picture1", player.userData().get("icon"));
+        Assert.assertEquals(2, player.userdata().size());
+        Assert.assertEquals("person", player.userdata().get("super_vl"));
+        Assert.assertEquals("picture1", player.userdata().get("icon"));
 
         player = schema.vertexLabel("player")
-                       .userData("icon", "")
+                       .userdata("icon", "")
                        .eliminate();
-        Assert.assertEquals(1, player.userData().size());
-        Assert.assertEquals("person", player.userData().get("super_vl"));
+        Assert.assertEquals(1, player.userdata().size());
+        Assert.assertEquals("person", player.userdata().get("super_vl"));
     }
 
     @Test
@@ -847,7 +847,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
               .properties("name", "age")
               .primaryKeys("name")
               .nullableKeys("age")
-              .userData("super_vl", "person")
+              .userdata("super_vl", "person")
               .create();
 
         Assert.assertThrows(HugeException.class, () -> {

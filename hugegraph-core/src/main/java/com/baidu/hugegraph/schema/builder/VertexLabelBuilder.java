@@ -54,7 +54,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     private List<String> primaryKeys;
     private Set<String> nullableKeys;
     private Boolean enableLabelIndex;
-    private Map<String, Object> userData;
+    private Map<String, Object> userdata;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -68,7 +68,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.primaryKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
         this.enableLabelIndex = null;
-        this.userData = new HashMap<>();
+        this.userdata = new HashMap<>();
         this.checkExist = true;
 
         this.transaction = transaction;
@@ -95,8 +95,8 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
-            vertexLabel.userData(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
+            vertexLabel.userdata(entry.getKey(), entry.getValue());
         }
         return vertexLabel;
     }
@@ -144,8 +144,8 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
-            vertexLabel.userData(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
+            vertexLabel.userdata(entry.getKey(), entry.getValue());
         }
         this.transaction.addVertexLabel(vertexLabel);
         return vertexLabel;
@@ -164,7 +164,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkNullableKeys(Action.ELIMINATE);
         this.checkUserData(Action.ELIMINATE);
 
-        for (String key : this.userData.keySet()) {
+        for (String key : this.userdata.keySet()) {
             vertexLabel.removeUserData(key);
         }
         this.transaction.addVertexLabel(vertexLabel);
@@ -273,14 +273,14 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     @Override
-    public VertexLabelBuilder userData(String key, Object value) {
-        this.userData.put(key, value);
+    public VertexLabelBuilder userdata(String key, Object value) {
+        this.userdata.put(key, value);
         return this;
     }
 
     @Override
-    public VertexLabelBuilder userData(Map<String, Object> userData) {
-        this.userData.putAll(userData);
+    public VertexLabelBuilder userdata(Map<String, Object> userdata) {
+        this.userdata.putAll(userdata);
         return this;
     }
 
@@ -439,7 +439,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         switch (action) {
             case INSERT:
             case APPEND:
-                for (Map.Entry<String, Object> e : this.userData.entrySet()) {
+                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
                     if (e.getValue() == null) {
                         throw new NotAllowException(
                                   "Not allowed pass null userdata value when " +

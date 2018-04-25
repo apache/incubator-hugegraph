@@ -56,7 +56,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     private List<String> sortKeys;
     private Set<String> nullableKeys;
     private Boolean enableLabelIndex;
-    private Map<String, Object> userData;
+    private Map<String, Object> userdata;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -72,7 +72,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.sortKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
         this.enableLabelIndex = null;
-        this.userData = new HashMap<>();
+        this.userdata = new HashMap<>();
         this.checkExist = true;
         this.transaction = transaction;
     }
@@ -101,8 +101,8 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
-            edgeLabel.userData(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
+            edgeLabel.userdata(entry.getKey(), entry.getValue());
         }
         return edgeLabel;
     }
@@ -156,8 +156,8 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userData.entrySet()) {
-            edgeLabel.userData(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
+            edgeLabel.userdata(entry.getKey(), entry.getValue());
         }
         this.transaction.addEdgeLabel(edgeLabel);
         return edgeLabel;
@@ -176,7 +176,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.checkNullableKeys(Action.ELIMINATE);
         this.checkUserData(Action.ELIMINATE);
 
-        for (String key : this.userData.keySet()) {
+        for (String key : this.userdata.keySet()) {
             edgeLabel.removeUserData(key);
         }
         this.transaction.addEdgeLabel(edgeLabel);
@@ -277,14 +277,14 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     }
 
     @Override
-    public EdgeLabelBuilder userData(String key, Object value) {
-        this.userData.put(key, value);
+    public EdgeLabelBuilder userdata(String key, Object value) {
+        this.userdata.put(key, value);
         return this;
     }
 
     @Override
-    public EdgeLabelBuilder userData(Map<String, Object> userData) {
-        this.userData.putAll(userData);
+    public EdgeLabelBuilder userdata(Map<String, Object> userdata) {
+        this.userdata.putAll(userdata);
         return this;
     }
 
@@ -440,7 +440,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         switch (action) {
             case INSERT:
             case APPEND:
-                for (Map.Entry<String, Object> e : this.userData.entrySet()) {
+                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
                     if (e.getValue() == null) {
                         throw new NotAllowException(
                                   "Not allowed pass null userdata value when " +

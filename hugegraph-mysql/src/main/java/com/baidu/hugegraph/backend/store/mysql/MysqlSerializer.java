@@ -147,7 +147,7 @@ public class MysqlSerializer extends TableSerializer {
     protected void writeUserData(SchemaElement schema,
                                  TableBackendEntry entry) {
         assert entry instanceof MysqlBackendEntry;
-        entry.column(HugeKeys.USER_DATA, JsonUtil.toJson(schema.userData()));
+        entry.column(HugeKeys.USER_DATA, JsonUtil.toJson(schema.userdata()));
     }
 
     @Override
@@ -157,9 +157,9 @@ public class MysqlSerializer extends TableSerializer {
         // Parse all user data of a schema element
         String json = entry.column(HugeKeys.USER_DATA);
         @SuppressWarnings("unchecked")
-        Map<String, Object> userData = JsonUtil.fromJson(json, Map.class);
-        for (Map.Entry<String, Object> e : userData.entrySet()) {
-            schema.userData(e.getKey(), e.getValue());
+        Map<String, Object> userdata = JsonUtil.fromJson(json, Map.class);
+        for (Map.Entry<String, Object> e : userdata.entrySet()) {
+            schema.userdata(e.getKey(), e.getValue());
         }
     }
 }

@@ -45,7 +45,7 @@ public abstract class SchemaElement
     protected Id id;
     protected String name;
     protected Set<Id> properties;
-    protected Map<String, Object> userData;
+    protected Map<String, Object> userdata;
 
     public SchemaElement(final HugeGraph graph, Id id, String name) {
         E.checkArgumentNotNull(id, "SchemaElement id can't be null");
@@ -54,7 +54,7 @@ public abstract class SchemaElement
         this.id = id;
         this.name = name;
         this.properties = new HashSet<>();
-        this.userData = new HashMap<>();
+        this.userdata = new HashMap<>();
     }
 
     public HugeGraph graph() {
@@ -84,19 +84,19 @@ public abstract class SchemaElement
         this.properties.addAll(properties);
     }
 
-    public Map<String, Object> userData() {
-        return Collections.unmodifiableMap(this.userData);
+    public Map<String, Object> userdata() {
+        return Collections.unmodifiableMap(this.userdata);
     }
 
-    public void userData(String key, Object value) {
+    public void userdata(String key, Object value) {
         E.checkArgumentNotNull(key, "user data key");
         E.checkArgumentNotNull(value, "user data value");
-        this.userData.put(key, value);
+        this.userdata.put(key, value);
     }
 
     public Object removeUserData(String key) {
         E.checkArgumentNotNull(key, "user data key");
-        return this.userData.remove(key);
+        return this.userdata.remove(key);
     }
 
     public boolean primitive() {

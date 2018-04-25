@@ -198,28 +198,28 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
 
         PropertyKey age = schema.propertyKey("age")
-                                .userData("min", 0)
-                                .userData("max", 100)
+                                .userdata("min", 0)
+                                .userdata("max", 100)
                                 .create();
-        Assert.assertEquals(2, age.userData().size());
-        Assert.assertEquals(0, age.userData().get("min"));
-        Assert.assertEquals(100, age.userData().get("max"));
+        Assert.assertEquals(2, age.userdata().size());
+        Assert.assertEquals(0, age.userdata().get("min"));
+        Assert.assertEquals(100, age.userdata().get("max"));
 
         PropertyKey id = schema.propertyKey("id")
-                               .userData("length", 15)
-                               .userData("length", 18)
+                               .userdata("length", 15)
+                               .userdata("length", 18)
                                .create();
         // The same key user data will be overwritten
-        Assert.assertEquals(1, id.userData().size());
-        Assert.assertEquals(18, id.userData().get("length"));
+        Assert.assertEquals(1, id.userdata().size());
+        Assert.assertEquals(18, id.userdata().get("length"));
 
         PropertyKey sex = schema.propertyKey("sex")
-                                .userData("range",
+                                .userdata("range",
                                           ImmutableList.of("male", "female"))
                                 .create();
-        Assert.assertEquals(1, sex.userData().size());
+        Assert.assertEquals(1, sex.userdata().size());
         Assert.assertEquals(ImmutableList.of("male", "female"),
-                            sex.userData().get("range"));
+                            sex.userdata().get("range"));
     }
 
     @Test
@@ -227,18 +227,18 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
 
         PropertyKey age = schema.propertyKey("age")
-                                .userData("min", 0)
+                                .userdata("min", 0)
                                 .create();
-        Assert.assertEquals(1, age.userData().size());
-        Assert.assertEquals(0, age.userData().get("min"));
+        Assert.assertEquals(1, age.userdata().size());
+        Assert.assertEquals(0, age.userdata().get("min"));
 
         age = schema.propertyKey("age")
-                    .userData("min", 1)
-                    .userData("max", 100)
+                    .userdata("min", 1)
+                    .userdata("max", 100)
                     .append();
-        Assert.assertEquals(2, age.userData().size());
-        Assert.assertEquals(1, age.userData().get("min"));
-        Assert.assertEquals(100, age.userData().get("max"));
+        Assert.assertEquals(2, age.userdata().size());
+        Assert.assertEquals(1, age.userdata().get("min"));
+        Assert.assertEquals(100, age.userdata().get("max"));
     }
 
     @Test
@@ -246,18 +246,18 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
 
         PropertyKey age = schema.propertyKey("age")
-                                .userData("min", 0)
-                                .userData("max", 100)
+                                .userdata("min", 0)
+                                .userdata("max", 100)
                                 .create();
-        Assert.assertEquals(2, age.userData().size());
-        Assert.assertEquals(0, age.userData().get("min"));
-        Assert.assertEquals(100, age.userData().get("max"));
+        Assert.assertEquals(2, age.userdata().size());
+        Assert.assertEquals(0, age.userdata().get("min"));
+        Assert.assertEquals(100, age.userdata().get("max"));
 
         age = schema.propertyKey("age")
-                    .userData("max", "")
+                    .userdata("max", "")
                     .eliminate();
-        Assert.assertEquals(1, age.userData().size());
-        Assert.assertEquals(0, age.userData().get("min"));
+        Assert.assertEquals(1, age.userdata().size());
+        Assert.assertEquals(0, age.userdata().get("min"));
     }
 
     @Test
@@ -267,7 +267,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         schema.propertyKey("age")
               .asInt()
               .valueSingle()
-              .userData("min", 0)
+              .userdata("min", 0)
               .create();
 
         Assert.assertThrows(HugeException.class, () -> {

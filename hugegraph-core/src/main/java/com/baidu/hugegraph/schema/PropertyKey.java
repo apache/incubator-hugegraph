@@ -201,8 +201,8 @@ public class PropertyKey extends SchemaElement {
 
         Builder dataType(DataType dataType);
 
-        Builder userData(String key, Object value);
+        Builder userdata(String key, Object value);
 
-        Builder userData(Map<String, Object> userData);
+        Builder userdata(Map<String, Object> userdata);
     }
 }
