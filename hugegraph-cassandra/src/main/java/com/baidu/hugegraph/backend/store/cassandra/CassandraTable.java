@@ -67,6 +67,7 @@ public abstract class CassandraTable
                                      CassandraBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
+    private static final int MAX_ELEMENTS_IN_CLAUSE = 65535;
 
     public CassandraTable(String table) {
         super(table);
@@ -193,8 +194,7 @@ public abstract class CassandraTable
                 assert id.size() == 1;
                 idList.add(id.get(0));
             }
-            select.where(QueryBuilder.in(formatKey(nameParts.get(0)), idList));
-            return ImmutableList.of(select);
+            return this.ids2IdSelects(select, nameParts.get(0), idList);
         }
 
         /*
@@ -204,22 +204,20 @@ public abstract class CassandraTable
          * columns when using: select.where(QueryBuilder.in(names, idList));
          * So we use multi-query instead of IN
          */
-        List<Select> selections = new ArrayList<>(ids.size());
+        List<Select> selects = new ArrayList<>(ids.size());
         for (List<Object> id : ids) {
             assert nameParts.size() == id.size();
-            // NOTE: there is no Select.clone(), just use copy instead
-            Select idSelection = CopyUtil.copy(select,
-                                 QueryBuilder.select().from(this.table()));
+            Select idSelect = cloneSelect(select, this.table());
             /*
              * NOTE: concat with AND relation, like:
              * "pk = id and ck1 = v1 and ck2 = v2"
              */
             for (int i = 0, n = nameParts.size(); i < n; i++) {
-                idSelection.where(formatEQ(nameParts.get(i), id.get(i)));
+                idSelect.where(formatEQ(nameParts.get(i), id.get(i)));
             }
-            selections.add(idSelection);
+            selects.add(idSelect);
         }
-        return selections;
+        return selects;
     }
 
     protected Collection<Select> queryCondition2Select(Query query,
@@ -303,6 +301,24 @@ public abstract class CassandraTable
             default:
                 throw new AssertionError("Unsupported relation: " + relation);
         }
+    }
+
+    private List<Select> ids2IdSelects(Select select, HugeKeys key,
+                                       List<Object> ids) {
+        int size = ids.size();
+        List<Select> selects = new ArrayList<>();
+        for (int i = 0, j; i < size; i = j) {
+            j = Math.min(i + MAX_ELEMENTS_IN_CLAUSE, size);
+            Select idSelect = cloneSelect(select, this.table());
+            idSelect.where(QueryBuilder.in(formatKey(key), ids.subList(i, j)));
+            selects.add(idSelect);
+        }
+        return selects;
+    }
+
+    protected static Select cloneSelect(Select select, String table) {
+        // NOTE: there is no Select.clone(), just use copy instead
+        return CopyUtil.copy(select, QueryBuilder.select().from(table));
     }
 
     protected static Object serializeValue(Object value) {
