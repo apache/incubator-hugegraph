@@ -209,13 +209,16 @@ public abstract class RestClient {
                                                          String password,
                                                          int timeout) {
         ClientConfig config = buildConfig(timeout);
-
-        config.register(HttpAuthenticationFeature
-                        .basicBuilder()
-                        .nonPreemptive()
-                        .credentials(username, password)
-                        .build());
-
+        /*
+         * NOTE: don't use non-preemptive mode
+         * In non-preemptive mode the authentication information is added
+         * only when server refuses the request with 401 status code and
+         * then the request is repeated.
+         * Non-preemptive has negative impact on the performance. The advantage
+         * is that it does not send credentials when they are not needed.
+         * https://jersey.github.io/documentation/latest/client.html#d0e5461
+         */
+        config.register(HttpAuthenticationFeature.basic(username, password));
         return config;
     }
 
