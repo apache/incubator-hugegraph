@@ -58,10 +58,15 @@ public class KoutAPI extends API {
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("depth") int depth,
                       @QueryParam("nearest")
-                      @DefaultValue("true")  boolean nearest) {
+                      @DefaultValue("true")  boolean nearest,
+                      @QueryParam("degree") @DefaultValue("-1") long degree,
+                      @QueryParam("capacity") @DefaultValue("-1") long capacity,
+                      @QueryParam("limit") @DefaultValue("-1") long limit) {
         LOG.debug("Graph [{}] get k-out from '{}' with " +
-                  "direction {}, edge label {} and depth '{}'",
-                  graph, source, direction, edgeLabel, depth);
+                  "direction '{}', edge label '{}', depth '{}', nearest '{}'," +
+                  " degree '{}', capacity '{}' and limit '{}'",
+                  graph, source, direction, edgeLabel, depth, nearest,
+                  degree, capacity, limit);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -69,7 +74,8 @@ public class KoutAPI extends API {
         HugeGraph g = graph(manager, graph);
 
         HugeTraverser traverser = new HugeTraverser(g);
-        Set<Id> ids = traverser.kout(sourceId, dir, edgeLabel, depth, nearest);
+        Set<Id> ids = traverser.kout(sourceId, dir, edgeLabel, depth,
+                                     nearest, degree, capacity, limit);
         return manager.serializer(g).writeIds("vertices", ids);
     }
 }

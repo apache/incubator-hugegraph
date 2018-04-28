@@ -22,6 +22,7 @@ package com.baidu.hugegraph.api.traversers;
 import java.util.List;
 
 import javax.inject.Singleton;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -56,10 +57,15 @@ public class ShortestPathAPI extends API {
                       @QueryParam("target") String target,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
-                      @QueryParam("max_depth") int maxDepth) {
+                      @QueryParam("max_depth") int maxDepth,
+                      @QueryParam("degree") @DefaultValue("-1") long degree,
+                      @QueryParam("capacity")
+                      @DefaultValue("-1") long capacity) {
         LOG.debug("Graph [{}] get shortest path from '{}', to '{}' with " +
-                  "direction {}, edge label {} and max depth '{}'",
-                  graph, source, target, direction, edgeLabel, maxDepth);
+                  "direction {}, edge label {}, max depth '{}', " +
+                  "degree '{}' and capacity '{}'",
+                  graph, source, target, direction, edgeLabel, maxDepth,
+                  degree, capacity);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
@@ -69,7 +75,8 @@ public class ShortestPathAPI extends API {
 
         HugeTraverser traverser = new HugeTraverser(g);
         List<Id> path = traverser.shortestPath(sourceId, targetId, dir,
-                                               edgeLabel, maxDepth);
+                                               edgeLabel, maxDepth,
+                                               degree, capacity);
         return manager.serializer(g).writeIds("path", path);
     }
 }

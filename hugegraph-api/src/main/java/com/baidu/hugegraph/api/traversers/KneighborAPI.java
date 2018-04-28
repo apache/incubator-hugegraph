@@ -22,6 +22,7 @@ package com.baidu.hugegraph.api.traversers;
 import java.util.Set;
 
 import javax.inject.Singleton;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -55,10 +56,14 @@ public class KneighborAPI extends API {
                       @QueryParam("source") String sourceV,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
-                      @QueryParam("depth") int depth) {
+                      @QueryParam("depth") int depth,
+                      @QueryParam("degree") @DefaultValue("-1") long degree,
+                      @QueryParam("limit") @DefaultValue("-1") long limit) {
         LOG.debug("Graph [{}] get k-neighbor from '{}' with " +
-                  "direction {}, edge label {} and depth '{}'",
-                  graph, sourceV, direction, edgeLabel, depth);
+                  "direction '{}', edge label '{}', depth '{}', " +
+                  "degree '{}' and limit '{}'",
+                  graph, sourceV, direction, edgeLabel, depth,
+                  degree, limit);
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -66,7 +71,8 @@ public class KneighborAPI extends API {
         HugeGraph g = graph(manager, graph);
 
         HugeTraverser traverser = new HugeTraverser(g);
-        Set<Id> ids = traverser.kneighbor(source, dir, edgeLabel, depth);
+        Set<Id> ids = traverser.kneighbor(source, dir, edgeLabel, depth,
+                                          degree, limit);
         return manager.serializer(g).writeIds("vertices", ids);
     }
 }
