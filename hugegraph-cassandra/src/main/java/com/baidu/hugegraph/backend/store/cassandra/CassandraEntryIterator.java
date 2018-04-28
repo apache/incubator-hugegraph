@@ -72,6 +72,8 @@ public class CassandraEntryIterator extends BackendEntryIterator {
         }
 
         while (this.remaining > 0 && this.rows.hasNext()) {
+            this.checkInterrupted();
+
             if (this.query.paging()) {
                 this.remaining--;
             }
@@ -83,6 +85,7 @@ public class CassandraEntryIterator extends BackendEntryIterator {
             } else if (merged == this.current) {
                 // The next entry belongs to the current entry
                 assert merged != null;
+                this.checkCapacity(this.fetched());
             } else {
                 // New entry
                 assert this.next == null;

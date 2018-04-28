@@ -67,6 +67,8 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         }
 
         while (this.results.hasNext()) {
+            this.checkInterrupted();
+
             Elem elem = this.results.next();
             BackendEntry merged = this.merger.apply(this.current, elem);
             E.checkState(merged != null, "Error when merging entry");
@@ -76,6 +78,7 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             } else if (merged == this.current) {
                 // The next entry belongs to the current entry
                 assert this.current != null;
+                this.checkCapacity(this.fetched());
             } else {
                 // New entry
                 assert this.next == null;

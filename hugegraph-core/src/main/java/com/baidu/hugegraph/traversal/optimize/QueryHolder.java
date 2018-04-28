@@ -63,11 +63,7 @@ public interface QueryHolder extends HasContainerHolder, Metadatable {
     }
 
     public default <Q extends Query> Q injectQueryInfo(Q query) {
-        query.orders(this.queryInfo().orders());
-        query.offset(this.queryInfo().offset());
-        query.limit(this.queryInfo().limit());
-        query.page(this.queryInfo().page());
-        query.capacity(this.queryInfo().capacity());
+        query.copyBasic(this.queryInfo());
         return query;
     }
 }

@@ -57,7 +57,9 @@ public final class IdRangeQuery extends Query {
         this.end = end;
         this.inclusiveStart = inclusiveStart;
         this.inclusiveEnd = inclusiveEnd;
-        this.copyBasic(originQuery);
+        if (originQuery != null) {
+            this.copyBasic(originQuery);
+        }
     }
 
     public Id start() {

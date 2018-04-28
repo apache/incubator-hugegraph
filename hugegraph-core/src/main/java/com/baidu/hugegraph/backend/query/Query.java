@@ -75,12 +75,16 @@ public class Query implements Cloneable {
     }
 
     public void copyBasic(Query query) {
+        E.checkNotNull(query, "query");
         this.offset = query.offset();
         this.limit = query.limit();
         this.page = query.page();
         this.capacity = query.capacity();
         this.showHidden = query.showHidden();
         this.showDeleting = query.showDeleting();
+        if (query.orders != null) {
+            this.orders(query.orders);
+        }
     }
 
     public HugeType resultType() {

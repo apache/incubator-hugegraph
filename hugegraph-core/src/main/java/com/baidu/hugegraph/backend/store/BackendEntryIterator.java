@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.exception.LimitExceedException;
@@ -90,18 +91,19 @@ public abstract class BackendEntryIterator
         throw new NotSupportException("Invalid meta '%s'", meta);
     }
 
-    protected final long count() {
-        return this.count;
-    }
-
-    protected final long fetched() {
-        long ccount = this.current == null ? 0 : this.sizeOf(this.current);
-        return this.count + ccount;
+    protected final void checkInterrupted() {
+        if (Thread.interrupted()) {
+            throw new BackendException("Interrupted, maybe it is timed out");
+        }
     }
 
     protected final void checkCapacity() throws LimitExceedException {
+        this.checkCapacity(this.count());
+    }
+
+    protected final void checkCapacity(long count) throws LimitExceedException {
         // Stop if reach capacity
-        this.query.checkCapacity(this.count);
+        this.query.checkCapacity(count);
     }
 
     protected final boolean exceedLimit() {
@@ -113,6 +115,15 @@ public abstract class BackendEntryIterator
 
         // Stop if it has reached limit after the previous next()
         return this.query.reachLimit(this.count);
+    }
+
+    protected final long count() {
+        return this.count;
+    }
+
+    protected final long fetched() {
+        long ccount = this.current == null ? 0 : this.sizeOf(this.current);
+        return this.count + ccount;
     }
 
     protected void skipOffset() {
