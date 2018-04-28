@@ -38,6 +38,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.rest.ClientException;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.HugeType;
@@ -45,6 +46,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class HugeTraverser {
 
@@ -58,13 +60,14 @@ public class HugeTraverser {
     }
 
     public List<Id> shortestPath(Id sourceV, Id targetV, Directions dir,
-                                 String label, int maxDepth) {
+                                 String label, int maxDepth,
+                                 long degree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
         E.checkNotNull(dir, "direction");
-        E.checkArgument(maxDepth >= 1,
-                        "Shortest path step must be >= 1, but got '%s'",
-                        maxDepth);
+        checkPositive(maxDepth, "Shortest path max depth");
+        checkDegree(degree);
+        checkCapacity(capacity);
 
         if (sourceV.equals(targetV)) {
             return ImmutableList.of(sourceV);
@@ -72,15 +75,18 @@ public class HugeTraverser {
 
         Id labelId = this.getEdgeLabelId(label);
         ShortestPathTraverser traverser = new ShortestPathTraverser(
-                                              sourceV, targetV, dir, labelId);
+                                              sourceV, targetV, dir, labelId,
+                                              degree, capacity);
         List<Id> path;
         while (true) {
-            // Found or reach max depth, stop searching
-            if ((path = traverser.forward()) != PATH_NONE || --maxDepth <= 0) {
+            // Found, reach max depth or reach capacity, stop searching
+            if ((path = traverser.forward()) != PATH_NONE ||
+                --maxDepth <= 0 || traverser.reachCapacity()) {
                 break;
             }
 
-            if ((path = traverser.backward()) != PATH_NONE || --maxDepth <= 0) {
+            if ((path = traverser.backward()) != PATH_NONE ||
+                --maxDepth <= 0 || traverser.reachCapacity()) {
                 Collections.reverse(path);
                 break;
             }
@@ -90,7 +96,8 @@ public class HugeTraverser {
 
     public Set<Path> paths(Id sourceV, Directions sourceDir,
                            Id targetV, Directions targetDir,
-                           String label, int maxDepth, long limit) {
+                           String label, int maxDepth,
+                           long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
         E.checkNotNull(sourceDir, "source direction");
@@ -99,11 +106,10 @@ public class HugeTraverser {
                         sourceDir == targetDir.opposite(),
                         "Source direction must equal to target direction," +
                         "or opposite to target direction");
-        E.checkArgument(maxDepth >= 1,
-                        "Paths step must be >= 1, but got '%s'",
-                        maxDepth);
-        E.checkArgument(limit >= 1 || limit == NO_LIMIT,
-                        "Limit must be >= 1 or == -1, but got: %s", limit);
+        checkPositive(maxDepth, "Paths max depth");
+        checkDegree(degree);
+        checkCapacity(capacity);
+        checkLimit(limit);
 
         Set<Path> paths = new HashSet<>();
         if (sourceV.equals(targetV)) {
@@ -111,8 +117,8 @@ public class HugeTraverser {
         }
 
         Id labelId = this.getEdgeLabelId(label);
-        PathsTraverser traverser = new PathsTraverser(sourceV, targetV,
-                                                      labelId, limit);
+        PathsTraverser traverser = new PathsTraverser(sourceV, targetV, labelId,
+                                                      degree, capacity, limit);
         while (true) {
             if (--maxDepth < 0 || traverser.reachLimit()) {
                 break;
@@ -133,11 +139,21 @@ public class HugeTraverser {
     }
 
     public Set<Id> kout(Id sourceV, Directions dir, String label,
-                        int depth, boolean nearest) {
+                        int depth, boolean nearest,
+                        long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
-        E.checkArgument(depth >= 1,
-                        "K-out depth must be >= 1, but got '%s'", depth);
+        checkPositive(depth, "K-out depth");
+        checkDegree(degree);
+        checkCapacity(capacity);
+        checkLimit(limit);
+        if (capacity != NO_LIMIT) {
+            // Capacity must > limit because sourceV is counted in capacity
+            E.checkArgument(capacity > limit && limit != NO_LIMIT,
+                            "Capacity must be greater than limit, " +
+                            "but got capacity '%s' and limit '%s'",
+                            capacity, limit);
+        }
 
         Id labelId = this.getEdgeLabelId(label);
 
@@ -147,12 +163,31 @@ public class HugeTraverser {
         Set<Id> all = newSet();
         all.add(sourceV);
 
+        long remaining = capacity == NO_LIMIT ?
+                         NO_LIMIT : capacity - latest.size();
         while (depth-- > 0) {
+            // Just get limit nodes in last layer if limit < remaining capacity
+            if (depth == 0 && limit != NO_LIMIT &&
+                (limit < remaining || remaining == NO_LIMIT)) {
+                remaining = limit;
+            }
             if (nearest) {
-                latest = this.adjacentVertices(latest, dir, labelId, all);
+                latest = this.adjacentVertices(latest, dir, labelId, all,
+                                               degree, remaining);
                 all.addAll(latest);
             } else {
-                latest = this.adjacentVertices(latest, dir, labelId, null);
+                latest = this.adjacentVertices(latest, dir, labelId, null,
+                                               degree, remaining);
+            }
+            if (capacity != NO_LIMIT) {
+                // Update 'remaining' value to record remaining capacity
+                remaining -= latest.size();
+
+                if (remaining <= 0 && depth > 0) {
+                    throw new ClientException(
+                              "Reach limit '%s' while remaining depth '%s'",
+                              limit, depth);
+                }
             }
         }
 
@@ -160,11 +195,14 @@ public class HugeTraverser {
     }
 
     public Set<Id> kneighbor(Id sourceV, Directions dir,
-                             String label, int depth) {
+                             String label, int depth,
+                             long degree, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
-        E.checkArgument(depth >= 1,
-                        "K-neighbor depth must be >= 1, but got '%s'", depth);
+        checkPositive(depth, "K-neighbor depth");
+        checkDegree(degree);
+        checkLimit(limit);
+
         Id labelId = this.getEdgeLabelId(label);
 
         Set<Id> latest = newSet();
@@ -174,18 +212,29 @@ public class HugeTraverser {
         all.add(sourceV);
 
         while (depth-- > 0) {
-            latest = this.adjacentVertices(latest, dir, labelId, all);
+            long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
+            latest = this.adjacentVertices(latest, dir, labelId, all,
+                                           degree, remaining);
             all.addAll(latest);
+            if (limit != NO_LIMIT && all.size() >= limit) {
+                break;
+            }
         }
 
         return all;
     }
 
     private Set<Id> adjacentVertices(Set<Id> vertices, Directions dir,
-                                     Id label, Set<Id> excluded) {
+                                     Id label, Set<Id> excluded,
+                                     long degree, long limit) {
+        if (limit == 0) {
+            return ImmutableSet.of();
+        }
+
         Set<Id> neighbors = newSet();
         for (Id source : vertices) {
-            Iterator<Edge> edges = this.edgesOfVertex(source, dir, label);
+            Iterator<Edge> edges = this.edgesOfVertex(source, dir,
+                                                      label, degree);
             while (edges.hasNext()) {
                 HugeEdge e = (HugeEdge) edges.next();
                 Id target = e.id().otherVertexId();
@@ -193,18 +242,25 @@ public class HugeTraverser {
                     continue;
                 }
                 neighbors.add(target);
+                if (limit != NO_LIMIT && neighbors.size() >= limit) {
+                    return neighbors;
+                }
             }
         }
         return neighbors;
     }
 
-    private Iterator<Edge> edgesOfVertex(Id source, Directions dir, Id label) {
+    private Iterator<Edge> edgesOfVertex(Id source, Directions dir,
+                                         Id label, long limit) {
         Id[] labels = {};
         if (label != null) {
             labels = new Id[]{label};
         }
 
         Query query = GraphTransaction.constructEdgesQuery(source, dir, labels);
+        if (limit != NO_LIMIT) {
+            query.limit(limit);
+        }
         return this.graph.edges(query);
     }
 
@@ -213,6 +269,29 @@ public class HugeTraverser {
             return null;
         }
         return SchemaLabel.getLabelId(this.graph, HugeType.EDGE, label);
+    }
+
+    private static void checkPositive(int value, String name) {
+        E.checkArgument(value > 0,
+                        "%s must be > 0, but got '%s'", name, value);
+    }
+
+    private static void checkDegree(long degree) {
+        checkLimit(degree, "Degree");
+    }
+
+    private static void checkCapacity(long capacity) {
+        checkLimit(capacity, "Capacity");
+    }
+
+    private static void checkLimit(long limit) {
+        checkLimit(limit, "Limit");
+    }
+
+    private static void checkLimit(long value, String name) {
+        E.checkArgument(value > 0 || value == NO_LIMIT,
+                        "%s must be > 0 or == %s, but got: %s",
+                        name, NO_LIMIT, value);
     }
 
     private static <V> Set<V> newSet() {
@@ -235,13 +314,19 @@ public class HugeTraverser {
 
         private final Directions direction;
         private final Id label;
+        private final long degree;
+        private final long capacity;
+        private long size;
 
-        public ShortestPathTraverser(Id sourceV, Id targetV,
-                                     Directions dir, Id label) {
+        public ShortestPathTraverser(Id sourceV, Id targetV, Directions dir,
+                                     Id label, long degree, long capacity) {
             this.sources.put(sourceV, new Node(sourceV));
             this.targets.put(targetV, new Node(targetV));
             this.direction = dir;
             this.label = label;
+            this.degree = degree;
+            this.capacity = capacity;
+            this.size = 0L;
         }
 
         /**
@@ -252,7 +337,7 @@ public class HugeTraverser {
             // Traversal vertices of previous level
             for (Node v : this.sources.values()) {
                 Iterator<Edge> edges = edgesOfVertex(v.id(), this.direction,
-                                                     this.label);
+                                                     this.label, this.degree);
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
@@ -278,6 +363,7 @@ public class HugeTraverser {
 
             // Re-init sources
             this.sources = newVertices;
+            this.size += newVertices.size();
 
             return PATH_NONE;
         }
@@ -287,10 +373,11 @@ public class HugeTraverser {
          */
         public List<Id> backward() {
             Map<Id, Node> newVertices = newMap();
-            Directions oppo = this.direction.opposite();
+            Directions opposite = this.direction.opposite();
             // Traversal vertices of previous level
             for (Node v : this.targets.values()) {
-                Iterator<Edge> edges = edgesOfVertex(v.id(), oppo, this.label);
+                Iterator<Edge> edges = edgesOfVertex(v.id(), opposite,
+                                                     this.label, this.degree);
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
@@ -316,8 +403,16 @@ public class HugeTraverser {
 
             // Re-init targets
             this.targets = newVertices;
+            this.size += newVertices.size();
 
             return PATH_NONE;
+        }
+
+        public boolean reachCapacity() {
+            if (this.capacity == NO_LIMIT || this.size < this.capacity) {
+                return false;
+            }
+            return true;
         }
     }
 
@@ -329,15 +424,22 @@ public class HugeTraverser {
         private MultivaluedMap<Id, Node> targetsAll = newMultivalueMap();
 
         private final Id label;
-        private long limit;
+        private final long degree;
+        private final long capacity;
+        private final long limit;
+        private long count;
 
-        public PathsTraverser(Id sourceV, Id targetV, Id label, long limit) {
+        public PathsTraverser(Id sourceV, Id targetV, Id label,
+                              long degree, long capacity, long limit) {
             this.sources.add(sourceV, new Node(sourceV));
             this.targets.add(targetV, new Node(targetV));
             this.sourcesAll.putAll(this.sources);
             this.targetsAll.putAll(this.targets);
             this.label = label;
+            this.degree = degree;
+            this.capacity = capacity;
             this.limit = limit;
+            this.count = 0L;
         }
 
         /**
@@ -346,11 +448,12 @@ public class HugeTraverser {
         public List<Path> forward(Directions direction) {
             List<Path> paths = new ArrayList<>();
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
+            Iterator<Edge> edges;
             // Traversal vertices of previous level
             for (List<Node> nodes : this.sources.values()) {
                 for (Node n : nodes) {
-                    Iterator<Edge> edges = edgesOfVertex(n.id(), direction,
-                                                         this.label);
+                    edges = edgesOfVertex(n.id(), direction,
+                                          this.label, this.degree);
                     while (edges.hasNext()) {
                         HugeEdge edge = (HugeEdge) edges.next();
                         Id target = edge.id().otherVertexId();
@@ -366,7 +469,8 @@ public class HugeTraverser {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
                                     paths.add(new Path(target, path));
-                                    if (this.decreaseLimit()) {
+                                    ++this.count;
+                                    if (this.reachLimit()) {
                                         return paths;
                                     }
                                 }
@@ -392,11 +496,12 @@ public class HugeTraverser {
         public List<Path> backward(Directions direction) {
             List<Path> paths = new ArrayList<>();
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
+            Iterator<Edge> edges;
             // Traversal vertices of previous level
             for (List<Node> nodes : this.targets.values()) {
                 for (Node n : nodes) {
-                    Iterator<Edge> edges = edgesOfVertex(n.id(), direction,
-                                                         this.label);
+                    edges = edgesOfVertex(n.id(), direction,
+                                          this.label, this.degree);
                     while (edges.hasNext()) {
                         HugeEdge edge = (HugeEdge) edges.next();
                         Id target = edge.id().otherVertexId();
@@ -412,7 +517,8 @@ public class HugeTraverser {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
                                     paths.add(new Path(target, path));
-                                    if (this.decreaseLimit()) {
+                                    ++this.count;
+                                    if (this.reachLimit()) {
                                         return paths;
                                     }
                                 }
@@ -433,15 +539,15 @@ public class HugeTraverser {
             return paths;
         }
 
-        public boolean decreaseLimit() {
-            if (this.limit != NO_LIMIT && this.limit > 0) {
-                return --this.limit <= 0;
-            }
-            return false;
+        public int accessedNodes() {
+            return this.sourcesAll.size() + this.targetsAll.size();
         }
 
         public boolean reachLimit() {
-            if (this.limit == NO_LIMIT || this.limit > 0) {
+            if (this.accessedNodes() > this.capacity) {
+                return true;
+            }
+            if (this.limit == NO_LIMIT || this.count < this.limit) {
                 return false;
             }
             return true;
