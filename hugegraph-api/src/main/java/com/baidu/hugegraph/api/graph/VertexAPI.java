@@ -159,10 +159,17 @@ public class VertexAPI extends BatchAPI {
                        @PathParam("graph") String graph,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
+                       @QueryParam("offset") @DefaultValue("0") long offset,
                        @QueryParam("page") String page,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] query vertices by label: {}, properties: {}",
-                  graph, label, properties);
+        LOG.debug("Graph [{}] query vertices by label: {}, properties: {}, " +
+                  "offset: {}, page: {}, limit: {}",
+                  graph, label, properties, offset, page, limit);
+        if (page != null) {
+            E.checkArgument(label == null && properties == null && offset == 0,
+                            "Not support quering vertices based on paging " +
+                            "and [label, properties, offset] together");
+        }
 
         Map<String, Object> props = parseProperties(properties);
 
@@ -178,7 +185,7 @@ public class VertexAPI extends BatchAPI {
         }
 
         if (page == null) {
-            traversal = traversal.limit(limit);
+            traversal = traversal.range(offset, offset + limit);
         } else {
             traversal = traversal.has("~page", page).limit(limit);
         }

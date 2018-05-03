@@ -204,28 +204,36 @@ public class EdgeAPI extends BatchAPI {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @QueryParam("vertex_id") String vertexIdValue,
+                       @QueryParam("vertex_id") String vertexId,
                        @QueryParam("direction") String direction,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
+                       @QueryParam("offset") @DefaultValue("0") long offset,
                        @QueryParam("page") String page,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] query edges by vertex: {}, direction: {}, " +
-                  "label: {}, properties: {}",
-                  vertexIdValue, direction, label, properties);
+                  "label: {}, properties: {}, offset: {}, page: {}, limit: {}",
+                  vertexId, direction, label, properties, offset, page, limit);
+        if (page != null) {
+            E.checkArgument(vertexId == null && direction == null &&
+                            label == null && properties == null && offset == 0,
+                            "Not support quering edges based on paging and " +
+                            "[vertex, direction, label, properties, offset] " +
+                            "together");
+        }
 
-        Id vertexId = VertexAPI.checkAndParseVertexId(vertexIdValue);
+        Id vertex = VertexAPI.checkAndParseVertexId(vertexId);
         Direction dir = parseDirection(direction);
         Map<String, Object> props = parseProperties(properties);
 
         HugeGraph g = graph(manager, graph);
 
         GraphTraversal<?, Edge> traversal;
-        if (vertexId != null) {
+        if (vertex != null) {
             if (label != null) {
-                traversal = g.traversal().V(vertexId).toE(dir, label);
+                traversal = g.traversal().V(vertex).toE(dir, label);
             } else {
-                traversal = g.traversal().V(vertexId).toE(dir);
+                traversal = g.traversal().V(vertex).toE(dir);
             }
         } else {
             if (label != null) {
@@ -240,7 +248,7 @@ public class EdgeAPI extends BatchAPI {
         }
 
         if (page == null) {
-            traversal = traversal.limit(limit);
+            traversal = traversal.range(offset, offset + limit);
         } else {
             traversal = traversal.has("~page", page).limit(limit);
         }
