@@ -64,10 +64,11 @@ public final class ApiVersion {
      * [0.21] HugeGraph-1197: Expose scan api for hugegraph-spark
      * [0.22] HugeGraph-1162: Support authentication and permission control
      * [0.23] HugeGraph-1176: Support degree and capacity for traverse api
+     * [0.24] HugeGraph-1261: Add param offset for vertex/edge list API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.23");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.24");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

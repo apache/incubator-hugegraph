@@ -160,7 +160,7 @@ public class MysqlSessions extends BackendSessionPool {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
             if (e.getCause() instanceof SocketTimeoutException) {
-                LOG.warn("Drop database '%s' timeout", this.database);
+                LOG.warn("Drop database '{}' timeout", this.database);
             } else {
                 throw new BackendException("Failed to drop database '%s'",
                                            this.database);
