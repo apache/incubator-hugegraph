@@ -34,7 +34,7 @@ public abstract class AbstractBackendStoreProvider
     protected String name = null;
     protected Map<String, BackendStore> stores = null;
 
-    private EventHub storeEventHub = new EventHub("store");
+    protected EventHub storeEventHub = new EventHub("store");
 
     protected void checkOpened() {
         E.checkState(this.name != null && this.stores != null,
