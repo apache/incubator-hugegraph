@@ -63,7 +63,9 @@ public class RocksDBOptions extends OptionHolder {
                     "rocksdb.data_disks",
                     false,
                     "The optimized disks for storing data of RocksDB. " +
-                    "The format of each element: `STORE/TABLE: /path/to/disk`.",
+                    "The format of each element: `STORE/TABLE: /path/to/disk`." +
+                    "Allowed keys are [graph/vertex, graph/edge_out, graph/edge_in, " +
+                    "graph/secondary_index, graph/range_index]",
                     null,
                     String.class,
                     ImmutableList.of()

@@ -104,7 +104,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         List<ColumnFamilyHandle> cfhs = new ArrayList<>();
         this.rocksdb = RocksDB.open(options, dataPath, cfds, cfhs);
         E.checkState(cfhs.size() == cfs.size(),
-                     "Excepct same size of cf-handles and cf-names");
+                     "Expect same size of cf-handles and cf-names");
 
         // Collect CF Handles
         for (int i = 0; i < cfs.size(); i++) {
