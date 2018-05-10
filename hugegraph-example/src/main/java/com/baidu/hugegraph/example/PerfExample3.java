@@ -23,7 +23,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.util.Log;
 
@@ -38,8 +38,8 @@ public class PerfExample3 extends PerfExampleBase {
         PerfExample3 tester = new PerfExample3();
         tester.test(args);
 
-        // Stop event hub before main thread exits
-        EventHub.destroy(30);
+        // Stop daemon thread
+        HugeGraph.shutdown(30L);
     }
 
     @Override

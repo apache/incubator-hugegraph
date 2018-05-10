@@ -26,8 +26,8 @@ import java.util.Random;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 
@@ -40,8 +40,8 @@ public class PerfExample2 extends PerfExampleBase {
         PerfExample2 tester = new PerfExample2();
         tester.test(args);
 
-        // Stop event hub before main thread exits
-        EventHub.destroy(30);
+        // Stop daemon thread
+        HugeGraph.shutdown(30L);
     }
 
     @Override

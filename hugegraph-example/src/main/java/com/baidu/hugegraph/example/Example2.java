@@ -32,7 +32,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.util.Log;
 
@@ -49,7 +48,8 @@ public class Example2 {
         traversal(graph);
 
         graph.close();
-        EventHub.destroy(3);
+
+        HugeGraph.shutdown(30L);
     }
 
     public static void traversal(final HugeGraph graph) {

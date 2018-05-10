@@ -36,7 +36,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -67,7 +66,8 @@ public class Example1 {
         Example1.thread(graph);
 
         graph.close();
-        EventHub.destroy(3);
+
+        HugeGraph.shutdown(30L);
     }
 
     private static void thread(HugeGraph graph) throws InterruptedException {
@@ -84,7 +84,7 @@ public class Example1 {
             tx.commit();
             tx.close();
 
-            graph.close(); // this will close the schema tx
+            graph.closeTx(); // this will close the schema tx
         });
 
         t.start();

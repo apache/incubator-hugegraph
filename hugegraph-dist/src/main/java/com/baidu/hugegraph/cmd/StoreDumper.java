@@ -30,7 +30,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.dist.RegisterUtil;
-import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
@@ -83,8 +82,8 @@ public class StoreDumper {
         dumper.dump(table, offset, limit);
         dumper.close();
 
-        // Wait cache clear or init up to 30 seconds
-        EventHub.destroy(30);
+        // Stop daemon thread
+        HugeGraph.shutdown(30L);
     }
 
     private static String arg(String[] args, int index, String deflt) {

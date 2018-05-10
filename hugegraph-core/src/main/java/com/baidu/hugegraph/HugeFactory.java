@@ -45,6 +45,11 @@ public class HugeFactory {
             if (graph == null || graph.closed()) {
                 graph = new HugeGraph(conf);
                 graphs.put(name, graph);
+            } else {
+                String backend = conf.get(CoreOptions.BACKEND);
+                E.checkState(backend.equals(graph.backend()),
+                             "Graph name '%s' has been used by backend '%s'",
+                             name, graph.backend());
             }
         } while (graph == null);
         return graph;
