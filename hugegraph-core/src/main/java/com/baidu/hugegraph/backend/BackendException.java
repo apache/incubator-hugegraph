@@ -44,4 +44,12 @@ public class BackendException extends HugeException {
     public BackendException(Throwable cause) {
         this("Exception in backend", cause);
     }
+
+    public static final void check(boolean expression,
+                                   String message, Object... args)
+                                   throws BackendException {
+        if (!expression) {
+            throw new BackendException(message, args);
+        }
+    }
 }

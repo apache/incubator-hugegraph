@@ -27,10 +27,10 @@ import com.baidu.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
 
 public class BackendProviderFactory {
 
-    private static Map<String, Class<? extends BackendStoreProvider>> storeProviders;
+    private static Map<String, Class<? extends BackendStoreProvider>> providers;
 
     static {
-        storeProviders = new ConcurrentHashMap<>();
+        providers = new ConcurrentHashMap<>();
     }
 
     public static BackendStoreProvider open(String backend, String name) {
@@ -38,11 +38,9 @@ public class BackendProviderFactory {
             return InMemoryDBStoreProvider.instance(name);
         }
 
-        Class<? extends BackendStoreProvider> clazz = storeProviders.get(backend);
-        if (clazz == null) {
-            throw new BackendException(
-                      "Not exists BackendStoreProvider: %s", backend);
-        }
+        Class<? extends BackendStoreProvider> clazz = providers.get(backend);
+        BackendException.check(clazz != null,
+                               "Not exists BackendStoreProvider: %s", backend);
 
         assert BackendStoreProvider.class.isAssignableFrom(clazz);
         BackendStoreProvider instance = null;
@@ -51,6 +49,12 @@ public class BackendProviderFactory {
         } catch (Exception e) {
             throw new BackendException(e);
         }
+
+        BackendException.check(backend.equalsIgnoreCase(instance.type()),
+                               "BackendStoreProvider with type '%s' " +
+                               "can't be opened by key '%s'",
+                               instance.type(), backend);
+
         instance.open(name);
         return instance;
     }
@@ -66,19 +70,16 @@ public class BackendProviderFactory {
         }
 
         // Check subclass
-        if (!BackendStoreProvider.class.isAssignableFrom(clazz)) {
-            throw new BackendException("Class '%s' is not a subclass of " +
-                                       "class BackendStoreProvider", classPath);
-        }
+        boolean subclass = BackendStoreProvider.class.isAssignableFrom(clazz);
+        BackendException.check(subclass, "Class '%s' is not a subclass of " +
+                               "class BackendStoreProvider", classPath);
 
         // Check exists
-        if (storeProviders.containsKey(name)) {
-            throw new BackendException(
-                      "Exists BackendStoreProvider: %s(Class '%s')",
-                      name, storeProviders.get(name).getName());
-        }
+        BackendException.check(!providers.containsKey(name),
+                               "Exists BackendStoreProvider: %s (%s)",
+                               name, providers.get(name));
 
         // Register class
-        storeProviders.put(name, (Class) clazz);
+        providers.put(name, (Class) clazz);
     }
 }

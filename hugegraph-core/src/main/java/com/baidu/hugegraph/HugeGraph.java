@@ -349,12 +349,19 @@ public class HugeGraph implements Graph {
     public void close() throws HugeException {
         this.closed = true;
         try {
+            this.closeTx();
+        } finally {
+            this.storeProvider.close();
+        }
+    }
+
+    public void closeTx() {
+        try {
             if (this.tx.isOpen()) {
                 this.tx.close();
             }
         } finally {
             this.tx.destroyTransaction();
-            this.storeProvider.close();
         }
     }
 
@@ -444,6 +451,15 @@ public class HugeGraph implements Graph {
             ids[i] = vertexLabel.id();
         }
         return ids;
+    }
+
+    /**
+     * Stop all the daemon threads
+     * @param timout seconds
+     * @throws InterruptedException
+     */
+    public static void shutdown(long timout) throws InterruptedException {
+        EventHub.destroy(timout);
     }
 
     private class TinkerpopTransaction extends AbstractThreadLocalTransaction {
