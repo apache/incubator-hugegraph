@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -95,7 +96,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private void processRangeIndexLeft(ConditionQuery query,
                                         HugeElement element) {
         // Construct index ConditionQuery
-        Set<ConditionQuery> queries = this.query2IndexQuery(query, element);
+        Set<ConditionQuery> queries = query2IndexQuery(query, element);
         if (queries.isEmpty()) {
             throw new HugeException("Can't construct index query for '%s'",
                                     query);
@@ -318,7 +319,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Value type of Condition not matched
-        if (!this.validQueryConditionValues(query)) {
+        if (!validQueryConditionValues(this.graph(), query)) {
             return ImmutableSet.of();
         }
         // Do index query
@@ -556,10 +557,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return rangeIL;
     }
 
-    private List<ConditionQuery> buildJointIndexesQueries(ConditionQuery query,
-                                                          MatchedLabel info) {
+    private static List<ConditionQuery> buildJointIndexesQueries(
+                                        ConditionQuery query,
+                                        MatchedLabel info) {
         List<ConditionQuery> queries = new ArrayList<>();
-        List<IndexLabel> allIndexLabels = new ArrayList<>(info.indexLabels());
+        List<IndexLabel> allILs = new ArrayList<>(info.indexLabels());
 
         // Handle range indexes
         if (query.hasRangeCondition()) {
@@ -578,23 +580,28 @@ public class GraphIndexTransaction extends AbstractTransaction {
             for (Id field : propKeys) {
                 query.unsetCondition(field);
             }
-            allIndexLabels.removeAll(rangeILs);
+            allILs.removeAll(rangeILs);
         }
 
         // Range indexes joint satisfies query-conditions already
-        if (query.userpropKeys().size() == 0) {
+        if (query.userpropKeys().isEmpty()) {
             return queries;
         }
 
         // Handle secondary joint indexes
-        int indexLabelNum = allIndexLabels.size();
-        for (int i = 1; i <= indexLabelNum; i++) {
-            List<IndexLabel> result = new ArrayList<>(i);
-            List<ConditionQuery> qs = this.tryCombQueries(indexLabelNum, i,
-                                                          allIndexLabels, 0,
-                                                          result, query);
-            if (!qs.isEmpty()) {
+        final ConditionQuery q = query;
+        for (int i = 1, size = allILs.size(); i <= size; i++) {
+            boolean found = cmn(allILs, size, i, 0, null, r -> {
+                // All n indexLabels are selected, test current combination
+                List<ConditionQuery> qs = constructJointSecondaryQueries(q, r);
+                if (qs.isEmpty()) {
+                    return false;
+                }
                 queries.addAll(qs);
+                return true;
+            });
+
+            if (found) {
                 return queries;
             }
         }
@@ -602,56 +609,56 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     /**
-     * Traverse C(m, n) combinations of indexLabels to find first matched
-     * indexLabels combination and return corresponding queries.
+     * Traverse C(m, n) combinations of a list to find first matched
+     * result combination and call back with the result.
+     * TODO: move this method to common module.
+     * @param all list to contain all items for combination
      * @param m m of C(m, n)
      * @param n n of C(m, n)
-     * @param indexLabels list to contain all indexLabels of combination
-     * @param position current position in indexLabels
-     * @param result list to contains selected indexLabels
-     * @param query ConditionQuery without range type conditions
-     * @return corresponding queries of first matched indexLabels combination
+     * @param current current position in list
+     * @param result list to contains selected items
+     * @return true if matched items combination else false
      */
-    private List<ConditionQuery> tryCombQueries(int m, int n,
-                                                List<IndexLabel> indexLabels,
-                                                int position,
-                                                List<IndexLabel> result,
-                                                ConditionQuery query) {
-        List<ConditionQuery> queries;
-        int index = result.size();
+    private static <T> boolean cmn(List<T> all, int m, int n,
+                                   int current, List<T> result,
+                                   Function<List<T>, Boolean> callback) {
+        assert m <= all.size();
+        assert n <= m;
+        assert current <= all.size();
+        if (result == null) {
+            result = new ArrayList<>(n);
+        }
+
         if (m == n) {
-            result.addAll(indexLabels.subList(position, indexLabels.size()));
+            result.addAll(all.subList(current, all.size()));
             n = 0;
         }
         if (n == 0) {
-            // All n indexLabels are selected, test current combination
-            queries = constructJointSecondaryQueries(query, result);
-            return queries.isEmpty() ? ImmutableList.of() : queries;
+            // All n items are selected
+            return callback.apply(result);
         }
-        if (position == indexLabels.size()) {
-            // Reach the end of indexLabels
-            return ImmutableList.of();
+        if (current >= all.size()) {
+            // Reach the end of items
+            return false;
         }
-        // Select current indexLabel, continue to select C(m-1, n-1)
-        result.add(indexLabels.get(position));
-        queries = this.tryCombQueries(m - 1, n - 1, indexLabels,
-                                      ++position, result, query);
-        if (!queries.isEmpty()) {
-            return queries;
+
+        // Select current item, continue to select C(m-1, n-1)
+        int index = result.size();
+        result.add(all.get(current));
+        if (cmn(all, m - 1, n - 1, ++current, result, callback)) {
+            return true;
         }
-        // Not select current indexLabel, continue to select C(m-1, n)
+        // Not select current item, continue to select C(m-1, n)
         result.remove(index);
-        queries = this.tryCombQueries(m - 1, n, indexLabels,
-                                      position, result, query);
-        if (!queries.isEmpty()) {
-            return queries;
+        if (cmn(all, m - 1, n, current, result, callback)) {
+            return true;
         }
-        return ImmutableList.of();
+        return false;
     }
 
-    private List<ConditionQuery> constructJointSecondaryQueries(
-                                 ConditionQuery query,
-                                 List<IndexLabel> ils) {
+    private static List<ConditionQuery> constructJointSecondaryQueries(
+                                        ConditionQuery query,
+                                        List<IndexLabel> ils) {
         Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
         indexLabels.addAll(ils);
         indexLabels = matchPrefixJointIndexes(query, indexLabels);
@@ -686,8 +693,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return queries;
     }
 
-    private Set<ConditionQuery> query2IndexQuery(ConditionQuery query,
-                                                 HugeElement element) {
+    private static Set<ConditionQuery> query2IndexQuery(ConditionQuery query,
+                                                        HugeElement element) {
         Set<ConditionQuery> indexQueries = InsertionOrderUtil.newSet();
         for (IndexLabel indexLabel : relatedIndexLabels(element)) {
             ConditionQuery indexQuery = matchIndexLabel(query, indexLabel);
@@ -764,14 +771,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return subFields.containsAll(queryKeys);
     }
 
-    private boolean validQueryConditionValues(ConditionQuery query) {
+    private static boolean validQueryConditionValues(HugeGraph graph,
+                                                     ConditionQuery query) {
         Set<Id> keys = query.userpropKeys();
         for (Id key : keys) {
-            PropertyKey pk = this.graph().propertyKey(key);
+            PropertyKey pk = graph.propertyKey(key);
             Set<Object> values = query.userpropValue(key);
             E.checkState(!values.isEmpty(),
                          "Expect user property values for key '%s', " +
-                         "but got null", this.graph().propertyKey(key));
+                         "but got null", graph.propertyKey(key));
             for (Object value : values) {
                 if (!pk.checkValue(value)) {
                     return false;
