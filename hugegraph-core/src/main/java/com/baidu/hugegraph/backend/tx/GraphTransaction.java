@@ -276,7 +276,6 @@ public class GraphTransaction extends IndexableTransaction {
         for (HugeProperty<?> prop : this.updatedProps) {
             prop.element().setProperty(prop);
         }
-
         super.rollback();
     }
 
@@ -360,9 +359,8 @@ public class GraphTransaction extends IndexableTransaction {
         if (!keys.containsAll(nonNullKeys)) {
             @SuppressWarnings("unchecked")
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
-            E.checkArgument(false, "All non-null property keys: %s " +
-                            "of vertex label '%s' must be setted, " +
-                            "but missed keys: %s",
+            E.checkArgument(false, "All non-null property keys %s of " +
+                            "vertex label '%s' must be setted, missed keys %s",
                             this.graph().mapPkId2Name(nonNullKeys),
                             vertexLabel.name(),
                             this.graph().mapPkId2Name(missed));
@@ -657,23 +655,23 @@ public class GraphTransaction extends IndexableTransaction {
     @Watched(prefix = "graph")
     public <V> void removeVertexProperty(HugeVertexProperty<V> prop) {
         HugeVertex vertex = prop.element();
-        PropertyKey propertyKey = prop.propertyKey();
+        PropertyKey propKey = prop.propertyKey();
         E.checkState(vertex != null,
                      "No owner for removing property '%s'", prop.key());
 
         // Maybe have ever been removed (compatible with tinkerpop)
-        if (!vertex.hasProperty(propertyKey.id())) {
+        if (!vertex.hasProperty(propKey.id())) {
             // PropertyTest shouldAllowRemovalFromVertexWhenAlreadyRemoved()
             return;
         }
         // Check is removing primary key
         List<Id> primaryKeyIds = vertex.schemaLabel().primaryKeys();
-        E.checkArgument(!primaryKeyIds.contains(propertyKey.id()),
+        E.checkArgument(!primaryKeyIds.contains(propKey.id()),
                         "Can't remove primary key '%s'", prop.key());
         // Remove property in memory for new created vertex
         if (vertex.fresh()) {
             // The owner will do property update
-            vertex.removeProperty(propertyKey.id());
+            vertex.removeProperty(propKey.id());
             return;
         }
         // Check is updating property of added/removed vertex
@@ -691,8 +689,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.indexTx.updateVertexIndex(vertex, true);
 
             // Update index of current vertex (without the property)
-            this.propertyUpdated(vertex,
-                                 vertex.removeProperty(propertyKey.id()));
+            this.propertyUpdated(vertex, vertex.removeProperty(propKey.id()));
             this.indexTx.updateVertexIndex(vertex, false);
 
             if (this.store().features().supportsUpdateVertexProperty()) {
@@ -729,8 +726,8 @@ public class GraphTransaction extends IndexableTransaction {
                         "Can't update property '%s' for removing-state edge",
                         prop.key());
         // Check is updating sort key
-        E.checkArgument(!edge.schemaLabel().sortKeys().contains(
-                        prop.propertyKey().id()),
+        List<Id> sortKeys = edge.schemaLabel().sortKeys();
+        E.checkArgument(!sortKeys.contains(prop.propertyKey().id()),
                         "Can't update sort key '%s'", prop.key());
 
         // Do property update
@@ -758,12 +755,12 @@ public class GraphTransaction extends IndexableTransaction {
     @Watched(prefix = "graph")
     public <V> void removeEdgeProperty(HugeEdgeProperty<V> prop) {
         HugeEdge edge = prop.element();
-        PropertyKey propertyKey = prop.propertyKey();
+        PropertyKey propKey = prop.propertyKey();
         E.checkState(edge != null,
                      "No owner for removing property '%s'", prop.key());
 
         // Maybe have ever been removed
-        if (!edge.hasProperty(propertyKey.id())) {
+        if (!edge.hasProperty(propKey.id())) {
             return;
         }
         // Check is removing sort key
@@ -773,7 +770,7 @@ public class GraphTransaction extends IndexableTransaction {
         // Remove property in memory for new created edge
         if (edge.fresh()) {
             // The owner will do property update
-            edge.removeProperty(propertyKey.id());
+            edge.removeProperty(propKey.id());
             return;
         }
         // Check is updating property of added/removed edge
@@ -792,7 +789,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.indexTx.updateEdgeIndex(edge, true);
 
             // Update index of current edge (without the property)
-            this.propertyUpdated(edge, edge.removeProperty(propertyKey.id()));
+            this.propertyUpdated(edge, edge.removeProperty(propKey.id()));
             this.indexTx.updateEdgeIndex(edge, false);
 
             if (this.store().features().supportsUpdateEdgeProperty()) {
@@ -831,9 +828,8 @@ public class GraphTransaction extends IndexableTransaction {
         // Edge direction
         if (direction == Directions.BOTH) {
             query.query(Condition.or(
-                    Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
-                    Condition.eq(HugeKeys.DIRECTION, Directions.IN)
-            ));
+                        Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
+                        Condition.eq(HugeKeys.DIRECTION, Directions.IN)));
         } else {
             assert direction == Directions.OUT || direction == Directions.IN;
             query.eq(HugeKeys.DIRECTION, direction);
@@ -937,16 +933,17 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         /*
-         * Query only by sysprops, like: vertex label, edge label.
+         * Query only by sysprops, like: by vertex label, by edge label.
          * NOTE: we assume sysprops would be indexed by backend store
-         * but we don't support query edges only by direction/targetVertex.
+         * but we don't support query edges only by direction/target-vertex.
          */
         if (query.allSysprop()) {
             if (query.resultType().isEdge()) {
                 verifyEdgesConditionQuery(query);
             }
-            if (this.store().features().supportsQueryByLabel() ||
-                !(label != null && query.conditions().size() == 1)) {
+            // Query by label & store supports feature or not query by label
+            boolean byLabel = (label != null && query.conditions().size() == 1);
+            if (this.store().features().supportsQueryByLabel() || !byLabel) {
                 return query;
             }
         }
@@ -974,8 +971,7 @@ public class GraphTransaction extends IndexableTransaction {
             throw Element.Exceptions.labelCanNotBeNull();
         }
 
-        E.checkArgument(label instanceof String ||
-                        label instanceof VertexLabel,
+        E.checkArgument(label instanceof String || label instanceof VertexLabel,
                         "Expect a string or a VertexLabel object " +
                         "as the vertex label argument, but got: '%s'", label);
         // The label must be an instance of String or VertexLabel
@@ -1109,22 +1105,18 @@ public class GraphTransaction extends IndexableTransaction {
         int size = this.addedVertexes.size() +
                    this.removedVertexes.size() +
                    this.updatedVertexes.size();
-        if (size >= this.vertexesCapacity) {
-            throw new BackendException(
-                      "Vertices in transaction have reached capacity %d",
-                      this.vertexesCapacity);
-        }
+        BackendException.check(size < this.vertexesCapacity,
+                               "Vertices size has reached tx capacity %d",
+                               this.vertexesCapacity);
     }
 
     private void checkTxEdgesCapacity() {
         int size = this.addedEdges.size() +
                    this.removedEdges.size() +
                    this.updatedEdges.size();
-        if (size >= this.edgesCapacity) {
-            throw new BackendException(
-                      "Edges in transaction have reached capacity %d",
-                      this.edgesCapacity);
-        }
+        BackendException.check(size < this.edgesCapacity,
+                               "Edges size has reached tx capacity %d",
+                               this.edgesCapacity);
     }
 
     private void propertyUpdated(HugeVertex vertex, HugeProperty<?> property) {

@@ -107,9 +107,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 continue;
             }
             // Search and delete index equals element id
-            for (Iterator<BackendEntry> itor = super.query(q);
-                 itor.hasNext();) {
-                BackendEntry entry = itor.next();
+            for (Iterator<BackendEntry> it = super.query(q); it.hasNext();) {
+                BackendEntry entry = it.next();
                 HugeIndex index = this.serializer.readIndex(graph(), entry);
                 if (index.elementIds().contains(element.id())) {
                     index.resetElementIds();
@@ -177,7 +176,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     public void updateVertexIndex(HugeVertex vertex, boolean removed) {
         // Update index(only property, no edge) of a vertex
         for (Id id : vertex.schemaLabel().indexLabels()) {
-            updateIndex(id, vertex, removed);
+            this.updateIndex(id, vertex, removed);
         }
     }
 
@@ -185,20 +184,18 @@ public class GraphIndexTransaction extends AbstractTransaction {
     public void updateEdgeIndex(HugeEdge edge, boolean removed) {
         // Update index of an edge
         for (Id id : edge.schemaLabel().indexLabels()) {
-            updateIndex(id, edge, removed);
+            this.updateIndex(id, edge, removed);
         }
     }
 
     /**
-     * Update index of (user properties in) vertex or edge
+     * Update index(user properties) of vertex or edge
      */
-    protected void updateIndex(Id indexLabelId,
-                               HugeElement element,
-                               boolean removed) {
+    private void updateIndex(Id ilId, HugeElement element, boolean removed) {
         SchemaTransaction schema = graph().schemaTransaction();
-        IndexLabel indexLabel = schema.getIndexLabel(indexLabelId);
-        E.checkArgumentNotNull(indexLabel,
-                               "Not exist index label id: '%s'", indexLabelId);
+        IndexLabel indexLabel = schema.getIndexLabel(ilId);
+        E.checkArgument(indexLabel != null,
+                        "Not exist index label id: '%s'", ilId);
 
         List<Object> propValues = new ArrayList<>();
         for (Id fieldId : indexLabel.indexFields()) {
@@ -219,7 +216,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             Object propValue;
             if (indexLabel.indexType() == IndexType.SECONDARY) {
                 propValue = SplicingIdGenerator.concatValues(subPropValues);
-                // Use \u0000 as escape for empty String and treat it as
+                // Use `\u0000` as escape for empty String and treat it as
                 // illegal value for text property
                 E.checkArgument(!propValue.equals(INDEX_EMPTY_SYM),
                                 "Illegal value of text property: '%s'",
@@ -442,8 +439,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * Collect matched IndexLabel(s) in a SchemaLabel for a query
      * @param schemaLabel find indexLabels of this schemaLabel
      * @param query conditions container
-     * @return MatchedLabel object contains schemaLabel and matched
-     * indexLabels
+     * @return MatchedLabel object contains schemaLabel and matched indexLabels
      */
     private MatchedLabel collectMatchedLabel(SchemaLabel schemaLabel,
                                              ConditionQuery query) {
@@ -488,7 +484,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     /**
      * Collect index label(s) whose prefix index fields are contained in
-     * prop-keys in query
+     * property-keys in query
      */
     private static Set<IndexLabel> matchPrefixJointIndexes(
                                    ConditionQuery query,
@@ -566,7 +562,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Handle range indexes
         if (query.hasRangeCondition()) {
             Set<IndexLabel> rangeILs =
-                            matchRangeIndexLabels(query,info.indexLabels());
+                            matchRangeIndexLabels(query, info.indexLabels());
             assert !rangeILs.isEmpty();
 
             Set<Id> propKeys = InsertionOrderUtil.newSet();
