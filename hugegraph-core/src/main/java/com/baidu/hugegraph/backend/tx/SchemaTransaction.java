@@ -163,10 +163,10 @@ public class SchemaTransaction extends IndexableTransaction {
         List<EdgeLabel> edgeLabels = this.getEdgeLabels();
         for (EdgeLabel edgeLabel : edgeLabels) {
             if (edgeLabel.linkWithLabel(id)) {
-                throw new HugeException("Not allowed to remove vertex label " +
-                                        "'%s' because the edge label '%s' " +
-                                        "still link with it",
-                                        vertexLabel.name(), edgeLabel.name());
+                throw new HugeException(
+                          "Not allowed to remove vertex label '%s' " +
+                          "because the edge label '%s' still link with it",
+                          vertexLabel.name(), edgeLabel.name());
             }
         }
 
@@ -277,13 +277,14 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     public void rebuildIndex(SchemaElement schema) {
-        LOG.debug("SchemaTransaction rebuild index for '{}' '{}'",
+        LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
         this.graph().graphTransaction().rebuildIndex(schema);
     }
 
     protected void addSchema(SchemaElement schema) {
-        LOG.debug("SchemaTransaction add {}: {}", schema.type(), schema.id());
+        LOG.debug("SchemaTransaction add {} with id '{}'",
+                  schema.type(), schema.id());
         this.beforeWrite();
         this.doInsert(this.serialize(schema));
         this.indexTx.updateNameIndex(schema, false);
@@ -291,7 +292,7 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
-        LOG.debug("SchemaTransaction get {} with id {}", type, id);
+        LOG.debug("SchemaTransaction get {} by id '{}'", type, id);
         this.beforeRead();
         BackendEntry entry = this.query(type, id);
         if (entry == null) {
@@ -307,7 +308,7 @@ public class SchemaTransaction extends IndexableTransaction {
      */
     protected <T extends SchemaElement> T getSchema(HugeType type,
                                                     String name) {
-        LOG.debug("SchemaTransaction get {} with name {}", type, name);
+        LOG.debug("SchemaTransaction get {} by name '{}'", type, name);
         this.beforeRead();
         ConditionQuery query = new ConditionQuery(type);
         query.eq(HugeKeys.NAME, name);
@@ -334,7 +335,7 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     protected void removeSchema(SchemaElement schema) {
-        LOG.debug("SchemaTransaction remove {} with id {}",
+        LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
         this.beforeWrite();
         this.indexTx.updateNameIndex(schema, true);

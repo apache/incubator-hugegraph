@@ -101,7 +101,7 @@ public abstract class AbstractTransaction implements Transaction {
 
         this.beforeRead();
         Iterator<BackendEntry> result = this.store.query(query);
-        this.afterRead();
+        this.afterRead(); // TODO: not complete the iteration currently
 
         return result;
     }
