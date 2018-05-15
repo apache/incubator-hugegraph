@@ -33,14 +33,10 @@ public class MysqlOptions extends OptionHolder {
 
     private static volatile MysqlOptions instance;
 
-    public static MysqlOptions instance() {
+    public static synchronized MysqlOptions instance() {
         if (instance == null) {
-            synchronized (MysqlOptions.class) {
-                if (instance == null) {
-                    instance = new MysqlOptions();
-                    instance.registerOptions();
-                }
-            }
+            instance = new MysqlOptions();
+            instance.registerOptions();
         }
         return instance;
     }

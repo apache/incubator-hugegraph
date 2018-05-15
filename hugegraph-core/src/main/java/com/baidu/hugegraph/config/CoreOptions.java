@@ -30,14 +30,11 @@ public class CoreOptions extends OptionHolder {
 
     private static volatile CoreOptions instance;
 
-    public static CoreOptions instance() {
+    public static synchronized CoreOptions instance() {
         if (instance == null) {
-            synchronized (CoreOptions.class) {
-                if (instance == null) {
-                    instance = new CoreOptions();
-                    instance.registerOptions();
-                }
-            }
+            instance = new CoreOptions();
+            // Should initialize all static members first, then register.
+            instance.registerOptions();
         }
         return instance;
     }

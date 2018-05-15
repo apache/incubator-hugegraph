@@ -38,14 +38,10 @@ public class RocksDBOptions extends OptionHolder {
 
     private static volatile RocksDBOptions instance;
 
-    public static RocksDBOptions instance() {
+    public static synchronized RocksDBOptions instance() {
         if (instance == null) {
-            synchronized (RocksDBOptions.class) {
-                if (instance == null) {
-                    instance = new RocksDBOptions();
-                    instance.registerOptions();
-                }
-            }
+            instance = new RocksDBOptions();
+            instance.registerOptions();
         }
         return instance;
     }

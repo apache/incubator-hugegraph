@@ -35,14 +35,10 @@ public class PaloOptions extends OptionHolder {
 
     private static volatile PaloOptions instance;
 
-    public static PaloOptions instance() {
+    public static synchronized PaloOptions instance() {
         if (instance == null) {
-            synchronized (PaloOptions.class) {
-                if (instance == null) {
-                    instance = new PaloOptions();
-                    instance.registerOptions();
-                }
-            }
+            instance = new PaloOptions();
+            instance.registerOptions();
         }
         return instance;
     }

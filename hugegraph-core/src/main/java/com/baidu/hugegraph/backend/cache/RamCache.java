@@ -362,6 +362,9 @@ public class RamCache implements Cache {
 
         @Override
         public boolean equals(Object obj) {
+            if (!(obj instanceof LinkNode)) {
+                return false;
+            }
             @SuppressWarnings("unchecked")
             LinkNode<K, V> other = (LinkNode<K, V>) obj;
             return this.key.equals(other.key());
