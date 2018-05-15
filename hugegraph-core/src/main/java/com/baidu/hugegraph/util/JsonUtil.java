@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.util;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 
 import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
@@ -32,8 +31,8 @@ import com.baidu.hugegraph.backend.BackendException;
 public final class JsonUtil {
 
     public static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
-    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat(DF);
 
+    public static final SafeDateFormat DATE_FORMAT = new SafeDateFormat(DF);
     private static final ObjectMapper mapper = new ObjectMapper();
 
     static {

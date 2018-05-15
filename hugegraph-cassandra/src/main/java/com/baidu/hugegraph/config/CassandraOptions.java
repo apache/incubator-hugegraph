@@ -31,14 +31,10 @@ public class CassandraOptions extends OptionHolder {
 
     private static volatile CassandraOptions instance;
 
-    public static CassandraOptions instance() {
+    public static synchronized CassandraOptions instance() {
         if (instance == null) {
-            synchronized (CassandraOptions.class) {
-                if (instance == null) {
-                    instance = new CassandraOptions();
-                    instance.registerOptions();
-                }
-            }
+            instance = new CassandraOptions();
+            instance.registerOptions();
         }
         return instance;
     }

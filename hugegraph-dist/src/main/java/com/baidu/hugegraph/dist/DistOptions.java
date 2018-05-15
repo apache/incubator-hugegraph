@@ -23,7 +23,6 @@ import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 
 import com.baidu.hugegraph.config.ConfigListOption;
 import com.baidu.hugegraph.config.OptionHolder;
-import com.baidu.hugegraph.config.ServerOptions;
 
 public class DistOptions extends OptionHolder {
 
@@ -33,14 +32,10 @@ public class DistOptions extends OptionHolder {
 
     private static volatile DistOptions instance;
 
-    public static DistOptions instance() {
+    public static synchronized DistOptions instance() {
         if (instance == null) {
-            synchronized (ServerOptions.class) {
-                if (instance == null) {
-                    instance = new DistOptions();
-                    instance.registerOptions();
-                }
-            }
+            instance = new DistOptions();
+            instance.registerOptions();
         }
         return instance;
     }

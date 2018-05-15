@@ -32,14 +32,10 @@ public class ServerOptions extends OptionHolder {
 
     private static volatile ServerOptions instance;
 
-    public static ServerOptions instance() {
+    public static synchronized ServerOptions instance() {
         if (instance == null) {
-            synchronized (ServerOptions.class) {
-                if (instance == null) {
-                    instance = new ServerOptions();
-                    instance.registerOptions();
-                }
-            }
+            instance = new ServerOptions();
+            instance.registerOptions();
         }
         return instance;
     }
