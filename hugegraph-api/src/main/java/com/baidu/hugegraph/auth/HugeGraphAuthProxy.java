@@ -150,6 +150,11 @@ public class HugeGraphAuthProxy implements Graph {
         return this.hugegraph.schema();
     }
 
+    public String backend() {
+        this.verifyPermission();
+        return this.hugegraph.backend();
+    }
+
     public void initBackend() {
         this.verifyPermission(StandardAuthenticator.ROLE_ADMIN);
         this.hugegraph.initBackend();
@@ -158,6 +163,16 @@ public class HugeGraphAuthProxy implements Graph {
     public void clearBackend() {
         this.verifyPermission(StandardAuthenticator.ROLE_ADMIN);
         this.hugegraph.clearBackend();
+    }
+
+    public void restoring(boolean restoring) {
+        this.verifyPermission(StandardAuthenticator.ROLE_ADMIN);
+        this.hugegraph.restoring(restoring);
+    }
+
+    public boolean restoring() {
+        this.verifyPermission(StandardAuthenticator.ROLE_ADMIN);
+        return this.hugegraph.restoring();
     }
 
     private void verifyPermission() {

@@ -544,7 +544,8 @@ public class HugeTraverser {
         }
 
         public boolean reachLimit() {
-            if (this.accessedNodes() > this.capacity) {
+            if (this.capacity != NO_LIMIT &&
+                this.accessedNodes() > this.capacity) {
                 return true;
             }
             if (this.limit == NO_LIMIT || this.count < this.limit) {

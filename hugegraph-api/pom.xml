@@ -83,7 +83,7 @@
                         </manifest>
                         <manifestEntries>
                             <Implementation-Version>
-                                0.24.0.0
+                                0.25.0.0
                             </Implementation-Version>
                         </manifestEntries>
                     </archive>

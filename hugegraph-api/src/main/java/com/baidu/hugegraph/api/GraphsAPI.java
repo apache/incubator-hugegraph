@@ -28,6 +28,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotSupportedException;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -44,6 +45,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -81,7 +83,7 @@ public class GraphsAPI extends API {
     @RolesAllowed({"admin", "$owner=name"})
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
-        LOG.debug("Graphs [{}] get graph by name '{}'", name);
+        LOG.debug("Get graph by name '{}'", name);
 
         HugeGraph g = graph(manager, name);
         return ImmutableMap.of("name", g.name(), "backend", g.backend());
@@ -93,7 +95,7 @@ public class GraphsAPI extends API {
     @RolesAllowed("admin")
     public File getConf(@Context GraphManager manager,
                         @PathParam("name") String name) {
-        LOG.debug("Graphs [{}] get graph by name '{}'", name);
+        LOG.debug("Get graph configuration by name '{}'", name);
 
         HugeGraph g = graph(manager, name);
 
@@ -112,7 +114,7 @@ public class GraphsAPI extends API {
     public void clear(@Context GraphManager manager,
                       @PathParam("name") String name,
                       @QueryParam("confirm_message") String message) {
-        LOG.debug("Graphs [{}] clear graph by name '{}'", name);
+        LOG.debug("Clear graph by name '{}'", name);
 
         HugeGraph g = graph(manager, name);
 
@@ -141,5 +143,40 @@ public class GraphsAPI extends API {
         schema.getPropertyKeys().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();
         });
+    }
+
+    @PUT
+    @Path("{name}/restoring")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
+    public Object restoring(@Context GraphManager manager,
+                            @PathParam("name") String name,
+                            JsonRestoring jsonRestoring) {
+        LOG.debug("Set restoring status to: '{}' of graph '{}'",
+                  jsonRestoring, name);
+
+        HugeGraph g = graph(manager, name);
+        g.restoring(jsonRestoring.restoring);
+        return jsonRestoring;
+    }
+
+    @GET
+    @Path("{name}/restoring")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
+    public Object restoring(@Context GraphManager manager,
+                            @PathParam("name") String name) {
+        LOG.debug("Get restoring status of graph '{}'", name);
+
+        HugeGraph g = graph(manager, name);
+        return ImmutableMap.of("restoring", g.restoring());
+    }
+
+    private static class JsonRestoring {
+
+        @JsonProperty("restoring")
+        public boolean restoring;
     }
 }

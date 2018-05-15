@@ -339,20 +339,8 @@ public class GraphTransaction extends IndexableTransaction {
         // Check whether id match with id strategy
         this.checkId(id, keys, vertexLabel);
 
-        // Check whether passed all non-null props
-        @SuppressWarnings("unchecked")
-        Collection<Id> nonNullKeys = CollectionUtils.subtract(
-                                     vertexLabel.properties(),
-                                     vertexLabel.nullableKeys());
-        if (!keys.containsAll(nonNullKeys)) {
-            @SuppressWarnings("unchecked")
-            Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
-            E.checkArgument(false, "All non-null property keys %s of " +
-                            "vertex label '%s' must be setted, missed keys %s",
-                            this.graph().mapPkId2Name(nonNullKeys),
-                            vertexLabel.name(),
-                            this.graph().mapPkId2Name(missed));
-        }
+        // Check whether passed all non-null property
+        this.checkNonnullProperty(keys, vertexLabel);
 
         // Create HugeVertex
         HugeVertex vertex = new HugeVertex(this, null, vertexLabel);
@@ -360,7 +348,14 @@ public class GraphTransaction extends IndexableTransaction {
         // Set properties
         ElementHelper.attachProperties(vertex, keyValues);
 
-        vertex.assignId(id);
+        // Assign vertex id
+        if (this.graph().restoring() &&
+            vertexLabel.idStrategy() == IdStrategy.AUTOMATIC) {
+            // Resume id for AUTOMATIC id strategy in restoring mode
+            vertex.assignId(id, true);
+        } else {
+            vertex.assignId(id);
+        }
 
         return this.addVertex(vertex);
     }
@@ -977,6 +972,10 @@ public class GraphTransaction extends IndexableTransaction {
         IdStrategy strategy = vertexLabel.idStrategy();
         switch (strategy) {
             case PRIMARY_KEY:
+                E.checkArgument(id == null,
+                                "Can't customize vertex id when " +
+                                "id strategy is '%s' for vertex label '%s'",
+                                strategy, vertexLabel.name());
                 // Check whether primaryKey exists
                 List<Id> primaryKeys = vertexLabel.primaryKeys();
                 E.checkArgument(keys.containsAll(primaryKeys),
@@ -984,12 +983,20 @@ public class GraphTransaction extends IndexableTransaction {
                                 "must be set when using '%s' id strategy",
                                 this.graph().mapPkId2Name(primaryKeys),
                                 vertexLabel.name(), strategy);
-                // No break to check the id must be null
+                break;
             case AUTOMATIC:
-                E.checkArgument(id == null,
-                                "Not allowed to customize vertex id when " +
-                                "id strategy is '%s' for vertex label '%s'",
-                                strategy, vertexLabel.name());
+                if (this.graph().restoring()) {
+                    E.checkArgument(id != null && id.number(),
+                                    "Must customize vertex number id when " +
+                                    "id strategy is '%s' for vertex label " +
+                                    "'%s' in restoring mode",
+                                    strategy, vertexLabel.name());
+                } else {
+                    E.checkArgument(id == null,
+                                    "Can't customize vertex id when " +
+                                    "id strategy is '%s' for vertex label '%s'",
+                                    strategy, vertexLabel.name());
+                }
                 break;
             case CUSTOMIZE_STRING:
                 E.checkArgument(id != null && !id.number(),
@@ -1005,6 +1012,23 @@ public class GraphTransaction extends IndexableTransaction {
                 break;
             default:
                 throw new AssertionError("Unknown id strategy: " + strategy);
+        }
+    }
+
+    private void checkNonnullProperty(List<Id> keys, VertexLabel vertexLabel) {
+        // Check whether passed all non-null property
+        @SuppressWarnings("unchecked")
+        Collection<Id> nonNullKeys = CollectionUtils.subtract(
+                                     vertexLabel.properties(),
+                                     vertexLabel.nullableKeys());
+        if (!keys.containsAll(nonNullKeys)) {
+            @SuppressWarnings("unchecked")
+            Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
+            HugeGraph graph = this.graph();
+            E.checkArgument(false, "All non-null property keys %s of " +
+                            "vertex label '%s' must be setted, missed keys %s",
+                            graph.mapPkId2Name(nonNullKeys), vertexLabel.name(),
+                            graph.mapPkId2Name(missed));
         }
     }
 
