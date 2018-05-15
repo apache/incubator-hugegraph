@@ -92,6 +92,7 @@ public class HugeGraph implements Graph {
 
     private final String name;
     private boolean closed;
+    private boolean restoring;
 
     private final HugeConfig configuration;
 
@@ -119,6 +120,7 @@ public class HugeGraph implements Graph {
 
         this.name = configuration.get(CoreOptions.STORE);
         this.closed = false;
+        this.restoring = false;
 
         try {
             this.storeProvider = this.loadStoreProvider();
@@ -150,6 +152,14 @@ public class HugeGraph implements Graph {
 
     public boolean closed() {
         return this.closed && this.tx.closed();
+    }
+
+    public boolean restoring() {
+        return this.restoring;
+    }
+
+    public void restoring(boolean restoring) {
+        this.restoring = restoring;
     }
 
     public EventHub schemaEventHub() {

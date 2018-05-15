@@ -127,8 +127,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return this;
     }
 
-    @Watched(prefix = "vertex")
     public void assignId(Id id) {
+        this.assignId(id, false);
+    }
+
+    @Watched(prefix = "vertex")
+    public void assignId(Id id, boolean force) {
         IdStrategy strategy = this.label.idStrategy();
         // Generate an id and assign
         switch (strategy) {
@@ -144,8 +148,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 this.id = SplicingIdGenerator.instance().generate(this);
                 break;
             case AUTOMATIC:
-                this.id = SnowflakeIdGenerator.instance(this.graph())
-                                              .generate(this);
+                if (force) {
+                    // Resume id for AUTOMATIC id strategy in restoring mode
+                    assert id.number();
+                    this.id = id;
+                } else {
+                    this.id = SnowflakeIdGenerator.instance(this.graph())
+                                                  .generate(this);
+                }
                 break;
             default:
                 throw new AssertionError(String.format(
