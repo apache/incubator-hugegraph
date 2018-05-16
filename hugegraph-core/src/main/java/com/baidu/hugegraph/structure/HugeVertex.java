@@ -249,11 +249,11 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                         "The sort key(s) must be setted for the edge " +
                         "with label: '%s'", edgeLabel.name());
 
-        // Check weather passed all non-null props
+        // Check whether passed all non-null props
         @SuppressWarnings("unchecked")
         Collection<Id> nonNullKeys = CollectionUtils.subtract(
-                                    edgeLabel.properties(),
-                                    edgeLabel.nullableKeys());
+                                     edgeLabel.properties(),
+                                     edgeLabel.nullableKeys());
         if (!keys.containsAll(nonNullKeys)) {
             @SuppressWarnings("unchecked")
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
@@ -315,8 +315,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public Iterator<Edge> getEdges(Directions direction, String... edgeLabels) {
         List<Edge> list = new LinkedList<>();
         for (HugeEdge edge : this.edges) {
-            if ((edge.isDirection(direction) || direction == Directions.BOTH)
-                && edge.belongToLabels(edgeLabels)) {
+            if (edge.matchDirection(direction) &&
+                edge.belongToLabels(edgeLabels)) {
                 list.add(edge);
             }
         }

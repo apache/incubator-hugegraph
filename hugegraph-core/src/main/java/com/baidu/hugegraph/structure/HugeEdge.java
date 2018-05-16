@@ -128,6 +128,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
     }
 
+    public boolean matchDirection(Directions direction) {
+        if (direction == Directions.BOTH) {
+            return true;
+        }
+        return this.isDirection(direction);
+    }
+
     public boolean isDirection(Directions direction) {
         // NOTE: self-loop edge will match both OUT and IN
         if (direction == Directions.OUT) {

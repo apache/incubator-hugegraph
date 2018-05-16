@@ -6,9 +6,13 @@ import com.baidu.hugegraph.type.HugeType;
 
 public enum Directions implements SerialEnum {
 
-    OUT(0, "out"),
-    IN(1, "in"),
-    BOTH(2, "both");
+    // TODO: add NONE enum for non-directional edges
+
+    BOTH(0, "both"),
+
+    OUT(1, "out"),
+
+    IN(2, "in");
 
     private byte code = 0;
     private String name = null;
