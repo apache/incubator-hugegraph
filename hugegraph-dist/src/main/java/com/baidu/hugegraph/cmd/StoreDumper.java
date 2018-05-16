@@ -75,8 +75,8 @@ public class StoreDumper {
         RegisterUtil.registerBackends();
 
         HugeType table = HugeType.valueOf(arg(args, 1, "VERTEX").toUpperCase());
-        long offset = Long.valueOf(arg(args, 2, "0"));
-        long limit = Long.valueOf(arg(args, 3, "20"));
+        long offset = Long.parseLong(arg(args, 2, "0"));
+        long limit = Long.parseLong(arg(args, 3, "20"));
 
         StoreDumper dumper = new StoreDumper(conf);
         dumper.dump(table, offset, limit);

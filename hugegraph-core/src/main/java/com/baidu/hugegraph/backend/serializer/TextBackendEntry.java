@@ -118,12 +118,13 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
 
     public Collection<BackendColumn> columnsWithPrefix(String column) {
         List<BackendColumn> list = new ArrayList<>();
-        for (String c : this.columns.keySet()) {
-            if (c.startsWith(column)) {
-                String v = this.columns.get(c);
+        for (Map.Entry<String, String> e : this.columns.entrySet()) {
+            String key = e.getKey();
+            String value = e.getValue();
+            if (key.startsWith(column)) {
                 BackendColumn bytesColumn = new BackendColumn();
-                bytesColumn.name = StringEncoding.encode(c);
-                bytesColumn.value = StringEncoding.encode(v);
+                bytesColumn.name = StringEncoding.encode(key);
+                bytesColumn.value = StringEncoding.encode(value);
                 list.add(bytesColumn);
             }
         }
@@ -297,8 +298,9 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         if (this.columns().size() != other.columns().size()) {
             return false;
         }
-        for (String key : this.columns.keySet()) {
-            String value = this.columns.get(key);
+        for (Map.Entry<String, String> e : this.columns.entrySet()) {
+            String key = e.getKey();
+            String value = e.getValue();
             String otherValue = other.columns.get(key);
             if (otherValue == null) {
                 return false;

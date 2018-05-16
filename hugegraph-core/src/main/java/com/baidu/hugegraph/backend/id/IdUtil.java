@@ -40,7 +40,7 @@ public class IdUtil {
         id = id.substring(1);
         boolean number = signal.equals(NUMBER_PREFIX);
         if (number) {
-            return IdGenerator.of(Long.valueOf(id));
+            return IdGenerator.of(Long.parseLong(id));
         } else {
             return IdGenerator.of(id);
         }

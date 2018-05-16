@@ -198,7 +198,7 @@ public class EdgeId implements Id {
         try {
             if (idParts.length == 4) {
                 Id ownerVertexId = IdUtil.readString(idParts[0]);
-                Id edgeLabelId = IdGenerator.of(Long.valueOf(idParts[1]));
+                Id edgeLabelId = IdGenerator.of(Long.parseLong(idParts[1]));
                 String sortValues = idParts[2];
                 Id otherVertexId = IdUtil.readString(idParts[3]);
                 return new EdgeId(ownerVertexId, Directions.OUT, edgeLabelId,
@@ -207,7 +207,7 @@ public class EdgeId implements Id {
                 assert idParts.length == 5;
                 Id ownerVertexId = IdUtil.readString(idParts[0]);
                 HugeType direction = HugeType.fromString(idParts[1]);
-                Id edgeLabelId = IdGenerator.of(Long.valueOf(idParts[2]));
+                Id edgeLabelId = IdGenerator.of(Long.parseLong(idParts[2]));
                 String sortValues = idParts[3];
                 Id otherVertexId = IdUtil.readString(idParts[4]);
                 return new EdgeId(ownerVertexId, Directions.convert(direction),

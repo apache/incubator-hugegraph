@@ -187,9 +187,11 @@ public class EdgeAPI extends BatchAPI {
         }
 
         commit(g, () -> {
-            for (String key : jsonEdge.properties.keySet()) {
+            for (Map.Entry<String, Object> e : jsonEdge.properties.entrySet()) {
+                String key = e.getKey();
+                Object value = e.getKey();
                 if (append) {
-                    edge.property(key, jsonEdge.properties.get(key));
+                    edge.property(key, value);
                 } else {
                     edge.property(key).remove();
                 }
@@ -371,8 +373,9 @@ public class EdgeAPI extends BatchAPI {
             E.checkArgumentNotNull(this.properties,
                                    "The properties of edge can't be null");
 
-            for (String key : this.properties.keySet()) {
-                Object value = this.properties.get(key);
+            for (Map.Entry<String, Object> entry : this.properties.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
                 E.checkArgumentNotNull(value, "Not allowed to set value of " +
                                        "property '%s' to null for edge '%s'",
                                        key, this.id);
