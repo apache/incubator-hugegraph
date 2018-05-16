@@ -82,13 +82,13 @@ public class RocksDBRange {
     }
 
     public long estimateDataSize() {
-        long mem = Long.valueOf(this.session.property(this.table, MEM_SIZE));
-        long sst = Long.valueOf(this.session.property(this.table, SST_SIZE));
+        long mem = Long.parseLong(this.session.property(this.table, MEM_SIZE));
+        long sst = Long.parseLong(this.session.property(this.table, SST_SIZE));
         return mem + sst;
     }
 
     public long estimateNumKeys() {
-        return Long.valueOf(this.session.property(this.table, NUM_KEYS));
+        return Long.parseLong(this.session.property(this.table, NUM_KEYS));
     }
 
     public static String position(long position) {

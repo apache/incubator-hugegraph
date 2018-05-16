@@ -34,11 +34,11 @@ public class PerfExample1ThreadTest {
             return;
         }
 
-        int minThread = Integer.valueOf(args[0]);
-        int maxThread = Integer.valueOf(args[1]);
-        int threadStep = Integer.valueOf(args[2]);
-        int times = Integer.valueOf(args[3]);
-        int multiple = Integer.valueOf(args[4]);
+        int minThread = Integer.parseInt(args[0]);
+        int maxThread = Integer.parseInt(args[1]);
+        int threadStep = Integer.parseInt(args[2]);
+        int times = Integer.parseInt(args[3]);
+        int multiple = Integer.parseInt(args[4]);
 
         args = new String[3];
         for (int i = minThread; i <= maxThread; i += threadStep) {

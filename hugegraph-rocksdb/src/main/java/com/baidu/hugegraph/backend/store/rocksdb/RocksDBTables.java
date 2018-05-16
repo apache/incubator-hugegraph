@@ -39,10 +39,10 @@ public class RocksDBTables {
 
     public static class Counters extends RocksDBTable {
 
-        public static final String TABLE = "c";
+        private static final String TABLE = "c";
 
-        public static final int MAX_TIMES = 1000;
-        public static final byte[] ONE = b(1L);
+        private static final int MAX_TIMES = 1000;
+        private static final byte[] ONE = b(1L);
 
         public Counters(String database) {
             super(database, TABLE);

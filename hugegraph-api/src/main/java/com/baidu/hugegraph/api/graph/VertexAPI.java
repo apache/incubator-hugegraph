@@ -140,9 +140,12 @@ public class VertexAPI extends BatchAPI {
         }
 
         commit(g, () -> {
-            for (String key : jsonVertex.properties.keySet()) {
+            for (Map.Entry<String, Object> e :
+                 jsonVertex.properties.entrySet()) {
+                String key = e.getKey();
+                Object value = e.getValue();
                 if (append) {
-                    vertex.property(key, jsonVertex.properties.get(key));
+                    vertex.property(key, value);
                 } else {
                     vertex.property(key).remove();
                 }
@@ -269,8 +272,9 @@ public class VertexAPI extends BatchAPI {
             E.checkArgumentNotNull(this.properties,
                                    "The properties of vertex can't be null");
 
-            for (String key : this.properties.keySet()) {
-                Object value = this.properties.get(key);
+            for (Map.Entry<String, Object> e : this.properties.entrySet()) {
+                String key = e.getKey();
+                Object value = e.getValue();
                 E.checkArgumentNotNull(value, "Not allowed to set value of " +
                                        "property '%s' to null for vertex '%s'",
                                        key, this.id);

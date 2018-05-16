@@ -61,7 +61,7 @@ public class PaloFile extends File {
         E.checkState(parts.length == 2,
                      "Invalid file name format '%s' for palo temp file, " +
                      "the legal format is session{m}-part{n}", this.getName());
-        return Integer.valueOf(parts[0].substring("session".length()));
+        return Integer.parseInt(parts[0].substring("session".length()));
     }
 
     public int sessionPart() {
@@ -69,7 +69,7 @@ public class PaloFile extends File {
         E.checkState(parts.length == 2,
                      "Invalid file name format '%s' for palo temp file, " +
                      "the legal format is session{m}-part{n}", this.getName());
-        return Integer.valueOf(parts[1].substring("part".length()));
+        return Integer.parseInt(parts[1].substring("part".length()));
     }
 
     public int writeLines(Collection<String> lines) {
@@ -155,8 +155,8 @@ public class PaloFile extends File {
                         "Invalid file name format '%s' for palo temp file, " +
                         "the legal format is session{m}-part{n}", fileName);
         int[] rs = new int[2];
-        rs[0] = Integer.valueOf(nameParts[0].substring("session".length()));
-        rs[1] = Integer.valueOf(nameParts[1].substring("part".length()));
+        rs[0] = Integer.parseInt(nameParts[0].substring("session".length()));
+        rs[1] = Integer.parseInt(nameParts[1].substring("part".length()));
         return rs;
     }
 

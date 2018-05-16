@@ -108,7 +108,7 @@ public abstract class SchemaElement
     }
 
     public static Id schemaId(String id) {
-        return IdGenerator.of(Long.valueOf(id));
+        return IdGenerator.of(Long.parseLong(id));
     }
 
     public static void checkName(String name, HugeConfig config) {

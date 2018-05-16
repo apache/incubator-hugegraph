@@ -23,7 +23,6 @@ import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +43,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.SafeDateFormat;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
@@ -221,8 +221,8 @@ public class PaloSessions extends MysqlSessions {
 
     public final class PaloLoadTask extends TimerTask {
 
-        private final String DF = "yyyy-MM-dd-HH-mm-ss";
-        private final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
+        private static final String DF = "yyyy-MM-dd-HH-mm-ss";
+        private final DateFormat DATE_FORMAT = new SafeDateFormat(DF);
 
         /**
          * There exist two running palo load task corresponds to two stores,

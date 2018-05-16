@@ -714,8 +714,8 @@ public class TextSerializer extends AbstractSerializer {
         @SuppressWarnings("unchecked")
         Map<String, Object> userdata = JsonUtil.fromJson(userdataStr,
                                                          Map.class);
-        for (String key : userdata.keySet()) {
-            schema.userdata(key, userdata.get(key));
+        for (Map.Entry<String, Object> e : userdata.entrySet()) {
+            schema.userdata(e.getKey(), e.getValue());
         }
     }
 }
