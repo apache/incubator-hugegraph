@@ -1,49 +1,24 @@
 #!/bin/bash
 
+abs_path() {
+    SOURCE="${BASH_SOURCE[0]}"
+    while [ -h "$SOURCE" ]; do
+        DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+        SOURCE="$(readlink "$SOURCE")"
+        [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+    done
+    echo "$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+}
+
+BIN=`abs_path`
+TOP="$(cd $BIN/../ && pwd)"
+
+. $BIN/util.sh
+
 # The maximum and minium heap memory that service can use
 MAX_MEM=$[32*1024]
 MIN_MEM=512
 EXPECT_JDK_VERSION=1.8
-
-function free_memory() {
-    FREE
-    OS=`uname`
-    if [ "$OS" == "Linux" ]; then
-        DISTRIBUTOR=`lsb_release -a | grep 'Distributor ID' | awk -F':' '{print $2}' | tr -d "\t"`
-        if [ "$DISTRIBUTOR" == "CentOS" ]; then
-            FREE=`free -m | grep '\-\/\+' | awk '{print $4}'`
-        elif [ "$DISTRIBUTOR" == "Ubuntu" ]; then
-            FREE=`free -m | grep 'Mem' | awk '{print $7}'`
-        else
-            echo "Unsupported Linux Distributor " $DISTRIBUTOR
-        fi
-    elif [ "$OS" == "Darwin" ]; then
-        FREE=`top -l 1 | head -n 10 | grep PhysMem | awk -F',' '{print $2}' \
-             | awk -F'M' '{print $1}' | tr -d " "`
-    else
-        echo "Unsupported operating system " $OS
-        exit 1
-    fi
-    echo $FREE
-}
-
-function cal_xmx() {
-    # Get machine available memory
-    FREE=`free_memory`
-    HALF_FREE=$[FREE/2]
-
-    XMX=$MIN_MEM
-    if [[ "$FREE" -lt "$MIN_MEM" ]]; then
-        exit 1
-    elif [[ "$HALF_FREE" -ge "$MAX_MEM" ]]; then
-        XMX=$MAX_MEM
-    elif [[ "$HALF_FREE" -lt "$MIN_MEM" ]]; then
-        XMX=$MIN_MEM
-    else
-        XMX=$HALF_FREE
-    fi
-    echo $XMX
-}
 
 # ${BASH_SOURCE[0]} is the path to this file
 SOURCE="${BASH_SOURCE[0]}"
@@ -107,7 +82,7 @@ fi
 
 # Set Java options
 if [ "$JAVA_OPTIONS" = "" ] ; then
-    XMX=`cal_xmx`
+    XMX=`calc_xmx $MIN_MEM $MAX_MEM`
     if [ $? -ne 0 ]; then
         echo "Failed to start HugeGraphServer, requires at least ${MIN_MEM}m free memory" \
         >> $HUGEGRAPH_LOGDIR/hugegraph-server.log
