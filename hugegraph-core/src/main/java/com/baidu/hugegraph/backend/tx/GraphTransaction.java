@@ -334,24 +334,12 @@ public class GraphTransaction extends IndexableTransaction {
 
         VertexLabel vertexLabel = this.checkVertexLabel(elemKeys.label());
         Id id = HugeVertex.getIdValue(elemKeys.id());
-
-        IdStrategy strategy = vertexLabel.idStrategy();
-        // Check weather id strategy match with id
-        strategy.checkId(id, vertexLabel.name());
-
         List<Id> keys = this.graph().mapPkName2Id(elemKeys.keys());
-        // Check id strategy
-        if (strategy == IdStrategy.PRIMARY_KEY) {
-            // Check whether primaryKey exists
-            List<Id> primaryKeys = vertexLabel.primaryKeys();
-            E.checkArgument(keys.containsAll(primaryKeys),
-                            "The primary keys: %s of vertex label '%s' " +
-                            "must be set when using '%s' id strategy",
-                            this.graph().mapPkId2Name(primaryKeys),
-                            vertexLabel.name(), strategy);
-        }
 
-        // Check weather passed all non-null props
+        // Check whether id match with id strategy
+        this.checkId(id, keys, vertexLabel);
+
+        // Check whether passed all non-null props
         @SuppressWarnings("unchecked")
         Collection<Id> nonNullKeys = CollectionUtils.subtract(
                                      vertexLabel.properties(),
@@ -982,6 +970,42 @@ public class GraphTransaction extends IndexableTransaction {
 
         assert (label instanceof VertexLabel);
         return (VertexLabel) label;
+    }
+
+    private void checkId(Id id, List<Id> keys, VertexLabel vertexLabel) {
+        // Check whether id match with id strategy
+        IdStrategy strategy = vertexLabel.idStrategy();
+        switch (strategy) {
+            case PRIMARY_KEY:
+                // Check whether primaryKey exists
+                List<Id> primaryKeys = vertexLabel.primaryKeys();
+                E.checkArgument(keys.containsAll(primaryKeys),
+                                "The primary keys: %s of vertex label '%s' " +
+                                "must be set when using '%s' id strategy",
+                                this.graph().mapPkId2Name(primaryKeys),
+                                vertexLabel.name(), strategy);
+                // No break to check the id must be null
+            case AUTOMATIC:
+                E.checkArgument(id == null,
+                                "Not allowed to customize vertex id when " +
+                                "id strategy is '%s' for vertex label '%s'",
+                                strategy, vertexLabel.name());
+                break;
+            case CUSTOMIZE_STRING:
+                E.checkArgument(id != null && !id.number(),
+                                "Must customize vertex string id when " +
+                                "id strategy is '%s' for vertex label '%s'",
+                                strategy, vertexLabel.name());
+                break;
+            case CUSTOMIZE_NUMBER:
+                E.checkArgument(id != null && id.number(),
+                                "Must customize vertex number id when " +
+                                "id strategy is '%s' for vertex label '%s'",
+                                strategy, vertexLabel.name());
+                break;
+            default:
+                throw new AssertionError("Unknown id strategy: " + strategy);
+        }
     }
 
     private Set<Id> relatedIndexLabels(HugeProperty<?> prop,

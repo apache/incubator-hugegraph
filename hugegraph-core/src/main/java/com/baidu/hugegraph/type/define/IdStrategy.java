@@ -19,9 +19,6 @@
 
 package com.baidu.hugegraph.type.define;
 
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.util.E;
-
 public enum IdStrategy implements SerialEnum {
 
     DEFAULT(0, "default"),
@@ -54,26 +51,5 @@ public enum IdStrategy implements SerialEnum {
 
     public String string() {
         return this.name;
-    }
-
-    public void checkId(Id id, String name) {
-        if (this != IdStrategy.CUSTOMIZE_STRING &&
-            this != IdStrategy.CUSTOMIZE_NUMBER) {
-            E.checkArgument(id == null,
-                            "Not allowed to customize vertex id when the id " +
-                            "strategy is '%s' for vertex label '%s'",
-                            this, name);
-        } else if (this == IdStrategy.CUSTOMIZE_STRING) {
-            E.checkArgument(id != null && !id.number(),
-                            "Must customize vertex string id when the " +
-                            "id strategy is '%s' for vertex label '%s'",
-                            this, name);
-        } else {
-            assert this == IdStrategy.CUSTOMIZE_NUMBER;
-            E.checkArgument(id != null && id.number(),
-                            "Must customize vertex number id when the " +
-                            "id strategy is '%s' for vertex label '%s'",
-                            this, name);
-        }
     }
 }

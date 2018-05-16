@@ -21,13 +21,13 @@ package com.baidu.hugegraph.type.define;
 
 public enum Action {
 
-    INSERT(0, "insert"),
+    INSERT(1, "insert"),
 
-    APPEND(1, "append"),
+    APPEND(2, "append"),
 
-    ELIMINATE(2, "eliminate"),
+    ELIMINATE(3, "eliminate"),
 
-    DELETE(3, "delete");
+    DELETE(4, "delete");
 
     private final byte code;
     private final String name;
