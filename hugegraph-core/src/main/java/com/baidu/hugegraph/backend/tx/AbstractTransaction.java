@@ -100,10 +100,11 @@ public abstract class AbstractTransaction implements Transaction {
         query = this.serializer.writeQuery(query);
 
         this.beforeRead();
-        Iterator<BackendEntry> result = this.store.query(query);
-        this.afterRead(); // TODO: not complete the iteration currently
-
-        return result;
+        try {
+            return this.store.query(query);
+        } finally {
+            this.afterRead(); // TODO: not complete the iteration currently
+        }
     }
 
     @Watched(prefix = "tx")

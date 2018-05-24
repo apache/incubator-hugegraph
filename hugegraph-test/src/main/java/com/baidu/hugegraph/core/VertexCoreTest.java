@@ -802,7 +802,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query by vertex label and key-name
         List<Vertex> vertexes = graph.traversal().V().hasLabel("language")
-                                .has("dynamic").toList();
+                                     .has("dynamic").toList();
 
         Assert.assertEquals(1, vertexes.size());
         assertContains(vertexes,
@@ -816,11 +816,30 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query vertex by primary-values
         List<Vertex> vertexes = graph.traversal().V()
-                                .hasLabel("author").has("id", 1).toList();
+                                     .hasLabel("author").has("id", 1).toList();
         Assert.assertEquals(1, vertexes.size());
         assertContains(vertexes,
                        T.label, "author", "id", 1, "name", "James Gosling",
                        "age", 62, "lived", "Canadian");
+    }
+
+    @Test
+    public void testQueryByPrimaryValuesAndProps() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        // Query vertex by primary-values
+        List<Vertex> vertexes = graph.traversal().V()
+                                     .hasLabel("author").has("id", 1)
+                                     .has("name", "James Gosling").toList();
+        Assert.assertEquals(1, vertexes.size());
+        assertContains(vertexes,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
+
+        vertexes = graph.traversal().V().hasLabel("author")
+                        .has("id", 1).has("name", "fake-name").toList();
+        Assert.assertEquals(0, vertexes.size());
     }
 
     @Test
@@ -853,8 +872,8 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         List<Vertex> vertexes = graph.traversal().V()
-                                .hasLabel("language").hasKey("dynamic")
-                                .toList();
+                                     .hasLabel("language").hasKey("dynamic")
+                                     .toList();
         Assert.assertEquals(1, vertexes.size());
         assertContains(vertexes,
                        T.label, "language", "name", "python",

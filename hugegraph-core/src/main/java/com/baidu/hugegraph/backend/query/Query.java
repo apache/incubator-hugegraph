@@ -81,6 +81,10 @@ public class Query implements Cloneable {
         return this.originQuery;
     }
 
+    protected void originQuery(Query originQuery) {
+        this.originQuery = originQuery;
+    }
+
     public Map<HugeKeys, Order> orders() {
         return Collections.unmodifiableMap(this.orders);
     }
