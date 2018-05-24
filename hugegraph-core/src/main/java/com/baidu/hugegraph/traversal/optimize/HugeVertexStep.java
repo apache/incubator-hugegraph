@@ -134,7 +134,7 @@ public final class HugeVertexStep<E extends Element>
                 if (GraphTransaction.matchEdgeSortKeys(q, graph)) {
                     bySortKeys = true;
                 } else {
-                    // Can't query by sysprop and by index(HugeGraph-749)
+                    // Can't query by sysprop and by index (HugeGraph-749)
                     q.resetUserpropConditions();
                 }
             }

@@ -98,8 +98,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Construct index ConditionQuery
         Set<ConditionQuery> queries = query2IndexQuery(query, element);
         if (queries.isEmpty()) {
-            throw new HugeException("Can't construct index query for '%s'",
-                                    query);
+            throw new HugeException(
+                      "Can't construct index query for '%s'", query);
         }
 
         for (ConditionQuery q : queries) {
@@ -268,6 +268,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Query by index
+        query.optimized(OptimizedType.INDEX.ordinal());
         Set<Id> ids;
         if (query.allSysprop() && conds.size() == 1 &&
             query.containsCondition(HugeKeys.LABEL)) {
@@ -947,5 +948,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         protected Set<IndexLabel> indexLabels() {
             return Collections.unmodifiableSet(this.indexLabels);
         }
+    }
+
+    public static enum OptimizedType {
+        NONE,
+        PRIMARY_KEY,
+        SORT_KEY,
+        INDEX
     }
 }

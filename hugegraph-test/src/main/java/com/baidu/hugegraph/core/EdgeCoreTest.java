@@ -402,7 +402,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddEdgeWithoutSortValues() {
+    public void testAddEdgeWithoutSortkey() {
         HugeGraph graph = graph();
 
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
@@ -417,7 +417,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddEdgeWithLargeSortValues() {
+    public void testAddEdgeWithLargeSortkey() {
         HugeGraph graph = graph();
 
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
@@ -931,19 +931,38 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryOutEdgesOfVertexBySortValues() {
+    public void testQueryOutEdgesOfVertexBySortkey() {
         HugeGraph graph = graph();
         init18Edges();
 
         Vertex louise = vertex("person", "name", "Louise");
 
-        List<Edge> edges = graph.traversal().V(louise.id())
-                           .outE("look").has("time", "2017-5-1").toList();
+        List<Edge> edges = graph.traversal().V(louise.id()).outE("look")
+                                .has("time", "2017-5-1").toList();
         Assert.assertEquals(2, edges.size());
 
         edges = graph.traversal().V(louise.id())
-                .outE("look").has("time", "2017-5-27").toList();
+                     .outE("look").has("time", "2017-5-27")
+                     .toList();
         Assert.assertEquals(2, edges.size());
+    }
+
+    @Test
+    public void testQueryOutEdgesOfVertexBySortkeyAndProps() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Vertex louise = vertex("person", "name", "Louise");
+
+        List<Edge> edges = graph.traversal().V(louise.id()).outE("look")
+                                .has("time", "2017-5-1").has("score", 3)
+                                .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(louise.id()).outE("look")
+                     .has("time", "2017-5-27").has("score", 3)
+                     .toList();
+        Assert.assertEquals(0, edges.size());
     }
 
     @Test
@@ -1019,7 +1038,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryInEdgesOfVertexBySortValues() {
+    public void testQueryInEdgesOfVertexBySortkey() {
         HugeGraph graph = graph();
         init18Edges();
 

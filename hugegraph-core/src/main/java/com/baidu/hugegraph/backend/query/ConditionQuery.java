@@ -42,6 +42,8 @@ public class ConditionQuery extends IdQuery {
     // Conditions will be concated with `and` by default
     private Set<Condition> conditions = new LinkedHashSet<>();
 
+    private int optimizedType = 0;
+
     public ConditionQuery(HugeType resultType) {
         super(resultType);
     }
@@ -332,14 +334,14 @@ public class ConditionQuery extends IdQuery {
     }
 
     public boolean matchUserpropKeys(List<Id> keys) {
-        Set<Id> conditionKeys = userpropKeys();
-        return keys.size() == conditionKeys.size() &&
-               conditionKeys.containsAll(keys);
+        Set<Id> conditionKeys = this.userpropKeys();
+        return keys.size() > 0 && conditionKeys.containsAll(keys);
     }
 
     @Override
     public ConditionQuery copy() {
         ConditionQuery query = (ConditionQuery) super.copy();
+        query.originQuery(this);
         query.conditions = new LinkedHashSet<>(this.conditions);
         return query;
     }
@@ -363,5 +365,18 @@ public class ConditionQuery extends IdQuery {
                          "Condition Query has none-flatten condition '%s'",
                          condition);
         }
+    }
+
+    public void optimized(int optimizedType) {
+        this.optimizedType = optimizedType;
+
+        Query originQuery = this.originQuery();
+        if (originQuery instanceof ConditionQuery) {
+            ((ConditionQuery) originQuery).optimized(optimizedType);
+        }
+    }
+
+    public int optimized() {
+        return this.optimizedType;
     }
 }
