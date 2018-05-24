@@ -24,8 +24,8 @@ import java.text.ParseException;
 import java.util.Date;
 import java.util.UUID;
 
+import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.JsonUtil;
 
 public enum DataType implements SerialEnum {
 
@@ -129,11 +129,11 @@ public enum DataType implements SerialEnum {
                 return new Date(((Number) value).longValue());
             } else if (value instanceof String) {
                 try {
-                    return JsonUtil.DATE_FORMAT.parse((String) value);
+                    return HugeGraphSONModule.DATE_FORMAT.parse((String) value);
                 } catch (ParseException e) {
                     E.checkArgument(false, "%s, expect format: %s",
                                     e.getMessage(),
-                                    JsonUtil.DATE_FORMAT.toPattern());
+                                    HugeGraphSONModule.DATE_FORMAT.toPattern());
                 }
             }
         }

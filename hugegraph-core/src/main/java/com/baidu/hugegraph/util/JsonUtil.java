@@ -20,23 +20,31 @@
 package com.baidu.hugegraph.util;
 
 import java.io.IOException;
+import java.util.Date;
 
+import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
+import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
 import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
+import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectReader;
+import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
+import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
+import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
+import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
 import com.baidu.hugegraph.backend.BackendException;
 
 public final class JsonUtil {
 
-    public static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
-
-    public static final SafeDateFormat DATE_FORMAT = new SafeDateFormat(DF);
     private static final ObjectMapper mapper = new ObjectMapper();
 
     static {
-        mapper.setDateFormat(DATE_FORMAT);
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(Date.class, new DateSerializer());
+        module.addDeserializer(Date.class, new DateDeserializer());
+        mapper.registerModule(module);
     }
 
     public static String toJson(Object object) {
@@ -90,5 +98,34 @@ public final class JsonUtil {
             }
         }
         return object;
+    }
+
+    private static class DateSerializer extends StdSerializer<Date> {
+
+        DateSerializer() {
+            super(Date.class);
+        }
+
+        @Override
+        public void serialize(Date date, JsonGenerator jsonGenerator,
+                              SerializerProvider provider)
+                              throws IOException {
+            jsonGenerator.writeNumber(date.getTime());
+        }
+    }
+
+    private static class DateDeserializer extends StdDeserializer<Date> {
+
+        DateDeserializer() {
+            super(Date.class);
+        }
+
+        @Override
+        public Date deserialize(JsonParser jsonParser,
+                                DeserializationContext context)
+                                throws IOException {
+            Long number = jsonParser.readValueAs(Long.class);
+            return new Date(number);
+        }
     }
 }
