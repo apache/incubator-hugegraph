@@ -29,9 +29,9 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
-import com.baidu.hugegraph.util.JsonUtil;
 
 public class Utils {
 
@@ -80,7 +80,7 @@ public class Utils {
 
     public static Date date(String rawDate) {
         try {
-            return JsonUtil.DATE_FORMAT.parse(rawDate);
+            return HugeGraphSONModule.DATE_FORMAT.parse(rawDate);
         } catch (ParseException e) {
             throw new IllegalArgumentException(String.format(
                       "Invalid date '%s'", rawDate));

@@ -47,7 +47,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.SafeDateFormat;
 
 @SuppressWarnings("serial")
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
@@ -61,6 +61,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     private static final GraphSONSchemaSerializer schemaSerializer =
                          new GraphSONSchemaSerializer();
+
+    private static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
+    public static final SafeDateFormat DATE_FORMAT = new SafeDateFormat(DF);
 
     static {
         TYPE_DEFINITIONS = new ConcurrentHashMap<>();
@@ -93,8 +96,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
         addSerializer(Optional.class, new OptionalSerializer());
 
-        addSerializer(Date.class, new DateSerializer(false,
-                                                     JsonUtil.DATE_FORMAT));
+        addSerializer(Date.class, new DateSerializer(false, DATE_FORMAT));
         addSerializer(UUID.class, new UUIDSerializer());
 
         // HugeGraph id serializer
