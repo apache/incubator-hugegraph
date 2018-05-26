@@ -90,7 +90,7 @@ public class RegisterUtil {
     public static void registerCassandra() {
         // Register config
         OptionSpace.register("cassandra",
-                "com.baidu.hugegraph.config.CassandraOptions");
+                "com.baidu.hugegraph.backend.store.cassandra.CassandraOptions");
         // Register serializer
         SerializerFactory.register("cassandra",
                 "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
@@ -102,10 +102,10 @@ public class RegisterUtil {
     public static void registerScyllaDB() {
         // Register config
         OptionSpace.register("scylladb",
-                "com.baidu.hugegraph.config.CassandraOptions");
+                "com.baidu.hugegraph.backend.store.cassandra.CassandraOptions");
         // Register serializer
         SerializerFactory.register("scylladb",
-                "com.baidu.hugegraph.backend.store.scylladb.ScyllaDBSerializer");
+                "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
         // Register backend
         BackendProviderFactory.register("scylladb",
                 "com.baidu.hugegraph.backend.store.scylladb.ScyllaDBStoreProvider");

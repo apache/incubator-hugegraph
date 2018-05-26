@@ -19,55 +19,25 @@
 
 package com.baidu.hugegraph.backend.store.cassandra;
 
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraGraphStore;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraSchemaStore;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 
 public class CassandraStoreProvider extends AbstractBackendStoreProvider {
-
-    private static final Logger LOG = Log.logger(CassandraStore.class);
 
     protected String keyspace() {
         return this.name().toLowerCase();
     }
 
     @Override
-    public BackendStore loadSchemaStore(final String name) {
-        LOG.debug("CassandraStoreProvider load SchemaStore '{}'", name);
-
-        this.checkOpened();
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new CassandraSchemaStore(this, keyspace(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof CassandraStore.CassandraSchemaStore,
-                     "SchemaStore must be an instance of CassandraSchemaStore");
-        return store;
+    protected BackendStore newSchemaStore(String store) {
+        return new CassandraSchemaStore(this, this.keyspace(), store);
     }
 
     @Override
-    public BackendStore loadGraphStore(String name) {
-        LOG.debug("CassandraStoreProvider load GraphStore '{}'", name);
-
-        this.checkOpened();
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new CassandraGraphStore(this, keyspace(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof CassandraStore.CassandraGraphStore,
-                     "GraphStore must be an instance of CassandraGraphStore");
-        return store;
+    protected BackendStore newGraphStore(String store) {
+        return new CassandraGraphStore(this, this.keyspace(), store);
     }
 
     @Override

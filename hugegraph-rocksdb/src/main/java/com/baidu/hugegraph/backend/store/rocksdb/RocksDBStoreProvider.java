@@ -19,55 +19,25 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBGraphStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBSchemaStore;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 
 public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
-
-    private static final Logger LOG = Log.logger(RocksDBStore.class);
 
     protected String database() {
         return this.name().toLowerCase();
     }
 
     @Override
-    public BackendStore loadSchemaStore(final String name) {
-        LOG.debug("RocksDBStoreProvider load SchemaStore '{}'", name);
-
-        this.checkOpened();
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new RocksDBSchemaStore(this, database(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof RocksDBSchemaStore,
-                     "SchemaStore must be an instance of RocksDBSchemaStore");
-        return store;
+    protected BackendStore newSchemaStore(String store) {
+        return new RocksDBSchemaStore(this, this.database(), store);
     }
 
     @Override
-    public BackendStore loadGraphStore(String name) {
-        LOG.debug("RocksDBStoreProvider load GraphStore '{}'", name);
-
-        this.checkOpened();
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new RocksDBGraphStore(this, database(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof RocksDBGraphStore,
-                     "GraphStore must be an instance of RocksDBGraphStore");
-        return store;
+    protected BackendStore newGraphStore(String store) {
+        return new RocksDBGraphStore(this, this.database(), store);
     }
 
     @Override
