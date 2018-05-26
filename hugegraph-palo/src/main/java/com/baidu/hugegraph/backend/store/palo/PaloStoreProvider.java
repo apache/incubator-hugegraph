@@ -19,61 +19,32 @@
 
 package com.baidu.hugegraph.backend.store.palo;
 
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.backend.LocalCounter;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.mysql.MysqlStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStoreProvider;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 
 public class PaloStoreProvider extends MysqlStoreProvider {
-
-    private static final Logger LOG = Log.logger(MysqlStore.class);
 
     private static final BackendFeatures FEATURES = new PaloFeatures();
 
     @Override
+    protected BackendStore newSchemaStore(String store) {
+        return new PaloSchemaStore(this, this.database(), store);
+    }
+
+    @Override
+    protected BackendStore newGraphStore(String store) {
+        return new PaloGraphStore(this, this.database(), store);
+    }
+
+    @Override
     public String type() {
         return "palo";
-    }
-
-    @Override
-    public BackendStore loadSchemaStore(String name) {
-        LOG.debug("PaloStoreProvider load SchemaStore '{}'", name);
-
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new PaloSchemaStore(this, this.database(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof PaloSchemaStore,
-                     "SchemaStore must be an instance of PaloSchemaStore");
-        return store;
-    }
-
-    @Override
-    public BackendStore loadGraphStore(String name) {
-        LOG.debug("PaloStoreProvider load GraphStore '{}'", name);
-
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new PaloGraphStore(this, this.database(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof PaloGraphStore,
-                     "GraphStore must be an instance of PaloGraphStore");
-        return store;
     }
 
     public static class PaloSchemaStore extends PaloStore {

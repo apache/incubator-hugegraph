@@ -21,62 +21,27 @@ package com.baidu.hugegraph.backend.store.mysql;
 
 import java.util.Iterator;
 
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlGraphStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlSchemaStore;
-import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
-import com.baidu.hugegraph.util.Log;
 
 public class MysqlStoreProvider extends AbstractBackendStoreProvider {
-
-    private static final Logger LOG = Log.logger(MysqlStore.class);
 
     protected String database() {
         return this.name().toLowerCase();
     }
 
     @Override
-    public BackendStore loadSchemaStore(String name) {
-        LOG.debug("MysqlStoreProvider load SchemaStore '{}'", name);
-
-        this.checkOpened();
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new MysqlSchemaStore(this, this.database(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof MysqlStore.MysqlSchemaStore,
-                     "SchemaStore must be an instance of MysqlSchemaStore");
-        return store;
+    protected BackendStore newSchemaStore(String store) {
+        return new MysqlSchemaStore(this, this.database(), store);
     }
 
     @Override
-    public BackendStore loadGraphStore(String name) {
-        LOG.debug("MysqlStoreProvider load GraphStore '{}'", name);
-
-        this.checkOpened();
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new MysqlStore.MysqlGraphStore(this, this.database(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof MysqlGraphStore,
-                     "GraphStore must be an instance of MysqlGraphStore");
-        return store;
-    }
-
-    @Override
-    public String type() {
-        return "mysql";
+    protected BackendStore newGraphStore(String store) {
+        return new MysqlGraphStore(this, this.database(), store);
     }
 
     @Override
@@ -91,5 +56,10 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
             itor.next().clear();
         }
         this.storeEventHub.notify(Events.STORE_CLEAR, this);
+    }
+
+    @Override
+    public String type() {
+        return "mysql";
     }
 }

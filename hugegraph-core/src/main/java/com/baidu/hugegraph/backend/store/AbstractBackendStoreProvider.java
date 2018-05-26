@@ -22,14 +22,19 @@ package com.baidu.hugegraph.backend.store;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.Log;
 
 public abstract class AbstractBackendStoreProvider
                 implements BackendStoreProvider {
+
+    private static final Logger LOG = Log.logger(BackendStoreProvider.class);
 
     protected String name = null;
     protected Map<String, BackendStore> stores = null;
@@ -40,6 +45,10 @@ public abstract class AbstractBackendStoreProvider
         E.checkState(this.name != null && this.stores != null,
                      "The BackendStoreProvider has not been opened");
     }
+
+    protected abstract BackendStore newSchemaStore(String store);
+
+    protected abstract BackendStore newGraphStore(String store);
 
     @Override
     public void listen(EventListener listener) {
@@ -85,5 +94,37 @@ public abstract class AbstractBackendStoreProvider
             store.clear();
         }
         this.storeEventHub.notify(Events.STORE_CLEAR, this);
+    }
+
+    @Override
+    public BackendStore loadSchemaStore(final String name) {
+        LOG.debug("The '{}' StoreProvider load SchemaStore '{}'",
+                  this.type(),  name);
+
+        this.checkOpened();
+        if (!this.stores.containsKey(name)) {
+            BackendStore s = this.newSchemaStore(name);
+            this.stores.putIfAbsent(name, s);
+        }
+
+        BackendStore store = this.stores.get(name);
+        E.checkNotNull(store, "store");
+        return store;
+    }
+
+    @Override
+    public BackendStore loadGraphStore(String name) {
+        LOG.debug("The '{}' StoreProvider load GraphStore '{}'",
+                  this.type(),  name);
+
+        this.checkOpened();
+        if (!this.stores.containsKey(name)) {
+            BackendStore s = this.newGraphStore(name);
+            this.stores.putIfAbsent(name, s);
+        }
+
+        BackendStore store = this.stores.get(name);
+        E.checkNotNull(store, "store");
+        return store;
     }
 }

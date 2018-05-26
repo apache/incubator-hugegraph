@@ -25,7 +25,6 @@ import java.util.List;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
-import com.baidu.hugegraph.config.CassandraOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.BatchStatement;

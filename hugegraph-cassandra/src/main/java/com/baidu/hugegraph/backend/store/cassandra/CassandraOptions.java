@@ -17,11 +17,14 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.config;
+package com.baidu.hugegraph.backend.store.cassandra;
 
 import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
+
+import com.baidu.hugegraph.config.ConfigOption;
+import com.baidu.hugegraph.config.OptionHolder;
 
 public class CassandraOptions extends OptionHolder {
 
