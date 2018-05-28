@@ -78,7 +78,6 @@ wait_for_shutdown() {
     while [ $now_s -le $stop_s ]; do
         process_status "$process_name" $class_name >/dev/null
         if [ $? -eq 1 ]; then
-            # Class not found in the jps output. Assume that it stopped.
             return 0
         fi
         sleep 2
@@ -137,7 +136,7 @@ function kill_process_and_wait() {
 }
 
 function free_memory() {
-    local free=
+    local free=""
     local os=`uname`
     if [ "$os" == "Linux" ]; then
         local distributor=`lsb_release -a | grep 'Distributor ID' | awk -F':' '{print $2}' | tr -d "\t"`

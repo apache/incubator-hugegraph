@@ -1,17 +1,23 @@
 #!/bin/bash
 
 OPEN_MONITOR="true"
-if [ $# -gt 1 ]; then
-    echo "USAGE: $0 [true|false]"
-    echo "The param indicates whether to add monitor, default is true"
+VERBOSE=""
+
+function parse_args() {
+    while getopts "m:v" arg; do
+        case $arg in
+            m) OPEN_MONITOR="$OPTARG" ;;
+            v) VERBOSE="verbose" ;;
+            ?) echo "USAGE: $0 [-m true|false] [-v]" && exit 1 ;;
+        esac
+    done
+}
+
+parse_args $@
+
+if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
+    echo "USAGE: $0 [-m true|false] [-v]"
     exit 1
-elif [ $# -eq 1 ]; then
-    if [[ $1 != "true" && $1 != "false" ]]; then
-        echo "USAGE: $0 [true|false]"
-        exit 1
-    else
-        OPEN_MONITOR=$1
-    fi
 fi
 
 function abs_path() {
@@ -31,8 +37,6 @@ TOP="$(cd $BIN/../ && pwd)"
 
 SERVER_URL=`read_property "$TOP/conf/rest-server.properties" "restserver.url"`
 SERVER_STARTUP_TIMEOUT_S=30
-
-VERBOSE=
 
 check_port $SERVER_URL
 
