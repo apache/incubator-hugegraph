@@ -42,6 +42,7 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.optimize.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/traversers/paths")
 @Singleton
@@ -50,6 +51,7 @@ public class PathsAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     @GET
+    @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,

@@ -45,6 +45,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/traversers/edges")
 @Singleton
@@ -53,6 +54,7 @@ public class EdgesAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     @GET
+    @Timed
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
@@ -75,6 +77,7 @@ public class EdgesAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("shards")
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -91,6 +94,7 @@ public class EdgesAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("scan")
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)

@@ -44,6 +44,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/schema/edgelabels")
@@ -53,6 +54,7 @@ public class EdgeLabelAPI extends API {
     private static final Logger LOG = Log.logger(EdgeLabelAPI.class);
 
     @POST
+    @Timed
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -69,6 +71,7 @@ public class EdgeLabelAPI extends API {
     }
 
     @PUT
+    @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -93,6 +96,7 @@ public class EdgeLabelAPI extends API {
     }
 
     @GET
+    @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
@@ -104,6 +108,7 @@ public class EdgeLabelAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
@@ -117,6 +122,7 @@ public class EdgeLabelAPI extends API {
     }
 
     @DELETE
+    @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,

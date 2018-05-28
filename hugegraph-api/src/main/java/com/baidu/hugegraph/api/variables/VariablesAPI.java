@@ -41,6 +41,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/variables")
@@ -50,6 +51,7 @@ public class VariablesAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     @PUT
+    @Timed
     @Path("{key}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -67,6 +69,7 @@ public class VariablesAPI extends API {
     }
 
     @GET
+    @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> list(@Context GraphManager manager,
                                     @PathParam("graph") String graph) {
@@ -77,6 +80,7 @@ public class VariablesAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("{key}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> get(@Context GraphManager manager,
@@ -94,6 +98,7 @@ public class VariablesAPI extends API {
     }
 
     @DELETE
+    @Timed
     @Path("{key}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,

@@ -42,9 +42,15 @@ public interface Cache {
 
     public void expire(long seconds);
 
+    public long expire();
+
     public void tick();
 
     public long capacity();
 
     public long size();
+
+    public long hits();
+
+    public long miss();
 }

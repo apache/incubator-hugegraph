@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.auth;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 
@@ -27,14 +28,17 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.server.GraphManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
+import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.server.util.ServerGremlinExecutor;
 import org.apache.tinkerpop.gremlin.server.util.ThreadFactoryUtil;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.ContextThreadPoolExecutor;
+import com.baidu.hugegraph.util.Log;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -44,6 +48,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
  * GremlinServer with custom ServerGremlinExecutor, which can pass Context
  */
 public class ContextGremlinServer extends GremlinServer {
+
+    private static final Logger LOG = Log.logger(ContextGremlinServer.class);
 
     @SuppressWarnings("deprecation")
     public ContextGremlinServer(final Settings settings) {
@@ -55,6 +61,7 @@ public class ContextGremlinServer extends GremlinServer {
          * settings.optionalMetrics().ifPresent(GremlinServer::configureMetrics)
          */
         super(create(settings));
+        settings.optionalMetrics().ifPresent(this::configureMetrics);
     }
 
     public void injectAuthGraph() {
@@ -110,5 +117,49 @@ public class ContextGremlinServer extends GremlinServer {
         int size = settings.gremlinPool;
         ThreadFactory factory = ThreadFactoryUtil.create("exec-%d");
         return new ContextThreadPoolExecutor(size, size, factory);
+    }
+
+    private void configureMetrics(final Settings.ServerMetrics settings) {
+        final MetricManager metrics = MetricManager.INSTANCE;
+        // The following codes are copied from GremlinServer
+        settings.optionalConsoleReporter().ifPresent(config -> {
+            if (config.enabled) {
+                metrics.addConsoleReporter(config.interval);
+            }
+        });
+        settings.optionalCsvReporter().ifPresent(config -> {
+            if (config.enabled) {
+                metrics.addCsvReporter(config.interval, config.fileName);
+            }
+        });
+        settings.optionalJmxReporter().ifPresent(config -> {
+            if (config.enabled) {
+                metrics.addJmxReporter(config.domain, config.agentId);
+            }
+        });
+        settings.optionalSlf4jReporter().ifPresent(config -> {
+            if (config.enabled) {
+                metrics.addSlf4jReporter(config.interval, config.loggerName);
+            }
+        });
+        settings.optionalGangliaReporter().ifPresent(config -> {
+            if (config.enabled) {
+                try {
+                    metrics.addGangliaReporter(config.host, config.port,
+                                               config.optionalAddressingMode(),
+                                               config.ttl, config.protocol31,
+                                               config.hostUUID, config.spoof,
+                                               config.interval);
+                } catch (IOException ioe) {
+                    LOG.warn("Error configuring the Ganglia Reporter.", ioe);
+                }
+            }
+        });
+        settings.optionalGraphiteReporter().ifPresent(config -> {
+            if (config.enabled) {
+                metrics.addGraphiteReporter(config.host, config.port,
+                                            config.prefix, config.interval);
+            }
+        });
     }
 }

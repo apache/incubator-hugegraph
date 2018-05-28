@@ -21,6 +21,7 @@ package com.baidu.hugegraph.server;
 
 import javax.ws.rs.ApplicationPath;
 
+import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
@@ -34,6 +35,8 @@ import org.glassfish.jersey.server.monitoring.RequestEventListener;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.E;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
 
 @ApplicationPath("/")
 public class ApplicationConfig extends ResourceConfig {
@@ -52,6 +55,10 @@ public class ApplicationConfig extends ResourceConfig {
 
         // Register GraphManager to context
         register(new GraphManagerFactory(conf));
+
+        // Let @Metric annotations work
+        MetricRegistry registry = MetricManager.INSTANCE.getRegistry();
+        register(new InstrumentedResourceMethodApplicationListener(registry));
     }
 
     private class ConfFactory extends AbstractBinder

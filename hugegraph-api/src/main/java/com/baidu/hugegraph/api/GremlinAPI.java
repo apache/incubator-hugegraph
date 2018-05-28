@@ -40,6 +40,7 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.codahale.metrics.annotation.Timed;
 
 @Path("gremlin")
 @Singleton
@@ -82,6 +83,7 @@ public class GremlinAPI extends API {
     }
 
     @POST
+    @Timed
     @Compress
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -100,6 +102,7 @@ public class GremlinAPI extends API {
     }
 
     @GET
+    @Timed
     @Compress(buffer=(1024 * 40))
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Response get(@Context HugeConfig conf,

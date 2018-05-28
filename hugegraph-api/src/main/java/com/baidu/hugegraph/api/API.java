@@ -35,10 +35,12 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.metric.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
@@ -54,6 +56,15 @@ public class API {
 
     public static final String ACTION_APPEND = "append";
     public static final String ACTION_ELIMINATE = "eliminate";
+
+    private static final Meter succeedMeter =
+                         MetricsUtil.registerMeter(API.class, "commit-succeed");
+    private static final Meter illegalArgErrorMeter =
+                         MetricsUtil.registerMeter(API.class, "illegal-arg");
+    private static final Meter expectedErrorMeter =
+                         MetricsUtil.registerMeter(API.class, "expected-error");
+    private static final Meter unknownErrorMeter =
+                         MetricsUtil.registerMeter(API.class, "unknown-error");
 
     public static HugeGraph graph(GraphManager manager, String graph) {
         HugeGraph g = manager.graph(graph);
@@ -79,14 +90,18 @@ public class API {
         try {
             R result = callable.call();
             g.tx().commit();
+            succeedMeter.mark();
             return result;
         } catch (IllegalArgumentException e) {
+            illegalArgErrorMeter.mark();
             rollback.accept(null);
             throw e;
         } catch (RuntimeException e) {
+            expectedErrorMeter.mark();
             rollback.accept(e);
             throw e;
         } catch (Throwable e) {
+            unknownErrorMeter.mark();
             rollback.accept(e);
             // TODO: throw the origin exception 'e'
             throw new HugeException("Failed to commit", e);

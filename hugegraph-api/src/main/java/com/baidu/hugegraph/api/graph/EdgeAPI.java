@@ -65,6 +65,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -75,6 +76,7 @@ public class EdgeAPI extends BatchAPI {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     @POST
+    @Timed
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -113,6 +115,7 @@ public class EdgeAPI extends BatchAPI {
     }
 
     @POST
+    @Timed
     @Decompress
     @Path("batch")
     @Status(Status.CREATED)
@@ -133,27 +136,28 @@ public class EdgeAPI extends BatchAPI {
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
-        return BatchAPI.commit(config, g, () -> {
+        return this.commit(config, g, jsonEdges.size(), () -> {
             List<String> ids = new ArrayList<>(jsonEdges.size());
-            for (JsonEdge edge : jsonEdges) {
+            for (JsonEdge jsonEdge : jsonEdges) {
                 /*
                  * NOTE: If the query param 'checkVertex' is false,
                  * then the label is correct and not matched id,
                  * it will be allowed currently
                  */
-                Vertex srcVertex = getVertex.apply(g, edge.source,
-                                                   edge.sourceLabel);
-                Vertex tgtVertex = getVertex.apply(g, edge.target,
-                                                   edge.targetLabel);
-                Edge result = srcVertex.addEdge(edge.label, tgtVertex,
-                                                edge.properties());
-                ids.add(result.id().toString());
+                Vertex srcVertex = getVertex.apply(g, jsonEdge.source,
+                                                   jsonEdge.sourceLabel);
+                Vertex tgtVertex = getVertex.apply(g, jsonEdge.target,
+                                                   jsonEdge.targetLabel);
+                Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex,
+                                              jsonEdge.properties());
+                ids.add(edge.id().toString());
             }
             return ids;
         });
     }
 
     @PUT
+    @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -202,6 +206,7 @@ public class EdgeAPI extends BatchAPI {
     }
 
     @GET
+    @Timed
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
@@ -259,6 +264,7 @@ public class EdgeAPI extends BatchAPI {
     }
 
     @GET
+    @Timed
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
@@ -273,6 +279,7 @@ public class EdgeAPI extends BatchAPI {
     }
 
     @DELETE
+    @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,

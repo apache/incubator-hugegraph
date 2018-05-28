@@ -281,6 +281,11 @@ public class RamCache implements Cache {
     }
 
     @Override
+    public long expire() {
+        return this.expire;
+    }
+
+    @Override
     public void tick() {
         if (this.expire <= 0) {
             return;
@@ -311,6 +316,16 @@ public class RamCache implements Cache {
     @Override
     public long size() {
         return this.map.size();
+    }
+
+    @Override
+    public long hits() {
+        return this.hits;
+    }
+
+    @Override
+    public long miss() {
+        return this.miss;
     }
 
     @Override

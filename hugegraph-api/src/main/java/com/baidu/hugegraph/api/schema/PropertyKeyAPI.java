@@ -45,6 +45,7 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/schema/propertykeys")
@@ -54,6 +55,7 @@ public class PropertyKeyAPI extends API {
     private static final Logger LOG = Log.logger(PropertyKeyAPI.class);
 
     @POST
+    @Timed
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -71,6 +73,7 @@ public class PropertyKeyAPI extends API {
     }
 
     @PUT
+    @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -97,6 +100,7 @@ public class PropertyKeyAPI extends API {
     }
 
     @GET
+    @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
@@ -108,6 +112,7 @@ public class PropertyKeyAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
@@ -121,6 +126,7 @@ public class PropertyKeyAPI extends API {
     }
 
     @DELETE
+    @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,

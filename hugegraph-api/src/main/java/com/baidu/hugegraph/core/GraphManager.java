@@ -23,7 +23,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
@@ -33,13 +36,18 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
 import com.baidu.hugegraph.auth.StandardAuthenticator;
+import com.baidu.hugegraph.backend.cache.Cache;
+import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.metric.MetricsUtil;
+import com.baidu.hugegraph.metric.ServerReporter;
 import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.MetricRegistry;
 
 public final class GraphManager {
 
@@ -53,6 +61,8 @@ public final class GraphManager {
         this.authenticator = new StandardAuthenticator(conf);
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
+
+        this.addMetrics(conf);
     }
 
     public void loadGraphs(final Map<String, String> graphConfs) {
@@ -149,5 +159,58 @@ public final class GraphManager {
 
     public String authenticate(String username, String password) {
         return this.authenticator.authenticate(username, password);
+    }
+
+    private void addMetrics(HugeConfig config) {
+        final MetricManager metrics = MetricManager.INSTANCE;
+        // Force add server reporter
+        ServerReporter reporter = ServerReporter.instance(metrics.getRegistry());
+        reporter.start(60L, TimeUnit.SECONDS);
+
+        // Add metrics for MAX_WRITE_THREADS
+        int maxWriteThreads = config.get(ServerOptions.MAX_WRITE_THREADS);
+        MetricsUtil.registerGauge(RestServer.class, "max-write-threads", () -> {
+            return maxWriteThreads;
+        });
+
+        // Add metrics for cache
+        Map<String, Cache> caches = CacheManager.instance().caches();
+        final AtomicInteger lastCaches = new AtomicInteger(caches.size());
+        MetricsUtil.registerGauge(Cache.class, "instances", () -> {
+            int count = caches.size();
+            if (count != lastCaches.get()) {
+                registerCacheMetrics();
+            } else {
+                lastCaches.set(count);
+            }
+            return count;
+        });
+    }
+
+    private void registerCacheMetrics() {
+        Map<String, Cache> caches = CacheManager.instance().caches();
+        final MetricRegistry registry = MetricManager.INSTANCE.getRegistry();
+        Set<String> names = registry.getNames();
+        for (Map.Entry<String, Cache> entry : caches.entrySet()) {
+            String key = entry.getKey();
+            Cache cache = entry.getValue();
+
+            String hits = String.format("%s.%s", key, "hits");
+            String miss = String.format("%s.%s", key, "miss");
+            String exp = String.format("%s.%s", key, "expire");
+            String size = String.format("%s.%s", key, "size");
+            String cap = String.format("%s.%s", key, "capacity");
+            // Avoid register multi times
+
+            if (names.stream().anyMatch(name -> name.endsWith(hits))) {
+                continue;
+            }
+
+            MetricsUtil.registerGauge(Cache.class, hits, () -> cache.hits());
+            MetricsUtil.registerGauge(Cache.class, miss, () -> cache.miss());
+            MetricsUtil.registerGauge(Cache.class, exp, () -> cache.expire());
+            MetricsUtil.registerGauge(Cache.class, size, () -> cache.size());
+            MetricsUtil.registerGauge(Cache.class, cap, () -> cache.capacity());
+        }
     }
 }

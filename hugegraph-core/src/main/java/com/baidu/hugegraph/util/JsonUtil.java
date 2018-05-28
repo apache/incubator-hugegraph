@@ -22,19 +22,19 @@ package com.baidu.hugegraph.util;
 import java.io.IOException;
 import java.util.Date;
 
-import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
-import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
-import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
-import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
-import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
-import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
-import org.apache.tinkerpop.shaded.jackson.databind.ObjectReader;
-import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
-import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
-import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
-import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
-
 import com.baidu.hugegraph.backend.BackendException;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 public final class JsonUtil {
 
@@ -44,6 +44,10 @@ public final class JsonUtil {
         SimpleModule module = new SimpleModule();
         module.addSerializer(Date.class, new DateSerializer());
         module.addDeserializer(Date.class, new DateDeserializer());
+        mapper.registerModule(module);
+    }
+
+    public static void registerModule(Module module) {
         mapper.registerModule(module);
     }
 

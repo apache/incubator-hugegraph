@@ -44,6 +44,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/schema/vertexlabels")
@@ -53,6 +54,7 @@ public class VertexLabelAPI extends API {
     private static final Logger LOG = Log.logger(VertexLabelAPI.class);
 
     @POST
+    @Timed
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -70,6 +72,7 @@ public class VertexLabelAPI extends API {
     }
 
     @PUT
+    @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -96,6 +99,7 @@ public class VertexLabelAPI extends API {
     }
 
     @GET
+    @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
@@ -107,6 +111,7 @@ public class VertexLabelAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
@@ -120,6 +125,7 @@ public class VertexLabelAPI extends API {
     }
 
     @DELETE
+    @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,

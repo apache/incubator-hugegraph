@@ -29,8 +29,10 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.metric.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.Meter;
 
 public class BatchAPI extends API {
 
@@ -39,8 +41,20 @@ public class BatchAPI extends API {
     // NOTE: VertexAPI and EdgeAPI should share a counter
     private static final AtomicInteger batchWriteThreads = new AtomicInteger(0);
 
-    public static <R> R commit(HugeConfig config, HugeGraph g,
-                               Callable<R> callable) {
+    static {
+        MetricsUtil.registerGauge(RestServer.class, "batch-write-threads",
+                                  () -> batchWriteThreads.intValue());
+    }
+
+    private final Meter batchMeter;
+
+    public BatchAPI() {
+        this.batchMeter = MetricsUtil.registerMeter(this.getClass(),
+                                                    "batch-insert");
+    }
+
+    public <R> R commit(HugeConfig config, HugeGraph g, int size,
+                        Callable<R> callable) {
         int maxWriteThreads = config.get(ServerOptions.MAX_WRITE_THREADS);
         int writingThreads = batchWriteThreads.incrementAndGet();
         if (writingThreads > maxWriteThreads) {
@@ -50,7 +64,9 @@ public class BatchAPI extends API {
 
         LOG.debug("The batch writing threads is {}", batchWriteThreads);
         try {
-            return commit(g, callable);
+            R result = commit(g, callable);
+            this.batchMeter.mark(size);
+            return result;
         } finally {
             batchWriteThreads.decrementAndGet();
         }

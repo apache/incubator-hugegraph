@@ -29,6 +29,7 @@ import javax.ws.rs.Produces;
 
 import com.baidu.hugegraph.version.ApiVersion;
 import com.baidu.hugegraph.version.CoreVersion;
+import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 
 @Path("versions")
@@ -36,6 +37,7 @@ import com.google.common.collect.ImmutableMap;
 public class VersionAPI extends API {
 
     @GET
+    @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @PermitAll
     public Object list() {

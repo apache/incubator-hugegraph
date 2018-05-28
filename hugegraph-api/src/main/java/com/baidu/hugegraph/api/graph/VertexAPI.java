@@ -61,6 +61,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -71,6 +72,7 @@ public class VertexAPI extends BatchAPI {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     @POST
+    @Timed
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -87,6 +89,7 @@ public class VertexAPI extends BatchAPI {
     }
 
     @POST
+    @Timed
     @Decompress
     @Path("batch")
     @Status(Status.CREATED)
@@ -102,7 +105,7 @@ public class VertexAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
         checkBatchSize(g, jsonVertices);
 
-        return BatchAPI.commit(config, g, () -> {
+        return this.commit(config, g, jsonVertices.size(), () -> {
             List<String> ids = new ArrayList<>(jsonVertices.size());
             for (JsonVertex vertex : jsonVertices) {
                 ids.add(g.addVertex(vertex.properties()).id().toString());
@@ -112,6 +115,7 @@ public class VertexAPI extends BatchAPI {
     }
 
     @PUT
+    @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -156,6 +160,7 @@ public class VertexAPI extends BatchAPI {
     }
 
     @GET
+    @Timed
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
@@ -197,6 +202,7 @@ public class VertexAPI extends BatchAPI {
     }
 
     @GET
+    @Timed
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
@@ -212,6 +218,7 @@ public class VertexAPI extends BatchAPI {
     }
 
     @DELETE
+    @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,

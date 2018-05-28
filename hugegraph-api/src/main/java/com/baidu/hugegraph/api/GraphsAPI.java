@@ -45,6 +45,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -58,6 +59,7 @@ public class GraphsAPI extends API {
     private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
 
     @GET
+    @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$dynamic"})
     public Object list(@Context GraphManager manager,
@@ -78,6 +80,7 @@ public class GraphsAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=name"})
@@ -90,6 +93,7 @@ public class GraphsAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("{name}/conf")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
@@ -108,6 +112,7 @@ public class GraphsAPI extends API {
     }
 
     @DELETE
+    @Timed
     @Path("{name}/clear")
     @Consumes(APPLICATION_JSON)
     @RolesAllowed("admin")
@@ -146,6 +151,7 @@ public class GraphsAPI extends API {
     }
 
     @PUT
+    @Timed
     @Path("{name}/restoring")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -162,6 +168,7 @@ public class GraphsAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("{name}/restoring")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
