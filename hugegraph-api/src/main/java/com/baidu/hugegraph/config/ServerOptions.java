@@ -98,6 +98,14 @@ public class ServerOptions extends OptionHolder {
                     nonNegativeInt(),
                     0);
 
+    public static final ConfigOption<Boolean> ALLOW_TRACE =
+            new ConfigOption<>(
+                    "exception.allow_trace",
+                    "Whether to allow exception trace stack.",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Boolean> REQUIRE_AUTH =
             new ConfigOption<>(
                     "auth.require_authentication",

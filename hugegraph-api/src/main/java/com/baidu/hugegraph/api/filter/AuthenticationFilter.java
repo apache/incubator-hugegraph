@@ -49,7 +49,7 @@ import com.baidu.hugegraph.util.E;
 public class AuthenticationFilter implements ContainerRequestFilter {
 
     @Context
-    private javax.inject.Provider<GraphManager> manager;
+    private javax.inject.Provider<GraphManager> managerProvider;
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
@@ -59,7 +59,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     }
 
     protected User authenticate(ContainerRequestContext context) {
-        GraphManager manager = this.manager.get();
+        GraphManager manager = this.managerProvider.get();
         E.checkState(manager != null, "Context GraphManager is absent");
 
         if (!manager.requireAuthentication()) {
