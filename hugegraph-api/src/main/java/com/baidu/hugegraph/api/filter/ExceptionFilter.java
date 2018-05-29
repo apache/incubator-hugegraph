@@ -25,17 +25,32 @@ import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.NotFoundException;
 
 public class ExceptionFilter {
 
-    public static final boolean ALLOW_TRACE = false;
+    public static class TracedExceptionMapper {
+
+        @Context
+        private javax.inject.Provider<HugeConfig> configProvider;
+
+        protected boolean trace() {
+            HugeConfig config = this.configProvider.get();
+            if (config == null) {
+                return false;
+            }
+            return config.get(ServerOptions.ALLOW_TRACE);
+        }
+    }
 
     @Provider
     public static class HugeExceptionMapper
@@ -91,6 +106,7 @@ public class ExceptionFilter {
 
     @Provider
     public static class WebApplicationExceptionMapper
+                  extends TracedExceptionMapper
                   implements ExceptionMapper<WebApplicationException> {
 
         private static final int INTERNAL_SERVER_ERROR =
@@ -104,23 +120,27 @@ public class ExceptionFilter {
                 return response;
             }
 
-            boolean trace = response.getStatus() == INTERNAL_SERVER_ERROR;
+            boolean trace = this.trace(response.getStatus());
             return Response.status(response.getStatus())
                            .type(MediaType.APPLICATION_JSON)
                            .entity(formatException(exception, trace))
                            .build();
         }
+
+        private boolean trace(int status) {
+            return this.trace() && status == INTERNAL_SERVER_ERROR;
+        }
     }
 
     @Provider
-    public static class UnknownExceptionMapper
+    public static class UnknownExceptionMapper extends TracedExceptionMapper
                   implements ExceptionMapper<Exception> {
 
         @Override
         public Response toResponse(Exception exception) {
             return Response.status(500)
                            .type(MediaType.APPLICATION_JSON)
-                           .entity(formatException(exception, true))
+                           .entity(formatException(exception, this.trace()))
                            .build();
         }
     }
@@ -140,7 +160,7 @@ public class ExceptionFilter {
                 .add("message", msg)
                 .add("cause", cause);
 
-        if (ALLOW_TRACE && trace) {
+        if (trace) {
             JsonArrayBuilder traces = Json.createArrayBuilder();
             for (StackTraceElement i : exception.getStackTrace()) {
                 traces.add(i.toString());
