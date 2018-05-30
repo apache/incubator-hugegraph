@@ -15,8 +15,13 @@ TOP="$(cd $BIN/../ && pwd)"
 
 . $BIN/util.sh
 
+if [ "$JAVA_HOME" == "" ]; then
+    echo "Must set JAVA_HOME environment variable and installed jdk >= 1.8"
+    exit 1
+fi
+
 # Monitor HugeGraphServer every minute, if the server crashes then restart it.
 # Modify the frequency according to actual needs carefully.
-CRONTAB_JOB="*/1 * * * * $TOP/bin/monitor-hugegraph.sh"
+CRONTAB_JOB="*/1 * * * * export JAVA_HOME=$JAVA_HOME && $TOP/bin/monitor-hugegraph.sh"
 
 crontab_append "$CRONTAB_JOB"
