@@ -1,17 +1,17 @@
 #!/bin/bash
 
 CLOSE_MONITOR="true"
-if [ $# -gt 1 ]; then
-    echo "USAGE: $0 [true|false]"
-    echo "The param indicates whether to remove monitor, default is true"
+
+while getopts "m:" arg; do
+    case ${arg} in
+        m) CLOSE_MONITOR="$OPTARG" ;;
+        ?) echo "USAGE: $0 [-m true|false]" && exit 1 ;;
+    esac
+done
+
+if [[ "$CLOSE_MONITOR" != "true" && "$CLOSE_MONITOR" != "false" ]]; then
+    echo "USAGE: $0 [-m true|false]"
     exit 1
-elif [ $# -eq 1 ]; then
-    if [[ $1 != "true" && $1 != "false" ]]; then
-        echo "USAGE: $0 [true|false]"
-        exit 1
-    else
-        CLOSE_MONITOR=$1
-    fi
 fi
 
 abs_path() {
@@ -29,6 +29,7 @@ TOP="$(cd $BIN/../ && pwd)"
 
 . $BIN/util.sh
 
+PID_FILE=$BIN/pid
 SERVER_SHUTDOWN_TIMEOUT_S=10
 
 if [ "$CLOSE_MONITOR" == "true" ]; then
@@ -41,4 +42,14 @@ if [ "$CLOSE_MONITOR" == "true" ]; then
     fi
 fi
 
-kill_process_and_wait "HugeGraphServer" com.baidu.hugegraph.dist.HugeGraphServer $SERVER_SHUTDOWN_TIMEOUT_S
+if [ ! -f ${PID_FILE} ]; then
+    echo "The pid file $PID_FILE doesn't exist"
+    exit 1
+fi
+
+PID=`cat $PID_FILE`
+kill_process_and_wait "HugeGraphServer" "$PID" "$SERVER_SHUTDOWN_TIMEOUT_S"
+
+if [ $? -eq 0 ]; then
+    rm "$PID_FILE"
+fi

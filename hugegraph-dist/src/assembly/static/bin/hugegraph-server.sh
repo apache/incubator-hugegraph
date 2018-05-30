@@ -97,6 +97,6 @@ ARGS="$@"
 if [ $# = 0 ] ; then
     ARGS="conf/gremlin-server.yaml conf/rest-server.properties"
 fi
-exec $JAVA -Dhugegraph.logdir="HUGEGRAPH_LOGDIR" \
+exec $JAVA -Dname="HugeGraphServer" -Dhugegraph.logdir="HUGEGRAPH_LOGDIR" \
 -Dlog4j.configurationFile=conf/graph-server-log4j.xml \
 $JAVA_OPTIONS -cp $CP:$CLASSPATH com.baidu.hugegraph.dist.HugeGraphServer $ARGS

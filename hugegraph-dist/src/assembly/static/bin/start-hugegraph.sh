@@ -1,19 +1,15 @@
 #!/bin/bash
 
-OPEN_MONITOR="true"
+OPEN_MONITOR="false"
 VERBOSE=""
 
-function parse_args() {
-    while getopts "m:v" arg; do
-        case $arg in
-            m) OPEN_MONITOR="$OPTARG" ;;
-            v) VERBOSE="verbose" ;;
-            ?) echo "USAGE: $0 [-m true|false] [-v]" && exit 1 ;;
-        esac
-    done
-}
-
-parse_args $@
+while getopts "m:v" arg; do
+    case ${arg} in
+        m) OPEN_MONITOR="$OPTARG" ;;
+        v) VERBOSE="verbose" ;;
+        ?) echo "USAGE: $0 [-m true|false] [-v]" && exit 1 ;;
+    esac
+done
 
 if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
     echo "USAGE: $0 [-m true|false] [-v]"
@@ -32,13 +28,14 @@ function abs_path() {
 
 BIN=`abs_path`
 TOP="$(cd $BIN/../ && pwd)"
+PID_FILE=$BIN/pid
 
 . $BIN/util.sh
 
 SERVER_URL=`read_property "$TOP/conf/rest-server.properties" "restserver.url"`
 SERVER_STARTUP_TIMEOUT_S=30
 
-check_port $SERVER_URL
+check_port "$SERVER_URL"
 
 echo "Starting HugeGraphServer..."
 if [ -n "$VERBOSE" ]; then
@@ -49,14 +46,17 @@ else
     "$TOP"/conf/rest-server.properties >/dev/null 2>&1 &
 fi
 
-pid="$!"
-trap 'kill $pid; exit' SIGHUP SIGINT SIGQUIT SIGTERM
+PID="$!"
+trap 'kill $PID; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 
 wait_for_startup 'HugeGraphServer' "$SERVER_URL/graphs" $SERVER_STARTUP_TIMEOUT_S || {
     echo "See $TOP/logs/hugegraph-server.log for HugeGraphServer log output." >&2
     exit 1
 }
 disown
+
+# Write pid to file
+echo "$PID" > $PID_FILE
 
 if [ "$OPEN_MONITOR" == "true" ]; then
     $BIN/start-monitor.sh

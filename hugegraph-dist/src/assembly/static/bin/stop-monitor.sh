@@ -15,6 +15,6 @@ TOP="$(cd $BIN/../ && pwd)"
 
 . $BIN/util.sh
 
-CRONTAB_JOB="*/1 * * * * $TOP/bin/monitor-hugegraph.sh"
+CRONTAB_JOB="$TOP/bin/monitor-hugegraph.sh"
 
 crontab_remove "$CRONTAB_JOB"

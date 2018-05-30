@@ -38,16 +38,13 @@ function restart_server() {
     fi
     record_monitor_log "Ready to restart $PROC_NAME"
     # Don't add monitor again
-    $BIN/start-hugegraph.sh false
+    $BIN/start-hugegraph.sh -m false
     if [ $? -ne 0 ]; then
         record_monitor_log "Failed to restart $PROC_NAME"
         exit 1
     fi
-    # Get the new process number
-    process_id $PROC_NAME
-    pid=$?
     # Record the new process number and restart time
-    record_monitor_log "Restart $PROC_NAME($pid)"
+    record_monitor_log "Restarted $PROC_NAME"
 }
 
 process_num $PROC_NAME

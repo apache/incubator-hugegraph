@@ -32,12 +32,30 @@ function check_port() {
 
 function crontab_append() {
     local job="$1"
+    crontab -l | grep -F "$job" >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        return 1
+    fi
     (crontab -l ; echo "$job") | crontab -
 }
 
 function crontab_remove() {
     local job="$1"
+    # check exist before remove
+    crontab -l | grep -F "$job" >/dev/null 2>&1
+    if [ $? -eq 1 ]; then
+        return 0
+    fi
+
     crontab -l | grep -Fv "$job"  | crontab -
+
+    # Check exist after remove
+    crontab -l | grep -F "$job" >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        return 1
+    else
+        return 0
+    fi
 }
 
 # wait_for_startup friendly_name host port timeout_s
@@ -69,32 +87,34 @@ function wait_for_startup() {
 
 wait_for_shutdown() {
     local process_name="$1"
-    local class_name="$2"
+    local pid="$2"
     local timeout_s="$3"
 
     local now_s=`date '+%s'`
     local stop_s=$(( $now_s + $timeout_s ))
 
+    echo -n "Killing $process_name(pid $pid)" >&2
     while [ $now_s -le $stop_s ]; do
-        process_status "$process_name" $class_name >/dev/null
+        echo -n .
+        process_status "$process_name" "$pid" >/dev/null
         if [ $? -eq 1 ]; then
+            echo "OK"
             return 0
         fi
         sleep 2
         now_s=`date '+%s'`
     done
-
     echo "$process_name shutdown timeout(exceeded $timeout_s seconds)" >&2
     return 1
 }
 
 process_status() {
     local process_name="$1"
-    local class_name="$2"
+    local pid="$2"
 
-    local p=`ps -ef | grep "$class_name" | grep -v grep | awk '{print $2}'`
-    if [ -n "$p" ]; then
-        echo "$process_name is running with pid $p"
+    ps -p "$pid"
+    if [ $? -eq 0 ]; then
+        echo "$process_name is running with pid $pid"
         return 0
     else
         echo "The process $process_name does not exist"
@@ -104,35 +124,26 @@ process_status() {
 
 kill_process() {
     local process_name="$1"
-    local class_name="$2"
+    local pid="$2"
 
-    local pids=`ps -ef | grep "$class_name" | grep -v grep | awk '{print $2}' | xargs`
-
-    if [ "$pids" = "" ]; then
-        echo "There is no $1 process"
+    if [ -z "$pid" ]; then
+        echo "The process $pid does not exist"
+        return 0
     fi
 
-    for pid in ${pids[@]}
-    do
-        if [ -z "$pid" ]; then
-            echo "The process $process_name does not exist"
-            return
-        fi
-        echo "Killing $process_name (pid $pid)..." >&2
-        case "`uname`" in
-            CYGWIN*) taskkill /F /PID "$pid" ;;
-            *)       kill "$pid" ;;
-        esac
-    done
+    case "`uname`" in
+        CYGWIN*) taskkill /F /PID "$pid" ;;
+        *)       kill "$pid" ;;
+    esac
 }
 
 function kill_process_and_wait() {
     local process_name="$1"
-    local class_name="$2"
+    local pid="$2"
     local timeout_s="$3"
 
-    kill_process $process_name $class_name
-    wait_for_shutdown $process_name $class_name $timeout_s
+    kill_process "$process_name" "$pid"
+    wait_for_shutdown "$process_name" "$pid" "$timeout_s"
 }
 
 function free_memory() {
