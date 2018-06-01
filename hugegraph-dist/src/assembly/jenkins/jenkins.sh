@@ -70,11 +70,12 @@ if [ -n "$BRANCH_REF" ]; then
     fi
 else
     # Pull or checkout release branch
+    git checkout .
     git rev-parse --verify $BRANCH
     if [ $? -eq 0 ]; then
         git checkout $BRANCH && git pull
     else
-        git pull && git checkout -b $BRANCH origin/$BRANCH
+        git pull origin $BRANCH && git checkout -b $BRANCH origin/$BRANCH
     fi
 
     if [ $? -ne 0 ]; then
@@ -84,4 +85,3 @@ else
 fi
 
 sh $SCRIPT_DIR/build.sh
-
