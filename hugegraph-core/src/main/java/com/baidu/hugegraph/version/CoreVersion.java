@@ -32,7 +32,7 @@ public class CoreVersion {
     public static final String NAME = "hugegraph-core";
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(CoreVersion.class, "0.6");
+    public static final Version VERSION = Version.of(CoreVersion.class, "0.7");
 
     public static final String GREMLIN_VERSION = "3.2.5";
 
