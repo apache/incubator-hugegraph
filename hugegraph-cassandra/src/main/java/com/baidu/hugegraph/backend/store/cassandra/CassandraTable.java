@@ -39,14 +39,17 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PagingState;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.exceptions.PagingStateException;
 import com.datastax.driver.core.querybuilder.Clause;
@@ -330,7 +333,23 @@ public abstract class CassandraTable
     }
 
     protected Iterator<BackendEntry> results2Entries(Query q, ResultSet r) {
-        return new CassandraEntryIterator(r, q, this::mergeEntries);
+        return new CassandraEntryIterator(r, q, (e1, row) -> {
+            CassandraBackendEntry e2 = row2Entry(q.resultType(), row);
+            return this.mergeEntries(e1, e2);
+        });
+    }
+
+    private static CassandraBackendEntry row2Entry(HugeType type, Row row) {
+        CassandraBackendEntry entry = new CassandraBackendEntry(type);
+
+        List<Definition> cols = row.getColumnDefinitions().asList();
+        for (Definition col : cols) {
+            String name = col.getName();
+            Object value = row.getObject(name);
+            entry.column(CassandraTable.parseKey(name), value);
+        }
+
+        return entry;
     }
 
     protected List<HugeKeys> pkColumnName() {

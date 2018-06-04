@@ -24,6 +24,7 @@ import java.util.Set;
 import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 
 public abstract class RocksDBSessions extends BackendSessionPool {
@@ -33,12 +34,13 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     public abstract void createTable(String table) throws RocksDBException;
     public abstract void dropTable(String table) throws RocksDBException;
 
+    @Override
     public abstract Session session();
 
     /**
      * Session for RocksDB
      */
-    public static abstract class Session extends BackendSessionPool.Session {
+    public static abstract class Session extends BackendSession {
 
         public static final int SCAN_ANY = 0x80;
         public static final int SCAN_PREFIX_WITH_BEGIN = 0x01;

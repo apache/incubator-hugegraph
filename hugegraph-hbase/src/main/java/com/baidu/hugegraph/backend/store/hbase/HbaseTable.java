@@ -17,12 +17,19 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store.rocksdb;
+package com.baidu.hugegraph.backend.store.hbase;
 
+import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellScanner;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.client.Result;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -32,27 +39,34 @@ import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator.PageState;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendTable;
-import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
+import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.RowIterator;
+import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Shard;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
-public class RocksDBTable extends BackendTable<Session, BackendEntry> {
+public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
-    private static final Logger LOG = Log.logger(RocksDBStore.class);
+    private static final Logger LOG = Log.logger(HbaseStore.class);
 
-    private final RocksDBShardSpliter shardSpliter;
+    protected static final byte[] CF = "f".getBytes();
 
-    public RocksDBTable(String database, String table) {
-        super(String.format("%s+%s", database, table));
-        this.shardSpliter = new RocksDBShardSpliter(this.table());
+    private final HbaseShardSpliter shardSpliter;
+
+    public HbaseTable(String table) {
+        super(table);
+        this.shardSpliter = new HbaseShardSpliter(this.table());
+    }
+
+    public static List<byte[]> cfs() {
+        return ImmutableList.of(CF);
     }
 
     @Override
@@ -78,20 +92,16 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
     @Override
     public void insert(Session session, BackendEntry entry) {
         assert !entry.columns().isEmpty();
-        for (BackendColumn col : entry.columns()) {
-            assert entry.belongToMe(col) : entry;
-            session.put(this.table(), col.name, col.value);
-        }
+        session.put(this.table(), CF, entry.id().asBytes(), entry.columns());
     }
 
     @Override
     public void delete(Session session, BackendEntry entry) {
         if (entry.columns().isEmpty()) {
-            session.delete(this.table(), entry.id().asBytes());
+            session.delete(this.table(), CF, entry.id().asBytes());
         } else {
             for (BackendColumn col : entry.columns()) {
-                assert entry.belongToMe(col) : entry;
-                session.remove(this.table(), col.name);
+                session.remove(table(), CF, entry.id().asBytes(), col.name);
             }
         }
     }
@@ -135,22 +145,21 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         return newEntryIterator(this.queryByCond(session, cq), query);
     }
 
-    protected BackendColumnIterator queryAll(Session session, Query query) {
+    protected RowIterator queryAll(Session session, Query query) {
         if (query.paging()) {
             PageState page = PageState.fromString(query.page());
             byte[] begin = page.position();
-            return session.scan(this.table(), begin, null, Session.SCAN_ANY);
+            return session.scan(this.table(), begin, null);
         } else {
-            return session.scan(this.table());
+            return session.scan(this.table(), -1);
         }
     }
 
-    protected BackendColumnIterator queryById(Session session, Id id) {
-        return session.scan(this.table(), id.asBytes());
+    protected RowIterator queryById(Session session, Id id) {
+        return session.get(this.table(), null, id.asBytes());
     }
 
-    protected BackendColumnIterator queryByCond(Session session,
-                                                ConditionQuery query) {
+    protected RowIterator queryByCond(Session session, ConditionQuery query) {
         if (query.containsScanCondition()) {
             E.checkArgument(query.relations().size() == 1,
                             "Invalid scan with multi conditions: %s", query);
@@ -161,53 +170,64 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         throw new NotSupportException("query: %s", query);
     }
 
-    protected BackendColumnIterator queryByRange(Session session,
-                                                 Id begin, Id end) {
+    protected RowIterator queryByRange(Session session, Id begin, Id end) {
         return session.scan(this.table(), begin.asBytes(), end.asBytes());
     }
 
-    protected BackendColumnIterator queryByRange(Session session, Shard shard) {
+    protected RowIterator queryByRange(Session session, Shard shard) {
         byte[] start = this.shardSpliter.position(shard.start());
         byte[] end = this.shardSpliter.position(shard.end());
         return session.scan(this.table(), start, end);
     }
 
-    protected static BackendEntryIterator newEntryIterator(
-                                          BackendColumnIterator cols,
-                                          Query query) {
-        return new BinaryEntryIterator<BackendColumn>(cols, query,
-                                                      (entry, col) -> {
-            if (entry == null || !entry.belongToMe(col)) {
+    private BackendEntryIterator newEntryIterator(RowIterator rows,
+                                                  Query query) {
+        return new BinaryEntryIterator<>(rows, query, (entry, row) -> {
+            E.checkState(!row.isEmpty(), "Can't parse empty HBase result");
+            byte[] id = row.getRow();
+            if (entry == null || !Bytes.prefixWith(id, entry.id().asBytes())) {
                 HugeType type = query.resultType();
                 // NOTE: only support BinaryBackendEntry currently
-                entry = new BinaryBackendEntry(type, col.name);
+                entry = new BinaryBackendEntry(type, id);
             }
-            entry.columns(col);
+            try {
+                this.parseRowColumns(row, entry);
+            } catch (IOException e) {
+                throw new BackendException("Failed to read HBase columns", e);
+            }
             return entry;
         });
     }
 
-    private static class RocksDBShardSpliter extends ShardSpliter<Session> {
+    protected void parseRowColumns(Result row, BackendEntry entry)
+                                   throws IOException {
+        CellScanner cellScanner = row.cellScanner();
+        while (cellScanner.advance()) {
+            Cell cell = cellScanner.current();
+            entry.columns(BackendColumn.of(CellUtil.cloneQualifier(cell),
+                                           CellUtil.cloneValue(cell)));
+        }
+    }
 
-        private static final String MEM_SIZE = "rocksdb.size-all-mem-tables";
-        private static final String SST_SIZE = "rocksdb.total-sst-files-size";
+    private static class HbaseShardSpliter extends ShardSpliter<Session> {
 
-        private static final String NUM_KEYS = "rocksdb.estimate-num-keys";
-
-        public RocksDBShardSpliter(String table) {
+        public HbaseShardSpliter(String table) {
             super(table);
         }
 
         @Override
         public long estimateDataSize(Session session) {
-            long mem = Long.parseLong(session.property(this.table(), MEM_SIZE));
-            long sst = Long.parseLong(session.property(this.table(), SST_SIZE));
-            return mem + sst;
+            try {
+                return session.storeSize(this.table());
+            } catch (IOException ignored) {
+                return -1L;
+            }
         }
 
         @Override
         public long estimateNumKeys(Session session) {
-            return Long.parseLong(session.property(this.table(), NUM_KEYS));
+            // TODO: improve
+            return 100000L;
         }
     }
 }

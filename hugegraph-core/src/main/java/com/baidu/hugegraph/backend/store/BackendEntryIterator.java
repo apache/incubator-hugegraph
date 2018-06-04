@@ -26,7 +26,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
 
-public abstract class BackendEntryIterator<T>
+public abstract class BackendEntryIterator
                 implements Iterator<BackendEntry>, AutoCloseable, Metadatable {
 
     protected final Query query;

@@ -33,6 +33,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
@@ -173,7 +174,7 @@ public class MysqlSessions extends BackendSessionPool {
              ResultSet result = conn.getMetaData().getCatalogs()) {
             while (result.next()) {
                 String dbName = result.getString(1);
-                if (dbName.equals(database)) {
+                if (dbName.equals(this.database)) {
                     return true;
                 }
             }
@@ -188,7 +189,7 @@ public class MysqlSessions extends BackendSessionPool {
      * Connect DB without specified database
      */
     private Connection openWithoutDB(Integer timeout) {
-        String jdbcUrl = config.get(MysqlOptions.JDBC_URL);
+        String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
 
         URIBuilder url = new URIBuilder();
         url.setPath(jdbcUrl).setParameter("socketTimeout", timeout.toString());
@@ -201,7 +202,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
     }
 
-    public class Session extends BackendSessionPool.Session {
+    public class Session extends BackendSession {
 
         private Connection conn;
         private Map<String, PreparedStatement> statements;

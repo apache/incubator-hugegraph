@@ -32,6 +32,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
@@ -58,6 +59,9 @@ public abstract class Condition {
         }),
         NOT_IN("notin", (v1, v2) -> {
             return !((Collection<?>) v2).contains(v1);
+        }),
+        PREFIX("prefix", (v1, v2) -> {
+            return Bytes.prefixWith(((Id) v2).asBytes(), ((Id) v1).asBytes()) ;
         }),
         CONTAINS("contains", (v1, v2) -> {
             return ((Map<?, ?>) v1).containsValue(v2);
@@ -214,6 +218,10 @@ public abstract class Condition {
 
     public static Condition nin(HugeKeys key, List<?> value) {
         return new SyspropRelation(key, RelationType.NOT_IN, value);
+    }
+
+    public static Condition prefix(HugeKeys key, Id value) {
+        return new SyspropRelation(key, RelationType.PREFIX, value);
     }
 
     public static Condition contains(HugeKeys key, Object value) {

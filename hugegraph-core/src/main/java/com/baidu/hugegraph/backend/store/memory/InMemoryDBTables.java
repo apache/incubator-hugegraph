@@ -39,7 +39,7 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.store.BackendSessionPool.Session;
+import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.HugeType;
@@ -63,7 +63,7 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public void insert(Session session, TextBackendEntry entry) {
+        public void insert(BackendSession session, TextBackendEntry entry) {
             Id id = vertexIdOfEdge(entry);
 
             if (!this.store().containsKey(id)) {
@@ -78,7 +78,7 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public void delete(Session session, TextBackendEntry entry) {
+        public void delete(BackendSession session, TextBackendEntry entry) {
             Id id = vertexIdOfEdge(entry);
 
             BackendEntry vertex = this.store().get(id);
@@ -88,12 +88,12 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public void append(Session session, TextBackendEntry entry) {
+        public void append(BackendSession session, TextBackendEntry entry) {
             throw new UnsupportedOperationException("Edge append");
         }
 
         @Override
-        public void eliminate(Session session, TextBackendEntry entry) {
+        public void eliminate(BackendSession session, TextBackendEntry entry) {
             throw new UnsupportedOperationException("Edge eliminate");
         }
 
@@ -164,7 +164,7 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public Iterator<BackendEntry> query(Session session, Query query) {
+        public Iterator<BackendEntry> query(BackendSession session, Query query) {
             Set<Condition> conditions = query.conditions();
             E.checkState(query instanceof ConditionQuery &&
                          conditions.size() == 2,
@@ -205,7 +205,7 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public Iterator<BackendEntry> query(Session session, Query query) {
+        public Iterator<BackendEntry> query(BackendSession session, Query query) {
             Set<Condition> conditions = query.conditions();
             E.checkState(query instanceof ConditionQuery &&
                          (conditions.size() == 3 || conditions.size() == 2),

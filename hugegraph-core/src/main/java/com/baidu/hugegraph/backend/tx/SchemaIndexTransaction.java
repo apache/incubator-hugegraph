@@ -103,7 +103,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         if (idQuery.ids().isEmpty()) {
             return ImmutableList.<BackendEntry>of().iterator();
         }
-        assert idQuery.ids().size() == 1;
+        assert idQuery.ids().size() == 1 : idQuery.ids();
         return super.query(idQuery);
     }
 }

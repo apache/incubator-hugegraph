@@ -20,30 +20,27 @@
 package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.function.BiFunction;
 
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
-import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.PagingState;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 
-public class CassandraEntryIterator extends BackendEntryIterator<Row> {
+public class CassandraEntryIterator extends BackendEntryIterator {
 
     private final ResultSet results;
     private final Iterator<Row> rows;
-    private final BiFunction<BackendEntry, BackendEntry, BackendEntry> merger;
+    private final BiFunction<BackendEntry, Row, BackendEntry> merger;
 
     private long remaining;
     private BackendEntry next;
 
     public CassandraEntryIterator(ResultSet results, Query query,
-           BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
+           BiFunction<BackendEntry, Row, BackendEntry> merger) {
         super(query);
         this.results = results;
         this.rows = results.iterator();
@@ -53,7 +50,7 @@ public class CassandraEntryIterator extends BackendEntryIterator<Row> {
 
         this.skipOffset();
 
-        if (query.page() != null) {
+        if (query.paging()) {
             E.checkState(this.remaining == query.limit() ||
                          results.isFullyFetched(),
                          "Unexpected fetched page size: %s", this.remaining);
@@ -77,19 +74,19 @@ public class CassandraEntryIterator extends BackendEntryIterator<Row> {
             if (this.query.paging()) {
                 this.remaining--;
             }
-            CassandraBackendEntry e = this.row2Entry(this.rows.next());
-            BackendEntry merged = this.merger.apply(this.current, e);
+            Row row = this.rows.next();
+            BackendEntry merged = this.merger.apply(this.current, row);
             if (this.current == null) {
                 // The first time to read
                 this.current = merged;
             } else if (merged == this.current) {
-                // Does the next entry belongs to the current entry
+                // The next entry belongs to the current entry
                 assert merged != null;
             } else {
                 // New entry
                 assert this.next == null;
                 this.next = merged;
-                return true;
+                break;
             }
         }
         return this.current != null;
@@ -119,19 +116,5 @@ public class CassandraEntryIterator extends BackendEntryIterator<Row> {
             return null;
         }
         return page.toString();
-    }
-
-    private CassandraBackendEntry row2Entry(Row row) {
-        HugeType type = this.query.resultType();
-        CassandraBackendEntry entry = new CassandraBackendEntry(type);
-
-        List<Definition> cols = row.getColumnDefinitions().asList();
-        for (Definition col : cols) {
-            String name = col.getName();
-            Object value = row.getObject(name);
-            entry.column(CassandraTable.parseKey(name), value);
-        }
-
-        return entry;
     }
 }

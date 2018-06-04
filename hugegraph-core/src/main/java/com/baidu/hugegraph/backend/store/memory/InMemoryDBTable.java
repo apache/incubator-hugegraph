@@ -37,14 +37,15 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.store.BackendSessionPool.Session;
+import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 
-public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
+public class InMemoryDBTable extends BackendTable<BackendSession,
+                                                  TextBackendEntry> {
 
     protected final Map<Id, BackendEntry> store;
 
@@ -63,17 +64,17 @@ public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
     }
 
     @Override
-    public void init(Session session) {
+    public void init(BackendSession session) {
         // pass
     }
 
     @Override
-    public void clear(Session session) {
+    public void clear(BackendSession session) {
         this.store.clear();
     }
 
     @Override
-    public void insert(Session session, TextBackendEntry entry) {
+    public void insert(BackendSession session, TextBackendEntry entry) {
         if (!this.store.containsKey(entry.id())) {
             this.store.put(entry.id(), entry);
         } else {
@@ -85,13 +86,13 @@ public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
     }
 
     @Override
-    public void delete(Session session, TextBackendEntry entry) {
+    public void delete(BackendSession session, TextBackendEntry entry) {
         // Remove by id (TODO: support remove by id + condition)
         this.store.remove(entry.id());
     }
 
     @Override
-    public void append(Session session, TextBackendEntry entry) {
+    public void append(BackendSession session, TextBackendEntry entry) {
         BackendEntry parent = this.store.get(entry.id());
         if (parent == null) {
             this.store.put(entry.id(), entry);
@@ -102,7 +103,7 @@ public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
     }
 
     @Override
-    public void eliminate(Session session, TextBackendEntry entry) {
+    public void eliminate(BackendSession session, TextBackendEntry entry) {
         BackendEntry parent = this.store.get(entry.id());
         // TODO: Compatible with BackendEntry
         if (parent != null) {
@@ -111,7 +112,7 @@ public class InMemoryDBTable extends BackendTable<Session, TextBackendEntry> {
     }
 
     @Override
-    public Iterator<BackendEntry> query(Session session, Query query) {
+    public Iterator<BackendEntry> query(BackendSession session, Query query) {
         if (query.paging()) {
             throw new NotSupportException("paging by InMemoryDBStore");
         }

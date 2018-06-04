@@ -37,7 +37,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
-public class MysqlEntryIterator extends BackendEntryIterator<ResultSet> {
+public class MysqlEntryIterator extends BackendEntryIterator {
 
     private final ResultSet results;
     private final BiFunction<BackendEntry, BackendEntry, BackendEntry> merger;
@@ -91,7 +91,7 @@ public class MysqlEntryIterator extends BackendEntryIterator<ResultSet> {
         if (this.last == null) {
             return null;
         }
-        if (this.fetched() <= query.limit() && this.next == null) {
+        if (this.fetched() <= this.query.limit() && this.next == null) {
             // There is no next page
             return null;
         }

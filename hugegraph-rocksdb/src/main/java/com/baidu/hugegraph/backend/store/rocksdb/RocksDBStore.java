@@ -255,7 +255,7 @@ public abstract class RocksDBStore implements BackendStore {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported mutate type: %s", item.action()));
+                          "Unsupported mutate action: %s", item.action()));
         }
     }
 

@@ -94,6 +94,10 @@ public class ConditionQuery extends IdQuery {
         return this.query(Condition.neq(key, value));
     }
 
+    public ConditionQuery prefix(HugeKeys key, Id value) {
+        return this.query(Condition.prefix(key, value));
+    }
+
     public ConditionQuery key(HugeKeys key, Object value) {
         return this.query(Condition.containsKey(key, value));
     }

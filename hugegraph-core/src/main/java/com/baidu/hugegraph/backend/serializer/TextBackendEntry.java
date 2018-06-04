@@ -31,7 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -48,7 +47,6 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
     private Map<String, String> columns;
 
     public TextBackendEntry(HugeType type, Id id) {
-        assert id instanceof IdGenerator.StringId;
         this.type = type;
         this.id = id;
         this.subId = null;
@@ -122,10 +120,8 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
             String key = e.getKey();
             String value = e.getValue();
             if (key.startsWith(column)) {
-                BackendColumn bytesColumn = new BackendColumn();
-                bytesColumn.name = StringEncoding.encode(key);
-                bytesColumn.value = StringEncoding.encode(value);
-                list.add(bytesColumn);
+                list.add(BackendColumn.of(StringEncoding.encode(key),
+                                          StringEncoding.encode(value)));
             }
         }
         return list;

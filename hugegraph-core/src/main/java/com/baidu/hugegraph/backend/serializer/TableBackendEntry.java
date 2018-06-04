@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store;
+package com.baidu.hugegraph.backend.serializer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;

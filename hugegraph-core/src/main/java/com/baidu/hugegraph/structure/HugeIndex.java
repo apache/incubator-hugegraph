@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.structure;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -27,10 +26,10 @@ import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -73,7 +72,7 @@ public class HugeIndex implements GraphType {
     }
 
     public Id id() {
-        return formatIndexId(type(), indexLabel(), fieldValues());
+        return formatIndexId(type(), this.indexLabel(), this.fieldValues());
     }
 
     public Object fieldValues() {
@@ -131,25 +130,23 @@ public class HugeIndex implements GraphType {
     }
 
     public static HugeIndex parseIndexId(HugeGraph graph,
-                                         HugeType type, Id id) {
-        Id label;
+                                         HugeType type, byte[] id) {
         Object values;
         IndexLabel indexLabel;
 
         if (type == HugeType.SECONDARY_INDEX) {
-            String[] parts = SplicingIdGenerator.parse(id);
+            Id idObject = IdGenerator.of(id, false);
+            String[] parts = SplicingIdGenerator.parse(idObject);
             E.checkState(parts.length == 2, "Invalid secondary index id");
             values = parts[0];
-            label = SchemaElement.schemaId(parts[1]);
+            Id label = SchemaElement.schemaId(parts[1]);
             indexLabel = IndexLabel.label(graph, label);
         } else {
             assert type == HugeType.RANGE_INDEX;
-            // TODO: parse from bytes id
-            String str = id.asString();
-            final int offset = 4;
-            E.checkState(str.length() > offset, "Invalid range index id");
-            label = IdGenerator.of((int) string2number(str.substring(0, offset),
-                                                       Integer.class));
+            final int labelLength = 4;
+            E.checkState(id.length > labelLength, "Invalid range index id");
+            BytesBuffer buffer = BytesBuffer.wrap(id);
+            Id label = IdGenerator.of(buffer.readInt());
             indexLabel = IndexLabel.label(graph, label);
             List<Id> fields = indexLabel.indexFields();
             E.checkState(fields.size() == 1, "Invalid range index fields");
@@ -159,7 +156,7 @@ public class HugeIndex implements GraphType {
             Class<?> clazz = dataType.isNumber() ?
                              dataType.clazz() :
                              DataType.LONG.clazz();
-            values = string2number(str.substring(offset), clazz);
+            values = bytes2number(buffer.read(id.length - labelLength), clazz);
         }
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(values);
@@ -169,39 +166,28 @@ public class HugeIndex implements GraphType {
     public static Id formatIndexId(HugeType type, Id indexLabel,
                                    Object fieldValues) {
         if (type == HugeType.SECONDARY_INDEX) {
-            String value = fieldValues == null ? "<?>" : fieldValues.toString();
+            String value = fieldValues == null ? "?" : fieldValues.toString();
             return SplicingIdGenerator.splicing(value, indexLabel.asString());
         } else {
             assert type == HugeType.RANGE_INDEX;
-            String value = "";
+            BytesBuffer buffer = BytesBuffer.allocate(16);
+            buffer.writeInt((int) indexLabel.asLong());
             if (fieldValues != null) {
                 E.checkState(fieldValues instanceof Number,
                              "Field value of range index must be number: %s",
                              fieldValues.getClass().getSimpleName());
-                value = number2string((Number) fieldValues);
+                byte[] value = number2bytes((Number) fieldValues);
+                buffer.write(value);
             }
-            // TODO: use bytes id
-            String index = number2string((int) indexLabel.asLong());
-            return IdGenerator.of(index + value);
+            return buffer.asId();
         }
     }
 
-    public static String number2string(Number number) {
-        byte[] bytes = NumericUtil.numberToSortableBytes(number);
-        try {
-            // TODO: use bytes id
-            return new String(bytes, "ISO-8859-1");
-        } catch (UnsupportedEncodingException e) {
-            throw new BackendException(e);
-        }
+    public static byte[] number2bytes(Number number) {
+        return NumericUtil.numberToSortableBytes(number);
     }
 
-    public static Number string2number(String value, Class<?> clazz) {
-        try {
-            byte[] bytes = value.getBytes("ISO-8859-1");
-            return NumericUtil.sortableBytesToNumber(bytes, clazz);
-        } catch (UnsupportedEncodingException e) {
-            throw new BackendException(e);
-        }
+    public static Number bytes2number(byte[] bytes, Class<?> clazz) {
+        return NumericUtil.sortableBytesToNumber(bytes, clazz);
     }
 }

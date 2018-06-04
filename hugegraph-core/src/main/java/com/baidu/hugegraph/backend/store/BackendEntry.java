@@ -31,8 +31,16 @@ import com.baidu.hugegraph.util.StringEncoding;
 public interface BackendEntry {
 
     public static class BackendColumn implements Comparable<BackendColumn> {
+
         public byte[] name;
         public byte[] value;
+
+        public static BackendColumn of(byte[] name, byte[] value) {
+            BackendColumn col = new BackendColumn();
+            col.name = name;
+            col.value = value;
+            return col;
+        }
 
         @Override
         public String toString() {
@@ -48,36 +56,6 @@ public interface BackendEntry {
             }
             return Bytes.compare(name, other.name);
         }
-    }
-
-    public interface BackendColumnIterator extends Iterator<BackendColumn> {
-
-        public void close();
-
-        public byte[] position();
-
-        public final BackendColumnIterator EMPTY = new BackendColumnIterator() {
-
-            @Override
-            public boolean hasNext() {
-                return false;
-            }
-
-            @Override
-            public BackendColumn next() {
-                throw new NoSuchElementException();
-            }
-
-            @Override
-            public void close() {
-                // pass
-            }
-
-            @Override
-            public byte[] position() {
-                return null;
-            }
-        };
     }
 
     public HugeType type();
@@ -99,4 +77,47 @@ public interface BackendEntry {
     public default boolean belongToMe(BackendColumn column) {
         return Bytes.prefixWith(column.name, id().asBytes());
     }
+
+    public interface BackendIterator<T> extends Iterator<T> {
+
+        public void close();
+
+        public byte[] position();
+
+        @SuppressWarnings("unchecked")
+        public static <T> BackendIterator<T> empty() {
+            return (BackendIterator<T>) EMPTY;
+        }
+
+        public final BackendIterator<?> EMPTY = new BackendIterator<Object>() {
+
+            @Override
+            public boolean hasNext() {
+                return false;
+            }
+
+            @Override
+            public Object next() {
+                throw new NoSuchElementException();
+            }
+
+            @Override
+            public void close() {
+                // pass
+            }
+
+            @Override
+            public byte[] position() {
+                return null;
+            }
+        };
+    }
+
+    public interface BackendColumnIterator
+           extends BackendIterator<BackendColumn> {
+
+        public static BackendColumnIterator empty() {
+            return (BackendColumnIterator) EMPTY;
+        }
+    };
 }

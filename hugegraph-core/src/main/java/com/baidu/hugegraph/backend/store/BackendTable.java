@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -27,12 +29,16 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.Bytes;
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.NumericUtil;
 
-public abstract class BackendTable<Session extends BackendSessionPool.Session,
-                                   Entry> {
+public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     private final String table;
 
@@ -119,7 +125,72 @@ public abstract class BackendTable<Session extends BackendSessionPool.Session,
 
     /****************************** MetaHandler ******************************/
 
-    public interface MetaHandler<Session extends BackendSessionPool.Session> {
+    public interface MetaHandler<Session extends BackendSession> {
         public Object handle(Session session, String meta, Object... args);
+    }
+
+    /****************************** ShardSpliter ******************************/
+
+    public static abstract class ShardSpliter<Session extends BackendSession> {
+
+        // The min shard size should >= 1M to prevent too many number of shards
+        private static final int MIN_SHARD_SIZE = (int) Bytes.MB;
+
+        // We assume the size of each key-value is 100 bytes
+        private static final int ESTIMATE_BYTES_PER_KV = 100;
+
+        private final String table;
+
+        public ShardSpliter(String table) {
+            this.table = table;
+        }
+
+        public String table() {
+            return this.table;
+        }
+
+        public List<Shard> getSplits(Session session, long splitSize) {
+            E.checkArgument(splitSize >= MIN_SHARD_SIZE,
+                            "The split-size must be >= %s bytes, but got %s",
+                            MIN_SHARD_SIZE, splitSize);
+
+            long size = this.estimateDataSize(session);
+            if (size <= 0) {
+                size = this.estimateNumKeys(session) * ESTIMATE_BYTES_PER_KV;
+            }
+
+            double count = Math.ceil(size / (double) splitSize);
+            if (count <= 0) {
+                count = 1;
+            }
+            double each = BytesBuffer.UINT32_MAX / count;
+
+            long offset = 0L;
+            String last = this.position(offset);
+            List<Shard> splits = new ArrayList<>((int) count);
+            while (offset < BytesBuffer.UINT32_MAX) {
+                offset += each;
+                if (offset > BytesBuffer.UINT32_MAX) {
+                    offset = BytesBuffer.UINT32_MAX;
+                }
+                String current = this.position(offset);
+                splits.add(new Shard(last, current, 0L));
+                last = current;
+            }
+            return splits;
+        }
+
+        public final String position(long position) {
+            return String.valueOf(position);
+        }
+
+        public final byte[] position(String position) {
+            int value = Long.valueOf(position).intValue();
+            return NumericUtil.intToBytes(value);
+        }
+
+        protected abstract long estimateDataSize(Session session);
+
+        protected abstract long estimateNumKeys(Session session);
     }
 }

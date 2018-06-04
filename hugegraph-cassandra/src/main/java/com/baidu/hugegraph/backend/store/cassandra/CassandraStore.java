@@ -209,8 +209,8 @@ public abstract class CassandraStore implements BackendStore {
                 }
                 break;
             default:
-                throw new BackendException("Unsupported mutate type: %s",
-                                           item.action());
+                throw new AssertionError(String.format(
+                          "Unsupported mutate action: %s", item.action()));
         }
     }
 

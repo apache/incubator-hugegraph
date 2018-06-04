@@ -98,6 +98,10 @@ public final class BytesBuffer {
         }
     }
 
+    public int remaining() {
+        return this.buffer.remaining();
+    }
+
     private void require(int size) {
         // Does need to resize?
         if (this.buffer.capacity() - this.buffer.position() >= size) {
@@ -324,11 +328,16 @@ public final class BytesBuffer {
                 len = high + low;
             }
             byte[] id = this.read(len + 1);
-            return IdGenerator.of(StringEncoding.decode(id));
+            return IdGenerator.of(id, false);
         }
     }
 
     public BinaryId asId() {
+        return new BinaryId(this.bytes(), null);
+    }
+
+    public BinaryId parseId() {
+        // Parse id from bytes
         int start = this.buffer.position();
         Id id = this.readId();
         int end = this.buffer.position();

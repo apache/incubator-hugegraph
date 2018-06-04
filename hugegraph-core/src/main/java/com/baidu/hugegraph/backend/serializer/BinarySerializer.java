@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.commons.lang.NotImplementedException;
 
@@ -28,7 +29,10 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -53,8 +57,21 @@ import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.KryoUtil;
 import com.baidu.hugegraph.util.StringEncoding;
+import com.baidu.hugegraph.util.StringUtil;
 
 public class BinarySerializer extends AbstractSerializer {
+
+    private static final byte[] EMPTY_BYTES = new byte[0];
+
+    private final boolean keyWithIdPrefix;
+
+    public BinarySerializer() {
+        this(true);
+    }
+
+    public BinarySerializer(boolean keyWithIdPrefix) {
+        this.keyWithIdPrefix = keyWithIdPrefix;
+    }
 
     @Override
     public BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
@@ -85,16 +102,23 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected byte[] formatSyspropName(Id id, HugeKeys col) {
-        BytesBuffer buffer = BytesBuffer.allocate(1 + id.length() + 1 + 1);
+        int idLen = this.keyWithIdPrefix ? 1 + id.length() : 0;
+        BytesBuffer buffer = BytesBuffer.allocate(idLen + 1 + 1);
         byte sysprop = HugeType.SYS_PROPERTY.code();
-        return buffer.writeId(id).write(sysprop).write(col.code()).bytes();
+        if (this.keyWithIdPrefix) {
+            buffer.writeId(id);
+        }
+        return buffer.write(sysprop).write(col.code()).bytes();
     }
 
     protected byte[] formatSyspropName(BinaryId id, HugeKeys col) {
-        BytesBuffer buffer = BytesBuffer.allocate(id.length() + 1 + 1);
+        int idLen = this.keyWithIdPrefix ? id.length() : 0;
+        BytesBuffer buffer = BytesBuffer.allocate(idLen + 1 + 1);
         byte sysprop = HugeType.SYS_PROPERTY.code();
-        return buffer.write(id.asBytes()).write(sysprop)
-                     .write(col.code()).bytes();
+        if (this.keyWithIdPrefix) {
+            buffer.write(id.asBytes());
+        }
+        return buffer.write(sysprop).write(col.code()).bytes();
     }
 
     protected BackendColumn formatLabel(HugeElement elem) {
@@ -108,20 +132,20 @@ public class BinarySerializer extends AbstractSerializer {
 
     protected byte[] formatPropertyName(HugeProperty<?> prop) {
         Id id = prop.element().id();
+        int idLen = this.keyWithIdPrefix ? 1 + id.length() : 0;
         Id pkeyId = prop.propertyKey().id();
-        BytesBuffer buffer = BytesBuffer.allocate(1 + id.length() +
-                                                  1 + 1 + pkeyId.length());
-        buffer.writeId(id);
+        BytesBuffer buffer = BytesBuffer.allocate(idLen + 2 + pkeyId.length());
+        if (this.keyWithIdPrefix) {
+            buffer.writeId(id);
+        }
         buffer.write(prop.type().code());
         buffer.writeId(pkeyId);
         return buffer.bytes();
     }
 
     protected BackendColumn formatProperty(HugeProperty<?> prop) {
-        BackendColumn col = new BackendColumn();
-        col.name = this.formatPropertyName(prop);
-        col.value = KryoUtil.toKryo(prop.value());
-        return col;
+        return BackendColumn.of(this.formatPropertyName(prop),
+                                KryoUtil.toKryo(prop.value()));
     }
 
     protected void parseProperty(Id pkeyId, byte[] val, HugeElement owner) {
@@ -145,7 +169,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected byte[] formatEdgeName(HugeEdge edge) {
-        // source-vertex + dir + edge-label + sort-values + target-vertex
+        // owner-vertex + dir + edge-label + sort-values + other-vertex
 
         BytesBuffer buffer = BytesBuffer.allocate(256);
 
@@ -159,14 +183,14 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected byte[] formatEdgeValue(HugeEdge edge) {
-        final int propCount = edge.getProperties().size();
-        BytesBuffer buffer = BytesBuffer.allocate(4 + 16 * propCount);
+        int propsCount = edge.getProperties().size();
+        BytesBuffer buffer = BytesBuffer.allocate(4 + 16 * propsCount);
 
         // Write edge id
         //buffer.writeId(edge.id());
 
         // Write edge properties size
-        buffer.writeInt(propCount);
+        buffer.writeInt(propsCount);
 
         // Write edge properties data
         for (HugeProperty<?> property : edge.getProperties().values()) {
@@ -178,26 +202,28 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected BackendColumn formatEdge(HugeEdge edge) {
-        BackendColumn col = new BackendColumn();
-        col.name = this.formatEdgeName(edge);
-        col.value = this.formatEdgeValue(edge);
-        return col;
+        byte[] name;
+        if (this.keyWithIdPrefix) {
+            name = this.formatEdgeName(edge);
+        } else {
+            name = EMPTY_BYTES;
+        }
+        return BackendColumn.of(name, this.formatEdgeValue(edge));
     }
 
     protected void parseEdge(BackendColumn col, HugeVertex vertex,
                              HugeGraph graph) {
-        // source-vertex + dir + edge-label + sort-values + target-vertex
+        // owner-vertex + dir + edge-label + sort-values + other-vertex
 
         BytesBuffer buffer = BytesBuffer.wrap(col.name);
-        Id ownerVertexId = buffer.readId();
+        if (this.keyWithIdPrefix) {
+            // Consume owner-vertex id
+            buffer.readId();
+        }
         byte type = buffer.read();
         Id labelId = buffer.readId();
         String sk = buffer.readString();
         Id otherVertexId = buffer.readId();
-
-        if (vertex == null) {
-            vertex = new HugeVertex(graph, ownerVertexId, null);
-        }
 
         boolean isOutEdge = (type == HugeType.EDGE_OUT.code());
         EdgeLabel edgeLabel = graph.edgeLabel(labelId);
@@ -245,7 +271,8 @@ public class BinarySerializer extends AbstractSerializer {
 
     protected void parseColumn(BackendColumn col, HugeVertex vertex) {
         BytesBuffer buffer = BytesBuffer.wrap(col.name);
-        Id id = buffer.readId();
+        Id id = this.keyWithIdPrefix ? buffer.readId() : vertex.id();
+        E.checkState(buffer.remaining() > 0, "Missing column type");
         byte type = buffer.read();
         // Parse property
         if (type == HugeType.PROPERTY.code()) {
@@ -265,6 +292,39 @@ public class BinarySerializer extends AbstractSerializer {
         else {
             E.checkState(false, "Invalid entry(%s) with unknown type(%s): 0x%s",
                          id, type & 0xff, Bytes.toHex(col.name));
+        }
+    }
+
+    protected byte[] formatIndexNameOld(HugeIndex index) {
+        byte[] indexId = index.id().asBytes();
+        Id elemId = index.elementId();
+        BytesBuffer buffer = BytesBuffer.allocate(indexId.length +
+                                                  1 + elemId.length() + 1);
+        // Write index-id + element-id + length-of-index-id
+        buffer.write(indexId);
+        buffer.writeId(elemId, true);
+        buffer.writeUInt8(indexId.length);
+
+        return buffer.bytes();
+    }
+
+    protected byte[] formatIndexName(HugeIndex index) {
+        Id indexId = index.id();
+        Id elemId = index.elementId();
+        BytesBuffer buffer = BytesBuffer.allocate(1 + indexId.length() +
+                                                  1 + elemId.length());
+        // Write index-id + element-id
+        buffer.writeId(indexId);
+        buffer.writeId(elemId, true);
+
+        return buffer.bytes();
+    }
+
+    protected void parseIndexName(BinaryBackendEntry entry, HugeIndex index) {
+        for (BackendColumn col : entry.columns()) {
+            BytesBuffer buffer = BytesBuffer.wrap(col.name);
+            buffer.readId();
+            index.elementIds(buffer.readId(true));
         }
     }
 
@@ -350,26 +410,17 @@ public class BinarySerializer extends AbstractSerializer {
              * TODO: improve
              */
             Id id = index.indexLabel();
-            entry = new BinaryBackendEntry(index.type(),
-                                           new BinaryId(id.asBytes(), id));
+            entry = newBackendEntry(index.type(), id);
         } else {
             Id id = index.id();
-            byte[] indexId = id.asBytes();
-            E.checkArgument(indexId.length <= BytesBuffer.UINT8_MAX,
+            E.checkArgument(id.length() <= BytesBuffer.UINT8_MAX,
                             "Index key must be less than 256, but got: %s",
-                            indexId.length);
-            Id elemId = index.elementId();
-            BytesBuffer buffer = BytesBuffer.allocate(indexId.length +
-                                                      1 + elemId.length() + 1);
-            buffer.write(indexId);
-            buffer.writeId(elemId, true);
-            buffer.writeUInt8(indexId.length);
+                            id.length());
 
             // Ensure the original look of the index key
-            entry = new BinaryBackendEntry(index.type(),
-                                           new BinaryId(indexId, id));
-            entry.column(buffer.bytes(), null);
-            entry.subId(elemId);
+            entry = newBackendEntry(index.type(), id);
+            entry.column(this.formatIndexName(index), null);
+            entry.subId(index.elementId());
         }
         return entry;
     }
@@ -380,19 +431,10 @@ public class BinarySerializer extends AbstractSerializer {
             return null;
         }
         BinaryBackendEntry entry = this.convertEntry(bytesEntry);
-        // TODO: parse index id from entry.id() as bytes instead of string
-        HugeIndex index = HugeIndex.parseIndexId(graph, entry.type(),
-                                                 entry.id().origin());
-        for (BackendColumn col : entry.columns()) {
-            if (col.name.length <= 0) {
-                // Ignore
-                continue;
-            }
-            int idLength = col.name[col.name.length - 1];
-            BytesBuffer buffer = BytesBuffer.wrap(col.name);
-            buffer.read(idLength);
-            index.elementIds(buffer.readId(true));
-        }
+        // NOTE: index id without length prefix
+        byte[] bytes = entry.id().asBytes(1);
+        HugeIndex index = HugeIndex.parseIndexId(graph, entry.type(), bytes);
+        this.parseIndexName(entry, index);
         return index;
     }
 
@@ -457,6 +499,118 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     protected Query writeQueryCondition(Query query) {
+        HugeType type = query.resultType();
+        if (!type.isIndex()) {
+            return query;
+        }
+
+        ConditionQuery cq = (ConditionQuery) query;
+
+        // Convert secondary-index query to id query
+        if (type == HugeType.SECONDARY_INDEX) {
+            return this.writeSecondaryIndexQuery(cq);
+        }
+
+        // Convert range-index query to id range query
+        if (type == HugeType.RANGE_INDEX) {
+            return this.writeRangeIndexQuery(cq);
+        }
+
+        E.checkState(false, "Unsupported index query: %s", type);
+        return null;
+    }
+
+    private Query writeSecondaryIndexQuery(ConditionQuery query) {
+        E.checkArgument(query.allSysprop() &&
+                        query.conditions().size() == 2,
+                        "There should be two conditions: " +
+                        "INDEX_LABEL_ID and FIELD_VALUES" +
+                        "in secondary index query");
+
+        Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
+        Object key = query.condition(HugeKeys.FIELD_VALUES);
+
+        E.checkArgument(index != null, "Please specify the index label");
+        E.checkArgument(key != null, "Please specify the index key");
+
+        Id id = formatIndexId(query.resultType(), index, key);
+        return new IdQuery(query, id);
+    }
+
+    private Query writeRangeIndexQuery(ConditionQuery query) {
+        Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
+        E.checkArgument(index != null,
+                        "Please specify the index label");
+
+        List<Condition> fields = query.syspropConditions(HugeKeys.FIELD_VALUES);
+        E.checkArgument(!fields.isEmpty(),
+                        "Please specify the index field values");
+
+        Object keyEq = null;
+        Object keyMin = null;
+        boolean keyMinEq = false;
+        Object keyMax = null;
+        boolean keyMaxEq = false;
+
+        for (Condition c : fields) {
+            Relation r = (Relation) c;
+            switch (r.relation()) {
+                case EQ:
+                    keyEq = r.value();
+                    break;
+                case GTE:
+                    keyMinEq = true;
+                case GT:
+                    keyMin = r.value();
+                    break;
+                case LTE:
+                    keyMaxEq = true;
+                case LT:
+                    keyMax = r.value();
+                    break;
+                default:
+                    E.checkArgument(false, "Unsupported relation '%s'",
+                                    r.relation());
+            }
+        }
+
+        HugeType type = query.resultType();
+        if (keyEq != null) {
+            Id id = formatIndexId(type, index, keyEq);
+            return new IdQuery(query, id);
+        }
+
+        if (keyMin == null) {
+            E.checkArgument(keyMax != null,
+                            "Please specify at least one condition");
+            // Set keyMin to 0
+            keyMin = StringUtil.valueOf(keyMax.getClass(), "0");
+            keyMinEq = true;
+        }
+
+        query = query.copy();
+        query.resetConditions();
+
+        Id min = formatIndexId(type, index, keyMin);
+        if (keyMinEq) {
+            query.gte(HugeKeys.ID, min);
+        } else {
+            query.gt(HugeKeys.ID, min);
+        }
+
+        if (keyMax == null) {
+            Id prefix = formatIndexId(type, index, null);
+            // Reset the first byte to make same length-prefix
+            prefix.asBytes()[0] = min.asBytes()[0];
+            query.prefix(HugeKeys.ID, prefix);
+        } else {
+            Id max = formatIndexId(type, index, keyMax);
+            if (keyMaxEq) {
+                query.lte(HugeKeys.ID, max);
+            } else {
+                query.lt(HugeKeys.ID, max);
+            }
+        }
         return query;
     }
 
@@ -476,15 +630,11 @@ public class BinarySerializer extends AbstractSerializer {
         return new BinaryId(buffer.bytes(), id);
     }
 
-    public static BinaryId splitIdKey(HugeType type, byte[] bytes) {
-        // TODO: maybe we can find a better way to parse index id
-        if (type == HugeType.SECONDARY_INDEX || type == HugeType.RANGE_INDEX) {
-            int idLength = bytes.length > 0 ? bytes[bytes.length - 1] : 0;
-            BytesBuffer buffer = BytesBuffer.wrap(bytes);
-            byte[] id = buffer.read(idLength);
-            return new BinaryId(id, IdGenerator.of(id, false));
-        }
-        return BytesBuffer.wrap(bytes).asId();
+    private static BinaryId formatIndexId(HugeType type, Id indexLabel,
+                                          Object fieldValues) {
+        Id id = HugeIndex.formatIndexId(type, indexLabel, fieldValues);
+        BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
+        return new BinaryId(buffer.writeId(id).bytes(), id);
     }
 
     // TODO: remove these methods when improving schema serialize

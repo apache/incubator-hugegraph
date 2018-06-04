@@ -20,33 +20,32 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import java.util.Base64;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 
-public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
+public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
 
-    private final BackendColumnIterator columns;
-    private final Function<BackendColumn, BackendEntry> entryCreater;
+    protected final BackendIterator<Elem> results;
+    protected final BiFunction<BackendEntry, Elem, BackendEntry> merger;
 
-    private BackendEntry next;
+    protected BackendEntry next;
 
-    public BinaryEntryIterator(BackendColumnIterator columns, Query query,
-                               Function<BackendColumn, BackendEntry> entry) {
+    public BinaryEntryIterator(BackendIterator<Elem> results, Query query,
+                               BiFunction<BackendEntry, Elem, BackendEntry> m) {
         super(query);
 
-        E.checkNotNull(columns, "columns");
-        E.checkNotNull(entry, "entry");
+        E.checkNotNull(results, "results");
+        E.checkNotNull(m, "merger");
 
-        this.columns = columns;
-        this.entryCreater = entry;
+        this.results = results;
+        this.merger = m;
         this.next = null;
 
         this.skipOffset();
@@ -56,16 +55,9 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
         }
     }
 
-    private void skipPageOffset(String page) {
-        PageState pagestate = PageState.fromString(page);
-        if (pagestate.offset() > 0 && this.fetch()) {
-            this.skip(this.current, pagestate.offset());
-        }
-    }
-
     @Override
     public void close() throws Exception {
-        this.columns.close();
+        this.results.close();
     }
 
     @Override
@@ -76,31 +68,28 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
             this.next = null;
         }
 
-        while (this.columns.hasNext()) {
-            BackendColumn col = this.columns.next();
-
+        while (this.results.hasNext()) {
+            Elem elem = this.results.next();
+            BackendEntry merged = this.merger.apply(this.current, elem);
+            E.checkState(merged != null, "Error when merging entry");
             if (this.current == null) {
                 // The first time to read
-                this.current = this.entryCreater.apply(col);
+                this.current = merged;
+            } else if (merged == this.current) {
+                // The next entry belongs to the current entry
                 assert this.current != null;
-                this.current.columns(col);
-            } else if (this.current.belongToMe(col)) {
-                // Does the column belongs to the current entry
-                this.current.columns(col);
             } else {
                 // New entry
                 assert this.next == null;
-                this.next = this.entryCreater.apply(col);
-                assert this.next != null;
-                this.next.columns(col);
+                this.next = merged;
                 break;
             }
 
             // When limit exceed, stop fetching
             if (this.query.reachLimit(this.fetched())) {
                 // Use next() to set page position if paging
-                if (this.query.paging() && this.columns.hasNext()) {
-                    this.columns.next();
+                if (this.query.paging() && this.results.hasNext()) {
+                    this.results.next();
                 }
                 break;
             }
@@ -113,7 +102,7 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
     protected final long sizeOf(BackendEntry entry) {
         /*
          * One edge per column (one entry <==> a vertex),
-         * or One element id per column (one entry <===> an index)
+         * or one element id per column (one entry <==> an index)
          */
         if (entry.type().isEdge() || entry.type().isIndex()) {
             return entry.columnsSize();
@@ -133,12 +122,19 @@ public class BinaryEntryIterator extends BackendEntryIterator<BackendColumn> {
 
     @Override
     protected String pageState() {
-        byte[] position = this.columns.position();
+        byte[] position = this.results.position();
         if (position == null) {
             return null;
         }
         PageState page = new PageState(position, 0);
         return page.toString();
+    }
+
+    private void skipPageOffset(String page) {
+        PageState pagestate = PageState.fromString(page);
+        if (pagestate.offset() > 0 && this.fetch()) {
+            this.skip(this.current, pagestate.offset());
+        }
     }
 
     public static class PageState {

@@ -542,6 +542,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private final int scanType;
 
         private byte[] position;
+        private boolean matched;
 
         public ColumnIterator(String table, RocksIterator itor,
                               byte[] keyBegin, byte[] keyEnd, int scanType) {
@@ -554,6 +555,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             this.scanType = scanType;
 
             this.position = keyBegin;
+            this.matched = false;
 
             this.checkArguments();
 
@@ -629,15 +631,22 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public boolean hasNext() {
-            boolean matched = this.itor.isOwningHandle() && this.itor.isValid();
-            if (matched && !this.match(Session.SCAN_ANY)) {
-                matched = this.filter(this.itor.key());
+            this.matched = this.itor.isOwningHandle() && this.itor.isValid();
+            if (this.matched) {
+                // Update position for paging
+                this.position = this.itor.key();
+                // Do filter if not SCAN_ANY
+                if (!this.match(Session.SCAN_ANY)) {
+                    this.matched = this.filter(this.position);
+                }
             }
-            if (!matched) {
+            if (!this.matched) {
+                // The end
+                this.position = null;
                 // Free the iterator if finished
-                this.itor.close();
+                this.close();
             }
-            return matched;
+            return this.matched;
         }
 
         private void seek() {
@@ -699,24 +708,18 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public BackendColumn next() {
-            if (!this.itor.isOwningHandle() || !this.itor.isValid()) {
-                throw new NoSuchElementException();
+            if (!this.matched) {
+                if (!this.hasNext()) {
+                    throw new NoSuchElementException();
+                }
             }
 
-            BackendColumn entry = new BackendColumn();
-            entry.name = this.itor.key();
-            entry.value = this.itor.value();
-
+            BackendColumn col = BackendColumn.of(this.itor.key(),
+                                                 this.itor.value());
             this.itor.next();
+            this.matched = false;
 
-            if (this.itor.isValid()) {
-                this.position = entry.name;
-            } else {
-                // The end
-                this.position = null;
-            }
-
-            return entry;
+            return col;
         }
 
         @Override

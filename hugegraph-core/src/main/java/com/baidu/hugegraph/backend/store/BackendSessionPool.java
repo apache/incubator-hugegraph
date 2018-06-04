@@ -23,14 +23,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.backend.store.BackendStore.TxState;
 import com.baidu.hugegraph.util.Log;
 
 public abstract class BackendSessionPool {
 
     private static final Logger LOG = Log.logger(BackendSessionPool.class);
 
-    private ThreadLocal<Session> threadLocalSession;
+    private ThreadLocal<BackendSession> threadLocalSession;
     private AtomicInteger sessionCount;
 
     public BackendSessionPool() {
@@ -38,8 +37,8 @@ public abstract class BackendSessionPool {
         this.sessionCount = new AtomicInteger(0);
     }
 
-    public final Session getOrNewSession() {
-        Session session = this.threadLocalSession.get();
+    public final BackendSession getOrNewSession() {
+        BackendSession session = this.threadLocalSession.get();
         if (session == null) {
             session = this.newSession();
             assert session != null;
@@ -51,8 +50,8 @@ public abstract class BackendSessionPool {
         return session;
     }
 
-    public Session useSession() {
-        Session session = this.threadLocalSession.get();
+    public BackendSession useSession() {
+        BackendSession session = this.threadLocalSession.get();
         if (session != null) {
             session.attach();
         } else {
@@ -62,7 +61,7 @@ public abstract class BackendSessionPool {
     }
 
     public int closeSession() {
-        Session session = this.threadLocalSession.get();
+        BackendSession session = this.threadLocalSession.get();
         if (session == null) {
             LOG.warn("Current session has ever been closed");
             return -1;
@@ -107,51 +106,9 @@ public abstract class BackendSessionPool {
                              this.hashCode());
     }
 
-    protected abstract Session newSession();
+    public abstract BackendSession session();
+
+    protected abstract BackendSession newSession();
 
     protected abstract void doClose();
-
-    /**
-     * interface Session for backend store
-     */
-    public static abstract class Session {
-
-        private int refs;
-        private TxState txState;
-
-        public Session() {
-            this.refs = 1;
-            this.txState = TxState.CLEAN;
-        }
-
-        public abstract void close();
-
-        public abstract boolean closed();
-
-        public abstract void clear();
-
-        public abstract Object commit();
-
-        public abstract boolean hasChanges();
-
-        protected int attach() {
-            return ++this.refs;
-        }
-
-        protected int detach() {
-            return --this.refs;
-        }
-
-        public boolean closeable() {
-            return this.refs <= 0;
-        }
-
-        public TxState txState() {
-            return this.txState;
-        }
-
-        public void txState(TxState state) {
-            this.txState = state;
-        }
-    }
 }

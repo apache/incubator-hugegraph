@@ -19,10 +19,12 @@
 
 package com.baidu.hugegraph.util;
 
+import java.lang.reflect.Method;
 import java.util.Collection;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 
 public final class StringUtil {
@@ -75,5 +77,17 @@ public final class StringUtil {
             parts[i] = StringUtils.replace(parts[i], escape + splitor, splitor);
         }
         return parts;
+    }
+
+    public static Object valueOf(Class<? extends Object> clazz, String number) {
+        try {
+            Method valueOf = clazz.getMethod("valueOf", String.class);
+            return valueOf.invoke(null, number);
+        } catch (NoSuchMethodException | SecurityException e) {
+            throw new HugeException("Invalid number class: %s", e, clazz);
+        } catch (Exception e) {
+            throw new HugeException("Invalid value '%s' for number class: %s",
+                                    e, number, clazz);
+        }
     }
 }

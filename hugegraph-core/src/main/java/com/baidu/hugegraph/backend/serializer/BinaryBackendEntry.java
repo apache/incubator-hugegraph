@@ -29,6 +29,7 @@ import java.util.List;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -40,6 +41,10 @@ public class BinaryBackendEntry implements BackendEntry {
     private final BinaryId id;
     private Id subId;
     private final List<BackendColumn> columns;
+
+    public BinaryBackendEntry(HugeType type, byte[] bytes) {
+        this(type, BytesBuffer.wrap(bytes).parseId());
+    }
 
     public BinaryBackendEntry(HugeType type, BinaryId id) {
         this.type = type;
@@ -87,10 +92,8 @@ public class BinaryBackendEntry implements BackendEntry {
 
     public void column(byte[] name, byte[] value) {
         E.checkNotNull(name, "name");
-        BackendColumn col = new BackendColumn();
-        col.name = name;
-        col.value = value != null ? value : EMPTY_BYTES;
-        this.columns.add(col);
+        value = value != null ? value : EMPTY_BYTES;
+        this.columns.add(BackendColumn.of(name, value));
     }
 
     @Override
@@ -170,6 +173,11 @@ public class BinaryBackendEntry implements BackendEntry {
         }
 
         @Override
+        public boolean number() {
+            return false;
+        }
+
+        @Override
         public Object asObject() {
             return this.asBytes();
         }
@@ -185,18 +193,20 @@ public class BinaryBackendEntry implements BackendEntry {
         }
 
         @Override
-        public boolean number() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public int compareTo(Id other) {
-            throw new UnsupportedOperationException();
+            return Bytes.compare(this.bytes, other.asBytes());
         }
 
         @Override
         public byte[] asBytes() {
             return this.bytes;
+        }
+
+        public byte[] asBytes(int offset) {
+            E.checkArgument(offset < this.bytes.length,
+                            "Invalid offset %s, must be < length %s",
+                            offset, this.bytes.length);
+            return Arrays.copyOfRange(this.bytes, offset, this.bytes.length);
         }
 
         @Override

@@ -30,7 +30,6 @@ import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
-import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
@@ -159,25 +158,6 @@ public class RocksDBTables {
         public SecondaryIndex(String database) {
             super(database, TABLE);
         }
-
-        @Override
-        protected BackendColumnIterator queryByCond(Session session,
-                                                    ConditionQuery query) {
-            E.checkArgument(query.allSysprop() &&
-                            query.conditions().size() == 2,
-                            "There should be two conditions: " +
-                            "INDEX_LABEL_ID and FIELD_VALUES" +
-                            "in secondary index query");
-
-            Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
-            Object key = query.condition(HugeKeys.FIELD_VALUES);
-
-            E.checkArgument(index != null, "Please specify the index label");
-            E.checkArgument(key != null, "Please specify the index key");
-
-            Id id = HugeIndex.formatIndexId(query.resultType(), index, key);
-            return this.queryById(session, id);
-        }
     }
 
     public static class RangeIndex extends RocksDBTable {
@@ -193,35 +173,31 @@ public class RocksDBTables {
                                                     ConditionQuery query) {
             assert !query.conditions().isEmpty();
 
-            Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
-            E.checkArgument(index != null,
-                            "Please specify the index label");
+            List<Condition> conds = query.syspropConditions(HugeKeys.ID);
+            E.checkArgument(!conds.isEmpty(),
+                            "Please specify the index conditions");
 
-            List<Condition> fv = query.syspropConditions(HugeKeys.FIELD_VALUES);
-            E.checkArgument(!fv.isEmpty(),
-                            "Please specify the index field values");
+            Id prefix = null;
+            Id min = null;
+            boolean minEq = false;
+            Id max = null;
+            boolean maxEq = false;
 
-            Object keyEq = null;
-            Object keyMin = null;
-            boolean keyMinEq = false;
-            Object keyMax = null;
-            boolean keyMaxEq = false;
-
-            for (Condition c : fv) {
+            for (Condition c : conds) {
                 Relation r = (Relation) c;
                 switch (r.relation()) {
-                    case EQ:
-                        keyEq = r.value();
+                    case PREFIX:
+                        prefix = (Id) r.value();
                         break;
                     case GTE:
-                        keyMinEq = true;
+                        minEq = true;
                     case GT:
-                        keyMin = r.value();
+                        min = (Id) r.value();
                         break;
                     case LTE:
-                        keyMaxEq = true;
+                        maxEq = true;
                     case LT:
-                        keyMax = r.value();
+                        max = (Id) r.value();
                         break;
                     default:
                         E.checkArgument(false, "Unsupported relation '%s'",
@@ -229,38 +205,21 @@ public class RocksDBTables {
                 }
             }
 
-            HugeType type = query.resultType();
-            BackendColumnIterator itor;
-            if (keyEq != null) {
-                Id id = HugeIndex.formatIndexId(type, index, keyEq);
-                itor = this.queryById(session, id);
-            } else {
-                if (keyMin == null) {
-                    keyMin = 0L;
-                    keyMinEq = true;
-                }
-
-                Id min = HugeIndex.formatIndexId(type, index, keyMin);
-                byte[] begin = min.asBytes();
-                if (!keyMinEq) {
-                    begin = RocksDBStdSessions.increase(begin);
-                }
-
-                if (keyMax == null) {
-                    Id indexId = HugeIndex.formatIndexId(type, index, null);
-                    byte[] end = indexId.asBytes();
-                    itor = session.scan(table(), begin, end,
-                                        Session.SCAN_PREFIX_WITH_END);
-                } else {
-                    Id max = HugeIndex.formatIndexId(type, index, keyMax);
-                    byte[] end = max.asBytes();
-                    int scanType = keyMaxEq ?
-                                   Session.SCAN_LTE_END :
-                                   Session.SCAN_LT_END;
-                    itor = session.scan(table(), begin, end, scanType);
-                }
+            E.checkArgumentNotNull(min, "Range index begin key is missing");
+            byte[] begin = min.asBytes();
+            if (!minEq) {
+                begin = RocksDBStdSessions.increase(begin);
             }
-            return itor;
+
+            if (max == null) {
+                E.checkArgumentNotNull(prefix, "Range index prefix is missing");
+                return session.scan(this.table(), begin, prefix.asBytes(),
+                                    Session.SCAN_PREFIX_WITH_END);
+            } else {
+                byte[] end = max.asBytes();
+                int type = maxEq ? Session.SCAN_LTE_END : Session.SCAN_LT_END;
+                return session.scan(this.table(), begin, end, type);
+            }
         }
     }
 }

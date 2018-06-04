@@ -17,26 +17,31 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store.palo;
+package com.baidu.hugegraph.backend.store.hbase;
 
-import com.baidu.hugegraph.backend.serializer.TableBackendEntry;
-import com.baidu.hugegraph.backend.store.mysql.MysqlSerializer;
-import com.baidu.hugegraph.schema.SchemaLabel;
-import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
+import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.hbase.HbaseStore.HbaseGraphStore;
+import com.baidu.hugegraph.backend.store.hbase.HbaseStore.HbaseSchemaStore;
 
-public class PaloSerializer extends MysqlSerializer {
+public class HbaseStoreProvider extends AbstractBackendStoreProvider {
 
-    @Override
-    protected void writeEnableLabelIndex(SchemaLabel schema,
-                                         TableBackendEntry entry) {
-        Byte enable = (byte) (schema.enableLabelIndex() ? 1 : 0);
-        entry.column(HugeKeys.ENABLE_LABEL_INDEX, enable);
+    protected String namespace() {
+        return this.name().toLowerCase();
     }
 
     @Override
-    protected void readEnableLabelIndex(SchemaLabel schema,
-                                        TableBackendEntry entry) {
-        Number enable = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
-        schema.enableLabelIndex(enable.byteValue() != 0);
+    protected BackendStore newSchemaStore(String store) {
+        return new HbaseSchemaStore(this, this.namespace(), store);
+    }
+
+    @Override
+    protected BackendStore newGraphStore(String store) {
+        return new HbaseGraphStore(this, this.namespace(), store);
+    }
+
+    @Override
+    public String type() {
+        return "hbase";
     }
 }

@@ -50,6 +50,7 @@
         <datastax.cassandra.version>3.2.0</datastax.cassandra.version>
         <apache.cassandra.version>3.10</apache.cassandra.version>
         <rocksdb.version>5.8.6</rocksdb.version>
+        <hbase.client.version>2.0.0</hbase.client.version>
         <mysql.driver.version>5.1.45</mysql.driver.version>
         <jersey.version>2.25.1</jersey.version>
         <javassist.version>3.21.0-GA</javassist.version>
@@ -66,6 +67,7 @@
         <module>hugegraph-rocksdb</module>
         <module>hugegraph-mysql</module>
         <module>hugegraph-palo</module>
+        <module>hugegraph-hbase</module>
     </modules>
 
     <dependencyManagement>
@@ -193,6 +195,11 @@
                 <groupId>org.rocksdb</groupId>
                 <artifactId>rocksdbjni</artifactId>
                 <version>${rocksdb.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hbase</groupId>
+                <artifactId>hbase-client</artifactId>
+                <version>${hbase.client.version}</version>
             </dependency>
             <dependency>
                 <groupId>mysql</groupId>

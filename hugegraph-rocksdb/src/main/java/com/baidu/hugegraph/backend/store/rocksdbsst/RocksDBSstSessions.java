@@ -272,7 +272,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         @Override
         public BackendColumnIterator scan(String table) {
             assert !this.hasChanges();
-            return BackendColumnIterator.EMPTY;
+            return BackendColumnIterator.empty();
         }
 
         /**
@@ -281,7 +281,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         @Override
         public BackendColumnIterator scan(String table, byte[] prefix) {
             assert !this.hasChanges();
-            return BackendColumnIterator.EMPTY;
+            return BackendColumnIterator.empty();
         }
 
         /**
@@ -293,7 +293,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
                                           byte[] keyTo,
                                           int scanType) {
             assert !this.hasChanges();
-            return BackendColumnIterator.EMPTY;
+            return BackendColumnIterator.empty();
         }
     }
 

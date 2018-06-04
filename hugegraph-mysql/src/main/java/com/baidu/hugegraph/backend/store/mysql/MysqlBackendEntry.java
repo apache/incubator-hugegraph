@@ -22,8 +22,8 @@ package com.baidu.hugegraph.backend.store.mysql;
 import java.util.Collection;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.serializer.TableBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.store.TableBackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 
 public class MysqlBackendEntry extends TableBackendEntry {

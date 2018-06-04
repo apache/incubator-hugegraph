@@ -62,6 +62,16 @@
                 <serializer>palo</serializer>
             </properties>
         </profile>
+        <profile>
+            <id>hbase</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <backend>hbase</backend>
+                <serializer>hbase</serializer>
+            </properties>
+        </profile>
     </profiles>
 
     <properties>
@@ -105,6 +115,11 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-palo</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-hbase</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
