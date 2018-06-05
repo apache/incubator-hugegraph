@@ -271,7 +271,7 @@ public class ConditionQuery extends IdQuery {
 
     /**
      * This method is only used for secondary index scenario,
-     * relation must be IN or EQ
+     * relation must be EQ
      */
     public List<Object> userpropValues(List<Id> fields) {
         List<Object> values = new ArrayList<>(fields.size());
@@ -279,15 +279,14 @@ public class ConditionQuery extends IdQuery {
             boolean got = false;
             for (Relation r : this.userpropRelations()) {
                 if (r.key().equals(field) && !r.isSysprop()) {
-                    E.checkState(r.relation == RelationType.EQ ||
-                                 r.relation == RelationType.IN,
+                    E.checkState(r.relation == RelationType.EQ,
                                  "Method userpropValues(List<String>) only " +
                                  "used for secondary index, " +
-                                 "relation must be IN or EQ, but got '%s'",
+                                 "relation must be EQ, but got '%s'",
                                  r.relation());
-                    values.add(singleValueOfRelationInEq(r));
+                    values.add(r.value());
+                    got = true;
                 }
-                got = true;
             }
             if (!got) {
                 throw new BackendException(
@@ -302,21 +301,10 @@ public class ConditionQuery extends IdQuery {
         Set<Object> values = new HashSet<>();
         for (Relation r : this.userpropRelations()) {
             if (r.key().equals(field)) {
-                values.add(singleValueOfRelationInEq(r));
+                values.add(r.value());
             }
         }
         return values;
-    }
-
-    private static Object singleValueOfRelationInEq(Relation r) {
-        if (r.relation() == Condition.RelationType.IN) {
-            List<?> fieldValues = (List<?>) r.value();
-            E.checkArgument(fieldValues.size() == 1,
-                            "Only support one element IN index query");
-            return fieldValues.get(0);
-        } else {
-            return r.value();
-        }
     }
 
     public String userpropValuesString(List<Id> fields) {

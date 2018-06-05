@@ -124,12 +124,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
         HugeElement elem = element.copyAsFresh();
         Set<Id> propKeys = query.userpropKeys();
         for (Id key : propKeys) {
-            Object conditionValue = query.userpropValue(key);
-            if (conditionValue == null) {
+            Set<Object> conditionValues = query.userpropValue(key);
+            E.checkState(!conditionValues.isEmpty(),
+                         "Condition values can't be empty");
+            if (conditionValues.size() > 1) {
                 // It's inside/between Query (processed in range index)
                 return;
             }
             Object propValue = elem.getProperty(key).value();
+            Object conditionValue = conditionValues.iterator().next();
             if (!propValue.equals(conditionValue)) {
                 PropertyKey pkey = this.graph().propertyKey(key);
                 elem.addProperty(pkey, conditionValue);
