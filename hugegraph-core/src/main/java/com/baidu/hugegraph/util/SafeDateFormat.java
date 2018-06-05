@@ -32,6 +32,8 @@ import java.util.Date;
  */
 public class SafeDateFormat extends DateFormat {
 
+    private static final long serialVersionUID = -4838048315029312489L;
+
     private final ThreadLocal<SimpleDateFormat> formatter;
 
     public SafeDateFormat(String template) {

@@ -60,7 +60,7 @@ public final class StringEncoding {
         return sb.toString();
     }
 
-    public static final int getAsciiByteLength(String attribute) {
+    public static int getAsciiByteLength(String attribute) {
         E.checkArgument(CharMatcher.ascii().matchesAllOf(attribute),
                         "'%s' must be ASCII string", attribute);
         return attribute.isEmpty() ? 1 : attribute.length();

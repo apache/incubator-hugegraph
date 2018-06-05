@@ -126,7 +126,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         for (Id key : propKeys) {
             Set<Object> conditionValues = query.userpropValue(key);
             E.checkState(!conditionValues.isEmpty(),
-                         "Condition values can't be empty");
+                         "Expect user property values for key '%s', " +
+                         "but got none", key);
             if (conditionValues.size() > 1) {
                 // It's inside/between Query (processed in range index)
                 return;
@@ -779,7 +780,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             Set<Object> values = query.userpropValue(key);
             E.checkState(!values.isEmpty(),
                          "Expect user property values for key '%s', " +
-                         "but got null", graph.propertyKey(key));
+                         "but got none", pk);
             for (Object value : values) {
                 if (!pk.checkValue(value)) {
                     return false;
