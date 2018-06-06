@@ -1219,8 +1219,8 @@ public class GraphTransaction extends IndexableTransaction {
         this.autoCommit(false);
         try {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-            // TODO: use query.capacity(Query.NO_LIMIT);
             query.eq(HugeKeys.LABEL, vertexLabel.id());
+            query.capacity(Query.NO_CAPACITY);
             if (vertexLabel.hidden()) {
                 query.showHidden(true);
             }
@@ -1254,8 +1254,8 @@ public class GraphTransaction extends IndexableTransaction {
                                                       edgeLabel.id()));
             } else {
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-                // TODO: use query.capacity(Query.NO_LIMIT);
                 query.eq(HugeKeys.LABEL, edgeLabel.id());
+                query.capacity(Query.NO_CAPACITY);
                 if (edgeLabel.hidden()) {
                     query.showHidden(true);
                 }

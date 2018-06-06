@@ -908,6 +908,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (type == HugeType.VERTEX_LABEL) {
                 ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
                 query.eq(HugeKeys.LABEL, label);
+                query.capacity(Query.NO_CAPACITY);
                 for (Iterator<Vertex> itor = tx.queryVertices(query);
                      itor.hasNext();) {
                     HugeVertex vertex = (HugeVertex) itor.next();
@@ -919,6 +920,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 assert type == HugeType.EDGE_LABEL;
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
                 query.eq(HugeKeys.LABEL, label);
+                query.capacity(Query.NO_CAPACITY);
                 for (Iterator<Edge> itor = tx.queryEdges(query);
                      itor.hasNext();) {
                     HugeEdge edge = (HugeEdge) itor.next();
