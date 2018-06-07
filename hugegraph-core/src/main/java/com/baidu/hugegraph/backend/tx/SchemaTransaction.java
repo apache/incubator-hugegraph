@@ -177,7 +177,7 @@ public class SchemaTransaction extends IndexableTransaction {
         Set<Id> indexLabelIds = ImmutableSet.copyOf(vertexLabel.indexLabels());
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockWrites(LockUtil.VERTEX_LABEL, id);
+            locks.lockWrites(LockUtil.VERTEX_LABEL_DELETE, id);
             for (Id indexLabelId : indexLabelIds) {
                 this.removeIndexLabel(indexLabelId);
             }
@@ -219,7 +219,7 @@ public class SchemaTransaction extends IndexableTransaction {
         Set<Id> indexIds = ImmutableSet.copyOf(edgeLabel.indexLabels());
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockWrites(LockUtil.EDGE_LABEL, id);
+            locks.lockWrites(LockUtil.EDGE_LABEL_DELETE, id);
             for (Id indexId : indexIds) {
                 this.removeIndexLabel(indexId);
             }
@@ -264,7 +264,7 @@ public class SchemaTransaction extends IndexableTransaction {
 
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockWrites(LockUtil.INDEX_LABEL, id);
+            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);
             // Remove index data
             // TODO: use event to replace direct call
             this.graph().graphTransaction().removeIndex(indexLabel);
@@ -285,10 +285,17 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void addSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction add {} with id '{}'",
                   schema.type(), schema.id());
-        this.beforeWrite();
-        this.doInsert(this.serialize(schema));
-        this.indexTx.updateNameIndex(schema, false);
-        this.afterWrite();
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
+                             schema.id());
+            this.beforeWrite();
+            this.doInsert(this.serialize(schema));
+            this.indexTx.updateNameIndex(schema, false);
+            this.afterWrite();
+        } finally {
+            locks.unlock();
+        }
     }
 
     protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
@@ -337,11 +344,18 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
-        this.beforeWrite();
-        this.indexTx.updateNameIndex(schema, true);
-        BackendEntry e = this.serializer.writeId(schema.type(), schema.id());
-        this.doRemove(e);
-        this.afterWrite();
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
+                             schema.id());
+            this.beforeWrite();
+            this.indexTx.updateNameIndex(schema, true);
+            BackendEntry e = this.serializer.writeId(schema.type(), schema.id());
+            this.doRemove(e);
+            this.afterWrite();
+        } finally {
+            locks.unlock();
+        }
     }
 
     protected void removeIndexLabelFromBaseLabel(IndexLabel label) {

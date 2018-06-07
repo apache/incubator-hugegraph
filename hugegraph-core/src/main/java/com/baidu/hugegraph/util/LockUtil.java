@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.concurrent.LockManager;
+import com.baidu.hugegraph.type.HugeType;
 
 public final class LockUtil {
 
@@ -38,18 +39,26 @@ public final class LockUtil {
     public static final String WRITE = "write";
     public static final String READ = "read";
 
-    public static final String INDEX_LABEL = "indexLabel";
-    public static final String EDGE_LABEL = "edgeLabel";
-    public static final String VERTEX_LABEL = "vertexLabel";
-    public static final String INDEX_REBUILD = "indexLabelRebuild";
+    public static final String INDEX_LABEL_DELETE = "il_delete";
+    public static final String EDGE_LABEL_DELETE = "el_delete";
+    public static final String VERTEX_LABEL_DELETE = "vl_delete";
+    public static final String INDEX_LABEL_REBUILD = "il_rebuild";
+    public static final String INDEX_LABEL_ADD_UPDATE = "il_add_update";
+    public static final String EDGE_LABEL_ADD_UPDATE = "el_add_update";
+    public static final String VERTEX_LABEL_ADD_UPDATE = "vl_add_update";
+    public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
 
     public static final long WRITE_WAIT_TIME = 30L;
 
     public static void init() {
-        LockManager.instance().create(INDEX_LABEL);
-        LockManager.instance().create(EDGE_LABEL);
-        LockManager.instance().create(VERTEX_LABEL);
-        LockManager.instance().create(INDEX_REBUILD);
+        LockManager.instance().create(INDEX_LABEL_DELETE);
+        LockManager.instance().create(EDGE_LABEL_DELETE);
+        LockManager.instance().create(VERTEX_LABEL_DELETE);
+        LockManager.instance().create(INDEX_LABEL_REBUILD);
+        LockManager.instance().create(INDEX_LABEL_ADD_UPDATE);
+        LockManager.instance().create(EDGE_LABEL_ADD_UPDATE);
+        LockManager.instance().create(VERTEX_LABEL_ADD_UPDATE);
+        LockManager.instance().create(PROPERTY_KEY_ADD_UPDATE);
     }
 
     private static Lock lockRead(String group, String lock) {
@@ -110,6 +119,22 @@ public final class LockUtil {
         return lockList;
     }
 
+    public static String hugeType2Group(HugeType type) {
+        switch (type) {
+            case PROPERTY_KEY:
+                return PROPERTY_KEY_ADD_UPDATE;
+            case VERTEX_LABEL:
+                return VERTEX_LABEL_ADD_UPDATE;
+            case EDGE_LABEL:
+                return EDGE_LABEL_ADD_UPDATE;
+            case INDEX_LABEL:
+                return INDEX_LABEL_ADD_UPDATE;
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid HugeType '%s'", type));
+        }
+    }
+
     public static class Locks {
 
         public List<Lock> lockList;
@@ -127,12 +152,6 @@ public final class LockUtil {
         public void lockReads(String group, Collection<Id> locks) {
             for (Id lock : locks) {
                 this.lockList.add(lockRead(group, lock.asString()));
-            }
-        }
-
-        public void lockReads(String group, String... locks) {
-            for (String lock : locks) {
-                this.lockList.add(lockRead(group, lock));
             }
         }
 

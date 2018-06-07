@@ -317,9 +317,14 @@ public class GraphTransaction extends IndexableTransaction {
 
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.VERTEX_LABEL, vertex.schemaLabel().id());
-            locks.lockReads(LockUtil.INDEX_LABEL,
+            locks.lockReads(LockUtil.VERTEX_LABEL_DELETE, vertex.schemaLabel().id());
+            locks.lockReads(LockUtil.INDEX_LABEL_DELETE,
                             vertex.schemaLabel().indexLabels());
+            /*
+             * No need to lock VERTEX_LABEL_ADD_UPDATE, because vertex label
+             * update only can add nullable properties and user data, which is
+             * unconcerned with add vertex
+             */
             this.beforeWrite();
             this.addedVertexes.put(vertex.id(), vertex);
             this.afterWrite();
@@ -472,9 +477,14 @@ public class GraphTransaction extends IndexableTransaction {
 
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.EDGE_LABEL, edge.schemaLabel().id());
-            locks.lockReads(LockUtil.INDEX_LABEL,
+            locks.lockReads(LockUtil.EDGE_LABEL_DELETE, edge.schemaLabel().id());
+            locks.lockReads(LockUtil.INDEX_LABEL_DELETE,
                             edge.schemaLabel().indexLabels());
+            /*
+             * No need to lock EDGE_LABEL_ADD_UPDATE, because edge label
+             * update only can add nullable properties and user data, which is
+             * unconcerned with add edge
+             */
             this.beforeWrite();
             this.addedEdges.put(edge.id(), edge);
             this.afterWrite();
@@ -1051,8 +1061,12 @@ public class GraphTransaction extends IndexableTransaction {
 
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.INDEX_LABEL, lockIds);
-
+            locks.lockReads(LockUtil.INDEX_LABEL_DELETE, lockIds);
+            /*
+             * No need to lock INDEX_LABEL_ADD_UPDATE, because index label
+             * update only can add  user data, which is unconcerned with
+             * update property
+             */
             this.beforeWrite();
             callback.accept(locks);
             this.afterWrite();

@@ -365,8 +365,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Set<Id> ids = InsertionOrderUtil.newSet();
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.INDEX_LABEL, label);
-            locks.lockReads(LockUtil.INDEX_REBUILD, label);
+            locks.lockReads(LockUtil.INDEX_LABEL_DELETE, label);
+            locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, label);
 
             Iterator<BackendEntry> entries = super.query(query);
             while(entries.hasNext()) {
@@ -892,10 +892,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockWrites(LockUtil.INDEX_REBUILD, indexLabelIds);
-            locks.lockWrites(LockUtil.INDEX_LABEL, indexLabelIds);
+            locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
+            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
             this.removeIndex(indexLabelIds);
-            /**
+            /*
              * Note: Here must commit index transaction firstly.
              * Because remove index convert to (id like <?>:personByCity):
              * `delete from index table where label = ?`,
