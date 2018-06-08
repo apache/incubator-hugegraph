@@ -32,11 +32,23 @@ public final class InsertionOrderUtil {
         return new LinkedHashMap<>();
     }
 
+    public static <K, V> Map<K, V> newMap(Map<K, V> origin) {
+        return new LinkedHashMap<>(origin);
+    }
+
     public static <V> Set<V> newSet() {
         return new LinkedHashSet<>();
     }
 
+    public static <V> Set<V> newSet(Set<V> origin) {
+        return new LinkedHashSet<>(origin);
+    }
+
     public static <V> List<V> newList() {
         return new ArrayList<>();
+    }
+
+    public static <V> List<V> newList(List<V> origin) {
+        return new ArrayList<>(origin);
     }
 }

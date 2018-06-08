@@ -102,7 +102,9 @@ public final class JsonUtil {
 
     private static class DateSerializer extends StdSerializer<Date> {
 
-        DateSerializer() {
+        private static final long serialVersionUID = -6615155657857746161L;
+
+        public DateSerializer() {
             super(Date.class);
         }
 
@@ -116,7 +118,9 @@ public final class JsonUtil {
 
     private static class DateDeserializer extends StdDeserializer<Date> {
 
-        DateDeserializer() {
+        private static final long serialVersionUID = 1209944821349424949L;
+
+        public DateDeserializer() {
             super(Date.class);
         }
 

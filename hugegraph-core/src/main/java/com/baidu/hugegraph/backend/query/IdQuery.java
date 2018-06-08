@@ -20,27 +20,25 @@
 package com.baidu.hugegraph.backend.query;
 
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class IdQuery extends Query {
 
     // The id(s) will be concated with `or`
-    private Set<Id> ids;
+    private Set<Id> ids = InsertionOrderUtil.newSet();
 
     public IdQuery(HugeType resultType) {
         super(resultType);
-        this.ids = new LinkedHashSet<>();
     }
 
     public IdQuery(HugeType resultType, Query originQuery) {
         super(resultType, originQuery);
-        this.ids = new LinkedHashSet<>();
     }
 
     public IdQuery(HugeType resultType, Set<Id> ids) {
@@ -69,12 +67,13 @@ public class IdQuery extends Query {
     }
 
     public void resetIds() {
-        this.ids = new LinkedHashSet<>();
+        this.ids = InsertionOrderUtil.newSet();
     }
 
     public IdQuery query(Id id) {
         E.checkArgumentNotNull(id, "Query id can't be null");
         this.ids.add(id);
+        this.checkCapacity(this.ids.size());
         return this;
     }
 
@@ -93,7 +92,7 @@ public class IdQuery extends Query {
     @Override
     public IdQuery copy() {
         IdQuery query = (IdQuery) super.copy();
-        query.ids = new LinkedHashSet<>(this.ids);
+        query.ids = InsertionOrderUtil.newSet(this.ids);
         return query;
     }
 

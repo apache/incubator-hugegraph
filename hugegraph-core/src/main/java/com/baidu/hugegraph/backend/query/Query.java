@@ -177,6 +177,20 @@ public class Query implements Cloneable {
         this.capacity = capacity;
     }
 
+    public void checkCapacity(long count) {
+        // Throw BackendException if reach capacity
+        if (this.capacity != Query.NO_CAPACITY && count > this.capacity) {
+            final int MAX_CHARS = 256;
+            String query = this.toString();
+            if (query.length() > MAX_CHARS) {
+                query = query.substring(0, MAX_CHARS) + "...";
+            }
+            throw new BackendException(
+                      "Too many records(must <=%s) for a query: %s",
+                      this.capacity, query);
+        }
+    }
+
     public boolean showHidden() {
         return this.showHidden;
     }

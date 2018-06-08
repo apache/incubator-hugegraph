@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.store;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
@@ -98,12 +97,7 @@ public abstract class BackendEntryIterator<T>
 
     protected final void checkCapacity() {
         // Stop if reach capacity
-        if (this.query.capacity() != Query.NO_CAPACITY &&
-            this.count > this.query.capacity()) {
-            throw new BackendException(
-                      "Too many records(must <=%s) for a query",
-                      this.query.capacity());
-        }
+        this.query.checkCapacity(this.count);
     }
 
     protected final boolean exceedLimit() {
