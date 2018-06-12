@@ -464,11 +464,10 @@ public class CassandraTables {
                     HugeKeys.FIELD_VALUES, DataType.text()
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL,
+                    HugeKeys.ELEMENT_IDS, DataType.text()
             );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
-                    HugeKeys.ELEMENT_IDS, DataType.set(DataType.text())
-            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
             this.createTable(session, pkeys, ckeys, columns);
         }
@@ -476,12 +475,13 @@ public class CassandraTables {
         @Override
         protected List<HugeKeys> idColumnName() {
             return ImmutableList.of(HugeKeys.FIELD_VALUES,
-                                    HugeKeys.INDEX_LABEL_ID);
+                                    HugeKeys.INDEX_LABEL_ID,
+                                    HugeKeys.ELEMENT_IDS);
         }
 
         @Override
         protected List<HugeKeys> modifiableColumnName() {
-            return ImmutableList.of(HugeKeys.ELEMENT_IDS);
+            return ImmutableList.of();
         }
 
         @Override
@@ -489,9 +489,8 @@ public class CassandraTables {
                            CassandraBackendEntry.Row entry) {
             String fieldValues = entry.column(HugeKeys.FIELD_VALUES);
             if (fieldValues != null) {
-                throw new BackendException("SecondaryIndex deletion " +
-                          "should just have INDEX_LABEL_ID, " +
-                          "but FIELD_VALUES(%s) is provided.", fieldValues);
+                super.delete(session, entry);
+                return;
             }
 
             Long indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
@@ -529,6 +528,20 @@ public class CassandraTables {
             throw new BackendException(
                       "SecondaryIndex insertion is not supported.");
         }
+
+        @Override
+        public void append(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            assert entry.columns().size() == 3;
+            super.insert(session, entry);
+        }
+
+        @Override
+        public void eliminate(CassandraSessionPool.Session session,
+                              CassandraBackendEntry.Row entry) {
+            assert entry.columns().size() == 3;
+            this.delete(session, entry);
+        }
     }
 
     public static class RangeIndex extends CassandraTable {
@@ -545,11 +558,10 @@ public class CassandraTables {
                     HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.FIELD_VALUES, DataType.decimal()
+                    HugeKeys.FIELD_VALUES, DataType.decimal(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
             );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
-                    HugeKeys.ELEMENT_IDS, DataType.set(DataType.text())
-            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
             this.createTable(session, pkeys, ckeys, columns);
         }
@@ -557,22 +569,22 @@ public class CassandraTables {
         @Override
         protected List<HugeKeys> idColumnName() {
             return ImmutableList.of(HugeKeys.INDEX_LABEL_ID,
-                                    HugeKeys.FIELD_VALUES);
+                                    HugeKeys.FIELD_VALUES,
+                                    HugeKeys.ELEMENT_IDS);
         }
 
         @Override
         protected List<HugeKeys> modifiableColumnName() {
-            return ImmutableList.of(HugeKeys.ELEMENT_IDS);
+            return ImmutableList.of();
         }
 
         @Override
         public void delete(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            String fieldValues = entry.column(HugeKeys.FIELD_VALUES);
+            Number fieldValues = entry.column(HugeKeys.FIELD_VALUES);
             if (fieldValues != null) {
-                throw new BackendException("Range index deletion " +
-                          "should just have INDEX_LABEL_ID, " +
-                          "but PROPERTY_VALUES(%s) is provided.", fieldValues);
+                super.delete(session, entry);
+                return;
             }
 
             Long indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
@@ -590,7 +602,21 @@ public class CassandraTables {
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             throw new BackendException(
-                      "Range index insertion is not supported.");
+                      "RangeIndex insertion is not supported.");
+        }
+
+        @Override
+        public void append(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            assert entry.columns().size() == 3;
+            super.insert(session, entry);
+        }
+
+        @Override
+        public void eliminate(CassandraSessionPool.Session session,
+                              CassandraBackendEntry.Row entry) {
+            assert entry.columns().size() == 3;
+            this.delete(session, entry);
         }
     }
 }

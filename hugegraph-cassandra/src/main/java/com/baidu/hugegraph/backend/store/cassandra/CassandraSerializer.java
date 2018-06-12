@@ -39,6 +39,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class CassandraSerializer extends TableSerializer {
 
@@ -62,7 +63,7 @@ public class CassandraSerializer extends TableSerializer {
 
     @Override
     protected Set<String> parseIndexElemIds(TableBackendEntry entry) {
-        return entry.column(HugeKeys.ELEMENT_IDS);
+        return ImmutableSet.of(entry.column(HugeKeys.ELEMENT_IDS));
     }
 
     @Override
