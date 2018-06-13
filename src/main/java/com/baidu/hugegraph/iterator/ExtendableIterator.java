@@ -26,8 +26,9 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-public class ExtendableIterator<T>
-       implements Iterator<T>, AutoCloseable, Metadatable {
+import org.apache.commons.lang.NotImplementedException;
+
+public class ExtendableIterator<T> extends WrappedIterator<T> {
 
     private final Deque<Iterator<T>> itors;
     private final List<Iterator<T>> removedItors;
@@ -97,11 +98,12 @@ public class ExtendableIterator<T>
     }
 
     @Override
-    public Object metadata(String meta, Object... args) {
-        Iterator<T> iterator = this.itors.peekLast();
-        if (iterator instanceof Metadatable) {
-            return ((Metadatable) iterator).metadata(meta, args);
-        }
-        throw new IllegalStateException("Original iterator is not Metadatable");
+    protected Iterator<?> originIterator() {
+        return this.itors.peekLast();
+    }
+
+    @Override
+    protected boolean fetch() {
+        throw new NotImplementedException("ExtendableIterator.fetch()");
     }
 }

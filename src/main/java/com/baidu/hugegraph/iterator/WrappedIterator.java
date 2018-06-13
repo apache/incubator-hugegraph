@@ -22,6 +22,8 @@ package com.baidu.hugegraph.iterator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.baidu.hugegraph.util.E;
+
 public abstract class WrappedIterator<R>
                 implements Iterator<R>, AutoCloseable, Metadatable {
 
@@ -50,6 +52,14 @@ public abstract class WrappedIterator<R>
         R current = this.current;
         this.current = null;
         return current;
+    }
+
+    @Override
+    public void remove() {
+        Iterator<?> iterator = this.originIterator();
+        E.checkState(iterator != null,
+                     "The origin iterator can't be null for removing");
+        iterator.remove();
     }
 
     @Override
