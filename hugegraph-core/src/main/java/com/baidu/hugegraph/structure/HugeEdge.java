@@ -404,6 +404,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         if (vertex == this.sourceVertex) {
             return this.targetVertex;
         } else {
+            E.checkArgument(vertex == this.targetVertex,
+                            "Invalid argument vertex '%s', must be in [%s, %s]",
+                            vertex, this.sourceVertex, this.targetVertex);
             return this.sourceVertex;
         }
     }
