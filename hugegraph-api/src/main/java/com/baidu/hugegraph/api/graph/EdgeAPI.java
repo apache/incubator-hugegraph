@@ -193,7 +193,7 @@ public class EdgeAPI extends BatchAPI {
         commit(g, () -> {
             for (Map.Entry<String, Object> e : jsonEdge.properties.entrySet()) {
                 String key = e.getKey();
-                Object value = e.getKey();
+                Object value = e.getValue();
                 if (append) {
                     edge.property(key, value);
                 } else {
