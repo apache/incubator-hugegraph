@@ -17,8 +17,38 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.type;
+package com.baidu.hugegraph.util;
 
-public interface TriFunction <T1, T2, T3, R> {
-    public R apply(T1 v1, T2 v2, T3 v3);
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public final class InsertionOrderUtil {
+
+    public static <K, V> Map<K, V> newMap() {
+        return new LinkedHashMap<>();
+    }
+
+    public static <K, V> Map<K, V> newMap(Map<K, V> origin) {
+        return new LinkedHashMap<>(origin);
+    }
+
+    public static <V> Set<V> newSet() {
+        return new LinkedHashSet<>();
+    }
+
+    public static <V> Set<V> newSet(Set<V> origin) {
+        return new LinkedHashSet<>(origin);
+    }
+
+    public static <V> List<V> newList() {
+        return new ArrayList<>();
+    }
+
+    public static <V> List<V> newList(List<V> origin) {
+        return new ArrayList<>(origin);
+    }
 }

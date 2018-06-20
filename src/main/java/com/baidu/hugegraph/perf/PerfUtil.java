@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.type.TriFunction;
+import com.baidu.hugegraph.func.TriFunction;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.ReflectionUtil;
 import com.google.common.reflect.ClassPath.ClassInfo;
