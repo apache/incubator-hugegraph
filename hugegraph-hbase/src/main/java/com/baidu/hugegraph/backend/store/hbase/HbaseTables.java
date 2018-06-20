@@ -148,7 +148,40 @@ public class HbaseTables {
         }
     }
 
-    public static class SecondaryIndex extends HbaseTable {
+    public static class IndexTable extends HbaseTable {
+
+        private static final int INDEX_DELETE_BATCH = 1000;
+
+        public IndexTable(String table) {
+            super(table);
+        }
+
+        @Override
+        public void delete(Session session, BackendEntry entry) {
+            /*
+             * Only delete index by label will come here
+             * Regular index delete will call eliminate()
+             */
+            int count = 0;
+            for (BackendColumn column : entry.columns()) {
+                // Prefix query index label related indexes
+                RowIterator iter = session.scan(this.table(), column.name);
+                while (iter.hasNext()) {
+                    session.delete(this.table(), CF, iter.next().getRow());
+                    // Commit once reaching batch size
+                    if (++count >= INDEX_DELETE_BATCH) {
+                        session.commit();
+                        count = 0;
+                    }
+                }
+            }
+            if (count > 0) {
+                session.commit();
+            }
+        }
+    }
+
+    public static class SecondaryIndex extends IndexTable {
 
         public static final String TABLE = "si";
 
@@ -157,7 +190,7 @@ public class HbaseTables {
         }
     }
 
-    public static class RangeIndex extends HbaseTable {
+    public static class RangeIndex extends IndexTable {
 
         public static final String TABLE = "ri";
 

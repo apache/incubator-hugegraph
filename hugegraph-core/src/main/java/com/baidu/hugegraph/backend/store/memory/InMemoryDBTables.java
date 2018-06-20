@@ -187,7 +187,7 @@ public class InMemoryDBTables {
                 }
             }
             assert fieldValue != null && indexLabelId != null;
-            Id id = SplicingIdGenerator.splicing(fieldValue, indexLabelId);
+            Id id = SplicingIdGenerator.splicing(indexLabelId, fieldValue);
             IdQuery q = new IdQuery(query, id);
             q.offset(query.offset());
             q.limit(query.limit());

@@ -401,11 +401,10 @@ public class BinarySerializer extends AbstractSerializer {
         if (index.fieldValues() == null && index.elementIds().size() == 0) {
             /*
              * When field-values is null and elementIds size is 0, it is
-             * meaningful for deletion of index data in secondary/range index.
+             * meaningful for deletion of index data by index label.
              * TODO: improve
              */
-            Id id = index.indexLabel();
-            entry = newBackendEntry(index.type(), id);
+            entry = this.formatILDeletion(index);
         } else {
             Id id = index.id();
             byte[] value = null;
@@ -527,6 +526,47 @@ public class BinarySerializer extends AbstractSerializer {
 
         E.checkState(false, "Unsupported index query: %s", type);
         return null;
+    }
+
+    private BinaryBackendEntry formatILDeletion(HugeIndex index) {
+        Id id = index.indexLabel();
+        BinaryBackendEntry entry = newBackendEntry(index.type(), id);
+        switch (index.type()) {
+            case SECONDARY_INDEX:
+                String idString = id.asString();
+                int idLength = idString.length();
+                for (int i = idLength - 1; i < 128; i++) {
+                    BytesBuffer buffer = BytesBuffer.allocate(idLength + 1);
+                    /*
+                     * Index id type is always non-number, that it will prefix
+                     * with '0b1xxx xxxx'
+                     */
+                    buffer.writeUInt8(i | 0x80);
+                    buffer.write(IdGenerator.of(idString).asBytes());
+                    entry.column(buffer.bytes(), null);
+                }
+                break;
+            case RANGE_INDEX:
+                int il = (int) id.asLong();
+                for (int i = 0; i < 4; i++) {
+                    /*
+                     * Field value(Number type) length is 1, 2, 4, 8.
+                     * Index label id length is 4
+                     */
+                    int length = (int) Math.pow(2, i) + 4;
+                    length -= 1;
+                    BytesBuffer buffer = BytesBuffer.allocate(1 + 4);
+                    buffer.writeUInt8(length | 0x80);
+                    buffer.writeInt(il);
+                    entry.column(buffer.bytes(), null);
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Index type must be Secondary or Range, " +
+                          "but got '%s'", index.type()));
+        }
+        return entry;
     }
 
     private Query writeSecondaryIndexQuery(ConditionQuery query) {

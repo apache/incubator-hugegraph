@@ -28,6 +28,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
@@ -158,6 +159,17 @@ public class RocksDBTables {
         public SecondaryIndex(String database) {
             super(database, TABLE);
         }
+
+        @Override
+        public void delete(Session session, BackendEntry entry) {
+            /*
+             * Only delete index by label will come here
+             * Regular index delete will call eliminate()
+             */
+            for (BackendEntry.BackendColumn column : entry.columns()) {
+                session.delete(this.table(), column.name);
+            }
+        }
     }
 
     public static class RangeIndex extends RocksDBTable {
@@ -219,6 +231,17 @@ public class RocksDBTables {
                 byte[] end = max.asBytes();
                 int type = maxEq ? Session.SCAN_LTE_END : Session.SCAN_LT_END;
                 return session.scan(this.table(), begin, end, type);
+            }
+        }
+
+        @Override
+        public void delete(Session session, BackendEntry entry) {
+            /*
+             * Only delete index by label will come here
+             * Regular index delete will call eliminate()
+             */
+            for (BackendEntry.BackendColumn column : entry.columns()) {
+                session.delete(this.table(), column.name);
             }
         }
     }

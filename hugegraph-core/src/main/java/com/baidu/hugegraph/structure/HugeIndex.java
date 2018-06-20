@@ -146,7 +146,11 @@ public class HugeIndex implements GraphType {
                                    Object fieldValues) {
         if (type.isSecondaryIndex()) {
             String value = fieldValues == null ? "" : fieldValues.toString();
-            return SplicingIdGenerator.splicing(value, indexLabel.asString());
+            /*
+             * Modify order between index label and field-values to put the
+             * index label in front(hugegraph-1317)
+             */
+            return SplicingIdGenerator.splicing(indexLabel.asString(), value);
         } else {
             assert type.isRangeIndex();
             BytesBuffer buffer = BytesBuffer.allocate(16);
@@ -171,9 +175,9 @@ public class HugeIndex implements GraphType {
             Id idObject = IdGenerator.of(id, false);
             String[] parts = SplicingIdGenerator.parse(idObject);
             E.checkState(parts.length == 2, "Invalid secondary index id");
-            values = parts[0];
-            Id label = SchemaElement.schemaId(parts[1]);
+            Id label = SchemaElement.schemaId(parts[0]);
             indexLabel = IndexLabel.label(graph, label);
+            values = parts[1];
         } else {
             assert type.isRangeIndex();
             final int labelLength = 4;
