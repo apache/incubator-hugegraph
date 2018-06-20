@@ -44,7 +44,7 @@ import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.dht.Token.TokenFactory;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.type.Shard;
+import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.util.Bytes;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.Metadata;

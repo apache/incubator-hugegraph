@@ -28,9 +28,9 @@ import java.util.function.BiFunction;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
-import com.baidu.hugegraph.type.Shard;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
