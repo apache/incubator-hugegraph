@@ -298,6 +298,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     private static class Changes extends ArrayList<Pair<byte[], byte[]>> {
+
         private static final long serialVersionUID = 9047034706183029125L;
     }
 }

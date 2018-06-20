@@ -681,18 +681,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return queries;
     }
 
-    private static Set<ConditionQuery> query2IndexQuery(ConditionQuery query,
-                                                        HugeElement element) {
-        Set<ConditionQuery> indexQueries = InsertionOrderUtil.newSet();
-        for (IndexLabel indexLabel : relatedIndexLabels(element)) {
-            ConditionQuery indexQuery = matchIndexLabel(query, indexLabel);
-            if (indexQuery != null) {
-                indexQueries.add(indexQuery);
-            }
-        }
-        return indexQueries;
-    }
-
     private static ConditionQuery matchIndexLabel(ConditionQuery query,
                                                   IndexLabel indexLabel) {
         boolean requireRange = query.hasRangeCondition();
@@ -969,6 +957,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static class IndexQueries
                    extends HashMap<IndexLabel, ConditionQuery> {
+
+        private static final long serialVersionUID = 1400326138090922676L;
 
         public static final IndexQueries EMPTY = new IndexQueries();
     }

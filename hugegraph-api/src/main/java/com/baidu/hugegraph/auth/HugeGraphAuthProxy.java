@@ -132,7 +132,7 @@ public class HugeGraphAuthProxy implements Graph {
     @Override
     public String toString() {
         this.verifyPermission();
-        return this.hugegraph.name();
+        return this.hugegraph.toString();
     }
 
     public HugeGraph graph() {
@@ -176,7 +176,11 @@ public class HugeGraphAuthProxy implements Graph {
     }
 
     private void verifyPermission() {
-        // Should match owner role
+        /*
+         * The owner role should match the graph name
+         * NOTE: the graph names in gremlin-server.yaml/graphs and
+         * hugegraph.properties/store must be the same if enable auth.
+         */
         this.verifyPermission(this.hugegraph.name());
     }
 
