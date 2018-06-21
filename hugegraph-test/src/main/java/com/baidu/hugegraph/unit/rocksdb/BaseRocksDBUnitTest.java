@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.mockito.Mockito;
 import org.rocksdb.RocksDBException;
 
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -116,8 +117,9 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
         Configuration conf = Mockito.mock(PropertiesConfiguration.class);
         Mockito.when(conf.getKeys()).thenReturn(Collections.emptyIterator());
         HugeConfig config = new HugeConfig(conf);
-        final String path = DB_PATH;
-        RocksDBSessions rocks = new RocksDBStdSessions(config, path, path);
+        config.setProperty(RocksDBOptions.DATA_PATH.name(), DB_PATH);
+        config.setProperty(RocksDBOptions.WAL_PATH.name(), DB_PATH);
+        RocksDBSessions rocks = new RocksDBStdSessions(config, "test-store");
         rocks.createTable(table);
         return rocks;
     }

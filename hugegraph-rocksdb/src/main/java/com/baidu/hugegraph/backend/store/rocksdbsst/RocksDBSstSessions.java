@@ -38,6 +38,7 @@ import org.rocksdb.SstFileWriter;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -50,23 +51,35 @@ public class RocksDBSstSessions extends RocksDBSessions {
     private final String dataPath;
     private final Map<String, SstFileWriter> tables;
 
-    public RocksDBSstSessions(HugeConfig config, String dataPath) {
+    public RocksDBSstSessions(HugeConfig config, String store) {
+        super(store);
+
         this.conf = config;
-        this.dataPath = dataPath;
+        this.dataPath = this.wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
         this.tables = new ConcurrentHashMap<>();
 
-        File path = new File(dataPath);
+        File path = new File(this.dataPath);
         if (!path.exists()) {
             E.checkState(path.mkdirs(), "Can't mkdir '%s'", path);
         }
     }
 
-    public RocksDBSstSessions(HugeConfig config, String dataPath,
+    public RocksDBSstSessions(HugeConfig config, String store,
                               List<String> tableNames) throws RocksDBException {
-        this(config, dataPath);
+        this(config, store);
         for (String table : tableNames) {
             this.createTable(table);
         }
+    }
+
+    @Override
+    public void open(HugeConfig config) throws Exception {
+        // pass
+    }
+
+    @Override
+    protected boolean opened() {
+        return true;
     }
 
     @Override

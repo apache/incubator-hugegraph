@@ -27,7 +27,7 @@ import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraSchem
 public class CassandraStoreProvider extends AbstractBackendStoreProvider {
 
     protected String keyspace() {
-        return this.name().toLowerCase();
+        return this.graph().toLowerCase();
     }
 
     @Override

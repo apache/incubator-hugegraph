@@ -77,8 +77,8 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                   extends CassandraStore.CassandraSchemaStore {
 
         public ScyllaDBSchemaStore(BackendStoreProvider provider,
-                                   String keyspace, String name) {
-            super(provider, keyspace, name);
+                                   String keyspace, String store) {
+            super(provider, keyspace, store);
 
             registerTableManager(HugeType.VERTEX_LABEL,
                                  new ScyllaDBTables.VertexLabel());
@@ -100,8 +100,8 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                   extends CassandraStore.CassandraGraphStore {
 
         public ScyllaDBGraphStore(BackendStoreProvider provider,
-                                  String keyspace, String name) {
-            super(provider, keyspace, name);
+                                  String keyspace, String store) {
+            super(provider, keyspace, store);
 
             // TODO: read Scylla version from conf
             int version = 17;

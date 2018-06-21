@@ -36,13 +36,14 @@ public abstract class AbstractBackendStoreProvider
 
     private static final Logger LOG = Log.logger(BackendStoreProvider.class);
 
-    protected String name = null;
+    private String graph = null;
+
     protected Map<String, BackendStore> stores = null;
 
     protected EventHub storeEventHub = new EventHub("store");
 
     protected void checkOpened() {
-        E.checkState(this.name != null && this.stores != null,
+        E.checkState(this.graph != null && this.stores != null,
                      "The BackendStoreProvider has not been opened");
     }
 
@@ -56,17 +57,17 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public String name() {
+    public String graph() {
         this.checkOpened();
-        return this.name;
+        return this.graph;
     }
 
     @Override
-    public void open(String name) {
-        E.checkArgumentNotNull(name, "The store name can't be null");
-        E.checkArgument(!name.isEmpty(), "The store name can't be empty");
+    public void open(String graph) {
+        E.checkArgument(graph != null, "The graph name can't be null");
+        E.checkArgument(!graph.isEmpty(), "The graph name can't be empty");
 
-        this.name = name;
+        this.graph = graph;
         this.stores = new ConcurrentHashMap<>();
 
         this.storeEventHub.notify(Events.STORE_OPEN, this);

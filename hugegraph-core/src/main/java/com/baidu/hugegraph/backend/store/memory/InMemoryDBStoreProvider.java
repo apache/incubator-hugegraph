@@ -31,29 +31,29 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     private static Map<String, InMemoryDBStoreProvider> providers = null;
 
-    public static synchronized InMemoryDBStoreProvider instance(String name) {
+    public static synchronized InMemoryDBStoreProvider instance(String graph) {
         if (providers == null) {
             providers = new ConcurrentHashMap<>();
         }
-        if (!providers.containsKey(name)) {
-            InMemoryDBStoreProvider p = new InMemoryDBStoreProvider(name);
-            providers.putIfAbsent(name, p);
+        if (!providers.containsKey(graph)) {
+            InMemoryDBStoreProvider p = new InMemoryDBStoreProvider(graph);
+            providers.putIfAbsent(graph, p);
         }
-        return providers.get(name);
+        return providers.get(graph);
     }
 
-    public InMemoryDBStoreProvider(String name) {
-        this.open(name);
+    private InMemoryDBStoreProvider(String graph) {
+        this.open(graph);
     }
 
     @Override
     protected BackendStore newSchemaStore(String store) {
-        return new InMemorySchemaStore(this, store);
+        return new InMemorySchemaStore(this, this.graph(), store);
     }
 
     @Override
     protected BackendStore newGraphStore(String store) {
-        return new InMemoryGraphStore(this, store);
+        return new InMemoryGraphStore(this, this.graph(), store);
     }
 
     @Override

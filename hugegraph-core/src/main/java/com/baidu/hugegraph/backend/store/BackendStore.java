@@ -28,8 +28,11 @@ import com.baidu.hugegraph.type.HugeType;
 
 public interface BackendStore {
 
+    // Store name
+    public String store();
+
     // Database name
-    public String name();
+    public String database();
 
     // Get the parent provider
     public BackendStoreProvider provider();

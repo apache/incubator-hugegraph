@@ -58,16 +58,28 @@ import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendIterator;
 import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
 
 public class HbaseSessions extends BackendSessionPool {
 
-    private final String ns;
-    private final Connection hbase;
+    private final String namespace;
+    private Connection hbase;
 
-    public HbaseSessions(String namespace, String hosts, int port)
-                         throws IOException {
-        this.ns = namespace;
+    public HbaseSessions(String namespace) {
+        this.namespace = namespace;
+    }
+
+    private Table table(String table) throws IOException {
+        E.checkState(this.hbase != null, "HBase connection is not opened");
+        TableName tableName = TableName.valueOf(this.namespace, table);
+        return this.hbase.getTable(tableName);
+    }
+
+    @Override
+    public synchronized void open(HugeConfig conf) throws IOException {
+        String hosts = conf.get(HbaseOptions.HBASE_HOSTS);
+        int port = conf.get(HbaseOptions.HBASE_PORT);
 
         Configuration config = HBaseConfiguration.create();
         config.set("hbase.zookeeper.quorum", hosts);
@@ -76,9 +88,9 @@ public class HbaseSessions extends BackendSessionPool {
         this.hbase = ConnectionFactory.createConnection(config);
     }
 
-    private Table table(String table) throws IOException {
-        TableName tableName = TableName.valueOf(this.ns, table);
-        return this.hbase.getTable(tableName);
+    @Override
+    protected boolean opened() {
+        return this.hbase != null && !this.hbase.isClosed();
     }
 
     @Override
@@ -93,7 +105,7 @@ public class HbaseSessions extends BackendSessionPool {
 
     @Override
     protected void doClose() {
-        if (this.hbase.isClosed()) {
+        if (this.hbase == null || this.hbase.isClosed()) {
             return;
         }
         try {
@@ -106,7 +118,7 @@ public class HbaseSessions extends BackendSessionPool {
     public boolean existsNamespace() throws IOException {
         try(Admin admin = this.hbase.getAdmin()) {
             for (NamespaceDescriptor ns : admin.listNamespaceDescriptors()) {
-                if (this.ns.equals(ns.getName())) {
+                if (this.namespace.equals(ns.getName())) {
                     return true;
                 }
             }
@@ -115,7 +127,8 @@ public class HbaseSessions extends BackendSessionPool {
     }
 
     public void createNamespace() throws IOException {
-        NamespaceDescriptor ns = NamespaceDescriptor.create(this.ns).build();
+        NamespaceDescriptor ns = NamespaceDescriptor.create(this.namespace)
+                                                    .build();
         try(Admin admin = this.hbase.getAdmin()) {
             admin.createNamespace(ns);
         }
@@ -123,31 +136,31 @@ public class HbaseSessions extends BackendSessionPool {
 
     public void dropNamespace() throws IOException {
         try(Admin admin = this.hbase.getAdmin()) {
-            admin.deleteNamespace(this.ns);
+            admin.deleteNamespace(this.namespace);
         }
     }
 
     public boolean existsTable(String table) throws IOException {
-        TableName tableName = TableName.valueOf(this.ns, table);
+        TableName tableName = TableName.valueOf(this.namespace, table);
         try(Admin admin = this.hbase.getAdmin()) {
             return admin.tableExists(tableName);
         }
     }
 
     public void createTable(String table, List<byte[]> cfs) throws IOException {
-        TableDescriptorBuilder builder = TableDescriptorBuilder.newBuilder(
-                                         TableName.valueOf(this.ns, table));
+        TableDescriptorBuilder tb = TableDescriptorBuilder.newBuilder(
+                                    TableName.valueOf(this.namespace, table));
         for (byte[] cf : cfs) {
-            builder.setColumnFamily(ColumnFamilyDescriptorBuilder
-                                    .newBuilder(cf).build());
+            tb.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
+                                                            .build());
         }
         try(Admin admin = this.hbase.getAdmin()) {
-            admin.createTable(builder.build());
+            admin.createTable(tb.build());
         }
     }
 
     public void dropTable(String table) throws IOException {
-        TableName tableName = TableName.valueOf(this.ns, table);
+        TableName tableName = TableName.valueOf(this.namespace, table);
         try(Admin admin = this.hbase.getAdmin()) {
             try {
                 admin.disableTable(tableName);
@@ -166,7 +179,7 @@ public class HbaseSessions extends BackendSessionPool {
                 //ServerLoad load = admin.getClusterStatus().getLoad(rs);
                 //total += load.getStorefileSizeMB() * Bytes.MB;
                 //total += load.getMemStoreSizeMB() * Bytes.MB;
-                TableName tableName = TableName.valueOf(this.ns, table);
+                TableName tableName = TableName.valueOf(this.namespace, table);
                 for (RegionMetrics m : admin.getRegionMetrics(rs, tableName)) {
                     total += m.getStoreFileSize().getLongValue();
                     total += m.getMemStoreSize().getLongValue();

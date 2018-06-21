@@ -47,10 +47,12 @@ public class MysqlSessions extends BackendSessionPool {
 
     private HugeConfig config;
     private String database;
+    private boolean opened;
 
     public MysqlSessions(HugeConfig config, String database) {
         this.config = config;
         this.database = database;
+        this.opened = false;
     }
 
     public HugeConfig config() {
@@ -64,21 +66,22 @@ public class MysqlSessions extends BackendSessionPool {
     /**
      * Try connect with specified database, will not reconnect if failed
      */
-    public void tryOpen() throws SQLException {
-        Connection conn = null;
-        try {
-            conn = this.open(false);
-        } finally {
-            if (conn != null) {
-                conn.close();
-            }
+    @Override
+    public void open(HugeConfig config) throws Exception {
+        try (Connection conn = this.open(false)) {
+            this.opened = true;
         }
+    }
+
+    @Override
+    protected boolean opened() {
+        return this.opened;
     }
 
     /**
      * Connect DB with specified database
      */
-    private Connection open(Boolean autoReconnect) throws SQLException {
+    private Connection open(boolean autoReconnect) throws SQLException {
         String url = this.config.get(MysqlOptions.JDBC_URL);
         if (url.endsWith("/")) {
             url = String.format("%s%s", url, this.database);
@@ -86,16 +89,16 @@ public class MysqlSessions extends BackendSessionPool {
             url = String.format("%s/%s", url, this.database);
         }
 
-        Integer maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
-        Integer interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
+        int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
+        int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
 
         URIBuilder uriBuilder = new URIBuilder();
         uriBuilder.setPath(url)
                   .setParameter("rewriteBatchedStatements", "true")
                   .setParameter("useServerPrepStmts", "false")
-                  .setParameter("autoReconnect", autoReconnect.toString())
-                  .setParameter("maxReconnects", maxTimes.toString())
-                  .setParameter("initialTimeout", interval.toString());
+                  .setParameter("autoReconnect", String.valueOf(autoReconnect))
+                  .setParameter("maxReconnects", String.valueOf(maxTimes))
+                  .setParameter("initialTimeout", String.valueOf(interval));
         return this.connect(uriBuilder.toString());
     }
 
@@ -123,6 +126,7 @@ public class MysqlSessions extends BackendSessionPool {
         // pass
     }
 
+    @Override
     public synchronized Session session() {
         return (Session) super.getOrNewSession();
     }

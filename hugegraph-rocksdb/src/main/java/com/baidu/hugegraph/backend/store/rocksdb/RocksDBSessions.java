@@ -19,15 +19,25 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.rocksdb.RocksDBException;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 
 public abstract class RocksDBSessions extends BackendSessionPool {
+
+    private final String store;
+
+    public RocksDBSessions(String store) {
+        this.store = store;
+    }
 
     public abstract Set<String> openedTables();
 
@@ -36,6 +46,21 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     @Override
     public abstract Session session();
+
+    public String wrapPath(String path) {
+        return wrapPath(path, this.store);
+    }
+
+    public static String wrapPath(String path, String store) {
+        // Ensure the `path` exists
+        try {
+            FileUtils.forceMkdir(FileUtils.getFile(path));
+        } catch (IOException e) {
+            throw new BackendException(e.getMessage(), e);
+        }
+        // Join with store type
+        return Paths.get(path, store).toString();
+    }
 
     /**
      * Session for RocksDB

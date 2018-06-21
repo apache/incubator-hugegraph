@@ -57,18 +57,22 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class RocksDBStdSessions extends RocksDBSessions {
 
+    private final Map<String, ColumnFamilyHandle> cfs = new HashMap<>();
+
     private final HugeConfig conf;
     private final RocksDB rocksdb;
-    private final Map<String, ColumnFamilyHandle> cfs;
 
-    public RocksDBStdSessions(HugeConfig conf, String dataPath, String walPath)
+    public RocksDBStdSessions(HugeConfig config, String store)
                               throws RocksDBException {
-        this.conf = conf;
-        this.cfs = new HashMap<>();
+        super(store);
+        this.conf = config;
+
+        String dataPath = wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
+        String walPath = wrapPath(this.conf.get(RocksDBOptions.WAL_PATH));
 
         // Init options
         Options options = new Options();
-        initOptions(this.conf, options, options, options);
+        RocksDBStdSessions.initOptions(this.conf, options, options, options);
         options.setWalDir(walPath);
 
         /*
@@ -78,10 +82,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.rocksdb = RocksDB.open(options, dataPath);
     }
 
-    public RocksDBStdSessions(HugeConfig conf, String dataPath, String walPath,
+    public RocksDBStdSessions(HugeConfig config, String store,
                               List<String> cfNames) throws RocksDBException {
-        this.conf = conf;
-        this.cfs = new HashMap<>();
+        super(store);
+        this.conf = config;
+
+        String dataPath = wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
+        String walPath = wrapPath(this.conf.get(RocksDBOptions.WAL_PATH));
 
         // Old CFs should always be opened
         List<String> cfs = this.mergeOldCFs(dataPath, cfNames);
@@ -91,13 +98,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         for (String cf : cfs) {
             ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
             ColumnFamilyOptions options = cfd.columnFamilyOptions();
-            initOptions(this.conf, null, options, options);
+            RocksDBStdSessions.initOptions(this.conf, null, options, options);
             cfds.add(cfd);
         }
 
         // Init DB options
         DBOptions options = new DBOptions();
-        initOptions(this.conf, options, null, null);
+        RocksDBStdSessions.initOptions(this.conf, options, null, null);
         options.setWalDir(walPath);
 
         // Open RocksDB with CFs
@@ -112,6 +119,16 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         ingestExternalFile();
+    }
+
+    @Override
+    public void open(HugeConfig config) throws Exception {
+        // pass
+    }
+
+    @Override
+    protected boolean opened() {
+        return this.rocksdb != null;
     }
 
     @Override

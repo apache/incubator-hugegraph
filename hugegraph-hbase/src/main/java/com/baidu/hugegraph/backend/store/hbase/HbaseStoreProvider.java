@@ -27,7 +27,7 @@ import com.baidu.hugegraph.backend.store.hbase.HbaseStore.HbaseSchemaStore;
 public class HbaseStoreProvider extends AbstractBackendStoreProvider {
 
     protected String namespace() {
-        return this.name().toLowerCase();
+        return this.graph().toLowerCase();
     }
 
     @Override

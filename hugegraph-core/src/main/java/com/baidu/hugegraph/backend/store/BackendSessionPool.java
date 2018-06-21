@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Log;
 
 public abstract class BackendSessionPool {
@@ -105,6 +106,10 @@ public abstract class BackendSessionPool {
                              this.getClass().getSimpleName(),
                              this.hashCode());
     }
+
+    public abstract void open(HugeConfig config) throws Exception;
+
+    protected abstract boolean opened();
 
     public abstract BackendSession session();
 

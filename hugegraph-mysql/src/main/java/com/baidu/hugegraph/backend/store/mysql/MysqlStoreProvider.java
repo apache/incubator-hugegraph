@@ -31,7 +31,7 @@ import com.baidu.hugegraph.util.Events;
 public class MysqlStoreProvider extends AbstractBackendStoreProvider {
 
     protected String database() {
-        return this.name().toLowerCase();
+        return this.graph().toLowerCase();
     }
 
     @Override

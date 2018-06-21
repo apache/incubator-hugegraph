@@ -23,9 +23,11 @@ import com.baidu.hugegraph.event.EventListener;
 
 public interface BackendStoreProvider {
 
+    // Backend store type
     public String type();
 
-    public String name();
+    // Graph name (that's database name)
+    public String graph();
 
     public BackendStore loadSchemaStore(String name);
 

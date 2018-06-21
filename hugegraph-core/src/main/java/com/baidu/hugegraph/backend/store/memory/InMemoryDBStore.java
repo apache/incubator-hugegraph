@@ -58,14 +58,18 @@ public class InMemoryDBStore implements BackendStore {
     private static final Logger LOG = Log.logger(InMemoryDBStore.class);
 
     private final BackendStoreProvider provider;
-    private final String name;
+
+    private final String store;
+    private final String database;
+
     private final Map<HugeType, InMemoryDBTable> tables;
     private final LocalCounter counter;
 
     public InMemoryDBStore(final BackendStoreProvider provider,
-                           final String name) {
+                           final String database, final String store) {
         this.provider = provider;
-        this.name = name;
+        this.database = database;
+        this.store = store;
         this.tables = new HashMap<>();
         this.counter = new LocalCounter();
     }
@@ -93,7 +97,7 @@ public class InMemoryDBStore implements BackendStore {
         InMemoryDBTable table = this.table(InMemoryDBTable.tableType(query));
         Iterator<BackendEntry> rs = table.query(null, query);
         LOG.debug("[store {}] has result({}) for query: {}",
-                  this.name, rs.hasNext(), query);
+                  this.store, rs.hasNext(), query);
         return rs;
     }
 
@@ -111,19 +115,19 @@ public class InMemoryDBStore implements BackendStore {
         InMemoryDBTable table = this.table(entry.type());
         switch (item.action()) {
             case INSERT:
-                LOG.debug("[store {}] add entry: {}", this.name, entry);
+                LOG.debug("[store {}] add entry: {}", this.store, entry);
                 table.insert(null, entry);
                 break;
             case DELETE:
-                LOG.debug("[store {}] remove id: {}", this.name, entry.id());
+                LOG.debug("[store {}] remove id: {}", this.store, entry.id());
                 table.delete(null, entry);
                 break;
             case APPEND:
-                LOG.debug("[store {}] append entry: {}", this.name, entry);
+                LOG.debug("[store {}] append entry: {}", this.store, entry);
                 table.append(null, entry);
                 break;
             case ELIMINATE:
-                LOG.debug("[store {}] eliminate entry: {}", this.name, entry);
+                LOG.debug("[store {}] eliminate entry: {}", this.store, entry);
                 table.eliminate(null, entry);
                 break;
             default:
@@ -133,8 +137,13 @@ public class InMemoryDBStore implements BackendStore {
     }
 
     @Override
-    public String name() {
-        return this.name;
+    public String store() {
+        return this.store;
+    }
+
+    @Override
+    public String database() {
+        return this.database;
     }
 
     @Override
@@ -196,15 +205,16 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public String toString() {
-        return this.name;
+        return this.store;
     }
 
     /***************************** Store defines *****************************/
 
     public static class InMemorySchemaStore extends InMemoryDBStore {
 
-        public InMemorySchemaStore(BackendStoreProvider provider, String name) {
-            super(provider, name);
+        public InMemorySchemaStore(BackendStoreProvider provider,
+                                   String database, String store) {
+            super(provider, database, store);
 
             registerTableManager(HugeType.VERTEX_LABEL,
                                  new InMemoryDBTable(HugeType.VERTEX_LABEL));
@@ -221,8 +231,9 @@ public class InMemoryDBStore implements BackendStore {
 
     public static class InMemoryGraphStore extends InMemoryDBStore {
 
-        public InMemoryGraphStore(BackendStoreProvider provider, String name) {
-            super(provider, name);
+        public InMemoryGraphStore(BackendStoreProvider provider,
+                                  String database, String store) {
+            super(provider, database, store);
 
             registerTableManager(HugeType.VERTEX,
                                  new InMemoryDBTables.Vertex());

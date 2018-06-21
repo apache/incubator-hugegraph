@@ -51,6 +51,7 @@ public class CassandraSessionPool extends BackendSessionPool {
         this.keyspace = keyspace;
     }
 
+    @Override
     public synchronized void open(HugeConfig config) {
         if (this.opened()) {
             throw new BackendException("Please close the old SessionPool " +
@@ -90,6 +91,7 @@ public class CassandraSessionPool extends BackendSessionPool {
         this.cluster = builder.build();
     }
 
+    @Override
     public final synchronized boolean opened() {
         return (this.cluster != null && !this.cluster.isClosed());
     }
@@ -100,6 +102,7 @@ public class CassandraSessionPool extends BackendSessionPool {
         return this.cluster;
     }
 
+    @Override
     public final synchronized Session session() {
         return (Session) super.getOrNewSession();
     }

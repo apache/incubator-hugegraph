@@ -47,7 +47,7 @@ public abstract class MysqlStore implements BackendStore {
 
     private static final BackendFeatures FEATURES = new MysqlFeatures();
 
-    private final String name;
+    private final String store;
     private final String database;
 
     private final BackendStoreProvider provider;
@@ -57,25 +57,25 @@ public abstract class MysqlStore implements BackendStore {
     private MysqlSessions sessions;
 
     public MysqlStore(final BackendStoreProvider provider,
-                      final String database, final String name) {
+                      final String database, final String store) {
         E.checkNotNull(database, "database");
-        E.checkNotNull(name, "name");
+        E.checkNotNull(store, "store");
         this.provider = provider;
         this.database = database;
-        this.name = name;
+        this.store = store;
 
         this.sessions = null;
         this.tables = new ConcurrentHashMap<>();
 
-        LOG.debug("Store loaded: {}", name);
+        LOG.debug("Store loaded: {}", store);
     }
 
     protected void registerTableManager(HugeType type, MysqlTable table) {
         this.tables.put(type, table);
     }
 
-    protected MysqlSessions newSessionPool(HugeConfig config, String database) {
-        return new MysqlSessions(config, database);
+    protected MysqlSessions openSessionPool(HugeConfig config) {
+        return new MysqlSessions(config, this.database);
     }
 
     public Map<HugeType, MysqlTable> tables() {
@@ -83,8 +83,13 @@ public abstract class MysqlStore implements BackendStore {
     }
 
     @Override
-    public String name() {
-        return this.name;
+    public String store() {
+        return this.store;
+    }
+
+    @Override
+    public String database() {
+        return this.database;
     }
 
     @Override
@@ -94,22 +99,22 @@ public abstract class MysqlStore implements BackendStore {
 
     @Override
     public synchronized void open(HugeConfig config) {
-        LOG.debug("Store open: {}", this.name);
+        LOG.debug("Store open: {}", this.store);
 
         E.checkNotNull(config, "config");
 
-        if (this.sessions != null) {
-            LOG.debug("Store {} has been opened before", this.name);
+        if (this.sessions != null && !this.sessions.closed()) {
+            LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
             return;
         }
 
-        this.sessions = this.newSessionPool(config, this.database);
+        this.sessions = this.openSessionPool(config);
 
         LOG.debug("Store connect with database: {}", this.database);
         try {
-            this.sessions.tryOpen();
-        } catch (SQLException e) {
+            this.sessions.open(config);
+        } catch (Exception e) {
             if (!e.getMessage().startsWith("Unknown database")) {
                 throw new BackendException("Failed connect with mysql, " +
                                            "please ensure it's ok", e);
@@ -129,12 +134,12 @@ public abstract class MysqlStore implements BackendStore {
             throw new BackendException("Failed to open database", e);
         }
 
-        LOG.debug("Store opened: {}", this.name);
+        LOG.debug("Store opened: {}", this.store);
     }
 
     @Override
     public void close() {
-        LOG.debug("Store close: {}", this.name);
+        LOG.debug("Store close: {}", this.store);
         this.checkClusterConnected();
         this.sessions.close();
     }
@@ -153,7 +158,7 @@ public abstract class MysqlStore implements BackendStore {
         this.checkSessionConnected();
         this.initTables();
 
-        LOG.info("Store initialized: {}", this.name);
+        LOG.info("Store initialized: {}", this.store);
     }
 
     @Override
@@ -167,13 +172,13 @@ public abstract class MysqlStore implements BackendStore {
             this.sessions.dropDatabase();
         }
 
-        LOG.info("Store cleared: {}", this.name);
+        LOG.info("Store cleared: {}", this.store);
     }
 
     @Override
     public void mutate(BackendMutation mutation) {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Store {} mutation: {}", this.name, mutation);
+            LOG.debug("Store {} mutation: {}", this.store, mutation);
         }
 
         this.checkSessionConnected();
@@ -234,7 +239,7 @@ public abstract class MysqlStore implements BackendStore {
         MysqlSessions.Session session = this.sessions.session();
         int count = session.commit();
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Store {} committed {} items", this.name, count);
+            LOG.debug("Store {} committed {} items", this.store, count);
         }
     }
 
@@ -257,7 +262,7 @@ public abstract class MysqlStore implements BackendStore {
 
     @Override
     public String toString() {
-        return this.name;
+        return this.store;
     }
 
     protected void initTables() {
@@ -306,8 +311,8 @@ public abstract class MysqlStore implements BackendStore {
         private final MysqlTables.Counters counters;
 
         public MysqlSchemaStore(BackendStoreProvider provider,
-                                String database, String name) {
-            super(provider, database, name);
+                                String database, String store) {
+            super(provider, database, store);
 
             this.counters = new MysqlTables.Counters();
 
@@ -348,8 +353,8 @@ public abstract class MysqlStore implements BackendStore {
     public static class MysqlGraphStore extends MysqlStore {
 
         public MysqlGraphStore(BackendStoreProvider provider,
-                               String database, String name) {
-            super(provider, database, name);
+                               String database, String store) {
+            super(provider, database, store);
 
             registerTableManager(HugeType.VERTEX,
                                  new MysqlTables.Vertex());

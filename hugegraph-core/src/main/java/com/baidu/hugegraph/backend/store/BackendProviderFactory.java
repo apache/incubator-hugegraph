@@ -33,9 +33,9 @@ public class BackendProviderFactory {
         providers = new ConcurrentHashMap<>();
     }
 
-    public static BackendStoreProvider open(String backend, String name) {
+    public static BackendStoreProvider open(String backend, String graph) {
         if (backend.equalsIgnoreCase("memory")) {
-            return InMemoryDBStoreProvider.instance(name);
+            return InMemoryDBStoreProvider.instance(graph);
         }
 
         Class<? extends BackendStoreProvider> clazz = providers.get(backend);
@@ -55,7 +55,7 @@ public class BackendProviderFactory {
                                "can't be opened by key '%s'",
                                instance.type(), backend);
 
-        instance.open(name);
+        instance.open(graph);
         return instance;
     }
 

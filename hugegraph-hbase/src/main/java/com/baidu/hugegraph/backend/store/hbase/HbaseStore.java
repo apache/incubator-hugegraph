@@ -51,25 +51,22 @@ public abstract class HbaseStore implements BackendStore {
 
     private static final BackendFeatures FEATURES = new HbaseFeatures();
 
-    private final String name;
+    private final String store;
     private final String namespace;
 
     private final BackendStoreProvider provider;
     private final Map<HugeType, HbaseTable> tables;
 
-    private HugeConfig conf;
-
-    private HbaseSessions sessions;
+    private final HbaseSessions sessions;
 
     public HbaseStore(final BackendStoreProvider provider,
-                      final String namespace, final String name) {
+                      final String namespace, final String store) {
         this.tables = new HashMap<>();
 
         this.provider = provider;
         this.namespace = namespace;
-        this.name = name;
-        this.conf = null;
-        this.sessions = null;
+        this.store = store;
+        this.sessions =  new HbaseSessions(namespace);
     }
 
     protected void registerTableManager(HugeType type, HbaseTable table) {
@@ -95,8 +92,13 @@ public abstract class HbaseStore implements BackendStore {
     }
 
     @Override
-    public String name() {
-        return this.name;
+    public String store() {
+        return this.store;
+    }
+
+    @Override
+    public String database() {
+        return this.namespace;
     }
 
     @Override
@@ -112,30 +114,26 @@ public abstract class HbaseStore implements BackendStore {
     @Override
     public void open(HugeConfig config) {
         E.checkNotNull(config, "config");
-        this.conf = config;
 
-        if (this.sessions != null) {
-            LOG.debug("Store {} has been opened before", this.name);
+        if (this.sessions.opened()) {
+            LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
             return;
         }
 
-        String hosts = this.conf.get(HbaseOptions.HBASE_HOSTS);
-        int port = this.conf.get(HbaseOptions.HBASE_PORT);
-
         try {
-            this.sessions = new HbaseSessions(this.namespace, hosts, port);
+            this.sessions.open(config);
         } catch (IOException e) {
             if (!e.getMessage().contains("Column family not found")) {
-                LOG.error("Failed to open HBase '{}'", this.name, e);
+                LOG.error("Failed to open HBase '{}'", this.store, e);
                 throw new BackendException("Failed to open HBase '%s'",
-                                           e, this.name);
+                                           e, this.store);
             }
             LOG.info("Failed to open HBase '{}' with database '{}', " +
-                     "try to init CF later", this.name, this.namespace);
+                     "try to init CF later", this.store, this.namespace);
         }
 
-        LOG.debug("Store opened: {}", this.name);
+        LOG.debug("Store opened: {}", this.store);
     }
 
     @Override
@@ -143,13 +141,13 @@ public abstract class HbaseStore implements BackendStore {
         this.checkOpened();
         this.sessions.close();
 
-        LOG.debug("Store closed: {}", this.name);
+        LOG.debug("Store closed: {}", this.store);
     }
 
     @Override
     public void mutate(BackendMutation mutation) {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Store {} mutation: {}", this.name, mutation);
+            LOG.debug("Store {} mutation: {}", this.store, mutation);
         }
 
         this.checkOpened();
@@ -203,7 +201,7 @@ public abstract class HbaseStore implements BackendStore {
         } catch (IOException e) {
             throw new BackendException(
                       "Failed to create namespace '%s' for '%s'",
-                      e, this.namespace, this.name);
+                      e, this.namespace, this.store);
         }
 
         // Create tables
@@ -215,7 +213,7 @@ public abstract class HbaseStore implements BackendStore {
             } catch (IOException e) {
                 throw new BackendException(
                           "Failed to create table '%s' for '%s'",
-                          e, table, this.name);
+                          e, table, this.store);
             }
         }
     }
@@ -243,7 +241,7 @@ public abstract class HbaseStore implements BackendStore {
                 continue;
             } catch (IOException e) {
                 throw new BackendException("Failed to drop table '%s' for '%s'",
-                                           e, table, this.name);
+                                           e, table, this.store);
             }
         }
 
@@ -257,7 +255,7 @@ public abstract class HbaseStore implements BackendStore {
             } else {
                 throw new BackendException(
                           "Failed to drop namespace '%s' for '%s'",
-                          e, this.namespace, this.name);
+                          e, this.namespace, this.store);
             }
         }
     }
@@ -305,8 +303,8 @@ public abstract class HbaseStore implements BackendStore {
         private final HbaseTables.Counters counters;
 
         public HbaseSchemaStore(BackendStoreProvider provider,
-                                String namespace, String name) {
-            super(provider, namespace, name);
+                                String namespace, String store) {
+            super(provider, namespace, store);
 
             this.counters = new HbaseTables.Counters();
 
@@ -340,8 +338,8 @@ public abstract class HbaseStore implements BackendStore {
     public static class HbaseGraphStore extends HbaseStore {
 
         public HbaseGraphStore(BackendStoreProvider provider,
-                               String namespace, String name) {
-            super(provider, namespace, name);
+                               String namespace, String store) {
+            super(provider, namespace, store);
 
             registerTableManager(HugeType.VERTEX,
                                  new HbaseTables.Vertex());

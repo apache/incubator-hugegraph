@@ -52,8 +52,8 @@ public class PaloStoreProvider extends MysqlStoreProvider {
         private final LocalCounter counter;
 
         public PaloSchemaStore(BackendStoreProvider provider,
-                               String database, String name) {
-            super(provider, database, name);
+                               String database, String store) {
+            super(provider, database, store);
 
             this.counter = new LocalCounter();
 
@@ -81,8 +81,8 @@ public class PaloStoreProvider extends MysqlStoreProvider {
     public static class PaloGraphStore extends PaloStore {
 
         public PaloGraphStore(BackendStoreProvider provider,
-                              String database, String name) {
-            super(provider, database, name);
+                              String database, String store) {
+            super(provider, database, store);
 
             registerTableManager(HugeType.VERTEX,
                                  new PaloTables.Vertex());

@@ -53,7 +53,7 @@ public abstract class CassandraStore implements BackendStore {
 
     private static final BackendFeatures FEATURES = new CassandraFeatures();
 
-    private final String name;
+    private final String store;
     private final String keyspace;
 
     private final BackendStoreProvider provider;
@@ -64,21 +64,21 @@ public abstract class CassandraStore implements BackendStore {
     private HugeConfig conf;
 
     public CassandraStore(final BackendStoreProvider provider,
-                          final String keyspace, final String name) {
+                          final String keyspace, final String store) {
         E.checkNotNull(keyspace, "keyspace");
-        E.checkNotNull(name, "name");
+        E.checkNotNull(store, "store");
 
         this.provider = provider;
 
         this.keyspace = keyspace;
-        this.name = name;
+        this.store = store;
 
         this.sessions = new CassandraSessionPool(this.keyspace);
         this.tables = new ConcurrentHashMap<>();
 
         this.conf = null;
 
-        LOG.debug("Store loaded: {}", name);
+        LOG.debug("Store loaded: {}", store);
     }
 
     protected void registerTableManager(HugeType type, CassandraTable table) {
@@ -86,8 +86,13 @@ public abstract class CassandraStore implements BackendStore {
     }
 
     @Override
-    public String name() {
-        return this.name;
+    public String store() {
+        return this.store;
+    }
+
+    @Override
+    public String database() {
+        return this.keyspace;
     }
 
     @Override
@@ -97,13 +102,13 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public void open(HugeConfig config) {
-        LOG.debug("Store open: {}", this.name);
+        LOG.debug("Store open: {}", this.store);
 
         E.checkNotNull(config, "config");
 
         if (this.sessions.opened()) {
             // TODO: maybe we should throw an exception here instead of ignore
-            LOG.debug("Store {} has been opened before", this.name);
+            LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
             return;
         }
@@ -135,19 +140,19 @@ public abstract class CassandraStore implements BackendStore {
             throw e;
         }
 
-        LOG.debug("Store opened: {}", this.name);
+        LOG.debug("Store opened: {}", this.store);
     }
 
     @Override
     public void close() {
-        LOG.debug("Store close: {}", this.name);
+        LOG.debug("Store close: {}", this.store);
         this.sessions.close();
     }
 
     @Override
     public void mutate(BackendMutation mutation) {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Store {} mutation: {}", this.name, mutation);
+            LOG.debug("Store {} mutation: {}", this.store, mutation);
         }
 
         this.checkSessionConnected();
@@ -243,7 +248,7 @@ public abstract class CassandraStore implements BackendStore {
         this.checkSessionConnected();
         this.initTables();
 
-        LOG.info("Store initialized: {}", this.name);
+        LOG.info("Store initialized: {}", this.store);
     }
 
     @Override
@@ -256,7 +261,7 @@ public abstract class CassandraStore implements BackendStore {
             this.clearKeyspace();
         }
 
-        LOG.info("Store cleared: {}", this.name);
+        LOG.info("Store cleared: {}", this.store);
     }
 
     @Override
@@ -266,7 +271,7 @@ public abstract class CassandraStore implements BackendStore {
         CassandraSessionPool.Session session = this.sessions.session();
         if (session.txState() != TxState.CLEAN) {
             LOG.warn("Store {} expect state CLEAN than {} when begin()",
-                     this.name, session.txState());
+                     this.store, session.txState());
         }
         session.txState(TxState.BEGIN);
     }
@@ -278,17 +283,17 @@ public abstract class CassandraStore implements BackendStore {
         CassandraSessionPool.Session session = this.sessions.session();
         if (session.txState() != TxState.BEGIN) {
             LOG.warn("Store {} expect state BEGIN than {} when commit()",
-                     this.name, session.txState());
+                     this.store, session.txState());
         }
 
         if (!session.hasChanges()) {
             session.txState(TxState.CLEAN);
-            LOG.debug("Store {} has nothing to commit", this.name);
+            LOG.debug("Store {} has nothing to commit", this.store);
             return;
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Store {} commit {} statements: {}", this.name,
+            LOG.debug("Store {} commit {} statements: {}", this.store,
                       session.statements().size(), session.statements());
         }
 
@@ -321,7 +326,7 @@ public abstract class CassandraStore implements BackendStore {
         if (session.txState() != TxState.COMMITT_FAIL &&
             session.txState() != TxState.CLEAN) {
             LOG.warn("Store {} expect state COMMITT_FAIL/COMMITTING/CLEAN " +
-                     "than {} when rollback()", this.name, session.txState());
+                     "than {} when rollback()", this.store, session.txState());
         }
 
         session.txState(TxState.ROLLBACKING);
@@ -335,7 +340,7 @@ public abstract class CassandraStore implements BackendStore {
 
     @Override
     public String toString() {
-        return this.name;
+        return this.store;
     }
 
     protected Cluster cluster() {
@@ -444,8 +449,8 @@ public abstract class CassandraStore implements BackendStore {
         private final CassandraTables.Counters counters;
 
         public CassandraSchemaStore(BackendStoreProvider provider,
-                                    String keyspace, String name) {
-            super(provider, keyspace, name);
+                                    String keyspace, String store) {
+            super(provider, keyspace, store);
 
             this.counters = new CassandraTables.Counters();
 
@@ -486,8 +491,8 @@ public abstract class CassandraStore implements BackendStore {
     public static class CassandraGraphStore extends CassandraStore {
 
         public CassandraGraphStore(BackendStoreProvider provider,
-                                   String keyspace, String name) {
-            super(provider, keyspace, name);
+                                   String keyspace, String store) {
+            super(provider, keyspace, store);
 
             registerTableManager(HugeType.VERTEX,
                                  new CassandraTables.Vertex());

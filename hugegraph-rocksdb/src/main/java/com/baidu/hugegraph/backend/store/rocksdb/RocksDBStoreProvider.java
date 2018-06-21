@@ -27,7 +27,7 @@ import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBSchemaStore
 public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
 
     protected String database() {
-        return this.name().toLowerCase();
+        return this.graph().toLowerCase();
     }
 
     @Override

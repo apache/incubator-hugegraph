@@ -34,19 +34,18 @@ import com.baidu.hugegraph.type.HugeType;
 public abstract class RocksDBSstStore extends RocksDBStore {
 
     public RocksDBSstStore(final BackendStoreProvider provider,
-                           final String database, final String name) {
-        super(provider, database, name);
+                           final String database, final String store) {
+        super(provider, database, store);
     }
 
     @Override
-    protected RocksDBSessions newSessions(HugeConfig config,
-                                          String data, String wal,
-                                          List<String> tableNames)
-                                          throws RocksDBException {
+    protected RocksDBSessions openSessionPool(HugeConfig config,
+                                              List<String> tableNames)
+                                              throws RocksDBException {
         if (tableNames == null) {
-            return new RocksDBSstSessions(config, data);
+            return new RocksDBSstSessions(config, this.store());
         } else {
-            return new RocksDBSstSessions(config, data, tableNames);
+            return new RocksDBSstSessions(config, this.store(), tableNames);
         }
     }
 
@@ -55,8 +54,8 @@ public abstract class RocksDBSstStore extends RocksDBStore {
     public static class RocksDBSstGraphStore extends RocksDBSstStore {
 
         public RocksDBSstGraphStore(BackendStoreProvider provider,
-                                    String database, String name) {
-            super(provider, database, name);
+                                    String database, String store) {
+            super(provider, database, store);
 
             registerTableManager(HugeType.VERTEX,
                                  new RocksDBTables.Vertex(database));
