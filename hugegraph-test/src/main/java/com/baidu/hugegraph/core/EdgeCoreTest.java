@@ -1173,6 +1173,45 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(dates[1], edges.get(0).value("date"));
     }
 
+    public void testQueryByOutEWithDateProperty() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.edgeLabel("buy")
+              .properties("place", "date")
+              .link("person", "book")
+              .create();
+        schema.indexLabel("buyByDate").onE("buy").by("date").range().create();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex jeff = graph.addVertex(T.label, "person", "name", "Jeff",
+                                      "city", "Beijing", "age", 22);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
+        Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
+        Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
+
+        String[] dates = new String[]{
+                "2012-01-01 12:30:00.100",
+                "2013-01-01 12:30:00.100",
+                "2014-01-01 12:30:00.100"
+        };
+
+        louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
+        jeff.addEdge("buy", java2, "place", "chaoyang", "date", dates[1]);
+        sean.addEdge("buy", java3, "place", "chaoyang", "date", dates[2]);
+
+        List<Edge> edges = graph.traversal().V().outE()
+                                .has("date", P.between(dates[0], dates[2]))
+                                .toList();
+        Assert.assertEquals(2, edges.size());
+        Assert.assertEquals(Utils.date(dates[0]), edges.get(0).value("date"));
+        Assert.assertEquals(Utils.date(dates[1]), edges.get(1).value("date"));
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testScanEdge() {

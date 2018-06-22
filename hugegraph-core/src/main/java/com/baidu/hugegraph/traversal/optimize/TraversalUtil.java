@@ -44,6 +44,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.IdentitySt
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.ElementValueComparator;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.process.traversal.util.AndP;
+import org.apache.tinkerpop.gremlin.process.traversal.util.ConnectiveP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.OrP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -58,6 +59,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -66,6 +68,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableList;
 
 public final class TraversalUtil {
 
@@ -321,12 +324,7 @@ public final class TraversalUtil {
         String key = has.getKey();
         PropertyKey pkey = graph.propertyKey(key);
         Id pkeyId = pkey.id();
-        Object value = pkey.validValue(has.getValue());
-        E.checkArgumentNotNull(value,
-                               "Invalid data type of query value, " +
-                               "expect '%s', actual '%s'",
-                               pkey.dataType().clazz(),
-                               has.getValue().getClass());
+        Object value = validPredicateValue(has.getValue(), pkey);
 
         switch ((Compare) bp) {
             case eq:
@@ -424,20 +422,36 @@ public final class TraversalUtil {
         return key.equals(T.value.getAccessor());
     }
 
+    @SuppressWarnings("unchecked")
     public static <V> Iterator<V> filterResult(
+                                  HugeGraph graph,
                                   List<HasContainer> hasContainers,
                                   Iterator<? extends Element> iterator) {
-        final List<V> list = new ArrayList<>();
-
-        while (iterator.hasNext()) {
-            final Element elem = iterator.next();
-            if (HasContainer.testAll(elem, hasContainers)) {
-                @SuppressWarnings("unchecked")
-                V e = (V) elem;
-                list.add(e);
+        if (iterator.hasNext()) {
+            for (HasContainer has : hasContainers) {
+                convPredicateValue(graph, has);
             }
         }
-        return list.iterator();
+        Iterator<?> result = new FilterIterator<>(iterator, elem -> {
+            return HasContainer.testAll(elem, hasContainers);
+        });
+        return (Iterator<V>) result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void convPredicateValue(HugeGraph graph, HasContainer has) {
+        List<P<Object>> predicates;
+        if (has.getPredicate() instanceof ConnectiveP) {
+            P<?> p = has.getPredicate();
+            predicates = ((ConnectiveP<Object>) p).getPredicates();
+        } else {
+            predicates = ImmutableList.of((P<Object>) has.getPredicate());
+        }
+        PropertyKey pkey = graph.propertyKey(has.getKey());
+        for (P<Object> predicate : predicates) {
+            Object value = validPredicateValue(predicate.getValue(), pkey);
+            predicate.setValue(value);
+        }
     }
 
     public static Iterator<Edge> filterResult(Vertex vertex,
@@ -456,6 +470,16 @@ public final class TraversalUtil {
 
     public static Query.Order convOrder(Order order) {
         return order == Order.decr ? Query.Order.DESC : Query.Order.ASC;
+    }
+
+    private static <V> V validPredicateValue(V value, PropertyKey pkey) {
+        V validValue = pkey.validValue(value);
+        E.checkArgumentNotNull(validValue,
+                               "Invalid data type of query value, " +
+                               "expect '%s', actual '%s'",
+                               pkey.dataType().clazz(),
+                               value.getClass());
+        return validValue;
     }
 
     public static void retriveSysprop(List<HasContainer> hasContainers,
