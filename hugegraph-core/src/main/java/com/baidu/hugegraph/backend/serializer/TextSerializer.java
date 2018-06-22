@@ -58,6 +58,7 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -460,6 +461,8 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.ENABLE_LABEL_INDEX,
                      JsonUtil.toJson(vertexLabel.enableLabelIndex()));
         writeUserData(vertexLabel, entry);
+        entry.column(HugeKeys.STATUS,
+                     JsonUtil.toJson(vertexLabel.status()));
         return entry;
     }
 
@@ -480,6 +483,7 @@ public class TextSerializer extends AbstractSerializer {
         String nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         String indexLabels = entry.column(HugeKeys.INDEX_LABELS);
         String enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
+        String status = entry.column(HugeKeys.STATUS);
 
         VertexLabel vertexLabel = new VertexLabel(graph, id, name);
         vertexLabel.idStrategy(JsonUtil.fromJson(idStrategy,
@@ -491,6 +495,7 @@ public class TextSerializer extends AbstractSerializer {
         vertexLabel.enableLabelIndex(JsonUtil.fromJson(enableLabelIndex,
                                                        Boolean.class));
         readUserData(vertexLabel, entry);
+        vertexLabel.status(JsonUtil.fromJson(status, SchemaStatus.class));
         return vertexLabel;
     }
 
@@ -510,6 +515,8 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.ENABLE_LABEL_INDEX,
                      JsonUtil.toJson(edgeLabel.enableLabelIndex()));
         writeUserData(edgeLabel, entry);
+        entry.column(HugeKeys.STATUS,
+                     JsonUtil.toJson(edgeLabel.status()));
         return entry;
     }
 
@@ -532,6 +539,7 @@ public class TextSerializer extends AbstractSerializer {
         String properties = entry.column(HugeKeys.PROPERTIES);
         String indexLabels = entry.column(HugeKeys.INDEX_LABELS);
         String enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
+        String status = entry.column(HugeKeys.STATUS);
 
         EdgeLabel edgeLabel = new EdgeLabel(graph, id, name);
         edgeLabel.sourceLabel(readId(sourceLabel));
@@ -544,6 +552,7 @@ public class TextSerializer extends AbstractSerializer {
         edgeLabel.enableLabelIndex(JsonUtil.fromJson(enableLabelIndex,
                                                      Boolean.class));
         readUserData(edgeLabel, entry);
+        edgeLabel.status(JsonUtil.fromJson(status, SchemaStatus.class));
         return edgeLabel;
     }
 
@@ -557,6 +566,8 @@ public class TextSerializer extends AbstractSerializer {
                      JsonUtil.toJson(propertyKey.cardinality()));
         entry.column(HugeKeys.PROPERTIES, writeIds(propertyKey.properties()));
         writeUserData(propertyKey, entry);
+        entry.column(HugeKeys.STATUS,
+                     JsonUtil.toJson(propertyKey.status()));
         return entry;
     }
 
@@ -574,6 +585,7 @@ public class TextSerializer extends AbstractSerializer {
         String dataType = entry.column(HugeKeys.DATA_TYPE);
         String cardinality = entry.column(HugeKeys.CARDINALITY);
         String properties = entry.column(HugeKeys.PROPERTIES);
+        String status = entry.column(HugeKeys.STATUS);
 
         PropertyKey propertyKey = new PropertyKey(graph, id, name);
         propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
@@ -581,6 +593,7 @@ public class TextSerializer extends AbstractSerializer {
                                                   Cardinality.class));
         propertyKey.properties(readIds(properties));
         readUserData(propertyKey, entry);
+        propertyKey.status(JsonUtil.fromJson(status, SchemaStatus.class));
         return propertyKey;
     }
 
@@ -594,6 +607,8 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_TYPE,
                      JsonUtil.toJson(indexLabel.indexType()));
         entry.column(HugeKeys.FIELDS, writeIds(indexLabel.indexFields()));
+        entry.column(HugeKeys.STATUS,
+                     JsonUtil.toJson(indexLabel.status()));
         return entry;
     }
 
@@ -612,12 +627,14 @@ public class TextSerializer extends AbstractSerializer {
         String baseValue = entry.column(HugeKeys.BASE_VALUE);
         String indexType = entry.column(HugeKeys.INDEX_TYPE);
         String indexFields = entry.column(HugeKeys.FIELDS);
+        String status = entry.column(HugeKeys.STATUS);
 
         IndexLabel indexLabel = new IndexLabel(graph, id, name);
         indexLabel.baseType(JsonUtil.fromJson(baseType, HugeType.class));
         indexLabel.baseValue(readId(baseValue));
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
         indexLabel.indexFields(readIds(indexFields));
+        indexLabel.status(JsonUtil.fromJson(status, SchemaStatus.class));
         return indexLabel;
     }
 

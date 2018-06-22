@@ -53,6 +53,7 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -381,6 +382,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                      this.toLongSet(vertexLabel.indexLabels()));
         this.writeEnableLabelIndex(vertexLabel, entry);
         this.writeUserData(vertexLabel, entry);
+        entry.column(HugeKeys.STATUS, vertexLabel.status().code());
         return entry;
     }
 
@@ -402,6 +404,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                      this.toLongSet(edgeLabel.indexLabels()));
         this.writeEnableLabelIndex(edgeLabel, entry);
         this.writeUserData(edgeLabel, entry);
+        entry.column(HugeKeys.STATUS, edgeLabel.status().code());
         return entry;
     }
 
@@ -414,8 +417,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.CARDINALITY, propertyKey.cardinality().code());
         entry.column(HugeKeys.PROPERTIES,
                      this.toLongSet(propertyKey.properties()));
-
         this.writeUserData(propertyKey, entry);
+        entry.column(HugeKeys.STATUS, propertyKey.status().code());
         return entry;
     }
 
@@ -435,6 +438,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         Object primaryKeys = entry.column(HugeKeys.PRIMARY_KEYS);
         Object nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         Object indexLabels = entry.column(HugeKeys.INDEX_LABELS);
+        Number status = entry.column(HugeKeys.STATUS);
 
         VertexLabel vertexLabel = new VertexLabel(graph, this.toId(id), name);
         vertexLabel.idStrategy(SerialEnum.fromCode(IdStrategy.class,
@@ -445,6 +449,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         vertexLabel.indexLabels(this.toIdArray(indexLabels));
         this.readEnableLabelIndex(vertexLabel, entry);
         this.readUserData(vertexLabel, entry);
+        vertexLabel.status(SerialEnum.fromCode(SchemaStatus.class,
+                                               status.byteValue()));
         return vertexLabel;
     }
 
@@ -465,6 +471,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         Object nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         Object properties = entry.column(HugeKeys.PROPERTIES);
         Object indexLabels = entry.column(HugeKeys.INDEX_LABELS);
+        Number status = entry.column(HugeKeys.STATUS);
 
         EdgeLabel edgeLabel = new EdgeLabel(graph, this.toId(id), name);
         edgeLabel.frequency(SerialEnum.fromCode(Frequency.class,
@@ -477,6 +484,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         edgeLabel.indexLabels(this.toIdArray(indexLabels));
         this.readEnableLabelIndex(edgeLabel, entry);
         this.readUserData(edgeLabel, entry);
+        edgeLabel.status(SerialEnum.fromCode(SchemaStatus.class,
+                                             status.byteValue()));
         return edgeLabel;
     }
 
@@ -494,6 +503,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         Number dataType = entry.column(HugeKeys.DATA_TYPE);
         Number cardinality = entry.column(HugeKeys.CARDINALITY);
         Object properties = entry.column(HugeKeys.PROPERTIES);
+        Number status = entry.column(HugeKeys.STATUS);
 
         PropertyKey propertyKey = new PropertyKey(graph, this.toId(id), name);
         propertyKey.dataType(SerialEnum.fromCode(DataType.class,
@@ -503,6 +513,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         propertyKey.properties(this.toIdArray(properties));
 
         this.readUserData(propertyKey, entry);
+        propertyKey.status(SerialEnum.fromCode(SchemaStatus.class,
+                                               status.byteValue()));
         return propertyKey;
     }
 
@@ -516,6 +528,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_TYPE, indexLabel.indexType().code());
         entry.column(HugeKeys.FIELDS,
                      this.toLongList(indexLabel.indexFields()));
+        entry.column(HugeKeys.STATUS, indexLabel.status().code());
         return entry;
     }
 
@@ -534,6 +547,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         Number baseValueId = entry.column(HugeKeys.BASE_VALUE);
         Number indexType = entry.column(HugeKeys.INDEX_TYPE);
         Object indexFields = entry.column(HugeKeys.FIELDS);
+        Number status = entry.column(HugeKeys.STATUS);
 
         IndexLabel indexLabel = new IndexLabel(graph, this.toId(id), name);
         indexLabel.baseType(SerialEnum.fromCode(HugeType.class,
@@ -542,6 +556,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         indexLabel.indexType(SerialEnum.fromCode(IndexType.class,
                                                  indexType.byteValue()));
         indexLabel.indexFields(this.toIdArray(indexFields));
+        indexLabel.status(SerialEnum.fromCode(SchemaStatus.class,
+                                              status.byteValue()));
         return indexLabel;
     }
 

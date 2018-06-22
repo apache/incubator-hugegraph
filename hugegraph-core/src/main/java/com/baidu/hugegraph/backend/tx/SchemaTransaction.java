@@ -32,7 +32,15 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotAllowException;
+import com.baidu.hugegraph.job.JobBuilder;
+import com.baidu.hugegraph.job.schema.EdgeLabelRemoveCallable;
+import com.baidu.hugegraph.job.schema.IndexLabelRemoveCallable;
+import com.baidu.hugegraph.job.schema.RebuildIndexCallable;
+import com.baidu.hugegraph.job.schema.SchemaCallable;
+import com.baidu.hugegraph.job.schema.VertexLabelRemoveCallable;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -42,6 +50,7 @@ import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableSet;
@@ -152,15 +161,28 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getSchema(HugeType.VERTEX_LABEL, name);
     }
 
-    public void removeVertexLabel(Id id) {
+    public Id removeVertexLabel(Id id) {
+        HugeConfig config = this.graph().configuration();
+        if (config.get(CoreOptions.SCHEMA_SYNC_DELETION)) {
+            removeVertexLabelSync(this.graph(), id);
+            return null;
+        } else {
+            SchemaCallable callable = new VertexLabelRemoveCallable();
+            return asyncRun(this.graph(), HugeType.VERTEX_LABEL, id, callable);
+        }
+    }
+
+    public static void removeVertexLabelSync(HugeGraph graph, Id id) {
         LOG.debug("SchemaTransaction remove vertex label '{}'", id);
-        VertexLabel vertexLabel = this.getVertexLabel(id);
+        GraphTransaction graphTx = graph.graphTransaction();
+        SchemaTransaction schemaTx = graph.schemaTransaction();
+        VertexLabel vertexLabel = schemaTx.getVertexLabel(id);
         // If the vertex label does not exist, return directly
         if (vertexLabel == null) {
             return;
         }
 
-        List<EdgeLabel> edgeLabels = this.getEdgeLabels();
+        List<EdgeLabel> edgeLabels = schemaTx.getEdgeLabels();
         for (EdgeLabel edgeLabel : edgeLabels) {
             if (edgeLabel.linkWithLabel(id)) {
                 throw new HugeException(
@@ -178,14 +200,15 @@ public class SchemaTransaction extends IndexableTransaction {
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
             locks.lockWrites(LockUtil.VERTEX_LABEL_DELETE, id);
+            schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.DELETING);
             for (Id indexLabelId : indexLabelIds) {
-                this.removeIndexLabel(indexLabelId);
+                removeIndexLabelSync(graph, indexLabelId);
             }
 
             // TODO: use event to replace direct call
             // Deleting a vertex will automatically deletes the held edge
-            this.graph().graphTransaction().removeVertices(vertexLabel);
-            this.removeSchema(vertexLabel);
+            graphTx.removeVertices(vertexLabel);
+            schemaTx.removeSchema(vertexLabel);
         } finally {
             locks.unlock();
         }
@@ -207,9 +230,22 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getSchema(HugeType.EDGE_LABEL, name);
     }
 
-    public void removeEdgeLabel(Id id) {
+    public Id removeEdgeLabel(Id id) {
+        HugeConfig config = this.graph().configuration();
+        if (config.get(CoreOptions.SCHEMA_SYNC_DELETION)) {
+            removeEdgeLabelSync(this.graph(), id);
+            return null;
+        } else {
+            SchemaCallable callable = new EdgeLabelRemoveCallable();
+            return asyncRun(this.graph(), HugeType.EDGE_LABEL, id, callable);
+        }
+    }
+
+    public static void removeEdgeLabelSync(HugeGraph graph, Id id) {
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
-        EdgeLabel edgeLabel = this.getEdgeLabel(id);
+        GraphTransaction graphTx = graph.graphTransaction();
+        SchemaTransaction schemaTx = graph.schemaTransaction();
+        EdgeLabel edgeLabel = schemaTx.getEdgeLabel(id);
         // If the edge label does not exist, return directly
         if (edgeLabel == null) {
             return;
@@ -220,12 +256,13 @@ public class SchemaTransaction extends IndexableTransaction {
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
             locks.lockWrites(LockUtil.EDGE_LABEL_DELETE, id);
+            schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.DELETING);
             for (Id indexId : indexIds) {
-                this.removeIndexLabel(indexId);
+                removeIndexLabelSync(graph, indexId);
             }
             // Remove all edges which has matched label
-            this.graph().graphTransaction().removeEdges(edgeLabel);
-            this.removeSchema(edgeLabel);
+            graphTx.removeEdges(edgeLabel);
+            schemaTx.removeSchema(edgeLabel);
         } finally {
             locks.unlock();
         }
@@ -239,7 +276,7 @@ public class SchemaTransaction extends IndexableTransaction {
          * TODO: should wrap update base-label and create index in one tx.
          */
         schemaLabel.indexLabel(indexLabel.id());
-        this.addSchema(schemaLabel);
+        this.updateSchema(schemaLabel);
     }
 
     @Watched(prefix = "schema")
@@ -254,32 +291,63 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getSchema(HugeType.INDEX_LABEL, name);
     }
 
-    public void removeIndexLabel(Id id) {
+    public Id removeIndexLabel(Id id) {
+        HugeConfig config = this.graph().configuration();
+        if (config.get(CoreOptions.SCHEMA_SYNC_DELETION)) {
+            removeIndexLabelSync(this.graph(), id);
+            return null;
+        } else {
+            SchemaCallable callable = new IndexLabelRemoveCallable();
+            return asyncRun(this.graph(), HugeType.INDEX_LABEL, id, callable);
+        }
+    }
+
+    public static void removeIndexLabelSync(HugeGraph graph, Id id) {
         LOG.debug("SchemaTransaction remove index label '{}'", id);
-        IndexLabel indexLabel = this.getIndexLabel(id);
+        GraphTransaction graphTx = graph.graphTransaction();
+        SchemaTransaction schemaTx = graph.schemaTransaction();
+        IndexLabel indexLabel = schemaTx.getIndexLabel(id);
         // If the index label does not exist, return directly
         if (indexLabel == null) {
             return;
         }
-
         LockUtil.Locks locks = new LockUtil.Locks();
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);
+            // TODO add update lock
+            // Set index label to "deleting" status
+            schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.DELETING);
             // Remove index data
             // TODO: use event to replace direct call
-            this.graph().graphTransaction().removeIndex(indexLabel);
+            graphTx.removeIndex(indexLabel);
             // Remove label from indexLabels of vertex or edge label
-            this.removeIndexLabelFromBaseLabel(indexLabel);
-            this.removeSchema(indexLabel);
+            schemaTx.removeIndexLabelFromBaseLabel(indexLabel);
+            schemaTx.removeSchema(indexLabel);
         } finally {
             locks.unlock();
         }
     }
 
-    public void rebuildIndex(SchemaElement schema) {
+    public Id rebuildIndex(SchemaElement schema) {
         LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
-        this.graph().graphTransaction().rebuildIndex(schema);
+        HugeGraph graph = this.graph();
+        if (graph.configuration().get(CoreOptions.SCHEMA_SYNC_DELETION)) {
+            graph.graphTransaction().rebuildIndex(schema);
+            return null;
+        } else {
+            SchemaCallable callable = new RebuildIndexCallable();
+            return asyncRun(this.graph(), schema.type(), schema.id(), callable);
+        }
+    }
+
+    public void updateSchemaStatus(SchemaElement schema, SchemaStatus status) {
+        schema.status(status);
+        this.updateSchema(schema);
+    }
+
+    protected void updateSchema(SchemaElement schema) {
+        this.addSchema(schema);
     }
 
     protected void addSchema(SchemaElement schema) {
@@ -426,5 +494,12 @@ public class SchemaTransaction extends IndexableTransaction {
                 throw new AssertionError(String.format(
                           "Unknown schema type '%s'", type));
         }
+    }
+
+    private static Id asyncRun(HugeGraph graph, HugeType schemaType,
+                               Id schemaId, SchemaCallable callable) {
+        String name = SchemaCallable.formatTaskName(schemaType, schemaId);
+        JobBuilder builder = JobBuilder.of(graph).name(name).job(callable);
+        return builder.schedule();
     }
 }

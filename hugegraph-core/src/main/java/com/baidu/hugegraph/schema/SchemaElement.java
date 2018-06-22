@@ -35,6 +35,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.Typifiable;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaElement
@@ -46,6 +47,7 @@ public abstract class SchemaElement
     protected String name;
     protected Set<Id> properties;
     protected Map<String, Object> userdata;
+    protected SchemaStatus status;
 
     public SchemaElement(final HugeGraph graph, Id id, String name) {
         E.checkArgumentNotNull(id, "SchemaElement id can't be null");
@@ -55,6 +57,7 @@ public abstract class SchemaElement
         this.name = name;
         this.properties = new HashSet<>();
         this.userdata = new HashMap<>();
+        this.status = SchemaStatus.CREATED;
     }
 
     public HugeGraph graph() {
@@ -92,6 +95,14 @@ public abstract class SchemaElement
         E.checkArgumentNotNull(key, "user data key");
         E.checkArgumentNotNull(value, "user data value");
         this.userdata.put(key, value);
+    }
+
+    public SchemaStatus status() {
+        return this.status;
+    }
+
+    public void status(SchemaStatus status) {
+        this.status = status;
     }
 
     public Object removeUserData(String key) {

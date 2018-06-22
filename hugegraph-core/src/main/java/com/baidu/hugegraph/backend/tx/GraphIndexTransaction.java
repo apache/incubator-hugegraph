@@ -61,6 +61,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -879,7 +880,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     public void rebuildIndex(HugeType type, Id label,
                              Collection<Id> indexLabelIds) {
-        GraphTransaction tx = graph().graphTransaction();
+        GraphTransaction graphTx = graph().graphTransaction();
+        SchemaTransaction schemaTx = graph().schemaTransaction();
         // Manually commit avoid deletion override add/update
         boolean autoCommit = this.autoCommit();
         this.autoCommit(false);
@@ -888,6 +890,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
             locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
+
+            Set<IndexLabel> ils = indexLabelIds.stream()
+                                               .map(schemaTx::getIndexLabel)
+                                               .collect(Collectors.toSet());
+            for (IndexLabel il : ils) {
+                if (il.status() == SchemaStatus.CREATING) {
+                    continue;
+                }
+                schemaTx.updateSchemaStatus(il, SchemaStatus.REBUILDING);
+            }
+
             this.removeIndex(indexLabelIds);
             /*
              * Note: Here must commit index transaction firstly.
@@ -899,11 +912,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
              * They have different id lead to it can't compare and optimize
              */
             this.commit();
+
             if (type == HugeType.VERTEX_LABEL) {
                 ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
                 query.eq(HugeKeys.LABEL, label);
                 query.capacity(Query.NO_CAPACITY);
-                for (Iterator<Vertex> itor = tx.queryVertices(query);
+                for (Iterator<Vertex> itor = graphTx.queryVertices(query);
                      itor.hasNext();) {
                     HugeVertex vertex = (HugeVertex) itor.next();
                     for (Id id : indexLabelIds) {
@@ -915,7 +929,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
                 query.eq(HugeKeys.LABEL, label);
                 query.capacity(Query.NO_CAPACITY);
-                for (Iterator<Edge> itor = tx.queryEdges(query);
+                for (Iterator<Edge> itor = graphTx.queryEdges(query);
                      itor.hasNext();) {
                     HugeEdge edge = (HugeEdge) itor.next();
                     for (Id id : indexLabelIds) {
@@ -924,6 +938,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
             }
             this.commit();
+
+            for (IndexLabel il : ils) {
+                schemaTx.updateSchemaStatus(il, SchemaStatus.CREATED);
+            }
         } finally {
             this.autoCommit(autoCommit);
             locks.unlock();

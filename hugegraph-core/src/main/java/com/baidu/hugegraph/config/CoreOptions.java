@@ -223,4 +223,11 @@ public class CoreOptions extends OptionHolder {
                     disallowEmpty(),
                     "MaximumMatching"
             );
+    public static final ConfigOption<Boolean> SCHEMA_SYNC_DELETION =
+            new ConfigOption<>(
+                    "schema.sync_deletion",
+                    "Whether to delete schema synchronously.",
+                    disallowEmpty(),
+                    false
+            );
 }

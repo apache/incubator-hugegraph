@@ -1498,7 +1498,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                              .toList();
                 size.set(vertices.size());
             } finally {
-                graph.close();
+                 graph.closeTx();
             }
         });
         t.start();

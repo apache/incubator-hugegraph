@@ -290,7 +290,10 @@ public class HugeGraph implements Graph {
     }
 
     public HugeTaskScheduler taskScheduler() {
-        return this.taskManager.getScheduler(this);
+        HugeTaskScheduler scheduler = this.taskManager.getScheduler(this);
+        E.checkState(scheduler != null,
+                     "Can't find task scheduler for graph '%s'", this);
+        return scheduler;
     }
 
     @Override

@@ -184,18 +184,21 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     }
 
     @Override
-    public void remove() {
+    public Id remove() {
         EdgeLabel edgeLabel = this.transaction.getEdgeLabel(this.name);
         if (edgeLabel == null) {
-            return;
+            return null;
         }
-        this.transaction.removeEdgeLabel(edgeLabel.id());
+        return this.transaction.removeEdgeLabel(edgeLabel.id());
     }
 
     @Override
-    public void rebuildIndex() {
+    public Id rebuildIndex() {
         EdgeLabel edgeLabel = this.transaction.graph().edgeLabel(this.name);
-        this.transaction.rebuildIndex(edgeLabel);
+        if (edgeLabel == null) {
+            return null;
+        }
+        return this.transaction.rebuildIndex(edgeLabel);
     }
 
     @Override

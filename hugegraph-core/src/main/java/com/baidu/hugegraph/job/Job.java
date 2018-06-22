@@ -17,24 +17,21 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.schema.builder;
+package com.baidu.hugegraph.job;
 
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.schema.SchemaElement;
+import java.util.Date;
 
-public interface SchemaBuilder<T extends SchemaElement> {
+import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.HugeTaskCallable;
 
-    public T build();
+public abstract class Job<T> extends HugeTaskCallable<T> {
 
-    public T create();
+    public abstract String type();
 
-    public T append();
-
-    public T eliminate();
-
-    public Id remove();
-
-    public SchemaBuilder<T> ifNotExist();
-
-    public SchemaBuilder<T> checkExist(boolean checkExist);
+    @Override
+    protected void done() {
+        HugeTask<T> task = this.task();
+        task.updateTime(new Date());
+        this.scheduler().save(task);
+    }
 }

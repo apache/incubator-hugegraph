@@ -50,8 +50,9 @@ public class StatusFilter implements ContainerResponseFilter {
     @NameBinding
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Status {
-        final int OK = 200;
-        final int CREATED = 201;
+        int OK = 200;
+        int CREATED = 201;
+        int ACCEPTED = 202;
 
         int value();
     }

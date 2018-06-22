@@ -20,14 +20,15 @@
 package com.baidu.hugegraph.task;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -39,6 +40,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -52,6 +54,7 @@ import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
+import com.google.common.collect.ImmutableMap;
 
 public class HugeTaskScheduler {
 
@@ -62,6 +65,8 @@ public class HugeTaskScheduler {
     private final Map<Id, HugeTask<?>> tasks;
 
     private volatile TaskTransaction taskTx;
+
+    private static final long NO_LIMIT = -1l;
 
     public HugeTaskScheduler(HugeGraph graph,
                              ExecutorService taskExecutor,
@@ -74,7 +79,7 @@ public class HugeTaskScheduler {
         this.taskExecutor = taskExecutor;
         this.dbExecutor = dbExecutor;
 
-        this.tasks = new HashMap<>();
+        this.tasks = new ConcurrentHashMap<>();
 
         this.taskTx = null;
 
@@ -114,13 +119,13 @@ public class HugeTaskScheduler {
         E.checkArgumentNotNull(task, "Task can't be null");
         E.checkState(!task.isDone(), "No need to restore task '%s', " +
                      "it has been completed", task.id());
-        task.status(HugeTaskStatus.RESTORING);
+        task.status(Status.RESTORING);
         return this.submitTask(task);
     }
 
     public <V> Future<?> schedule(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        task.status(HugeTaskStatus.QUEUED);
+        task.status(Status.QUEUED);
         return this.submitTask(task);
     }
 
@@ -135,6 +140,11 @@ public class HugeTaskScheduler {
         E.checkArgumentNotNull(task, "Task can't be null");
         this.tasks.remove(task.id());
         task.cancel(false);
+    }
+
+    protected void remove(Id taskId) {
+        HugeTask<?> task = this.tasks.remove(taskId);
+        assert task == null || task.completed();
     }
 
     public <V> void save(HugeTask<V> task) {
@@ -177,7 +187,7 @@ public class HugeTaskScheduler {
     }
 
     public <V> HugeTask<V> findTask(Id id) {
-        return this.submit(() -> {
+        HugeTask<V> result =  this.submit(() -> {
             HugeTask<V> task = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
             if (vertices.hasNext()) {
@@ -186,24 +196,71 @@ public class HugeTaskScheduler {
             }
             return task;
         });
+        if (result == null) {
+            throw new NotFoundException("Can't find task with id '%s'", id);
+        }
+        return result;
     }
 
-    public <V> Iterator<HugeTask<V>> findTask(HugeTaskStatus status) {
-        return this.queryTask(P.STATUS, status.code());
+    public <V> Iterator<HugeTask<V>> findAllTask(long limit) {
+        return this.queryTask(ImmutableMap.of(), limit);
     }
 
-    private <V> Iterator<HugeTask<V>> queryTask(String key, Object value) {
+    public <V> Iterator<HugeTask<V>> findTask(Status status, long limit) {
+        return this.queryTask(P.STATUS, status.code(), limit);
+    }
+
+    public <V> HugeTask<V> deleteTask(Id id) {
         return this.submit(() -> {
-            VertexLabel vl = this.graph.vertexLabel(TaskTransaction.TASK);
-            PropertyKey pk = this.graph.propertyKey(key);
+            Iterator<Vertex> vertices = this.tx().queryVertices(id);
+            if (vertices.hasNext()) {
+                this.tx().removeVertex((HugeVertex) vertices.next());
+                assert !vertices.hasNext();
+            }
+        });
+    }
+
+    public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
+                                                  throws TimeoutException {
+        for (long pass = 0;; pass++) {
+            HugeTask<V> task = this.task(id);
+            if (task.completed()) {
+                return task;
+            }
+            if (pass >= seconds) {
+                break;
+            }
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException ignored) {
+                // Ignore InterruptedException
+            }
+        }
+        throw new TimeoutException(String.format(
+                  "Task '%s' was not completed in %s seconds", id, seconds));
+    }
+
+    private <V> Iterator<HugeTask<V>> queryTask(String key, Object value,
+                                                long limit) {
+        return this.queryTask(ImmutableMap.of(key, value), limit);
+    }
+
+    private <V> Iterator<HugeTask<V>> queryTask(Map<String, Object> conditions,
+                                                long limit) {
+        return this.submit(() -> {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-            query.showHidden(true);
+            VertexLabel vl = this.graph.vertexLabel(TaskTransaction.TASK);
             query.eq(HugeKeys.LABEL, vl.id());
-            query.query(Condition.eq(pk.id(), value));
+            for (Map.Entry<String, Object> entry : conditions.entrySet()) {
+                PropertyKey pk = this.graph.propertyKey(entry.getKey());
+                query.query(Condition.eq(pk.id(), entry.getValue()));
+            }
+            query.showHidden(true);
+            if (limit != NO_LIMIT) {
+                query.limit(limit);
+            }
             Iterator<Vertex> vertices = this.tx().queryVertices(query);
-            return new MapperIterator<>(vertices, v -> {
-                return HugeTask.fromVertex(v);
-            });
+            return new MapperIterator<>(vertices, HugeTask::fromVertex);
         });
     }
 
@@ -256,7 +313,7 @@ public class HugeTaskScheduler {
                           .useCustomizeNumberId()
                           .nullableKeys(P.DESCRIPTION, P.UPDATE,
                                         P.INPUT, P.RESULT)
-                          .enableLabelIndex(false)
+                          .enableLabelIndex(true)
                           .build();
             graph.schemaTransaction().addVertexLabel(label);
 

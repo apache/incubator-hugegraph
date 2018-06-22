@@ -73,7 +73,7 @@ public class VertexLabel extends SchemaLabel {
 
     public interface Builder extends SchemaBuilder<VertexLabel> {
 
-        void rebuildIndex();
+        Id rebuildIndex();
 
         Builder idStrategy(IdStrategy idStrategy);
 

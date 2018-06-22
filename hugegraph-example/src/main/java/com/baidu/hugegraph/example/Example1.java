@@ -443,6 +443,9 @@ public class Example1 {
              .onV("person").ifNotExist().create();
         graph.schema().indexLabel("personByAgeSecond").by("age")
              .onV("person").secondary().ifNotExist().create();
+
+        ExampleUtil.waitAllTaskDone(graph);
+
         graph.addVertex(T.label, "person", "name", "Curry",
                         "city", "Hangzhou", "age", 27);
         graph.addVertex(T.label, "person", "name", "Curry",
@@ -450,6 +453,7 @@ public class Example1 {
         graph.addVertex(T.label, "person", "name", "Curry",
                         "city", "Shanghai", "age", 30);
         graph.tx().commit();
+
         // set breakpoint here to see secondary_indexes and range_indexes table
         List<Vertex> vertices = graph.traversal().V().has("age", 27)
                                      .has("city", "Hangzhou").toList();

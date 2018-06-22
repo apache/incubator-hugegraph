@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.Frequency;
@@ -46,6 +47,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/schema/edgelabels")
 @Singleton
@@ -82,6 +84,7 @@ public class EdgeLabelAPI extends API {
                          JsonEdgeLabel jsonEdgeLabel) {
         LOG.debug("Graph [{}] {} edge label: {}",
                   graph, action, jsonEdgeLabel);
+
         checkUpdatingBody(jsonEdgeLabel);
         E.checkArgument(name.equals(jsonEdgeLabel.name),
                         "The name in url(%s) and body(%s) are different",
@@ -124,16 +127,19 @@ public class EdgeLabelAPI extends API {
     @DELETE
     @Timed
     @Path("{name}")
+    @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
-    public void delete(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
-                       @PathParam("name") String name) {
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public Map<String, Id> delete(@Context GraphManager manager,
+                                  @PathParam("graph") String graph,
+                                  @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove edge label by name '{}'", graph, name);
 
         HugeGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getEdgeLabel(name);
-        g.schema().edgeLabel(name).remove();
+        return ImmutableMap.of("task_id",
+                               g.schema().edgeLabel(name).remove());
     }
 
     /**

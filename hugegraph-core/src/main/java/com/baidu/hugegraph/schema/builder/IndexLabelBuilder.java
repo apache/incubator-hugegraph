@@ -41,6 +41,7 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 
@@ -108,10 +109,11 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
 
         // Create index label
         indexLabel = this.build();
+        indexLabel.status(SchemaStatus.CREATING);
         this.transaction.addIndexLabel(schemaLabel, indexLabel);
 
         // TODO: use event to replace direct call
-        this.rebuildIndexIfNeeded(indexLabel);
+        this.rebuildIndexIfNeeded(schemaLabel, indexLabel);
 
         return indexLabel;
     }
@@ -127,18 +129,21 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     @Override
-    public void remove() {
+    public Id remove() {
         IndexLabel indexLabel = this.transaction.getIndexLabel(this.name);
         if (indexLabel == null) {
-            return;
+            return null;
         }
-        this.transaction.removeIndexLabel(indexLabel.id());
+        return this.transaction.removeIndexLabel(indexLabel.id());
     }
 
     @Override
-    public void rebuild() {
+    public Id rebuild() {
         IndexLabel indexLabel = this.transaction.graph().indexLabel(this.name);
-        this.transaction.rebuildIndex(indexLabel);
+        if (indexLabel == null) {
+            return null;
+        }
+        return this.transaction.rebuildIndex(indexLabel);
     }
 
     @Override
@@ -322,14 +327,19 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         }
     }
 
-    private void rebuildIndexIfNeeded(IndexLabel indexLabel) {
+    private void rebuildIndexIfNeeded(SchemaLabel schemaLabel,
+                                      IndexLabel indexLabel) {
         GraphTransaction tx = this.transaction.graph().graphTransaction();
         if (this.baseType == HugeType.VERTEX_LABEL) {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             query.eq(HugeKeys.LABEL, indexLabel.baseValue());
             query.limit(1L);
             if (tx.queryVertices(query).hasNext()) {
+                // rebuildIndex() will set status to CREATED after REBUILDING
                 this.transaction.rebuildIndex(indexLabel);
+            } else {
+                this.transaction.updateSchemaStatus(indexLabel,
+                                                    SchemaStatus.CREATED);
             }
         } else {
             assert this.baseType == HugeType.EDGE_LABEL;
@@ -337,7 +347,11 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             query.eq(HugeKeys.LABEL, indexLabel.baseValue());
             query.limit(1L);
             if (tx.queryEdges(query).hasNext()) {
+                // rebuildIndex() will set status to CREATED after REBUILDING
                 this.transaction.rebuildIndex(indexLabel);
+            } else {
+                this.transaction.updateSchemaStatus(indexLabel,
+                                                    SchemaStatus.CREATED);
             }
         }
     }

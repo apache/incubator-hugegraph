@@ -123,12 +123,13 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     }
 
     @Override
-    public void remove() {
+    public Id remove() {
         PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
         if (propertyKey == null) {
-            return;
+            return null;
         }
         this.transaction.removePropertyKey(propertyKey.id());
+        return null;
     }
 
     @Override

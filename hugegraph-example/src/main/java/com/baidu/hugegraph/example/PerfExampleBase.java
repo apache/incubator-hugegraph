@@ -20,10 +20,11 @@
 package com.baidu.hugegraph.example;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
@@ -53,7 +54,8 @@ public abstract class PerfExampleBase {
 
     protected static final Logger LOG = Log.logger(PerfExampleBase.class);
 
-    protected Set<Object> vertices = new HashSet<>();
+    protected Set<Object> vertices = Collections.newSetFromMap(
+                                     new ConcurrentHashMap<Object, Boolean>());
 
     public int test(String[] args) throws InterruptedException {
         if (args.length != 3) {

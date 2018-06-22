@@ -20,11 +20,16 @@
 package com.baidu.hugegraph.example;
 
 import java.io.File;
+import java.util.Iterator;
+import java.util.concurrent.TimeoutException;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.perf.PerfUtil;
+import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.HugeTaskScheduler;
 
 public class ExampleUtil {
 
@@ -81,6 +86,18 @@ public class ExampleUtil {
             PerfUtil.instance().profilePackage("com.baidu.hugegraph");
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static void waitAllTaskDone(HugeGraph graph) {
+        HugeTaskScheduler scheduler = graph.taskScheduler();
+        Iterator<HugeTask<Object>> tasks = scheduler.findAllTask(-1L);
+        while (tasks.hasNext()) {
+            try {
+                scheduler.waitUntilTaskCompleted(tasks.next().id(), 20L);
+            } catch (TimeoutException e) {
+                throw new HugeException("Failed to wait task done", e);
+            }
         }
     }
 }

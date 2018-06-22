@@ -17,24 +17,41 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.schema.builder;
+package com.baidu.hugegraph.task;
 
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.type.define.SerialEnum;
 
-public interface SchemaBuilder<T extends SchemaElement> {
+public enum Status implements SerialEnum {
 
-    public T build();
+    UNKNOWN(0, "UNKNOWN"),
 
-    public T create();
+    NEW(1, "new"),
+    QUEUED(2, "queued"),
+    RESTORING(3, "restoring"),
+    RUNNING(4, "running"),
+    SUCCESS(5, "success"),
+    CANCELLED(6, "cancelled"),
+    FAILED(7, "failed");
 
-    public T append();
+    private byte status = 0;
+    private String name;
 
-    public T eliminate();
+    static {
+        SerialEnum.register(Status.class);
+    }
 
-    public Id remove();
+    Status(int status, String name) {
+        assert status < 256;
+        this.status = (byte) status;
+        this.name = name;
+    }
 
-    public SchemaBuilder<T> ifNotExist();
+    @Override
+    public byte code() {
+        return this.status;
+    }
 
-    public SchemaBuilder<T> checkExist(boolean checkExist);
+    public String string() {
+        return this.name;
+    }
 }

@@ -1239,6 +1239,8 @@ public class GraphTransaction extends IndexableTransaction {
 
         boolean autoCommit = this.autoCommit();
         this.autoCommit(false);
+        // Commit data already in tx firstly
+        this.commit();
         try {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             query.eq(HugeKeys.LABEL, vertexLabel.id());
@@ -1247,9 +1249,14 @@ public class GraphTransaction extends IndexableTransaction {
                 query.showHidden(true);
             }
 
+            int count = 0;
             for (Iterator<Vertex> vertices = queryVertices(query);
                  vertices.hasNext();) {
                 this.removeVertex((HugeVertex) vertices.next());
+                // Avoid reaching tx limit
+                if (++count == this.vertexesCapacity) {
+                    this.commit();
+                }
             }
             this.commit();
         } catch (Exception e) {
@@ -1267,6 +1274,8 @@ public class GraphTransaction extends IndexableTransaction {
 
         boolean autoCommit = this.autoCommit();
         this.autoCommit(false);
+        // Commit data already in tx firstly
+        this.commit();
         try {
             if (this.store().features().supportsDeleteEdgeByLabel()) {
                 // TODO: Need to change to writeQuery!
@@ -1281,9 +1290,14 @@ public class GraphTransaction extends IndexableTransaction {
                 if (edgeLabel.hidden()) {
                     query.showHidden(true);
                 }
+                int count = 0;
                 for (Iterator<Edge> edges = queryEdges(query);
                      edges.hasNext();) {
                     this.removeEdge((HugeEdge) edges.next());
+                    // Avoid reaching tx limit
+                    if (++count == this.edgesCapacity) {
+                        this.commit();
+                    }
                 }
             }
             this.commit();

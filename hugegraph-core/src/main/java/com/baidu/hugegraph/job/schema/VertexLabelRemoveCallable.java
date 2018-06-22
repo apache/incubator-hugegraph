@@ -17,41 +17,19 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.task;
+package com.baidu.hugegraph.job.schema;
 
-import com.baidu.hugegraph.type.define.SerialEnum;
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 
-public enum HugeTaskStatus implements SerialEnum {
+public class VertexLabelRemoveCallable extends SchemaCallable {
 
-    UNKNOWN(0, "UNKNOWN"),
-
-    NEW(1, "new"),
-    QUEUED(2, "queued"),
-    RESTORING(3, "restoring"),
-    RUNNING(4, "running"),
-    SUCCESS(5, "success"),
-    CANCELLED(6, "cancelled"),
-    FAILED(7, "failed");
-
-    private byte status = 0;
-    private String name;
-
-    static {
-        SerialEnum.register(HugeTaskStatus.class);
-    }
-
-    HugeTaskStatus(int status, String name) {
-        assert status < 256;
-        this.status = (byte) status;
-        this.name = name;
+    @Override
+    public String type() {
+        return SchemaCallable.REMOVE_SCHEMA;
     }
 
     @Override
-    public byte code() {
-        return this.status;
-    }
-
-    public String string() {
-        return this.name;
+    public void runTask() {
+        SchemaTransaction.removeVertexLabelSync(this.graph(), this.schemaId());
     }
 }

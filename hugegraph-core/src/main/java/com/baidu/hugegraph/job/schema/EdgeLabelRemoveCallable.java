@@ -17,24 +17,19 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.schema.builder;
+package com.baidu.hugegraph.job.schema;
 
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 
-public interface SchemaBuilder<T extends SchemaElement> {
+public class EdgeLabelRemoveCallable extends SchemaCallable {
 
-    public T build();
+    @Override
+    public String type() {
+        return SchemaCallable.REMOVE_SCHEMA;
+    }
 
-    public T create();
-
-    public T append();
-
-    public T eliminate();
-
-    public Id remove();
-
-    public SchemaBuilder<T> ifNotExist();
-
-    public SchemaBuilder<T> checkExist(boolean checkExist);
+    @Override
+    protected void runTask() {
+        SchemaTransaction.removeEdgeLabelSync(this.graph(), this.schemaId());
+    }
 }

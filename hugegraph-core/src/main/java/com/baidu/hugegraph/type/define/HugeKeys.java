@@ -30,6 +30,7 @@ public enum HugeKeys {
     SCHEMA_TYPE(4, "schema_type"),
 
     USER_DATA(10, "user_data"),
+    STATUS(11, "status"),
 
     /* Column names of schema type (VertexLabel) */
     ID_STRATEGY(50, "id_strategy"),

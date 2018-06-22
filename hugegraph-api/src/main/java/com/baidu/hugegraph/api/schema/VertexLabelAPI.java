@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -46,6 +47,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/schema/vertexlabels")
 @Singleton
@@ -83,6 +85,7 @@ public class VertexLabelAPI extends API {
                          JsonVertexLabel jsonVertexLabel) {
         LOG.debug("Graph [{}] {} vertex label: {}",
                   graph, action, jsonVertexLabel);
+
         checkUpdatingBody(jsonVertexLabel);
         E.checkArgument(name.equals(jsonVertexLabel.name),
                         "The name in url(%s) and body(%s) are different",
@@ -127,16 +130,19 @@ public class VertexLabelAPI extends API {
     @DELETE
     @Timed
     @Path("{name}")
+    @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
-    public void delete(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
-                       @PathParam("name") String name) {
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public Map<String, Id> delete(@Context GraphManager manager,
+                                  @PathParam("graph") String graph,
+                                  @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove vertex label by name '{}'", graph, name);
 
         HugeGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getVertexLabel(name);
-        g.schema().vertexLabel(name).remove();
+        return ImmutableMap.of("task_id",
+                               g.schema().vertexLabel(name).remove());
     }
 
     /**

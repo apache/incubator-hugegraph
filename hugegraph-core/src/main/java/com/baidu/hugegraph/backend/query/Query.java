@@ -50,6 +50,8 @@ public class Query implements Cloneable {
 
     private Query originQuery;
 
+    private static final ThreadLocal<Long> capacityContex = new ThreadLocal<>();
+
     public Query(HugeType resultType) {
         this(resultType, null);
     }
@@ -64,7 +66,7 @@ public class Query implements Cloneable {
         this.limit = NO_LIMIT;
         this.page = null;
 
-        this.capacity = DEFAULT_CAPACITY;
+        this.capacity = defaultCapacity();
 
         this.showHidden = false;
     }
@@ -267,6 +269,17 @@ public class Query implements Cloneable {
                              this.offset,
                              this.limit,
                              this.orders.toString());
+    }
+
+    public static long defaultCapacity(long capacity) {
+        Long old = capacityContex.get();
+        capacityContex.set(capacity);
+        return old != null ? old : DEFAULT_CAPACITY;
+    }
+
+    public static long defaultCapacity() {
+        Long capacity = capacityContex.get();
+        return capacity != null ? capacity : DEFAULT_CAPACITY;
     }
 
     public static enum Order {

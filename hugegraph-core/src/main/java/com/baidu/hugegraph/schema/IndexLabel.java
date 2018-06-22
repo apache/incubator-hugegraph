@@ -182,7 +182,7 @@ public class IndexLabel extends SchemaElement {
 
     public interface Builder extends SchemaBuilder<IndexLabel> {
 
-        void rebuild();
+        Id rebuild();
 
         Builder onV(String baseValue);
 

@@ -19,8 +19,11 @@
 
 package com.baidu.hugegraph.task;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +34,8 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeTaskManager {
 
-    private static final HugeTaskManager INSTANCE = new HugeTaskManager(4);
+    private static final int THREADS = 4;
+    private static final HugeTaskManager MANAGER = new HugeTaskManager(THREADS);
 
     private final Map<HugeGraph, HugeTaskScheduler> schedulers;
 
@@ -39,13 +43,15 @@ public class HugeTaskManager {
     private final ExecutorService dbExecutor;
 
     public static HugeTaskManager instance() {
-        return INSTANCE;
+        return MANAGER;
     }
 
     private HugeTaskManager(int pool) {
         this.schedulers = new HashMap<>();
 
+        // For execute tasks
         this.taskExecutor = Executors.newFixedThreadPool(pool);
+        // For save/query task state, just one thread is ok
         this.dbExecutor = Executors.newFixedThreadPool(1);
     }
 
@@ -60,6 +66,31 @@ public class HugeTaskManager {
         HugeTaskScheduler scheduler = this.schedulers.get(graph);
         if (scheduler != null && scheduler.close()) {
             this.schedulers.remove(graph);
+        }
+
+        this.closeTaskTx(graph);
+    }
+
+    private void closeTaskTx(HugeGraph graph) {
+        Callable<Void> closeTx = () -> {
+            graph.closeTx();
+            // Let other threads run
+            Thread.yield();
+            return null;
+        };
+
+        /*
+         * FIXME: expect each thread to perform a close operation,
+         * but some threads may unable to execute
+         */
+        List<Callable<Void>> tasks = new ArrayList<>();
+        for (int i = 0; i < THREADS * 2; i++) {
+            tasks.add(closeTx);
+        }
+        try {
+            this.taskExecutor.invokeAll(tasks);
+        } catch (InterruptedException e) {
+            throw new HugeException("Interrupted when closing tx", e);
         }
     }
 

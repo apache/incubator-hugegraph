@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.schema;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -36,6 +37,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.type.HugeType;
@@ -44,6 +46,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/schema/indexlabels")
 @Singleton
@@ -53,7 +56,7 @@ public class IndexLabelAPI extends API {
 
     @POST
     @Timed
-    @Status(Status.CREATED)
+    @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
@@ -97,16 +100,19 @@ public class IndexLabelAPI extends API {
     @DELETE
     @Timed
     @Path("{name}")
+    @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
-    public void delete(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
-                       @PathParam("name") String name) {
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public Map<String, Id> delete(@Context GraphManager manager,
+                                  @PathParam("graph") String graph,
+                                  @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove index label by name '{}'", graph, name);
 
         HugeGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getIndexLabel(name);
-        g.schema().indexLabel(name).remove();
+        return ImmutableMap.of("task_id",
+                               g.schema().indexLabel(name).remove());
     }
 
     /**

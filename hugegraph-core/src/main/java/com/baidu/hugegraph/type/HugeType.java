@@ -50,6 +50,8 @@ public enum HugeType implements SerialEnum {
     SECONDARY_INDEX(150, "SI"),
     RANGE_INDEX(160, "RI"),
 
+    TASK(180, "T"),
+
     MAX_TYPE(255, "~");
 
     private byte type = 0;

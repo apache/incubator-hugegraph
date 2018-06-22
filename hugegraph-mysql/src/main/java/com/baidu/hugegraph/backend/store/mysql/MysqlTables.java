@@ -152,6 +152,7 @@ public class MysqlTables {
             this.define.column(HugeKeys.INDEX_LABELS, SMALL_JSON);
             this.define.column(HugeKeys.ENABLE_LABEL_INDEX, BOOLEAN);
             this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
+            this.define.column(HugeKeys.STATUS, TINYINT);
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -175,6 +176,7 @@ public class MysqlTables {
             this.define.column(HugeKeys.INDEX_LABELS, SMALL_JSON);
             this.define.column(HugeKeys.ENABLE_LABEL_INDEX, BOOLEAN);
             this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
+            this.define.column(HugeKeys.STATUS, TINYINT);
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -193,6 +195,7 @@ public class MysqlTables {
             this.define.column(HugeKeys.CARDINALITY, TINYINT);
             this.define.column(HugeKeys.PROPERTIES, SMALL_JSON);
             this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
+            this.define.column(HugeKeys.STATUS, TINYINT);
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -211,6 +214,7 @@ public class MysqlTables {
             this.define.column(HugeKeys.BASE_VALUE, DATATYPE_SL);
             this.define.column(HugeKeys.INDEX_TYPE, TINYINT);
             this.define.column(HugeKeys.FIELDS, SMALL_JSON);
+            this.define.column(HugeKeys.STATUS, TINYINT);
             this.define.keys(HugeKeys.ID);
         }
     }

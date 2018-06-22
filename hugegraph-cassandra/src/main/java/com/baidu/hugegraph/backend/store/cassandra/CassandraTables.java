@@ -59,6 +59,8 @@ public class CassandraTables {
     private static final DataType DATATYPE_UD = DataType.map(DataType.text(),
                                                              DataType.text());
 
+    private static final int COMMIT_DELETE_BATCH = 1000;
+
     public static class Counters extends CassandraTable {
 
         public static final String TABLE = "counters";
@@ -143,6 +145,7 @@ public class CassandraTables {
                     .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, DATATYPE_UD)
+                    .put(HugeKeys.STATUS, DataType.tinyint())
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -176,6 +179,7 @@ public class CassandraTables {
                     .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, DATATYPE_UD)
+                    .put(HugeKeys.STATUS, DataType.tinyint())
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -197,13 +201,15 @@ public class CassandraTables {
                     HugeKeys.ID, DataType.cint()
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
-                    HugeKeys.NAME, DataType.text(),
-                    HugeKeys.DATA_TYPE, DataType.tinyint(),
-                    HugeKeys.CARDINALITY, DataType.tinyint(),
-                    HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK),
-                    HugeKeys.USER_DATA, DATATYPE_UD
-            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap
+                    .<HugeKeys, DataType>builder()
+                    .put(HugeKeys.NAME, DataType.text())
+                    .put(HugeKeys.DATA_TYPE, DataType.tinyint())
+                    .put(HugeKeys.CARDINALITY, DataType.tinyint())
+                    .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
+                    .put(HugeKeys.USER_DATA, DATATYPE_UD)
+                    .put(HugeKeys.STATUS, DataType.tinyint())
+                    .build();
 
             this.createTable(session, pkeys, ckeys, columns);
             this.createIndex(session, NAME_INDEX, HugeKeys.NAME);
@@ -230,7 +236,8 @@ public class CassandraTables {
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
                     HugeKeys.NAME, DataType.text(),
                     HugeKeys.INDEX_TYPE, DataType.tinyint(),
-                    HugeKeys.FIELDS, DataType.list(DATATYPE_PK)
+                    HugeKeys.FIELDS, DataType.list(DATATYPE_PK),
+                    HugeKeys.STATUS, DataType.tinyint()
             );
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -418,9 +425,9 @@ public class CassandraTables {
             }
 
             // Delete edges
+            int count = 0;
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 Row row = it.next();
-
                 // Delete OUT edges from edges_out table
                 String ownerVertex = row.get(OWNER_VERTEX, String.class);
                 session.add(buildDelete(label, ownerVertex, Directions.OUT));
@@ -428,6 +435,12 @@ public class CassandraTables {
                 // Delete IN edges from edges_in table
                 String otherVertex = row.get(OTHER_VERTEX, String.class);
                 session.add(buildDelete(label, otherVertex, Directions.IN));
+
+                count += 2;
+                if (count > COMMIT_DELETE_BATCH - 2) {
+                    session.commit();
+                    count = 0;
+                }
             }
         }
 

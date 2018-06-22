@@ -108,7 +108,7 @@ public class EdgeLabel extends SchemaLabel {
 
     public interface Builder extends SchemaBuilder<EdgeLabel> {
 
-        void rebuildIndex();
+        Id rebuildIndex();
 
         Builder link(String sourceLabel, String targetLabel);
 

@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.FutureTask;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
@@ -38,10 +39,13 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.collect.ImmutableSet;
 
 public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
+    private static final Set<Status> COMPLETED_STATUSES =
+            ImmutableSet.of(Status.SUCCESS, Status.CANCELLED, Status.FAILED);
 
     private final HugeTaskCallable<V> callable;
 
@@ -52,7 +56,7 @@ public class HugeTask<V> extends FutureTask<V> {
     private List<Id> children;
     private String description;
     private Date create;
-    private volatile HugeTaskStatus status;
+    private volatile Status status;
     private volatile int progress;
     private volatile Date update;
     private volatile int retries;
@@ -78,7 +82,7 @@ public class HugeTask<V> extends FutureTask<V> {
         this.parent = parent;
         this.children = null;
         this.description = null;
-        this.status = HugeTaskStatus.NEW;
+        this.status = Status.NEW;
         this.progress = 0;
         this.create = new Date();
         this.update = null;
@@ -104,6 +108,10 @@ public class HugeTask<V> extends FutureTask<V> {
             this.children = new ArrayList<>();
         }
         this.children.add(id);
+    }
+
+    public Status status() {
+        return this.status;
     }
 
     public void type(String type) {
@@ -174,6 +182,10 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.result;
     }
 
+    public boolean completed() {
+        return COMPLETED_STATUSES.contains(this.status);
+    }
+
     @Override
     public String toString() {
         return String.format("HugeTask(%s)%s", this.id, this.asMap());
@@ -181,8 +193,8 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     public void run() {
-        assert this.status.code() < HugeTaskStatus.RUNNING.code();
-        this.status(HugeTaskStatus.RUNNING);
+        assert this.status.code() < Status.RUNNING.code();
+        this.status(Status.RUNNING);
         super.run();
     }
 
@@ -191,7 +203,7 @@ public class HugeTask<V> extends FutureTask<V> {
         try {
             return super.cancel(mayInterruptIfRunning);
         } finally {
-            this.status(HugeTaskStatus.CANCELLED);
+            this.status(Status.CANCELLED);
         }
     }
 
@@ -201,32 +213,38 @@ public class HugeTask<V> extends FutureTask<V> {
             this.callable.done();
         } catch (Throwable e) {
             LOG.error("An exception occurred when calling done()", e);
+        } finally {
+            this.callable.scheduler().remove(this.id);
         }
     }
 
     @Override
     protected void set(V v) {
-        this.status(HugeTaskStatus.SUCCESS);
-        this.result = v.toString();
+        this.status(Status.SUCCESS);
+        if (v != null) {
+            this.result = v.toString();
+        }
         super.set(v);
     }
 
     @Override
-    protected void setException(Throwable t) {
-        if (!(this.status == HugeTaskStatus.CANCELLED &&
-              t instanceof InterruptedException)) {
+    protected void setException(Throwable e) {
+        if (!(this.status == Status.CANCELLED &&
+              e instanceof InterruptedException)) {
+            LOG.warn("An exception occurred when running task: {}",
+                     this.id(), e);
             // Update status to FAILED if exception occurred(not interrupted)
-            this.status(HugeTaskStatus.FAILED);
-            this.result = t.toString();
+            this.status(Status.FAILED);
+            this.result = e.toString();
         }
-        super.setException(t);
+        super.setException(e);
     }
 
     protected HugeTaskCallable<V> callable() {
         return this.callable;
     }
 
-    protected void status(HugeTaskStatus status) {
+    protected void status(Status status) {
         this.status = status;
     }
 
@@ -243,8 +261,7 @@ public class HugeTask<V> extends FutureTask<V> {
                 this.description = (String) value;
                 break;
             case P.STATUS:
-                this.status(SerialEnum.fromCode(HugeTaskStatus.class,
-                                                (byte) value));
+                this.status(SerialEnum.fromCode(Status.class, (byte) value));
                 break;
             case P.PROGRESS:
                 this.progress = (int) value;
@@ -260,6 +277,7 @@ public class HugeTask<V> extends FutureTask<V> {
                 break;
             case P.INPUT:
                 this.input = (String) value;
+                break;
             case P.RESULT:
                 this.result = (String) value;
                 break;
@@ -327,34 +345,33 @@ public class HugeTask<V> extends FutureTask<V> {
         return list.toArray();
     }
 
-    protected Map<String, Object> asMap() {
+    public Map<String, Object> asMap() {
         E.checkState(this.type != null, "Task type can't be null");
         E.checkState(this.name != null, "Task name can't be null");
 
         Map<String, Object> map = new HashMap<>();
 
-        map.put(P.LABEL, P.TASK);
-        map.put(P.ID, this.id);
+        map.put(Hidden.unHide(P.ID), this.id);
 
-        map.put(P.TYPE, this.type);
-        map.put(P.NAME, this.name);
-        map.put(P.CALLABLE, this.callable.getClass().getName());
-        map.put(P.STATUS, this.status.code());
-        map.put(P.PROGRESS, this.progress);
-        map.put(P.CREATE, this.create);
-        map.put(P.RETRIES, this.retries);
+        map.put(Hidden.unHide(P.TYPE), this.type);
+        map.put(Hidden.unHide(P.NAME), this.name);
+        map.put(Hidden.unHide(P.CALLABLE), this.callable.getClass().getName());
+        map.put(Hidden.unHide(P.STATUS), this.status.string());
+        map.put(Hidden.unHide(P.PROGRESS), this.progress);
+        map.put(Hidden.unHide(P.CREATE), this.create);
+        map.put(Hidden.unHide(P.RETRIES), this.retries);
 
         if (this.description != null) {
-            map.put(P.DESCRIPTION, this.description);
+            map.put(Hidden.unHide(P.DESCRIPTION), this.description);
         }
         if (this.update != null) {
-            map.put(P.UPDATE, this.update);
+            map.put(Hidden.unHide(P.UPDATE), this.update);
         }
         if (this.input != null) {
-            map.put(P.INPUT, this.input);
+            map.put(Hidden.unHide(P.INPUT), this.input);
         }
         if (this.result != null) {
-            map.put(P.RESULT, this.result);
+            map.put(Hidden.unHide(P.RESULT), this.result);
         }
 
         return map;

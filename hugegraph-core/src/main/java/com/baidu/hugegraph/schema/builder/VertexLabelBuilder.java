@@ -172,19 +172,22 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     @Override
-    public void remove() {
+    public Id remove() {
         VertexLabel vertexLabel = this.transaction.getVertexLabel(this.name);
         if (vertexLabel == null) {
-            return;
+            return null;
         }
-        this.transaction.removeVertexLabel(vertexLabel.id());
+        return this.transaction.removeVertexLabel(vertexLabel.id());
     }
 
     @Override
-    public void rebuildIndex() {
-        VertexLabel vertexLabel = this.transaction.graph().vertexLabel(
-                                  this.name);
-        this.transaction.rebuildIndex(vertexLabel);
+    public Id rebuildIndex() {
+        VertexLabel vertexLabel = this.transaction.graph()
+                                      .vertexLabel(this.name);
+        if (vertexLabel == null) {
+            return null;
+        }
+        return this.transaction.rebuildIndex(vertexLabel);
     }
 
     @Override
