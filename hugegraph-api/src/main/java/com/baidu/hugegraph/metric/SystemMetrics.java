@@ -35,9 +35,6 @@ import com.baidu.hugegraph.util.Bytes;
 public class SystemMetrics {
 
     private static final long MB = Bytes.MB;
-    private static final long SECOND = 1000L;
-    private static final long MINUTE = 60 * SECOND;
-    private static final long HOUR = 60 * MINUTE;
 
     public Map<String, Map<String, Object>> metrics() {
         Map<String, Map<String, Object>> metrics = new LinkedHashMap<>();
@@ -56,9 +53,10 @@ public class SystemMetrics {
         metrics.put("mem", (runtime.totalMemory() + totalNonHeapMemory()) / MB);
         metrics.put("mem_free", runtime.freeMemory() / MB);
         metrics.put("processors", runtime.availableProcessors());
-        metrics.put("uptime", ManagementFactory.getRuntimeMXBean().getUptime() / MINUTE);
-        metrics.put("systemload_average", ManagementFactory.getOperatingSystemMXBean()
-                                                           .getSystemLoadAverage());
+        metrics.put("uptime", ManagementFactory.getRuntimeMXBean().getUptime());
+        metrics.put("systemload_average",
+                    ManagementFactory.getOperatingSystemMXBean()
+                                     .getSystemLoadAverage());
         return metrics;
     }
 
@@ -105,7 +103,8 @@ public class SystemMetrics {
 
     private Map<String, Object> getClassLoadingMetrics() {
         Map<String, Object> metrics = new LinkedHashMap<>();
-        ClassLoadingMXBean classLoadingMxBean = ManagementFactory.getClassLoadingMXBean();
+        ClassLoadingMXBean classLoadingMxBean = ManagementFactory
+                                                .getClassLoadingMXBean();
         metrics.put("count", classLoadingMxBean.getLoadedClassCount());
         metrics.put("loaded", classLoadingMxBean.getTotalLoadedClassCount());
         metrics.put("unloaded", classLoadingMxBean.getUnloadedClassCount());
@@ -114,11 +113,12 @@ public class SystemMetrics {
 
     private Map<String, Object> getGarbageCollectionMetrics() {
         Map<String, Object> metrics = new LinkedHashMap<>();
-        List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory.getGarbageCollectorMXBeans();
+        List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory
+                                                 .getGarbageCollectorMXBeans();
         for (GarbageCollectorMXBean gcMxBean : gcMxBeans) {
             String name = this.formatName(gcMxBean.getName());
             metrics.put(name + "_count", gcMxBean.getCollectionCount());
-            metrics.put(name + "_time", gcMxBean.getCollectionTime() / MINUTE);
+            metrics.put(name + "_time", gcMxBean.getCollectionTime());
         }
         return metrics;
     }

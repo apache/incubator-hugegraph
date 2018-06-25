@@ -42,6 +42,7 @@ public class ServerReporter extends ScheduledReporter {
 
     private static volatile ServerReporter instance = null;
 
+    @SuppressWarnings("rawtypes")
     private Map<String, Gauge> gauges;
     private Map<String, Counter> counters;
     private Map<String, Histogram> histograms;
@@ -82,6 +83,7 @@ public class ServerReporter extends ScheduledReporter {
         return Collections.unmodifiableMap(this.timers);
     }
 
+    @SuppressWarnings("rawtypes")
     public Map<String, Gauge> gauges() {
         return Collections.unmodifiableMap(this.gauges);
     }
@@ -99,6 +101,7 @@ public class ServerReporter extends ScheduledReporter {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public void report(SortedMap<String, Gauge> gauges,
                        SortedMap<String, Counter> counters,
                        SortedMap<String, Histogram> histograms,

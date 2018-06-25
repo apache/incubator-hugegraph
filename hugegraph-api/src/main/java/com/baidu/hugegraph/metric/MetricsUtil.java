@@ -33,8 +33,8 @@ public class MetricsUtil {
     private static final MetricRegistry registry =
                                         MetricManager.INSTANCE.getRegistry();
 
-    public static Gauge registerGauge(Class<?> clazz, String name,
-                                      Gauge gauge) {
+    public static <T> Gauge<T> registerGauge(Class<?> clazz, String name,
+                                             Gauge<T> gauge) {
         return registry.register(MetricRegistry.name(clazz, name), gauge);
     }
 
