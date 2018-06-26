@@ -316,6 +316,11 @@ public class InMemoryDBStore implements BackendStore {
         }
 
         @Override
+        public boolean supportsMergeVertexProperty() {
+            return true;
+        }
+
+        @Override
         public boolean supportsUpdateEdgeProperty() {
             return false;
         }

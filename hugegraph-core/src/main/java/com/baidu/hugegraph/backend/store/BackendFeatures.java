@@ -45,6 +45,8 @@ public interface BackendFeatures {
 
     public boolean supportsUpdateVertexProperty();
 
+    public boolean supportsMergeVertexProperty();
+
     public boolean supportsUpdateEdgeProperty();
 
     public boolean supportsTransaction();

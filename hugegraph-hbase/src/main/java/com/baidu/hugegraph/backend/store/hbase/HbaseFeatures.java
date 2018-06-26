@@ -89,6 +89,11 @@ public class HbaseFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsMergeVertexProperty() {
+        return true;
+    }
+
+    @Override
     public boolean supportsUpdateEdgeProperty() {
         // Edge properties are stored in a cell(column value)
         return false;

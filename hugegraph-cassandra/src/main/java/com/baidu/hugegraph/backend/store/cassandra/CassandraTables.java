@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -259,6 +260,28 @@ public class CassandraTables {
 
             this.createTable(session, pkeys, ckeys, columns);
             this.createIndex(session, LABEL_INDEX, HugeKeys.LABEL);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Map<HugeKeys, Object> columns = entry.columns();
+            assert columns.containsKey(HugeKeys.ID);
+            Object id = columns.get(HugeKeys.ID);
+            Object label = columns.get(HugeKeys.LABEL);
+            E.checkState(label != null,
+                         "The label of inserting vertex can't be null");
+            Map<?, ?> properties = (Map<?, ?>) columns.get(HugeKeys.PROPERTIES);
+            E.checkState(properties != null,
+                         "The properties of inserting vertex can't be null");
+
+            Update update = QueryBuilder.update(table());
+            update.with(QueryBuilder.set(formatKey(HugeKeys.LABEL), label));
+            update.with(QueryBuilder.putAll(formatKey(HugeKeys.PROPERTIES),
+                                            properties));
+            update.where(formatEQ(HugeKeys.ID, id));
+
+            session.add(update);
         }
     }
 

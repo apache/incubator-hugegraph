@@ -86,6 +86,11 @@ public class MysqlFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsMergeVertexProperty() {
+        return false;
+    }
+
+    @Override
     public boolean supportsUpdateEdgeProperty() {
         return false;
     }

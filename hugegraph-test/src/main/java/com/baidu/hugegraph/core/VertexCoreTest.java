@@ -1787,6 +1787,41 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testAddVertexMultiTimesWithMergedProperties() {
+        Assume.assumeTrue("Not support merge vertex property",
+                          storeFeatures().supportsMergeVertexProperty());
+
+        HugeGraph graph = graph();
+        // "city" is a nonnullable property
+        graph.addVertex(T.label, "person", "name", "marko", "city", "Beijing",
+                        "birth", "1992-11-17 12:00:00.000");
+        graph.tx().commit();
+        Vertex vertex = vertex("person", "name", "marko");
+        Assert.assertEquals("Beijing", vertex.value("city"));
+        Assert.assertEquals(Utils.date("1992-11-17 12:00:00.000"),
+                            vertex.value("birth"));
+        Assert.assertFalse(vertex.property("age").isPresent());
+        // append property 'age'
+        graph.addVertex(T.label, "person", "name", "marko", "city", "Beijing",
+                        "age", 26);
+        graph.tx().commit();
+        Assert.assertEquals("Beijing", vertex.value("city"));
+        vertex = vertex("person", "name", "marko");
+        Assert.assertEquals(26, (int) vertex.value("age"));
+        Assert.assertEquals(Utils.date("1992-11-17 12:00:00.000"),
+                            vertex.value("birth"));
+        // update property "birth" and keep the original properties unchanged
+        graph.addVertex(T.label, "person", "name", "marko", "city", "Beijing",
+                        "birth", "1993-11-17 12:00:00.000");
+        graph.tx().commit();
+        vertex = vertex("person", "name", "marko");
+        Assert.assertEquals("Beijing", vertex.value("city"));
+        Assert.assertEquals(26, (int) vertex.value("age"));
+        Assert.assertEquals(Utils.date("1993-11-17 12:00:00.000"),
+                            vertex.value("birth"));
+    }
+
+    @Test
     public void testRemoveVertexProperty() {
         HugeGraph graph = graph();
         Vertex v = graph.addVertex(T.label, "author", "id", 1,
