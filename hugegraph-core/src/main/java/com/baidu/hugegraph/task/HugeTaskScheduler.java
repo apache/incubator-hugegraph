@@ -105,7 +105,7 @@ public class HugeTaskScheduler {
     public <V> Future<?> restore(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
         task.status(HugeTaskStatus.RESTORING);
-        return this.submit(task);
+        return this.submitTask(task);
     }
 
     public <V> Future<?> schedule(HugeTask<V> task) {

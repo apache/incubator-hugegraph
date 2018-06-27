@@ -27,7 +27,7 @@ public enum HugeTaskStatus implements SerialEnum {
 
     NEW(1, "new"),
     QUEUED(2, "queued"),
-    RESTORING(4, "restoring"),
+    RESTORING(3, "restoring"),
     RUNNING(4, "running"),
     SUCCESS(5, "success"),
     CANCELLED(6, "cancelled"),

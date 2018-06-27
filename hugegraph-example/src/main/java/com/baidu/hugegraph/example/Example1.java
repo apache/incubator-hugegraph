@@ -429,6 +429,7 @@ public class Example1 {
         variables.set("time", 3);
         variables.set("owner", "zhangyi1");
         variables.keys();
+        graph.tx().commit();
         variables.remove("time");
         variables.get("time");
         variables.get("owner");

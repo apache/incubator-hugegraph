@@ -91,6 +91,7 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
                 if (this.query.paging() && this.results.hasNext()) {
                     this.results.next();
                 }
+                this.results.close();
                 break;
             }
         }

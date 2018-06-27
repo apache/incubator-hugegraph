@@ -649,7 +649,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public boolean hasNext() {
-            this.matched = this.itor.isOwningHandle() && this.itor.isValid();
+            this.matched = this.itor.isOwningHandle();
+            if (!this.matched) {
+                // Maybe closed
+                return this.matched;
+            }
+
+            this.matched = this.itor.isValid();
             if (this.matched) {
                 // Update position for paging
                 this.position = this.itor.key();
