@@ -37,6 +37,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.HashUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 
 public class HugeIndex implements GraphType {
@@ -73,6 +74,10 @@ public class HugeIndex implements GraphType {
 
     public Id id() {
         return formatIndexId(type(), this.indexLabel(), this.fieldValues());
+    }
+
+    public Id hashId() {
+        return formatIndexHashId(type(), this.indexLabel(), this.fieldValues());
     }
 
     public Object fieldValues() {
@@ -129,12 +134,40 @@ public class HugeIndex implements GraphType {
                              this.fieldValues, this.elementIds);
     }
 
+    public static Id formatIndexHashId(HugeType type, Id indexLabel,
+                                       Object fieldValues) {
+        E.checkState(!type.isRangeIndex(),
+                     "RangeIndex can't return a hash id");
+        String value = fieldValues == null ? "" : fieldValues.toString();
+        return formatIndexId(type, indexLabel, HashUtil.hash(value));
+    }
+
+    public static Id formatIndexId(HugeType type, Id indexLabel,
+                                   Object fieldValues) {
+        if (type.isSecondaryIndex()) {
+            String value = fieldValues == null ? "" : fieldValues.toString();
+            return SplicingIdGenerator.splicing(value, indexLabel.asString());
+        } else {
+            assert type.isRangeIndex();
+            BytesBuffer buffer = BytesBuffer.allocate(16);
+            buffer.writeInt((int) indexLabel.asLong());
+            if (fieldValues != null) {
+                E.checkState(fieldValues instanceof Number,
+                             "Field value of range index must be number: %s",
+                             fieldValues.getClass().getSimpleName());
+                byte[] value = number2bytes((Number) fieldValues);
+                buffer.write(value);
+            }
+            return buffer.asId();
+        }
+    }
+
     public static HugeIndex parseIndexId(HugeGraph graph,
                                          HugeType type, byte[] id) {
         Object values;
         IndexLabel indexLabel;
 
-        if (type == HugeType.SECONDARY_INDEX) {
+        if (type.isSecondaryIndex()) {
             Id idObject = IdGenerator.of(id, false);
             String[] parts = SplicingIdGenerator.parse(idObject);
             E.checkState(parts.length == 2, "Invalid secondary index id");
@@ -142,7 +175,7 @@ public class HugeIndex implements GraphType {
             Id label = SchemaElement.schemaId(parts[1]);
             indexLabel = IndexLabel.label(graph, label);
         } else {
-            assert type == HugeType.RANGE_INDEX;
+            assert type.isRangeIndex();
             final int labelLength = 4;
             E.checkState(id.length > labelLength, "Invalid range index id");
             BytesBuffer buffer = BytesBuffer.wrap(id);
@@ -161,26 +194,6 @@ public class HugeIndex implements GraphType {
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(values);
         return index;
-    }
-
-    public static Id formatIndexId(HugeType type, Id indexLabel,
-                                   Object fieldValues) {
-        if (type == HugeType.SECONDARY_INDEX) {
-            String value = fieldValues == null ? "?" : fieldValues.toString();
-            return SplicingIdGenerator.splicing(value, indexLabel.asString());
-        } else {
-            assert type == HugeType.RANGE_INDEX;
-            BytesBuffer buffer = BytesBuffer.allocate(16);
-            buffer.writeInt((int) indexLabel.asLong());
-            if (fieldValues != null) {
-                E.checkState(fieldValues instanceof Number,
-                             "Field value of range index must be number: %s",
-                             fieldValues.getClass().getSimpleName());
-                byte[] value = number2bytes((Number) fieldValues);
-                buffer.write(value);
-            }
-            return buffer.asId();
-        }
     }
 
     public static byte[] number2bytes(Number number) {

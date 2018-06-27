@@ -42,8 +42,13 @@ public class HbaseSerializer extends BinarySerializer {
     }
 
     @Override
-    protected void parseIndexName(BinaryBackendEntry entry, HugeIndex index) {
+    protected void parseIndexName(BinaryBackendEntry entry, HugeIndex index,
+                                  Object fieldValues) {
         for (BackendColumn col : entry.columns()) {
+            if (indexFieldValuesUnmatched(col.value, fieldValues)) {
+                // Skip if field-values don't matched (just the same hash)
+                continue;
+            }
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
             index.elementIds(buffer.readId(true));
         }

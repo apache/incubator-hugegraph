@@ -295,21 +295,11 @@ public class BinarySerializer extends AbstractSerializer {
         }
     }
 
-    protected byte[] formatIndexNameOld(HugeIndex index) {
-        byte[] indexId = index.id().asBytes();
-        Id elemId = index.elementId();
-        BytesBuffer buffer = BytesBuffer.allocate(indexId.length +
-                                                  1 + elemId.length() + 1);
-        // Write index-id + element-id + length-of-index-id
-        buffer.write(indexId);
-        buffer.writeId(elemId, true);
-        buffer.writeUInt8(indexId.length);
-
-        return buffer.bytes();
-    }
-
     protected byte[] formatIndexName(HugeIndex index) {
         Id indexId = index.id();
+        if (indexIdLengthExceedLimit(indexId)) {
+            indexId = index.hashId();
+        }
         Id elemId = index.elementId();
         BytesBuffer buffer = BytesBuffer.allocate(1 + indexId.length() +
                                                   1 + elemId.length());
@@ -320,8 +310,13 @@ public class BinarySerializer extends AbstractSerializer {
         return buffer.bytes();
     }
 
-    protected void parseIndexName(BinaryBackendEntry entry, HugeIndex index) {
+    protected void parseIndexName(BinaryBackendEntry entry, HugeIndex index,
+                                  Object fieldValues) {
         for (BackendColumn col : entry.columns()) {
+            if (indexFieldValuesUnmatched(col.value, fieldValues)) {
+                // Skip if field-values don't matched (just the same hash)
+                continue;
+            }
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
             buffer.readId();
             index.elementIds(buffer.readId(true));
@@ -413,28 +408,42 @@ public class BinarySerializer extends AbstractSerializer {
             entry = newBackendEntry(index.type(), id);
         } else {
             Id id = index.id();
-            E.checkArgument(id.length() <= BytesBuffer.UINT8_MAX,
-                            "Index key must be less than 256, but got: %s",
-                            id.length());
+            byte[] value = null;
+            if (!index.type().isRangeIndex() && indexIdLengthExceedLimit(id)) {
+                id = index.hashId();
+                // Save field-values as column value if the key is a hash string
+                value = StringEncoding.encode(index.fieldValues().toString());
+            }
 
-            // Ensure the original look of the index key
             entry = newBackendEntry(index.type(), id);
-            entry.column(this.formatIndexName(index), null);
+            entry.column(this.formatIndexName(index), value);
             entry.subId(index.elementId());
         }
         return entry;
     }
 
     @Override
-    public HugeIndex readIndex(HugeGraph graph, BackendEntry bytesEntry) {
+    public HugeIndex readIndex(HugeGraph graph, ConditionQuery query,
+                               BackendEntry bytesEntry) {
         if (bytesEntry == null) {
             return null;
         }
+
         BinaryBackendEntry entry = this.convertEntry(bytesEntry);
         // NOTE: index id without length prefix
         byte[] bytes = entry.id().asBytes(1);
         HugeIndex index = HugeIndex.parseIndexId(graph, entry.type(), bytes);
-        this.parseIndexName(entry, index);
+
+        Object fieldValues = null;
+        if (!index.type().isRangeIndex()) {
+            fieldValues = query.condition(HugeKeys.FIELD_VALUES);
+            if (!index.fieldValues().equals(fieldValues)) {
+                // Update field-values for hashed index-id
+                index.fieldValues(fieldValues);
+            }
+        }
+
+        this.parseIndexName(entry, index, fieldValues);
         return index;
     }
 
@@ -507,12 +516,12 @@ public class BinarySerializer extends AbstractSerializer {
         ConditionQuery cq = (ConditionQuery) query;
 
         // Convert secondary-index query to id query
-        if (type == HugeType.SECONDARY_INDEX) {
+        if (type.isSecondaryIndex()) {
             return this.writeSecondaryIndexQuery(cq);
         }
 
         // Convert range-index query to id range query
-        if (type == HugeType.RANGE_INDEX) {
+        if (type.isRangeIndex()) {
             return this.writeRangeIndexQuery(cq);
         }
 
@@ -630,11 +639,28 @@ public class BinarySerializer extends AbstractSerializer {
         return new BinaryId(buffer.bytes(), id);
     }
 
-    private static BinaryId formatIndexId(HugeType type, Id indexLabel,
-                                          Object fieldValues) {
+    protected static BinaryId formatIndexId(HugeType type, Id indexLabel,
+                                            Object fieldValues) {
         Id id = HugeIndex.formatIndexId(type, indexLabel, fieldValues);
+        if (indexIdLengthExceedLimit(id)) {
+            id = HugeIndex.formatIndexHashId(type, indexLabel, fieldValues);
+        }
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
         return new BinaryId(buffer.writeId(id).bytes(), id);
+    }
+
+    protected static boolean indexIdLengthExceedLimit(Id id) {
+        return id.asBytes().length > BytesBuffer.INDEX_ID_MAX_LENGTH;
+    }
+
+    protected static boolean indexFieldValuesUnmatched(byte[] value,
+                                                       Object fieldValues) {
+        if (value != null && value.length > 0 && fieldValues != null) {
+            if (!StringEncoding.decode(value).equals(fieldValues)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // TODO: remove these methods when improving schema serialize

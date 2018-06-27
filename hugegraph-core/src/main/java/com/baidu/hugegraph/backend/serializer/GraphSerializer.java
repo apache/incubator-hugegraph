@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.serializer;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -41,7 +42,8 @@ public interface GraphSerializer {
     public HugeEdge readEdge(HugeGraph graph, BackendEntry entry);
 
     public BackendEntry writeIndex(HugeIndex index);
-    public HugeIndex readIndex(HugeGraph graph, BackendEntry entry);
+    public HugeIndex readIndex(HugeGraph graph, ConditionQuery query,
+                               BackendEntry entry);
 
     public BackendEntry writeId(HugeType type, Id id);
     public Query writeQuery(Query query);

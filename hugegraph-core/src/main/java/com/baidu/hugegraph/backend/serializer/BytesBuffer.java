@@ -48,6 +48,9 @@ public final class BytesBuffer {
     public static final int ID_MAX_LEN = UINT8_MAX & 0x7f + 1; // 128
     public static final int BIG_ID_MAX_LEN = UINT16_MAX & 0x7fff + 1; // 32768
 
+    // The value must be in range [8, 128(ID_MAX_LEN)]
+    public static final int INDEX_ID_MAX_LENGTH = 32;
+
     public static final int DEFAULT_CAPACITY = 64;
     public static final int MAX_BUFFER_CAPACITY = 128 * 1024 * 1024; // 128M
 

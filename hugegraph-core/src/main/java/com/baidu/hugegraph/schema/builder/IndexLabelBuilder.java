@@ -28,6 +28,7 @@ import java.util.Set;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -322,12 +323,12 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     private void rebuildIndexIfNeeded(IndexLabel indexLabel) {
+        GraphTransaction tx = this.transaction.graph().graphTransaction();
         if (this.baseType == HugeType.VERTEX_LABEL) {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             query.eq(HugeKeys.LABEL, indexLabel.baseValue());
             query.limit(1L);
-            if (this.transaction.graph().graphTransaction()
-                    .queryVertices(query).hasNext()) {
+            if (tx.queryVertices(query).hasNext()) {
                 this.transaction.rebuildIndex(indexLabel);
             }
         } else {
@@ -335,8 +336,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             ConditionQuery query = new ConditionQuery(HugeType.EDGE);
             query.eq(HugeKeys.LABEL, indexLabel.baseValue());
             query.limit(1L);
-            if (this.transaction.graph().graphTransaction()
-                    .queryEdges(query).hasNext()) {
+            if (tx.queryEdges(query).hasNext()) {
                 this.transaction.rebuildIndex(indexLabel);
             }
         }

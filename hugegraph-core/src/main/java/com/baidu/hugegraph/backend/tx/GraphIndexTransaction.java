@@ -111,13 +111,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         for (ConditionQuery q : queries.values()) {
-            if (q.resultType() != HugeType.RANGE_INDEX) {
+            if (!q.resultType().isRangeIndex()) {
                 continue;
             }
             // Search and delete index equals element id
             for (Iterator<BackendEntry> it = super.query(q); it.hasNext();) {
                 BackendEntry entry = it.next();
-                HugeIndex index = this.serializer.readIndex(graph(), entry);
+                HugeIndex index = this.serializer.readIndex(graph(), q, entry);
                 if (index.elementIds().contains(element.id())) {
                     index.resetElementIds();
                     index.elementIds(element.id());
@@ -311,10 +311,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
-        /*
-         * Set offset and limit for single index or composite index
-         * to avoid redundant element ids
-         */
+        // Set offset and limit to avoid redundant element ids
         indexQuery.limit(query.limit());
         indexQuery.offset(query.offset());
 
@@ -359,9 +356,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
             Iterator<BackendEntry> entries = super.query(query);
             while(entries.hasNext()) {
-                BackendEntry entry = entries.next();
-                HugeIndex index = this.serializer.readIndex(graph(), entry);
+                HugeIndex index = this.serializer.readIndex(graph(), query,
+                                                            entries.next());
                 ids.addAll(index.elementIds());
+                if (query.reachLimit(ids.size())) {
+                    break;
+                }
             }
         } finally {
             locks.unlock();

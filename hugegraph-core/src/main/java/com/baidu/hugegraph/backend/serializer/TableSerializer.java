@@ -289,7 +289,8 @@ public abstract class TableSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeIndex readIndex(HugeGraph graph, BackendEntry backendEntry) {
+    public HugeIndex readIndex(HugeGraph graph, ConditionQuery query,
+                               BackendEntry backendEntry) {
         E.checkNotNull(graph, "serializer graph");
         if (backendEntry == null) {
             return null;
