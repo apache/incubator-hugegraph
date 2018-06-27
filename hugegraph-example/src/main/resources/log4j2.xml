@@ -34,6 +34,9 @@
         <logger name="org.apache.commons" level="INFO" additivity="false">
             <appender-ref ref="file"/>
         </logger>
+        <logger name="org.apdplat.word" level="WARN" additivity="false">
+            <appender-ref ref="file"/>
+        </logger>
         <logger name="com.baidu.hugegraph" level="INFO" additivity="false">
             <appender-ref ref="console"/>
             <appender-ref ref="file"/>

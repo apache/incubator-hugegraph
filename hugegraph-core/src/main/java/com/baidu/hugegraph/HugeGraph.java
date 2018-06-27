@@ -36,6 +36,7 @@ import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadLocalTransactio
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
@@ -59,6 +60,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.analyzer.AnalyzerFactory;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.task.HugeTaskManager;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
@@ -280,6 +282,10 @@ public class HugeGraph implements Graph {
             throw new HugeException("Can't load serializer with name " + name);
         }
         return serializer;
+    }
+
+    public Analyzer analyzer() {
+        return AnalyzerFactory.analyzer(this.configuration);
     }
 
     @Override

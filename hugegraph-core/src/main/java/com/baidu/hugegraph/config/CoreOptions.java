@@ -187,4 +187,42 @@ public class CoreOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
+
+    public static final ConfigOption<String> TEXT_ANALYZER =
+            new ConfigOption<>(
+                    "search.text_analyzer",
+                    "Choose a text analyzer for searching the " +
+                    "vertex/edge properties, available type are " +
+                    "[word, stanford, ansj, hanlp, smartcn, jieba, jcseg, " +
+                    "mmseg4j, ikanalyzer]",
+                    disallowEmpty(),
+                    "word"
+            );
+
+    public static final ConfigOption<String> TEXT_ANALYZER_MODE =
+            new ConfigOption<>(
+                    "search.text_analyzer_mode",
+                    "Specify the mode for the text analyzer, " +
+                    "the available mode of analyzer are " +
+                    "{word: [MaximumMatching, ReverseMaximumMatching, " +
+                            "MinimumMatching, ReverseMinimumMatching, " +
+                            "BidirectionalMaximumMatching, " +
+                            "BidirectionalMinimumMatching, " +
+                            "BidirectionalMaximumMinimumMatching, " +
+                            "FullSegmentation, MinimalWordCount, " +
+                            "MaxNgramScore, PureEnglish], " +
+                    "stanford: [StanfordCoreNLP-chinese-ctb, " +
+                               "StanfordCoreNLP-chinese-pku], " +
+                    "ansj: [BaseAnalysis, IndexAnalysis, ToAnalysis, " +
+                           "NlpAnalysis], " +
+                    "hanlp: [standard, nlp, index, nShort, shortest, speed], " +
+                    "smartcn: [], " +
+                    "jieba: [SEARCH, INDEX], " +
+                    "jcseg: [Simple, Complex], " +
+                    "mmseg4j: [Simple, Complex, MaxWord], " +
+                    "ikanalyzer: [smart, max_word]" +
+                    "}",
+                    disallowEmpty(),
+                    "MaximumMatching"
+            );
 }

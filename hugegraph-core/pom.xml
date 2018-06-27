@@ -54,6 +54,63 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.apdplat</groupId>
+            <artifactId>word</artifactId>
+            <version>1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>3.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>3.5.2</version>
+            <classifier>models-chinese</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.ansj</groupId>
+            <artifactId>ansj_seg</artifactId>
+            <version>5.1.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.hankcs</groupId>
+            <artifactId>hanlp</artifactId>
+            <version>portable-1.5.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-smartcn</artifactId>
+            <version>7.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>7.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.huaban</groupId>
+            <artifactId>jieba-analysis</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.lionsoul</groupId>
+            <artifactId>jcseg-core</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.chenlb.mmseg4j</groupId>
+            <artifactId>mmseg4j-core</artifactId>
+            <version>1.10.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.janeluo</groupId>
+            <artifactId>ikanalyzer</artifactId>
+            <version>2012_u6</version>
+        </dependency>
     </dependencies>
 
     <build>
