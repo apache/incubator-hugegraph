@@ -274,15 +274,28 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         if (this.indexType == IndexType.RANGE) {
             E.checkArgument(fields.size() == 1,
                             "Range index can only build on " +
-                            "one property, but got %s properties: '%s'",
+                            "one field, but got %s fields: '%s'",
                             fields.size(), fields);
             String field = fields.iterator().next();
-            PropertyKey pk = this.transaction.getPropertyKey(field);
-            DataType dataType = pk.dataType();
+            DataType dataType = this.transaction.getPropertyKey(field)
+                                                .dataType();
             E.checkArgument(dataType.isNumber() || dataType.isDate(),
-                            "Range index can only build on " +
-                            "numeric or date property, but got %s(%s)",
-                            pk.dataType(), pk.name());
+                            "Range index can only build on numeric or " +
+                            "date property, but got %s(%s)", dataType, field);
+        }
+
+        // Search index must build on single text column
+        if (this.indexType == IndexType.SEARCH) {
+            E.checkArgument(fields.size() == 1,
+                            "Search index can only build on " +
+                            "one field, but got %s fields: '%s'",
+                            fields.size(), fields);
+            String field = fields.iterator().next();
+            DataType dataType = this.transaction.getPropertyKey(field)
+                                                .dataType();
+            E.checkArgument(dataType.isText(),
+                            "Search index can only build on text property, " +
+                            "but got %s(%s)", dataType, field);
         }
     }
 
@@ -298,8 +311,8 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             // New created label can't be prefix of existed label
             E.checkArgument(!CollectionUtil.prefixOf(newFields, oldFields),
                             "Fields %s of new index label '%s' is prefix of " +
-                            "existed index label '%s'",
-                            newFields, oldFields, old.name());
+                            "fields %s of existed index label '%s'",
+                            newFields, this.name, oldFields, old.name());
         }
     }
 

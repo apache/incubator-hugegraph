@@ -49,6 +49,7 @@ public enum HugeType implements SerialEnum {
 
     SECONDARY_INDEX(150, "SI"),
     RANGE_INDEX(160, "RI"),
+    SEARCH_INDEX(170, "FI"),
 
     TASK(180, "T"),
 
@@ -102,11 +103,21 @@ public enum HugeType implements SerialEnum {
 
     public boolean isIndex() {
         return this == HugeType.SECONDARY_INDEX ||
+               this == HugeType.SEARCH_INDEX ||
                this == HugeType.RANGE_INDEX;
+    }
+
+    public boolean isStringIndex() {
+        return this == HugeType.SECONDARY_INDEX ||
+               this == HugeType.SEARCH_INDEX;
     }
 
     public boolean isSecondaryIndex() {
         return this == HugeType.SECONDARY_INDEX;
+    }
+
+    public boolean isSearchIndex() {
+        return this == HugeType.SEARCH_INDEX;
     }
 
     public boolean isRangeIndex() {

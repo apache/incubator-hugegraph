@@ -505,6 +505,8 @@ public abstract class CassandraStore implements BackendStore {
                                  new CassandraTables.SecondaryIndex(store));
             registerTableManager(HugeType.RANGE_INDEX,
                                  new CassandraTables.RangeIndex(store));
+            registerTableManager(HugeType.SEARCH_INDEX,
+                                 new CassandraTables.SearchIndex(store));
         }
 
         @Override

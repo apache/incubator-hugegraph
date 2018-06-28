@@ -36,6 +36,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Function;
 
 public class ConditionQuery extends IdQuery {
 
@@ -43,6 +44,7 @@ public class ConditionQuery extends IdQuery {
     private Set<Condition> conditions = new LinkedHashSet<>();
 
     private int optimizedType = 0;
+    private Function<HugeElement, Boolean> resultsFilter = null;
 
     public ConditionQuery(HugeType resultType) {
         super(resultType);
@@ -303,7 +305,11 @@ public class ConditionQuery extends IdQuery {
         return values;
     }
 
-    public Set<Object> userpropValue(Id field) {
+    public String userpropValuesString(List<Id> fields) {
+        return SplicingIdGenerator.concatValues(this.userpropValues(fields));
+    }
+
+    public Set<Object> userpropValues(Id field) {
         Set<Object> values = new HashSet<>();
         for (Relation r : this.userpropRelations()) {
             if (r.key().equals(field)) {
@@ -313,14 +319,41 @@ public class ConditionQuery extends IdQuery {
         return values;
     }
 
-    public String userpropValuesString(List<Id> fields) {
-        return SplicingIdGenerator.concatValues(this.userpropValues(fields));
+    public Object userpropValue(Id field) {
+        Set<Object> values = this.userpropValues(field);
+        if (values.isEmpty()) {
+            return null;
+        }
+        E.checkState(values.size() == 1,
+                     "Expect one user-property value of field '%s', but got %s",
+                     field, values.size());
+        return values.iterator().next();
     }
 
     public boolean hasRangeCondition() {
         // NOTE: we need to judge all the conditions, including the nested
         for (Condition.Relation r : this.relations()) {
             if (r.relation().isRangeType()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasSearchCondition() {
+        // NOTE: we need to judge all the conditions, including the nested
+        for (Condition.Relation r : this.relations()) {
+            if (r.relation().isSearchType()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasSecondaryCondition() {
+        // NOTE: we need to judge all the conditions, including the nested
+        for (Condition.Relation r : this.relations()) {
+            if (r.relation().isSecondaryType()) {
                 return true;
             }
         }
@@ -345,6 +378,11 @@ public class ConditionQuery extends IdQuery {
         if (!this.ids().isEmpty() && !super.test(element)) {
             return false;
         }
+
+        if (this.resultsFilter != null) {
+            return this.resultsFilter.apply(element);
+        }
+
         for (Condition cond : this.conditions()) {
             if (!cond.test(element)) {
                 return false;
@@ -372,5 +410,15 @@ public class ConditionQuery extends IdQuery {
 
     public int optimized() {
         return this.optimizedType;
+    }
+
+
+    public void registerResultsFilter(Function<HugeElement, Boolean> filter) {
+        this.resultsFilter = filter;
+
+        Query originQuery = this.originQuery();
+        if (originQuery instanceof ConditionQuery) {
+            ((ConditionQuery) originQuery).registerResultsFilter(filter);
+        }
     }
 }

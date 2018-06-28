@@ -190,7 +190,16 @@ public class HbaseTables {
         }
     }
 
-    public static class RangeIndex extends IndexTable {
+    public static class SearchIndex extends SecondaryIndex {
+
+        public static final String TABLE = "fi";
+
+        public SearchIndex(String store) {
+            super(joinTableName(store, TABLE));
+        }
+    }
+
+    public static class RangeIndex extends HbaseTable {
 
         public static final String TABLE = "ri";
 

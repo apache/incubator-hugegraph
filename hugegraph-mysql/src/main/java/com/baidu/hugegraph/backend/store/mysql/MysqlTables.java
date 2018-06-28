@@ -407,7 +407,10 @@ public class MysqlTables {
         public static final String TABLE = "secondary_indexes";
 
         public SecondaryIndex(String store) {
-            super(joinTableName(store, TABLE));
+            this(store, TABLE);
+        }
+        public SecondaryIndex(String store, String table) {
+            super(joinTableName(store, table));
 
             this.define = new TableDefine();
             this.define.column(HugeKeys.FIELD_VALUES, VARCHAR);
@@ -423,6 +426,15 @@ public class MysqlTables {
             String fieldValues = entry.column(HugeKeys.FIELD_VALUES);
             Integer labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
             return SplicingIdGenerator.concat(fieldValues, labelId.toString());
+        }
+    }
+
+    public static class SearchIndex extends SecondaryIndex {
+
+        public static final String TABLE = "search_indexes";
+
+        public SearchIndex(String store) {
+            super(store, TABLE);
         }
     }
 

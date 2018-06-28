@@ -515,6 +515,10 @@ public class CassandraTables {
             super(joinTableName(store, TABLE));
         }
 
+        protected SecondaryIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
@@ -598,6 +602,15 @@ public class CassandraTables {
                               CassandraBackendEntry.Row entry) {
             assert entry.columns().size() == 3;
             this.delete(session, entry);
+        }
+    }
+
+    public static class SearchIndex extends SecondaryIndex {
+
+        public static final String TABLE = "search_indexes";
+
+        public SearchIndex(String store) {
+            super(store, TABLE);
         }
     }
 

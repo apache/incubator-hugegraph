@@ -70,6 +70,10 @@ public enum DataType implements SerialEnum {
         return this.clazz;
     }
 
+    public boolean isText() {
+        return this == DataType.TEXT;
+    }
+
     public boolean isNumber() {
         return this == BYTE || this == INT || this == LONG ||
                this == FLOAT || this == DOUBLE;

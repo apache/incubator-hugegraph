@@ -52,6 +52,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -185,7 +186,6 @@ public class EdgeCoreTest extends BaseCoreTest {
               .by("tool").create();
         schema.indexLabel("strikeByPlaceToolReason").onE("strike").secondary()
               .by("place", "tool", "reason").create();
-
     }
 
     @Test
@@ -301,7 +301,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         List<Edge> edges = graph.traversal().E().toList();
         Assert.assertEquals(1, edges.size());
-        assertContains(edges,"authored", james, book,
+        assertContains(edges, "authored", james, book,
                        "contribution", "1990-1-1", "score", 5);
     }
 
@@ -983,6 +983,36 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryOutEdgesOfVertexByRangeFilter() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authoredByScore").onE("authored")
+             .range().by("score").create();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+
+        Vertex book1 = graph.addVertex(T.label, "book", "name", "Test-Book-1");
+        Vertex book2 = graph.addVertex(T.label, "book", "name", "Test-Book-2");
+        Vertex book3 = graph.addVertex(T.label, "book", "name", "Test-Book-3");
+
+        james.addEdge("authored", book1,
+                      "contribution", "1991 3 1", "score", 5);
+        james.addEdge("authored", book2,
+                      "contribution", "1992 2 2", "score", 4);
+        james.addEdge("authored", book3,
+                      "contribution", "1993 3 2", "score", 3);
+
+        graph.tx().commit();
+
+        // Won't query by search index, just filter by property after outE()
+        List<Edge> edges = graph.traversal().V(james).outE("authored")
+                                .has("score", P.gte(4)).toList();
+        Assert.assertEquals(2, edges.size());
+    }
+
+    @Test
     public void testQueryInEdgesOfVertexWithResultN() {
         HugeGraph graph = graph();
         init18Edges();
@@ -1231,6 +1261,117 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(2, edges.size());
         Assert.assertEquals(Utils.date(dates[0]), edges.get(0).value("date"));
         Assert.assertEquals(Utils.date(dates[1]), edges.get(1).value("date"));
+    }
+
+    @Test
+    public void testQueryByTextContainsProperty() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authoredByContribution").onE("authored")
+             .search().by("contribution").create();
+        graph.schema().indexLabel("authoredByScore").onE("authored")
+             .range().by("score").create();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+
+        Vertex book1 = graph.addVertex(T.label, "book", "name", "Test-Book-1");
+        Vertex book2 = graph.addVertex(T.label, "book", "name", "Test-Book-2");
+        Vertex book3 = graph.addVertex(T.label, "book", "name", "Test-Book-3");
+
+        james.addEdge("authored", book1,
+                      "contribution", "1991 3 1", "score", 5);
+        james.addEdge("authored", book2,
+                      "contribution", "1992 2 2", "score", 4);
+        james.addEdge("authored", book3,
+                      "contribution", "1993 3 2", "score", 3);
+
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().hasLabel("authored")
+                                .has("contribution", Text.contains("1992"))
+                                .toList();
+        Assert.assertEquals(1, edges.size());
+        assertContains(edges, "authored", james, book2,
+                       "contribution", "1992 2 2", "score", 4);
+
+        edges = graph.traversal().E().hasLabel("authored")
+                                 .has("contribution", Text.contains("2"))
+                                 .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().E().hasLabel("authored")
+                                 .has("score", P.gt(3))
+                                 .has("contribution", Text.contains("3"))
+                                 .toList();
+        Assert.assertEquals(1, edges.size());
+        assertContains(edges, "authored", james, book1,
+                       "contribution", "1991 3 1", "score", 5);
+    }
+
+    @Test
+    public void testQueryByTextContainsPropertyWithOutEdgeFilter() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authoredByContribution").onE("authored")
+             .search().by("contribution").create();
+        graph.schema().indexLabel("authoredByScore").onE("authored")
+             .range().by("score").create();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+
+        Vertex book1 = graph.addVertex(T.label, "book", "name", "Test-Book-1");
+        Vertex book2 = graph.addVertex(T.label, "book", "name", "Test-Book-2");
+        Vertex book3 = graph.addVertex(T.label, "book", "name", "Test-Book-3");
+
+        james.addEdge("authored", book1,
+                      "contribution", "1991 3 1", "score", 5);
+        james.addEdge("authored", book2,
+                      "contribution", "1992 2 2", "score", 4);
+        james.addEdge("authored", book3,
+                      "contribution", "1993 3 2", "score", 3);
+
+        graph.tx().commit();
+
+        // Won't query by search index, just filter by property after outE()
+        List<Edge> edges = graph.traversal().V(james).outE("authored")
+                                .has("score", P.gte(4)).toList();
+        Assert.assertEquals(2, edges.size());
+
+        // Won't query by search index, just filter by property after outE()
+        edges = graph.traversal().V(james).outE("authored")
+                                 .has("contribution", "1992 2 2")
+                                 .toList();
+        Assert.assertEquals(1, edges.size());
+
+        // Won't query by search index, just filter by property after outE()
+        edges = graph.traversal().V(james).outE("authored")
+                                 .has("contribution", "1992 2 2")
+                                 .has("score", P.gte(4))
+                                 .toList();
+        Assert.assertEquals(1, edges.size());
+
+        // Won't query by search index, just filter by property after outE()
+        edges = graph.traversal().V(james).outE("authored")
+                                 .has("contribution", "1992 2 2")
+                                 .has("score", P.gt(4))
+                                 .toList();
+        Assert.assertEquals(0, edges.size());
+
+        // Query by search index
+        edges = graph.traversal().E()
+                     .has("contribution", Text.contains("1992"))
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        // Won't query by search index, just filter by property after outE()
+        edges = graph.traversal().V(james).outE("authored")
+                                 .has("contribution", "1992")
+                                 .toList();
+        Assert.assertEquals(0, edges.size()); // be careful!
     }
 
     @SuppressWarnings("unchecked")
@@ -1593,7 +1734,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.tx().commit();
         }, (e) -> {
             Assert.assertTrue(e.getMessage().contains(
-                              "Illegal value of text property: '\u0000'"));
+                              "Illegal value of index property: '\u0000'"));
         });
     }
 

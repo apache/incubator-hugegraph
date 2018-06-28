@@ -24,7 +24,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -47,7 +49,8 @@ public abstract class Condition {
         OR;
     }
 
-    public enum RelationType {
+    public enum RelationType implements BiPredicate<Object, Object> {
+
         EQ("==", (v1, v2) -> {return equals(v1, v2); }),
         GT(">", (v1, v2) -> { return compare(v1, v2) > 0; }),
         GTE(">=", (v1, v2) -> { return compare(v1, v2) >= 0; }),
@@ -61,7 +64,20 @@ public abstract class Condition {
             return !((Collection<?>) v2).contains(v1);
         }),
         PREFIX("prefix", (v1, v2) -> {
-            return Bytes.prefixWith(((Id) v2).asBytes(), ((Id) v1).asBytes()) ;
+            return Bytes.prefixWith(((Id) v2).asBytes(), ((Id) v1).asBytes());
+        }),
+        TEXT_CONTAINS("textcontains", (v1, v2) -> {
+            return ((String) v1).contains((String) v2);
+        }),
+        TEXT_CONTAINS_ANY("textcontainsany", (v1, v2) -> {
+            @SuppressWarnings("unchecked")
+            Collection<String> words = (Collection<String>) v2;
+            for (String word : words) {
+                if (((String) v1).contains(word)) {
+                    return true;
+                }
+            }
+            return false;
         }),
         CONTAINS("contains", (v1, v2) -> {
             return ((Map<?, ?>) v1).containsValue(v2);
@@ -138,6 +154,7 @@ public abstract class Condition {
             }
         }
 
+        @Override
         public boolean test(Object first, Object second) {
             E.checkState(this.tester != null, "Can't test %s", this.name());
             return this.tester.apply(first, second);
@@ -145,6 +162,14 @@ public abstract class Condition {
 
         public boolean isRangeType() {
             return ImmutableSet.of(GT, GTE, LT, LTE, NEQ).contains(this);
+        }
+
+        public boolean isSearchType() {
+            return this == TEXT_CONTAINS || this == TEXT_CONTAINS_ANY;
+        }
+
+        public boolean isSecondaryType() {
+            return this == EQ;
         }
     }
 
@@ -260,12 +285,20 @@ public abstract class Condition {
         return new UserpropRelation(key, RelationType.NEQ, value);
     }
 
-    public static Condition in(Id key, List<?> value) {
+    public static Relation in(Id key, List<?> value) {
         return new UserpropRelation(key, RelationType.IN, value);
     }
 
-    public static Condition nin(Id key, List<?> value) {
+    public static Relation nin(Id key, List<?> value) {
         return new UserpropRelation(key, RelationType.NOT_IN, value);
+    }
+
+    public static Relation textContains(Id key, String word) {
+        return new UserpropRelation(key, RelationType.TEXT_CONTAINS, word);
+    }
+
+    public static Relation textContainsAny(Id key, Set<String> words) {
+        return new UserpropRelation(key, RelationType.TEXT_CONTAINS_ANY, words);
     }
 
     /**

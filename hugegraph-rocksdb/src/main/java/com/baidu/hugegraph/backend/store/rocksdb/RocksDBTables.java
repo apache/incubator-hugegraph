@@ -157,7 +157,11 @@ public class RocksDBTables {
         public static final String TABLE = "si";
 
         public SecondaryIndex(String database) {
-            super(database, TABLE);
+            this(database, TABLE);
+        }
+
+        protected SecondaryIndex(String database, String table) {
+            super(database, table);
         }
 
         @Override
@@ -167,8 +171,18 @@ public class RocksDBTables {
              * Regular index delete will call eliminate()
              */
             for (BackendEntry.BackendColumn column : entry.columns()) {
+                // Don't assert entry.belongToMe(column), length-prefix is 1*
                 session.delete(this.table(), column.name);
             }
+        }
+    }
+
+    public static class SearchIndex extends SecondaryIndex {
+
+        public static final String TABLE = "fi";
+
+        public SearchIndex(String database) {
+            super(database, TABLE);
         }
     }
 

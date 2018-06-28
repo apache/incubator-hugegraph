@@ -24,8 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
-import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 
 public class AnalyzerFactory {
 
@@ -35,13 +33,8 @@ public class AnalyzerFactory {
         analyzers = new ConcurrentHashMap<>();
     }
 
-    public static Analyzer analyzer(HugeConfig config) {
-        String name = config.get(CoreOptions.TEXT_ANALYZER).toLowerCase();
-        String mode = config.get(CoreOptions.TEXT_ANALYZER_MODE);
-        return analyzer(name, mode);
-    }
-
     public static Analyzer analyzer(String name, String mode) {
+        name = name.toLowerCase();
         switch (name) {
             case "word":
                 return new WordAnalyzer(mode);

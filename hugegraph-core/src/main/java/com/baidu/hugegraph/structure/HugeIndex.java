@@ -30,12 +30,10 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.HashUtil;
 import com.baidu.hugegraph.util.NumericUtil;
@@ -61,15 +59,7 @@ public class HugeIndex implements GraphType {
 
     @Override
     public HugeType type() {
-        IndexType indexType = this.indexLabel.indexType();
-        if (indexType == IndexType.SECONDARY) {
-            return HugeType.SECONDARY_INDEX;
-        } else if (indexType == IndexType.RANGE) {
-            return HugeType.RANGE_INDEX;
-        } else {
-            assert indexType == IndexType.SEARCH;
-            throw new NotSupportException("index '%s' currently", indexType);
-        }
+        return this.indexLabel.indexType().type();
     }
 
     public Id id() {
@@ -144,7 +134,7 @@ public class HugeIndex implements GraphType {
 
     public static Id formatIndexId(HugeType type, Id indexLabel,
                                    Object fieldValues) {
-        if (type.isSecondaryIndex()) {
+        if (type.isStringIndex()) {
             String value = fieldValues == null ? "" : fieldValues.toString();
             /*
              * Modify order between index label and field-values to put the
@@ -171,7 +161,7 @@ public class HugeIndex implements GraphType {
         Object values;
         IndexLabel indexLabel;
 
-        if (type.isSecondaryIndex()) {
+        if (type.isStringIndex()) {
             Id idObject = IdGenerator.of(id, false);
             String[] parts = SplicingIdGenerator.parse(idObject);
             E.checkState(parts.length == 2, "Invalid secondary index id");

@@ -47,6 +47,16 @@ public class PaloStoreProvider extends MysqlStoreProvider {
         return "palo";
     }
 
+    @Override
+    public String version() {
+        /*
+         * Versions history:
+         * [1.0] HugeGraph-1328: supports backend table version checking
+         * [1.1] HugeGraph-1322: add support for full-text search
+         */
+        return "1.1";
+    }
+
     public static class PaloSchemaStore extends PaloStore {
 
         private final LocalCounter counter;
@@ -85,15 +95,17 @@ public class PaloStoreProvider extends MysqlStoreProvider {
             super(provider, database, store);
 
             registerTableManager(HugeType.VERTEX,
-                                 new PaloTables.Vertex());
+                                 new PaloTables.Vertex(store));
             registerTableManager(HugeType.EDGE_OUT,
-                                 new PaloTables.Edge(Directions.OUT));
+                                 new PaloTables.Edge(store, Directions.OUT));
             registerTableManager(HugeType.EDGE_IN,
-                                 new PaloTables.Edge(Directions.IN));
+                                 new PaloTables.Edge(store, Directions.IN));
             registerTableManager(HugeType.SECONDARY_INDEX,
-                                 new PaloTables.SecondaryIndex());
+                                 new PaloTables.SecondaryIndex(store));
             registerTableManager(HugeType.RANGE_INDEX,
-                                 new PaloTables.RangeIndex());
+                                 new PaloTables.RangeIndex(store));
+            registerTableManager(HugeType.SEARCH_INDEX,
+                                 new PaloTables.SearchIndex(store));
         }
 
         @Override

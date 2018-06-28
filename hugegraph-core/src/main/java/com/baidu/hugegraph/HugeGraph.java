@@ -278,6 +278,7 @@ public class HugeGraph implements Graph {
 
     public AbstractSerializer serializer() {
         String name = this.configuration.get(CoreOptions.SERIALIZER);
+        LOG.debug("Loading serializer '{}' for graph '{}'", name, this.name);
         AbstractSerializer serializer = SerializerFactory.serializer(name);
         if (serializer == null) {
             throw new HugeException("Can't load serializer with name " + name);
@@ -286,7 +287,11 @@ public class HugeGraph implements Graph {
     }
 
     public Analyzer analyzer() {
-        return AnalyzerFactory.analyzer(this.configuration);
+        String name = this.configuration.get(CoreOptions.TEXT_ANALYZER);
+        String mode = this.configuration.get(CoreOptions.TEXT_ANALYZER_MODE);
+        LOG.debug("Loading text analyzer '{}' with mode '{}' for graph '{}'",
+                  name, mode, this.name);
+        return AnalyzerFactory.analyzer(name, mode);
     }
 
     public HugeTaskScheduler taskScheduler() {

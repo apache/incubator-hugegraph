@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.type.define;
 
+import com.baidu.hugegraph.type.HugeType;
+
 public enum IndexType implements SerialEnum {
 
     // For secondary query
@@ -50,5 +52,19 @@ public enum IndexType implements SerialEnum {
 
     public String string() {
         return this.name;
+    }
+
+    public HugeType type() {
+        switch (this) {
+            case SECONDARY:
+                return HugeType.SECONDARY_INDEX;
+            case RANGE:
+                return HugeType.RANGE_INDEX;
+            case SEARCH:
+                return HugeType.SEARCH_INDEX;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown index type '%s'", this));
+        }
     }
 }

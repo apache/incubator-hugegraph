@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -36,11 +37,14 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -74,8 +78,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static final String INDEX_EMPTY_SYM = "\u0000";
     private static final Query EMPTY_QUERY = new ConditionQuery(null);
 
+    private final Analyzer textAnalyzer;
+
     public GraphIndexTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
+
+        this.textAnalyzer = graph.analyzer();
+        assert this.textAnalyzer != null;
     }
 
     protected void removeIndexLeft(ConditionQuery query, HugeElement element) {
@@ -90,8 +99,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // TODO: remove left index in async thread
         // Process range index
         this.processRangeIndexLeft(query, element);
-        // Process secondary index
-        this.processSecondaryIndexLeft(query, element);
+        // Process secondary index or search index
+        this.processSecondaryOrSearchIndexLeft(query, element);
 
         this.commit();
     }
@@ -103,7 +112,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         IndexQueries queries = null;
         for (MatchedLabel label : labels) {
             if (label.schemaLabel().id().equals(element.schemaLabel().id())) {
-                queries = label.constructQueries(query);
+                queries = label.constructIndexQueries(query);
                 break;
             }
         }
@@ -116,7 +125,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (!q.resultType().isRangeIndex()) {
                 continue;
             }
-            // Search and delete index equals element id
+            // Query and delete index equals element id
             for (Iterator<BackendEntry> it = super.query(q); it.hasNext();) {
                 BackendEntry entry = it.next();
                 HugeIndex index = this.serializer.readIndex(graph(), q, entry);
@@ -129,13 +138,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
     }
 
-    private void processSecondaryIndexLeft(ConditionQuery query,
-                                           HugeElement element) {
-        HugeElement elem = element.copyAsFresh();
+    private void processSecondaryOrSearchIndexLeft(ConditionQuery query,
+                                                   HugeElement element) {
+        HugeElement deletion = element.copyAsFresh();
         Set<Id> propKeys = query.userpropKeys();
         Set<Id> incorrectPKs = InsertionOrderUtil.newSet();
         for (Id key : propKeys) {
-            Set<Object> conditionValues = query.userpropValue(key);
+            Set<Object> conditionValues = query.userpropValues(key);
             E.checkState(!conditionValues.isEmpty(),
                          "Expect user property values for key '%s', " +
                          "but got none", key);
@@ -143,24 +152,44 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // It's inside/between Query (processed in range index)
                 return;
             }
-            Object propValue = elem.getProperty(key).value();
+            Object propValue = deletion.getProperty(key).value();
             Object conditionValue = conditionValues.iterator().next();
             if (!propValue.equals(conditionValue)) {
                 PropertyKey pkey = this.graph().propertyKey(key);
-                elem.addProperty(pkey, conditionValue);
+                deletion.addProperty(pkey, conditionValue);
                 incorrectPKs.add(key);
             }
         }
-        this.removeSecondaryIndexLeft(element, elem, incorrectPKs);
-    }
 
-    private void removeSecondaryIndexLeft(HugeElement correctElem,
-                                          HugeElement incorrectElem,
-                                          Set<Id> propKeys) {
-        for (IndexLabel il : relatedIndexLabels(incorrectElem)) {
-            if (CollectionUtils.containsAny(il.indexFields(), propKeys)) {
-                this.updateIndex(il.id(), incorrectElem, true);
-                this.updateIndex(il.id(), correctElem, false);
+        // Delete unused index
+        for (IndexLabel il : relatedIndexLabels(deletion)) {
+            if (!CollectionUtils.containsAny(il.indexFields(), incorrectPKs)) {
+                continue;
+            }
+            // Skip if search index is not wrong
+            if (il.indexType() == IndexType.SEARCH) {
+                Id field = il.indexField();
+                String cond = deletion.<String>getPropertyValue(field);
+                String actual = element.<String>getPropertyValue(field);
+                if (this.matchSearchIndexWords(actual, cond)) {
+                    /*
+                     * If query by two search index, one is correct but
+                     * the other is wrong, we should not delete the correct
+                     */
+                    continue;
+                }
+            }
+            // Delete index with error property
+            this.updateIndex(il.id(), deletion, true);
+            // Rebuild index if delete correct index part
+            if (il.indexType() == IndexType.SECONDARY) {
+                /*
+                 * When it's a composite secondary index,
+                 * if the suffix property is wrong and the prefix property
+                 * is correct, the correct prefix part will be deleted,
+                 * so rebuild the index again with the correct property.
+                 */
+                this.updateIndex(il.id(), element, false);
             }
         }
     }
@@ -211,8 +240,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
         SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(ilId);
         E.checkArgument(indexLabel != null,
-                        "Not exist index label id: '%s'", ilId);
+                        "Not exist index label with id '%s'", ilId);
 
+        // Collect property values of index fields
         List<Object> propValues = new ArrayList<>();
         for (Id fieldId : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(fieldId);
@@ -225,37 +255,62 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
             propValues.add(property.value());
         }
+        if (propValues.isEmpty()) {
+            // The property value of first index field is null
+            return;
+        }
 
-        for (int i = 0, n = propValues.size(); i < n; i++) {
-            List<Object> subPropValues = propValues.subList(0, i + 1);
-
-            Object propValue;
-            if (indexLabel.indexType() == IndexType.SECONDARY) {
-                propValue = SplicingIdGenerator.concatValues(subPropValues);
-                // Use `\u0000` as escape for empty String and treat it as
-                // illegal value for text property
-                E.checkArgument(!propValue.equals(INDEX_EMPTY_SYM),
-                                "Illegal value of text property: '%s'",
-                                INDEX_EMPTY_SYM);
-                if (((String) propValue).isEmpty()) {
-                    propValue = INDEX_EMPTY_SYM;
+        // Update index for each index type
+        switch (indexLabel.indexType()) {
+            case RANGE:
+                E.checkState(propValues.size() == 1,
+                             "Expect only one property in range index");
+                Object value = NumericUtil.convertToNumber(propValues.get(0));
+                this.updateIndex(indexLabel, value, element.id(), removed);
+                break;
+            case SEARCH:
+                E.checkState(propValues.size() == 1,
+                             "Expect only one property in search index");
+                value = propValues.get(0);
+                Set<String> words = this.segmentWords(value.toString());
+                for (String word : words) {
+                    this.updateIndex(indexLabel, word, element.id(), removed);
                 }
-            } else {
-                assert indexLabel.indexType() == IndexType.RANGE;
-                E.checkState(subPropValues.size() == 1,
-                             "Expect range query by only one property");
-                propValue = NumericUtil.convertToNumber(subPropValues.get(0));
-            }
+                break;
+            case SECONDARY:
+                // Secondary index maybe include multi prefix index
+                for (int i = 0, n = propValues.size(); i < n; i++) {
+                    List<Object> prefixValues = propValues.subList(0, i + 1);
+                    value = SplicingIdGenerator.concatValues(prefixValues);
 
-            HugeIndex index = new HugeIndex(indexLabel);
-            index.fieldValues(propValue);
-            index.elementIds(element.id());
+                    // Use `\u0000` as escape for empty String and treat it as
+                    // illegal value for text property
+                    E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
+                                    "Illegal value of index property: '%s'",
+                                    INDEX_EMPTY_SYM);
+                    if (((String) value).isEmpty()) {
+                        value = INDEX_EMPTY_SYM;
+                    }
 
-            if (removed) {
-                this.doEliminate(this.serializer.writeIndex(index));
-            } else {
-                this.doAppend(this.serializer.writeIndex(index));
-            }
+                    this.updateIndex(indexLabel, value, element.id(), removed);
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown index type '%s'", indexLabel.indexType()));
+        }
+    }
+
+    private void updateIndex(IndexLabel indexLabel, Object propValue,
+                             Id elementId, boolean removed) {
+        HugeIndex index = new HugeIndex(indexLabel);
+        index.fieldValues(propValue);
+        index.elementIds(elementId);
+
+        if (removed) {
+            this.doEliminate(this.serializer.writeIndex(index));
+        } else {
+            this.doAppend(this.serializer.writeIndex(index));
         }
     }
 
@@ -342,25 +397,94 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private Set<Id> queryByUserprop(ConditionQuery query) {
         // Get user applied label or collect all qualified labels with
         // related index labels
-        Set<MatchedLabel> labels = collectMatchedLabels(query);
+        Set<MatchedLabel> labels = this.collectMatchedLabels(query);
         if (labels.isEmpty()) {
-            throw noIndexException(this.graph(), query, "<any label>");
+            Id label = (Id) query.condition(HugeKeys.LABEL);
+            throw noIndexException(this.graph(), query, label);
         }
 
         // Value type of Condition not matched
         if (!validQueryConditionValues(this.graph(), query)) {
             return ImmutableSet.of();
         }
+
         // Do index query
         Set<Id> ids = InsertionOrderUtil.newSet();
         for (MatchedLabel label : labels) {
-            IndexQueries queries = label.constructQueries(query);
-            ids.addAll(this.doMultiIndexQuery(queries));
+            if (label.containsSearchIndex()) {
+                // Do search-index query
+                ids.addAll(this.queryByUserpropWithSearchIndex(query, label));
+            } else {
+                // Do secondary-index or range-index query
+                IndexQueries queries = label.constructIndexQueries(query);
+                ids.addAll(this.doMultiIndexQuery(queries));
+            }
+
             if (query.reachLimit(ids.size())) {
                 break;
             }
         }
         return limit(ids, query);
+    }
+
+    @Watched(prefix = "index")
+    private Set<Id> queryByUserpropWithSearchIndex(ConditionQuery query,
+                                                   MatchedLabel label) {
+        ConditionQuery originQuery = query;
+        Set<Id> indexFields = new HashSet<>();
+        // Convert has(key, text) to has(key, textContainsAny(word1, word2))
+        for (IndexLabel il : label.indexLabels()) {
+            if (il.indexType() != IndexType.SEARCH) {
+                continue;
+            }
+            Id indexField = il.indexField();
+            Object fieldValue = query.userpropValue(indexField);
+            Set<String> words = this.segmentWords(fieldValue.toString());
+            indexFields.add(indexField);
+
+            query = query.copy();
+            query.unsetCondition(indexField);
+            query.query(Condition.textContainsAny(indexField, words));
+        }
+
+        // Register results filter
+        query.registerResultsFilter(elem -> {
+            for (Condition cond : originQuery.conditions()) {
+                Object key = cond.isRelation() ? ((Relation) cond).key() : null;
+                if (key instanceof Id && indexFields.contains(key)) {
+                    // This is an index field of search index
+                    Id field = (Id) key;
+                    String propValue = elem.<String>getPropertyValue(field);
+                    String fvalue = originQuery.userpropValue(field).toString();
+                    if (this.matchSearchIndexWords(propValue, fvalue)) {
+                        continue;
+                    }
+                    return false;
+                }
+                if (!cond.test(elem)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        // Do query
+        Set<Id> ids = InsertionOrderUtil.newSet();
+        for (ConditionQuery q : ConditionQueryFlatten.flatten(query)) {
+            IndexQueries queries = label.constructIndexQueries(q);
+            ids.addAll(this.doMultiIndexQuery(queries));
+        }
+        return ids;
+    }
+
+    private boolean matchSearchIndexWords(String propValue, String fieldValue) {
+        Set<String> propValues = this.segmentWords(propValue);
+        Set<String> words = this.segmentWords(fieldValue);
+        return CollectionUtils.containsAny(propValues, words);
+    }
+
+    private Set<String> segmentWords(String text) {
+        return this.textAnalyzer.segment(text);
     }
 
     private boolean needIndexForLabel() {
@@ -464,15 +588,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return null;
         }
         // Single or composite index
-        Set<IndexLabel> matchedLabels =
+        Set<IndexLabel> matchedIndexLabels =
                         matchSingleOrCompositeIndex(query, indexLabels);
-        if (matchedLabels.isEmpty()) {
+        if (matchedIndexLabels.isEmpty()) {
             // Joint indexes
-            matchedLabels = matchPrefixJointIndexes(query, indexLabels);
+            matchedIndexLabels = matchJointIndexes(query, indexLabels);
         }
 
-        if (!matchedLabels.isEmpty()) {
-            return new MatchedLabel(schemaLabel, matchedLabels);
+        if (!matchedIndexLabels.isEmpty()) {
+            return new MatchedLabel(schemaLabel, matchedIndexLabels);
         }
         return null;
     }
@@ -480,17 +604,33 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static Set<IndexLabel> matchSingleOrCompositeIndex(
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
-        Set<Id> propKeys = query.userpropKeys();
+        boolean reqiureRange = query.hasRangeCondition();
+        boolean reqiureSearch = query.hasSearchCondition();
+        Set<Id> queryPropKeys = query.userpropKeys();
         for (IndexLabel indexLabel : indexLabels) {
             List<Id> indexFields = indexLabel.indexFields();
-            if (matchIndexFields(propKeys, indexFields)) {
-                if (query.hasRangeCondition() &&
-                    indexLabel.indexType() != IndexType.RANGE) {
-                    // Range-query can't match secondary index
-                    continue;
-                }
-                return ImmutableSet.of(indexLabel);
+            // Try to match fields
+            if (!matchIndexFields(queryPropKeys, indexFields)) {
+                continue;
             }
+            /*
+             * Matched all fields, try to match index type.
+             * For range-index or search-index there must be only one condition.
+             * The following terms are legal:
+             *   1.hasSearchCondition and IndexType.SEARCH
+             *   2.hasRangeCondition and IndexType.RANGE
+             *   3.not hasRangeCondition but has range-index equal-condition
+             *   4.secondary (composite) index
+             */
+            IndexType indexType = indexLabel.indexType();
+            if ((reqiureSearch && indexType != IndexType.SEARCH) ||
+                (!reqiureSearch && indexType == IndexType.SEARCH)) {
+                continue;
+            }
+            if (reqiureRange && indexType != IndexType.RANGE) {
+                continue;
+            }
+            return ImmutableSet.of(indexLabel);
         }
         return ImmutableSet.of();
     }
@@ -499,71 +639,86 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * Collect index label(s) whose prefix index fields are contained in
      * property-keys in query
      */
-    private static Set<IndexLabel> matchPrefixJointIndexes(
+    private static Set<IndexLabel> matchJointIndexes(
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
-        Set<Id> propKeys = query.userpropKeys();
-        Set<IndexLabel> ils = InsertionOrderUtil.newSet();
-        ils.addAll(indexLabels);
-        // Handle range index first
-        Set<IndexLabel> rangeILs = InsertionOrderUtil.newSet();
-        if (query.hasRangeCondition()) {
-            rangeILs = matchRangeIndexLabels(query, ils);
-            if (rangeILs.isEmpty()) {
+        Set<Id> queryPropKeys = query.userpropKeys();
+        assert !queryPropKeys.isEmpty();
+        Set<IndexLabel> allILs = InsertionOrderUtil.newSet(indexLabels);
+
+        // Handle range/search index first
+        Set<IndexLabel> matchedIndexLabels = InsertionOrderUtil.newSet();
+        if (query.hasRangeCondition() || query.hasSearchCondition()) {
+            matchedIndexLabels = matchRangeOrSearchIndexLabels(query, allILs);
+            if (matchedIndexLabels.isEmpty()) {
                 return ImmutableSet.of();
             }
-            for (IndexLabel il : rangeILs) {
-                propKeys.remove(il.indexField());
+            allILs.removeAll(matchedIndexLabels);
+
+            // Remove matched queryPropKeys
+            for (IndexLabel il : matchedIndexLabels) {
+                // Only one field each range/search index-label
+                queryPropKeys.remove(il.indexField());
             }
-            ils.removeAll(rangeILs);
+            // Return if all fields are matched
+            if (queryPropKeys.isEmpty()) {
+                return matchedIndexLabels;
+            }
         }
-        if (propKeys.isEmpty()) {
-            return rangeILs;
-        }
+
         // Handle secondary indexes
-        Set<IndexLabel> matchedIndexLabels = InsertionOrderUtil.newSet();
-        matchedIndexLabels.addAll(rangeILs);
         Set<Id> indexFields = InsertionOrderUtil.newSet();
-        for (IndexLabel indexLabel : ils) {
+        for (IndexLabel indexLabel : allILs) {
+            // Range index equal-condition and secondary index can joint
+            if (indexLabel.indexType() == IndexType.SEARCH) {
+                // Search index must be handled at the previous step
+                continue;
+            }
+
             List<Id> fields = indexLabel.indexFields();
+            // Collect all fields prefix
             for (Id field : fields) {
-                if (!propKeys.contains(field)) {
+                if (!queryPropKeys.contains(field)) {
                     break;
                 }
                 matchedIndexLabels.add(indexLabel);
                 indexFields.add(field);
             }
         }
-        if(indexFields.equals(propKeys)) {
+        // Must match all fields
+        if(indexFields.equals(queryPropKeys)) {
             return matchedIndexLabels;
         } else {
             return ImmutableSet.of();
         }
     }
 
-    private static Set<IndexLabel> matchRangeIndexLabels(
+    private static Set<IndexLabel> matchRangeOrSearchIndexLabels(
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
-        Set<IndexLabel> rangeIL = InsertionOrderUtil.newSet();
+        Set<IndexLabel> matchedIndexLabels = InsertionOrderUtil.newSet();
         for (Condition.Relation relation : query.userpropRelations()) {
-            if (!relation.relation().isRangeType()) {
+            if (!relation.relation().isRangeType() &&
+                !relation.relation().isSearchType()) {
                 continue;
             }
-            boolean matched = false;
             Id key = (Id) relation.key();
+            boolean matched = false;
             for (IndexLabel indexLabel : indexLabels) {
-                if (indexLabel.indexType() == IndexType.RANGE &&
-                    indexLabel.indexField().equals(key)) {
-                    matched = true;
-                    rangeIL.add(indexLabel);
-                    break;
+                if (indexLabel.indexType() == IndexType.RANGE ||
+                    indexLabel.indexType() == IndexType.SEARCH) {
+                    if (indexLabel.indexField().equals(key)) {
+                        matched = true;
+                        matchedIndexLabels.add(indexLabel);
+                        break;
+                    }
                 }
             }
             if (!matched) {
                 return ImmutableSet.of();
             }
         }
-        return rangeIL;
+        return matchedIndexLabels;
     }
 
     private static IndexQueries buildJointIndexesQueries(ConditionQuery query,
@@ -571,29 +726,31 @@ public class GraphIndexTransaction extends AbstractTransaction {
         IndexQueries queries = new IndexQueries();
         List<IndexLabel> allILs = new ArrayList<>(info.indexLabels());
 
-        // Handle range indexes
-        if (query.hasRangeCondition()) {
-            Set<IndexLabel> rangeILs =
-                            matchRangeIndexLabels(query, info.indexLabels());
-            assert !rangeILs.isEmpty();
+        // Handle range/search indexes
+        if (query.hasRangeCondition() || query.hasSearchCondition()) {
+            Set<IndexLabel> matchedILs =
+                    matchRangeOrSearchIndexLabels(query, info.indexLabels());
+            assert !matchedILs.isEmpty();
+            allILs.removeAll(matchedILs);
 
-            Set<Id> propKeys = InsertionOrderUtil.newSet();
-            for (IndexLabel il : rangeILs) {
-                propKeys.add(il.indexField());
+            Set<Id> queryPropKeys = InsertionOrderUtil.newSet();
+            for (IndexLabel il : matchedILs) {
+                // Only one field each range/search index-label
+                queryPropKeys.add(il.indexField());
             }
 
-            queries.putAll(constructQueries(query, rangeILs, propKeys));
+            // Construct queries by matched index-labels
+            queries.putAll(constructQueries(query, matchedILs, queryPropKeys));
 
+            // Remove matched queryPropKeys
             query = query.copy();
-            for (Id field : propKeys) {
+            for (Id field : queryPropKeys) {
                 query.unsetCondition(field);
             }
-            allILs.removeAll(rangeILs);
-        }
-
-        // Range indexes joint satisfies query-conditions already
-        if (query.userpropKeys().isEmpty()) {
-            return queries;
+            // Return if matched indexes satisfies query-conditions already
+            if (query.userpropKeys().isEmpty()) {
+                return queries;
+            }
         }
 
         // Handle secondary joint indexes
@@ -669,7 +826,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                 List<IndexLabel> ils) {
         Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
         indexLabels.addAll(ils);
-        indexLabels = matchPrefixJointIndexes(query, indexLabels);
+        indexLabels = matchJointIndexes(query, indexLabels);
         if (indexLabels.isEmpty()) {
             return IndexQueries.EMPTY;
         }
@@ -703,8 +860,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static ConditionQuery matchIndexLabel(ConditionQuery query,
                                                   IndexLabel indexLabel) {
+        IndexType indexType = indexLabel.indexType();
         boolean requireRange = query.hasRangeCondition();
-        boolean isRange = indexLabel.indexType() == IndexType.RANGE;
+        boolean isRange = indexType == IndexType.RANGE;
         if (requireRange && !isRange) {
             LOG.debug("There is range query condition in '{}'," +
                       "but the index label '{}' is unable to match",
@@ -721,37 +879,53 @@ public class GraphIndexTransaction extends AbstractTransaction {
                   indexFields, indexLabel);
 
         ConditionQuery indexQuery;
-        if (indexLabel.indexType() == IndexType.SECONDARY) {
-            List<Id> joinedKeys = indexFields.subList(0, queryKeys.size());
-            String joinedValues = query.userpropValuesString(joinedKeys);
 
-            // Escape empty String to "\u0000"
-            if (joinedValues.isEmpty()) {
-                joinedValues = INDEX_EMPTY_SYM;
-            }
-            indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);
-            indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
-            indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
-        } else {
-            assert indexLabel.indexType() == IndexType.RANGE;
-            if (query.userpropConditions().size() > 2) {
-                throw new BackendException(
-                          "Range query has two conditions at most, but got: %s",
-                          query.userpropConditions());
-            }
-            // Replace the query key with PROPERTY_VALUES, and set number value
-            indexQuery = new ConditionQuery(HugeType.RANGE_INDEX, query);
-            indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
-            for (Condition condition : query.userpropConditions()) {
-                assert condition instanceof Condition.Relation;
-                Condition.Relation r = (Condition.Relation) condition;
-                Condition.Relation sys = new Condition.SyspropRelation(
-                        HugeKeys.FIELD_VALUES,
-                        r.relation(),
-                        NumericUtil.convertToNumber(r.value()));
-                condition = condition.replace(r, sys);
-                indexQuery.query(condition);
-            }
+        switch (indexType) {
+            case SEARCH:
+                E.checkState(indexFields.size() == 1,
+                             "Invalid index fields size for %s: %s",
+                             indexType, indexFields);
+                Object fieldValue = query.userpropValue(indexFields.get(0));
+                // Query search index from SECONDARY_INDEX table
+                indexQuery = new ConditionQuery(indexType.type(), query);
+                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+                indexQuery.eq(HugeKeys.FIELD_VALUES, fieldValue);
+                break;
+            case SECONDARY:
+                List<Id> joinedKeys = indexFields.subList(0, queryKeys.size());
+                String joinedValues = query.userpropValuesString(joinedKeys);
+
+                // Escape empty String to '\u0000'
+                if (joinedValues.isEmpty()) {
+                    joinedValues = INDEX_EMPTY_SYM;
+                }
+                indexQuery = new ConditionQuery(indexType.type(), query);
+                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+                indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
+                break;
+            case RANGE:
+                if (query.userpropConditions().size() > 2) {
+                    throw new BackendException(
+                              "Range query has two conditions at most, " +
+                              "but got: %s", query.userpropConditions());
+                }
+                // Replace the query key with PROPERTY_VALUES, set number value
+                indexQuery = new ConditionQuery(indexType.type(), query);
+                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+                for (Condition condition : query.userpropConditions()) {
+                    assert condition instanceof Condition.Relation;
+                    Condition.Relation r = (Condition.Relation) condition;
+                    Condition.Relation sys = new Condition.SyspropRelation(
+                            HugeKeys.FIELD_VALUES,
+                            r.relation(),
+                            NumericUtil.convertToNumber(r.value()));
+                    condition = condition.replace(r, sys);
+                    indexQuery.query(condition);
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown index type '%s'", indexType));
         }
         return indexQuery;
     }
@@ -772,7 +946,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Set<Id> keys = query.userpropKeys();
         for (Id key : keys) {
             PropertyKey pk = graph.propertyKey(key);
-            Set<Object> values = query.userpropValue(key);
+            Set<Object> values = query.userpropValues(key);
             E.checkState(!values.isEmpty(),
                          "Expect user property values for key '%s', " +
                          "but got none", pk);
@@ -787,11 +961,26 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static NoIndexException noIndexException(HugeGraph graph,
                                                      ConditionQuery query,
-                                                     String label) {
+                                                     Id label) {
+        String name = label == null ? "any label" : String.format("label '%s'",
+                      query.resultType().isVertex() ?
+                      graph.vertexLabel(label).name() :
+                      graph.edgeLabel(label).name());
+        List<String> mismatched = new ArrayList<>();
+        if (query.hasSecondaryCondition()) {
+            mismatched.add("secondary");
+        }
+        if (query.hasRangeCondition()) {
+            mismatched.add("range");
+        }
+        if (query.hasSearchCondition()) {
+            mismatched.add("search");
+        }
         return new NoIndexException("Don't accept query based on properties " +
-                                    "%s that are not indexed in label '%s'",
+                                    "%s that are not indexed in %s, " +
+                                    "may not match %s condition",
                                     graph.mapPkId2Name(query.userpropKeys()),
-                                    label);
+                                    name, String.join("/", mismatched));
     }
 
     private static boolean hasNullableProp(HugeElement element, Id key) {
@@ -959,21 +1148,23 @@ public class GraphIndexTransaction extends AbstractTransaction {
             this.indexLabels = indexLabels;
         }
 
-        protected SchemaLabel schemaLabel() {
+        public SchemaLabel schemaLabel() {
             return this.schemaLabel;
         }
 
-        protected Set<IndexLabel> indexLabels() {
+        public Set<IndexLabel> indexLabels() {
             return Collections.unmodifiableSet(this.indexLabels);
         }
 
-        public IndexQueries constructQueries(ConditionQuery query) {
+        public IndexQueries constructIndexQueries(ConditionQuery query) {
             // Condition query => Index Queries
             if (this.indexLabels().size() == 1) {
                 // Single index or composite index
+
                 IndexLabel il = this.indexLabels().iterator().next();
                 ConditionQuery indexQuery = matchIndexLabel(query, il);
                 assert indexQuery != null;
+
                 /*
                  * Set limit for single index or composite index
                  * to avoid redundant element ids.
@@ -981,16 +1172,23 @@ public class GraphIndexTransaction extends AbstractTransaction {
                  * see queryByUserprop()
                  */
                 indexQuery.limit(query.total());
-                IndexQueries indexQueries = new IndexQueries();
-                indexQueries.put(il, indexQuery);
-                return indexQueries;
+
+                return IndexQueries.of(il, indexQuery);
             } else {
                 // Joint indexes
-                IndexQueries indexQueries = buildJointIndexesQueries(query,
-                                                                     this);
-                assert !indexQueries.isEmpty();
-                return indexQueries;
+                IndexQueries queries = buildJointIndexesQueries(query, this);
+                assert !queries.isEmpty();
+                return queries;
             }
+        }
+
+        public boolean containsSearchIndex() {
+            for (IndexLabel il : this.indexLabels) {
+                if (il.indexType() == IndexType.SEARCH) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -1000,6 +1198,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         private static final long serialVersionUID = 1400326138090922676L;
 
         public static final IndexQueries EMPTY = new IndexQueries();
+
+        public static IndexQueries of(IndexLabel il, ConditionQuery query) {
+            IndexQueries indexQueries = new IndexQueries();
+            indexQueries.put(il, query);
+            return indexQueries;
+        }
     }
 
     public static enum OptimizedType {

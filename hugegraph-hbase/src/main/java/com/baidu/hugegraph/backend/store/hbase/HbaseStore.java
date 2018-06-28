@@ -353,6 +353,8 @@ public abstract class HbaseStore implements BackendStore {
                                  new HbaseTables.SecondaryIndex(store));
             registerTableManager(HugeType.RANGE_INDEX,
                                  new HbaseTables.RangeIndex(store));
+            registerTableManager(HugeType.SEARCH_INDEX,
+                                 new HbaseTables.SearchIndex(store));
         }
 
         @Override

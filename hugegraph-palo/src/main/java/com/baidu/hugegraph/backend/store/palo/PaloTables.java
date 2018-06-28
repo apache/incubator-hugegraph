@@ -35,6 +35,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
+import com.baidu.hugegraph.backend.store.mysql.MysqlTables;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -157,8 +158,9 @@ public class PaloTables {
 
         public static final String TABLE = "vertices";
 
-        public Vertex() {
-            super(TABLE);
+        public Vertex(String store) {
+            super(joinTableName(store, TABLE));
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.ID, VARCHAR, NOT_NULL);
             this.define.column(HugeKeys.LABEL, INT, NOT_NULL);
@@ -173,14 +175,12 @@ public class PaloTables {
      */
     public static class Edge extends PaloTableTemplate {
 
-        public static final String TABLE_PREFIX = "edges";
-
         private final Directions direction;
         private final String delByLabelTemplate;
 
-        public Edge(Directions direction) {
-            super(TABLE_PREFIX + "_" + direction.string());
-            assert direction == Directions.OUT || direction == Directions.IN;
+        public Edge(String store, Directions direction) {
+            super(joinTableName(store, MysqlTables.Edge.table(direction)));
+
             this.direction = direction;
             this.delByLabelTemplate = String.format(
                                       "DELETE FROM %s PARTITION %s WHERE %s = ?;",
@@ -333,8 +333,13 @@ public class PaloTables {
 
         public static final String TABLE = "secondary_indexes";
 
-        public SecondaryIndex() {
-            super(TABLE);
+        public SecondaryIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected SecondaryIndex(String store, String table) {
+            super(joinTableName(store, table));
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.FIELD_VALUES, VARCHAR, NOT_NULL);
             this.define.column(HugeKeys.INDEX_LABEL_ID, INT, NOT_NULL);
@@ -353,12 +358,22 @@ public class PaloTables {
         }
     }
 
+    public static class SearchIndex extends SecondaryIndex {
+
+        public static final String TABLE = "search_indexes";
+
+        public SearchIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
     public static class RangeIndex extends Index {
 
         public static final String TABLE = "range_indexes";
 
-        public RangeIndex() {
-            super(TABLE);
+        public RangeIndex(String store) {
+            super(joinTableName(store, TABLE));
+
             this.define = new TableDefine();
             this.define.column(HugeKeys.INDEX_LABEL_ID, INT, NOT_NULL);
             this.define.column(HugeKeys.FIELD_VALUES, DECIMAL, NOT_NULL);

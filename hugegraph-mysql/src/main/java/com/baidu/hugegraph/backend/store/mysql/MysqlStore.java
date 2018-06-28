@@ -367,6 +367,8 @@ public abstract class MysqlStore implements BackendStore {
                                  new MysqlTables.SecondaryIndex(store));
             registerTableManager(HugeType.RANGE_INDEX,
                                  new MysqlTables.RangeIndex(store));
+            registerTableManager(HugeType.SEARCH_INDEX,
+                                 new MysqlTables.SearchIndex(store));
         }
 
         @Override

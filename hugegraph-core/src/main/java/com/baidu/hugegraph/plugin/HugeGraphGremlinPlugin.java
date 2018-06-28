@@ -25,6 +25,7 @@ import org.apache.tinkerpop.gremlin.groovy.plugin.GremlinPlugin;
 import org.apache.tinkerpop.gremlin.groovy.plugin.PluginAcceptor;
 
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.traversal.optimize.Text;
 import com.google.common.collect.ImmutableSet;
 
 @SuppressWarnings("deprecation") // TODO: use new Plugin API
@@ -35,7 +36,8 @@ public class HugeGraphGremlinPlugin implements GremlinPlugin {
 
     private static final Set<String> IMPORTS = ImmutableSet.of(
             IMPORT + "com.baidu.hugegraph" + DOT_STAR,
-            IMPORT + HugeGraphIoRegistry.class.getName());
+            IMPORT + HugeGraphIoRegistry.class.getName(),
+            IMPORT + Text.class.getName());
 
     @Override
     public String getName() {

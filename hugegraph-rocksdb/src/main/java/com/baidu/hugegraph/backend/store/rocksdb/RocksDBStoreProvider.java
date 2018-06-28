@@ -47,6 +47,11 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public String version() {
-        return "1.0";
+        /*
+         * Versions history:
+         * [1.0] HugeGraph-1328: supports backend table version checking
+         * [1.1] HugeGraph-1322: add support for full-text search
+         */
+        return "1.1";
     }
 }

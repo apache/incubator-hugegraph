@@ -245,6 +245,8 @@ public class InMemoryDBStore implements BackendStore {
                                  new InMemoryDBTables.SecondaryIndex());
             registerTableManager(HugeType.RANGE_INDEX,
                                  new InMemoryDBTables.RangeIndex());
+            registerTableManager(HugeType.SEARCH_INDEX,
+                                 new InMemoryDBTables.SearchIndex());
         }
     }
 

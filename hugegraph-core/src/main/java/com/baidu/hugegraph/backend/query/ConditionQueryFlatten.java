@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -45,7 +46,7 @@ public class ConditionQueryFlatten {
         // Flatten IN/NOT_IN if needed
         Set<Condition> conditions = new HashSet<>();
         for (Condition condition : query.conditions()) {
-            Condition cond = flattenInNotin(condition);
+            Condition cond = flattenIn(condition);
             if (cond == null) {
                 // Process 'XX in []'
                 return ImmutableList.of();
@@ -82,27 +83,31 @@ public class ConditionQueryFlatten {
         return queries;
     }
 
-    private static Condition flattenInNotin(Condition condition) {
+    private static Condition flattenIn(Condition condition) {
         switch (condition.type()) {
             case RELATION:
                 Relation relation = (Relation) condition;
-                // Flatten IN if needed
-                if (relation.relation() == Condition.RelationType.IN) {
-                    return convIn2Or(relation);
+                switch (relation.relation()) {
+                    case IN:
+                        // Flatten IN if needed
+                        return convIn2Or(relation);
+                    case NOT_IN:
+                        // Flatten NOT_IN if needed
+                        return convNotin2And(relation);
+                    case TEXT_CONTAINS_ANY:
+                        // Flatten TEXT_CONTAINS_ANY if needed
+                        return convTextContainsAny2Or(relation);
+                    default:
+                        return condition;
                 }
-                // Flatten NOT_IN if needed
-                if (relation.relation() == Condition.RelationType.NOT_IN) {
-                    return convNotin2And(relation);
-                }
-                return condition;
             case AND:
                 Condition.And and = (Condition.And) condition;
-                return new Condition.And(flattenInNotin(and.left()),
-                                         flattenInNotin(and.right()));
+                return new Condition.And(flattenIn(and.left()),
+                                         flattenIn(and.right()));
             case OR:
                 Condition.Or or = (Condition.Or) condition;
-                return new Condition.Or(flattenInNotin(or.left()),
-                                        flattenInNotin(or.right()));
+                return new Condition.Or(flattenIn(or.left()),
+                                        flattenIn(or.right()));
             default:
                 throw new AssertionError(String.format(
                           "Wrong condition type: '%s'", condition.type()));
@@ -115,7 +120,7 @@ public class ConditionQueryFlatten {
         @SuppressWarnings("unchecked")
         List<Object>  values = (List<Object>) relation.value();
         Condition cond, conds = null;
-        for (Object value: values) {
+        for (Object value : values) {
             if (key instanceof HugeKeys) {
                 cond = Condition.eq((HugeKeys) key, value);
             } else {
@@ -133,13 +138,26 @@ public class ConditionQueryFlatten {
         List<Object>  values = (List<Object>) relation.value();
         Condition cond;
         Condition conds = null;
-        for (Object value: values) {
+        for (Object value : values) {
             if (key instanceof HugeKeys) {
                 cond = Condition.neq((HugeKeys) key, value);
             } else {
                 cond = Condition.neq((Id) key, value);
             }
             conds = conds == null ? cond : Condition.and(conds, cond);
+        }
+        return conds;
+    }
+
+    private static Condition convTextContainsAny2Or(Relation relation) {
+        assert relation.relation() == Condition.RelationType.TEXT_CONTAINS_ANY;
+        @SuppressWarnings("unchecked")
+        Collection<String> words = (Collection<String>) relation.value();
+        Condition cond, conds = null;
+        for (String word : words) {
+            assert relation.key() instanceof Id;
+            cond = Condition.textContains((Id) relation.key(), word);
+            conds = conds == null ? cond : Condition.or(conds, cond);
         }
         return conds;
     }

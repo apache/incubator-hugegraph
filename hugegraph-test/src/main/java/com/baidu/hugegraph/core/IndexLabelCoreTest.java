@@ -45,26 +45,38 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     public void testAddIndexLabelOfVertex() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
-        schema.vertexLabel("person").properties("name", "age", "city")
-              .primaryKeys("name").create();
-        schema.indexLabel("personByCity").onV("person").secondary()
+        schema.vertexLabel("person").properties("id", "name", "age", "city")
+              .primaryKeys("id").create();
+        schema.indexLabel("personByName").onV("person").secondary()
+              .by("name").create();
+        schema.indexLabel("personByCity").onV("person").search()
               .by("city").create();
         schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
 
         VertexLabel person = schema.getVertexLabel("person");
+        IndexLabel personByName = schema.getIndexLabel("personByName");
         IndexLabel personByCity = schema.getIndexLabel("personByCity");
         IndexLabel personByAge = schema.getIndexLabel("personByAge");
 
+        Assert.assertNotNull(personByName);
         Assert.assertNotNull(personByCity);
         Assert.assertNotNull(personByAge);
-        Assert.assertEquals(2, person.indexLabels().size());
-        assertContainsIl(person.indexLabels(), "personByCity", "personByAge");
+
+        Assert.assertEquals(3, person.indexLabels().size());
+        assertContainsIl(person.indexLabels(),
+                         "personByName", "personByCity", "personByAge");
+
+        Assert.assertEquals(HugeType.VERTEX_LABEL, personByName.baseType());
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByCity.baseType());
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByAge.baseType());
+
+        assertVLEqual("person", personByName.baseValue());
         assertVLEqual("person", personByCity.baseValue());
         assertVLEqual("person", personByAge.baseValue());
-        Assert.assertEquals(IndexType.SECONDARY, personByCity.indexType());
+
+        Assert.assertEquals(IndexType.SECONDARY, personByName.indexType());
+        Assert.assertEquals(IndexType.SEARCH, personByCity.indexType());
         Assert.assertEquals(IndexType.RANGE, personByAge.indexType());
     }
 
@@ -152,7 +164,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("city").create();
 
         Vertex vertex = graph().traversal().V().hasLabel("person")
-                        .has("city", "Hongkong").next();
+                               .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
 
         Assert.assertThrows(NoIndexException.class, () -> {
@@ -163,7 +175,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("age").create();
 
         vertex = graph().traversal().V().hasLabel("person")
-                 .has("age", P.inside(2, 4)).next();
+                        .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
     }
 
@@ -262,6 +274,53 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddIndexLabelWithInvalidFields() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("author").properties("id", "name", "age")
+              .primaryKeys("id").create();
+        schema.vertexLabel("book").properties("name")
+              .primaryKeys("name").create();
+        schema.edgeLabel("authored").singleTime().link("author", "book")
+              .properties("contribution", "age", "weight").create();
+
+        // Invalid range-index
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorByName").onV("author")
+                  .by("name").range().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "Range index can only build on numeric"));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authoredByAgeAndWeight").onE("authored")
+                  .by("age", "weight").range().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "Range index can only build on one field"));
+        });
+
+        // Invalid search-index
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorByAge").onV("author")
+                  .by("age").search().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "Search index can only build on text"));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorByNameAndAge").onV("author")
+                  .by("name", "age").search().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "Search index can only build on one field"));
+        });
+    }
+
+    @Test
     public void testAddIndexLabelWithFieldsAssignedMultiTimes() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
@@ -292,7 +351,34 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddIndexLabelWithSameFields() {
+    public void testAddIndexLabelWithSameFieldsBetweenRangeSecondary() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("personByAge").onV("person").range()
+              .by("age").create();
+        schema.indexLabel("personByAge2").onV("person").secondary()
+              .by("age").create();
+    }
+
+    @Test
+    public void testAddIndexLabelWithSameFieldsBetweenSearchSecondary() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("personByCity").onV("person").search()
+              .by("city").create();
+        schema.indexLabel("personByCity2").onV("person").secondary()
+              .by("city").create();
+    }
+
+
+    @Test
+    public void testAddIndexLabelWithSameFieldsAndSameIndexType() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
@@ -302,6 +388,13 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("city").create();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("personByCity1").onV("person").secondary()
+                  .by("city").create();
+        });
+
+        schema.indexLabel("personByCitySearch").onV("person").search()
+              .by("city").create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByCitySearch1").onV("person").search()
                   .by("city").create();
         });
 
@@ -321,20 +414,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddIndexLabelWithSameFieldsBetweenRangeAndSecondary() {
-        super.initPropertyKeys();
-        SchemaManager schema = graph().schema();
-        schema.vertexLabel("person").properties("name", "age", "city")
-              .primaryKeys("name").create();
-
-        schema.indexLabel("personByAge").onV("person").range()
-              .by("age").create();
-        schema.indexLabel("personByAge2").onV("person").secondary()
-              .by("age").create();
-    }
-
-    @Test
-    public void testAddIndexLabelIsPrefixOfExisted() {
+    public void testAddIndexLabelRangePrefixOfExistedSecondary() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person").properties("name", "age", "city")
@@ -344,14 +424,25 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("age", "city").create();
         schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
+    }
+
+    @Test
+    public void testAddIndexLabelSecondaryPrefixOfExistedSecondary() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("personByAgeAndCity").onV("person").secondary()
+              .by("age", "city").create();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            schema.indexLabel("personByAge1").onV("person").secondary()
+            schema.indexLabel("personByAge").onV("person").secondary()
                   .by("age").create();
         });
     }
 
     @Test
-    public void testAddIndexLabelPrefixWithExistedSecondary() {
+    public void testAddIndexLabelSecondaryPrefixWithExistedSecondary() {
         super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
@@ -396,7 +487,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddIndexLabelPrefixWithExistedRange() {
+    public void testAddIndexLabelSecondaryPrefixWithExistedRange() {
         super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
@@ -437,12 +528,6 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         vertices = graph.traversal().V().has("city", "Hongkong")
                         .has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
-    }
-
-    @Test
-    public void testRemoveNotExistIndexLabel() {
-        SchemaManager schema = graph().schema();
-        schema.indexLabel("not-exist-il").remove();
     }
 
     @Test
@@ -553,6 +638,12 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             graph().traversal().E().hasLabel("authored")
                    .has("contribution", "test").next();
         });
+    }
+
+    @Test
+    public void testRemoveNotExistIndexLabel() {
+        SchemaManager schema = graph().schema();
+        schema.indexLabel("not-exist-il").remove();
     }
 
     @Test

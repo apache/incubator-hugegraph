@@ -196,7 +196,7 @@ public class CoreOptions extends OptionHolder {
                     "[word, ansj, hanlp, smartcn, jieba, jcseg, " +
                     "mmseg4j, ikanalyzer]",
                     disallowEmpty(),
-                    "word"
+                    "ikanalyzer"
             );
 
     public static final ConfigOption<String> TEXT_ANALYZER_MODE =
@@ -221,7 +221,7 @@ public class CoreOptions extends OptionHolder {
                     "ikanalyzer: [smart, max_word]" +
                     "}",
                     disallowEmpty(),
-                    "MaximumMatching"
+                    "smart"
             );
     public static final ConfigOption<Boolean> SCHEMA_SYNC_DELETION =
             new ConfigOption<>(

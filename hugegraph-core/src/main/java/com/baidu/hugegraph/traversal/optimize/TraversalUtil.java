@@ -57,6 +57,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
+import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.iterator.FilterIterator;
@@ -189,10 +190,12 @@ public final class TraversalUtil {
                                               HugeGraph graph) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         Condition condition;
-        if (keyForContains(has.getKey())) {
-            condition = convContains2Condition(graph, has);
+        if (keyForContainsKeyOrValue(has.getKey())) {
+            condition = convContains2Relation(graph, has);
         } else if (bp instanceof Compare) {
             condition = convCompare2Relation(graph, type, has);
+        } else if (bp instanceof RelationType) {
+            condition = convRelationType2Relation(graph, type, has);
         } else if (bp instanceof Contains) {
             condition = convIn2Relation(graph, has);
         } else if (has.getPredicate() instanceof AndP) {
@@ -254,16 +257,12 @@ public final class TraversalUtil {
         return cond;
     }
 
-    public static Relation convCompare2Relation(HugeGraph graph,
-                                                HugeType type,
-                                                HasContainer has) {
+    private static Relation convCompare2Relation(HugeGraph graph,
+                                                 HugeType type,
+                                                 HasContainer has) {
         assert type.isGraph();
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
-
-        if (!(bp instanceof Compare)) {
-            throw new IllegalArgumentException(
-                      "Three layers or more conditions are not supported");
-        }
+        assert bp instanceof Compare;
 
         boolean isSyspropKey = true;
         try {
@@ -344,6 +343,20 @@ public final class TraversalUtil {
         throw newUnsupportedPredicate(has.getPredicate());
     }
 
+    private static Condition convRelationType2Relation(HugeGraph graph,
+                                                       HugeType type,
+                                                       HasContainer has) {
+        assert type.isGraph();
+        BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+        assert bp instanceof RelationType;
+
+        String key = has.getKey();
+        PropertyKey pkey = graph.propertyKey(key);
+        Id pkeyId = pkey.id();
+        Object value = validPredicateValue(has.getValue(), pkey);
+        return new Condition.UserpropRelation(pkeyId, (RelationType) bp, value);
+    }
+
     public static Condition convIn2Relation(HugeGraph graph,
                                             HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
@@ -374,11 +387,13 @@ public final class TraversalUtil {
         throw newUnsupportedPredicate(has.getPredicate());
     }
 
-    public static Condition convContains2Condition(HugeGraph graph,
-                                                   HasContainer has) {
+    public static Condition convContains2Relation(HugeGraph graph,
+                                                  HasContainer has) {
+        // Convert contains-key or contains-value
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         E.checkArgument(bp == Compare.eq,
-                        "CONTAINS query with relation '%s' is not supported", bp);
+                        "CONTAINS query with relation '%s' is not supported",
+                        bp);
 
         HugeKeys key = string2HugeKey(has.getKey());
         Object value = has.getValue();
@@ -403,13 +418,13 @@ public final class TraversalUtil {
             return HugeKeys.LABEL;
         } else if (key.equals(T.id.getAccessor())) {
             return HugeKeys.ID;
-        } else if (keyForContains(key)) {
+        } else if (keyForContainsKeyOrValue(key)) {
             return HugeKeys.PROPERTIES;
         }
         return HugeKeys.valueOf(key);
     }
 
-    public static boolean keyForContains(String key) {
+    public static boolean keyForContainsKeyOrValue(String key) {
         return key.equals(T.key.getAccessor()) ||
                key.equals(T.value.getAccessor());
     }

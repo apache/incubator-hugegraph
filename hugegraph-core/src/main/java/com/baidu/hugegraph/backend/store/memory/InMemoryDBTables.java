@@ -163,6 +163,10 @@ public class InMemoryDBTables {
             super(HugeType.SECONDARY_INDEX);
         }
 
+        protected SecondaryIndex(HugeType type) {
+            super(type);
+        }
+
         @Override
         public Iterator<BackendEntry> query(BackendSession session, Query query) {
             Set<Condition> conditions = query.conditions();
@@ -192,6 +196,13 @@ public class InMemoryDBTables {
             q.offset(query.offset());
             q.limit(query.limit());
             return super.query(session, q);
+        }
+    }
+
+    public static class SearchIndex extends SecondaryIndex {
+
+        public SearchIndex() {
+            super(HugeType.SEARCH_INDEX);
         }
     }
 

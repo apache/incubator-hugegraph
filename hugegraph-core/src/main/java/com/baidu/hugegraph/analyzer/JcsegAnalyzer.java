@@ -64,8 +64,8 @@ public class JcsegAnalyzer implements Analyzer {
     public Set<String> segment(String text) {
         Set<String> result = InsertionOrderUtil.newSet();
         try {
-            ISegment seg = SegmentFactory.createJcseg(this.segMode,
-                    new Object[] {new StringReader(text), CONFIG, DIC});
+            Object[] args = new Object[]{new StringReader(text), CONFIG, DIC};
+            ISegment seg = SegmentFactory.createJcseg(this.segMode, args);
             IWord word = null;
             while ((word = seg.next()) != null) {
                 result.add(word.getValue());

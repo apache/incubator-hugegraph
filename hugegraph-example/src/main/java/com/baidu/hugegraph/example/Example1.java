@@ -40,6 +40,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -152,6 +153,9 @@ public class Example1 {
         schema.indexLabel("personByAge")
               .onV("person").range().by("age").create();
 
+        schema.indexLabel("authorByLived")
+              .onV("author").search().by("lived").create();
+
         // schemaManager.getVertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.getVertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schemaManager.getVertexLabel("meal").index("byMeal").materialized().by("name").add();
@@ -207,9 +211,9 @@ public class Example1 {
         GraphTransaction tx = graph.openTransaction();
 
         LOG.info("===============  addVertex  ================");
-        Vertex james = tx.addVertex(T.label, "author",
-                                    "id", 1, "name", "James Gosling",
-                                    "age", 62, "lived", "Canadian");
+        Vertex james = tx.addVertex(T.label, "author", "id", 1,
+                                    "name", "James Gosling",  "age", 62,
+                                    "lived", "San Francisco Bay Area");
 
         Vertex java = tx.addVertex(T.label, "language", "name", "java",
                                    "versions", Arrays.asList(6, 7, 8));
@@ -386,6 +390,14 @@ public class Example1 {
         assert vertexList.size() == 1;
         assert vertexList.get(0).property("age").value().equals(3);
         System.out.println(">>>> query all persons age<19: " + vertexList);
+
+        String addr = "Bay Area";
+        vertexes = graph.traversal().V().hasLabel("author")
+                        .has("lived", Text.contains(addr));
+        vertexList = vertexes.toList();
+        assert vertexList.size() == 1;
+        System.out.println(String.format(">>>> query all authors lived %s: %s",
+                           addr, vertexList));
     }
 
     public static void testRemove(final HugeGraph graph) {

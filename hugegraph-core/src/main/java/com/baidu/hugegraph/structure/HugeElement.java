@@ -124,6 +124,15 @@ public abstract class HugeElement implements Element, GraphType {
         return (HugeProperty<V>) this.properties.get(key);
     }
 
+    @SuppressWarnings("unchecked")
+    public <V> V getPropertyValue(Id key) {
+        HugeProperty<?> prop = this.properties.get(key);
+        if (prop == null) {
+            return null;
+        }
+        return (V) prop.value();
+    }
+
     public boolean hasProperty(Id key) {
         return this.properties.containsKey(key);
     }

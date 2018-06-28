@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.baidu.hugegraph</groupId>
         <artifactId>hugegraph</artifactId>
-        <version>0.7.3</version>
+        <version>0.7.4</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>hugegraph-core</artifactId>
@@ -158,7 +158,7 @@
                         </manifest>
                         <manifestEntries>
                             <Implementation-Version>
-                                0.7.3.0
+                                0.7.4.0
                             </Implementation-Version>
                         </manifestEntries>
                     </archive>

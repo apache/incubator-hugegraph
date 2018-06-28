@@ -47,12 +47,14 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -75,6 +77,7 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("comment").asText().valueList().create();
         schema.propertyKey("contribution").asText().valueSet().create();
         schema.propertyKey("lived").asText().create();
+        schema.propertyKey("description").asText().create();
         schema.propertyKey("city").asText().create();
         schema.propertyKey("cpu").asText().create();
         schema.propertyKey("ram").asText().create();
@@ -1365,6 +1368,113 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByTextContainsProperty() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authorByLived").onV("author")
+             .search().by("lived").create();
+
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "James Gosling",  "age", 62,
+                        "lived", "San Francisco Bay Area");
+
+        // Uncommitted
+        List<Vertex> vertices = graph.traversal().V()
+                                     .hasLabel("author")
+                                     .has("lived", Text.contains("Bay Area"))
+                                     .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // Committed
+        graph.tx().commit();
+        vertices = graph.traversal().V()
+                        .hasLabel("author")
+                        .has("lived", Text.contains("Bay Area"))
+                        .toList();
+
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "San Francisco Bay Area");
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph.traversal().V().hasLabel("author")
+                                 .has("lived", "Bay Area")
+                                 .toList();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "may not match secondary condition"));
+        });
+    }
+
+    @Test
+    public void testQueryByTextContainsAndExactMatchProperty() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authorByLivedSearch").onV("author")
+             .search().by("lived").create();
+        graph.schema().indexLabel("authorByLivedSecondary").onV("author")
+             .secondary().by("lived").create();
+
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "James Gosling",  "age", 62,
+                        "lived", "San Francisco Bay Area");
+        graph.tx().commit();
+
+
+        // By authorByLivedSearch index
+        List<Vertex> vertices = graph.traversal().V()
+                                     .hasLabel("author")
+                                     .has("lived", Text.contains("Bay Area"))
+                                     .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // By authorByLivedSecondary index
+        vertices = graph.traversal().V()
+                        .hasLabel("author")
+                        .has("lived", "San Francisco Bay Area")
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "San Francisco Bay Area");
+
+
+        vertices = graph.traversal().V()
+                        .hasLabel("author")
+                        .has("lived", "Bay Area")
+                        .toList();
+        Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
+    public void testQueryByTextContainsPropertyWithLeftIndex() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authorByLived").onV("author")
+             .search().by("lived").create();
+
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "James Gosling",  "age", 62,
+                        "lived", "San Francisco Bay Area");
+        graph.tx().commit();
+
+        // Override the origin vertex with different property value
+        // and then lead to index left
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "James Gosling",  "age", 62,
+                        "lived", "San Francisco, California, U.S.");
+        graph.tx().commit();
+
+        // Set breakpoint to observe the store before and after this statement
+        List<Vertex> vertices = graph.traversal().V().hasLabel("author")
+                                     .has("lived", Text.contains("Bay Area"))
+                                     .toList();
+
+        Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
     public void testQueryWithMultiLayerConditions() {
         HugeGraph graph = graph();
         initPersonIndex(false);
@@ -1373,8 +1483,8 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Object> vertices = graph.traversal().V().hasLabel("person").has(
                 "age",
                 P.not(P.lte(10).and(P.not(P.between(11, 20))))
-                 .and(P.lt(29).or(P.eq(35)).or(P.gt(45))))
-                .values("name").toList();
+                 .and(P.lt(29).or(P.eq(35)).or(P.gt(45)))
+                ).values("name").toList();
 
         Assert.assertEquals(5, vertices.size());
 
@@ -1658,6 +1768,183 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = graph().traversal().V().has("age", P.gt(2))
                                        .has("weight", P.lt(10)).toList();
         Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testQueryByJointIndexesWithSearchAndRangeIndexes() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("dog").properties("name", "age", "description")
+              .create();
+
+        schema.indexLabel("dogByAge").onV("dog")
+              .range().by("age").create();
+        schema.indexLabel("dogByDescription").onV("dog")
+              .search().by("description").create();
+
+        graph().addVertex(T.label, "dog", "name", "Bella", "age", 1,
+                          "description", "black hair and eyes");
+        graph().addVertex(T.label, "dog", "name", "Daisy", "age", 2,
+                          "description", "yellow hair yellow tail");
+        graph().addVertex(T.label, "dog", "name", "Coco", "age", 3,
+                          "description", "yellow hair golden tail");
+
+        graph().tx().commit();
+
+        List<Vertex> vertices;
+        vertices = graph().traversal().V()
+                          .has("age", P.gte(2))
+                          .has("description", Text.contains("yellow hair"))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(2))
+                          .has("description", Text.contains("yellow hair"))
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(0))
+                          .has("description", Text.contains("black golden"))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+    }
+
+    @Test
+    public void testQueryByJointIndexesWithSearchAndRangeAndSecondaryIndexes() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("dog")
+              .properties("name", "age", "description", "city")
+              .create();
+
+        schema.indexLabel("dogByAge").onV("dog")
+              .range().by("age").create();
+        schema.indexLabel("dogByDescription").onV("dog")
+              .search().by("description")
+              .create();
+        schema.indexLabel("dogByCity").onV("dog")
+              .secondary().by("city").create();
+
+        graph().addVertex(T.label, "dog", "name", "Bella", "age", 1,
+                          "city", "Beijing",
+                          "description", "black hair and eyes");
+        graph().addVertex(T.label, "dog", "name", "Daisy", "age", 2,
+                          "city", "Shanghai",
+                          "description", "yellow hair yellow tail");
+        graph().addVertex(T.label, "dog", "name", "Coco", "age", 3,
+                          "city", "Shanghai",
+                          "description", "yellow hair golden tail");
+
+        graph().tx().commit();
+
+        List<Vertex> vertices;
+        vertices = graph().traversal().V()
+                          .has("age", P.gte(2))
+                          .has("description", Text.contains("yellow hair"))
+                          .has("city", "Shanghai")
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(2))
+                          .has("description", Text.contains("yellow hair"))
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(2))
+                          .has("description", Text.contains("yellow hair"))
+                          .has("city", "Beijing")
+                          .toList();
+        Assert.assertEquals(0, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(0))
+                          .has("description", Text.contains("black golden"))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(0))
+                          .has("description", Text.contains("black golden"))
+                          .has("city", "Beijing")
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testQueryByJointIndexesWithTwoSearchAndOneRangeIndexes() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("dog")
+              .properties("name", "age", "description", "city")
+              .create();
+
+        schema.indexLabel("dogByAge").onV("dog")
+              .range().by("age").create();
+        schema.indexLabel("dogByDescription").onV("dog")
+              .search().by("description")
+              .create();
+        schema.indexLabel("dogByCity").onV("dog")
+              .search().by("city").create();
+
+        graph().addVertex(T.label, "dog", "name", "Bella", "age", 1,
+                          "city", "Beijing Haidian",
+                          "description", "black hair and eyes");
+        graph().addVertex(T.label, "dog", "name", "Daisy", "age", 2,
+                          "city", "Shanghai Zhangjiang",
+                          "description", "yellow hair yellow tail");
+        graph().addVertex(T.label, "dog", "name", "Coco", "age", 3,
+                          "city", "Shanghai Pudong",
+                          "description", "yellow hair golden tail");
+
+        graph().tx().commit();
+
+        List<Vertex> vertices;
+        vertices = graph().traversal().V()
+                          .has("description", Text.contains("yellow hair"))
+                          .has("city", Text.contains("Shanghai"))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gte(2))
+                          .has("description", Text.contains("yellow hair"))
+                          .has("city", Text.contains("Zhangjiang"))
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(2))
+                          .has("description", Text.contains("yellow hair"))
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(2))
+                          .has("description", Text.contains("yellow hair"))
+                          .has("city", Text.contains("Beijing"))
+                          .toList();
+        Assert.assertEquals(0, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(0))
+                          .has("description", Text.contains("black golden"))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(0))
+                          .has("description", Text.contains("black golden"))
+                          .has("city", Text.contains("Beijing"))
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("age", P.gt(0))
+                          .has("description", Text.contains("black golden"))
+                          .has("city", Text.contains("Chaoyang"))
+                          .toList();
+        Assert.assertEquals(0, vertices.size());
     }
 
     @Test
@@ -1956,7 +2243,7 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.tx().commit();
         }, (e) -> {
             Assert.assertTrue(e.getMessage().contains(
-                              "Illegal value of text property: '\u0000'"));
+                              "Illegal value of index property: '\u0000'"));
         });
     }
 

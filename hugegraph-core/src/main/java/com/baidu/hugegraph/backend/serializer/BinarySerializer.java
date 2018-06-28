@@ -514,9 +514,9 @@ public class BinarySerializer extends AbstractSerializer {
 
         ConditionQuery cq = (ConditionQuery) query;
 
-        // Convert secondary-index query to id query
-        if (type.isSecondaryIndex()) {
-            return this.writeSecondaryIndexQuery(cq);
+        // Convert secondary-index or search-index query to id query
+        if (type.isStringIndex()) {
+            return this.writeStringIndexQuery(cq);
         }
 
         // Convert range-index query to id range query
@@ -533,6 +533,7 @@ public class BinarySerializer extends AbstractSerializer {
         BinaryBackendEntry entry = newBackendEntry(index.type(), id);
         switch (index.type()) {
             case SECONDARY_INDEX:
+            case SEARCH_INDEX:
                 String idString = id.asString();
                 int idLength = idString.length();
                 for (int i = idLength - 1; i < 128; i++) {
@@ -569,7 +570,7 @@ public class BinarySerializer extends AbstractSerializer {
         return entry;
     }
 
-    private Query writeSecondaryIndexQuery(ConditionQuery query) {
+    private Query writeStringIndexQuery(ConditionQuery query) {
         E.checkArgument(query.allSysprop() &&
                         query.conditions().size() == 2,
                         "There should be two conditions: " +
