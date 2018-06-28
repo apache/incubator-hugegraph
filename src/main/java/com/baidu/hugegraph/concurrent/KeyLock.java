@@ -99,6 +99,9 @@ public class KeyLock {
     /**
      * Lock two objects with sorted order
      * NOTE: This is to optimize the performance of lockAll(keys)
+     * @param key1  The first object
+     * @param key2  The second object
+     * @return      locks for the two objects
      */
     public List<Lock> lockAll(Object key1, Object key2) {
         Lock lock1 = this.locks.get(key1);

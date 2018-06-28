@@ -74,7 +74,8 @@ public final class CollectionUtil {
      * @param original original set
      * @param from index of start position
      * @param to index of end position(exclude), but -1 means the last element
-     * @return sub-set of original set [from,to)
+     * @param <T> element type of set
+     * @return sub-set of original set [from, to)
      */
     public static <T> Set<T> subSet(Set<T> original, int from, int to) {
         List<T> list = new ArrayList<>(original);

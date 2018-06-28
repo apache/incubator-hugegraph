@@ -27,7 +27,11 @@ import java.util.jar.Manifest;
 public final class VersionUtil {
 
     /**
-     * Compare if a version is inside a range: begin <= version < end
+     * Compare if a version is inside a range [begin, end)
+     * @param version   The version to be compared
+     * @param begin     The lower bound of the range
+     * @param end       The upper bound of the range
+     * @return          true if belong to the range, otherwise false
      */
     public static boolean match(Version version, String begin, String end) {
         E.checkArgumentNotNull(version, "The version to match is null");
@@ -38,6 +42,10 @@ public final class VersionUtil {
     /**
      * Check whether a component version is matched expected range,
      * throw an exception if it's not matched.
+     * @param version   The version to be checked
+     * @param begin     The lower bound of the range
+     * @param end       The upper bound of the range
+     * @param component The owner component of version
      */
     public static void check(Version version, String begin, String end,
                              String component) {
@@ -48,6 +56,8 @@ public final class VersionUtil {
 
     /**
      * Get implementation version from manifest in jar
+     * @param clazz The class to be load from jar package
+     * @return      The implementation version
      */
     public static String getImplementationVersion(Class<?> clazz) {
         /*
