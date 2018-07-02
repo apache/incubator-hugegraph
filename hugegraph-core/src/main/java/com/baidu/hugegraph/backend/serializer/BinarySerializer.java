@@ -543,7 +543,10 @@ public class BinarySerializer extends AbstractSerializer {
         E.checkArgument(key != null, "Please specify the index key");
 
         Id id = formatIndexId(query.resultType(), index, key);
-        return new IdQuery(query, id);
+        IdQuery idQuery = new IdQuery(query, id);
+        idQuery.limit(query.limit());
+        idQuery.offset(query.offset());
+        return idQuery;
     }
 
     private Query writeRangeIndexQuery(ConditionQuery query) {
@@ -586,7 +589,10 @@ public class BinarySerializer extends AbstractSerializer {
         HugeType type = query.resultType();
         if (keyEq != null) {
             Id id = formatIndexId(type, index, keyEq);
-            return new IdQuery(query, id);
+            IdQuery idQuery = new IdQuery(query, id);
+            idQuery.limit(query.limit());
+            idQuery.offset(query.offset());
+            return idQuery;
         }
 
         if (keyMin == null) {

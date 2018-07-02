@@ -2762,6 +2762,73 @@ public class VertexCoreTest extends BaseCoreTest {
         });
     }
 
+    @Test
+    public void testQueryBySecondaryIndexWithLimitAndOffset() {
+        init5Persons();
+
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Beijing").toList();
+        Assert.assertEquals(3, vertices.size());
+
+        List<Vertex> vertices1 = graph().traversal().V()
+                                        .has("city", "Beijing")
+                                        .range(0, 2).toList();
+        Assert.assertEquals(2, vertices1.size());
+
+        List<Vertex> vertices2 = graph().traversal().V()
+                                        .has("city", "Beijing")
+                                        .range(2, 3).toList();
+        Assert.assertEquals(1, vertices2.size());
+
+        vertices1.addAll(vertices2);
+        Assert.assertEquals(vertices.size(), vertices1.size());
+        Assert.assertTrue(vertices.containsAll(vertices1));
+    }
+
+    @Test
+    public void testQueryByRangeIndexWithLimitAndOffset() {
+        init5Persons();
+
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("age", P.between(5, 22)).toList();
+        Assert.assertEquals(4, vertices.size());
+        List<Vertex> vertices1 = graph().traversal().V()
+                                        .has("age", P.between(5, 22))
+                                        .range(0, 3).toList();
+        Assert.assertEquals(3, vertices1.size());
+        List<Vertex> vertices2 = graph().traversal().V()
+                                        .has("age", P.between(5, 22))
+                                        .range(3, 4).toList();
+        Assert.assertEquals(1, vertices2.size());
+
+        vertices1.addAll(vertices2);
+        Assert.assertEquals(vertices.size(), vertices1.size());
+        Assert.assertTrue(vertices.containsAll(vertices1));
+    }
+
+    @Test
+    public void testQueryByLabelIndexWithLimitAndOffset() {
+        init5Persons();
+
+        List<Vertex> vertices = graph().traversal().V().hasLabel("person")
+                                       .toList();
+        Assert.assertEquals(5, vertices.size());
+
+        List<Vertex> vertices1 = graph().traversal().V()
+                                        .hasLabel("person")
+                                        .range(0, 3).toList();
+        Assert.assertEquals(3, vertices1.size());
+
+        List<Vertex> vertices2 = graph().traversal().V()
+                                        .hasLabel("person")
+                                        .range(3, 5).toList();
+        Assert.assertEquals(2, vertices2.size());
+
+        vertices1.addAll(vertices2);
+        Assert.assertEquals(vertices.size(), vertices1.size());
+        Assert.assertTrue(vertices.containsAll(vertices1));
+    }
+
     private void init10Vertices() {
         HugeGraph graph = graph();
 

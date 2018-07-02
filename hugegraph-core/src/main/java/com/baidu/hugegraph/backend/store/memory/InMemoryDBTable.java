@@ -43,6 +43,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class InMemoryDBTable extends BackendTable<BackendSession,
                                                   TextBackendEntry> {
@@ -159,7 +160,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
     protected Map<Id, BackendEntry> queryById(Set<Id> ids,
                                               Map<Id, BackendEntry> entries) {
         assert ids.size() > 0;
-        Map<Id, BackendEntry> rs = new HashMap<>();
+        Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
 
         for (Id id : ids) {
             assert !id.number();

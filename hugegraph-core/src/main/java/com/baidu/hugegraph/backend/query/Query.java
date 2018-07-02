@@ -106,6 +106,14 @@ public class Query implements Cloneable {
         this.offset = offset;
     }
 
+    public long total() {
+        if (this.limit == NO_LIMIT) {
+            return NO_LIMIT;
+        } else {
+            return this.offset + this.limit;
+        }
+    }
+
     public long limit() {
         return this.limit;
     }

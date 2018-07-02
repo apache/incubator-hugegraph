@@ -189,6 +189,8 @@ public class InMemoryDBTables {
             assert fieldValue != null && indexLabelId != null;
             Id id = SplicingIdGenerator.splicing(fieldValue, indexLabelId);
             IdQuery q = new IdQuery(query, id);
+            q.offset(query.offset());
+            q.limit(query.limit());
             return super.query(session, q);
         }
     }
@@ -257,6 +259,8 @@ public class InMemoryDBTables {
                 Id id = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
                                                 indexLabelId, keyEq);
                 IdQuery q = new IdQuery(query, id);
+                q.offset(query.offset());
+                q.limit(query.limit());
                 return super.query(session, q);
             } else {
                 if (keyMin == null) {

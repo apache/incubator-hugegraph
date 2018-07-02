@@ -939,9 +939,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 assert indexQuery != null;
                 /*
                  * Set limit for single index or composite index
-                 * to avoid redundant element ids
+                 * to avoid redundant element ids.
+                 * Not set offset because this query might be a sub-query,
+                 * see queryByUserprop()
                  */
-                indexQuery.limit(query.limit());
+                indexQuery.limit(query.total());
                 IndexQueries indexQueries = new IndexQueries();
                 indexQueries.put(il, indexQuery);
                 return indexQueries;
