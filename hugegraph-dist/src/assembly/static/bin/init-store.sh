@@ -26,4 +26,4 @@ cd $TOP
 echo "Initing HugeGraph Store..."
 
 exec $JAVA -cp $LIB/hugegraph-dist-*.jar -Djava.ext.dirs=$LIB/ \
-com.baidu.hugegraph.cmd.InitStore $CONF/gremlin-server.yaml | grep INFO
+com.baidu.hugegraph.cmd.InitStore $CONF/gremlin-server.yaml | grep "com.baidu.hugegraph"

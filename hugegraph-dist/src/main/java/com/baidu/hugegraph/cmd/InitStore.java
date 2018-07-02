@@ -30,9 +30,9 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.dist.RegisterUtil;
-import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -86,14 +86,29 @@ public class InitStore {
             initGraph(configPath);
         }
 
-        // Wait cache clear or init up to 30 seconds
-        EventHub.destroy(30);
+        HugeGraph.shutdown(30L);
     }
 
     private static void initGraph(String config) throws InterruptedException {
         LOG.info("Init graph with config file: {}", config);
         HugeGraph graph = HugeFactory.open(config);
 
+        BackendStoreInfo backendStoreInfo = new BackendStoreInfo(graph);
+        try {
+            if (backendStoreInfo.exist()) {
+                LOG.info("Skip init-store due to the backend store of '{}' " +
+                         "had been initialized", graph.name());
+                backendStoreInfo.checkVersion();
+            } else {
+                initBackend(graph);
+            }
+        } finally {
+            graph.close();
+        }
+    }
+
+    private static void initBackend(final HugeGraph graph)
+                                    throws InterruptedException {
         int retries = RETRIES;
         retry: do {
             try {
@@ -119,7 +134,5 @@ public class InitStore {
             }
             break;
         } while(retries-- > 0);
-
-        graph.close();
     }
 }

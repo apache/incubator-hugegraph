@@ -44,4 +44,9 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
     public String type() {
         return "cassandra";
     }
+
+    @Override
+    public String version() {
+        return "1.0";
+    }
 }

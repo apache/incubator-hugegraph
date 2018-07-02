@@ -26,6 +26,9 @@ public interface BackendStoreProvider {
     // Backend store type
     public String type();
 
+    // Backend store version
+    public String version();
+
     // Graph name (that's database name)
     public String graph();
 

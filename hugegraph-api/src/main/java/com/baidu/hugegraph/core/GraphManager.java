@@ -36,13 +36,17 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
 import com.baidu.hugegraph.auth.StandardAuthenticator;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
+import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.metric.MetricsUtil;
 import com.baidu.hugegraph.metric.ServerReporter;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
@@ -61,7 +65,7 @@ public final class GraphManager {
         this.authenticator = new StandardAuthenticator(conf);
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
-
+        this.checkBackendVersionOrExit();
         this.addMetrics(conf);
     }
 
@@ -159,6 +163,21 @@ public final class GraphManager {
 
     public String authenticate(String username, String password) {
         return this.authenticator.authenticate(username, password);
+    }
+
+    private void checkBackendVersionOrExit() {
+        for (Graph graph : this.graphs.values()) {
+            HugeGraph hugegraph = (HugeGraph) graph;
+            BackendStoreInfo info = new BackendStoreInfo(hugegraph);
+            if (!info.exist()) {
+                LOG.error("The backend store of '{}' has not been initialized",
+                          hugegraph.name());
+                System.exit(-1);
+            }
+            if (!info.checkVersion()) {
+                System.exit(-1);
+            }
+        }
     }
 
     private void addMetrics(HugeConfig config) {

@@ -62,4 +62,9 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
     public String type() {
         return "mysql";
     }
+
+    @Override
+    public String version() {
+        return "1.0";
+    }
 }

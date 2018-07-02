@@ -44,4 +44,9 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
     public String type() {
         return "rocksdb";
     }
+
+    @Override
+    public String version() {
+        return "1.0";
+    }
 }

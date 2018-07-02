@@ -45,6 +45,7 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -149,6 +150,10 @@ public class HugeGraph implements Graph {
         return this.storeProvider.type();
     }
 
+    public String backendVersion() {
+        return this.storeProvider.version();
+    }
+
     public boolean closed() {
         return this.closed && this.tx.closed();
     }
@@ -179,6 +184,7 @@ public class HugeGraph implements Graph {
         this.loadGraphStore().open(this.configuration);
         try {
             this.storeProvider.init();
+            new BackendStoreInfo(this).init();
         } finally {
             this.loadGraphStore().close();
             this.loadSystemStore().close();
