@@ -12,7 +12,7 @@ HugeGraph is a fast-speed and highly-scalable [graph database](https://en.wikipe
 
 ## Learn More
 
-The [project homepage](http://hugegraph.baidu.com/) contains more information on HugeGraph and provides links to documentation, getting-started guides and release downloads.
+The [project homepage](https://hugegraph.github.io/hugegraph-doc/) contains more information on HugeGraph and provides links to documentation, getting-started guides and release downloads.
 
 ## License
 
