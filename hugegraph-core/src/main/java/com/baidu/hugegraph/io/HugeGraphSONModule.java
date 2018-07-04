@@ -132,7 +132,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     }
 
     @SuppressWarnings("rawtypes")
-    private class OptionalSerializer extends StdSerializer<Optional> {
+    private static class OptionalSerializer extends StdSerializer<Optional> {
 
         public OptionalSerializer() {
             super(Optional.class);
@@ -151,7 +151,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    private class IdSerializer<T extends Id> extends StdSerializer<T> {
+    private static class IdSerializer<T extends Id> extends StdSerializer<T> {
 
         public IdSerializer(Class<T> clazz) {
             super(clazz);
@@ -182,7 +182,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     }
 
     @SuppressWarnings("unchecked")
-    private class IdDeserializer<T extends Id> extends StdDeserializer<T> {
+    private static class IdDeserializer<T extends Id>
+                   extends StdDeserializer<T> {
 
         public IdDeserializer(Class<T> clazz) {
             super(clazz);
@@ -218,7 +219,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         jsonGenerator.writeEndObject();
     }
 
-    private class PropertyKeySerializer extends StdSerializer<PropertyKey> {
+    private static class PropertyKeySerializer
+                   extends StdSerializer<PropertyKey> {
 
         public PropertyKeySerializer() {
             super(PropertyKey.class);
@@ -233,7 +235,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    private class VertexLabelSerializer extends StdSerializer<VertexLabel> {
+    private static class VertexLabelSerializer
+                   extends StdSerializer<VertexLabel> {
 
         public VertexLabelSerializer() {
             super(VertexLabel.class);
@@ -248,7 +251,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    private class EdgeLabelSerializer extends StdSerializer<EdgeLabel> {
+    private static class EdgeLabelSerializer extends StdSerializer<EdgeLabel> {
 
         public EdgeLabelSerializer() {
             super(EdgeLabel.class);
@@ -263,7 +266,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    private class IndexLabelSerializer extends StdSerializer<IndexLabel> {
+    private static class IndexLabelSerializer
+                   extends StdSerializer<IndexLabel> {
 
         public IndexLabelSerializer() {
             super(IndexLabel.class);
@@ -278,7 +282,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    private class ShardSerializer extends StdSerializer<Shard> {
+    private static class ShardSerializer extends StdSerializer<Shard> {
 
         public ShardSerializer() {
             super(Shard.class);

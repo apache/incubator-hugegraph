@@ -34,8 +34,8 @@ import com.baidu.hugegraph.util.TimeUtil;
 
 public class SnowflakeIdGenerator extends IdGenerator {
 
-    private static Map<String, SnowflakeIdGenerator> INSTANCES =
-                                                     new ConcurrentHashMap<>();
+    private static final Map<String, SnowflakeIdGenerator> INSTANCES =
+                         new ConcurrentHashMap<>();
 
     private final boolean forceString;
     private final IdWorker idWorker;

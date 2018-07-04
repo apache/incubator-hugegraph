@@ -61,7 +61,7 @@ public class HugeTaskScheduler {
 
     private final Map<Id, HugeTask<?>> tasks;
 
-    private TaskTransaction taskTx;
+    private volatile TaskTransaction taskTx;
 
     public HugeTaskScheduler(HugeGraph graph,
                              ExecutorService taskExecutor,

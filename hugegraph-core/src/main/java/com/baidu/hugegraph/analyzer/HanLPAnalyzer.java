@@ -91,6 +91,9 @@ public class HanLPAnalyzer implements Analyzer {
             case "speed":
                 terms = SpeedTokenizer.segment(text);
                 break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unsupported segment mode '%s'", this.tokenizer));
         }
 
         assert terms != null;

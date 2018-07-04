@@ -67,6 +67,9 @@ public class MMSeg4JAnalyzer implements Analyzer {
             case 2:
                 this.seg = new MaxWordSeg(DIC);
                 break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unsupported segment mode '%s'", this.seg));
         }
     }
 
