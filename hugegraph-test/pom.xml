@@ -13,10 +13,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-dist</artifactId>
             <version>${project.version}</version>

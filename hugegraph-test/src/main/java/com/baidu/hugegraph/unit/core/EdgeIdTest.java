@@ -25,9 +25,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.unit.BaseUnitTest;

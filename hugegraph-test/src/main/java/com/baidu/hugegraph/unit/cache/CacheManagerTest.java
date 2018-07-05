@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.common;
+package com.baidu.hugegraph.unit.cache;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
