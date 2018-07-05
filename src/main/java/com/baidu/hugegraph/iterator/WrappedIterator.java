@@ -22,20 +22,20 @@ package com.baidu.hugegraph.iterator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import com.baidu.hugegraph.util.E;
-
 public abstract class WrappedIterator<R>
                 implements Iterator<R>, AutoCloseable, Metadatable {
+
+    private static final Object NONE = new Object();
 
     protected R current;
 
     public WrappedIterator() {
-        this.current = null;
+        this.current = none();
     }
 
     @Override
     public boolean hasNext() {
-        if (this.current != null) {
+        if (this.current != none()) {
             return true;
         }
         return this.fetch();
@@ -43,22 +43,24 @@ public abstract class WrappedIterator<R>
 
     @Override
     public R next() {
-        if (this.current == null) {
+        if (this.current == none()) {
             this.fetch();
         }
-        if (this.current == null) {
+        if (this.current == none()) {
             throw new NoSuchElementException();
         }
         R current = this.current;
-        this.current = null;
+        this.current = none();
         return current;
     }
 
     @Override
     public void remove() {
         Iterator<?> iterator = this.originIterator();
-        E.checkState(iterator != null,
-                     "The origin iterator can't be null for removing");
+        if (iterator == null) {
+            throw new NoSuchElementException(
+                      "The origin iterator can't be null for removing");
+        }
         iterator.remove();
     }
 
@@ -77,6 +79,11 @@ public abstract class WrappedIterator<R>
             return ((Metadatable) iterator).metadata(meta, args);
         }
         throw new IllegalStateException("Original iterator is not Metadatable");
+    }
+
+    @SuppressWarnings("unchecked")
+    protected static final <R> R none() {
+        return (R) NONE;
     }
 
     protected abstract Iterator<?> originIterator();

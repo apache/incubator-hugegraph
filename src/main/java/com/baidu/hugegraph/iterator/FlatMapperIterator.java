@@ -65,7 +65,7 @@ public class FlatMapperIterator<T, R> extends WrappedIterator<R> {
         while (this.results.hasNext()) {
             R result = this.results.next();
             if (result != null) {
-                assert this.current == null;
+                assert this.current == none();
                 this.current = result;
                 return true;
             }

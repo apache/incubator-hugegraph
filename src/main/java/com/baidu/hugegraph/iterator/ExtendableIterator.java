@@ -23,19 +23,21 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-import org.apache.commons.lang.NotImplementedException;
+import com.baidu.hugegraph.util.E;
 
 public class ExtendableIterator<T> extends WrappedIterator<T> {
 
     private final Deque<Iterator<T>> itors;
     private final List<Iterator<T>> removedItors;
 
+    private Iterator<T> currentIterator;
+
     public ExtendableIterator() {
-        this.itors = new ConcurrentLinkedDeque<Iterator<T>>();
+        this.itors = new ConcurrentLinkedDeque<>();
         this.removedItors = new ArrayList<>();
+        this.currentIterator = null;
     }
 
     public ExtendableIterator(Iterator<T> itor) {
@@ -49,34 +51,9 @@ public class ExtendableIterator<T> extends WrappedIterator<T> {
         this.extend(itor2);
     }
 
-    @Override
-    public boolean hasNext() {
-        if (this.itors.isEmpty()) {
-            return false;
-        }
-
-        Iterator<T> first = null;
-        while ((first = this.itors.peekFirst()) != null && !first.hasNext()) {
-            if (first == this.itors.peekLast() && this.itors.size() == 1) {
-                // The last one
-                return false;
-            }
-            this.removedItors.add(this.itors.removeFirst());
-        }
-
-        assert first != null && first.hasNext();
-        return true;
-    }
-
-    @Override
-    public T next() {
-        if (this.itors.isEmpty()) {
-            throw new NoSuchElementException();
-        }
-        return this.itors.peekFirst().next();
-    }
-
     public ExtendableIterator<T> extend(Iterator<T> itor) {
+        E.checkState(this.currentIterator == null,
+                     "Can't extend iterator after iterating");
         if (itor != null) {
             this.itors.addLast(itor);
         }
@@ -99,11 +76,33 @@ public class ExtendableIterator<T> extends WrappedIterator<T> {
 
     @Override
     protected Iterator<?> originIterator() {
-        return this.itors.peekLast();
+        return this.currentIterator;
     }
 
     @Override
     protected boolean fetch() {
-        throw new NotImplementedException("ExtendableIterator.fetch()");
+        assert this.current == none();
+        if (this.itors.isEmpty()) {
+            return false;
+        }
+
+        if (this.currentIterator != null && this.currentIterator.hasNext()) {
+            this.current = this.currentIterator.next();
+            return true;
+        }
+
+        Iterator<T> first = null;
+        while ((first = this.itors.peekFirst()) != null && !first.hasNext()) {
+            if (first == this.itors.peekLast() && this.itors.size() == 1) {
+                // The last one
+                return false;
+            }
+            this.removedItors.add(this.itors.removeFirst());
+        }
+
+        assert first != null && first.hasNext();
+        this.currentIterator = first;
+        this.current = this.currentIterator.next();
+        return true;
     }
 }

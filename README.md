@@ -1,6 +1,6 @@
 # hugegraph-common
 
-hugegraph-common is a tool module for [HugeGraph](https://github.com/hugegraph/hugegraph) and its peripheral components.
+hugegraph-common is a common module for [HugeGraph](https://github.com/hugegraph/hugegraph) and its peripheral components.
 hugegraph-common encapsulates locks, configurations, events, iterators, rest and some 
 numeric or collection util classes to simplify the development of HugeGraph and 
 its components.

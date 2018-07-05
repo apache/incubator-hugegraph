@@ -43,7 +43,7 @@ public class FilterIterator<T> extends WrappedIterator<T> {
             T next = this.originIterator.next();
             // Do filter
             if (next != null && this.filterCallback.apply(next)) {
-                assert this.current == null;
+                assert this.current == none();
                 this.current = next;
                 return true;
             }

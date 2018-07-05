@@ -43,7 +43,7 @@ public class MapperIterator<T, R> extends WrappedIterator<R> {
             T next = this.originIterator.next();
             R result = this.mapperCallback.apply(next);
             if (result != null) {
-                assert this.current == null;
+                assert this.current == none();
                 this.current = result;
                 return true;
             }

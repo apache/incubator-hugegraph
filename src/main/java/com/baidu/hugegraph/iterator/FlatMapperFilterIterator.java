@@ -41,7 +41,7 @@ public class FlatMapperFilterIterator<T, R> extends FlatMapperIterator<T, R> {
         while (this.results.hasNext()) {
             R result = this.results.next();
             if (result != null && this.filterCallback.apply(result)) {
-                assert this.current == null;
+                assert this.current == none();
                 this.current = result;
                 return true;
             }

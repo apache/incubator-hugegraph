@@ -23,8 +23,8 @@ import java.util.Date;
 import java.util.function.Function;
 
 /**
- * This file is copied verbatim from Apache Lucene NumericUtils.java Only the
- * double/float to sortable long/int conversions are retained.
+ * This file is copied verbatim from Apache Lucene NumericUtils.java
+ * Only the double/float to sortable long/int conversions are retained.
  */
 public final class NumericUtil {
 
@@ -189,12 +189,11 @@ public final class NumericUtil {
     /**
      * Compare object with a number, the object should be a number,
      * or it can be converted to a BigDecimal
-     * @param first     might be number or string
-     * @param second    must be number
-     * @return          the value 0 if first is numerically equal to second;
-     *                  a value less than 0 if first is numerically less than
-     *                  second; and a value greater than 0 if first is
-     *                  numerically greater than second.
+     * @param first   might be number or string
+     * @param second  must be number
+     * @return  0 if first is numerically equal to second;
+     *          a negative int if first is numerically less than second;
+     *          a positive int if first is numerically greater than second.
      */
     @SuppressWarnings("unchecked")
     public static int compareNumber(Object first, Number second) {
