@@ -92,7 +92,7 @@ public class API {
             g.tx().commit();
             succeedMeter.mark();
             return result;
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | NotFoundException e) {
             illegalArgErrorMeter.mark();
             rollback.accept(null);
             throw e;

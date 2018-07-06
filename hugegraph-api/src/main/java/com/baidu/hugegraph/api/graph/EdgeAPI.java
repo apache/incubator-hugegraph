@@ -56,6 +56,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -289,7 +290,18 @@ public class EdgeAPI extends BatchAPI {
 
         HugeGraph g = graph(manager, graph);
         // TODO: add removeEdge(id) to improve
-        commit(g, () -> g.edges(id).next().remove());
+        commit(g, () -> {
+            Edge edge;
+            try {
+                edge = g.edges(id).next();
+            } catch (NotFoundException e) {
+                throw new IllegalArgumentException(e.getMessage());
+            } catch (NoSuchElementException e) {
+                throw new IllegalArgumentException(String.format(
+                          "No such edge with id: '%s'", id));
+            }
+            edge.remove();
+        });
     }
 
     private static void checkBatchSize(HugeGraph g, List<JsonEdge> edges) {

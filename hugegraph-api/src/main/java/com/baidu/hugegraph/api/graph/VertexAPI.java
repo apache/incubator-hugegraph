@@ -229,7 +229,12 @@ public class VertexAPI extends BatchAPI {
         Id id = checkAndParseVertexId(idValue);
         HugeGraph g = graph(manager, graph);
         // TODO: add removeVertex(id) to improve
-        commit(g, () -> g.vertices(id).next().remove());
+        commit(g, () -> {
+            Iterator<Vertex> itor = g.vertices(id);
+            E.checkArgument(itor.hasNext(),
+                            "No such vertex with id: '%s'", idValue);
+            itor.next().remove();
+        });
     }
 
     public static Id checkAndParseVertexId(String idValue) {

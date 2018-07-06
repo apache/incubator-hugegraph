@@ -79,7 +79,7 @@ public class JsonSerializer implements Serializer {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {
             out.write("{".getBytes(API.CHARSET));
 
-            out.write(String.format("\"%s\": [", label).getBytes(API.CHARSET));
+            out.write(String.format("\"%s\":[", label).getBytes(API.CHARSET));
 
             // Write data
             boolean first = true;
