@@ -21,6 +21,8 @@ package com.baidu.hugegraph.task;
 
 import java.util.concurrent.Callable;
 
+import com.baidu.hugegraph.util.E;
+
 public abstract class HugeTaskCallable<V> implements Callable<V> {
 
     private HugeTaskScheduler scheduler = null;
@@ -30,11 +32,17 @@ public abstract class HugeTaskCallable<V> implements Callable<V> {
         // pass
     }
 
+    protected void done() {
+        // Do nothing, subclasses may override this method
+    }
+
     protected void scheduler(HugeTaskScheduler scheduler) {
         this.scheduler = scheduler;
     }
 
     public HugeTaskScheduler scheduler() {
+        E.checkState(this.scheduler != null,
+                     "Can't call scheduler() before scheduling task");
         return this.scheduler;
     }
 
@@ -43,6 +51,8 @@ public abstract class HugeTaskCallable<V> implements Callable<V> {
     }
 
     public HugeTask<V> task() {
+        E.checkState(this.task != null,
+                     "Can't call task() before scheduling task");
         return this.task;
     }
 
@@ -55,7 +65,6 @@ public abstract class HugeTaskCallable<V> implements Callable<V> {
 
     public static <V> HugeTaskCallable<V> empty(Exception e) {
         return new HugeTaskCallable<V>() {
-
             @Override
             public V call() throws Exception {
                 throw e;

@@ -32,12 +32,16 @@ import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public class HugeTask<V> extends FutureTask<V> {
+
+    private static final Logger LOG = Log.logger(HugeTask.class);
 
     private final HugeTaskCallable<V> callable;
 
@@ -60,6 +64,7 @@ public class HugeTask<V> extends FutureTask<V> {
         E.checkArgumentNotNull(id, "Task id can't be null");
         E.checkArgument(id.number(), "Invalid task id type, it must be number");
 
+        assert callable != null;
         this.callable = callable;
         this.type = null;
         this.name = null;
@@ -165,6 +170,15 @@ public class HugeTask<V> extends FutureTask<V> {
     public boolean cancel(boolean mayInterruptIfRunning) {
         this.status(HugeTaskStatus.CANCELLED);
         return super.cancel(mayInterruptIfRunning);
+    }
+
+    @Override
+    protected void done() {
+        try {
+            this.callable.done();
+        } catch (Throwable e) {
+            LOG.error("An exception occurred when calling done()", e);
+        }
     }
 
     @Override
