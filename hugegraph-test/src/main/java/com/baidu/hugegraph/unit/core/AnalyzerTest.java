@@ -25,10 +25,10 @@ import java.util.Set;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import com.baidu.hugegraph.testutil.Assert;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
+import com.baidu.hugegraph.testutil.Assert;
 
 public class AnalyzerTest {
 
@@ -64,27 +64,6 @@ public class AnalyzerTest {
         Assert.assertEquals(setOf("英格兰", "世界杯", "夺冠", "中华人民共和国",
                                   "国歌", "百度", "科技园", "位于", "北京市",
                                   "海淀区", "西北旺", "东路", "10号", "院"),
-                            analyzer.segment(text2));
-    }
-
-    @Test
-    public void testStanfordAnalyzer() {
-        // StanfordCoreNLP-chinese-ctb mode
-        Analyzer analyzer = AnalyzerFactory.analyzer("stanford", "StanfordCoreNLP-chinese-ctb");
-        Assert.assertEquals(setOf("England", "wins", "World", "Cup"),
-                            analyzer.segment(text1));
-        Assert.assertEquals(setOf("英格兰", "世界杯", "夺冠", "，", "中华", "人民",
-                                  "共和国", "国歌", "百度", "科技园", "位于", "北京市",
-                                  "海淀区", "西北", "旺", "东路", "10号", "院"),
-                            analyzer.segment(text2));
-
-        // StanfordCoreNLP-chinese-pku mode
-        analyzer = AnalyzerFactory.analyzer("stanford", "StanfordCoreNLP-chinese-pku");
-        Assert.assertEquals(setOf("England", "wins", "World", "Cup"),
-                            analyzer.segment(text1));
-        Assert.assertEquals(setOf("英格兰", "世界杯", "夺冠", "，", "中华人民",
-                                  "共和国", "国歌", "百度", "科技园", "位于", "北京市",
-                                  "海淀区", "西北", "旺", "东路", "10号", "院"),
                             analyzer.segment(text2));
     }
 

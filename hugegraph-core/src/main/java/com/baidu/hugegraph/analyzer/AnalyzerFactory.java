@@ -45,8 +45,6 @@ public class AnalyzerFactory {
         switch (name) {
             case "word":
                 return new WordAnalyzer(mode);
-            case "stanford":
-                return new StanfordAnalyzer(mode);
             case "ansj":
                 return new AnsjAnalyzer(mode);
             case "hanlp":

@@ -193,7 +193,7 @@ public class CoreOptions extends OptionHolder {
                     "search.text_analyzer",
                     "Choose a text analyzer for searching the " +
                     "vertex/edge properties, available type are " +
-                    "[word, stanford, ansj, hanlp, smartcn, jieba, jcseg, " +
+                    "[word, ansj, hanlp, smartcn, jieba, jcseg, " +
                     "mmseg4j, ikanalyzer]",
                     disallowEmpty(),
                     "word"
@@ -211,8 +211,6 @@ public class CoreOptions extends OptionHolder {
                             "BidirectionalMaximumMinimumMatching, " +
                             "FullSegmentation, MinimalWordCount, " +
                             "MaxNgramScore, PureEnglish], " +
-                    "stanford: [StanfordCoreNLP-chinese-ctb, " +
-                               "StanfordCoreNLP-chinese-pku], " +
                     "ansj: [BaseAnalysis, IndexAnalysis, ToAnalysis, " +
                            "NlpAnalysis], " +
                     "hanlp: [standard, nlp, index, nShort, shortest, speed], " +

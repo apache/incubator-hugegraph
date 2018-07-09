@@ -18,7 +18,7 @@
         <fileSet>
             <directory>${assembly.static.dir}</directory>
             <outputDirectory>/</outputDirectory>
-            <filtered>true</filtered>
+            <filtered>false</filtered>
             <includes>
             </includes>
             <excludes>
