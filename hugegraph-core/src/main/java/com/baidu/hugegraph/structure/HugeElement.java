@@ -287,6 +287,8 @@ public abstract class HugeElement implements Element, GraphType {
 
     /**
      * Classify parameter list(pairs) from call request
+     * @param keyValues The property key-value pair of the vertex or edge
+     * @return          Key-value pairs that are classified and processed
      */
     @Watched(prefix = "element")
     public static ElementKeys classifyKeys(Object... keyValues) {

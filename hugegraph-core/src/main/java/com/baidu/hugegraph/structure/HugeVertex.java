@@ -296,6 +296,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     /**
      * Add edge with direction OUT
+     * @param edge the out edge
      */
     public void addOutEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {
@@ -310,6 +311,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     /**
      * Add edge with direction IN
+     * @param edge the in edge
      */
     public void addInEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {

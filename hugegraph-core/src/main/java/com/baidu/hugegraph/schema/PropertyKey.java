@@ -78,6 +78,9 @@ public class PropertyKey extends SchemaElement {
 
     /**
      * Check type of the value valid
+     * @param value the property value to be checked data type
+     * @return true if the value is or can convert to the data type,
+     *         otherwise false
      */
     public <V> boolean checkDataType(V value) {
         if (value instanceof Number) {
@@ -88,6 +91,10 @@ public class PropertyKey extends SchemaElement {
 
     /**
      * Check type of all the values(may be some of list properties) valid
+     * @param values the property values to be checked data type
+     * @param <V> the property value class
+     * @return true if all the values are or can convert to the data type,
+     *         otherwise false
      */
     public <V> boolean checkDataType(Collection<V> values) {
         boolean valid = true;
@@ -102,6 +109,10 @@ public class PropertyKey extends SchemaElement {
 
     /**
      * Check property value valid
+     * @param value the property value to be checked data type and cardinality
+     * @param <V> the property value class
+     * @return true if data type and cardinality satisfy requirements,
+     *         otherwise false
      */
     public <V> boolean checkValue(V value) {
         boolean valid;

@@ -42,6 +42,8 @@ public abstract class IdGenerator {
 
     /**
      * Generate a string id
+     * @param id original string id value
+     * @return   wrapped id object
      */
     public Id generate(String id) {
         return of(id);
@@ -49,6 +51,8 @@ public abstract class IdGenerator {
 
     /**
      * Generate a long id
+     * @param id original long id value
+     * @return   wrapped id object
      */
     public Id generate(long id) {
         return of(id);

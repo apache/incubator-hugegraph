@@ -130,6 +130,7 @@ public abstract class TableSerializer extends AbstractSerializer {
      * Parse an edge from a entry row
      * @param row edge entry
      * @param vertex null or the source vertex
+     * @param graph the HugeGraph context object
      * @return the source vertex
      */
     protected HugeEdge parseEdge(TableBackendEntry.Row row,

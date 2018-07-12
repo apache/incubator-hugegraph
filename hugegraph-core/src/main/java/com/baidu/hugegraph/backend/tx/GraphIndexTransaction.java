@@ -262,6 +262,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * Single index, an index involving only one column.
      * Joint indexes, join of single indexes, composite indexes or mixed
      * of single indexes and composite indexes.
+     * @param query original condition query
+     * @return      converted id query
      */
     @Watched(prefix = "index")
     public Query query(ConditionQuery query) {

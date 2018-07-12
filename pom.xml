@@ -4,32 +4,88 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph</artifactId>
-    <version>0.6.1-SNAPSHOT</version>
+    <version>0.6.1</version>
     <packaging>pom</packaging>
     <prerequisites>
         <maven>3.3.9</maven>
     </prerequisites>
     <name>hugegraph</name>
-    <url>hugegraph.baidu.com</url>
+    <url>https://github.com/hugegraph/hugegraph</url>
     <description>
         hugegraph is a fast-speed, highly-scalable, transactional graph database developed by baidu
     </description>
+
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+
     <inceptionYear>2017</inceptionYear>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
             <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
         </license>
     </licenses>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>Baidu_Local_Snapshots</id>
-            <url>
-                http://maven.hugegraph.com/content/repositories/snapshots
-            </url>
-        </snapshotRepository>
-    </distributionManagement>
+    <scm>
+        <url>https://github.com/hugegraph/hugegraph</url>
+        <connection>https://github.com/hugegraph/hugegraph</connection>
+        <developerConnection>https://github.com/hugegraph/hugegraph</developerConnection>
+    </scm>
+
+    <developers>
+        <developer>
+            <name>lizhangmei</name>
+            <email>lizhangmei@baidu.com</email>
+        </developer>
+        <developer>
+            <name>zhoney</name>
+            <email>zhangyi89817@126.com</email>
+        </developer>
+        <developer>
+            <name>liningrui</name>
+            <email>liningrui@vip.qq.com</email>
+        </developer>
+        <developer>
+            <name>wangjiankui</name>
+            <email>wangjiankui@baidu.com</email>
+        </developer>
+        <developer>
+            <name>lizhigang</name>
+            <email>albert_liang@126.com</email>
+        </developer>
+        <developer>
+            <name>huanghaiping</name>
+            <email>954872405@qq.com</email>
+        </developer>
+        <developer>
+            <name>jishilei</name>
+            <email>littlestonelover@gmail.com</email>
+        </developer>
+        <developer>
+            <name>zhanghuimin</name>
+            <email>283157054@qq.com</email>
+        </developer>
+        <developer>
+            <name>liunanke</name>
+            <email>lnkustc@126.com</email>
+        </developer>
+        <developer>
+            <name>liujie</name>
+            <email>liujie23@baidu.com</email>
+        </developer>
+        <developer>
+            <name>houzhizhen</name>
+            <email>houzhizhen@baidu.com</email>
+        </developer>
+        <developer>
+            <name>zhangsuochao</name>
+            <email>zhangsuochao@baidu.com</email>
+        </developer>
+    </developers>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -393,6 +449,53 @@
                                     <goal>test</goal>
                                 </goals>
                                 <phase>test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>2.2.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.5</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
                             </execution>
                         </executions>
                     </plugin>

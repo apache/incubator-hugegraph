@@ -44,6 +44,8 @@ public class BackendMutation {
 
     /**
      * Add data entry with an action to collection `updates`
+     * @param entry the backend entry
+     * @param action operate action on the entry
      */
     @Watched(prefix = "mutation")
     public void add(BackendEntry entry, Action action) {
@@ -124,6 +126,7 @@ public class BackendMutation {
      * Merges another mutation into this mutation. Ensures that all additions
      * and deletions are added to this mutation. Does not remove duplicates
      * if such exist - this needs to be ensured by the caller.
+     * @param mutation another mutation to be merged
      */
     public void merge(BackendMutation mutation) {
         E.checkNotNull(mutation, "mutation");
@@ -133,33 +136,32 @@ public class BackendMutation {
         }
     }
 
-    /**
-     * Get all types of updates
-     * @return Iterator<MutateItem>
-     */
     public Set<HugeType> types() {
         return this.updates.keys();
     }
 
     /**
-     * Get all updates
-     * @return Iterator<MutateItem>
+     * Get all mutations
+     * @return mutations
      */
     public Iterator<BackendAction> mutation() {
         return this.updates.values();
     }
 
     /**
-     * Get updates by type
-     * @return Iterator<MutateItem>
+     * Get mutations by type
+     * @param type entry type
+     * @return mutations
      */
     public Iterator<BackendAction> mutation(HugeType type) {
         return this.updates.get(type);
     }
 
     /**
-     * Get updates by type and id
-     * @return Iterator<MutateItem>
+     * Get mutations by type and id
+     * @param type entry type
+     * @param id entry id
+     * @return mutations
      */
     public List<BackendAction> mutation(HugeType type, Id id) {
         return this.updates.get(type, id);
@@ -167,15 +169,15 @@ public class BackendMutation {
 
     /**
      * Whether this mutation is empty
-     * @return boolean
+     * @return true if empty, otherwise false
      */
     public boolean isEmpty() {
         return this.updates.size() == 0;
     }
 
     /**
-     * Get size of id(s) to update
-     * @return int
+     * Get size of mutations
+     * @return size
      */
     public int size() {
         return this.updates.size();

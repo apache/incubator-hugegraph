@@ -125,6 +125,8 @@ public class Query implements Cloneable {
     /**
      * Set or update the offset and limit by a range [start, end)
      * NOTE: it will use the min range one: max start and min end
+     * @param start the range start, include it
+     * @param end   the range end, exclude it
      */
     public void range(long start, long end) {
         // Update offset

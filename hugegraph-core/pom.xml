@@ -5,12 +5,12 @@
     <parent>
         <groupId>com.baidu.hugegraph</groupId>
         <artifactId>hugegraph</artifactId>
-        <version>0.6.1-SNAPSHOT</version>
+        <version>0.6.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>hugegraph-core</artifactId>
     <name>hugegraph-core</name>
-    <url>http://hugegraph.org</url>
+
     <properties>
         <top.level.dir>${basedir}/..</top.level.dir>
     </properties>
@@ -19,7 +19,7 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
-            <version>1.4.3-SNAPSHOT</version>
+            <version>1.4.3</version>
         </dependency>
 
         <!-- tinkerpop -->

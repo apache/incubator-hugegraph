@@ -445,7 +445,7 @@ public class ConditionQueryFlatten {
     }
 
     /**
-     * Rename Set<Relation> to Relations to make code more readable
+     * Rename Relation Set to Relations to make code more readable
      */
     private static class Relations extends HashSet<Relation> {
 
