@@ -66,6 +66,10 @@ public class HugeTaskScheduler {
     public HugeTaskScheduler(HugeGraph graph,
                              ExecutorService taskExecutor,
                              ExecutorService dbExecutor) {
+        E.checkNotNull(graph, "graph");
+        E.checkNotNull(taskExecutor, "taskExecutor");
+        E.checkNotNull(dbExecutor, "dbExecutor");
+
         this.graph = graph;
         this.taskExecutor = taskExecutor;
         this.dbExecutor = dbExecutor;
@@ -75,6 +79,10 @@ public class HugeTaskScheduler {
         this.taskTx = null;
 
         this.listenChanges();
+    }
+
+    public HugeGraph graph() {
+        return this.graph;
     }
 
     private TaskTransaction tx() {
@@ -104,6 +112,8 @@ public class HugeTaskScheduler {
 
     public <V> Future<?> restore(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
+        E.checkState(!task.isDone(), "No need to restore task '%s', " +
+                     "it has been completed", task.id());
         task.status(HugeTaskStatus.RESTORING);
         return this.submitTask(task);
     }
@@ -265,6 +275,7 @@ public class HugeTaskScheduler {
             props.add(createPropertyKey(P.CREATE, DataType.DATE));
             props.add(createPropertyKey(P.UPDATE, DataType.DATE));
             props.add(createPropertyKey(P.RETRIES, DataType.INT));
+            props.add(createPropertyKey(P.INPUT));
             props.add(createPropertyKey(P.RESULT));
 
             return props.toArray(new String[0]);

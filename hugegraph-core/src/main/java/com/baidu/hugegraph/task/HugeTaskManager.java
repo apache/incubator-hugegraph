@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.util.E;
 
 public class HugeTaskManager {
 
@@ -49,6 +50,7 @@ public class HugeTaskManager {
     }
 
     public void addScheduler(HugeGraph graph) {
+        E.checkArgumentNotNull(graph, "The graph can't be null");
         ExecutorService task = this.taskExecutor;
         ExecutorService db = this.dbExecutor;
         this.schedulers.put(graph, new HugeTaskScheduler(graph, task, db));

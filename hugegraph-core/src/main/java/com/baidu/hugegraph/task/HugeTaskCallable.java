@@ -21,6 +21,8 @@ package com.baidu.hugegraph.task;
 
 import java.util.concurrent.Callable;
 
+import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.util.E;
 
 public abstract class HugeTaskCallable<V> implements Callable<V> {
@@ -34,6 +36,10 @@ public abstract class HugeTaskCallable<V> implements Callable<V> {
 
     protected void done() {
         // Do nothing, subclasses may override this method
+    }
+
+    public HugeGraph graph() {
+        return this.scheduler().graph();
     }
 
     protected void scheduler(HugeTaskScheduler scheduler) {
@@ -57,10 +63,13 @@ public abstract class HugeTaskCallable<V> implements Callable<V> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <V> HugeTaskCallable<V> fromClass(String className) throws
-        ClassNotFoundException, InstantiationException, IllegalAccessException {
-        Class<?> clazz = Class.forName(className);
-        return (HugeTaskCallable<V>) clazz.newInstance();
+    public static <V> HugeTaskCallable<V> fromClass(String className) {
+        try {
+            Class<?> clazz = Class.forName(className);
+            return (HugeTaskCallable<V>) clazz.newInstance();
+        } catch (Exception e) {
+            throw new HugeException("Failed to load task: %s", e, className);
+        }
     }
 
     public static <V> HugeTaskCallable<V> empty(Exception e) {

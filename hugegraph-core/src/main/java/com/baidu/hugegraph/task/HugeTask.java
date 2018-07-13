@@ -51,12 +51,18 @@ public class HugeTask<V> extends FutureTask<V> {
     private final Id parent;
     private List<Id> children;
     private String description;
-    private HugeTaskStatus status;
-    private int progress;
     private Date create;
-    private Date update;
-    private int retries;
-    private String result;
+    private volatile HugeTaskStatus status;
+    private volatile int progress;
+    private volatile Date update;
+    private volatile int retries;
+    private volatile String input;
+    private volatile String result;
+
+    public HugeTask(Id id, Id parent, String callable, String input) {
+        this(id, parent, HugeTaskCallable.fromClass(callable));
+        this.input = input;
+    }
 
     public HugeTask(Id id, Id parent, HugeTaskCallable<V> callable) {
         super(callable);
@@ -77,6 +83,7 @@ public class HugeTask<V> extends FutureTask<V> {
         this.create = new Date();
         this.update = null;
         this.retries = 0;
+        this.input = null;
         this.result = null;
     }
 
@@ -155,6 +162,18 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.retries;
     }
 
+    public void input(String input) {
+        this.input = input;
+    }
+
+    public String input() {
+        return this.input;
+    }
+
+    public String result() {
+        return this.result;
+    }
+
     @Override
     public String toString() {
         return String.format("HugeTask(%s)%s", this.id, this.asMap());
@@ -162,14 +181,18 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     public void run() {
+        assert this.status.code() < HugeTaskStatus.RUNNING.code();
         this.status(HugeTaskStatus.RUNNING);
         super.run();
     }
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        this.status(HugeTaskStatus.CANCELLED);
-        return super.cancel(mayInterruptIfRunning);
+        try {
+            return super.cancel(mayInterruptIfRunning);
+        } finally {
+            this.status(HugeTaskStatus.CANCELLED);
+        }
     }
 
     @Override
@@ -190,17 +213,21 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     protected void setException(Throwable t) {
-        this.status(HugeTaskStatus.FAILED);
-        this.result = t.toString();
+        if (!(this.status == HugeTaskStatus.CANCELLED &&
+              t instanceof InterruptedException)) {
+            // Update status to FAILED if exception occurred(not interrupted)
+            this.status(HugeTaskStatus.FAILED);
+            this.result = t.toString();
+        }
         super.setException(t);
-    }
-
-    protected synchronized void status(HugeTaskStatus status) {
-        this.status = status;
     }
 
     protected HugeTaskCallable<V> callable() {
         return this.callable;
+    }
+
+    protected void status(HugeTaskStatus status) {
+        this.status = status;
     }
 
     protected void property(String key, Object value) {
@@ -216,8 +243,8 @@ public class HugeTask<V> extends FutureTask<V> {
                 this.description = (String) value;
                 break;
             case P.STATUS:
-                this.status = SerialEnum.fromCode(HugeTaskStatus.class,
-                                                  (byte) value);
+                this.status(SerialEnum.fromCode(HugeTaskStatus.class,
+                                                (byte) value));
                 break;
             case P.PROGRESS:
                 this.progress = (int) value;
@@ -231,6 +258,8 @@ public class HugeTask<V> extends FutureTask<V> {
             case P.RETRIES:
                 this.retries = (int) value;
                 break;
+            case P.INPUT:
+                this.input = (String) value;
             case P.RESULT:
                 this.result = (String) value;
                 break;
@@ -279,10 +308,17 @@ public class HugeTask<V> extends FutureTask<V> {
             list.add(P.DESCRIPTION);
             list.add(this.description);
         }
+
         if (this.update != null) {
             list.add(P.UPDATE);
             list.add(this.update);
         }
+
+        if (this.input != null) {
+            list.add(P.INPUT);
+            list.add(this.input);
+        }
+
         if (this.result != null) {
             list.add(P.RESULT);
             list.add(this.result);
@@ -313,6 +349,9 @@ public class HugeTask<V> extends FutureTask<V> {
         }
         if (this.update != null) {
             map.put(P.UPDATE, this.update);
+        }
+        if (this.input != null) {
+            map.put(P.INPUT, this.input);
         }
         if (this.result != null) {
             map.put(P.RESULT, this.result);
@@ -355,6 +394,7 @@ public class HugeTask<V> extends FutureTask<V> {
         public static final String CREATE = "~task_create";
         public static final String UPDATE = "~task_update";
         public static final String RETRIES = "~task_retries";
+        public static final String INPUT = "~task_input";
         public static final String RESULT = "~task_result";
 
         //public static final String PARENT = hide("parent");

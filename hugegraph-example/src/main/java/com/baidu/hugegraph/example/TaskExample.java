@@ -44,8 +44,8 @@ public class TaskExample {
         HugeGraph graph = ExampleUtil.loadGraph();
 
         Id id = IdGenerator.of(8);
-        TestTask callable = new TestTask();
-        HugeTask<?> task = new HugeTask<>(id, null, callable);
+        String callable = "com.baidu.hugegraph.example.TaskExample$TestTask";
+        HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
         task.type("type-1");
         task.name("test-task");
 
@@ -58,21 +58,25 @@ public class TaskExample {
         System.out.println(">>>> running task: " + IteratorUtils.toList(itor));
 
         Thread.sleep(TestTask.UNIT * 33);
-        callable.run = false;
+        task.cancel(true);
         Thread.sleep(TestTask.UNIT * 1);
         scheduler.save(task);
 
-        itor = scheduler.findTask(HugeTaskStatus.SUCCESS);
-        if (itor.hasNext()) {
-            task = itor.next();
-        }
-        System.out.println(">>>> task stoped");
+        // Find task not finished(actually it should be RUNNING)
+        itor = scheduler.findTask(HugeTaskStatus.CANCELLED);
+        assert itor.hasNext();
+        task = itor.next();
+
+        System.out.println(">>>> task may be interrupted");
 
         Thread.sleep(TestTask.UNIT * 10);
         System.out.println(">>>> restore task...");
         scheduler.restore(task);
         Thread.sleep(TestTask.UNIT * 80);
         scheduler.save(task);
+
+        itor = scheduler.findTask(HugeTaskStatus.SUCCESS);
+        assert itor.hasNext();
 
         graph.close();
 
@@ -87,6 +91,8 @@ public class TaskExample {
 
         @Override
         public Integer call() throws Exception {
+            System.out.println(">>>> runing task with parameter: " +
+                               this.task().input());
             for (int i = this.task().progress(); i <= 100 && this.run; i++) {
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);
