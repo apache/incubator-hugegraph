@@ -419,14 +419,20 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Watched(prefix = "vertex")
-    protected void ensureVertexProperties() {
+    protected boolean ensureVertexProperties(boolean throwIfNotExist) {
         if (this.propLoaded) {
-            return;
+            return true;
         }
 
         Iterator<Vertex> vertices = tx().queryVertices(this.id());
-        E.checkState(vertices.hasNext(), "Vertex '%s' does not exist", this.id);
+        boolean exist = vertices.hasNext();
+        if (!exist && !throwIfNotExist) {
+            return false;
+        }
+        E.checkState(exist, "Vertex '%s' does not exist", this.id);
         this.copyProperties((HugeVertex) vertices.next());
+        assert exist;
+        return true;
     }
 
     @Watched(prefix = "vertex")
@@ -435,7 +441,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public <V> Iterator<VertexProperty<V>> properties(String... keys) {
         // TODO: Compatible with TinkerPop properties() (HugeGraph-742)
 
-        this.ensureVertexProperties();
+        this.ensureVertexProperties(true);
 
         // Capacity should be about the following size
         int propsCapacity = keys.length == 0 ?
@@ -481,6 +487,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 E.checkArgument(false,
                                 "Invalid system property '%s' of Vertex", key);
                 return null;
+        }
+    }
+
+    public boolean valid() {
+        try {
+            return this.ensureVertexProperties(false);
+        } catch (Throwable e) {
+            // Generally the program can't get here
+            return false;
         }
     }
 
