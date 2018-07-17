@@ -254,7 +254,8 @@ public class HugeTaskScheduler {
             label = schema.vertexLabel(TASK)
                           .properties(properties)
                           .useCustomizeNumberId()
-                          .nullableKeys(P.DESCRIPTION, P.UPDATE, P.RESULT)
+                          .nullableKeys(P.DESCRIPTION, P.UPDATE,
+                                        P.INPUT, P.RESULT)
                           .enableLabelIndex(false)
                           .build();
             graph.schemaTransaction().addVertexLabel(label);

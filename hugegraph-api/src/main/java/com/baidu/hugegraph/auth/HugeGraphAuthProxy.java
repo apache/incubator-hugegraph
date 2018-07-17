@@ -42,12 +42,15 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
+import com.baidu.hugegraph.task.HugeTaskScheduler;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeGraphAuthProxy implements Graph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
+
+    private static final String ROLE_ADMIN = StandardAuthenticator.ROLE_ADMIN;
 
     private final HugeGraph hugegraph;
 
@@ -141,7 +144,7 @@ public class HugeGraphAuthProxy implements Graph {
     }
 
     public HugeGraph hugegraph() {
-        this.verifyPermission(StandardAuthenticator.ROLE_ADMIN);
+        this.verifyPermission(ROLE_ADMIN);
         return this.hugegraph;
     }
 
@@ -156,23 +159,28 @@ public class HugeGraphAuthProxy implements Graph {
     }
 
     public void initBackend() {
-        this.verifyPermission(StandardAuthenticator.ROLE_ADMIN);
+        this.verifyPermission(ROLE_ADMIN);
         this.hugegraph.initBackend();
     }
 
     public void clearBackend() {
-        this.verifyPermission(StandardAuthenticator.ROLE_ADMIN);
+        this.verifyPermission(ROLE_ADMIN);
         this.hugegraph.clearBackend();
     }
 
     public void restoring(boolean restoring) {
-        this.verifyPermission(StandardAuthenticator.ROLE_ADMIN);
+        this.verifyPermission(ROLE_ADMIN);
         this.hugegraph.restoring(restoring);
     }
 
     public boolean restoring() {
-        this.verifyPermission(StandardAuthenticator.ROLE_ADMIN);
+        this.verifyPermission(ROLE_ADMIN);
         return this.hugegraph.restoring();
+    }
+
+    public HugeTaskScheduler taskScheduler() {
+        this.verifyPermission();
+        return this.hugegraph.taskScheduler();
     }
 
     private void verifyPermission() {
@@ -189,8 +197,8 @@ public class HugeGraphAuthProxy implements Graph {
         E.checkState(context != null,
                      "Missing authentication context " +
                      "when accessing a Graph with permission control");
-        if (!context.role().equals(StandardAuthenticator.ROLE_ADMIN) &&
-            !context.role().equals(permission)) {
+        String role = context.role();
+        if (!role.equals(ROLE_ADMIN) && !role.equals(permission)) {
             throw new ForbiddenException("Permission denied");
         }
     }
@@ -243,7 +251,7 @@ public class HugeGraphAuthProxy implements Graph {
         private static final Context ADMIN;
 
         static {
-            ADMIN = new Context("admin", StandardAuthenticator.ROLE_ADMIN);
+            ADMIN = new Context("admin", ROLE_ADMIN);
         }
 
         public static Context admin() {

@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api;
 
-import java.util.Map;
-
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -112,13 +110,5 @@ public class GremlinAPI extends API {
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         String query = uriInfo.getRequestUri().getRawQuery();
         return doGetRequest(location, auth, query);
-    }
-
-    static class GremlinRequest {
-        // See org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
-        public String gremlin;
-        public Map<String, Object> bindings;
-        public String language;
-        public Map<String, String> aliases;
     }
 }

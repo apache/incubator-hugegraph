@@ -37,6 +37,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
+import com.baidu.hugegraph.analyzer.AnalyzerFactory;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
@@ -60,9 +61,9 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.analyzer.AnalyzerFactory;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.task.HugeTaskManager;
+import com.baidu.hugegraph.task.HugeTaskScheduler;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.util.E;
@@ -286,6 +287,10 @@ public class HugeGraph implements Graph {
 
     public Analyzer analyzer() {
         return AnalyzerFactory.analyzer(this.configuration);
+    }
+
+    public HugeTaskScheduler taskScheduler() {
+        return this.taskManager.getScheduler(this);
     }
 
     @Override
