@@ -312,6 +312,10 @@ public class SchemaTransaction extends IndexableTransaction {
 
     /**
      * Currently doesn't allow to exist schema with the same name
+     * @param type the query schema type
+     * @param name the query schema name
+     * @param <T>  SubClass of SchemaElement
+     * @return     the queried schema object
      */
     protected <T extends SchemaElement> T getSchema(HugeType type,
                                                     String name) {

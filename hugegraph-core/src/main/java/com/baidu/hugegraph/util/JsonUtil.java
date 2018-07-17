@@ -83,8 +83,11 @@ public final class JsonUtil {
     }
 
     /**
-     * Collection<Number> will be parsed to Collection<Double> by fromJson,
+     * Number collection will be parsed to Double Collection via fromJson,
      * this method used to cast element in collection to original number type
+     * @param object    original number
+     * @param clazz     target type
+     * @return          target number
      */
     public static Object castNumber(Object object, Class<?> clazz) {
         if (object instanceof Number) {

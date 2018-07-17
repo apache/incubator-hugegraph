@@ -54,9 +54,6 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         return this.table;
     }
 
-    /**
-     * Call metadata API
-     */
     @SuppressWarnings("unchecked")
     public <R> R metadata(Session session, String meta, Object... args) {
         if (!this.metaHandlers.containsKey(meta)) {
@@ -75,6 +72,8 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     /**
      *  Mapping query-type to table-type
+     * @param query origin query
+     * @return corresponding table type
      */
     public static HugeType tableType(Query query) {
         HugeType type = query.resultType();
@@ -110,8 +109,6 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         return prefix + "_" + table;
     }
 
-    /*************************** abstract methods ***************************/
-
     public abstract void init(Session session);
 
     public abstract void clear(Session session);
@@ -125,8 +122,6 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     public abstract void append(Session session, Entry entry);
 
     public abstract void eliminate(Session session, Entry entry);
-
-    /****************************** MetaHandler ******************************/
 
     public interface MetaHandler<Session extends BackendSession> {
         public Object handle(Session session, String meta, Object... args);

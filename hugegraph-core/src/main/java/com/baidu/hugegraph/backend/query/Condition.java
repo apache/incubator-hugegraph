@@ -86,8 +86,9 @@ public abstract class Condition {
 
         /**
          * Determine two values of any type equal
-         * @Param first is actual value
-         * @Param second is value in query condition
+         * @param first is actual value
+         * @param second is value in query condition
+         * @return true if equal, otherwise false
          */
         protected static boolean equals(final Object first,
                                         final Object second) {
@@ -111,6 +112,10 @@ public abstract class Condition {
          * @param first is actual value, might be Number/Date or String, It is
          *              probably that the `first` is serialized to String.
          * @param second is value in query condition, must be Number/Date
+         * @return the value 0 if first is numerically equal to second;
+         *         a value less than 0 if first is numerically less than
+         *         second; and a value greater than 0 if first is
+         *         numerically greater than second.
          */
         protected static int compare(final Object first, final Object second) {
             if (second instanceof Number) {
@@ -143,8 +148,6 @@ public abstract class Condition {
         }
     }
 
-    /*************************************************************************/
-
     public abstract ConditionType type();
 
     public abstract boolean isSysprop();
@@ -158,8 +161,6 @@ public abstract class Condition {
     public abstract Condition copy();
 
     public abstract Condition replace(Relation from, Relation to);
-
-    /*************************************************************************/
 
     public Condition and(Condition other) {
         return new And(this, other);
@@ -177,8 +178,6 @@ public abstract class Condition {
         return this.type() == ConditionType.AND ||
                this.type() == ConditionType.OR;
     }
-
-    /*************************************************************************/
 
     public static Condition and(Condition left, Condition right) {
         return new And(left, right);
@@ -269,8 +268,6 @@ public abstract class Condition {
         return new UserpropRelation(key, RelationType.NOT_IN, value);
     }
 
-    /*************************************************************************/
-
     /**
      * Condition defines
      */
@@ -339,8 +336,6 @@ public abstract class Condition {
         }
     }
 
-    /*************************************************************************/
-
     public static class And extends BinCondition {
         public And(Condition left, Condition right) {
             super(left, right);
@@ -392,8 +387,6 @@ public abstract class Condition {
             return new Or(this.left().copy(), this.right().copy());
         }
     }
-
-    /*************************************************************************/
 
     public abstract static class Relation extends Condition {
         // Relational operator (like: =, >, <, in, ...)

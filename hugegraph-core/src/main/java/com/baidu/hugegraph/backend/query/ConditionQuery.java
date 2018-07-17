@@ -276,6 +276,8 @@ public class ConditionQuery extends IdQuery {
     /**
      * This method is only used for secondary index scenario,
      * relation must be EQ
+     * @param fields the user property fields
+     * @return       the corresponding user property values of fileds
      */
     public List<Object> userpropValues(List<Id> fields) {
         List<Object> values = new ArrayList<>(fields.size());

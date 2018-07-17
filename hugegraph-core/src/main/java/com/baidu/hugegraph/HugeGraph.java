@@ -510,7 +510,7 @@ public class HugeGraph implements Graph {
     /**
      * Stop all the daemon threads
      * @param timout seconds
-     * @throws InterruptedException
+     * @throws InterruptedException when be interrupted
      */
     public static void shutdown(long timout) throws InterruptedException {
         EventHub.destroy(timout);
