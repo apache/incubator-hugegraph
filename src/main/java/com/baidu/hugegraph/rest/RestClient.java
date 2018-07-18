@@ -116,7 +116,8 @@ public abstract class RestClient {
             return builder.get().post(entity.get());
         });
         // If check status failed, throw client exception.
-        checkStatus(response, Response.Status.CREATED, Response.Status.OK);
+        checkStatus(response, Response.Status.CREATED,
+                    Response.Status.OK, Response.Status.ACCEPTED);
         return new RestResult(response);
     }
 
@@ -138,7 +139,7 @@ public abstract class RestClient {
                          .put(Entity.json(object));
         });
         // If check status failed, throw client exception.
-        checkStatus(response, Response.Status.OK);
+        checkStatus(response, Response.Status.OK, Response.Status.ACCEPTED);
         return new RestResult(response);
     }
 
@@ -185,7 +186,8 @@ public abstract class RestClient {
         Response response = this.request(() -> {
             return target.get().path(path).request().delete();
         });
-        checkStatus(response, Response.Status.NO_CONTENT);
+        checkStatus(response, Response.Status.NO_CONTENT,
+                    Response.Status.ACCEPTED);
         return new RestResult(response);
     }
 
@@ -193,7 +195,8 @@ public abstract class RestClient {
         Response response = this.request(() -> {
             return this.target.path(path).path(encode(id)).request().delete();
         });
-        checkStatus(response, Response.Status.NO_CONTENT);
+        checkStatus(response, Response.Status.NO_CONTENT,
+                    Response.Status.ACCEPTED);
         return new RestResult(response);
     }
 
