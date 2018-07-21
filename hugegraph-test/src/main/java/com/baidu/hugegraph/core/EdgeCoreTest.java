@@ -89,27 +89,24 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
+              .enableLabelIndex(false)
               .create();
         schema.vertexLabel("author")
               .properties("id", "name", "age", "lived")
               .primaryKeys("id")
+              .enableLabelIndex(false)
               .create();
         schema.vertexLabel("language")
               .properties("name", "dynamic")
               .primaryKeys("name")
               .nullableKeys("dynamic")
+              .enableLabelIndex(false)
               .create();
         schema.vertexLabel("book")
               .properties("name")
               .primaryKeys("name")
+              .enableLabelIndex(false)
               .create();
-
-        LOG.debug("===============  vertexLabel index  ================");
-
-        schema.indexLabel("personByCity").onV("person").secondary()
-              .by("city").create();
-        schema.indexLabel("personByAge").onV("person").range()
-              .by("age").create();
 
         LOG.debug("===============  edgeLabel  ================");
 
@@ -118,57 +115,75 @@ public class EdgeCoreTest extends BaseCoreTest {
               .nullableKeys("message")
               .multiTimes().sortKeys("id")
               .link("person", "person")
+              .enableLabelIndex(false)
               .create();
         schema.edgeLabel("authored").singleTime()
               .properties("contribution", "comment", "score")
               .nullableKeys("score", "contribution", "comment")
               .link("author", "book")
+              .enableLabelIndex(true)
               .create();
         schema.edgeLabel("write").properties("time")
               .multiTimes().sortKeys("time")
               .link("author", "book")
+              .enableLabelIndex(false)
               .create();
         schema.edgeLabel("look").properties("time", "score")
               .nullableKeys("score")
               .multiTimes().sortKeys("time")
               .link("person", "book")
+              .enableLabelIndex(true)
               .create();
         schema.edgeLabel("know").singleTime()
               .link("author", "author")
+              .enableLabelIndex(true)
               .create();
         schema.edgeLabel("followedBy").singleTime()
               .link("author", "person")
+              .enableLabelIndex(false)
               .create();
         schema.edgeLabel("friend").singleTime()
               .link("person", "person")
+              .enableLabelIndex(true)
               .create();
         schema.edgeLabel("follow").singleTime()
               .link("person", "author")
+              .enableLabelIndex(true)
               .create();
         schema.edgeLabel("created").singleTime()
               .link("author", "language")
+              .enableLabelIndex(true)
               .create();
         schema.edgeLabel("strike").link("person", "person")
               .properties("id", "timestamp", "place", "tool", "reason",
                           "hurt", "arrested")
               .multiTimes().sortKeys("id")
               .nullableKeys("tool", "reason", "hurt")
+              .enableLabelIndex(false)
               .ifNotExist().create();
+    }
 
-        LOG.debug("===============  edgeLabel index  ================");
+    protected void initTransferIndex() {
+        SchemaManager schema = graph().schema();
+
+        LOG.debug("===============  transfer index  ================");
 
         schema.indexLabel("transferByTimestamp").onE("transfer").range()
               .by("timestamp").create();
+    }
+
+    protected void initStrikeIndex() {
+        SchemaManager schema = graph().schema();
+
+        LOG.debug("===============  strike index  ================");
 
         schema.indexLabel("strikeByTimestamp").onE("strike").range()
-                .by("timestamp").create();
+              .by("timestamp").create();
         schema.indexLabel("strikeByPlace").onE("strike").secondary()
               .by("tool").create();
         schema.indexLabel("strikeByPlaceToolReason").onE("strike").secondary()
               .by("place", "tool", "reason").create();
-        // TODO: add edge index test
-        // schema.indexLabel("authoredByScore").on(authored).secondary()
-        //       .by("score").create();
+
     }
 
     @Test
@@ -1082,6 +1097,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByLongPropOfOverrideEdge() {
         HugeGraph graph = graph();
+        initTransferIndex();
+
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
@@ -1104,6 +1121,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByStringPropOfOverrideEdge() {
         HugeGraph graph = graph();
+        initStrikeIndex();
+
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
@@ -1478,6 +1497,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testAddEdgePropertyWithIllegalValueForIndex() {
         HugeGraph graph = graph();
+        initStrikeIndex();
+
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
@@ -1758,6 +1779,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testQueryEdgeByPropertyWithEmptyString() {
         HugeGraph graph = graph();
+        initStrikeIndex();
+
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
@@ -1780,6 +1803,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testQueryEdgeBeforeAfterUpdateMultiPropertyWithIndex() {
         HugeGraph graph = graph();
+        initStrikeIndex();
+
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
@@ -1819,6 +1844,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testQueryEdgeBeforeAfterUpdatePropertyWithSecondaryIndex() {
         HugeGraph graph = graph();
+        initStrikeIndex();
+
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
@@ -1848,6 +1875,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testQueryEdgeBeforeAfterUpdatePropertyWithRangeIndex() {
         HugeGraph graph = graph();
+        initStrikeIndex();
+
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
@@ -1877,6 +1906,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testQueryEdgeWithNullablePropertyInCompositeIndex() {
         HugeGraph graph = graph();
+        initStrikeIndex();
+
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",

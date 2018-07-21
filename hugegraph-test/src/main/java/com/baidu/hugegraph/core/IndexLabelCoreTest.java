@@ -29,7 +29,7 @@ import org.junit.Assume;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -143,7 +143,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                           "city", "Hongkong", "age", 3);
         graph().tx().commit();
 
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().V().hasLabel("person")
                    .has("city", "Hongkong").next();
         });
@@ -155,7 +155,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                         .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
 
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().V().hasLabel("person")
                    .has("age", P.inside(2, 4)).next();
         });
@@ -186,7 +186,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         graph().tx().commit();
 
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().E().hasLabel("authored")
                    .has("contribution", "test").next();
         });
@@ -482,7 +482,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         assertNotContainsIl(person.indexLabels(), "personByCity");
         assertContainsIl(person.indexLabels(), "personByAge");
 
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().V().hasLabel("person")
                    .has("city", "Hongkong").next();
         });
@@ -499,7 +499,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         person = schema.getVertexLabel("person");
         Assert.assertEquals(0, person.indexLabels().size());
 
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().V().hasLabel("person")
                    .has("age", P.inside(2, 4)).next();
         });
@@ -549,7 +549,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         authored = schema.getEdgeLabel("authored");
         Assert.assertEquals(0, authored.indexLabels().size());
 
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().E().hasLabel("authored")
                    .has("contribution", "test").next();
         });

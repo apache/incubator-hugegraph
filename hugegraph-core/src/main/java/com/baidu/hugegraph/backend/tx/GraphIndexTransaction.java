@@ -45,6 +45,7 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -305,9 +306,25 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     private Set<Id> queryByLabel(ConditionQuery query) {
-        IndexLabel il = IndexLabel.label(query.resultType());
+        HugeType queryType = query.resultType();
+        IndexLabel il = IndexLabel.label(queryType);
         Id label = (Id) query.condition(HugeKeys.LABEL);
         assert label != null;
+
+        SchemaLabel schemaLabel;
+        if (queryType.isVertex()) {
+            schemaLabel = this.graph().vertexLabel(label);
+        } else if (queryType.isEdge()) {
+            schemaLabel = this.graph().edgeLabel(label);
+        } else {
+            throw new BackendException("Can't query %s by label", queryType);
+        }
+
+        if (!schemaLabel.enableLabelIndex()) {
+            // TODO: uncomment this code after remove label error
+            // throw new NoIndexException("Don't accept query by label '%s', " +
+            //                          "it disables label index", schemaLabel);
+        }
 
         ConditionQuery indexQuery;
         indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);
@@ -767,10 +784,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return true;
     }
 
-    private static BackendException noIndexException(HugeGraph graph,
+    private static NoIndexException noIndexException(HugeGraph graph,
                                                      ConditionQuery query,
                                                      String label) {
-        return new BackendException("Don't accept query based on properties " +
+        return new NoIndexException("Don't accept query based on properties " +
                                     "%s that are not indexed in label '%s'",
                                     graph.mapPkId2Name(query.userpropKeys()),
                                     label);

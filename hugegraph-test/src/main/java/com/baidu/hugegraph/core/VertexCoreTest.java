@@ -115,15 +115,27 @@ public class VertexCoreTest extends BaseCoreTest {
               .primaryKeys("id")
               .nullableKeys("comment", "contribution")
               .create();
+    }
 
-        LOG.debug("===============  vertexLabel index  ================");
+    protected void initPersonIndex(boolean indexCity) {
+        SchemaManager schema = graph().schema();
 
-        schema.indexLabel("personByCity").onV("person").secondary()
-              .by("city").create();
+        LOG.debug("===============  person index  ================");
+
         schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
         schema.indexLabel("personByBirth").onV("person").range()
               .by("birth").create();
+        if (indexCity) {
+            schema.indexLabel("personByCity").onV("person").secondary()
+                  .by("city").create();
+        }
+    }
+
+    protected void initComputerIndex() {
+        SchemaManager schema = graph().schema();
+
+        LOG.debug("===============  computer index  ================");
 
         schema.indexLabel("pcByBand").onV("computer")
               .secondary().by("band")
@@ -941,6 +953,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByStringPropWithOneResult() {
         // city is "Taipei"
         HugeGraph graph = graph();
+        initPersonIndex(true);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -959,6 +972,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // city is "Beijing"
         HugeGraph graph = graph();
+        initPersonIndex(true);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -982,6 +996,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropWithOneResult() {
         // age = 19
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -997,6 +1012,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropWithMultiResults() {
         // age = 20
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1016,6 +1032,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropWithNonResult() {
         // age = 18
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1029,6 +1046,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
         List<Vertex> vertexes;
 
@@ -1048,6 +1066,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropUsingLtWithOneResult() {
         // age < 19
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1064,6 +1083,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropUsingLtWithMultiResults() {
         // age < 21
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1077,6 +1097,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropUsingLteWithMultiResults() {
         // age <= 20
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1090,6 +1111,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropUsingGtWithOneResult() {
         // age > 20
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1103,6 +1125,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropUsingGtWithMultiResults() {
         // age > 1
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1116,6 +1139,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropUsingGtWithNonResult() {
         // age > 30
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1129,6 +1153,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIntPropUsingGteWithMultiResults() {
         // age >= 20
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
@@ -1143,6 +1168,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         // 3 < age && age < 20 (that's age == 19)
@@ -1159,6 +1185,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         // 19 < age && age < 21 (that's age == 20)
@@ -1190,6 +1217,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         // 3 < age && age < 19
@@ -1235,6 +1263,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         // 3 <= age && age < 19 (that's age == 3)
@@ -1251,6 +1280,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         // 19 <= age && age < 21
@@ -1274,6 +1304,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         // 4 <= age && age < 19
@@ -1301,8 +1332,9 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByDateProperty() {
-        this.init5Persons();
         HugeGraph graph = graph();
+        initPersonIndex(false);
+        init5Persons();
 
         List<Vertex> vertices = null;
 
@@ -1335,6 +1367,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryWithMultiLayerConditions() {
         HugeGraph graph = graph();
+        initPersonIndex(false);
         init5Persons();
 
         List<Object> vertices = graph.traversal().V().hasLabel("person").has(
@@ -1360,6 +1393,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByIntPropOfOverrideVertex() {
         HugeGraph graph = graph();
+        initPersonIndex(false);
+
         graph.addVertex(T.label, "person", "name", "Zhangyi",
                         "city", "Beijing", "age", 28);
         graph.addVertex(T.label, "person", "name", "Zhangyi",
@@ -1375,6 +1410,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByStringPropOfOverrideVertex() {
         HugeGraph graph = graph();
+        initPersonIndex(true);
+
         graph.addVertex(T.label, "person", "name", "Zhangyi",
                         "city", "Beijing", "age", 28);
         graph.addVertex(T.label, "person", "name", "Zhangyi",
@@ -1428,6 +1465,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryWithTxNotCommittedByIntProp() {
         HugeGraph graph = graph();
+        initPersonIndex(false);
 
         graph.addVertex(T.label, "person", "name", "marko",
                         "age", 18, "city", "Beijing");
@@ -1470,6 +1508,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByJointIndexes() {
+        initPersonIndex(true);
+
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
         List<Vertex> vertices;
@@ -1491,6 +1531,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByJointIndexesAndCompositeIndexForOneLabel() {
+        initPersonIndex(true);
+
         graph().addVertex(T.label, "person", "name", "Tom",
                           "city", "Hongkong", "age", 3);
         List<Vertex> vertices;
@@ -1570,6 +1612,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByJointIndexesWithRangeIndex() {
+        initPersonIndex(true);
+
         graph().addVertex(T.label, "person", "name", "Tom",
                           "city", "Hongkong", "age", 3);
 
@@ -1904,6 +1948,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testAddVertexPropertyWithIllegalValueForIndex() {
         HugeGraph graph = graph();
+        initPersonIndex(true);
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name", "Baby",
                             "city", "\u0000", "age", 3);
@@ -1917,6 +1963,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryVertexByPropertyWithEmptyString() {
         HugeGraph graph = graph();
+        initPersonIndex(true);
+
         graph.addVertex(T.label, "person", "name", "Baby", "city", "");
         graph.tx().commit();
 
@@ -1928,6 +1976,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryVertexBeforeAfterUpdateMultiPropertyWithIndex() {
         HugeGraph graph = graph();
+        initPersonIndex(true);
+
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
                                         "city", "Hongkong", "age", 3);
         graph.tx().commit();
@@ -1962,6 +2012,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryVertexBeforeAfterUpdatePropertyWithSecondaryIndex() {
         HugeGraph graph = graph();
+        initPersonIndex(true);
+
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
                                         "city", "Hongkong", "age", 3);
         graph.tx().commit();
@@ -1985,6 +2037,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryVertexBeforeAfterUpdatePropertyWithRangeIndex() {
         HugeGraph graph = graph();
+        initPersonIndex(false);
+
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
                                         "city", "Hongkong", "age", 3);
         graph.tx().commit();
@@ -2008,6 +2062,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryVertexWithNullablePropertyInCompositeIndex() {
         HugeGraph graph = graph();
+        initComputerIndex();
+
         graph.addVertex(T.label, "computer", "name", "1st", "band", "10Gbps",
                         "cpu", "2GHz", "ram", "8GB", "price", 1000);
         graph.tx().commit();
@@ -2764,6 +2820,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryBySecondaryIndexWithLimitAndOffset() {
+        initPersonIndex(true);
         init5Persons();
 
         List<Vertex> vertices = graph().traversal().V()
@@ -2787,6 +2844,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByRangeIndexWithLimitAndOffset() {
+        initPersonIndex(false);
         init5Persons();
 
         List<Vertex> vertices = graph().traversal().V()
@@ -2886,6 +2944,8 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     private void init5Computers() {
+        this.initComputerIndex();
+
         HugeGraph graph = graph();
 
         graph.addVertex(T.label, "computer", "name", "YangTian T6900C",
