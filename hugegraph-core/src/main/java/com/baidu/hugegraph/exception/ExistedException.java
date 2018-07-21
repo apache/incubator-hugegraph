@@ -28,5 +28,4 @@ public class ExistedException extends HugeException {
     public ExistedException(String type, Object arg) {
         super("The %s '%s' has existed", type, arg);
     }
-
 }

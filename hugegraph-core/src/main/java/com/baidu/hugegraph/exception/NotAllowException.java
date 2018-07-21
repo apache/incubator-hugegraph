@@ -23,7 +23,11 @@ import com.baidu.hugegraph.HugeException;
 
 public class NotAllowException extends HugeException {
 
-    private static final long serialVersionUID = 5152465646323494842L;
+    private static final long serialVersionUID = -1407924451828873200L;
+
+    public NotAllowException(String message) {
+        super(message);
+    }
 
     public NotAllowException(String message, Object... args) {
         super(message, args);

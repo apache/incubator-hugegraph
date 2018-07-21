@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.core;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -31,6 +33,8 @@ import com.baidu.hugegraph.util.Log;
 public class BaseCoreTest {
 
     protected static final Logger LOG = Log.logger(BaseCoreTest.class);
+
+    protected static final int TX_BATCH = 1000;
 
     public HugeGraph graph() {
         return CoreTestSuite.graph();
@@ -50,18 +54,30 @@ public class BaseCoreTest {
     protected void clearData() {
         HugeGraph graph = graph();
 
+        // Clear uncommitted data(maybe none)
+        graph.tx().rollback();
+
+        int count = 0;
+
         // Clear edge
-        graph().traversal().E().toStream().forEach(e -> {
-            e.remove();
-        });
+        do {
+            count = 0;
+            for (Edge e : graph().traversal().E().limit(TX_BATCH).toList()) {
+                count++;
+                e.remove();
+            }
+            graph.tx().commit();
+        } while (count == TX_BATCH);
 
         // Clear vertex
-        graph().traversal().V().toStream().forEach(v -> {
-            v.remove();
-        });
-
-        // Commit changes
-        graph.tx().commit();
+        do {
+            count = 0;
+            for (Vertex v : graph().traversal().V().limit(TX_BATCH).toList()) {
+                count++;
+                v.remove();
+            }
+            graph.tx().commit();
+        } while (count == TX_BATCH);
     }
 
     private void clearSchema() {

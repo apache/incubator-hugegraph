@@ -21,16 +21,15 @@ package com.baidu.hugegraph.exception;
 
 import com.baidu.hugegraph.HugeException;
 
-public class NotSupportException extends HugeException {
+public class LimitExceedException extends HugeException {
 
-    private static final long serialVersionUID = -2914329541122906234L;
-    private static final String PREFIX = "Not support ";
+    private static final long serialVersionUID = 7384276720045597709L;
 
-    public NotSupportException(String message) {
-        super(PREFIX + message);
+    public LimitExceedException(String message) {
+        super(message);
     }
 
-    public NotSupportException(String message, Object... args) {
-        super(PREFIX + message, args);
+    public LimitExceedException(String message, Object... args) {
+        super(message, args);
     }
 }

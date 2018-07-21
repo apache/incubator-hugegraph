@@ -45,6 +45,8 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
@@ -1386,6 +1388,83 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         edges = graph.traversal().V(java3.id()).inE().toList();
         Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
+    public void testRemoveEdgesOfSuperVertex() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
+                                        "name", "Guido van Rossum", "age", 61,
+                                        "lived", "California");
+
+        Vertex java = graph.addVertex(T.label, "language", "name", "java");
+        Vertex python = graph.addVertex(T.label, "language", "name", "python",
+                                        "dynamic", true);
+
+        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
+        Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
+        Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
+
+        james.addEdge("created", java);
+        guido.addEdge("created", python);
+
+        james.addEdge("authored", java1);
+        james.addEdge("authored", java2);
+        james.addEdge("authored", java3);
+
+        // Add some edges
+        int txCap = TX_BATCH;
+        for (int i = 0; i < txCap / TX_BATCH; i++) {
+            for (int j = 0; j < TX_BATCH; j++) {
+                int time = i * TX_BATCH + j;
+                guido.addEdge("write", java1, "time", "time-" + time);
+            }
+            graph.tx().commit();
+        }
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(txCap + 5, edges.size());
+
+        // It will remove all edges of the vertex
+        guido.remove();
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(4, edges.size());
+        assertContains(edges, "created", james, java);
+        assertContains(edges, "authored", james, java1);
+        assertContains(edges, "authored", james, java2);
+        assertContains(edges, "authored", james, java3);
+
+        // Add large amount of edges
+        txCap = graph.configuration().get(CoreOptions.EDGE_TX_CAPACITY);
+        assert txCap / TX_BATCH > 0 && txCap % TX_BATCH == 0;
+        for (int i = 0; i < txCap / TX_BATCH; i++) {
+            for (int j = 0; j < TX_BATCH; j++) {
+                int time = i * TX_BATCH + j;
+                guido.addEdge("write", java1, "time", "time-" + time);
+            }
+            graph.tx().commit();
+        }
+
+        guido.addEdge("created", python);
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(txCap + 5, edges.size());
+
+        // It will remove all edges of the vertex
+        guido.remove();
+
+        Assert.assertThrows(LimitExceedException.class, () -> {
+            graph.tx().commit();
+        }, (e) -> {
+            Assert.assertTrue(e.getMessage().contains(
+                              "Edges size has reached tx capacity"));
+        });
     }
 
     @Test

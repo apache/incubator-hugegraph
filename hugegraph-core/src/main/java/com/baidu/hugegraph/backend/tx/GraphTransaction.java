@@ -56,6 +56,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphIndexTransaction.OptimizedType;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
@@ -96,7 +97,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     /*
      * These are used to rollback state
-     * NOTE: props updates will be put into entries directly(due to difficult)
+     * NOTE: props updates will be put into mutation directly(due to difficult)
      */
     private Map<Id, HugeVertex> updatedVertexes;
     private Map<Id, HugeEdge> updatedEdges;
@@ -181,6 +182,15 @@ public class GraphTransaction extends IndexableTransaction {
         return ids;
     }
 
+    protected boolean removingEdgeOwner(HugeEdge edge) {
+        for (HugeVertex vertex : this.removedVertexes.values()) {
+            if (edge.belongToVertex(vertex)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Watched(prefix = "tx")
     @Override
     protected BackendMutation prepareCommit() {
@@ -212,6 +222,10 @@ public class GraphTransaction extends IndexableTransaction {
         for (HugeEdge e : addedEdges.values()) {
             assert !e.removed();
             e.committed();
+            // Skip edge if its owner has been removed
+            if (this.removingEdgeOwner(e)) {
+                continue;
+            }
             // Add edge entry of OUT and IN
             this.doInsert(this.serializer.writeEdge(e));
             this.doInsert(this.serializer.writeEdge(e.switchOwner()));
@@ -219,35 +233,24 @@ public class GraphTransaction extends IndexableTransaction {
             this.indexTx.updateEdgeIndex(e, false);
             this.indexTx.updateLabelIndex(e, false);
         }
-
-        // Clear updates
-        addedVertexes.clear();
-        addedEdges.clear();
     }
 
     protected void prepareDeletions(Map<Id, HugeVertex> removedVertexes,
                                     Map<Id, HugeEdge> removedEdges) {
-        Map<Id, HugeVertex> vertexes = InsertionOrderUtil.newMap();
-        vertexes.putAll(removedVertexes);
-
-        Map<Id, HugeEdge> edges = InsertionOrderUtil.newMap();
-        edges.putAll(removedEdges);
-
-        // Clear updates
-        removedVertexes.clear();
-        removedEdges.clear();
-
-        // In order to remove edges of vertexes, query all edges first
-        for (HugeVertex v : vertexes.values()) {
-            Iterator<Edge> vedges = this.queryEdgesByVertex(v.id());
+        // Remove related edges of each vertex
+        for (HugeVertex v : removedVertexes.values()) {
+            // Query all edges of the vertex and remove them
+            Query query = constructEdgesQuery(v.id(), Directions.BOTH);
+            Iterator<HugeEdge> vedges = this.queryEdgesFromBackend(query);
             while (vedges.hasNext()) {
-                HugeEdge edge = (HugeEdge) vedges.next();
-                edges.put(edge.id(), edge);
+                this.checkTxEdgesCapacity();
+                HugeEdge edge = vedges.next();
+                removedEdges.put(edge.id(), edge);
             }
         }
 
         // Remove vertexes
-        for (HugeVertex v : vertexes.values()) {
+        for (HugeVertex v : removedVertexes.values()) {
             /*
              * If the backend stores vertex together with edges, it's edges
              * would be removed after removing vertex. Otherwise, if the
@@ -260,7 +263,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         // Remove edges
-        for (HugeEdge e : edges.values()) {
+        for (HugeEdge e : removedEdges.values()) {
             // Update edge index
             this.indexTx.updateEdgeIndex(e, true);
             this.indexTx.updateLabelIndex(e, true);
@@ -381,18 +384,24 @@ public class GraphTransaction extends IndexableTransaction {
         // Override vertexes in local `addedVertexes`
         this.addedVertexes.remove(vertex.id());
 
-        // Get edges in local `addedEdges`, and remove it
-        for (Iterator<Map.Entry<Id, HugeEdge>> itor =
-             this.addedEdges.entrySet().iterator(); itor.hasNext();) {
-            if (itor.next().getValue().belongToVertex(vertex)) {
-                itor.remove();
-            }
-        }
-
         // Collect the removed vertex
         this.removedVertexes.put(vertex.id(), vertex);
 
         this.afterWrite();
+    }
+
+    public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
+        if (!edges.hasNext()) {
+            return ImmutableList.<Vertex>of().iterator();
+        }
+
+        IdQuery query = new IdQuery(HugeType.VERTEX);
+        while (edges.hasNext()) {
+            HugeEdge edge = (HugeEdge) edges.next();
+            query.query(edge.otherVertex().id());
+        }
+
+        return this.queryVertices(query);
     }
 
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
@@ -431,6 +440,13 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query query) {
+        Iterator<HugeVertex> results = this.queryVerticesFromBackend(query);
+        @SuppressWarnings("unchecked")
+        Iterator<Vertex> r = (Iterator<Vertex>) joinTxVertices(query, results);
+        return r;
+    }
+
+    private Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
         assert query.resultType().isVertex();
 
         Iterator<BackendEntry> entries = this.query(query);
@@ -441,7 +457,7 @@ public class GraphTransaction extends IndexableTransaction {
             return vertex;
         });
 
-        results = new FilterIterator<>(results, vertex -> {
+        return new FilterIterator<>(results, vertex -> {
             assert vertex.schemaLabel() != VertexLabel.NONE;
             // Filter hidden results
             if (!query.showHidden() && Graph.Hidden.isHidden(vertex.label())) {
@@ -454,24 +470,6 @@ public class GraphTransaction extends IndexableTransaction {
             }
             return true;
         });
-
-        @SuppressWarnings("unchecked")
-        Iterator<Vertex> r = (Iterator<Vertex>) joinTxVertices(query, results);
-        return r;
-    }
-
-    public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
-        if (!edges.hasNext()) {
-            return ImmutableList.<Vertex>of().iterator();
-        }
-
-        IdQuery query = new IdQuery(HugeType.VERTEX);
-        while (edges.hasNext()) {
-            HugeEdge edge = (HugeEdge) edges.next();
-            query.query(edge.otherVertex().id());
-        }
-
-        return this.queryVertices(query);
     }
 
     @Watched(prefix = "graph")
@@ -515,6 +513,10 @@ public class GraphTransaction extends IndexableTransaction {
         this.afterWrite();
     }
 
+    public Iterator<Edge> queryEdgesByVertex(Id id) {
+        return queryEdges(constructEdgesQuery(id, Directions.BOTH));
+    }
+
     public Iterator<Edge> queryEdges(Object... edgeIds) {
         // NOTE: it will allow duplicated edges if query by duplicated ids
         List<Edge> results = new ArrayList<>(edgeIds.length);
@@ -553,6 +555,14 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Query query) {
+        Iterator<HugeEdge> results = this.queryEdgesFromBackend(query);
+        @SuppressWarnings("unchecked")
+        Iterator<Edge> r = (Iterator<Edge>) joinTxEdges(query, results,
+                                                        this.removedVertexes);
+        return r;
+    }
+
+    private Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         assert query.resultType().isEdge();
 
         Iterator<BackendEntry> entries = this.query(query);
@@ -592,16 +602,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
         };
 
-        Iterator<HugeEdge> results = new FlatMapperFilterIterator<>(entries,
-                                                                    mapper,
-                                                                    filter);
-        @SuppressWarnings("unchecked")
-        Iterator<Edge> r = (Iterator<Edge>) joinTxEdges(query, results);
-        return r;
-    }
-
-    public Iterator<Edge> queryEdgesByVertex(Id id) {
-        return queryEdges(constructEdgesQuery(id, Directions.BOTH));
+        return new FlatMapperFilterIterator<>(entries, mapper, filter);
     }
 
     @Watched(prefix = "graph")
@@ -1113,7 +1114,8 @@ public class GraphTransaction extends IndexableTransaction {
                                   this.updatedVertexes);
     }
 
-    private Iterator<?> joinTxEdges(Query query, Iterator<HugeEdge> edges) {
+    private Iterator<?> joinTxEdges(Query query, Iterator<HugeEdge> edges,
+                                    Map<Id, HugeVertex> removingVertexes) {
         assert query.resultType().isEdge();
         final BiFunction<Query, HugeEdge, HugeEdge> matchTxEdges = (q, e) -> {
             assert q.resultType() == HugeType.EDGE;
@@ -1122,12 +1124,12 @@ public class GraphTransaction extends IndexableTransaction {
         edges = this.joinTxRecords(query, edges, matchTxEdges,
                                    this.addedEdges, this.removedEdges,
                                    this.updatedEdges);
-        if (this.removedVertexes.isEmpty()) {
+        if (removingVertexes.isEmpty()) {
             return edges;
         }
         // Filter edges that belong to deleted vertex
         return new FilterIterator<HugeEdge>(edges, edge -> {
-            for (HugeVertex v : this.removedVertexes.values()) {
+            for (HugeVertex v : removingVertexes.values()) {
                 if (edge.belongToVertex(v)) {
                     return false;
                 }
@@ -1153,7 +1155,7 @@ public class GraphTransaction extends IndexableTransaction {
         Set<V> txResults = InsertionOrderUtil.newSet();
 
         /*
-         * Collect added records
+         * Collect added/updated records
          * Records in memory have higher priority than query from backend store
          */
         for (V elem : addedTxRecords.values()) {
@@ -1173,7 +1175,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
         }
 
-        // Filter removed/added records
+        // Filter backend record if it's updated in memory
         Iterator<V> backendResults = new FilterIterator<>(records, elem -> {
             return (!txResults.contains(elem) &&
                     !removedTxRecords.containsKey(elem.id()));
@@ -1182,22 +1184,26 @@ public class GraphTransaction extends IndexableTransaction {
         return new ExtendableIterator<V>(txResults.iterator(), backendResults);
     }
 
-    private void checkTxVerticesCapacity() {
+    private void checkTxVerticesCapacity() throws LimitExceedException {
         int size = this.addedVertexes.size() +
                    this.removedVertexes.size() +
                    this.updatedVertexes.size();
-        BackendException.check(size < this.vertexesCapacity,
-                               "Vertices size has reached tx capacity %d",
-                               this.vertexesCapacity);
+        if (size >= this.vertexesCapacity) {
+            throw new LimitExceedException(
+                      "Vertices size has reached tx capacity %d",
+                      this.vertexesCapacity);
+        }
     }
 
-    private void checkTxEdgesCapacity() {
+    private void checkTxEdgesCapacity() throws LimitExceedException {
         int size = this.addedEdges.size() +
                    this.removedEdges.size() +
                    this.updatedEdges.size();
-        BackendException.check(size < this.edgesCapacity,
-                               "Edges size has reached tx capacity %d",
-                               this.edgesCapacity);
+        if (size >= this.edgesCapacity) {
+            throw new LimitExceedException(
+                      "Edges size has reached tx capacity %d",
+                      this.edgesCapacity);
+        }
     }
 
     private void propertyUpdated(HugeVertex vertex, HugeProperty<?> property) {

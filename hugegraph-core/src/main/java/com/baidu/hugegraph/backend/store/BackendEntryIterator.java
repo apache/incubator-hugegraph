@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
 
@@ -95,7 +96,7 @@ public abstract class BackendEntryIterator
         return this.count + ccount;
     }
 
-    protected final void checkCapacity() {
+    protected final void checkCapacity() throws LimitExceedException {
         // Stop if reach capacity
         this.query.checkCapacity(this.count);
     }
