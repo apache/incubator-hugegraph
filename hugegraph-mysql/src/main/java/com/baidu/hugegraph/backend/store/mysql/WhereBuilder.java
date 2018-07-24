@@ -41,6 +41,8 @@ public class WhereBuilder {
 
     /**
      * Concat as: key1 = value and key2 = value...
+     * @param keys the keys to be concatted with value
+     * @param value the value to be concatted with every key
      */
     public void and(List<String> keys, String value) {
         this.and(keys, " = ", value);
@@ -48,6 +50,9 @@ public class WhereBuilder {
 
     /**
      * Concat as: key1 op value and key2 op value...
+     * @param keys the keys to be concatted with value
+     * @param operator the operator to link every key and value pair
+     * @param value the value to be concatted with every key
      */
     public void and(List<String> keys, String operator, String value) {
         for (int i = 0, n = keys.size(); i < n; i++) {
@@ -62,6 +67,10 @@ public class WhereBuilder {
 
     /**
      * Concat as: key1 = value1 and key2 = value2...
+     * @param keys the keys to be concatted with values according to the
+     *             same index
+     * @param values the values to be concatted with every keys according to
+     *               the same index
      */
     public void and(List<String> keys, List<Object> values) {
         this.and(keys, " = ", values);
@@ -69,6 +78,11 @@ public class WhereBuilder {
 
     /**
      * Concat as: key1 op value1 and key2 op value2...
+     * @param keys the keys to be concatted with values according to the
+     *             same index
+     * @param operator the operator to link every key and value pair
+     * @param values the values to be concatted with every keys according to
+     *               the same index
      */
     public void and(List<String> keys, String operator, List<Object> values) {
         E.checkArgument(keys.size() == values.size(),
@@ -93,6 +107,12 @@ public class WhereBuilder {
 
     /**
      * Concat as: key1 op1 value1 and key2 op2 value2...
+     * @param keys the keys to be concatted with values according to the
+     *             same index
+     * @param operators the operators to link every key and value pair
+     *                  according to the same index
+     * @param values the values to be concatted with every keys according to
+     *               the same index
      */
     public void and(List<String> keys,
                     List<String> operators,
@@ -123,6 +143,7 @@ public class WhereBuilder {
 
     /**
      * Concat as: clause1 and clause2...
+     * @param clauses the clauses to be concatted with 'AND' operator
      */
     public void and(List<StringBuilder> clauses) {
         E.checkArgument(clauses != null && !clauses.isEmpty(),
@@ -140,6 +161,8 @@ public class WhereBuilder {
 
     /**
      * Concat as: key in (value1, value2...)
+     * @param key the key to be concatted with 'IN' operator
+     * @param values the values to be concated with ',' and wappred by '()'
      */
     public void in(String key, List<Object> values) {
         this.builder.append(key).append(" IN (");
@@ -158,7 +181,9 @@ public class WhereBuilder {
     }
 
     /**
-     * Concat as: (key1, key2...keyn) >= (val1, val2...valn)
+     * Concat as: (key1, key2...keyn) {@code >=} (val1, val2...valn)
+     * @param keys the keys to be concatted with {@code >=} operator
+     * @param values the values to be concatted with {@code >=} operator
      */
     public void gte(List<String> keys, List<Object> values) {
         E.checkArgument(keys.size() == values.size(),
