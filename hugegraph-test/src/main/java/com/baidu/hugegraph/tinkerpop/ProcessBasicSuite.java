@@ -261,10 +261,6 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
             TreeTest.class,
     };
 
-    /**
-     * This constructor is used by JUnit and will run this suite with
-     * its concrete implementations of the {@code testsToEnforce}.
-     */
     public ProcessBasicSuite(final Class<?> klass,
                              final RunnerBuilder builder)
                              throws InitializationError,
@@ -274,10 +270,6 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
         RegisterUtil.registerBackends();
     }
 
-    /**
-     * This constructor is used by Gremlin flavor implementers
-     * who supply their own implementations of the {@code testsToEnforce}.
-     */
     public ProcessBasicSuite(final Class<?> klass,
                              final RunnerBuilder builder,
                              final Class<?>[] testsToExecute)

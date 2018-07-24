@@ -66,6 +66,7 @@ public class MysqlSessions extends BackendSessionPool {
 
     /**
      * Try connect with specified database, will not reconnect if failed
+     * @throws SQLException if a database access error occurs
      */
     @Override
     public void open(HugeConfig config) throws Exception {

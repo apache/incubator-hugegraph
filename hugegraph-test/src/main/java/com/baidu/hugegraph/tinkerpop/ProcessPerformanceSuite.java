@@ -40,7 +40,6 @@ import com.baidu.hugegraph.dist.RegisterUtil;
  * performance of a vendor implementation {@link Graph}. Its usage is optional
  * to providers as the tests are somewhat redundant to those found elsewhere
  * in other required test suites.
- * <p/>
  * For more information on the usage of this suite,
  * please see {@link StructureStandardSuite}.
  *
