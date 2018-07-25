@@ -1248,16 +1248,10 @@ public class GraphTransaction extends IndexableTransaction {
         // Commit data already in tx firstly
         this.commit();
         try {
-            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-            query.eq(HugeKeys.LABEL, vertexLabel.id());
-            query.capacity(Query.NO_CAPACITY);
-            if (vertexLabel.hidden()) {
-                query.showHidden(true);
-            }
-
+            Iterator<Vertex> vertices = this.queryVerticesByLabel(
+                                        vertexLabel, Query.NO_LIMIT);
             int count = 0;
-            for (Iterator<Vertex> vertices = queryVertices(query);
-                 vertices.hasNext();) {
+            while (vertices.hasNext()) {
                 this.removeVertex((HugeVertex) vertices.next());
                 // Avoid reaching tx limit
                 if (++count == this.vertexesCapacity) {
@@ -1290,15 +1284,10 @@ public class GraphTransaction extends IndexableTransaction {
                 this.doRemove(this.serializer.writeId(HugeType.EDGE_IN,
                                                       edgeLabel.id()));
             } else {
-                ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-                query.eq(HugeKeys.LABEL, edgeLabel.id());
-                query.capacity(Query.NO_CAPACITY);
-                if (edgeLabel.hidden()) {
-                    query.showHidden(true);
-                }
+                Iterator<Edge> edges = this.queryEdgesByLabel(edgeLabel,
+                                                              Query.NO_LIMIT);
                 int count = 0;
-                for (Iterator<Edge> edges = queryEdges(query);
-                     edges.hasNext();) {
+                while (edges.hasNext()) {
                     this.removeEdge((HugeEdge) edges.next());
                     // Avoid reaching tx limit
                     if (++count == this.edgesCapacity) {
@@ -1312,6 +1301,41 @@ public class GraphTransaction extends IndexableTransaction {
             throw new HugeException("Failed to remove edges", e);
         } finally {
             this.autoCommit(autoCommit);
+        }
+    }
+
+    public Iterator<Vertex> queryVerticesByLabel(VertexLabel vertexLabel,
+                                                 long limit) {
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.limit(limit);
+        query.capacity(Query.NO_CAPACITY);
+        if (vertexLabel.hidden()) {
+            query.showHidden(true);
+        }
+        if (!vertexLabel.enableLabelIndex()) {
+            return new FilterIterator<>(this.queryVertices(query), vertex -> {
+                return vertex.label().equals(vertexLabel.name());
+            });
+        } else {
+            query.eq(HugeKeys.LABEL, vertexLabel.id());
+            return this.queryVertices(query);
+        }
+    }
+
+    public Iterator<Edge> queryEdgesByLabel(EdgeLabel edgeLabel, long limit) {
+        ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+        query.limit(limit);
+        query.capacity(Query.NO_CAPACITY);
+        if (edgeLabel.hidden()) {
+            query.showHidden(true);
+        }
+        if (!edgeLabel.enableLabelIndex()) {
+            return new FilterIterator<>(this.queryEdges(query), edge -> {
+                return edge.label().equals(edgeLabel.name());
+            });
+        } else {
+            query.eq(HugeKeys.LABEL, edgeLabel.id());
+            return this.queryEdges(query);
         }
     }
 }

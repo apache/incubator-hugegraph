@@ -30,6 +30,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -911,13 +912,15 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         graph.addVertex(T.label, "person", "name", "josh", "age", 20);
         graph().tx().commit();
 
-        List<Vertex> persons = graph.traversal().V()
-                                    .hasLabel("person").toList();
+        List<Vertex> persons;
 
         BackendFeatures features = graph.graphTransaction().store().features();
         if (!features.supportsQueryByLabel()) {
-            Assert.assertEquals(0, persons.size());
+            Assert.assertThrows(NoIndexException.class, () -> {
+                graph.traversal().V().hasLabel("person").toList();
+            });
         } else {
+            persons = graph.traversal().V().hasLabel("person").toList();
             Assert.assertEquals(2, persons.size());
         }
     }

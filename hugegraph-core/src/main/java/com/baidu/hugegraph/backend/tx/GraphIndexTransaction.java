@@ -376,10 +376,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
             throw new BackendException("Can't query %s by label", queryType);
         }
 
-        if (!schemaLabel.enableLabelIndex()) {
-            // TODO: uncomment this code after remove label error
-            // throw new NoIndexException("Don't accept query by label '%s', " +
-            //                          "it disables label index", schemaLabel);
+        if (!this.store().features().supportsQueryByLabel() &&
+            !schemaLabel.enableLabelIndex()) {
+            throw new NoIndexException("Don't accept query by label '%s', " +
+                                       "it disables label index", schemaLabel);
         }
 
         ConditionQuery indexQuery;

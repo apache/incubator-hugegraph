@@ -27,19 +27,19 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -343,29 +343,21 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     private void rebuildIndexIfNeeded(SchemaLabel schemaLabel,
                                       IndexLabel indexLabel) {
         GraphTransaction tx = this.transaction.graph().graphTransaction();
+        boolean needRebuild;
         if (this.baseType == HugeType.VERTEX_LABEL) {
-            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-            query.eq(HugeKeys.LABEL, indexLabel.baseValue());
-            query.limit(1L);
-            if (tx.queryVertices(query).hasNext()) {
-                // rebuildIndex() will set status to CREATED after REBUILDING
-                this.transaction.rebuildIndex(indexLabel);
-            } else {
-                this.transaction.updateSchemaStatus(indexLabel,
-                                                    SchemaStatus.CREATED);
-            }
+            needRebuild = tx.queryVerticesByLabel((VertexLabel) schemaLabel, 1L)
+                            .hasNext();
         } else {
             assert this.baseType == HugeType.EDGE_LABEL;
-            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-            query.eq(HugeKeys.LABEL, indexLabel.baseValue());
-            query.limit(1L);
-            if (tx.queryEdges(query).hasNext()) {
-                // rebuildIndex() will set status to CREATED after REBUILDING
-                this.transaction.rebuildIndex(indexLabel);
-            } else {
-                this.transaction.updateSchemaStatus(indexLabel,
-                                                    SchemaStatus.CREATED);
-            }
+            needRebuild = tx.queryEdgesByLabel((EdgeLabel) schemaLabel, 1L)
+                            .hasNext();
+        }
+        if (needRebuild) {
+            // rebuildIndex() will set status to CREATED after REBUILDING
+            this.transaction.rebuildIndex(indexLabel);
+        } else {
+            this.transaction.updateSchemaStatus(indexLabel,
+                                                SchemaStatus.CREATED);
         }
     }
 }

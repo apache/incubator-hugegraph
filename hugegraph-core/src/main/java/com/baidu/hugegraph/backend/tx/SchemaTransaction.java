@@ -433,16 +433,15 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void removeIndexLabelFromBaseLabel(IndexLabel label) {
         HugeType baseType = label.baseType();
         Id baseValue = label.baseValue();
+        SchemaLabel schemaLabel;
         if (baseType == HugeType.VERTEX_LABEL) {
-            VertexLabel vertexLabel = this.getVertexLabel(baseValue);
-            vertexLabel.removeIndexLabel(label.id());
-            addVertexLabel(vertexLabel);
+            schemaLabel = this.getVertexLabel(baseValue);
         } else {
             assert baseType == HugeType.EDGE_LABEL;
-            EdgeLabel edgeLabel = this.getEdgeLabel(baseValue);
-            edgeLabel.removeIndexLabel(label.id());
-            addEdgeLabel(edgeLabel);
+            schemaLabel = this.getEdgeLabel(baseValue);
         }
+        schemaLabel.removeIndexLabel(label.id());
+        this.updateSchema(schemaLabel);
     }
 
     @Override
