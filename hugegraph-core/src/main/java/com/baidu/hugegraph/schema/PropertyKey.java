@@ -19,8 +19,10 @@
 
 package com.baidu.hugegraph.schema;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,6 +35,7 @@ import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.E;
 
 public class PropertyKey extends SchemaElement {
 
@@ -137,31 +140,59 @@ public class PropertyKey extends SchemaElement {
     }
 
     public <V> V validValue(V value) {
+        return this.convValue(value, true);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <V, T> V convValue(V value, boolean checkValue) {
         if (value == null) {
             return null;
         }
 
-        if (this.cardinality == Cardinality.SINGLE) {
-            if (this.dataType().isNumber()) {
-                @SuppressWarnings("unchecked")
-                V number = (V) this.dataType().valueToNumber(value);
-                return number;
-            } else if (this.dataType().isDate()) {
-                @SuppressWarnings("unchecked")
-                V date = (V) this.dataType().valueToDate(value);
-                return date;
-            } else if (this.dataType().isUUID()) {
-                @SuppressWarnings("unchecked")
-                V uuid = (V) this.dataType().valueToUUID(value);
-                return uuid;
+        V validValue;
+        Collection<T> validValues;
+        if (!(value instanceof Collection)) {
+            validValue = this.convSingleValue(value);
+        } else {
+            if (value instanceof Set) {
+                validValues = new HashSet<>();
+            } else {
+                E.checkArgument(value instanceof List,
+                                "Property value must be Single, Set, List, " +
+                                "but got %s", value);
+                validValues = new ArrayList<>();
             }
+            for (T element : (Collection<T>) value) {
+                element = this.convSingleValue(element);
+                if (element == null) {
+                    return null;
+                }
+                validValues.add(element);
+            }
+            validValue = (V) validValues;
         }
 
-        if (this.checkValue(value)) {
-            return value;
+        if (!checkValue || this.checkValue(validValue)) {
+            return validValue;
         }
-
         return null;
+    }
+
+    private <V> V convSingleValue(V value) {
+        if (this.dataType().isNumber()) {
+            @SuppressWarnings("unchecked")
+            V number = (V) this.dataType().valueToNumber(value);
+            return number;
+        } else if (this.dataType().isDate()) {
+            @SuppressWarnings("unchecked")
+            V date = (V) this.dataType().valueToDate(value);
+            return date;
+        } else if (this.dataType().isUUID()) {
+            @SuppressWarnings("unchecked")
+            V uuid = (V) this.dataType().valueToUUID(value);
+            return uuid;
+        }
+        return value;
     }
 
     public DataType dataType() {

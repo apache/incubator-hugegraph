@@ -447,6 +447,14 @@ public final class TraversalUtil {
         } else {
             predicates = ImmutableList.of((P<Object>) has.getPredicate());
         }
+        // No need to convert if key is sysprop
+        try {
+            string2HugeKey(has.getKey());
+            // Come here if key is ~id, ~label, ~key and ~value
+            return;
+        } catch (IllegalArgumentException e) {
+            // Ignore
+        }
         PropertyKey pkey = graph.propertyKey(has.getKey());
         for (P<Object> predicate : predicates) {
             Object value = validPredicateValue(predicate.getValue(), pkey);
@@ -473,7 +481,7 @@ public final class TraversalUtil {
     }
 
     private static <V> V validPredicateValue(V value, PropertyKey pkey) {
-        V validValue = pkey.validValue(value);
+        V validValue = pkey.convValue(value, false);
         E.checkArgumentNotNull(validValue,
                                "Invalid data type of query value, " +
                                "expect '%s', actual '%s'",
