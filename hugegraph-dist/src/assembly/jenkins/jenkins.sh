@@ -71,11 +71,11 @@ if [ -n "$BRANCH_REF" ]; then
 else
     # Pull or checkout release branch
     git checkout .
-    git rev-parse --verify $BRANCH
+    git rev-parse --verify $BRANCH >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         git checkout $BRANCH && git pull
     else
-        git pull origin $BRANCH && git checkout -b $BRANCH origin/$BRANCH
+        git fetch origin && git checkout -b $BRANCH origin/$BRANCH
     fi
 
     if [ $? -ne 0 ]; then
