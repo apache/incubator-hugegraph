@@ -34,7 +34,7 @@ public class BaseCoreTest {
 
     protected static final Logger LOG = Log.logger(BaseCoreTest.class);
 
-    protected static final int TX_BATCH = 1000;
+    protected static final int TX_BATCH = 100;
 
     public HugeGraph graph() {
         return CoreTestSuite.graph();

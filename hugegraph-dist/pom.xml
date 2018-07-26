@@ -11,69 +11,6 @@
     <name>hugegraph-dist</name>
     <artifactId>hugegraph-dist</artifactId>
 
-    <profiles>
-        <profile>
-            <id>cassandra</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <backend>cassandra</backend>
-                <serializer>cassandra</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>scylladb</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>scylladb</backend>
-                <serializer>scylladb</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>rocksdb</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>rocksdb</backend>
-                <serializer>binary</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>mysql</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>mysql</backend>
-                <serializer>mysql</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>palo</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>palo</backend>
-                <serializer>palo</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>hbase</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>hbase</backend>
-                <serializer>hbase</serializer>
-            </properties>
-        </profile>
-    </profiles>
-
     <properties>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor

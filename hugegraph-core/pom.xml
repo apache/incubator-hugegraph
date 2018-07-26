@@ -157,9 +157,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>
-                                0.7.4.0
-                            </Implementation-Version>
+                            <Implementation-Version>0.7.4.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

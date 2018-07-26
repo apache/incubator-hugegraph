@@ -76,7 +76,6 @@
                             <directory>${top.level.dir}</directory>
                             <includes>
                                 <include>*.tar.gz</include>
-                                <!--<include>${final.name}/conf/rest-server.properties</include>-->
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>
@@ -102,9 +101,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>
-                                0.27.0.0
-                            </Implementation-Version>
+                            <Implementation-Version>0.27.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

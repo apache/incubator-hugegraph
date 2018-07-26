@@ -1,0 +1,32 @@
+language: java
+
+jdk:
+  - oraclejdk8
+
+sudo: required
+
+services:
+  - cassandra
+  - mysql
+
+addons:
+  apt:
+    sources:
+      - mysql-5.7-trusty
+    packages:
+      - mysql-server
+      - mysql-client
+
+env:
+  - BACKEND=memory
+  - BACKEND=cassandra
+  - BACKEND=scylladb
+  - BACKEND=rocksdb
+  - BACKEND=mysql
+
+install: mvn compile
+
+script: mvn test -Pcore-test,$BACKEND && mvn cobertura:cobertura
+
+after_script:
+  - bash <(curl -s https://codecov.io/bash)
