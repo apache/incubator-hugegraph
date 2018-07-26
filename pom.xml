@@ -331,6 +331,9 @@
     <profiles>
         <profile>
             <id>core-test</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <build>
                 <plugins>
                     <plugin>

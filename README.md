@@ -1,5 +1,9 @@
 # HugeGraph
 
+[![License](https://img.shields.io/badge/license-Apache%202-0E78BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+[![Build Status](https://travis-ci.org/hugegraph/hugegraph.svg?branch=release-0.6)](https://travis-ci.org/hugegraph/hugegraph)
+[![codecov](https://codecov.io/gh/hugegraph/hugegraph/branch/release-0.6/graph/badge.svg)](https://codecov.io/gh/hugegraph/hugegraph)
+
 HugeGraph is a fast-speed and highly-scalable [graph database](https://en.wikipedia.org/wiki/Graph_database). Billions of vertices and edges can be easily stored into and queried from HugeGraph due to its excellent OLTP ability. As compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) framework, various complicated graph queries can be accomplished through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful graph traversal language).
 
 ## Features
