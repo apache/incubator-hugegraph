@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.inject.Singleton;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -107,7 +108,15 @@ public class TaskAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeTaskScheduler scheduler = g.taskScheduler();
 
-        scheduler.deleteTask(IdGenerator.of(id));
+        HugeTask task = scheduler.task(IdGenerator.of(id));
+        if (task.completed()) {
+            scheduler.deleteTask(IdGenerator.of(id));
+        } else {
+            throw new BadRequestException(String.format(
+                      "Can't delete task '%s' with unstable status '%s'",
+                      id, task.status()));
+        }
+
     }
 
     private static Status parseStatus(String status) {
