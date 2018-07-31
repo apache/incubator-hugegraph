@@ -193,19 +193,9 @@
                         <configuration>
                             <tasks>
                                 <echo file="${top.level.dir}/dist.sh">
-                                    run() {
-                                    res=$?
-                                    if [ $res != 0 ]; then
-                                    echo
-                                    echo "Failed!"
-                                    echo
-                                    exit $res
-                                    fi
-                                    }
-
                                     tar -zcvf \
                                     ${top.level.dir}/${final.name}.tar.gz \
-                                    ${final.name}
+                                    ${final.name} || exit 1
                                     rm -f ${top.level.dir}/dist.sh
                                     echo
                                     echo "HugeGraph dist tar.gz available at:

@@ -90,7 +90,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
-        <release.name>hugegraph-release</release.name>
+        <release.name>hugegraph</release.name>
         <final.name>${release.name}-${project.version}</final.name>
         <compiler.source>1.8</compiler.source>
         <compiler.target>1.8</compiler.target>
