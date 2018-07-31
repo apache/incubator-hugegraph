@@ -209,6 +209,8 @@ public class SchemaTransaction extends IndexableTransaction {
             // Deleting a vertex will automatically deletes the held edge
             graphTx.removeVertices(vertexLabel);
             schemaTx.removeSchema(vertexLabel);
+            // Should commit changes to backend store before release delete lock
+            graph.tx().commit();
         } finally {
             locks.unlock();
         }
@@ -263,6 +265,8 @@ public class SchemaTransaction extends IndexableTransaction {
             // Remove all edges which has matched label
             graphTx.removeEdges(edgeLabel);
             schemaTx.removeSchema(edgeLabel);
+            // Should commit changes to backend store before release delete lock
+            graph.tx().commit();
         } finally {
             locks.unlock();
         }
@@ -323,6 +327,8 @@ public class SchemaTransaction extends IndexableTransaction {
             // Remove label from indexLabels of vertex or edge label
             schemaTx.removeIndexLabelFromBaseLabel(indexLabel);
             schemaTx.removeSchema(indexLabel);
+            // Should commit changes to backend store before release delete lock
+            graph.tx().commit();
         } finally {
             locks.unlock();
         }
@@ -442,19 +448,6 @@ public class SchemaTransaction extends IndexableTransaction {
         }
         schemaLabel.removeIndexLabel(label.id());
         this.updateSchema(schemaLabel);
-    }
-
-    @Override
-    public void commit() throws BackendException {
-        try {
-            super.commit();
-        } catch (Throwable e) {
-            // TODO: use event to replace direct call
-            this.graph().graphTransaction().reset();
-            throw e;
-        }
-        // TODO: use event to replace direct call
-        this.graph().graphTransaction().commit();
     }
 
     public Id getNextId(HugeType type) {
