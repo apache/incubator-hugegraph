@@ -21,3 +21,10 @@ The [project homepage](https://hugegraph.github.io/hugegraph-doc/) contains more
 ## License
 
 HugeGraph is licensed under Apache 2.0 License.
+
+## Thanks
+
+HugeGraph relies on the [TinkerPop](http://tinkerpop.apache.org) framework, we refer to the storage structure of [JanusGraph](http://janusgraph.org) and the schema definition of [DataStax](https://www.datastax.com). 
+Thanks to Tinkerpop, thanks to JanusGraph and Titan, thanks to DataStax. Thanks to all other organizations or authors who contributed to the project.
+
+You are welcome to contribute to HugeGraph, and we hope to work with you to create a better open source environment.
