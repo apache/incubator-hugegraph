@@ -22,9 +22,11 @@ package com.baidu.hugegraph.backend.store;
 import java.util.Iterator;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 
 public interface BackendStore {
 
@@ -63,7 +65,47 @@ public interface BackendStore {
     public BackendFeatures features();
 
     // Generate an id for a specific type
-    public Id nextId(HugeType type);
+    public default Id nextId(HugeType type) {
+        final int MAX_TIMES = 1000;
+        // Do get-increase-get-compare operation
+        long counter = 0L;
+        long expect = -1L;
+        synchronized(this) {
+            for (int i = 0; i < MAX_TIMES; i++) {
+                counter = this.getCounter(type);
+
+                if (counter == expect) {
+                    break;
+                }
+                // Increase local counter
+                expect = counter + 1L;
+                // Increase remote counter
+                this.increaseCounter(type, 1L);
+            }
+        }
+
+        E.checkState(counter != 0L, "Please check whether '%s' is OK",
+                     this.provider().type());
+        E.checkState(counter == expect, "'%s' is busy please try again",
+                     this.provider().type());
+        return IdGenerator.of(expect);
+    }
+
+    // Set next id >= lowest for a specific type
+    public default void setCounterLowest(HugeType type, long lowest) {
+        long current = this.getCounter(type);
+        if (current >= lowest) {
+            return;
+        }
+        long increment = lowest - current;
+        this.increaseCounter(type, increment);
+    }
+
+    // Increase next id for specific type
+    public void increaseCounter(HugeType type, long increment);
+
+    // Get current counter for a specific type
+    public long getCounter(HugeType type);
 
     static enum TxState {
         BEGIN, COMMITTING, COMMITT_FAIL, ROLLBACKING, ROLLBACK_FAIL, CLEAN

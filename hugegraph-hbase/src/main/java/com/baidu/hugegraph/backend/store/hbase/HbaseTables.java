@@ -30,7 +30,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -42,6 +41,7 @@ import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.NumericUtil;
 
 public class HbaseTables {
 
@@ -54,10 +54,21 @@ public class HbaseTables {
             super(TABLE);
         }
 
-        public synchronized Id nextId(Session session, HugeType type) {
+        public long getCounter(Session session, HugeType type) {
             byte[] key = new byte[]{type.code()};
-            long counter = session.increase(this.table(), CF, key, COL, 1L);
-            return IdGenerator.of(counter);
+            RowIterator results = session.get(this.table(), CF, key);
+            if (results.hasNext()) {
+                Result row = results.next();
+                return NumericUtil.bytesToLong(row.getValue(CF, COL));
+            } else {
+                return 0L;
+            }
+        }
+
+        public void increaseCounter(Session session, HugeType type,
+                                    long increment) {
+            byte[] key = new byte[]{type.code()};
+            session.increase(this.table(), CF, key, COL, increment);
         }
     }
 

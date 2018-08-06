@@ -35,7 +35,4 @@ public interface GremlinGraph extends Graph {
     public String backend();
     public void initBackend();
     public void clearBackend();
-
-    public void restoring(boolean restoring);
-    public boolean restoring();
 }

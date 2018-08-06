@@ -72,8 +72,6 @@ public class MysqlTables {
 
         public static final String TABLE = "counters";
 
-        public static final int MAX_TIMES = 10;
-
         public Counters() {
             super(TABLE);
 
@@ -83,55 +81,38 @@ public class MysqlTables {
             this.define.keys(HugeKeys.SCHEMA_TYPE);
         }
 
-        public synchronized Id nextId(MysqlSessions.Session session,
-                                      HugeType type) {
-
+        public long getCounter(MysqlSessions.Session session, HugeType type) {
             String schemaCol = formatKey(HugeKeys.SCHEMA_TYPE);
             String idCol = formatKey(HugeKeys.ID);
 
             String select = String.format("SELECT ID FROM %s WHERE %s = '%s';",
                                           TABLE, schemaCol, type.name());
-            /*
-             * If the current schema record does not exist then insert,
-             * otherwise update it.
-             */
-            String update = String.format("INSERT INTO %s VALUES ('%s', 1) " +
-                                          "ON DUPLICATE KEY UPDATE " +
-                                          "ID = ID + 1;", TABLE, type.name());
-
-            // Do get-increase-get-compare operation
-            long counter = 0L;
-            long expect = -1L;
-
-            for (int i = 0; i < MAX_TIMES; i++) {
-                try {
-                    ResultSet resultSet = session.select(select);
-                    if (resultSet.next()) {
-                        counter = resultSet.getLong(idCol);
-                    }
-                } catch (SQLException e) {
-                    throw new BackendException("Failed to get id from " +
-                                               "counters with schema type '%s'",
-                                               e, type);
+            try {
+                ResultSet resultSet = session.select(select);
+                if (resultSet.next()) {
+                    return resultSet.getLong(idCol);
+                } else {
+                    return 0L;
                 }
-
-                if (counter == expect) {
-                    break;
-                }
-                // Increase local counter
-                expect = counter + 1L;
-                // Increase remote counter
-                try {
-                    session.execute(update);
-                } catch (SQLException e) {
-                    throw new BackendException("Failed to update counter " +
-                                               "for schema type '%s'", e, type);
-                }
+            } catch (SQLException e) {
+                throw new BackendException(
+                          "Failed to get id from counters with type '%s'",
+                          e, type);
             }
+        }
 
-            E.checkState(counter != 0L, "Please check whether MySQL is OK");
-            E.checkState(counter == expect, "MySQL is busy please try again");
-            return IdGenerator.of(expect);
+        public void increaseCounter(MysqlSessions.Session session,
+                                    HugeType type, long increment) {
+            String update = String.format(
+                            "INSERT INTO %s VALUES ('%s', %s) " +
+                            "ON DUPLICATE KEY UPDATE " +
+                            "ID = ID + 1;", TABLE, type.name(), increment);
+            try {
+                session.execute(update);
+            } catch (SQLException e) {
+                throw new BackendException("Failed to update counters " +
+                                           "with '%s'", e, update);
+            }
         }
     }
 

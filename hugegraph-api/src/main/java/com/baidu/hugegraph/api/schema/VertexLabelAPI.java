@@ -42,6 +42,7 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -177,6 +178,16 @@ public class VertexLabelAPI extends API {
 
         private VertexLabel.Builder convert2Builder(HugeGraph g) {
             VertexLabel.Builder builder = g.schema().vertexLabel(this.name);
+            if (this.id != 0) {
+                E.checkArgument(this.id > 0,
+                                "Only positive number can be assign as " +
+                                "vertex label id");
+                E.checkArgument(g.mode() == GraphMode.RESTORING,
+                                "Only accept vertex label id when graph in " +
+                                "RESTORING mode, but '%s' is in mode '%s'",
+                                g, g.mode());
+                builder.id(this.id);
+            }
             if (this.idStrategy != null) {
                 builder.idStrategy(this.idStrategy);
             }

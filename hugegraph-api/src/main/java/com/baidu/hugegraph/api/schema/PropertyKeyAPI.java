@@ -43,6 +43,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -173,6 +174,16 @@ public class PropertyKeyAPI extends API {
 
         private PropertyKey.Builder convert2Builder(HugeGraph g) {
             PropertyKey.Builder builder = g.schema().propertyKey(this.name);
+            if (this.id != 0) {
+                E.checkArgument(this.id > 0,
+                                "Only positive number can be assign as " +
+                                "property key id");
+                E.checkArgument(g.mode() == GraphMode.RESTORING,
+                                "Only accept property key id when graph in " +
+                                "RESTORING mode, but '%s' is in mode '%s'",
+                                g, g.mode());
+                builder.id(this.id);
+            }
             if (this.cardinality != null) {
                 builder.cardinality(this.cardinality);
             }

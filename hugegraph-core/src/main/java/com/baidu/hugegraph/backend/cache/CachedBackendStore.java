@@ -112,6 +112,16 @@ public class CachedBackendStore implements BackendStore {
     }
 
     @Override
+    public void increaseCounter(HugeType type, long increment) {
+        this.store.increaseCounter(type, increment);
+    }
+
+    @Override
+    public long getCounter(HugeType type) {
+        return this.store.getCounter(type);
+    }
+
+    @Override
     public void mutate(BackendMutation mutation) {
         // TODO: invalid cache, or set expire time at least
         this.store.mutate(mutation);

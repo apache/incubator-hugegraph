@@ -79,5 +79,17 @@ public abstract class RocksDBSstStore extends RocksDBStore {
             throw new UnsupportedOperationException(
                       "RocksDBSstGraphStore.nextId()");
         }
+
+        @Override
+        public void increaseCounter(HugeType type, long increment) {
+            throw new UnsupportedOperationException(
+                      "RocksDBSstGraphStore.increaseCounter()");
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            throw new UnsupportedOperationException(
+                      "RocksDBSstGraphStore.getCounter()");
+        }
     }
 }

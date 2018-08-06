@@ -43,6 +43,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -178,6 +179,16 @@ public class EdgeLabelAPI extends API {
 
         private EdgeLabel.Builder convert2Builder(HugeGraph g) {
             EdgeLabel.Builder builder = g.schema().edgeLabel(this.name);
+            if (this.id != 0) {
+                E.checkArgument(this.id > 0,
+                                "Only positive number can be assign as " +
+                                "edge label id");
+                E.checkArgument(g.mode() == GraphMode.RESTORING,
+                                "Only accept edge label id when graph in " +
+                                "RESTORING mode, but '%s' is in mode '%s'",
+                                g, g.mode());
+                builder.id(this.id);
+            }
             if (this.sourceLabel != null) {
                 builder.sourceLabel(this.sourceLabel);
             }

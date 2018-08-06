@@ -35,7 +35,7 @@ public class LocalCounter {
         this.counters = new ConcurrentHashMap<>();
     }
 
-    public Id nextId(HugeType type) {
+    public synchronized Id nextId(HugeType type) {
         AtomicLong counter = this.counters.get(type);
         if (counter == null) {
             counter = new AtomicLong(0);
@@ -45,5 +45,31 @@ public class LocalCounter {
             }
         }
         return IdGenerator.of(counter.incrementAndGet());
+    }
+
+    public long getCounter(HugeType type) {
+        AtomicLong counter = this.counters.get(type);
+        if (counter == null) {
+            counter = new AtomicLong(0);
+            AtomicLong previous = this.counters.putIfAbsent(type, counter);
+            if (previous != null) {
+                counter = previous;
+            }
+        }
+        return counter.longValue();
+    }
+
+    public synchronized void increaseCounter(HugeType type, long increment) {
+        AtomicLong counter = this.counters.get(type);
+        if (counter == null) {
+            counter = new AtomicLong(0);
+            AtomicLong previous = this.counters.putIfAbsent(type, counter);
+            if (previous != null) {
+                counter = previous;
+            }
+        }
+        long oldValue = counter.longValue();
+        AtomicLong value = new AtomicLong(oldValue + increment);
+        this.counters.put(type, value);
     }
 }

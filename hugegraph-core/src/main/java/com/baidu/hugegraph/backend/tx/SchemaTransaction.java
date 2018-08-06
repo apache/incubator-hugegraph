@@ -24,15 +24,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.tinkerpop.gremlin.structure.Graph;
+
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.job.schema.EdgeLabelRemoveCallable;
@@ -49,6 +53,7 @@ import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
@@ -328,6 +333,17 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.store().nextId(type);
     }
 
+    public void setNextIdLowest(HugeType type, long lowest) {
+        LOG.debug("SchemaTransaction set next id to {} for {}", lowest, type);
+        this.store().setCounterLowest(type, lowest);
+    }
+
+    public Id getNextSystemId() {
+        LOG.debug("SchemaTransaction get next system id");
+        Id id = this.store().nextId(HugeType.SYS_SCHEMA);
+        return IdGenerator.of(-id.asLong());
+    }
+
     private BackendEntry serialize(SchemaElement schema) {
         switch (schema.type()) {
             case PROPERTY_KEY:
@@ -358,6 +374,50 @@ public class SchemaTransaction extends IndexableTransaction {
             default:
                 throw new AssertionError(String.format(
                           "Unknown schema type '%s'", type));
+        }
+    }
+
+    public Id validOrGenerateId(HugeType type, Id id, String name) {
+        boolean forSystem = Graph.Hidden.isHidden(name);
+        if (id != null) {
+            this.checkIdAndUpdateNextId(type, id, name, forSystem);
+        } else {
+            if (forSystem) {
+                id = this.getNextSystemId();
+            } else {
+                id = this.getNextId(type);
+            }
+        }
+        return id;
+    }
+
+    private void checkIdAndUpdateNextId(HugeType type, Id id,
+                                        String name, boolean forSystem) {
+        if (forSystem) {
+            if (id.number() && id.asLong() < 0) {
+                return;
+            }
+            throw new IllegalStateException(String.format(
+                      "Invalid system id '%s'", id));
+        }
+        HugeGraph graph = this.graph();
+        E.checkState(id.number() && id.asLong() > 0L,
+                     "Schema id must be number and >0, but got '%s'", id);
+        E.checkState(graph.mode() == GraphMode.RESTORING,
+                     "Can't build schema with provided id '%s' " +
+                     "when graph '%s' in mode '%s'",
+                     id, graph, graph.mode());
+        this.setNextIdLowest(type, id.asLong());
+    }
+
+    public void checkIdIfRestoringMode(HugeType type, Id id) {
+        if (this.graph().mode() == GraphMode.RESTORING) {
+            E.checkArgument(id != null,
+                            "Must provide schema id if in RESTORING mode");
+            SchemaElement element = this.getSchema(type, id);
+            if (element != null) {
+                throw new ExistedException(type.toString() + " id", id);
+            }
         }
     }
 

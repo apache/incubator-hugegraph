@@ -488,10 +488,17 @@ public abstract class CassandraStore extends AbstractBackendStore {
         }
 
         @Override
-        public Id nextId(HugeType type) {
+        public void increaseCounter(HugeType type, long increment) {
             this.checkSessionConnected();
             CassandraSessionPool.Session session = super.sessions.session();
-            return this.counters.nextId(session, type);
+            this.counters.increaseCounter(session, type, increment);
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            this.checkSessionConnected();
+            CassandraSessionPool.Session session = super.sessions.session();
+            return this.counters.getCounter(session, type);
         }
     }
 
@@ -521,6 +528,18 @@ public abstract class CassandraStore extends AbstractBackendStore {
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
                       "CassandraGraphStore.nextId()");
+        }
+
+        @Override
+        public void increaseCounter(HugeType type, long num) {
+            throw new UnsupportedOperationException(
+                      "CassandraGraphStore.increaseCounter()");
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            throw new UnsupportedOperationException(
+                      "CassandraGraphStore.getCounter()");
         }
     }
 }

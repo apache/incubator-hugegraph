@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBTables;
 import com.baidu.hugegraph.testutil.Assert;
@@ -52,8 +53,9 @@ public class RocksDBCountersTest extends BaseRocksDBUnitTest {
     public void testCounter() throws RocksDBException {
         Session session = this.rocks.session();
         for (int i = 1; i < 10000; i++) {
-            Id id = this.counters.nextId(session, HugeType.PROPERTY_KEY);
-            Assert.assertEquals(i, id.asLong());
+            this.counters.increaseCounter(session, HugeType.PROPERTY_KEY, 1L);
+            long id = this.counters.getCounter(session, HugeType.PROPERTY_KEY);
+            Assert.assertEquals(i, id);
         }
     }
 
@@ -61,17 +63,21 @@ public class RocksDBCountersTest extends BaseRocksDBUnitTest {
     public void testCounterWithMultiTypes() throws RocksDBException {
         Session session = this.rocks.session();
         for (int i = 1; i < 1000; i++) {
-            Id id = this.counters.nextId(session, HugeType.PROPERTY_KEY);
-            Assert.assertEquals(i, id.asLong());
+            this.counters.increaseCounter(session, HugeType.PROPERTY_KEY, 1L);
+            long id = this.counters.getCounter(session, HugeType.PROPERTY_KEY);
+            Assert.assertEquals(i, id);
 
-            id = this.counters.nextId(session, HugeType.VERTEX_LABEL);
-            Assert.assertEquals(i, id.asLong());
+            this.counters.increaseCounter(session, HugeType.VERTEX_LABEL, 1L);
+            id = this.counters.getCounter(session, HugeType.VERTEX_LABEL);
+            Assert.assertEquals(i, id);
 
-            id = this.counters.nextId(session, HugeType.EDGE_LABEL);
-            Assert.assertEquals(i, id.asLong());
+            this.counters.increaseCounter(session, HugeType.EDGE_LABEL, 1L);
+            id = this.counters.getCounter(session, HugeType.EDGE_LABEL);
+            Assert.assertEquals(i, id);
 
-            id = this.counters.nextId(session, HugeType.INDEX_LABEL);
-            Assert.assertEquals(i, id.asLong());
+            this.counters.increaseCounter(session, HugeType.INDEX_LABEL, 1L);
+            id = this.counters.getCounter(session, HugeType.INDEX_LABEL);
+            Assert.assertEquals(i, id);
         }
     }
 
@@ -86,7 +92,7 @@ public class RocksDBCountersTest extends BaseRocksDBUnitTest {
             Session session = this.rocks.session();
 
             for (int i = 0; i < TIMES; i++) {
-                Id id = this.counters.nextId(session, HugeType.PROPERTY_KEY);
+                Id id = nextId(session, HugeType.PROPERTY_KEY);
                 Assert.assertFalse(ids.containsKey(id));
                 ids.put(id, true);
 
@@ -95,5 +101,26 @@ public class RocksDBCountersTest extends BaseRocksDBUnitTest {
             this.rocks.close();
         });
         Assert.assertEquals(THREADS_NUM * TIMES, times.get());
+    }
+
+    private Id nextId(Session session, HugeType type) {
+        final int MAX_TIMES = 1000;
+        // Do get-increase-get-compare operation
+        long counter = 0L;
+        long expect = -1L;
+        synchronized(this) {
+            for (int i = 0; i < MAX_TIMES; i++) {
+                counter = this.counters.getCounter(session, type);
+
+                if (counter == expect) {
+                    break;
+                }
+                // Increase local counter
+                expect = counter + 1L;
+                // Increase remote counter
+                this.counters.increaseCounter(session, type, 1L);
+            }
+        }
+        return IdGenerator.of(expect);
     }
 }

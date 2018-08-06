@@ -41,38 +41,24 @@ public class RocksDBTables {
 
         private static final String TABLE = "c";
 
-        private static final int MAX_TIMES = 1000;
-        private static final byte[] ONE = b(1L);
-
         public Counters(String database) {
             super(database, TABLE);
         }
 
-        public synchronized Id nextId(Session session, HugeType type) {
+        public long getCounter(Session session, HugeType type) {
             byte[] key = new byte[]{type.code()};
-
-            // Do get-increase-get-compare operation
-            long counter = 0L;
-            long expect = -1L;
-            for (int i = 0; i < MAX_TIMES; i++) {
-                // Get the latest value
-                byte[] value = session.get(this.table(), key);
-                if (value != null) {
-                    counter = l(value);
-                }
-                if (counter == expect) {
-                    break;
-                }
-                // Increase local counter
-                expect = counter + 1L;
-                // Increase 1, the default value of counter is 0 in RocksDB
-                session.merge(this.table(), key, ONE);
-                session.commit();
+            byte[] value = session.get(this.table(), key);
+            if (value != null) {
+                return l(value);
+            } else {
+                return 0L;
             }
+        }
 
-            E.checkState(counter != 0L, "Please check whether RocksDB is OK");
-            E.checkState(counter == expect, "RocksDB is busy please try again");
-            return IdGenerator.of(counter);
+        public void increaseCounter(Session session, HugeType type,
+                                    long increment) {
+            byte[] key = new byte[]{type.code()};
+            session.increase(this.table(), key, b(increment));
         }
 
         private static byte[] b(long value) {
@@ -234,7 +220,7 @@ public class RocksDBTables {
             E.checkArgumentNotNull(min, "Range index begin key is missing");
             byte[] begin = min.asBytes();
             if (!minEq) {
-                begin = RocksDBStdSessions.increase(begin);
+                begin = RocksDBStdSessions.increaseOne(begin);
             }
 
             if (max == null) {
