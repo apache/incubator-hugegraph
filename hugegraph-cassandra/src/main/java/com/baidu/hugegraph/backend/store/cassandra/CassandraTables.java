@@ -65,8 +65,6 @@ public class CassandraTables {
 
         public static final String TABLE = "counters";
 
-        public static final int MAX_TIMES = 1000;
-
         public Counters() {
             super(TABLE);
         }
@@ -84,40 +82,26 @@ public class CassandraTables {
             this.createTable(session, pkeys, ckeys, columns);
         }
 
-        public synchronized Id nextId(CassandraSessionPool.Session session,
-                                      HugeType type) {
+        public long getCounter(CassandraSessionPool.Session session,
+                               HugeType type) {
             Clause where = formatEQ(HugeKeys.SCHEMA_TYPE, type.name());
             Select select = QueryBuilder.select(formatKey(HugeKeys.ID))
                                         .from(TABLE);
             select.where(where);
-
-            Update update = QueryBuilder.update(TABLE);
-            // Id increase 1
-            update.with(QueryBuilder.incr(formatKey(HugeKeys.ID), 1L));
-            update.where(where);
-
-            // Do get-increase-get-compare operation
-            long counter = 0L;
-            long expect = -1L;
-
-            for (int i = 0; i < MAX_TIMES; i++) {
-                Row row = session.execute(select).one();
-                if (row != null) {
-                    counter = row.getLong(formatKey(HugeKeys.ID));
-                }
-                if (counter == expect) {
-                    break;
-                }
-                // Increase local counter
-                expect = counter + 1L;
-                // Increase remote counter
-                session.execute(update);
+            Row row = session.execute(select).one();
+            if (row == null) {
+                return 0L;
+            } else {
+                return row.getLong(formatKey(HugeKeys.ID));
             }
+        }
 
-            E.checkState(counter != 0L, "Please check whether Cassandra is OK");
-            E.checkState(counter == expect,
-                         "Cassandra is busy please try again");
-            return IdGenerator.of(expect);
+        public void increaseCounter(CassandraSessionPool.Session session,
+                                    HugeType type, long increment) {
+            Update update = QueryBuilder.update(TABLE);
+            update.with(QueryBuilder.incr(formatKey(HugeKeys.ID), increment));
+            update.where(formatEQ(HugeKeys.SCHEMA_TYPE, type.name()));
+            session.execute(update);
         }
     }
 

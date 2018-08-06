@@ -41,6 +41,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -153,6 +154,16 @@ public class IndexLabelAPI extends API {
 
         private IndexLabel.Builder convert2Builder(HugeGraph g) {
             IndexLabel.Builder builder = g.schema().indexLabel(this.name);
+            if (this.id != 0) {
+                E.checkArgument(this.id > 0,
+                                "Only positive number can be assign as " +
+                                "index label id");
+                E.checkArgument(g.mode() == GraphMode.RESTORING,
+                                "Only accept index label id when graph in " +
+                                "RESTORING mode, but '%s' is in mode '%s'",
+                                g, g.mode());
+                builder.id(this.id);
+            }
             builder.on(this.baseType, this.baseValue);
             if (this.indexType != null) {
                 builder.indexType(this.indexType);

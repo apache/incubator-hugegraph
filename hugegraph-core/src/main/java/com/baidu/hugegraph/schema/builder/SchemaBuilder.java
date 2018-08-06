@@ -24,6 +24,8 @@ import com.baidu.hugegraph.schema.SchemaElement;
 
 public interface SchemaBuilder<T extends SchemaElement> {
 
+    public SchemaBuilder<T> id(long id);
+
     public T build();
 
     public T create();

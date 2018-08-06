@@ -56,7 +56,7 @@ import com.baidu.hugegraph.util.Log;
  * 1.remove by id + condition
  * 2.append/subtract edge-property
  */
-public class InMemoryDBStore extends AbstractBackendStore {
+public abstract class InMemoryDBStore extends AbstractBackendStore {
 
     private static final Logger LOG = Log.logger(InMemoryDBStore.class);
 
@@ -66,7 +66,6 @@ public class InMemoryDBStore extends AbstractBackendStore {
     private final String database;
 
     private final Map<HugeType, InMemoryDBTable> tables;
-    private final LocalCounter counter;
 
     public InMemoryDBStore(final BackendStoreProvider provider,
                            final String database, final String store) {
@@ -74,7 +73,6 @@ public class InMemoryDBStore extends AbstractBackendStore {
         this.database = database;
         this.store = store;
         this.tables = new HashMap<>();
-        this.counter = new LocalCounter();
     }
 
     @Override
@@ -218,11 +216,6 @@ public class InMemoryDBStore extends AbstractBackendStore {
     }
 
     @Override
-    public Id nextId(HugeType type) {
-        return this.counter.nextId(type);
-    }
-
-    @Override
     public String toString() {
         return this.store;
     }
@@ -231,9 +224,12 @@ public class InMemoryDBStore extends AbstractBackendStore {
 
     public static class InMemorySchemaStore extends InMemoryDBStore {
 
+        private final LocalCounter counter;
+
         public InMemorySchemaStore(BackendStoreProvider provider,
                                    String database, String store) {
             super(provider, database, store);
+            this.counter = new LocalCounter();
 
             registerTableManager(HugeType.VERTEX_LABEL,
                                  new InMemoryDBTable(HugeType.VERTEX_LABEL));
@@ -245,6 +241,21 @@ public class InMemoryDBStore extends AbstractBackendStore {
                                  new InMemoryDBTable(HugeType.INDEX_LABEL));
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new InMemoryDBTables.SecondaryIndex());
+        }
+
+        @Override
+        public Id nextId(HugeType type) {
+            return this.counter.nextId(type);
+        }
+
+        @Override
+        public void increaseCounter(HugeType type, long increment) {
+            this.counter.increaseCounter(type, increment);
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            return this.counter.getCounter(type);
         }
     }
 
@@ -266,6 +277,24 @@ public class InMemoryDBStore extends AbstractBackendStore {
                                  new InMemoryDBTables.RangeIndex());
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new InMemoryDBTables.SearchIndex());
+        }
+
+        @Override
+        public Id nextId(HugeType type) {
+            throw new UnsupportedOperationException(
+                      "InMemoryGraphStore.nextId()");
+        }
+
+        @Override
+        public void increaseCounter(HugeType type, long num) {
+            throw new UnsupportedOperationException(
+                      "InMemoryGraphStore.increaseCounter()");
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            throw new UnsupportedOperationException(
+                      "InMemoryGraphStore.getCounter()");
         }
     }
 

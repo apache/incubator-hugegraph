@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api;
 
 import java.io.File;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.security.RolesAllowed;
@@ -44,9 +45,10 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -152,38 +154,32 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
-    @Path("{name}/restoring")
+    @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
-    public Object restoring(@Context GraphManager manager,
-                            @PathParam("name") String name,
-                            JsonRestoring jsonRestoring) {
-        LOG.debug("Set restoring status to: '{}' of graph '{}'",
-                  jsonRestoring, name);
+    public Map<String, GraphMode> mode(@Context GraphManager manager,
+                                       @PathParam("name") String name,
+                                       GraphMode mode) {
+        LOG.debug("Set mode to: '{}' of graph '{}'", mode, name);
 
+        E.checkArgument(mode != null, "Graph mode can't be null");
         HugeGraph g = graph(manager, name);
-        g.restoring(jsonRestoring.restoring);
-        return jsonRestoring;
+        g.mode(mode);
+        return ImmutableMap.of("mode", mode);
     }
 
     @GET
     @Timed
-    @Path("{name}/restoring")
+    @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
-    public Object restoring(@Context GraphManager manager,
-                            @PathParam("name") String name) {
-        LOG.debug("Get restoring status of graph '{}'", name);
+    public Map<String, GraphMode> mode(@Context GraphManager manager,
+                                       @PathParam("name") String name) {
+        LOG.debug("Get mode of graph '{}'", name);
 
         HugeGraph g = graph(manager, name);
-        return ImmutableMap.of("restoring", g.restoring());
-    }
-
-    private static class JsonRestoring {
-
-        @JsonProperty("restoring")
-        public boolean restoring;
+        return ImmutableMap.of("mode", g.mode());
     }
 }

@@ -334,9 +334,16 @@ public abstract class HbaseStore extends AbstractBackendStore {
         }
 
         @Override
-        public Id nextId(HugeType type) {
+        public void increaseCounter(HugeType type, long increment) {
             super.checkOpened();
-            return this.counters.nextId(super.sessions.session(), type);
+            this.counters.increaseCounter(super.sessions.session(),
+                                          type, increment);
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            super.checkOpened();
+            return this.counters.getCounter(super.sessions.session(), type);
         }
     }
 
@@ -366,6 +373,18 @@ public abstract class HbaseStore extends AbstractBackendStore {
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
                       "HbaseGraphStore.nextId()");
+        }
+
+        @Override
+        public void increaseCounter(HugeType type, long num) {
+            throw new UnsupportedOperationException(
+                      "HbaseGraphStore.increaseCounter()");
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            throw new UnsupportedOperationException(
+                      "HbaseGraphStore.getCounter()");
         }
     }
 }

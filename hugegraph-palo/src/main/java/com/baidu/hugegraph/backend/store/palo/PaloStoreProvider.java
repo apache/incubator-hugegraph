@@ -86,6 +86,17 @@ public class PaloStoreProvider extends MysqlStoreProvider {
         public Id nextId(HugeType type) {
             return this.counter.nextId(type);
         }
+
+        @Override
+        public void increaseCounter(HugeType type, long increment) {
+            this.counter.increaseCounter(type, increment);
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            return this.counter.getCounter(type);
+        }
+
     }
 
     public static class PaloGraphStore extends PaloStore {
@@ -116,6 +127,18 @@ public class PaloStoreProvider extends MysqlStoreProvider {
         @Override
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException("PaloGraphStore.nextId()");
+        }
+
+        @Override
+        public void increaseCounter(HugeType type, long num) {
+            throw new UnsupportedOperationException(
+                      "PaloGraphStore.increaseCounter()");
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            throw new UnsupportedOperationException(
+                      "PaloGraphStore.getCounter()");
         }
     }
 }

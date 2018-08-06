@@ -53,6 +53,9 @@ public enum HugeType implements SerialEnum {
 
     TASK(180, "T"),
 
+    // System schema
+    SYS_SCHEMA(250, "SS"),
+
     MAX_TYPE(255, "~");
 
     private byte type = 0;

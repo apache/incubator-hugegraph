@@ -350,7 +350,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         return StringEncoding.decode(bytes);
     }
 
-    public static final byte[] increase(byte[] bytes) {
+    public static final byte[] increaseOne(byte[] bytes) {
         final byte BYTE_MAX_VALUE = (byte) 0xff;
         assert bytes.length > 0;
         byte last = bytes[bytes.length - 1];
@@ -485,6 +485,18 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         /**
+         * Merge a record to an existing key to a table and commit immediately
+         */
+        @Override
+        public void increase(String table, byte[] key, byte[] value) {
+            try {
+                rocksdb().merge(cf(table), key, value);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
+        }
+
+        /**
          * Delete a record by key from a table
          */
         @Override
@@ -499,7 +511,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         public void delete(String table, byte[] key) {
             byte[] keyFrom = key;
             byte[] keyTo = Arrays.copyOf(key, key.length);
-            keyTo = increase(keyTo);
+            keyTo = increaseOne(keyTo);
             this.batch.deleteRange(cf(table), keyFrom, keyTo);
         }
 

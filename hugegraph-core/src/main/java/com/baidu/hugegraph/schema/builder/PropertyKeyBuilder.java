@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
@@ -38,6 +39,7 @@ import com.baidu.hugegraph.util.E;
 
 public class PropertyKeyBuilder implements PropertyKey.Builder {
 
+    private Id id;
     private String name;
     private DataType dataType;
     private Cardinality cardinality;
@@ -49,6 +51,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     public PropertyKeyBuilder(String name, SchemaTransaction transaction) {
         E.checkNotNull(name, "name");
         E.checkNotNull(transaction, "transaction");
+        this.id = null;
         this.name = name;
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
@@ -59,8 +62,9 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
 
     @Override
     public PropertyKey build() {
+        Id id = this.transaction.validOrGenerateId(HugeType.PROPERTY_KEY,
+                                                   this.id, this.name);
         HugeGraph graph = this.transaction.graph();
-        Id id = this.transaction.getNextId(HugeType.PROPERTY_KEY);
         PropertyKey propertyKey = new PropertyKey(graph, id, this.name);
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
@@ -72,19 +76,21 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
 
     @Override
     public PropertyKey create() {
-        SchemaElement.checkName(this.name,
-                                this.transaction.graph().configuration());
-        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        SchemaTransaction tx = this.transaction;
+        SchemaElement.checkName(this.name, tx.graph().configuration());
+        PropertyKey propertyKey = tx.getPropertyKey(this.name);
         if (propertyKey != null) {
             if (this.checkExist) {
                 throw new ExistedException("property key", this.name);
             }
             return propertyKey;
         }
+        tx.checkIdIfRestoringMode(HugeType.PROPERTY_KEY, this.id);
+
         this.checkUserData(Action.INSERT);
 
         propertyKey = this.build();
-        this.transaction.addPropertyKey(propertyKey);
+        tx.addPropertyKey(propertyKey);
         return propertyKey;
     }
 
@@ -130,6 +136,14 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         }
         this.transaction.removePropertyKey(propertyKey.id());
         return null;
+    }
+
+    @Override
+    public PropertyKeyBuilder id(long id) {
+        E.checkArgument(id != 0L,
+                        "Not allowed to assign 0 as property key id");
+        this.id = IdGenerator.of(id);
+        return this;
     }
 
     @Override
