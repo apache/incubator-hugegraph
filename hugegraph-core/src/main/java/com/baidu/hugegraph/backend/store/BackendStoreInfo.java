@@ -58,7 +58,7 @@ public class BackendStoreInfo {
         PropertyKey pkey = null;
         try {
             pkey = schema.getPropertyKey(PK_BACKEND_INFO);
-        } catch (BackendException ignored) {
+        } catch (BackendException | IllegalStateException ignored) {
             // pass
         }
         return pkey != null ? pkey.userdata() : null;
