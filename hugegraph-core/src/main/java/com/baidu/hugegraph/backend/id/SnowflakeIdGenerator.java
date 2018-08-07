@@ -39,6 +39,11 @@ public class SnowflakeIdGenerator extends IdGenerator {
         return this.generate();
     }
 
+    @Override
+    public Id[] split(Id id) {
+        throw new RuntimeException("Not supported");
+    }
+
     /*
      * Copyright 2010-2012 Twitter, Inc.
      * Licensed under the Apache License, Version 2.0 (the "License");

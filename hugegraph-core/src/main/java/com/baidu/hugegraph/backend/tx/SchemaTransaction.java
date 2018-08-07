@@ -9,14 +9,12 @@ import org.slf4j.LoggerFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.HugeQuery;
-import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.schema.HugeEdgeLabel;
 import com.baidu.hugegraph.schema.HugePropertyKey;
 import com.baidu.hugegraph.schema.HugeVertexLabel;
-import com.baidu.hugegraph.type.define.Cardinality;
-import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.HugeTypes;
 import com.baidu.hugegraph.type.schema.EdgeLabel;
 import com.baidu.hugegraph.type.schema.PropertyKey;
 import com.baidu.hugegraph.type.schema.VertexLabel;
@@ -41,13 +39,12 @@ public class SchemaTransaction extends AbstractTransaction {
 
         List<HugePropertyKey> propertyKeys = new ArrayList<HugePropertyKey>();
 
-        HugeQuery query = new HugeQuery();
+        HugeQuery query = new HugeQuery(HugeTypes.PROPERTY_KEY);
         query.has(SCHEMATYPE_COLUME, "PROPERTY");
 
         Iterable<BackendEntry> entries = query(query);
         entries.forEach(item -> {
-            TextBackendEntry entry = (TextBackendEntry) item;
-            propertyKeys.add((HugePropertyKey) this.serializer.readPropertyKey(entry));
+            propertyKeys.add((HugePropertyKey) this.serializer.readPropertyKey(item));
         });
         return propertyKeys;
     }
@@ -66,7 +63,7 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "dataType: " + propertyKey.dataType() + ", "
                 + "cardinality: " + propertyKey.cardinality());
 
-        this.addEntry(serializer.writePropertyKey(propertyKey));
+        this.addEntry(this.serializer.writePropertyKey(propertyKey));
     }
 
     public PropertyKey getPropertyKey(String name) {
@@ -86,7 +83,7 @@ public class SchemaTransaction extends AbstractTransaction {
         logger.debug("SchemaTransaction add vertex label, "
                 + "name: " + vertexLabel.name());
 
-        this.addEntry(serializer.writeVertexLabel(vertexLabel));
+        this.addEntry(this.serializer.writeVertexLabel(vertexLabel));
     }
 
     public VertexLabel getVertexLabel(String name) {
@@ -108,7 +105,7 @@ public class SchemaTransaction extends AbstractTransaction {
                 + "multiplicity: " + edgeLabel.multiplicity() + ", "
                 + "frequency: " + edgeLabel.frequency());
 
-        this.addEntry(serializer.writeEdgeLabel(edgeLabel));
+        this.addEntry(this.serializer.writeEdgeLabel(edgeLabel));
     }
 
     public EdgeLabel getEdgeLabel(String name) {

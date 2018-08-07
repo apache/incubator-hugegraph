@@ -65,17 +65,25 @@ public class HugeGraph implements Graph {
         this.features = new HugeFeatures(true);
 
         try {
-            this.initBackend();
+            this.initTransaction();
         } catch (BackendException e) {
             logger.error("Failed to init backend: {}", e.getMessage());
         }
     }
 
-    public void initBackend() throws BackendException {
+    public void initTransaction() throws BackendException {
         this.storeProvider = BackendProviderFactory.open(this.configuration.get(BACKEND));
 
         this.schemaTransaction = this.openSchemaTransaction();
         this.graphTransaction = this.openGraphTransaction();
+    }
+
+    public void initBackend() {
+        this.storeProvider.init();
+    }
+
+    public void clearBackend() {
+        this.storeProvider.clear();
     }
 
     public SchemaTransaction openSchemaTransaction() {

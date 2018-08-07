@@ -38,6 +38,10 @@ public abstract class AbstractTransaction implements Transaction {
         this.deletions = new ConcurrentHashMap<Id, BackendEntry>();
     }
 
+    public BackendStore store() {
+        return this.store;
+    }
+
     public Iterable<BackendEntry> query(Query query) {
         return this.store.query(query);
     }

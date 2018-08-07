@@ -47,4 +47,14 @@ public class SplicingIdGenerator extends IdGenerator {
                 entry.targetVertex().id().asString());
         return generate(id);
     }
+
+    @Override
+    public Id[] split(Id id) {
+        String[] parts = id.asString().split(ID_SPLITOR);
+        Id[] ids = new Id[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            ids[i] = generate(parts[i]);
+        }
+        return ids;
+    }
 }

@@ -1,4 +1,4 @@
-package com.baidu.hugegraph.backend.store.memory;
+package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -10,25 +10,21 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.google.common.base.Preconditions;
 
-/**
- * Created by jishilei on 17/3/19.
- */
-public class InMemoryDBStoreProvider implements BackendStoreProvider {
-    private static final Logger logger = LoggerFactory.getLogger(InMemoryDBStoreProvider.class);
+public class CassandraStoreProvider implements BackendStoreProvider {
+    private static final Logger logger = LoggerFactory.getLogger(CassandraStoreProvider.class);
 
     private final ConcurrentHashMap<String, BackendStore> stores;
 
-    public InMemoryDBStoreProvider() {
+    public CassandraStoreProvider() {
         this.stores = new ConcurrentHashMap<String, BackendStore>();
     }
 
     @Override
     public BackendStore open(final String name) throws BackendException {
-
         logger.info("BackendStore open [ " + name + " ] ");
 
         if (!this.stores.containsKey(name)) {
-            this.stores.putIfAbsent(name, new InMemoryDBStore(name));
+            this.stores.putIfAbsent(name, new CassandraStore(name));
         }
         BackendStore store = this.stores.get(name);
         Preconditions.checkNotNull(store);
@@ -37,17 +33,23 @@ public class InMemoryDBStoreProvider implements BackendStoreProvider {
 
     @Override
     public void close() throws BackendException {
+        for (BackendStore store : this.stores.values()) {
+            store.close();
+        }
     }
 
     @Override
     public void init() {
+        for (BackendStore store : this.stores.values()) {
+            store.init();
+        }
     }
 
     @Override
     public void clear() throws BackendException {
-        this.stores.forEach((String k, BackendStore store) -> {
+        for (BackendStore store : this.stores.values()) {
             store.clear();
-        });
+        }
     }
 
     @Override
