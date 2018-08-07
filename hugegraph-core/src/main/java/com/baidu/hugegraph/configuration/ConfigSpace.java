@@ -65,7 +65,7 @@ public class ConfigSpace {
 
     public static final ConfigOption<String> CASSANDRA_STRATEGY = new ConfigOption<String>(
             "cassandra.strategy",
-            "hugegraph",
+            "SimpleStrategy",
             true,
             "keyspace strategy",
             disallowEmpty(String.class)

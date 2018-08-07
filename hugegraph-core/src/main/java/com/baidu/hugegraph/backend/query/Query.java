@@ -2,6 +2,8 @@ package com.baidu.hugegraph.backend.query;
 
 import java.util.Map;
 
+import com.baidu.hugegraph.type.HugeTypes;
+
 /**
  * Created by jishilei on 17/3/19.
  */
@@ -26,5 +28,7 @@ public interface Query<Q extends Query<Q>>  {
      * @return This query
      */
     public Q limit(final int max);
+
+    public HugeTypes resultType();
 
 }

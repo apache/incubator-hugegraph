@@ -48,6 +48,8 @@ public class HugeVertex extends HugeElement implements Vertex {
         for (String key : this.vertexLabel().primaryKeys()) {
             properties.add(this.property(key).value().toString());
         }
+        Preconditions.checkState(!properties.isEmpty(),
+                "primary values must not be empty");
         // TODO: use a better delimiter
         return String.join(SplicingIdGenerator.NAME_SPLITOR, properties);
     }

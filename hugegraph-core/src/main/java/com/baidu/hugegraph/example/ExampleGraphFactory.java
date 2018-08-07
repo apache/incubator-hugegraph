@@ -27,6 +27,8 @@ public class ExampleGraphFactory {
 
         String confFile = ExampleGraphFactory.class.getClassLoader().getResource("hugegraph.properties").getPath();
         HugeGraph graph = HugeFactory.open(confFile);
+        graph.clearBackend();
+        graph.initBackend();
 
         ExampleGraphFactory.showFeatures(graph);
         ExampleGraphFactory.load(graph);
@@ -62,6 +64,7 @@ public class ExampleGraphFactory {
 
         logger.info("===============  vertexLabel  ================");
 
+        schemaManager.vertexLabel("person").properties("name").primaryKeys("name").create();
         schemaManager.vertexLabel("author").properties("id", "name").primaryKeys("id").create();
         schemaManager.vertexLabel("language").properties("name").primaryKeys("name").create();
         schemaManager.vertexLabel("recipe").properties("name", "instructions").create();
@@ -90,7 +93,7 @@ public class ExampleGraphFactory {
 
 
         logger.info("===============  schemaManager desc  ================");
-        schemaManager.desc();
+        //schemaManager.desc();
 
         /************************* data operating *************************/
 
