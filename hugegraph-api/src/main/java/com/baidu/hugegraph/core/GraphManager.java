@@ -39,6 +39,7 @@ import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.store.BackendStoreInfo;
+import com.baidu.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -165,6 +166,9 @@ public final class GraphManager {
     private void checkBackendVersionOrExit() {
         for (Graph graph : this.graphs.values()) {
             HugeGraph hugegraph = (HugeGraph) graph;
+            if (InMemoryDBStoreProvider.matchType(hugegraph.backend())) {
+                continue;
+            }
             BackendStoreInfo info = new BackendStoreInfo(hugegraph);
             if (!info.exist()) {
                 LOG.error("The backend store of '{}' has not been initialized",

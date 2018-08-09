@@ -29,7 +29,13 @@ import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySchemaSt
 
 public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
+    public static final String TYPE = "memory";
+
     private static Map<String, InMemoryDBStoreProvider> providers = null;
+
+    public static boolean matchType(String type) {
+        return TYPE.equalsIgnoreCase(type);
+    }
 
     public static synchronized InMemoryDBStoreProvider instance(String graph) {
         if (providers == null) {
@@ -58,7 +64,7 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public String type() {
-        return "memory";
+        return TYPE;
     }
 
     @Override

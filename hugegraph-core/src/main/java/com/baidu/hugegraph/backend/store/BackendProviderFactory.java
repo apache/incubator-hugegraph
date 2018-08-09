@@ -34,7 +34,7 @@ public class BackendProviderFactory {
     }
 
     public static BackendStoreProvider open(String backend, String graph) {
-        if (backend.equalsIgnoreCase("memory")) {
+        if (InMemoryDBStoreProvider.matchType(backend)) {
             return InMemoryDBStoreProvider.instance(graph);
         }
 
