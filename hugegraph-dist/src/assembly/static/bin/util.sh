@@ -124,19 +124,22 @@ function free_memory() {
     local free=""
     local os=`uname`
     if [ "$os" == "Linux" ]; then
-        local distributor=`lsb_release -a | grep 'Distributor ID' | awk -F':' '{print $2}' | tr -d "\t"`
-        if [ "$distributor" == "CentOS" ]; then
-            free=`free -m | grep '\-\/\+' | awk '{print $4}'`
-        elif [ "$distributor" == "Ubuntu" ]; then
-            free=`free -m | grep 'Mem' | awk '{print $7}'`
-        else
-            echo "Unsupported Linux Distributor " $distributor
+        local mem_free=`cat /proc/meminfo | grep -w "MemFree" | awk '{print $2}'`
+        local mem_buffer=`cat /proc/meminfo | grep -w "Buffers" | awk '{print $2}'`
+        local mem_cached=`cat /proc/meminfo | grep -w "Cached" | awk '{print $2}'`
+
+        if [[ "$mem_free" == "" || "$mem_buffer" == "" || "$mem_cached" == "" ]]; then
+            echo "Failed to get free memory"
+            exit 1
         fi
+
+        free=`expr $mem_free + $mem_buffer + $mem_cached`
+        free=`expr $free / 1024`
     elif [ "$os" == "Darwin" ]; then
         free=`top -l 1 | head -n 10 | grep PhysMem | awk -F',' '{print $2}' \
              | awk -F'M' '{print $1}' | tr -d " "`
     else
-        echo "Unsupported operating system " $os
+        echo "Unsupported operating system $os"
         exit 1
     fi
     echo $free
