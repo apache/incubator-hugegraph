@@ -85,7 +85,139 @@ function wait_for_startup() {
     return 1
 }
 
-wait_for_shutdown() {
+function free_memory() {
+    local free=""
+    local os=`uname`
+    if [ "$os" == "Linux" ]; then
+        local mem_free=`cat /proc/meminfo | grep -w "MemFree" | awk '{print $2}'`
+        local mem_buffer=`cat /proc/meminfo | grep -w "Buffers" | awk '{print $2}'`
+        local mem_cached=`cat /proc/meminfo | grep -w "Cached" | awk '{print $2}'`
+
+        if [[ "$mem_free" == "" || "$mem_buffer" == "" || "$mem_cached" == "" ]]; then
+            echo "Failed to get free memory"
+            exit 1
+        fi
+
+        free=`expr $mem_free + $mem_buffer + $mem_cached`
+        free=`expr $free / 1024`
+    elif [ "$os" == "Darwin" ]; then
+        free=`top -l 1 | head -n 10 | grep PhysMem | awk -F',' '{print $2}' \
+             | awk -F'M' '{print $1}' | tr -d " "`
+    else
+        echo "Unsupported operating system $os"
+        exit 1
+    fi
+    echo $free
+}
+
+function calc_xmx() {
+    local min_mem=$1
+    local max_mem=$2
+    # Get machine available memory
+    local free=`free_memory`
+    local half_free=$[free/2]
+
+    local xmx=$min_mem
+    if [[ "$free" -lt "$min_mem" ]]; then
+        exit 1
+    elif [[ "$half_free" -ge "$max_mem" ]]; then
+        xmx=$max_mem
+    elif [[ "$half_free" -lt "$min_mem" ]]; then
+        xmx=$min_mem
+    else
+        xmx=$half_free
+    fi
+    echo $xmx
+}
+
+function remove_with_prompt() {
+    local path=$1
+    local tips=""
+
+    if [ -d "$path" ]; then
+        tips="Remove directory '$path' and all sub files [y/n]?"
+    elif [ -f "$path" ]; then
+        tips="Remove file '$path' [y/n]?"
+    else
+        return 0
+    fi
+
+    read -p "$tips " yn
+    case $yn in
+        [Yy]* ) rm -rf "$path";;
+        * ) ;;
+    esac
+}
+
+function ensure_path_writable() {
+    local path=$1
+    # Ensure input path exist
+    if [ ! -d "${path}" ]; then
+        mkdir -p ${path}
+    fi
+    # Check for write permission
+    if [ ! -w "${path}" ]; then
+        echo "No write permission on directory ${path}"
+        exit 1
+    fi
+}
+
+function get_ip() {
+    local os=`uname`
+    local loopback="127.0.0.1"
+    local ip=""
+    case $os in
+        Linux) ip=`ifconfig | grep 'inet addr:'| grep -v "$loopback" | cut -d: -f2 | awk '{ print $1}'`;;
+        FreeBSD|OpenBSD|Darwin) ip=`ifconfig  | grep -E 'inet.[0-9]' | grep -v "$loopback" | awk '{ print $2}'`;;
+        SunOS) ip=`ifconfig -a | grep inet | grep -v "$loopback" | awk '{ print $2} '`;;
+        *) ip=$loopback;;
+    esac
+    echo $ip
+}
+
+function download() {
+    local path=$1
+    local link_url=$2
+
+    if command -v wget >/dev/null 2>&1; then
+        wget --help | grep -q '\--show-progress' && progress_opt="-q --show-progress" || progress_opt=""
+        wget ${link_url} -P ${path} $progress_opt
+    elif command -v curl >/dev/null 2>&1; then
+        curl ${link_url} -o ${path}/${link_url}
+    else
+        echo "Required wget or curl but they are not installed"
+    fi
+}
+
+function ensure_package_exist() {
+    local path=$1
+    local dir=$2
+    local tar=$3
+    local link=$4
+
+    if [ ! -d ${path}/${dir} ]; then
+        if [ ! -f ${path}/${tar} ]; then
+            echo "Downloading the compressed package '${tar}'"
+            download ${path} ${link}
+            if [ $? -ne 0 ]; then
+                echo "Failed to download, please ensure the network is available and link is valid"
+                exit 1
+            fi
+            echo "[OK] Finished download"
+        fi
+        echo "Unzip the compressed package '$tar'"
+        tar -zxvf ${path}/${tar} -C ${path} >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo "Failed to unzip, please check the compressed package"
+            exit 1
+        fi
+        echo "[OK] Finished unzip"
+    fi
+}
+
+###########################################################################
+
+function wait_for_shutdown() {
     local process_name="$1"
     local pid="$2"
     local timeout_s="$3"
