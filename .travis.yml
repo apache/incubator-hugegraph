@@ -19,44 +19,60 @@ addons:
 
 install: mvn compile
 
-script: mvn test -Pcore-test,$BACKEND
-
-before_deploy:
+script:
+  - mvn test -P unit-test
+  - mvn test -P core-test,$BACKEND
   - |
-    if [ "$DEPLOYED" == "false" ]; then
-      DEPLOYED=true
-      mvn cobertura:cobertura > /dev/null && bash <(curl -s https://codecov.io/bash)
-      mvn clean package -DskipTests
-    else
-      echo "Skipping before_deploy since it has been executed once."
+    if [[ "$TRAVIS_BRANCH" =~ $RELEASE_BRANCH ]]; then
+      mvn test -P tinkerpop-structure-test,$BACKEND
+    fi
+  - |
+    if [[ "$TRAVIS_BRANCH" =~ $RELEASE_BRANCH ]]; then
+      mvn test -P tinkerpop-process-test,$BACKEND
     fi
 
-deploy:
-  - provider: script
-    skip_cleanup: true
-    script:
-      echo $GPG_KEY_ENC_PASSW | gpg -d --passphrase-fd 0 .private-key.gpg.gpg | gpg --import &&
-      mvn deploy --settings .maven.xml -DskipTests=true -B -U -Prelease
-    on:
-      tags: true
-  - provider: releases
-    skip_cleanup: true
-    file_glob: true
-    file: "$TRAVIS_BUILD_DIR/hugegraph-*.tar.gz"
-    api_key:
-      secure: nSGEnk5tJsTHMGABO8OJMTk47L3QA2O4xHXLKGIuTK5kLGJkrl0Bs27IveggLxf1E7DSrhcfNW44yIjn5lWA/5QX3DweWH4FGDAgWYFyj7QsBZl7WT2NReMW7BLzpvsIjyEKDw5pLbYBOpOrHflmyQB4w0oXTZVl6awll7JicuL1air7lpqJ4Ju4ukj1mo6rcX3MHRkzgMuS5eemArm8T15y9IlDqK3gmjVUOVo7LoYDFaq3eMzQ7ufrOFiiVIV2LUxn2t2/YRcKU05zal4IKifMKbXISX5u7ZwYe8T14ZQ7eMTOzmFY21gv3HEg+KXWh4gq8HvG4FKbzrl+KYSacJ1xINJQaQGIOD7Pz7vzQdj9wpM/WLqmYF5SE5ZYzXV3ejrtYlEUpJQSnpyiHlfyRuDRzYq/dB2V1ua6t9xkbjL/a2uqHa9WjbOi1jqw2E2XSnx794pzCvKYn1RLOiqpzVlEnb3cPb5M7vl9wsGf5MFLS8zLmMa5DyJn+e45W6GpW1zT4uLl2yR3Ja9ROlVapAb4aMyhKnWQZtUMDVhD6Xjj/CAumeOQLe31NM3i8NK2L0iEYSFWUigLEcCapXo3aOVlzckdJ6p7k94dFd5wcg/EY2aFMhyjYUKUFP1V535uB4ZKvf/dotMKY29nsYyceYgOJ/VNZt2BPZ8oCdc8+ys=
-    on:
-      tags: true
+jobs:
+  include:
+    - stage: deploy
+      if: tag IS present AND branch =~ env(RELEASE_BRANCH)
+      script: skip
+
+      before_deploy:
+        - |
+          if [ "$DEPLOYED" == "false" ]; then
+            DEPLOYED=true
+            mvn cobertura:cobertura > /dev/null && bash <(curl -s https://codecov.io/bash)
+            mvn clean package -DskipTests
+          else
+            echo "Skipping before_deploy since it has been executed once."
+          fi
+      deploy:
+        - provider: script
+          skip_cleanup: true
+          script:
+            echo $GPG_KEY_ENC_PASSW | gpg -d --passphrase-fd 0 .private-key.gpg.gpg | gpg --import &&
+            mvn deploy --settings .maven.xml -DskipTests=true -B -U -P release
+          on:
+            tags: true
+        - provider: releases
+          skip_cleanup: true
+          file_glob: true
+          file: "$TRAVIS_BUILD_DIR/hugegraph-*.tar.gz"
+          api_key:
+            secure: nSGEnk5tJsTHMGABO8OJMTk47L3QA2O4xHXLKGIuTK5kLGJkrl0Bs27IveggLxf1E7DSrhcfNW44yIjn5lWA/5QX3DweWH4FGDAgWYFyj7QsBZl7WT2NReMW7BLzpvsIjyEKDw5pLbYBOpOrHflmyQB4w0oXTZVl6awll7JicuL1air7lpqJ4Ju4ukj1mo6rcX3MHRkzgMuS5eemArm8T15y9IlDqK3gmjVUOVo7LoYDFaq3eMzQ7ufrOFiiVIV2LUxn2t2/YRcKU05zal4IKifMKbXISX5u7ZwYe8T14ZQ7eMTOzmFY21gv3HEg+KXWh4gq8HvG4FKbzrl+KYSacJ1xINJQaQGIOD7Pz7vzQdj9wpM/WLqmYF5SE5ZYzXV3ejrtYlEUpJQSnpyiHlfyRuDRzYq/dB2V1ua6t9xkbjL/a2uqHa9WjbOi1jqw2E2XSnx794pzCvKYn1RLOiqpzVlEnb3cPb5M7vl9wsGf5MFLS8zLmMa5DyJn+e45W6GpW1zT4uLl2yR3Ja9ROlVapAb4aMyhKnWQZtUMDVhD6Xjj/CAumeOQLe31NM3i8NK2L0iEYSFWUigLEcCapXo3aOVlzckdJ6p7k94dFd5wcg/EY2aFMhyjYUKUFP1V535uB4ZKvf/dotMKY29nsYyceYgOJ/VNZt2BPZ8oCdc8+ys=
+          on:
+            tags: true
 
 env:
   matrix:
     - BACKEND=memory
+    - BACKEND=rocksdb
     - BACKEND=cassandra
     - BACKEND=scylladb
-    - BACKEND=rocksdb
     - BACKEND=mysql
   global:
     - DEPLOYED=false
+    - RELEASE_BRANCH=^release.*
     - secure: dYmFTVeEtRzLNaHp9ToTV/+CkTD0/rEj+K7dRN8wsv/yg4pbqwnyWbSXcqMlj6iNFzAz3nPbmFLCvAWON9/SMN9iJIT6x/xfcf+LqCT8QWczo2nc9xeX144ij2VHX1Drvtk5fRTMaTXRfWEQIrjqx2yrJTIdrXWzWSaZLFv1CRCUizEiGGCePnzUWxx9dBypNyC6IaH6lIv8uN5E6+10SYhb7UJGjWUMDg1bCeW9X7X2wg4QpsGDzlGFXT2EBPU/dAb5attTAtW8dKxrCZqZJTPWe0BarXDBR4PO15BC+a0V1g8LwexedtDjJeFRcGPaJ5NN4d3jDSusCzt5Jf4U0Wa1gDRMVTU3jT+KYkm5eoV4wOZMySobjh6VpQH/LyL0QTDy5apRPAxw+wO+tc91P+nkJmnlr3pN8abtMZ6NciZizUBYQRgR/m2Ir0stvtbZxBQOATuPtBgNDKiDgVdSYcRJzSqYEMFOn35AvsDZ9aUsyC8k29PCUZ0gQO2Is6cV1ClFBnM52hfU9XX0gu+NviSnYNGvcokod8z9VjGtnM7V3LYjqXSFqO9kkMbOmkME1tD2Bh/klw2/OM+2tBBZiAgxB89st5jSUHI4a2hpUyaQBezJUcU9t2vVT/zAVEIqzw2PDxkMU7t0n6L1x+qUIUTG/WynfIni5msxuR7HoiU=
     - secure: XbX6AX5zDPc2PcWYAMW+6fazqRRUqpgQkt4eXUugLuVIYZBmJ0WqncEhJ4+mdwOGPIhnP2HsOaSeK2eE/O+iLY2XpBFbugoBgm9VaZlCC4CY1gRNHaanYg64Lrm3NPY3n08IHRMazHqMpJwUqNO+OG/6QwkepULQLj5Rluf716AoXHa7IEJhAIrwr+OXQvdEaJdUXlS1lRycXVeYtOewl7qYxCO4dD4RMhPlNykh9KEK7fd5wnPkiUsp1SwF4g5XsaLvGXmT/qQ1nj8oa9Caej/iaj6HMKG3BO057mq4KK5JDxTPWhBueNpEkUwldAnrMhYWLRnNf4IyjUsaB/Pmi6HspzcaiORPLYwPmdvLGGSnYwbtO+fAHebgpgOnj/vGmRmY4YtIkYdFtbPBI0HpbGB77tqNRFCe/5deLrjx0hXJBfoKTy7d42SI1eBhNR0svZYUHkSfuXwly6hMTlH1DN/bumMFxfXDkY9PFHlzV1Mn3vb9BxKTaP88hJsWk7JqgniqUF7EWAc0EhHMbJct2gC0pDc95z4Yy9391n7/XWJErhIdYon1Ukds5+a43xFXoy76gR4LuMDpzzCnutMjhC2yDuGaZx/DfkPBb5JFU7SHtTKj05zb73Moogi7qqbH8jwcwoSfogAKyrIAWTcAgvJ2LVnRzwdsiLTc6MEagiM=
     - secure: GKdjRHR35FBPY6oGBfjVdGxnVeoMmZHgNCnsyGNvRVJiQLhXBjUQ9bYjxPRX3JkmztdofNVd3gV8xqIOfLD6XA/0qHVvZ5GlWK4O77eGDur5InobzMlRDIUvJkpqM2SdSU8vKoAUBWgKnfzvlbA14kiwCID72zDVa/E8G0gBl0GZ2zWXIWRg0zC3ZyaJwTZC8WLqn0Kl7UxMy6i/xmK1F+apLooFIBEXYZuoH3pY83L4BvPozmJzT66HonrfcnaifaVHShBntPhQ6Sjlq5suMhtQENcPqWxaORL69s6Y/uF+RAdmnRHPZnXFhjRvq3rQAdMKM/DBOcaYlu1aIxCJJmWLm+b+75EQgdtwYGtwDpunzKXzH7ewB6rTYAghJNjGxt/KfROniooAs8mO3DqhygV5/BInJk0aKab5GlHCAioesV7TKSObhSDlKU8CSBRr/j8T7anL+lkXVZ89fkGg+EBSoXkVCNwQjank1NrHWCJQpNVndHzWIoGk0gcjTf01+iMDGIJDQZhcEuLu8wZbvDjLo/qEah247G0JabDMNBdyMZpg96bWDgArMkWa2FnWX25A7Cfgm1JymXdOZCIJrHbYWWAyoaXNrjZezQ8NPnE5uOWJIKfBnjnyPtKPoWjLuqpXmqcggbl8iRiy1EdWs/N39Q7qcFtJ5lTN9q1kDeI=
