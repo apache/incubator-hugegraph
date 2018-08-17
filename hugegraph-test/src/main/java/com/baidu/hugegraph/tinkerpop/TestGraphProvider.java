@@ -23,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -95,9 +96,12 @@ public class TestGraphProvider extends AbstractGraphProvider {
             filter = DEFAULT_FILTER;
         }
 
-        String blackList = TestGraphProvider.class.getClassLoader()
-                           .getResource(filter).getPath();
-        File file = new File(blackList);
+        URL blackList = TestGraphProvider.class.getClassLoader()
+                                               .getResource(filter);
+        E.checkArgument(blackList != null,
+                        "Can't find tests filter '%s' in resource directory",
+                        filter);
+        File file = new File(blackList.getPath());
         E.checkArgument(
                 file.exists() && file.isFile() && file.canRead(),
                 "Need to specify a readable filter file rather than: %s",
