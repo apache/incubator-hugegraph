@@ -188,7 +188,9 @@ public final class TraversalUtil {
     public static Condition convHas2Condition(HasContainer has,
                                               HugeType type,
                                               HugeGraph graph) {
-        BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+        P<?> p = has.getPredicate();
+        E.checkArgument(p != null, "The predicate of has(%s) is null", has);
+        BiPredicate<?, ?> bp = p.getBiPredicate();
         Condition condition;
         if (keyForContainsKeyOrValue(has.getKey())) {
             condition = convContains2Relation(graph, has);
@@ -198,13 +200,13 @@ public final class TraversalUtil {
             condition = convRelationType2Relation(graph, type, has);
         } else if (bp instanceof Contains) {
             condition = convIn2Relation(graph, has);
-        } else if (has.getPredicate() instanceof AndP) {
+        } else if (p instanceof AndP) {
             condition = convAnd(graph, type, has);
-        } else if (has.getPredicate() instanceof OrP) {
+        } else if (p instanceof OrP) {
             condition = convOr(graph, type, has);
         } else {
             // TODO: deal with other Predicate
-            throw newUnsupportedPredicate(has.getPredicate());
+            throw newUnsupportedPredicate(p);
         }
         return condition;
     }
