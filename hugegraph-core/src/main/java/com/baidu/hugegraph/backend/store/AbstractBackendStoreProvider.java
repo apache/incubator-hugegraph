@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
@@ -38,11 +39,20 @@ public abstract class AbstractBackendStoreProvider
 
     private String graph = null;
 
+    private EventHub storeEventHub = new EventHub("store");
+
     protected Map<String, BackendStore> stores = null;
 
-    protected EventHub storeEventHub = new EventHub("store");
+    protected final void notifyAndWaitEvent(String event) {
+        Future<?> future = this.storeEventHub.notify(event, this);
+        try {
+            future.get();
+        } catch (Throwable e) {
+            LOG.warn("Error when waiting for event execution: {}", event, e);
+        }
+    }
 
-    protected void checkOpened() {
+    protected final void checkOpened() {
         E.checkState(this.graph != null && this.stores != null,
                      "The BackendStoreProvider has not been opened");
     }
@@ -54,6 +64,11 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public void listen(EventListener listener) {
         this.storeEventHub.listen(EventHub.ANY_EVENT, listener);
+    }
+
+    @Override
+    public void unlisten(EventListener listener) {
+        this.storeEventHub.unlisten(EventHub.ANY_EVENT, listener);
     }
 
     @Override
@@ -85,7 +100,9 @@ public abstract class AbstractBackendStoreProvider
         for (BackendStore store : this.stores.values()) {
             store.init();
         }
-        this.storeEventHub.notify(Events.STORE_INIT, this);
+        this.notifyAndWaitEvent(Events.STORE_INIT);
+
+        LOG.info("Graph '{}' has been initialized", this.graph);
     }
 
     @Override
@@ -94,7 +111,20 @@ public abstract class AbstractBackendStoreProvider
         for (BackendStore store : this.stores.values()) {
             store.clear();
         }
-        this.storeEventHub.notify(Events.STORE_CLEAR, this);
+        this.notifyAndWaitEvent(Events.STORE_CLEAR);
+
+        LOG.info("Graph '{}' has been cleared", this.graph);
+    }
+
+    @Override
+    public void truncate() {
+        this.checkOpened();
+        for (BackendStore store : this.stores.values()) {
+            store.truncate();
+        }
+        this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
+
+        LOG.info("Graph '{}' has been truncated", this.graph);
     }
 
     @Override

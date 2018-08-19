@@ -55,7 +55,7 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
         if (itor.hasNext()) {
             itor.next().clear();
         }
-        this.storeEventHub.notify(Events.STORE_CLEAR, this);
+        this.notifyAndWaitEvent(Events.STORE_CLEAR);
     }
 
     @Override

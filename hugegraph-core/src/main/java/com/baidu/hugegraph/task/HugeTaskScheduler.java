@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -55,6 +56,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class HugeTaskScheduler {
 
@@ -105,9 +107,11 @@ public class HugeTaskScheduler {
     }
 
     private void listenChanges() {
-        // Listen store event: "store.init"
+        // Listen store event: "store.init", "store.truncate"
+        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INIT,
+                                                  Events.STORE_TRUNCATE);
         this.graph.loadSystemStore().provider().listen(event -> {
-            if (Events.STORE_INIT.equals(event.name())) {
+            if (storeEvents.contains(event.name())) {
                 this.submit(() -> this.tx().initSchema());
                 return true;
             }

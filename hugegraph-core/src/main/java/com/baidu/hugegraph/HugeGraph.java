@@ -208,6 +208,11 @@ public class HugeGraph implements Graph {
         }
     }
 
+    public void truncateBackend() {
+        this.storeProvider.truncate();
+        new BackendStoreInfo(this).init();
+    }
+
     private SchemaTransaction openSchemaTransaction() throws HugeException {
         try {
             return new CachedSchemaTransaction(this, this.loadSchemaStore());

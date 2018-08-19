@@ -35,6 +35,7 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -46,6 +47,9 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 public class TestGraph implements Graph {
 
     public static final String DEFAULT_VL = "vertex";
+
+    public static final List<String> TRUNCATE_BACKENDS =
+           Arrays.asList("rocksdb", "mysql");
 
     private static volatile int id = 666;
 
@@ -72,6 +76,32 @@ public class TestGraph implements Graph {
     protected void clearBackend() {
         this.graph.clearBackend();
         this.initedBackend = false;
+    }
+
+    protected void clearAll() {
+        List<PropertyKey> pks = this.graph.schema().getPropertyKeys();
+        if (pks.isEmpty()) {
+            // No need to clear if there is no PKs(that's no schema and data)
+            return;
+        }
+
+        if (TRUNCATE_BACKENDS.contains(this.graph.backend())) {
+            // Delete all data by truncating tables
+            this.truncateBackend();
+        } else {
+            // Clear schema (also include data)
+            this.clearSchema();
+
+//            // Clear variables (would not clear when clearing schema)
+//            this.clearVariables();
+//
+//            // Commit clear
+//            this.tx().commit();
+        }
+    }
+
+    protected void truncateBackend() {
+        this.graph.truncateBackend();
     }
 
     protected void clearSchema() {

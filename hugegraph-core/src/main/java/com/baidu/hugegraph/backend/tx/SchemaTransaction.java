@@ -446,6 +446,7 @@ public class SchemaTransaction extends IndexableTransaction {
             assert baseType == HugeType.EDGE_LABEL;
             schemaLabel = this.getEdgeLabel(baseValue);
         }
+        assert schemaLabel != null;
         schemaLabel.removeIndexLabel(label.id());
         this.updateSchema(schemaLabel);
     }

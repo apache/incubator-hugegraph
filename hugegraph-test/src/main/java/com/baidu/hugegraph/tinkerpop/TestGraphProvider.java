@@ -273,12 +273,8 @@ public class TestGraphProvider extends AbstractGraphProvider {
         graph.tx().onReadWrite(Transaction.READ_WRITE_BEHAVIOR.AUTO);
         graph.tx().onClose(Transaction.CLOSE_BEHAVIOR.ROLLBACK);
 
-        // Clear schema (also include data)
-        testGraph.clearSchema();
-
-        // Clear variables (would not clear when clearing schema)
-        testGraph.clearVariables();
-        graph.tx().commit();
+        // Clear all data
+        testGraph.clearAll();
     }
 
     public void clearBackends() {
@@ -308,8 +304,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         TestGraph testGraph = (TestGraph) graph;
 
         // Clear basic schema initiated in openTestGraph
-        testGraph.clearSchema();
-        testGraph.tx().commit();
+        testGraph.clearAll();
 
         if (testGraph.loadedGraph() == null) {
             testGraph.loadedGraph(REGULAR_LOAD);

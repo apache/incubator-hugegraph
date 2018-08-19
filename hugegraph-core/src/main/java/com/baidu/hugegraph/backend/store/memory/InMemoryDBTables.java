@@ -345,16 +345,21 @@ public class InMemoryDBTables {
                                                     Object keyMin,
                                                     boolean keyMinEq) {
             NavigableMap<Id, BackendEntry> rs = this.store();
-            Map<Id, BackendEntry> results = new HashMap<>();
 
             Id min = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
                                              indexLabelId, keyMin);
             Id max = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
                                              indexLabelId, keyMax);
+
+            max = keyMaxEq ? rs.floorKey(max) : rs.lowerKey(max);
+            if (max == null) {
+                return Collections.emptyIterator();
+            }
+
+            Map<Id, BackendEntry> results = new HashMap<>();
             Map.Entry<Id, BackendEntry> entry = keyMinEq ?
                                                 rs.ceilingEntry(min) :
                                                 rs.higherEntry(min);
-            max = keyMaxEq ? rs.floorKey(max) : rs.lowerKey(max);
             while (entry != null) {
                 if (entry.getKey().compareTo(max) > 0) {
                     break;

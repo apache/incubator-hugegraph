@@ -536,6 +536,7 @@ public class BinarySerializer extends AbstractSerializer {
             case SEARCH_INDEX:
                 String idString = id.asString();
                 int idLength = idString.length();
+                // TODO: to improve, use BytesBuffer to generate a mask
                 for (int i = idLength - 1; i < 128; i++) {
                     BytesBuffer buffer = BytesBuffer.allocate(idLength + 1);
                     /*

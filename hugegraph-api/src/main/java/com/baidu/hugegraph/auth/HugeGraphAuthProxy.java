@@ -168,6 +168,11 @@ public class HugeGraphAuthProxy implements Graph {
         this.hugegraph.clearBackend();
     }
 
+    public void truncateBackend() {
+        this.verifyPermission(ROLE_ADMIN);
+        this.hugegraph.truncateBackend();
+    }
+
     public void restoring(boolean restoring) {
         this.verifyPermission(ROLE_ADMIN);
         this.hugegraph.restoring(restoring);
