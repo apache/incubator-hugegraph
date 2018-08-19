@@ -20,7 +20,10 @@
 package com.baidu.hugegraph.backend.store.mysql;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -75,10 +78,6 @@ public abstract class MysqlStore implements BackendStore {
 
     protected MysqlSessions openSessionPool(HugeConfig config) {
         return new MysqlSessions(config, this.database, this.store);
-    }
-
-    public Map<HugeType, MysqlTable> tables() {
-        return this.tables;
     }
 
     @Override
@@ -157,7 +156,7 @@ public abstract class MysqlStore implements BackendStore {
         this.checkSessionConnected();
         this.initTables();
 
-        LOG.info("Store initialized: {}", this.store);
+        LOG.debug("Store initialized: {}", this.store);
     }
 
     @Override
@@ -171,7 +170,15 @@ public abstract class MysqlStore implements BackendStore {
             this.sessions.dropDatabase();
         }
 
-        LOG.info("Store cleared: {}", this.store);
+        LOG.debug("Store cleared: {}", this.store);
+    }
+
+    @Override
+    public void truncate() {
+        this.checkSessionConnected();
+
+        this.truncateTables();
+        LOG.debug("Store truncated: {}", this.store);
     }
 
     @Override
@@ -266,16 +273,27 @@ public abstract class MysqlStore implements BackendStore {
 
     protected void initTables() {
         MysqlSessions.Session session = this.sessions.session();
-        for (MysqlTable table : this.tables.values()) {
+        for (MysqlTable table : this.tables()) {
             table.init(session);
         }
     }
 
     protected void clearTables() {
         MysqlSessions.Session session = this.sessions.session();
-        for (MysqlTable table : this.tables.values()) {
+        for (MysqlTable table : this.tables()) {
             table.clear(session);
         }
+    }
+
+    protected void truncateTables() {
+        MysqlSessions.Session session = this.sessions.session();
+        for (MysqlTable table : this.tables()) {
+            table.truncate(session);
+        }
+    }
+
+    protected Collection<MysqlTable> tables() {
+        return this.tables.values();
     }
 
     protected final MysqlTable table(HugeType type) {
@@ -326,19 +344,10 @@ public abstract class MysqlStore implements BackendStore {
         }
 
         @Override
-        protected void initTables() {
-            super.initTables();
-
-            MysqlSessions.Session session = super.sessions.session();
-            this.counters.init(session);
-        }
-
-        @Override
-        protected void clearTables() {
-            super.clearTables();
-
-            MysqlSessions.Session session = super.sessions.session();
-            this.counters.clear(session);
+        protected Collection<MysqlTable> tables() {
+            List<MysqlTable> tables = new ArrayList<>(super.tables());
+            tables.add(this.counters);
+            return tables;
         }
 
         @Override

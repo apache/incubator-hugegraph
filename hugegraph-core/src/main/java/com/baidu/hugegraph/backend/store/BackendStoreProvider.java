@@ -46,5 +46,9 @@ public interface BackendStoreProvider {
 
     public void clear();
 
+    public void truncate();
+
     public void listen(EventListener listener);
+
+    public void unlisten(EventListener listener);
 }

@@ -152,16 +152,16 @@ public class RocksDBTables {
         }
     }
 
-    public static class SecondaryIndex extends RocksDBTable {
+    public static class IndexTable extends RocksDBTable {
 
-        public static final String TABLE = "si";
-
-        public SecondaryIndex(String database) {
-            this(database, TABLE);
+        public IndexTable(String database, String table) {
+            super(database, table);
         }
 
-        protected SecondaryIndex(String database, String table) {
-            super(database, table);
+        @Override
+        public void eliminate(Session session, BackendEntry entry) {
+            assert entry.columns().size() == 1;
+            super.delete(session, entry);
         }
 
         @Override
@@ -177,7 +177,16 @@ public class RocksDBTables {
         }
     }
 
-    public static class SearchIndex extends SecondaryIndex {
+    public static class SecondaryIndex extends IndexTable {
+
+        public static final String TABLE = "si";
+
+        public SecondaryIndex(String database) {
+            super(database, TABLE);
+        }
+    }
+
+    public static class SearchIndex extends IndexTable {
 
         public static final String TABLE = "fi";
 
@@ -186,7 +195,7 @@ public class RocksDBTables {
         }
     }
 
-    public static class RangeIndex extends RocksDBTable {
+    public static class RangeIndex extends IndexTable {
 
         public static final String TABLE = "ri";
 
@@ -245,17 +254,6 @@ public class RocksDBTables {
                 byte[] end = max.asBytes();
                 int type = maxEq ? Session.SCAN_LTE_END : Session.SCAN_LT_END;
                 return session.scan(this.table(), begin, end, type);
-            }
-        }
-
-        @Override
-        public void delete(Session session, BackendEntry entry) {
-            /*
-             * Only delete index by label will come here
-             * Regular index delete will call eliminate()
-             */
-            for (BackendEntry.BackendColumn column : entry.columns()) {
-                session.delete(this.table(), column.name);
             }
         }
     }

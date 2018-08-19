@@ -676,7 +676,8 @@ public class GraphTransaction extends IndexableTransaction {
             return;
         }
         // Check is updating property of added/removed vertex
-        E.checkArgument(!this.addedVertexes.containsKey(vertex.id()),
+        E.checkArgument(!this.addedVertexes.containsKey(vertex.id()) ||
+                        this.updatedVertexes.containsKey(vertex.id()),
                         "Can't remove property '%s' for adding-state vertex",
                         prop.key());
         E.checkArgument(!this.removedVertexes.containsKey(vertex.id()),

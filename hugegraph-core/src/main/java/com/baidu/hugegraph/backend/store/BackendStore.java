@@ -45,6 +45,9 @@ public interface BackendStore {
     public void init();
     public void clear();
 
+    // Delete all data of database (keep table structure)
+    public void truncate();
+
     // Add/delete data
     public void mutate(BackendMutation mutation);
 

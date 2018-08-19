@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Future;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -169,6 +170,19 @@ public class HbaseSessions extends BackendSessionPool {
                 // pass
             }
             admin.deleteTable(tableName);
+        }
+    }
+
+    public Future<Void> truncateTable(String table) throws IOException {
+        assert this.existsTable(table);
+        TableName tableName = TableName.valueOf(this.namespace, table);
+        try(Admin admin = this.hbase.getAdmin()) {
+            try {
+                admin.disableTable(tableName);
+            } catch (TableNotEnabledException ignored) {
+                // pass
+            }
+            return admin.truncateTableAsync(tableName, false);
         }
     }
 

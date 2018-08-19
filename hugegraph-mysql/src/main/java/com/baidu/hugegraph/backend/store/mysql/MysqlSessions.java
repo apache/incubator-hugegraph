@@ -293,6 +293,10 @@ public class MysqlSessions extends BackendSessionPool {
             this.conn.setAutoCommit(false);
         }
 
+        public void end() throws SQLException {
+            this.conn.setAutoCommit(true);
+        }
+
         @Override
         public Integer commit() {
             int updated = 0;
@@ -304,6 +308,10 @@ public class MysqlSessions extends BackendSessionPool {
                 this.clear();
             } catch (SQLException e) {
                 throw new BackendException("Failed to commit", e);
+            } finally {
+                try {
+                    this.end();
+                } catch (SQLException ignored) {}
             }
             return updated;
         }
@@ -314,6 +322,10 @@ public class MysqlSessions extends BackendSessionPool {
                 this.conn.rollback();
             } catch (SQLException e) {
                 throw new BackendException("Failed to rollback", e);
+            } finally {
+                try {
+                    this.end();
+                } catch (SQLException ignored) {}
             }
         }
 
@@ -323,6 +335,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         public ResultSet select(String sql) throws SQLException {
+            assert this.conn.getAutoCommit();
             return this.conn.createStatement().executeQuery(sql);
         }
 

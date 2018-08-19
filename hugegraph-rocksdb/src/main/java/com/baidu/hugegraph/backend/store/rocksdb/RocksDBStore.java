@@ -276,7 +276,7 @@ public abstract class RocksDBStore implements BackendStore {
             this.createTable(db, table);
         }
 
-        LOG.info("Store initialized: {}", this.store);
+        LOG.debug("Store initialized: {}", this.store);
     }
 
     private void createTable(RocksDBSessions db, String table) {
@@ -303,7 +303,7 @@ public abstract class RocksDBStore implements BackendStore {
             this.dropTable(db, table);
         }
 
-        LOG.info("Store cleared: {}", this.store);
+        LOG.debug("Store cleared: {}", this.store);
     }
 
     private void dropTable(RocksDBSessions db, String table) {
@@ -318,6 +318,16 @@ public abstract class RocksDBStore implements BackendStore {
             throw new BackendException("Failed to drop '%s' for '%s'",
                                        e, table, this.store);
         }
+    }
+
+    @Override
+    public void truncate() {
+        this.checkOpened();
+
+        this.clear();
+        this.init();
+
+        LOG.debug("Store truncated: {}", this.store);
     }
 
     @Override
