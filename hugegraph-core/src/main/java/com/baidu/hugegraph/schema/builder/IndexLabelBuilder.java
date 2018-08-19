@@ -31,6 +31,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -39,7 +40,6 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -136,10 +136,10 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             E.checkNotNull(indexLabel, "index label");
             return indexLabel;
         }
-        TaskScheduler scheduler = this.transaction.graph().taskScheduler();
+        HugeGraph graph = this.transaction.graph();
+        long timeout = graph.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
         try {
-            // TODO: read timeout from config file
-            scheduler.waitUntilTaskCompleted(task, 30L);
+            graph.taskScheduler().waitUntilTaskCompleted(task, timeout);
         } catch (TimeoutException e) {
             throw new HugeException(
                       "Failed to wait index-creating task completed", e);

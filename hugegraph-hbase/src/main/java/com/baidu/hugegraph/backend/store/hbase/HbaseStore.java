@@ -225,6 +225,8 @@ public abstract class HbaseStore extends AbstractBackendStore {
                           e, table, this.store);
             }
         }
+
+        LOG.debug("Store initialized: {}", this.store);
     }
 
     @Override
@@ -267,6 +269,26 @@ public abstract class HbaseStore extends AbstractBackendStore {
                           e, this.namespace, this.store);
             }
         }
+
+        LOG.debug("Store cleared: {}", this.store);
+    }
+
+    @Override
+    public void truncate() {
+        this.checkOpened();
+
+        // Truncate tables
+        for (String table : this.tableNames()) {
+            try {
+                this.sessions.truncateTable(table);
+            } catch (IOException e) {
+                throw new BackendException(
+                          "Failed to truncate table '%s' for '%s'",
+                          e, table, this.store);
+            }
+        }
+
+        LOG.debug("Store truncated: {}", this.store);
     }
 
     @Override

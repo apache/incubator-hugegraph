@@ -19,10 +19,12 @@
 
 package com.baidu.hugegraph.tinkerpop;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -33,11 +35,14 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
+import org.apache.tinkerpop.gremlin.FeatureRequirement;
+import org.apache.tinkerpop.gremlin.FeatureRequirements;
 import org.apache.tinkerpop.gremlin.LoadGraphWith;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.optimization.LazyBarrierStrategy;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Graph.Features.VertexPropertyFeatures;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -60,18 +65,30 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
     private static final Logger LOG = Log.logger(TestGraphProvider.class);
 
+    @SuppressWarnings("rawtypes")
+    private static final Set<Class> IMPLEMENTATIONS = ImmutableSet.of(
+            HugeEdge.class,
+            HugeElement.class,
+            HugeGraph.class,
+            HugeProperty.class,
+            HugeVertex.class,
+            HugeVertexProperty.class);
+
     private static final String CONF_PATH = "hugegraph.properties";
     private static final String FILTER = "test.tinkerpop.filter";
     private static final String DEFAULT_FILTER = "methods.filter";
+
     private static final String TEST_CLASS = "testClass";
     private static final String TEST_METHOD = "testMethod";
+
     private static final String LOAD_GRAPH = "loadGraph";
-    private static final String AKEY = "aKey";
     private static final String STANDARD = "standard";
     private static final String REGULAR_LOAD = "regularLoad";
+
     private static final String GREMLIN_GRAPH_KEY = "gremlin.graph";
     private static final String GREMLIN_GRAPH_VALUE =
             "com.baidu.hugegraph.tinkerpop.TestGraphFactory";
+
     private static final String AKEY_CLASS_PREFIX =
             "org.apache.tinkerpop.gremlin.structure." +
             "PropertyTest.PropertyFeatureSupportTest";
@@ -79,6 +96,16 @@ public class TestGraphProvider extends AbstractGraphProvider {
             "org.apache.tinkerpop.gremlin.structure.io.IoGraphTest";
     private static final String IO_TEST_PREFIX =
             "org.apache.tinkerpop.gremlin.structure.io.IoTest";
+
+    private static final String EXPECT_CUSTOMIZED_ID = "expectCustomizedId";
+    private static final Set<String> CUSTOMIZED_ID_METHODS = ImmutableSet.of(
+            "shouldReadWriteSelfLoopingEdges",
+            "shouldEvaluateConnectivityPatterns");
+
+    private static final Set<String> ID_TYPES = ImmutableSet.of(
+            VertexPropertyFeatures.FEATURE_USER_SUPPLIED_IDS,
+            VertexPropertyFeatures.FEATURE_NUMERIC_IDS,
+            VertexPropertyFeatures.FEATURE_STRING_IDS);
 
     private Map<String, String> blackMethods = new HashMap<>();
     private Map<String, TestGraph> graphs = new HashMap<>();
@@ -91,7 +118,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
     }
 
     private void initBlackList() throws IOException {
-        String filter = (String) getConf().getProperty(FILTER);
+        String filter = getConf().getString(FILTER);
         if (filter == null || filter.isEmpty()) {
             filter = DEFAULT_FILTER;
         }
@@ -129,16 +156,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         }
     }
 
-    @SuppressWarnings("rawtypes")
-    private static final Set<Class> IMPLEMENTATIONS = ImmutableSet.of(
-            HugeEdge.class,
-            HugeElement.class,
-            HugeGraph.class,
-            HugeProperty.class,
-            HugeVertex.class,
-            HugeVertexProperty.class);
-
-    public PropertiesConfiguration getConf() {
+    private static PropertiesConfiguration getConf() {
         String confFile = TestGraphProvider.class.getClassLoader()
                                            .getResource(CONF_PATH).getPath();
         File file = new File(confFile);
@@ -160,10 +178,10 @@ public class TestGraphProvider extends AbstractGraphProvider {
     @Override
     public Map<String, Object> getBaseConfiguration(
                                String graphName,
-                               Class<?> test, String testMethod,
+                               Class<?> testClass, String testMethod,
                                LoadGraphWith.GraphData graphData) {
         // Check if test in blackList
-        String testFullName = test.getCanonicalName() + "." + testMethod;
+        String testFullName = testClass.getCanonicalName() + "." + testMethod;
         int index = testFullName.indexOf('@') == -1 ?
                     testFullName.length() : testFullName.indexOf('@');
 
@@ -182,16 +200,38 @@ public class TestGraphProvider extends AbstractGraphProvider {
             String key = keys.next();
             confMap.put(key, config.getProperty(key));
         }
-        String storePrefix = (String) config.getProperty(
-                                      CoreOptions.STORE.name());
+        String storePrefix = config.getString(CoreOptions.STORE.name());
         confMap.put(CoreOptions.STORE.name(),
                     storePrefix + "_" + this.suite + "_" + graphName);
         confMap.put(GREMLIN_GRAPH_KEY, GREMLIN_GRAPH_VALUE);
-        confMap.put(TEST_CLASS, test);
+        confMap.put(TEST_CLASS, testClass);
         confMap.put(TEST_METHOD, testMethod);
         confMap.put(LOAD_GRAPH, graphData);
+        confMap.put(EXPECT_CUSTOMIZED_ID, customizedId(testClass, testMethod));
 
         return confMap;
+    }
+
+    private static boolean customizedId(Class<?> test, String testMethod) {
+        Method method;
+        try {
+            method = test.getDeclaredMethod(testMethod);
+        } catch (NoSuchMethodException ignored) {
+            return false;
+        }
+        FeatureRequirements features =
+                            method.getAnnotation(FeatureRequirements.class);
+        if (features == null) {
+            return false;
+        }
+        for (FeatureRequirement feature : features.value()) {
+            if (feature.featureClass() == Graph.Features.VertexFeatures.class &&
+                ID_TYPES.contains(feature.feature())) {
+                // Expect CUSTOMIZED_ID if want to pass id to create vertex
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String getAKeyType(Class<?> clazz, String method) {
@@ -210,50 +250,27 @@ public class TestGraphProvider extends AbstractGraphProvider {
         return null;
     }
 
-    private static boolean ioTest(Class<?> clazz) {
+    private static boolean isIoTest(Class<?> clazz) {
         return clazz.getCanonicalName().startsWith(IO_TEST_PREFIX);
     }
 
-    @Override
-    public Graph openTestGraph(final Configuration config) {
-        String graphName = config.getString(CoreOptions.STORE.name());
-        if (!this.graphs.containsKey(graphName)) {
-            TestGraph testGraph = this.newTestGraph(config);
-            this.graphs.putIfAbsent(graphName, testGraph);
+    private static IdStrategy idStrategy(Configuration config) {
+        Class<?> testClass = (Class<?>) config.getProperty(TEST_CLASS);
+        String testMethod = config.getString(TEST_METHOD);
+
+        // Set id strategy
+        IdStrategy idStrategy = IdStrategy.AUTOMATIC;
+        if (config.getBoolean(EXPECT_CUSTOMIZED_ID) || isIoTest(testClass) ||
+            CUSTOMIZED_ID_METHODS.contains(testMethod)) {
+            /*
+             * Use CUSTOMIZED_ID if the following case are met:
+             *  1.Expect CUSTOMIZED_ID for some specific features
+             *  2.IoTest, it will copy vertex from IO or other graph
+             *  3.Some tests that need to pass vertex id manually
+             */
+            idStrategy = IdStrategy.CUSTOMIZE_STRING;
         }
-
-        TestGraph testGraph = this.graphs.get(graphName);
-        // Ensure tx clean
-        testGraph.tx().rollback();
-
-        // Define property key 'aKey' based on specified type in test name
-        String aKeyType = getAKeyType(
-                          (Class<?>) config.getProperty(TEST_CLASS),
-                          config.getString(TEST_METHOD));
-        if (aKeyType != null) {
-            testGraph.initPropertyKey(AKEY, aKeyType);
-        }
-
-        String ioType = getIoType((Class<?>) config.getProperty(TEST_CLASS),
-                                  config.getString(TEST_METHOD));
-
-        // Basic schema is initiated by default once a graph is open
-        testGraph.initBasicSchema(IdStrategy.AUTOMATIC,
-                                  TestGraph.DEFAULT_VL);
-        testGraph.tx().commit();
-
-        testGraph.isLastIdCustomized(false);
-        testGraph.loadedGraph(ioType);
-        testGraph.autoPerson(false);
-        testGraph.ioTest(ioTest((Class<?>) config.getProperty(TEST_CLASS)));
-
-        Object loadGraph = config.getProperty(LOAD_GRAPH);
-        if (loadGraph != null && !graphName.endsWith(STANDARD)) {
-            this.loadGraphData(testGraph,
-                               (LoadGraphWith.GraphData) loadGraph);
-        }
-
-        return testGraph;
+        return idStrategy;
     }
 
     private TestGraph newTestGraph(final Configuration config) {
@@ -263,9 +280,54 @@ public class TestGraphProvider extends AbstractGraphProvider {
     }
 
     @Override
+    public Graph openTestGraph(final Configuration config) {
+        String graphName = config.getString(CoreOptions.STORE.name());
+        Class<?> testClass = (Class<?>) config.getProperty(TEST_CLASS);
+        String testMethod = config.getString(TEST_METHOD);
+
+        TestGraph testGraph = this.graphs.get(graphName);
+        if (testGraph == null) {
+            this.graphs.putIfAbsent(graphName, this.newTestGraph(config));
+        } else if (testGraph.closed()) {
+            this.graphs.put(graphName, this.newTestGraph(config));
+        }
+        testGraph = this.graphs.get(graphName);
+
+        // Ensure tx clean
+        testGraph.tx().rollback();
+
+        // Define property key 'aKey' based on specified type in test name
+        String aKeyType = getAKeyType(testClass, testMethod);
+        if (aKeyType != null) {
+            testGraph.initPropertyKey("aKey", aKeyType);
+        }
+
+        // Basic schema is initiated by default once a graph is open
+        testGraph.initBasicSchema(idStrategy(config), TestGraph.DEFAULT_VL);
+        testGraph.tx().commit();
+
+        testGraph.loadedGraph(getIoType(testClass, testMethod));
+        testGraph.autoPerson(false);
+        testGraph.ioTest(isIoTest(testClass));
+
+        Object loadGraph = config.getProperty(LOAD_GRAPH);
+        if (loadGraph != null && !graphName.endsWith(STANDARD)) {
+            this.loadGraphData(testGraph, (LoadGraphWith.GraphData) loadGraph);
+        }
+
+        LOG.debug("Open graph '{}' for test '{}'", graphName, testMethod);
+        return testGraph;
+    }
+
+    @Override
     public void clear(Graph graph, Configuration config) throws Exception {
         TestGraph testGraph = (TestGraph) graph;
         if (testGraph == null || !testGraph.initedBackend()) {
+            return;
+        }
+        String graphName = config.getString(CoreOptions.STORE.name());
+        if (testGraph.closed()) {
+            this.graphs.remove(graphName);
             return;
         }
 
@@ -273,12 +335,14 @@ public class TestGraphProvider extends AbstractGraphProvider {
         graph.tx().onReadWrite(Transaction.READ_WRITE_BEHAVIOR.AUTO);
         graph.tx().onClose(Transaction.CLOSE_BEHAVIOR.ROLLBACK);
 
-        // Clear schema (also include data)
-        testGraph.clearSchema();
+        // Ensure tx clean
+        graph.tx().rollback();
 
-        // Clear variables (would not clear when clearing schema)
-        testGraph.clearVariables();
-        graph.tx().commit();
+        // Clear all data
+        Class<?> testClass = (Class<?>) config.getProperty(TEST_CLASS);
+        testGraph.clearAll(testClass.getCanonicalName());
+
+        LOG.debug("Clear graph '{}'", graphName);
     }
 
     public void clearBackends() {
@@ -298,7 +362,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
             return;
         }
 
-        loadGraphData(graph, loadGraphWith.value());
+        this.loadGraphData(graph, loadGraphWith.value());
 
         super.loadGraphData(graph, loadGraphWith, testClass, testName);
     }
@@ -308,22 +372,26 @@ public class TestGraphProvider extends AbstractGraphProvider {
         TestGraph testGraph = (TestGraph) graph;
 
         // Clear basic schema initiated in openTestGraph
-        testGraph.clearSchema();
-        testGraph.tx().commit();
+        testGraph.clearAll("");
 
         if (testGraph.loadedGraph() == null) {
             testGraph.loadedGraph(REGULAR_LOAD);
         }
 
+        boolean standard = testGraph.hugegraph().name().endsWith(STANDARD);
+        IdStrategy idStrategy = standard && !testGraph.ioTest() ?
+                                IdStrategy.AUTOMATIC :
+                                IdStrategy.CUSTOMIZE_STRING;
+
         switch (loadGraphWith) {
             case GRATEFUL:
-                testGraph.initGratefulSchema();
+                testGraph.initGratefulSchema(idStrategy);
                 break;
             case MODERN:
-                testGraph.initModernSchema();
+                testGraph.initModernSchema(idStrategy);
                 break;
             case CLASSIC:
-                testGraph.initClassicSchema();
+                testGraph.initClassicSchema(idStrategy);
                 break;
             case CREW:
                 break;
@@ -345,7 +413,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
     @SuppressWarnings("unchecked")
     @Override
     public GraphTraversalSource traversal(Graph graph) {
-        HugeGraph hugegraph = ((TestGraph) graph).hugeGraph();
+        HugeGraph hugegraph = ((TestGraph) graph).hugegraph();
         return hugegraph.traversal()
                         .withoutStrategies(LazyBarrierStrategy.class);
     }

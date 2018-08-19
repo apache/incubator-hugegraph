@@ -119,13 +119,13 @@ public abstract class CassandraTable
 
         // NOTE: Cassandra does not support query.offset()
         if (query.offset() != 0) {
-            LOG.warn("Query offset is not supported currently " +
-                     "on Cassandra store, it will be ignored");
+            LOG.debug("Query offset is not supported on Cassandra store " +
+                      "currently, it will be replaced by [0, offset + limit)");
         }
 
         // Set limit
         if (query.limit() != Query.NO_LIMIT) {
-            long total = query.limit() + query.offset();
+            long total = query.total();
             String page = query.page();
             if (page == null) {
                 select.limit((int) total);
@@ -550,9 +550,14 @@ public abstract class CassandraTable
         session.execute(table);
     }
 
-    public void dropTable(CassandraSessionPool.Session session) {
+    protected void dropTable(CassandraSessionPool.Session session) {
         LOG.debug("Drop table: {}", this.table());
         session.execute(SchemaBuilder.dropTable(this.table()).ifExists());
+    }
+
+    protected void truncateTable(CassandraSessionPool.Session session) {
+        LOG.debug("Truncate table: {}", this.table());
+        session.execute(QueryBuilder.truncate(this.table()));
     }
 
     protected void createIndex(CassandraSessionPool.Session session,
@@ -569,5 +574,9 @@ public abstract class CassandraTable
     @Override
     public void clear(CassandraSessionPool.Session session) {
         this.dropTable(session);
+    }
+
+    public void truncate(CassandraSessionPool.Session session) {
+        this.truncateTable(session);
     }
 }

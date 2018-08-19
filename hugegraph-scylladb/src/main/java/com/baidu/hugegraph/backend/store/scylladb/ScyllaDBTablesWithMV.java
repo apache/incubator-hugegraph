@@ -76,12 +76,16 @@ public class ScyllaDBTablesWithMV {
         }
 
         @Override
-        public void dropTable(CassandraSessionPool.Session session) {
+        protected void dropTable(CassandraSessionPool.Session session) {
+            this.dropIndexTable(session);
+            super.dropTable(session);
+        }
+
+        private void dropIndexTable(CassandraSessionPool.Session session) {
             String cql = String.format(
                          "DROP MATERIALIZED VIEW IF EXISTS %s",
                          MV_LABEL2VERTEX);
             session.execute(cql);
-            super.dropTable(session);
         }
 
         /**
@@ -131,12 +135,16 @@ public class ScyllaDBTablesWithMV {
         }
 
         @Override
-        public void dropTable(CassandraSessionPool.Session session) {
+        protected void dropTable(CassandraSessionPool.Session session) {
+            this.dropIndexTable(session);
+            super.dropTable(session);
+        }
+
+        private void dropIndexTable(CassandraSessionPool.Session session) {
             String cql = String.format(
                          "DROP MATERIALIZED VIEW IF EXISTS %s",
                          MV_LABEL2EDGE);
             session.execute(cql);
-            super.dropTable(session);
         }
 
         /**

@@ -114,7 +114,8 @@ public class ScyllaDBTables {
      * Query data from label index table if just want to query by label
      */
     private static Query queryByLabelIndex(
-            CassandraSessionPool.Session session, String table, Query query) {
+                         CassandraSessionPool.Session session,
+                         String table, Query query) {
         Set<Condition> conditions = query.conditions();
 
         if (!(query instanceof ConditionQuery) || conditions.isEmpty()) {
@@ -145,8 +146,8 @@ public class ScyllaDBTables {
     }
 
     private static Set<String> queryByLabelIndex(
-            CassandraSessionPool.Session session, String table, Id label) {
-
+                               CassandraSessionPool.Session session,
+                               String table, Id label) {
         Select select = QueryBuilder.select().from(table);
         select.where(CassandraTable.formatEQ(HugeKeys.LABEL, label.asLong()));
 
@@ -170,20 +171,26 @@ public class ScyllaDBTables {
             super(store);
         }
 
+        private String indexTable() {
+            return joinTableName(this.table(), CassandraTables.LABEL_INDEX);
+        }
+
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel, HugeKeys column) {
             createIndexTable(session, this.indexTable());
         }
 
-        private String indexTable() {
-            return joinTableName(this.table(), CassandraTables.LABEL_INDEX);
+        @Override
+        protected void dropTable(CassandraSessionPool.Session session) {
+            session.execute(SchemaBuilder.dropTable(indexTable()).ifExists());
+            super.dropTable(session);
         }
 
         @Override
-        public void dropTable(CassandraSessionPool.Session session) {
-            session.execute(SchemaBuilder.dropTable(indexTable()).ifExists());
-            super.dropTable(session);
+        protected void truncateTable(CassandraSessionPool.Session session) {
+            session.execute(QueryBuilder.truncate(indexTable()));
+            super.truncateTable(session);
         }
 
         @Override
@@ -218,6 +225,10 @@ public class ScyllaDBTables {
             super(store, direction);
         }
 
+        private String indexTable() {
+            return joinTableName(this.table(), CassandraTables.LABEL_INDEX);
+        }
+
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel, HugeKeys column) {
@@ -225,14 +236,18 @@ public class ScyllaDBTables {
             createIndexTable(session, this.indexTable());
         }
 
-        private String indexTable() {
-            return joinTableName(this.table(), CassandraTables.LABEL_INDEX);
+        @Override
+        protected void dropTable(CassandraSessionPool.Session session) {
+            session.execute(SchemaBuilder.dropTable(indexTable()).ifExists());
+            super.dropTable(session);
         }
 
         @Override
-        public void dropTable(CassandraSessionPool.Session session) {
-            session.execute(SchemaBuilder.dropTable(indexTable()).ifExists());
-            super.dropTable(session);
+        protected void truncateTable(CassandraSessionPool.Session session) {
+            if (this.direction() == Directions.OUT) {
+                session.execute(QueryBuilder.truncate(indexTable()));
+            }
+            super.truncateTable(session);
         }
 
         @Override
@@ -340,6 +355,10 @@ public class ScyllaDBTables {
             session.execute(SchemaBuilder.dropTable(this.table).ifExists());
         }
 
+        public void truncateTable(CassandraSessionPool.Session session) {
+            session.execute(QueryBuilder.truncate(this.table));
+        }
+
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             Update update = QueryBuilder.update(this.table);
@@ -398,9 +417,11 @@ public class ScyllaDBTables {
         }
 
         private static Set<Integer> queryByNameIndex(
-                CassandraSessionPool.Session session,
-                String table, String name) {
-
+                                    CassandraSessionPool.Session session,
+                                    String table, String name) {
+            if (name.isEmpty()) {
+                return ImmutableSet.of();
+            }
             Select select = QueryBuilder.select().from(table);
             select.where(CassandraTable.formatEQ(HugeKeys.NAME, name));
 
@@ -430,9 +451,15 @@ public class ScyllaDBTables {
         }
 
         @Override
-        public void dropTable(CassandraSessionPool.Session session) {
+        protected void dropTable(CassandraSessionPool.Session session) {
             this.schema.dropTable(session);
             super.dropTable(session);
+        }
+
+        @Override
+        protected void truncateTable(CassandraSessionPool.Session session) {
+            this.schema.truncateTable(session);
+            super.truncateTable(session);
         }
 
         @Override
@@ -471,9 +498,15 @@ public class ScyllaDBTables {
         }
 
         @Override
-        public void dropTable(CassandraSessionPool.Session session) {
+        protected void dropTable(CassandraSessionPool.Session session) {
             this.schema.dropTable(session);
             super.dropTable(session);
+        }
+
+        @Override
+        protected void truncateTable(CassandraSessionPool.Session session) {
+            this.schema.truncateTable(session);
+            super.truncateTable(session);
         }
 
         @Override
@@ -512,9 +545,15 @@ public class ScyllaDBTables {
         }
 
         @Override
-        public void dropTable(CassandraSessionPool.Session session) {
+        protected void dropTable(CassandraSessionPool.Session session) {
             this.schema.dropTable(session);
             super.dropTable(session);
+        }
+
+        @Override
+        protected void truncateTable(CassandraSessionPool.Session session) {
+            this.schema.truncateTable(session);
+            super.truncateTable(session);
         }
 
         @Override
@@ -553,9 +592,15 @@ public class ScyllaDBTables {
         }
 
         @Override
-        public void dropTable(CassandraSessionPool.Session session) {
+        protected void dropTable(CassandraSessionPool.Session session) {
             this.schema.dropTable(session);
             super.dropTable(session);
+        }
+
+        @Override
+        protected void truncateTable(CassandraSessionPool.Session session) {
+            this.schema.truncateTable(session);
+            super.truncateTable(session);
         }
 
         @Override

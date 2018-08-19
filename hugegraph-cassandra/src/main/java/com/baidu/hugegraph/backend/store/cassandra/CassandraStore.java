@@ -19,8 +19,11 @@
 
 package com.baidu.hugegraph.backend.store.cassandra;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -84,7 +87,7 @@ public abstract class CassandraStore extends AbstractBackendStore {
 
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            CassandraMetrics metrics = new CassandraMetrics(cluster(), conf);
+            CassandraMetrics metrics = new CassandraMetrics(cluster(), this.conf);
             return metrics.getMetrics();
         });
     }
@@ -243,12 +246,25 @@ public abstract class CassandraStore extends AbstractBackendStore {
     @Override
     public void init() {
         this.checkClusterConnected();
-        this.initKeyspace();
 
+        if (this.sessions.session().opened()) {
+            // Session has ever been opened.
+            LOG.warn("Session has ever been opened(exist keyspace '{}' before)",
+                     this.keyspace);
+        } else {
+            // Create keyspace if needed
+            if (!this.existsKeyspace()) {
+                this.initKeyspace();
+            }
+            // Open session explicitly to get the exception when it fails
+            this.sessions.session().open();
+        }
+
+        // Create tables
         this.checkSessionConnected();
         this.initTables();
 
-        LOG.info("Store initialized: {}", this.store);
+        LOG.debug("Store initialized: {}", this.store);
     }
 
     @Override
@@ -261,7 +277,15 @@ public abstract class CassandraStore extends AbstractBackendStore {
             this.clearKeyspace();
         }
 
-        LOG.info("Store cleared: {}", this.store);
+        LOG.debug("Store cleared: {}", this.store);
+    }
+
+    @Override
+    public void truncate() {
+        this.checkSessionConnected();
+
+        this.truncateTables();
+        LOG.debug("Store truncated: {}", this.store);
     }
 
     @Override
@@ -359,7 +383,8 @@ public abstract class CassandraStore extends AbstractBackendStore {
         replication.putIfAbsent("replication_factor", factor);
 
         Statement stmt = SchemaBuilder.createKeyspace(this.keyspace)
-                         .ifNotExists().with().replication(replication);
+                                      .ifNotExists().with()
+                                      .replication(replication);
 
         // Create keyspace with non-keyspace-session
         LOG.debug("Create keyspace: {}", stmt);
@@ -371,7 +396,6 @@ public abstract class CassandraStore extends AbstractBackendStore {
                 session.close();
             }
         }
-        this.sessions.session().open();
     }
 
     protected void clearKeyspace() {
@@ -395,16 +419,27 @@ public abstract class CassandraStore extends AbstractBackendStore {
 
     protected void initTables() {
         CassandraSessionPool.Session session = this.sessions.session();
-        for (CassandraTable table : this.tables.values()) {
+        for (CassandraTable table : this.tables()) {
             table.init(session);
         }
     }
 
     protected void clearTables() {
         CassandraSessionPool.Session session = this.sessions.session();
-        for (CassandraTable table : this.tables.values()) {
+        for (CassandraTable table : this.tables()) {
             table.clear(session);
         }
+    }
+
+    protected void truncateTables() {
+        CassandraSessionPool.Session session = this.sessions.session();
+        for (CassandraTable table : this.tables()) {
+            table.truncate(session);
+        }
+    }
+
+    protected Collection<CassandraTable> tables() {
+        return this.tables.values();
     }
 
     @Override
@@ -472,19 +507,10 @@ public abstract class CassandraStore extends AbstractBackendStore {
         }
 
         @Override
-        protected void initTables() {
-            super.initTables();
-
-            CassandraSessionPool.Session session = super.sessions.session();
-            this.counters.init(session);
-        }
-
-        @Override
-        protected void clearTables() {
-            super.clearTables();
-
-            CassandraSessionPool.Session session = super.sessions.session();
-            this.counters.clear(session);
+        protected Collection<CassandraTable> tables() {
+            List<CassandraTable> tables = new ArrayList<>(super.tables());
+            tables.add(this.counters);
+            return tables;
         }
 
         @Override

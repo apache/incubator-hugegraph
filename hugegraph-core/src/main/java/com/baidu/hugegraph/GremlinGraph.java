@@ -33,6 +33,8 @@ public interface GremlinGraph extends Graph {
     public SchemaManager schema();
 
     public String backend();
+
     public void initBackend();
     public void clearBackend();
+    public void truncateBackend();
 }
