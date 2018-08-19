@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -71,7 +72,6 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.variables.HugeVariables;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 
 /**
@@ -97,9 +97,10 @@ public class HugeGraph implements GremlinGraph {
         LockUtil.init();
     }
 
+    private volatile boolean closed;
+    private volatile GraphMode mode;
+
     private final String name;
-    private boolean closed;
-    private GraphMode mode;
 
     private final HugeConfig configuration;
 
@@ -192,7 +193,7 @@ public class HugeGraph implements GremlinGraph {
         this.loadGraphStore().open(this.configuration);
         try {
             this.storeProvider.init();
-            new BackendStoreInfo(this).init();
+            this.initBackendStoreInfo();
         } finally {
             this.loadGraphStore().close();
             this.loadSystemStore().close();
@@ -202,6 +203,8 @@ public class HugeGraph implements GremlinGraph {
 
     @Override
     public void clearBackend() {
+        this.waitUntilAllTasksCompleted();
+
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
@@ -214,7 +217,29 @@ public class HugeGraph implements GremlinGraph {
         }
     }
 
+    @Override
+    public void truncateBackend() {
+        this.waitUntilAllTasksCompleted();
+
+        this.storeProvider.truncate();
+        this.initBackendStoreInfo();
+    }
+
+    private void waitUntilAllTasksCompleted() {
+        long timeout = this.configuration.get(CoreOptions.TASK_WAIT_TIMEOUT);
+        try {
+            this.taskScheduler().waitUntilAllTasksCompleted(timeout);
+        } catch (TimeoutException e) {
+            throw new HugeException("Failed to wait all tasks to complete", e);
+        }
+    }
+
+    private void initBackendStoreInfo() {
+        new BackendStoreInfo(this).init();
+    }
+
     private SchemaTransaction openSchemaTransaction() throws HugeException {
+        this.checkGraphNotClosed();
         try {
             return new CachedSchemaTransaction(this, this.loadSchemaStore());
         } catch (BackendException e) {
@@ -225,6 +250,7 @@ public class HugeGraph implements GremlinGraph {
     }
 
     private GraphTransaction openGraphTransaction() throws HugeException {
+        this.checkGraphNotClosed();
         try {
             return new CachedGraphTransaction(this, this.loadGraphStore());
         } catch (BackendException e) {
@@ -241,12 +267,16 @@ public class HugeGraph implements GremlinGraph {
         return BackendProviderFactory.open(backend, this.name);
     }
 
-    private BackendStore loadSchemaStore() {
+    private void checkGraphNotClosed() {
+        E.checkState(!this.closed, "Graph '%s' has been closed", this);
+    }
+
+    public BackendStore loadSchemaStore() {
         String name = this.configuration.get(CoreOptions.STORE_SCHEMA);
         return this.storeProvider.loadSchemaStore(name);
     }
 
-    private BackendStore loadGraphStore() {
+    public BackendStore loadGraphStore() {
         String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
         return this.storeProvider.loadGraphStore(graph);
     }
@@ -257,6 +287,7 @@ public class HugeGraph implements GremlinGraph {
     }
 
     public SchemaTransaction schemaTransaction() {
+        this.checkGraphNotClosed();
         /*
          * NOTE: each schema operation will be auto committed,
          * Don't need to open tinkerpop tx by readWrite() and commit manually.
@@ -265,6 +296,7 @@ public class HugeGraph implements GremlinGraph {
     }
 
     public GraphTransaction graphTransaction() {
+        this.checkGraphNotClosed();
         /*
          * NOTE: graph operations must be committed manually,
          * Maybe users need to auto open tinkerpop tx by readWrite().

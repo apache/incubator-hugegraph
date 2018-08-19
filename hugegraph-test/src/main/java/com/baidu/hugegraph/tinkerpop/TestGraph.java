@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -35,9 +36,11 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.google.common.collect.ImmutableSet;
 
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructureBasicSuite")
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.ProcessBasicSuite")
@@ -46,6 +49,9 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 public class TestGraph implements Graph {
 
     public static final String DEFAULT_VL = "vertex";
+
+    public static final Set<String> TRUNCATE_BACKENDS =
+           ImmutableSet.of("rocksdb", "mysql");
 
     private static volatile int id = 666;
 
@@ -60,7 +66,7 @@ public class TestGraph implements Graph {
         this.graph = graph;
     }
 
-    public HugeGraph hugeGraph() {
+    public HugeGraph hugegraph() {
         return this.graph;
     }
 
@@ -72,6 +78,32 @@ public class TestGraph implements Graph {
     protected void clearBackend() {
         this.graph.clearBackend();
         this.initedBackend = false;
+    }
+
+    protected void clearAll(String testClass) {
+        List<PropertyKey> pks = this.graph.schema().getPropertyKeys();
+        if (pks.isEmpty()) {
+            // No need to clear if there is no PKs(that's no schema and data)
+            return;
+        }
+
+        if (TRUNCATE_BACKENDS.contains(this.graph.backend())) {
+            // Delete all data by truncating tables
+            this.truncateBackend();
+        } else {
+            // Clear schema (also include data)
+            this.clearSchema();
+
+            // Clear variables if needed (would not clear when clearing schema)
+            if (testClass.endsWith("VariableAsMapTest")) {
+                this.clearVariables();
+                this.tx().commit();
+            }
+        }
+    }
+
+    protected void truncateBackend() {
+        this.graph.truncateBackend();
     }
 
     protected void clearSchema() {
@@ -100,6 +132,10 @@ public class TestGraph implements Graph {
         variables.keys().forEach(key -> variables.remove(key));
     }
 
+    protected boolean closed() {
+        return this.graph.closed();
+    }
+
     @Override
     public Vertex addVertex(Object... keyValues) {
         boolean needRedefineSchema = false;
@@ -114,10 +150,6 @@ public class TestGraph implements Graph {
 
             if (keyValues[i].equals(T.id)) {
                 hasId = true;
-                if (!this.isLastIdCustomized) {
-                    needRedefineSchema = true;
-                    idStrategy = IdStrategy.CUSTOMIZE_STRING;
-                }
             }
 
             if (keyValues[i].equals(T.label) &&
@@ -225,16 +257,16 @@ public class TestGraph implements Graph {
         return this.initedBackend;
     }
 
-    public void autoPerson(Boolean autoPerson) {
+    public void autoPerson(boolean autoPerson) {
         this.autoPerson = autoPerson;
     }
 
-    public void ioTest(Boolean ioTest) {
+    public void ioTest(boolean ioTest) {
         this.ioTest = ioTest;
     }
 
-    public void isLastIdCustomized(boolean isLastIdCustomized) {
-        this.isLastIdCustomized = isLastIdCustomized;
+    public boolean ioTest() {
+        return this.ioTest;
     }
 
     private boolean needAddIdToLoadGraph() {
@@ -311,7 +343,7 @@ public class TestGraph implements Graph {
 
     }
 
-    public void initGratefulSchema() {
+    public void initGratefulSchema(IdStrategy idStrategy) {
         SchemaManager schema = this.graph.schema();
 
         schema.propertyKey("id").asInt().ifNotExist().create();
@@ -320,9 +352,6 @@ public class TestGraph implements Graph {
         schema.propertyKey("songType").asText().ifNotExist().create();
         schema.propertyKey("performances").asInt().ifNotExist().create();
 
-        IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
-                                IdStrategy.AUTOMATIC :
-                                IdStrategy.CUSTOMIZE_STRING;
         switch (idStrategy) {
             case AUTOMATIC:
                 schema.vertexLabel("song")
@@ -371,7 +400,7 @@ public class TestGraph implements Graph {
               .range().ifNotExist().create();
     }
 
-    public void initModernSchema() {
+    public void initModernSchema(IdStrategy idStrategy) {
         SchemaManager schema = this.graph.schema();
 
         schema.propertyKey("weight").asDouble().ifNotExist().create();
@@ -388,10 +417,6 @@ public class TestGraph implements Graph {
         schema.propertyKey("ripple").ifNotExist().create();
         schema.propertyKey("lop").ifNotExist().create();
 
-
-        IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
-                                IdStrategy.AUTOMATIC :
-                                IdStrategy.CUSTOMIZE_STRING;
         switch (idStrategy) {
             case AUTOMATIC:
                 schema.vertexLabel("person")
@@ -491,7 +516,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
     }
 
-    public void initClassicSchema() {
+    public void initClassicSchema(IdStrategy idStrategy) {
         SchemaManager schema = this.graph.schema();
 
         schema.propertyKey("id").asInt().ifNotExist().create();
@@ -500,9 +525,6 @@ public class TestGraph implements Graph {
         schema.propertyKey("lang").ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
 
-        IdStrategy idStrategy = this.graph.name().endsWith("standard") ?
-                                IdStrategy.AUTOMATIC :
-                                IdStrategy.CUSTOMIZE_STRING;
         switch (idStrategy) {
             case AUTOMATIC:
                 schema.vertexLabel("vertex")
@@ -601,7 +623,6 @@ public class TestGraph implements Graph {
         schema.propertyKey("blah").asDouble().ifNotExist().create();
         schema.propertyKey("bloop").asInt().ifNotExist().create();
 
-
         if (this.ioTest) {
             schema.propertyKey("weight").asFloat().ifNotExist().create();
         } else {
@@ -614,6 +635,7 @@ public class TestGraph implements Graph {
         SchemaManager schema = this.graph.schema();
         switch (idStrategy) {
             case CUSTOMIZE_STRING:
+                this.isLastIdCustomized = true;
                 schema.vertexLabel(defaultVL)
                       .properties("__id", "oid", "name", "state", "status",
                                   "some", "that", "any", "this", "lang", "b",
@@ -638,6 +660,7 @@ public class TestGraph implements Graph {
                       .useCustomizeStringId().ifNotExist().create();
                 break;
             case AUTOMATIC:
+                this.isLastIdCustomized = false;
                 schema.vertexLabel(defaultVL)
                       .properties("__id", "oid", "name", "state", "status",
                                   "some", "that", "any", "this", "lang", "b",

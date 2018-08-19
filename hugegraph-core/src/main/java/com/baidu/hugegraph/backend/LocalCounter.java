@@ -72,4 +72,8 @@ public class LocalCounter {
         AtomicLong value = new AtomicLong(oldValue + increment);
         this.counters.put(type, value);
     }
+
+    public void reset() {
+        this.counters.clear();
+    }
 }

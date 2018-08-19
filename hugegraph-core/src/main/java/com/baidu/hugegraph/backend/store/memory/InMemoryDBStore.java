@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.memory;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -82,6 +83,10 @@ public abstract class InMemoryDBStore extends AbstractBackendStore {
 
     protected void registerTableManager(HugeType type, InMemoryDBTable table) {
         this.tables.put(type, table);
+    }
+
+    protected Collection<InMemoryDBTable> tables() {
+        return this.tables.values();
     }
 
     @Override
@@ -165,33 +170,39 @@ public abstract class InMemoryDBStore extends AbstractBackendStore {
 
     @Override
     public void open(HugeConfig config) {
-        LOG.debug("open()");
-        /*
-         * Memory store need to init some system property,
-         * like task related propertykeys and vertexlabels
-         */
-        this.provider.init();
+        LOG.debug("Store opened: {}", this.store);
     }
 
     @Override
     public void close() throws BackendException {
-        LOG.debug("close()");
+        LOG.debug("Store closed: {}", this.store);
     }
 
     @Override
     public void init() {
-        LOG.info("init()");
-        for (InMemoryDBTable table : this.tables.values()) {
+        for (InMemoryDBTable table : this.tables()) {
             table.init(null);
         }
+
+        LOG.debug("Store initialized: {}", this.store);
     }
 
     @Override
     public void clear() {
-        LOG.info("clear()");
-        for (InMemoryDBTable table : this.tables.values()) {
+        for (InMemoryDBTable table : this.tables()) {
             table.clear(null);
         }
+
+        LOG.debug("Store cleared: {}", this.store);
+    }
+
+    @Override
+    public void truncate() {
+        for (InMemoryDBTable table : this.tables()) {
+            table.clear(null);
+        }
+
+        LOG.debug("Store truncated: {}", this.store);
     }
 
     @Override
@@ -224,12 +235,11 @@ public abstract class InMemoryDBStore extends AbstractBackendStore {
 
     public static class InMemorySchemaStore extends InMemoryDBStore {
 
-        private final LocalCounter counter;
+        private final LocalCounter counter = new LocalCounter();
 
         public InMemorySchemaStore(BackendStoreProvider provider,
                                    String database, String store) {
             super(provider, database, store);
-            this.counter = new LocalCounter();
 
             registerTableManager(HugeType.VERTEX_LABEL,
                                  new InMemoryDBTable(HugeType.VERTEX_LABEL));
@@ -256,6 +266,18 @@ public abstract class InMemoryDBStore extends AbstractBackendStore {
         @Override
         public long getCounter(HugeType type) {
             return this.counter.getCounter(type);
+        }
+
+        @Override
+        public void clear() {
+            this.counter.reset();
+            super.clear();
+        }
+
+        @Override
+        public void truncate() {
+            this.counter.reset();
+            super.truncate();
         }
     }
 

@@ -82,6 +82,11 @@ public class CachedBackendStore implements BackendStore {
     }
 
     @Override
+    public void truncate() {
+        this.store.truncate();
+    }
+
+    @Override
     public void beginTx() {
         this.store.beginTx();
     }

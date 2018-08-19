@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -40,6 +41,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
@@ -56,6 +58,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class TaskScheduler {
 
@@ -63,6 +66,7 @@ public class TaskScheduler {
     private final ExecutorService taskExecutor;
     private final ExecutorService dbExecutor;
 
+    private final EventListener eventListener;
     private final Map<Id, HugeTask<?>> tasks;
 
     private volatile TaskTransaction taskTx;
@@ -84,7 +88,7 @@ public class TaskScheduler {
 
         this.taskTx = null;
 
-        this.listenChanges();
+        this.eventListener = this.listenChanges();
     }
 
     public HugeGraph graph() {
@@ -101,7 +105,9 @@ public class TaskScheduler {
             synchronized (this) {
                 if (this.taskTx == null) {
                     BackendStore store = this.graph.loadSystemStore();
-                    this.taskTx = new TaskTransaction(this.graph, store);
+                    TaskTransaction tx = new TaskTransaction(this.graph, store);
+                    assert this.taskTx == null; // may be reentrant?
+                    this.taskTx = tx;
                 }
             }
         }
@@ -109,15 +115,34 @@ public class TaskScheduler {
         return this.taskTx;
     }
 
-    private void listenChanges() {
-        // Listen store event: "store.init"
-        this.graph.loadSystemStore().provider().listen(event -> {
-            if (Events.STORE_INIT.equals(event.name())) {
-                this.submit(() -> this.tx().initSchema());
+    private EventListener listenChanges() {
+        // Listen store event: "store.init", "store.truncate"
+        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INIT,
+                                                  Events.STORE_TRUNCATE);
+        EventListener eventListener = event -> {
+            /*
+             * Ensure schema cache has been cleared before calling initSchema()
+             * otherwise we would see schema from cache even if store truncated
+             */
+            if (storeEvents.contains(event.name())) {
+                this.call(() -> this.tx().initSchema());
+                // Ensure we receive notify after the cache-schema (trick)
+                this.relistenChanges();
                 return true;
             }
             return false;
-        });
+        };
+        this.graph.loadSystemStore().provider().listen(eventListener);
+        return eventListener;
+    }
+
+    private void unlistenChanges() {
+        this.graph.loadSystemStore().provider().unlisten(this.eventListener);
+    }
+
+    private void relistenChanges() {
+        this.graph.loadSystemStore().provider().unlisten(this.eventListener);
+        this.graph.loadSystemStore().provider().listen(this.eventListener);
     }
 
     public <V> void restoreTasks() {
@@ -167,7 +192,7 @@ public class TaskScheduler {
 
     public <V> void save(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        this.submit(() -> {
+        this.call(() -> {
             // Construct vertex from task
             HugeVertex vertex = this.tx().constructVertex(task);
             // Delete the old record if exist
@@ -186,8 +211,9 @@ public class TaskScheduler {
     }
 
     public boolean close() {
+        this.unlistenChanges();
         if (!this.dbExecutor.isShutdown()) {
-            this.submit(() -> {
+            this.call(() -> {
                 this.tx().close();
                 this.graph.closeTx();
             });
@@ -216,7 +242,6 @@ public class TaskScheduler {
                 taskIdsNotInMem.add(id);
             }
         }
-        @SuppressWarnings("unchecked")
         ExtendableIterator<HugeTask<V>> iterator;
         if (taskInMem.isEmpty()) {
             iterator = new ExtendableIterator<>();
@@ -228,7 +253,7 @@ public class TaskScheduler {
     }
 
     public <V> HugeTask<V> findTask(Id id) {
-        HugeTask<V> result =  this.submit(() -> {
+        HugeTask<V> result =  this.call(() -> {
             HugeTask<V> task = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
             if (vertices.hasNext()) {
@@ -245,7 +270,7 @@ public class TaskScheduler {
 
     public <V> Iterator<HugeTask<V>> findTasks(List<Id> ids) {
         Object[] idArray = ids.toArray(new Id[ids.size()]);
-        return this.submit(() -> {
+        return this.call(() -> {
             Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
             return new MapperIterator<>(vertices, HugeTask::fromVertex);
         });
@@ -276,7 +301,7 @@ public class TaskScheduler {
                          id, task.status());
             this.remove(id);
         }
-        return this.submit(() -> {
+        return this.call(() -> {
             HugeTask<V> result = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
             if (vertices.hasNext()) {
@@ -312,6 +337,29 @@ public class TaskScheduler {
                   "Task '%s' was not completed in %s seconds", id, seconds));
     }
 
+    public void waitUntilAllTasksCompleted(long seconds)
+                                           throws TimeoutException {
+        long t100ms = seconds * 10L;
+        int taskSize = 0;
+        for (long pass = 0;; pass++) {
+            taskSize = this.pendingTasks();
+            if (taskSize == 0) {
+                return;
+            }
+            if (pass >= t100ms) {
+                break;
+            }
+            try {
+                Thread.sleep(100L);
+            } catch (InterruptedException ignored) {
+                // Ignore InterruptedException
+            }
+        }
+        throw new TimeoutException(String.format(
+                  "There are still %d incomplete tasks after %s seconds",
+                  taskSize, seconds));
+    }
+
     private <V> Iterator<HugeTask<V>> queryTask(String key, Object value,
                                                 long limit) {
         return this.queryTask(ImmutableMap.of(key, value), limit);
@@ -319,7 +367,7 @@ public class TaskScheduler {
 
     private <V> Iterator<HugeTask<V>> queryTask(Map<String, Object> conditions,
                                                 long limit) {
-        return this.submit(() -> {
+        return this.call(() -> {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             VertexLabel vl = this.graph.vertexLabel(TaskTransaction.TASK);
             query.eq(HugeKeys.LABEL, vl.id());
@@ -336,11 +384,12 @@ public class TaskScheduler {
         });
     }
 
-    private <V> V submit(Runnable runnable) {
-        return this.submit(Executors.callable(runnable, null));
+    private <V> V call(Runnable runnable) {
+        return this.call(Executors.callable(runnable, null));
     }
 
-    private <V> V submit(Callable<V> callable) {
+    private <V> V call(Callable<V> callable) {
+        // Ensure all db operations are executed in dbExecutor thread(s)
         try {
             return this.dbExecutor.submit(callable).get();
         } catch (Exception e) {
@@ -358,6 +407,10 @@ public class TaskScheduler {
         }
 
         public HugeVertex constructVertex(HugeTask<?> task) {
+            if (this.graph().schemaTransaction().getVertexLabel(TASK) == null) {
+                throw new HugeException("Schema is missing for task(%s) '%s'",
+                                        task.id(), task.name());
+            }
             return this.constructVertex(false, task.asArray());
         }
 
@@ -375,18 +428,16 @@ public class TaskScheduler {
                 return;
             }
 
-            SchemaManager schema = graph.schema();
-
             String[] properties = this.initProperties();
 
             // Create vertex label '~task'
-            label = schema.vertexLabel(TASK)
-                          .properties(properties)
-                          .useCustomizeNumberId()
-                          .nullableKeys(P.DESCRIPTION, P.UPDATE,
-                                        P.INPUT, P.RESULT, P.DEPENDENCIES)
-                          .enableLabelIndex(true)
-                          .build();
+            label = graph.schema().vertexLabel(TASK)
+                         .properties(properties)
+                         .useCustomizeNumberId()
+                         .nullableKeys(P.DESCRIPTION, P.UPDATE,
+                                       P.INPUT, P.RESULT, P.DEPENDENCIES)
+                         .enableLabelIndex(true)
+                         .build();
             graph.schemaTransaction().addVertexLabel(label);
 
             // Create index

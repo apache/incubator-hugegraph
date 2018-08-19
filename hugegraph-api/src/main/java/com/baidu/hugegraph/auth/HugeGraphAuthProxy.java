@@ -178,6 +178,12 @@ public class HugeGraphAuthProxy implements GremlinGraph {
         this.hugegraph.clearBackend();
     }
 
+    @Override
+    public void truncateBackend() {
+        this.verifyPermission(ROLE_ADMIN);
+        this.hugegraph.truncateBackend();
+    }
+
     private void verifyPermission() {
         /*
          * The owner role should match the graph name

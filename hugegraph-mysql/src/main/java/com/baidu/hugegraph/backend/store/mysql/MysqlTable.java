@@ -66,8 +66,17 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         this.createTable(session, this.tableDefine());
     }
 
-    public void createTable(MysqlSessions.Session session,
-                            TableDefine tableDefine) {
+    @Override
+    public void clear(MysqlSessions.Session session) {
+        this.dropTable(session);
+    }
+
+    public void truncate(MysqlSessions.Session session) {
+        this.truncateTable(session);
+    }
+
+    protected void createTable(MysqlSessions.Session session,
+                               TableDefine tableDefine) {
         StringBuilder sql = new StringBuilder();
         sql.append("CREATE TABLE IF NOT EXISTS ");
         sql.append(this.table()).append(" (");
@@ -100,14 +109,24 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         }
     }
 
-    public void dropTable(MysqlSessions.Session session) {
+    protected void dropTable(MysqlSessions.Session session) {
         LOG.debug("Drop table: {}", this.table());
-        StringBuilder sql = new StringBuilder();
-        sql.append("DROP TABLE IF EXISTS ").append(this.table()).append(";");
+        String sql = String.format("DROP TABLE IF EXISTS %s;", this.table());
         try {
-            session.execute(sql.toString());
+            session.execute(sql);
         } catch (SQLException e) {
             throw new BackendException("Failed to drop table with '%s'",
+                                       e, sql);
+        }
+    }
+
+    protected void truncateTable(MysqlSessions.Session session) {
+        LOG.debug("Truncate table: {}", this.table());
+        String sql = String.format("TRUNCATE TABLE %s;", this.table());
+        try {
+            session.execute(sql);
+        } catch (SQLException e) {
+            throw new BackendException("Failed to truncate table with '%s'",
                                        e, sql);
         }
     }
@@ -526,10 +545,6 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
 
     protected void appendPartition(StringBuilder delete) {
         // pass
-    }
-
-    public void clear(MysqlSessions.Session session) {
-        this.dropTable(session);
     }
 
     public static String formatKey(HugeKeys key) {
