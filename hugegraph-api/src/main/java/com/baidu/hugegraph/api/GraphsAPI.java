@@ -36,13 +36,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -127,27 +124,7 @@ public class GraphsAPI extends API {
             throw new IllegalArgumentException(String.format(
                       "Please take the message: %s", CONFIRM_CLEAR));
         }
-
-        // Clear vertex and edge
-        commit(g, () -> {
-            g.traversal().E().toStream().forEach(Edge::remove);
-            g.traversal().V().toStream().forEach(Vertex::remove);
-        });
-
-        // Schema operation will auto commit
-        SchemaManager schema = g.schema();
-        schema.getIndexLabels().forEach(elem -> {
-            schema.indexLabel(elem.name()).remove();
-        });
-        schema.getEdgeLabels().forEach(elem -> {
-            schema.edgeLabel(elem.name()).remove();
-        });
-        schema.getVertexLabels().forEach(elem -> {
-            schema.vertexLabel(elem.name()).remove();
-        });
-        schema.getPropertyKeys().forEach(elem -> {
-            schema.propertyKey(elem.name()).remove();
-        });
+        g.truncateBackend();
     }
 
     @PUT

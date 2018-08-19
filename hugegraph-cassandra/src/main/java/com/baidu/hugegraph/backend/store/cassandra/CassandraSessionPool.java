@@ -222,6 +222,10 @@ public class CassandraSessionPool extends BackendSessionPool {
             this.session = cluster().connect(keyspace());
         }
 
+        public boolean opened() {
+            return this.session != null;
+        }
+
         @Override
         public boolean closed() {
             if (this.session == null) {

@@ -570,4 +570,9 @@ public abstract class CassandraTable
     public void clear(CassandraSessionPool.Session session) {
         this.dropTable(session);
     }
+
+    public void truncate(CassandraSessionPool.Session session) {
+        LOG.debug("Truncate table: {}", this.table());
+        session.execute(QueryBuilder.truncate(this.table()));
+    }
 }

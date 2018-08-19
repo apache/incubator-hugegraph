@@ -103,6 +103,15 @@ public class CoreOptions extends OptionHolder {
                     0
             );
 
+    public static final ConfigOption<Long> TASK_WAIT_TIMEOUT =
+            new ConfigOption<>(
+                    "task.wait_timeout",
+                    "Timeout in seconds for waiting for the task to complete," +
+                    "such as when truncating or clearing the backend.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    10L
+            );
+
     public static final ConfigOption<String> VERTEX_DEFAULT_LABEL =
             new ConfigOption<>(
                     "vertex.default_label",
@@ -146,6 +155,14 @@ public class CoreOptions extends OptionHolder {
                     "The max cache size(items) of schema cache.",
                     rangeInt(1, Integer.MAX_VALUE),
                     100000
+            );
+
+    public static final ConfigOption<Boolean> SCHEMA_SYNC_DELETION =
+            new ConfigOption<>(
+                    "schema.sync_deletion",
+                    "Whether to delete schema synchronously.",
+                    disallowEmpty(),
+                    false
             );
 
     public static final ConfigOption<Integer> VERTEX_CACHE_CAPACITY =
@@ -238,12 +255,5 @@ public class CoreOptions extends OptionHolder {
                     "}",
                     disallowEmpty(),
                     "smart"
-            );
-    public static final ConfigOption<Boolean> SCHEMA_SYNC_DELETION =
-            new ConfigOption<>(
-                    "schema.sync_deletion",
-                    "Whether to delete schema synchronously.",
-                    disallowEmpty(),
-                    false
             );
 }
