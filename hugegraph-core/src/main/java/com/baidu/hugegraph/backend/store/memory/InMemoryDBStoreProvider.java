@@ -26,6 +26,7 @@ import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemoryGraphStore;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySchemaStore;
+import com.baidu.hugegraph.util.Events;
 
 public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
@@ -50,6 +51,18 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     private InMemoryDBStoreProvider(String graph) {
         this.open(graph);
+    }
+
+    @Override
+    public void open(String graph) {
+        super.open(graph);
+        /*
+         * Memory store need to init some system property,
+         * like task related property-keys and vertex-labels.
+         * don't notify from store.open() due to task-tx will
+         * call it again and cause dead
+         */
+        this.notifyAndWaitEvent(Events.STORE_INIT);
     }
 
     @Override

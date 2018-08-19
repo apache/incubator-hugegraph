@@ -63,15 +63,18 @@ public class TestGraphProvider extends AbstractGraphProvider {
     private static final String CONF_PATH = "hugegraph.properties";
     private static final String FILTER = "test.tinkerpop.filter";
     private static final String DEFAULT_FILTER = "methods.filter";
+
     private static final String TEST_CLASS = "testClass";
     private static final String TEST_METHOD = "testMethod";
+
     private static final String LOAD_GRAPH = "loadGraph";
-    private static final String AKEY = "aKey";
     private static final String STANDARD = "standard";
     private static final String REGULAR_LOAD = "regularLoad";
+
     private static final String GREMLIN_GRAPH_KEY = "gremlin.graph";
     private static final String GREMLIN_GRAPH_VALUE =
             "com.baidu.hugegraph.tinkerpop.TestGraphFactory";
+
     private static final String AKEY_CLASS_PREFIX =
             "org.apache.tinkerpop.gremlin.structure." +
             "PropertyTest.PropertyFeatureSupportTest";
@@ -160,10 +163,10 @@ public class TestGraphProvider extends AbstractGraphProvider {
     @Override
     public Map<String, Object> getBaseConfiguration(
                                String graphName,
-                               Class<?> test, String testMethod,
+                               Class<?> testClass, String testMethod,
                                LoadGraphWith.GraphData graphData) {
         // Check if test in blackList
-        String testFullName = test.getCanonicalName() + "." + testMethod;
+        String testFullName = testClass.getCanonicalName() + "." + testMethod;
         int index = testFullName.indexOf('@') == -1 ?
                     testFullName.length() : testFullName.indexOf('@');
 
@@ -187,7 +190,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         confMap.put(CoreOptions.STORE.name(),
                     storePrefix + "_" + this.suite + "_" + graphName);
         confMap.put(GREMLIN_GRAPH_KEY, GREMLIN_GRAPH_VALUE);
-        confMap.put(TEST_CLASS, test);
+        confMap.put(TEST_CLASS, testClass);
         confMap.put(TEST_METHOD, testMethod);
         confMap.put(LOAD_GRAPH, graphData);
 
@@ -217,42 +220,40 @@ public class TestGraphProvider extends AbstractGraphProvider {
     @Override
     public Graph openTestGraph(final Configuration config) {
         String graphName = config.getString(CoreOptions.STORE.name());
-        if (!this.graphs.containsKey(graphName)) {
-            TestGraph testGraph = this.newTestGraph(config);
-            this.graphs.putIfAbsent(graphName, testGraph);
-        }
-
         TestGraph testGraph = this.graphs.get(graphName);
+        if (testGraph == null) {
+            this.graphs.putIfAbsent(graphName, this.newTestGraph(config));
+        } else if (testGraph.closed()) {
+            this.graphs.put(graphName, this.newTestGraph(config));
+        }
+        testGraph = this.graphs.get(graphName);
+
         // Ensure tx clean
         testGraph.tx().rollback();
 
         // Define property key 'aKey' based on specified type in test name
-        String aKeyType = getAKeyType(
-                          (Class<?>) config.getProperty(TEST_CLASS),
-                          config.getString(TEST_METHOD));
+        Class<?> testClass = (Class<?>) config.getProperty(TEST_CLASS);
+        String testMethod = config.getString(TEST_METHOD);
+        String aKeyType = getAKeyType(testClass, testMethod);
         if (aKeyType != null) {
-            testGraph.initPropertyKey(AKEY, aKeyType);
+            testGraph.initPropertyKey("aKey", aKeyType);
         }
 
-        String ioType = getIoType((Class<?>) config.getProperty(TEST_CLASS),
-                                  config.getString(TEST_METHOD));
-
         // Basic schema is initiated by default once a graph is open
-        testGraph.initBasicSchema(IdStrategy.AUTOMATIC,
-                                  TestGraph.DEFAULT_VL);
+        testGraph.initBasicSchema(IdStrategy.AUTOMATIC, TestGraph.DEFAULT_VL);
         testGraph.tx().commit();
 
         testGraph.isLastIdCustomized(false);
-        testGraph.loadedGraph(ioType);
+        testGraph.loadedGraph(getIoType(testClass, testMethod));
         testGraph.autoPerson(false);
-        testGraph.ioTest(ioTest((Class<?>) config.getProperty(TEST_CLASS)));
+        testGraph.ioTest(ioTest(testClass));
 
         Object loadGraph = config.getProperty(LOAD_GRAPH);
         if (loadGraph != null && !graphName.endsWith(STANDARD)) {
-            this.loadGraphData(testGraph,
-                               (LoadGraphWith.GraphData) loadGraph);
+            this.loadGraphData(testGraph, (LoadGraphWith.GraphData) loadGraph);
         }
 
+        LOG.debug("Open graph '{}' for test '{}'", graphName, testMethod);
         return testGraph;
     }
 
@@ -268,17 +269,24 @@ public class TestGraphProvider extends AbstractGraphProvider {
         if (testGraph == null || !testGraph.initedBackend()) {
             return;
         }
+        String graphName = config.getString(CoreOptions.STORE.name());
+        if (testGraph.closed()) {
+            this.graphs.remove(graphName);
+            return;
+        }
 
         // Reset consumers
         graph.tx().onReadWrite(Transaction.READ_WRITE_BEHAVIOR.AUTO);
         graph.tx().onClose(Transaction.CLOSE_BEHAVIOR.ROLLBACK);
 
-        // Clear schema (also include data)
-        testGraph.clearSchema();
+        // Ensure tx clean
+        graph.tx().rollback();
 
-        // Clear variables (would not clear when clearing schema)
-        testGraph.clearVariables();
-        graph.tx().commit();
+        // Clear all data
+        Class<?> testClass = (Class<?>) config.getProperty(TEST_CLASS);
+        testGraph.clearAll(testClass.getCanonicalName());
+
+        LOG.debug("Clear graph '{}'", graphName);
     }
 
     public void clearBackends() {
@@ -308,8 +316,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         TestGraph testGraph = (TestGraph) graph;
 
         // Clear basic schema initiated in openTestGraph
-        testGraph.clearSchema();
-        testGraph.tx().commit();
+        testGraph.clearAll("");
 
         if (testGraph.loadedGraph() == null) {
             testGraph.loadedGraph(REGULAR_LOAD);

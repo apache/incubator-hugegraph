@@ -58,7 +58,7 @@ public final class HugeGraphStepStrategy
             // TODO: support order-by optimize
             // TraversalUtil.extractOrder(newStep, traversal);
 
-            TraversalUtil.extractRange(newStep, traversal);
+            TraversalUtil.extractRange(newStep, traversal, false);
 
             TraversalUtil.extractCount(newStep, traversal);
         }

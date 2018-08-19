@@ -114,7 +114,8 @@ public class ScyllaDBTables {
      * Query data from label index table if just want to query by label
      */
     private static Query queryByLabelIndex(
-            CassandraSessionPool.Session session, String table, Query query) {
+                         CassandraSessionPool.Session session,
+                         String table, Query query) {
         Set<Condition> conditions = query.conditions();
 
         if (!(query instanceof ConditionQuery) || conditions.isEmpty()) {
@@ -145,8 +146,8 @@ public class ScyllaDBTables {
     }
 
     private static Set<String> queryByLabelIndex(
-            CassandraSessionPool.Session session, String table, Id label) {
-
+                               CassandraSessionPool.Session session,
+                               String table, Id label) {
         Select select = QueryBuilder.select().from(table);
         select.where(CassandraTable.formatEQ(HugeKeys.LABEL, label.asLong()));
 
@@ -398,9 +399,11 @@ public class ScyllaDBTables {
         }
 
         private static Set<Integer> queryByNameIndex(
-                CassandraSessionPool.Session session,
-                String table, String name) {
-
+                                    CassandraSessionPool.Session session,
+                                    String table, String name) {
+            if (name.isEmpty()) {
+                return ImmutableSet.of();
+            }
             Select select = QueryBuilder.select().from(table);
             select.where(CassandraTable.formatEQ(HugeKeys.NAME, name));
 

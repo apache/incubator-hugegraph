@@ -35,6 +35,7 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -46,6 +47,9 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 public class TestGraph implements Graph {
 
     public static final String DEFAULT_VL = "vertex";
+
+    public static final List<String> TRUNCATE_BACKENDS =
+           Arrays.asList("rocksdb", "mysql");
 
     private static volatile int id = 666;
 
@@ -74,6 +78,32 @@ public class TestGraph implements Graph {
         this.initedBackend = false;
     }
 
+    protected void clearAll(String testClass) {
+        List<PropertyKey> pks = this.graph.schema().getPropertyKeys();
+        if (pks.isEmpty()) {
+            // No need to clear if there is no PKs(that's no schema and data)
+            return;
+        }
+
+        if (TRUNCATE_BACKENDS.contains(this.graph.backend())) {
+            // Delete all data by truncating tables
+            this.truncateBackend();
+        } else {
+            // Clear schema (also include data)
+            this.clearSchema();
+
+            // Clear variables if needed (would not clear when clearing schema)
+            if (testClass.endsWith("VariableAsMapTest")) {
+                this.clearVariables();
+                this.tx().commit();
+            }
+        }
+    }
+
+    protected void truncateBackend() {
+        this.graph.truncateBackend();
+    }
+
     protected void clearSchema() {
         // Clear schema and graph data will be cleared at same time
         SchemaManager schema = this.graph.schema();
@@ -98,6 +128,10 @@ public class TestGraph implements Graph {
     protected void clearVariables() {
         Variables variables = this.variables();
         variables.keys().forEach(key -> variables.remove(key));
+    }
+
+    protected boolean closed() {
+        return this.graph.closed();
     }
 
     @Override

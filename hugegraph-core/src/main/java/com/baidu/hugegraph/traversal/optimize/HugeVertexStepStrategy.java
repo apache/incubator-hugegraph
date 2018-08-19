@@ -57,7 +57,7 @@ public final class HugeVertexStepStrategy
             // TODO: support order-by optimize
             // TraversalUtil.extractOrder(newStep, traversal);
 
-            TraversalUtil.extractRange(newStep, traversal);
+            TraversalUtil.extractRange(newStep, traversal, true);
 
             TraversalUtil.extractCount(newStep, traversal);
         }

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.memory;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -81,6 +82,10 @@ public class InMemoryDBStore implements BackendStore {
 
     protected void registerTableManager(HugeType type, InMemoryDBTable table) {
         this.tables.put(type, table);
+    }
+
+    protected Collection<InMemoryDBTable> tables() {
+        return this.tables.values();
     }
 
     protected final InMemoryDBTable table(HugeType type) {
@@ -153,33 +158,41 @@ public class InMemoryDBStore implements BackendStore {
 
     @Override
     public void open(HugeConfig config) {
-        LOG.debug("open()");
-        /*
-         * Memory store need to init some system property,
-         * like task related propertykeys and vertexlabels
-         */
-        this.provider.init();
+        LOG.debug("Store opened: {}", this.store);
     }
 
     @Override
     public void close() throws BackendException {
-        LOG.debug("close()");
+        LOG.debug("Store closed: {}", this.store);
     }
 
     @Override
     public void init() {
-        LOG.info("init()");
-        for (InMemoryDBTable table : this.tables.values()) {
+        for (InMemoryDBTable table : this.tables()) {
             table.init(null);
         }
+
+        LOG.debug("Store initialized: {}", this.store);
     }
 
     @Override
     public void clear() {
-        LOG.info("clear()");
-        for (InMemoryDBTable table : this.tables.values()) {
+        for (InMemoryDBTable table : this.tables()) {
             table.clear(null);
         }
+        this.counter.reset();
+
+        LOG.debug("Store cleared: {}", this.store);
+    }
+
+    @Override
+    public void truncate() {
+        for (InMemoryDBTable table : this.tables()) {
+            table.clear(null);
+        }
+        this.counter.reset();
+
+        LOG.debug("Store truncated: {}", this.store);
     }
 
     @Override

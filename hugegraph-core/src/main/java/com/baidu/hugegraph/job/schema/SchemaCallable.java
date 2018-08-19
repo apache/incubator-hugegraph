@@ -56,6 +56,7 @@ public abstract class SchemaCallable extends Job<Object> {
             assert baseType == HugeType.EDGE_LABEL;
             schemaLabel = tx.getEdgeLabel(baseValue);
         }
+        assert schemaLabel != null;
         schemaLabel.removeIndexLabel(label.id());
         updateSchema(tx, schemaLabel);
     }

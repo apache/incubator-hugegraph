@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.cache;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -33,15 +34,19 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Events;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class CachedSchemaTransaction extends SchemaTransaction {
 
     private final Cache idCache;
     private final Cache nameCache;
+
+    private EventListener storeEventListener;
+    private EventListener cacheEventListener;
 
     private final Map<HugeType, Boolean> cachedTypes;
 
@@ -56,6 +61,15 @@ public class CachedSchemaTransaction extends SchemaTransaction {
         this.listenChanges();
     }
 
+    @Override
+    public void close() {
+        try {
+            super.close();
+        } finally {
+            this.unlistenChanges();
+        }
+    }
+
     private Cache cache(String prefix) {
         HugeConfig conf = super.graph().configuration();
 
@@ -66,45 +80,59 @@ public class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     private void listenChanges() {
-        // Listen store event: "store.init", "store.clear"
-        List<String> events = ImmutableList.of(Events.STORE_INIT,
-                                               Events.STORE_CLEAR);
-        super.store().provider().listen(event -> {
-            if (events.contains(event.name())) {
-                LOG.info("Clear cache on event '{}'", event.name());
+        // Listen store event: "store.init", "store.clear", ...
+        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INIT,
+                                                  Events.STORE_CLEAR,
+                                                  Events.STORE_TRUNCATE);
+        this.storeEventListener = event -> {
+            if (storeEvents.contains(event.name())) {
+                LOG.debug("Graph {} clear cache on event '{}'",
+                          this.graph(), event.name());
                 this.idCache.clear();
                 this.nameCache.clear();
                 this.cachedTypes.clear();
                 return true;
             }
             return false;
-        });
+        };
+        this.store().provider().listen(this.storeEventListener);
 
         // Listen cache event: "cache"(invalid cache item)
-        EventHub schemaEventHub = super.graph().schemaEventHub();
-        if (!schemaEventHub.containsListener(Events.CACHE)) {
-            schemaEventHub.listen(Events.CACHE, event -> {
-                LOG.debug("Received event: {}", event);
-                event.checkArgs(String.class, Id.class);
-                Object[] args = event.args();
-                if (args[0].equals("invalid")) {
-                    Id id = (Id) args[1];
-                    Object value = this.idCache.get(id);
-                    if (value != null) {
-                        // Invalidate id cache
-                        this.idCache.invalidate(id);
+        this.cacheEventListener = event -> {
+            LOG.debug("Graph {} received cache event: {}",
+                      this.graph(), event);
+            event.checkArgs(String.class, Id.class);
+            Object[] args = event.args();
+            if (args[0].equals("invalid")) {
+                Id id = (Id) args[1];
+                Object value = this.idCache.get(id);
+                if (value != null) {
+                    // Invalidate id cache
+                    this.idCache.invalidate(id);
 
-                        // Invalidate name cache
-                        SchemaElement schema = (SchemaElement) value;
-                        Id prefixedName = generateId(schema.type(),
-                                                     schema.name());
-                        this.nameCache.invalidate(prefixedName);
-                    }
-                    return true;
+                    // Invalidate name cache
+                    SchemaElement schema = (SchemaElement) value;
+                    Id prefixedName = generateId(schema.type(),
+                                                 schema.name());
+                    this.nameCache.invalidate(prefixedName);
                 }
-                return false;
-            });
+                return true;
+            }
+            return false;
+        };
+        EventHub schemaEventHub = this.graph().schemaEventHub();
+        if (!schemaEventHub.containsListener(Events.CACHE)) {
+            schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
+    }
+
+    private void unlistenChanges() {
+        // Unlisten store event
+        this.store().provider().unlisten(this.storeEventListener);
+
+        // Unlisten cache event
+        EventHub schemaEventHub = this.graph().schemaEventHub();
+        schemaEventHub.unlisten(Events.CACHE, this.cacheEventListener);
     }
 
     private void resetCachedAllIfReachedCapacity() {

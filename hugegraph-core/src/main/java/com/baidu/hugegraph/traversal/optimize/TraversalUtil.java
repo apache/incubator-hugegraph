@@ -131,16 +131,15 @@ public final class TraversalUtil {
     }
 
     public static void extractRange(Step<?, ?> newStep,
-                                    Traversal.Admin<?, ?> traversal) {
+                                    Traversal.Admin<?, ?> traversal,
+                                    boolean extractOnlyLimit) {
+        QueryHolder holder = (QueryHolder) newStep;
         Step<?, ?> step = newStep;
         do {
             step = step.getNextStep();
             if (step instanceof RangeGlobalStep) {
-                QueryHolder holder = (QueryHolder) newStep;
                 @SuppressWarnings("unchecked")
                 RangeGlobalStep<Object> range = (RangeGlobalStep<Object>) step;
-                long limit = holder.setRange(range.getLowRange(),
-                                             range.getHighRange());
                 /*
                  * NOTE: keep the step to limit results after query from DB
                  * due to `limit`(in DB) may not be implemented accurately.
@@ -148,9 +147,16 @@ public final class TraversalUtil {
                  */
                 // TraversalHelper.copyLabels(step, newStep, false);
                 // traversal.removeStep(step);
-                Step<Object, Object> newRange = new RangeGlobalStep<>(traversal,
-                                                                      0, limit);
-                TraversalHelper.replaceStep(range, newRange, traversal);
+                if (extractOnlyLimit) {
+                    // May need to retain offset for multiple sub-queries
+                    holder.setRange(0, range.getHighRange());
+                } else {
+                    long limit = holder.setRange(range.getLowRange(),
+                                                 range.getHighRange());
+                    RangeGlobalStep<Object> newRange = new RangeGlobalStep<>(
+                                                       traversal, 0, limit);
+                    TraversalHelper.replaceStep(range, newRange, traversal);
+                }
             }
         } while (step instanceof RangeGlobalStep ||
                  step instanceof IdentityStep ||

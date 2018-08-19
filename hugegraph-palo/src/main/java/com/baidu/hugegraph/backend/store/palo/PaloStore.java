@@ -47,7 +47,7 @@ public abstract class PaloStore extends MysqlStore {
     }
 
     private List<String> tableNames() {
-        return this.tables().values().stream().map(BackendTable::table)
+        return this.tables().stream().map(BackendTable::table)
                    .collect(Collectors.toList());
     }
 }

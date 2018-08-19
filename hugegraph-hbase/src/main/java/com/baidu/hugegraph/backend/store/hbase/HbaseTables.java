@@ -217,7 +217,7 @@ public class HbaseTables {
         }
     }
 
-    public static class SearchIndex extends SecondaryIndex {
+    public static class SearchIndex extends IndexTable {
 
         public static final String TABLE = "fi";
 

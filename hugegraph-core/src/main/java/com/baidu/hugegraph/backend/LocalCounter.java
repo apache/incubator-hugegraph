@@ -46,4 +46,8 @@ public class LocalCounter {
         }
         return IdGenerator.of(counter.incrementAndGet());
     }
+
+    public void reset() {
+        this.counters.clear();
+    }
 }
