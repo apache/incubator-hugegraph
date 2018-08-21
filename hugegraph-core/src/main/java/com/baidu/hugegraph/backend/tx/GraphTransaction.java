@@ -619,8 +619,11 @@ public class GraphTransaction extends IndexableTransaction {
             vertex.setProperty(prop);
             return;
         }
+        boolean vertexPropertyUpdatable = this.store().features()
+                                              .supportsUpdateVertexProperty();
         // Check is updating property of added/removed vertex
-        E.checkArgument(!this.addedVertexes.containsKey(vertex.id()) ||
+        E.checkArgument(!vertexPropertyUpdatable ||
+                        !this.addedVertexes.containsKey(vertex.id()) ||
                         this.updatedVertexes.containsKey(vertex.id()),
                         "Can't update property '%s' for adding-state vertex",
                         prop.key());
@@ -643,7 +646,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.propertyUpdated(vertex, vertex.setProperty(prop));
             this.indexTx.updateVertexIndex(vertex, false);
 
-            if (this.store().features().supportsUpdateVertexProperty()) {
+            if (vertexPropertyUpdatable) {
                 // Append new property(OUT and IN owner edge)
                 this.doAppend(this.serializer.writeVertexProperty(prop));
             } else {
@@ -675,8 +678,11 @@ public class GraphTransaction extends IndexableTransaction {
             vertex.removeProperty(propKey.id());
             return;
         }
+        boolean vertexPropertyUpdatable = this.store().features()
+                                              .supportsUpdateVertexProperty();
         // Check is updating property of added/removed vertex
-        E.checkArgument(!this.addedVertexes.containsKey(vertex.id()),
+        E.checkArgument(!vertexPropertyUpdatable ||
+                        !this.addedVertexes.containsKey(vertex.id()),
                         "Can't remove property '%s' for adding-state vertex",
                         prop.key());
         E.checkArgument(!this.removedVertexes.containsKey(vertex.id()),
@@ -693,7 +699,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.propertyUpdated(vertex, vertex.removeProperty(propKey.id()));
             this.indexTx.updateVertexIndex(vertex, false);
 
-            if (this.store().features().supportsUpdateVertexProperty()) {
+            if (vertexPropertyUpdatable) {
                 // Eliminate the property(OUT and IN owner edge)
                 this.doEliminate(this.serializer.writeVertexProperty(prop));
             } else {
@@ -717,8 +723,11 @@ public class GraphTransaction extends IndexableTransaction {
             edge.setProperty(prop);
             return;
         }
+        boolean edgePropertyUpdatable = this.store().features()
+                                            .supportsUpdateEdgeProperty();
         // Check is updating property of added/removed edge
-        E.checkArgument(!this.addedEdges.containsKey(edge.id()) ||
+        E.checkArgument(!edgePropertyUpdatable ||
+                        !this.addedEdges.containsKey(edge.id()) ||
                         this.updatedEdges.containsKey(edge.id()),
                         "Can't update property '%s' for adding-state edge",
                         prop.key());
@@ -741,7 +750,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.propertyUpdated(edge, edge.setProperty(prop));
             this.indexTx.updateEdgeIndex(edge, false);
 
-            if (this.store().features().supportsUpdateEdgeProperty()) {
+            if (edgePropertyUpdatable) {
                 // Append new property(OUT and IN owner edge)
                 this.doAppend(this.serializer.writeEdgeProperty(prop));
                 this.doAppend(this.serializer.writeEdgeProperty(
@@ -774,8 +783,11 @@ public class GraphTransaction extends IndexableTransaction {
             edge.removeProperty(propKey.id());
             return;
         }
+        boolean edgePropertyUpdatable = this.store().features()
+                                            .supportsUpdateEdgeProperty();
         // Check is updating property of added/removed edge
-        E.checkArgument(!this.addedEdges.containsKey(edge.id()) ||
+        E.checkArgument(!edgePropertyUpdatable ||
+                        !this.addedEdges.containsKey(edge.id()) ||
                         this.updatedEdges.containsKey(edge.id()),
                         "Can't remove property '%s' for adding-state edge",
                         prop.key());
@@ -793,7 +805,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.propertyUpdated(edge, edge.removeProperty(propKey.id()));
             this.indexTx.updateEdgeIndex(edge, false);
 
-            if (this.store().features().supportsUpdateEdgeProperty()) {
+            if (edgePropertyUpdatable) {
                 // Eliminate the property(OUT and IN owner edge)
                 this.doEliminate(this.serializer.writeEdgeProperty(prop));
                 this.doEliminate(this.serializer.writeEdgeProperty(
