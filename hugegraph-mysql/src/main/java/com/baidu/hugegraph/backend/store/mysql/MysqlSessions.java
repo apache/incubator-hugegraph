@@ -301,6 +301,7 @@ public class MysqlSessions extends BackendSessionPool {
                     updated += IntStream.of(statement.executeBatch()).sum();
                 }
                 this.conn.commit();
+                this.conn.setAutoCommit(true);
                 this.clear();
             } catch (SQLException e) {
                 throw new BackendException("Failed to commit", e);

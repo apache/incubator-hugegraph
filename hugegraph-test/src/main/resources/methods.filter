@@ -63,6 +63,9 @@ org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetin
 
 ####################    process suite    ####################
 
+# multiple source vertices VertexStep with range
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.RangeTest.Traversals.g_V_repeatXbothX_timesX3X_rangeX5_11X: Range applied to last VertexStep as offset and limit for each Query, rather than result sets
+
 # unsupported automatic edge id, therefore number of edge is wrong
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdge: Unsupported automatic edge id, therefore number of edge is wrong
 org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategyProcessTest.shouldTriggerAddEdgeByPath: Unsupported automatic edge id, therefore number of edge is wrong
