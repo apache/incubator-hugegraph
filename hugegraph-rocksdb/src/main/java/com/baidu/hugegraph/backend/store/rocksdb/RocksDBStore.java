@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 
@@ -129,9 +132,10 @@ public abstract class RocksDBStore implements BackendStore {
         }
 
         // Open base disk
-        String dataPath = config.get(RocksDBOptions.DATA_PATH);
-        dataPath = RocksDBSessions.wrapPath(dataPath, this.store);
-        this.sessions = this.open(config, dataPath, this.tableNames());
+        String dataPath = this.wrapPath(config.get(RocksDBOptions.DATA_PATH));
+        String walPath = this.wrapPath(config.get(RocksDBOptions.WAL_PATH));
+
+        this.sessions = this.open(config, dataPath, walPath, this.tableNames());
 
         // Open tables with optimized disk
         List<String> disks = config.get(RocksDBOptions.DATA_DISKS);
@@ -140,18 +144,19 @@ public abstract class RocksDBStore implements BackendStore {
             for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
                 String table = this.table(e.getKey()).table();
                 String disk = e.getValue();
-                this.open(config, disk, Arrays.asList(table));
+                this.open(config, disk, disk, Arrays.asList(table));
             }
         }
     }
 
     protected RocksDBSessions open(HugeConfig config, String dataPath,
-                                   List<String> tableNames) {
+                                   String walPath, List<String> tableNames) {
         LOG.info("Opening RocksDB with data path: {}", dataPath);
 
         RocksDBSessions sessions = null;
         try {
-            sessions = this.openSessionPool(config, tableNames);
+            sessions = this.openSessionPool(config, dataPath,
+                                            walPath, tableNames);
         } catch (RocksDBException e) {
             if (dbs.containsKey(dataPath)) {
                 if (e.getMessage().contains("No locks available")) {
@@ -162,7 +167,8 @@ public abstract class RocksDBStore implements BackendStore {
                     try {
                         // Will open old CFs(of other keyspace)
                         final List<String> none = ImmutableList.of();
-                        sessions = this.openSessionPool(config, none);
+                        sessions = this.openSessionPool(config, dataPath,
+                                                        walPath, none);
                     } catch (RocksDBException e1) {
                         // Let it throw later
                         e = e1;
@@ -174,7 +180,8 @@ public abstract class RocksDBStore implements BackendStore {
                          "try to init CF later", dataPath, this.database);
                 try {
                     // Only open default CF, won't open old CFs
-                    sessions = this.openSessionPool(config, null);
+                    sessions = this.openSessionPool(config, dataPath,
+                                                    walPath, null);
                 } catch (RocksDBException e1) {
                     LOG.error("Failed to open RocksDB with default CF", e1);
                 }
@@ -198,12 +205,15 @@ public abstract class RocksDBStore implements BackendStore {
     }
 
     protected RocksDBSessions openSessionPool(HugeConfig config,
+                                              String dataPath, String walPath,
                                               List<String> tableNames)
                                               throws RocksDBException {
         if (tableNames == null) {
-            return new RocksDBStdSessions(config, this.database, this.store);
+            return new RocksDBStdSessions(config, dataPath, walPath,
+                                          this.database, this.store);
         } else {
-            return new RocksDBStdSessions(config, this.database, this.store,
+            return new RocksDBStdSessions(config, dataPath, walPath,
+                                          this.database, this.store,
                                           tableNames);
         }
     }
@@ -401,7 +411,7 @@ public abstract class RocksDBStore implements BackendStore {
             String store = pair[0].trim();
             HugeType table = HugeType.valueOf(pair[1].trim().toUpperCase());
             if (this.store.equals(store)) {
-                path = RocksDBSessions.wrapPath(path, this.store);
+                path = this.wrapPath(path);
                 this.tableDiskMapping.put(table, path);
             }
         }
@@ -412,6 +422,17 @@ public abstract class RocksDBStore implements BackendStore {
         E.checkState(db != null && !db.closed(),
                      "RocksDB store has not been opened: %s", disk);
         return db;
+    }
+
+    protected String wrapPath(String path) {
+        // Ensure the `path` exists
+        try {
+            FileUtils.forceMkdir(FileUtils.getFile(path));
+        } catch (IOException e) {
+            throw new BackendException(e.getMessage(), e);
+        }
+        // Join with store type
+        return Paths.get(path, this.store).toString();
     }
 
     /***************************** Store defines *****************************/
