@@ -40,13 +40,14 @@ public abstract class RocksDBSstStore extends RocksDBStore {
 
     @Override
     protected RocksDBSessions openSessionPool(HugeConfig config,
+                                              String dataPath, String walPath,
                                               List<String> tableNames)
                                               throws RocksDBException {
         if (tableNames == null) {
-            return new RocksDBSstSessions(config, this.database(),
+            return new RocksDBSstSessions(config, dataPath, this.database(),
                                           this.store());
         } else {
-            return new RocksDBSstSessions(config, this.database(),
+            return new RocksDBSstSessions(config, dataPath, this.database(),
                                           this.store(), tableNames);
         }
     }
