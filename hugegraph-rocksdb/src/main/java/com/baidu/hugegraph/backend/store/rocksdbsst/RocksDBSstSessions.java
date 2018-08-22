@@ -22,12 +22,8 @@ package com.baidu.hugegraph.backend.store.rocksdbsst;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -38,7 +34,6 @@ import org.rocksdb.SstFileWriter;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
-import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -51,11 +46,12 @@ public class RocksDBSstSessions extends RocksDBSessions {
     private final String dataPath;
     private final Map<String, SstFileWriter> tables;
 
-    public RocksDBSstSessions(HugeConfig conf, String database, String store) {
+    public RocksDBSstSessions(HugeConfig conf, String dataPath,
+                              String database, String store) {
         super(database, store);
 
         this.conf = conf;
-        this.dataPath = this.wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
+        this.dataPath = dataPath;
         this.tables = new ConcurrentHashMap<>();
 
         File path = new File(this.dataPath);
@@ -64,9 +60,10 @@ public class RocksDBSstSessions extends RocksDBSessions {
         }
     }
 
-    public RocksDBSstSessions(HugeConfig config, String database, String store,
+    public RocksDBSstSessions(HugeConfig config, String dataPath,
+                              String database, String store,
                               List<String> tableNames) throws RocksDBException {
-        this(config, database, store);
+        this(config, dataPath, database, store);
         for (String table : tableNames) {
             this.createTable(table);
         }

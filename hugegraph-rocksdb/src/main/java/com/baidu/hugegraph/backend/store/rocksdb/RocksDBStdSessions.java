@@ -62,14 +62,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private final HugeConfig conf;
     private final RocksDB rocksdb;
 
-    public RocksDBStdSessions(HugeConfig config, String database, String store)
+    public RocksDBStdSessions(HugeConfig config, String dataPath,
+                              String walPath, String database, String store)
                               throws RocksDBException {
         super(database, store);
 
         this.conf = config;
-
-        String dataPath = wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
-        String walPath = wrapPath(this.conf.get(RocksDBOptions.WAL_PATH));
 
         // Init options
         Options options = new Options();
@@ -83,13 +81,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.rocksdb = RocksDB.open(options, dataPath);
     }
 
-    public RocksDBStdSessions(HugeConfig config, String database, String store,
+    public RocksDBStdSessions(HugeConfig config, String dataPath,
+                              String walPath, String database, String store,
                               List<String> cfNames) throws RocksDBException {
         super(database, store);
         this.conf = config;
-
-        String dataPath = wrapPath(this.conf.get(RocksDBOptions.DATA_PATH));
-        String walPath = wrapPath(this.conf.get(RocksDBOptions.WAL_PATH));
 
         // Old CFs should always be opened
         List<String> cfs = this.mergeOldCFs(dataPath, cfNames);
