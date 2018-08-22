@@ -22,10 +22,12 @@ package com.baidu.hugegraph.event;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -128,7 +130,7 @@ public class EventHub {
         return count;
     }
 
-    public void notify(String event, @Nullable Object... args) {
+    public Future<Integer> notify(String event, @Nullable Object... args) {
         @SuppressWarnings("resource")
         ExtendableIterator<EventListener> all = new ExtendableIterator<>();
 
@@ -142,21 +144,24 @@ public class EventHub {
         }
 
         if (!all.hasNext()) {
-            return;
+            return CompletableFuture.completedFuture(0);
         }
 
         Event ev = new Event(this, event, args);
 
         // The submit will catch params: `all`(Listeners) and `ev`(Event)
-        executor().submit(() -> {
+        return executor().submit(() -> {
+            int count = 0;
             // Notify all listeners, and ignore the results
             while (all.hasNext()) {
                 try {
                     all.next().event(ev);
+                    count++;
                 } catch (Throwable ignored) {
                     LOG.warn("Failed to handle event: {}", ev, ignored);
                 }
             }
+            return count;
         });
     }
 
