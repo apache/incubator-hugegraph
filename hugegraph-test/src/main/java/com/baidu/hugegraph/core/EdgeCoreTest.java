@@ -1832,13 +1832,15 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testUpdateEdgePropertyOfAddingVertex() {
+    public void testUpdateEdgePropertyOfAddingEdge() {
         Edge edge = initEdgeTransfer();
 
         Vertex louise = vertex("person", "name", "Louise");
         Vertex sean = vertex("person", "name", "Sean");
+
         louise.addEdge("transfer", sean, "id", 1, "amount", 500.00F,
-                       "timestamp", edge.value("timestamp"));
+                       "timestamp", edge.value("timestamp"),
+                       "message", "Happy birthday!");
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             edge.property("message").remove();
@@ -1849,7 +1851,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testUpdateEdgePropertyOfRemovingVertex() {
+    public void testUpdateEdgePropertyOfRemovingEdge() {
         Edge edge = initEdgeTransfer();
 
         edge.remove();
@@ -1863,7 +1865,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testUpdateEdgePropertyOfRemovingVertexWithDrop() {
+    public void testUpdateEdgePropertyOfRemovingEdgeWithDrop() {
         HugeGraph graph = graph();
         Edge edge = initEdgeTransfer();
 
