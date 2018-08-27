@@ -184,6 +184,8 @@ public class IndexLabel extends SchemaElement {
 
     public interface Builder extends SchemaBuilder<IndexLabel> {
 
+        CreatedIndexLabel createWithTask();
+
         Id rebuild();
 
         Builder onV(String baseValue);
@@ -201,5 +203,34 @@ public class IndexLabel extends SchemaElement {
         Builder on(HugeType baseType, String baseValue);
 
         Builder indexType(IndexType indexType);
+    }
+
+    public static class CreatedIndexLabel {
+
+        private IndexLabel indexLabel;
+        private Id task;
+
+        public CreatedIndexLabel(IndexLabel indexLabel, Id task) {
+            E.checkNotNull(indexLabel, "index label");
+            this.indexLabel = indexLabel;
+            this.task = task;
+        }
+
+        public void indexLabel(IndexLabel indexLabel) {
+            E.checkNotNull(indexLabel, "index label");
+            this.indexLabel = indexLabel;
+        }
+
+        public IndexLabel indexLabel() {
+            return this.indexLabel;
+        }
+
+        public void task(Id task) {
+            this.task = task;
+        }
+
+        public Id task() {
+            return this.task;
+        }
     }
 }

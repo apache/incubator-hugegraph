@@ -17,32 +17,34 @@ public abstract class SchemaCallable extends Job<Object> {
 
     public static final String REMOVE_SCHEMA = "remove_schema";
     public static final String REBUILD_INDEX = "rebuild_index";
+    public static final String CREATE_INDEX = "create_index";
 
     private static final String SPLITOR = ":";
 
     protected HugeType schemaType() {
         String name = this.task().name();
-        String[] parts = name.split(SPLITOR);
-        E.checkState(parts.length == 2 && parts[0] != null,
-                     "Task name should be formatted to String 'TYPE:ID', " +
-                     "but got '%s'", name);
+        String[] parts = name.split(SPLITOR, 3);
+        E.checkState(parts.length == 3 && parts[0] != null,
+                     "Task name should be formatted to String " +
+                     "'TYPE:ID:NAME', but got '%s'", name);
 
         return HugeType.valueOf(parts[0]);
     }
 
     protected Id schemaId() {
         String name = this.task().name();
-        String[] parts = name.split(SPLITOR);
-        E.checkState(parts.length == 2 && parts[1] != null,
-                     "Task name should be formatted to String 'TYPE:ID', " +
-                     "but got '%s'", name);
+        String[] parts = name.split(SPLITOR, 3);
+        E.checkState(parts.length == 3 && parts[1] != null,
+                     "Task name should be formatted to String " +
+                     "'TYPE:ID:NAME', but got '%s'", name);
         return IdGenerator.of(Long.valueOf(parts[1]));
     }
 
-    public static String formatTaskName(HugeType schemaType, Id schemaId) {
-        E.checkNotNull(schemaType, "schema type");
-        E.checkNotNull(schemaId, "schema id");
-        return String.join(SPLITOR, schemaType.toString(), schemaId.toString());
+    public static String formatTaskName(HugeType type, Id id, String name) {
+        E.checkNotNull(type, "schema type");
+        E.checkNotNull(id, "schema id");
+        E.checkNotNull(name, "schema name");
+        return String.join(SPLITOR, type.toString(), id.asString(), name);
     }
 
     protected static void removeIndexLabelFromBaseLabel(SchemaTransaction tx,

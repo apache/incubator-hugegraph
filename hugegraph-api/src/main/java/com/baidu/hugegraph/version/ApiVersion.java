@@ -73,10 +73,11 @@ public final class ApiVersion {
      * version 0.8:
      * [0.28] Issue-153: Add task-cancel API
      * [0.29] Issue-39: Add rays and rings RESTful API
+     * [0.30] Issue-32: Change index create API to return indexLabel and task id
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.29");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.30");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

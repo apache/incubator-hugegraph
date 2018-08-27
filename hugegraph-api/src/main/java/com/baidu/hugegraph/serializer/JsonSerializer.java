@@ -160,6 +160,18 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
+    public String writeCreatedIndexLabel(IndexLabel.CreatedIndexLabel cil) {
+        StringBuilder builder = new StringBuilder();
+        long id = cil.task() == null ? 0L : cil.task().asLong();
+        return builder.append("{\"index_label\": ")
+                      .append(this.writeIndexlabel(cil.indexLabel()))
+                      .append(", \"task_id\": ")
+                      .append(id)
+                      .append("}")
+                      .toString();
+    }
+
+    @Override
     public String writeVertex(Vertex vertex) {
         return writeObject(vertex);
     }

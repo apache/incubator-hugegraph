@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -52,6 +53,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
+import com.google.common.collect.ImmutableSet;
 
 public class SchemaTransaction extends IndexableTransaction {
 
@@ -217,10 +219,15 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     public Id rebuildIndex(SchemaElement schema) {
+        return this.rebuildIndex(schema, ImmutableSet.of());
+    }
+
+    public Id rebuildIndex(SchemaElement schema, Set<Id> dependencies) {
         LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
         SchemaCallable callable = new RebuildIndexCallable();
-        return asyncRun(this.graph(), schema.type(), schema.id(), callable);
+        return asyncRun(this.graph(), schema.type(), schema.id(), callable,
+                        dependencies);
     }
 
     public void updateSchemaStatus(SchemaElement schema, SchemaStatus status) {
@@ -352,10 +359,21 @@ public class SchemaTransaction extends IndexableTransaction {
 
     private static Id asyncRun(HugeGraph graph, HugeType schemaType,
                                Id schemaId, SchemaCallable callable) {
-        String name = SchemaCallable.formatTaskName(schemaType, schemaId);
+        return asyncRun(graph, schemaType, schemaId,
+                        callable, ImmutableSet.of());
+    }
+
+    private static Id asyncRun(HugeGraph graph, HugeType schemaType,
+                               Id schemaId, SchemaCallable callable,
+                               Set<Id> dependencies) {
+        String schemaName = graph.schemaTransaction()
+                                 .getSchema(schemaType, schemaId).name();
+        String name = SchemaCallable.formatTaskName(schemaType, schemaId,
+                                                    schemaName);
 
         JobBuilder<Object> builder = JobBuilder.of(graph).name(name)
-                                                         .job(callable);
+                                               .job(callable)
+                                               .dependencies(dependencies);
         HugeTask<?> task = builder.schedule();
 
         // If SCHEMA_SYNC_DELETION is true, wait async thread done before

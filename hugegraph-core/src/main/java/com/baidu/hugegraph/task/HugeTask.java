@@ -26,7 +26,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.FutureTask;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -35,8 +38,10 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeTask<V> extends FutureTask<V> {
@@ -49,7 +54,7 @@ public class HugeTask<V> extends FutureTask<V> {
     private String name;
     private final Id id;
     private final Id parent;
-    private List<Id> children;
+    private Set<Id> dependencies;
     private String description;
     private Date create;
     private volatile TaskStatus status;
@@ -76,7 +81,7 @@ public class HugeTask<V> extends FutureTask<V> {
         this.name = null;
         this.id = id;
         this.parent = parent;
-        this.children = null;
+        this.dependencies = null;
         this.description = null;
         this.status = TaskStatus.NEW;
         this.progress = 0;
@@ -95,15 +100,17 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.parent;
     }
 
-    public List<Id> children() {
-        return Collections.unmodifiableList(this.children);
+    public Set<Id> dependencies() {
+        return Collections.unmodifiableSet(this.dependencies);
     }
 
-    public void child(Id id) {
-        if (this.children == null) {
-            this.children = new ArrayList<>();
+    public void depends(Id id) {
+        E.checkState(this.status == TaskStatus.NEW,
+                     "Can't add dependency in status '%s'", this.status);
+        if (this.dependencies == null) {
+            this.dependencies = InsertionOrderUtil.newSet();
         }
-        this.children.add(id);
+        this.dependencies.add(id);
     }
 
     public TaskStatus status() {
@@ -190,8 +197,10 @@ public class HugeTask<V> extends FutureTask<V> {
     @Override
     public void run() {
         assert this.status.code() < TaskStatus.RUNNING.code();
-        this.status(TaskStatus.RUNNING);
-        super.run();
+        if (this.checkDependenciesSuccess()) {
+            this.status(TaskStatus.RUNNING);
+            super.run();
+        }
     }
 
     @Override
@@ -241,6 +250,35 @@ public class HugeTask<V> extends FutureTask<V> {
         super.setException(e);
     }
 
+    protected boolean checkDependenciesSuccess() {
+        if (this.dependencies == null || this.dependencies.isEmpty()) {
+            return true;
+        }
+        for (Id dependency : this.dependencies) {
+            HugeTask task = this.callable.scheduler().task(dependency);
+            if (!task.completed()) {
+                // Dependent task not completed, re-schedule self
+                this.callable.scheduler().schedule(this);
+                return false;
+            } else if (task.status() == TaskStatus.CANCELLED) {
+                this.status(TaskStatus.CANCELLED);
+                this.result = String.format(
+                              "Cancelled due to dependent task '%s' cancelled",
+                              dependency);
+                this.done();
+                return false;
+            } else if (task.status() == TaskStatus.FAILED) {
+                this.status(TaskStatus.FAILED);
+                this.result = String.format(
+                              "Failed due to dependent task '%s' failed",
+                              dependency);
+                this.done();
+                return false;
+            }
+        }
+        return true;
+    }
+
     protected TaskCallable<V> callable() {
         return this.callable;
     }
@@ -258,8 +296,8 @@ public class HugeTask<V> extends FutureTask<V> {
             case P.NAME:
                 this.name = (String) value;
                 break;
-            case P.DESCRIPTION:
-                this.description = (String) value;
+            case P.CALLABLE:
+                // pass
                 break;
             case P.STATUS:
                 this.status(SerialEnum.fromCode(TaskStatus.class, (byte) value));
@@ -270,20 +308,26 @@ public class HugeTask<V> extends FutureTask<V> {
             case P.CREATE:
                 this.create = (Date) value;
                 break;
+            case P.RETRIES:
+                this.retries = (int) value;
+                break;
+            case P.DESCRIPTION:
+                this.description = (String) value;
+                break;
             case P.UPDATE:
                 this.update = (Date) value;
                 break;
-            case P.RETRIES:
-                this.retries = (int) value;
+            case P.DEPENDENCIES:
+                @SuppressWarnings("unchecked")
+                Set<Long> values = (Set<Long>) value;
+                this.dependencies = values.stream().map(IdGenerator::of)
+                                                   .collect(toOrderSet());
                 break;
             case P.INPUT:
                 this.input = (String) value;
                 break;
             case P.RESULT:
                 this.result = (String) value;
-                break;
-            case P.CALLABLE:
-                // pass
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -333,6 +377,12 @@ public class HugeTask<V> extends FutureTask<V> {
             list.add(this.update);
         }
 
+        if (this.dependencies != null) {
+            list.add(P.DEPENDENCIES);
+            list.add(this.dependencies.stream().map(Id::asLong)
+                                               .collect(toOrderSet()));
+        }
+
         if (this.input != null) {
             list.add(P.INPUT);
             list.add(this.input);
@@ -372,6 +422,11 @@ public class HugeTask<V> extends FutureTask<V> {
         if (this.update != null) {
             map.put(Hidden.unHide(P.UPDATE), this.update);
         }
+        if (this.dependencies != null) {
+            Set<Long> value = this.dependencies.stream().map(Id::asLong)
+                                                        .collect(toOrderSet());
+            map.put(Hidden.unHide(P.DEPENDENCIES), value);
+        }
         if (withDetails && this.input != null) {
             map.put(Hidden.unHide(P.INPUT), this.input);
         }
@@ -400,6 +455,10 @@ public class HugeTask<V> extends FutureTask<V> {
         return task;
     }
 
+    private static <T> Collector<T, ?, Set<T>> toOrderSet() {
+        return Collectors.toCollection(InsertionOrderUtil::newSet);
+    }
+
     public static final class P {
 
         public static final String TASK = Hidden.hide("task");
@@ -418,6 +477,7 @@ public class HugeTask<V> extends FutureTask<V> {
         public static final String RETRIES = "~task_retries";
         public static final String INPUT = "~task_input";
         public static final String RESULT = "~task_result";
+        public static final String DEPENDENCIES = "~task_dependencies";
 
         //public static final String PARENT = hide("parent");
         //public static final String CHILDREN = hide("children");

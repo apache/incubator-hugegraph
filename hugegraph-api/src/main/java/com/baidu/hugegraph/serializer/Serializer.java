@@ -52,6 +52,8 @@ public interface Serializer {
 
     public String writeIndexlabels(List<IndexLabel> indexLabels);
 
+    public String writeCreatedIndexLabel(IndexLabel.CreatedIndexLabel cil);
+
     public String writeVertex(Vertex v);
 
     public String writeVertices(Iterator<Vertex> vertices, boolean paging);
