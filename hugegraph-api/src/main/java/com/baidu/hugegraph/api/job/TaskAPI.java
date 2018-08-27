@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 import javax.ws.rs.BadRequestException;
@@ -42,6 +43,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -58,6 +60,7 @@ import com.google.common.collect.ImmutableMap;
 public class TaskAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
+    private static final long NO_LIMIT = -1L;
 
     public static final String ACTION_CANCEL = "cancel";
 
@@ -67,6 +70,7 @@ public class TaskAPI extends API {
     public Map<String, List<Object>> list(@Context GraphManager manager,
                                           @PathParam("graph") String graph,
                                           @QueryParam("status") String status,
+                                          @QueryParam("ids") List<Long> ids,
                                           @QueryParam("limit")
                                           @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] list tasks with status {}, limit {}",
@@ -75,15 +79,34 @@ public class TaskAPI extends API {
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
 
         Iterator<HugeTask<Object>> itor;
-        if (status == null) {
-            itor = scheduler.findAllTask(limit);
+
+        if (!ids.isEmpty()) {
+            LOG.debug("Graph [{}] list tasks with ids {}, limit {}",
+                      graph, ids, limit);
+            E.checkArgument(status == null,
+                            "Not support status when query task by ids, " +
+                            "but got status='%s'", status);
+            // Set limit to NO_LIMIT to ignore limit when query task by ids
+            limit = NO_LIMIT;
+            List<Id> idList = ids.stream().map(IdGenerator::of)
+                                          .collect(Collectors.toList());
+            itor = scheduler.tasks(idList);
         } else {
-            itor = scheduler.findTask(parseStatus(status), limit);
+            LOG.debug("Graph [{}] list tasks with status {}, limit {}",
+                      graph, status, limit);
+            if (status == null) {
+                itor = scheduler.findAllTask(limit);
+            } else {
+                itor = scheduler.findTask(parseStatus(status), limit);
+            }
         }
 
         List<Object> tasks = new ArrayList<>();
         while (itor.hasNext()) {
             tasks.add(itor.next().asMap(false));
+        }
+        if (limit != NO_LIMIT && tasks.size() > limit) {
+            tasks = tasks.subList(0, (int) limit);
         }
         return ImmutableMap.of("tasks", tasks);
     }

@@ -41,6 +41,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -203,6 +204,29 @@ public class TaskScheduler {
         return this.findTask(id);
     }
 
+    public <V> Iterator<HugeTask<V>> tasks(List<Id> ids) {
+        List<Id> taskIdsNotInMem = new ArrayList<>();
+        List<HugeTask<V>> taskInMem = new ArrayList<>();
+        for (Id id : ids) {
+            @SuppressWarnings("unchecked")
+            HugeTask<V> task = (HugeTask<V>) this.tasks.get(id);
+            if (task != null) {
+                taskInMem.add(task);
+            } else {
+                taskIdsNotInMem.add(id);
+            }
+        }
+        @SuppressWarnings("unchecked")
+        ExtendableIterator<HugeTask<V>> iterator;
+        if (taskInMem.isEmpty()) {
+            iterator = new ExtendableIterator<>();
+        } else {
+            iterator = new ExtendableIterator<>(taskInMem.iterator());
+        }
+        iterator.extend(this.findTasks(taskIdsNotInMem));
+        return iterator;
+    }
+
     public <V> HugeTask<V> findTask(Id id) {
         HugeTask<V> result =  this.submit(() -> {
             HugeTask<V> task = null;
@@ -217,6 +241,14 @@ public class TaskScheduler {
             throw new NotFoundException("Can't find task with id '%s'", id);
         }
         return result;
+    }
+
+    public <V> Iterator<HugeTask<V>> findTasks(List<Id> ids) {
+        Object[] idArray = ids.toArray(new Id[ids.size()]);
+        return this.submit(() -> {
+            Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
+            return new MapperIterator<>(vertices, HugeTask::fromVertex);
+        });
     }
 
     public <V> Iterator<HugeTask<V>> findAllTask(long limit) {
@@ -352,7 +384,7 @@ public class TaskScheduler {
                           .properties(properties)
                           .useCustomizeNumberId()
                           .nullableKeys(P.DESCRIPTION, P.UPDATE,
-                                        P.INPUT, P.RESULT)
+                                        P.INPUT, P.RESULT, P.DEPENDENCIES)
                           .enableLabelIndex(true)
                           .build();
             graph.schemaTransaction().addVertexLabel(label);
@@ -375,6 +407,8 @@ public class TaskScheduler {
             props.add(createPropertyKey(P.RETRIES, DataType.INT));
             props.add(createPropertyKey(P.INPUT));
             props.add(createPropertyKey(P.RESULT));
+            props.add(createPropertyKey(P.DEPENDENCIES, DataType.LONG,
+                                        Cardinality.SET));
 
             return props.toArray(new String[0]);
         }

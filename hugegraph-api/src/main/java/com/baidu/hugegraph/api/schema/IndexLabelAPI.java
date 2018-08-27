@@ -67,8 +67,8 @@ public class IndexLabelAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
-        IndexLabel indexLabel = builder.create();
-        return manager.serializer(g).writeIndexlabel(indexLabel);
+        IndexLabel.CreatedIndexLabel il = builder.createWithTask();
+        return manager.serializer(g).writeCreatedIndexLabel(il);
     }
 
     @GET

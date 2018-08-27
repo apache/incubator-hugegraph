@@ -21,14 +21,17 @@ package com.baidu.hugegraph.schema.builder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -37,6 +40,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -44,6 +48,7 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class IndexLabelBuilder implements IndexLabel.Builder {
 
@@ -83,7 +88,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     @Override
-    public IndexLabel create() {
+    public IndexLabel.CreatedIndexLabel createWithTask() {
         SchemaElement.checkName(this.name,
                                 this.transaction.graph().configuration());
         IndexLabel indexLabel = this.transaction.getIndexLabel(this.name);
@@ -91,7 +96,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             if (this.checkExist) {
                 throw new ExistedException("index label", this.name);
             }
-            return indexLabel;
+            return new IndexLabel.CreatedIndexLabel(indexLabel, null);
         }
 
         SchemaLabel schemaLabel = this.loadElement();
@@ -105,7 +110,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
 
         // Delete index label which is prefix of the new index label
         // TODO: use event to replace direct call
-        this.removeSubIndex(schemaLabel);
+        Set<Id> removeTasks = this.removeSubIndex(schemaLabel);
 
         // Create index label
         indexLabel = this.build();
@@ -113,8 +118,29 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         this.transaction.addIndexLabel(schemaLabel, indexLabel);
 
         // TODO: use event to replace direct call
-        this.rebuildIndexIfNeeded(schemaLabel, indexLabel);
+        Id rebuildTask = this.rebuildIndexIfNeeded(schemaLabel, indexLabel,
+                                                   removeTasks);
 
+        return new IndexLabel.CreatedIndexLabel(indexLabel, rebuildTask);
+    }
+
+    @Override
+    public IndexLabel create() {
+        IndexLabel.CreatedIndexLabel createdIndexLabel = this.createWithTask();
+        Id task = createdIndexLabel.task();
+        IndexLabel indexLabel = createdIndexLabel.indexLabel();
+        if (task == null) {
+            E.checkNotNull(indexLabel, "index label");
+            return indexLabel;
+        }
+        TaskScheduler scheduler = this.transaction.graph().taskScheduler();
+        try {
+            // TODO: read timeout from config file
+            scheduler.waitUntilTaskCompleted(task, 30L);
+        } catch (TimeoutException e) {
+            throw new HugeException(
+                      "Failed to wait index-creating task completed", e);
+        }
         return indexLabel;
     }
 
@@ -316,8 +342,8 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         }
     }
 
-    private void removeSubIndex(SchemaLabel schemaLabel) {
-        HashSet<Id> overrideIndexLabelIds = new HashSet<>();
+    private Set<Id> removeSubIndex(SchemaLabel schemaLabel) {
+        Set<Id> overrideIndexLabelIds = InsertionOrderUtil.newSet();
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
             if (this.indexType != old.indexType()) {
@@ -334,14 +360,19 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                 overrideIndexLabelIds.add(id);
             }
         }
+        Set<Id> tasks = InsertionOrderUtil.newSet();
         for (Id id : overrideIndexLabelIds) {
             schemaLabel.removeIndexLabel(id);
-            this.transaction.removeIndexLabel(id);
+            Id task = this.transaction.removeIndexLabel(id);
+            E.checkNotNull(task, "remove sub index label task");
+            tasks.add(task);
         }
+        return tasks;
     }
 
-    private void rebuildIndexIfNeeded(SchemaLabel schemaLabel,
-                                      IndexLabel indexLabel) {
+    private Id rebuildIndexIfNeeded(SchemaLabel schemaLabel,
+                                    IndexLabel indexLabel,
+                                    Set<Id> dependencies) {
         GraphTransaction tx = this.transaction.graph().graphTransaction();
         boolean needRebuild;
         if (this.baseType == HugeType.VERTEX_LABEL) {
@@ -352,12 +383,14 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             needRebuild = tx.queryEdgesByLabel((EdgeLabel) schemaLabel, 1L)
                             .hasNext();
         }
+        Id task = null;
         if (needRebuild) {
             // rebuildIndex() will set status to CREATED after REBUILDING
-            this.transaction.rebuildIndex(indexLabel);
+            task = this.transaction.rebuildIndex(indexLabel, dependencies);
         } else {
             this.transaction.updateSchemaStatus(indexLabel,
                                                 SchemaStatus.CREATED);
         }
+        return task;
     }
 }
