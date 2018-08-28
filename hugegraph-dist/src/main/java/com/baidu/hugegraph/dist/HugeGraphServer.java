@@ -24,6 +24,7 @@ import java.util.ServiceLoader;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.plugin.HugeGraphPlugin;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.VersionUtil;
@@ -32,6 +33,12 @@ import com.baidu.hugegraph.version.CoreVersion;
 public class HugeGraphServer {
 
     private static final Logger LOG = Log.logger(HugeGraphServer.class);
+
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOG.info("HugeGraphServer stopped");
+        }));
+    }
 
     public static void main(String[] args) throws Exception {
 
@@ -51,11 +58,9 @@ public class HugeGraphServer {
             HugeRestServer.start(args[1]);
         } catch (Exception e) {
             LOG.error("HugeGraphServer error:", e);
+            HugeGraph.shutdown(30L);
             throw e;
         }
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            LOG.info("HugeGraphServer stopped");
-        }));
     }
 
     private static void registerPlugins() {

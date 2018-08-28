@@ -15,10 +15,14 @@ TOP="$(cd $BIN/../ && pwd)"
 CONF="$TOP/conf"
 LIB="$TOP/lib"
 EXT="$TOP/ext"
-LOG="$TOP/logs"
 PLUGINS="$TOP/plugins"
+LOG="$TOP/logs"
+OUTPUT=${LOG}/hugegraph-server.log
 
 . ${BIN}/util.sh
+
+ensure_path_writable $LOG
+ensure_path_writable $PLUGINS
 
 # The maximum and minium heap memory that service can use
 MAX_MEM=$[32*1024]
@@ -46,8 +50,6 @@ export CLASSPATH="${CLASSPATH:-}:$CP"
 # Change to $BIN's parent
 cd ${TOP}
 
-OUTPUT=${LOG}/hugegraph-server.log
-
 # Find Java
 if [ "$JAVA_HOME" = "" ] ; then
     JAVA="java -server"
@@ -71,7 +73,7 @@ if [ "$JAVA_OPTIONS" = "" ] ; then
         >> ${OUTPUT}
         exit 1
     fi
-    JAVA_OPTIONS="-Xms256m -Xmx${XMX}m -javaagent:$LIB/jamm-0.3.0.jar"
+    JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -javaagent:$LIB/jamm-0.3.0.jar"
 fi
 
 # Execute the application and return its exit code
