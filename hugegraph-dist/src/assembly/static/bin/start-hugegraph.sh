@@ -2,6 +2,7 @@
 
 OPEN_MONITOR="false"
 VERBOSE=""
+SERVER_STARTUP_TIMEOUT_S=30
 
 while getopts "m:v" arg; do
     case ${arg} in
@@ -28,14 +29,16 @@ function abs_path() {
 
 BIN=`abs_path`
 TOP="$(cd $BIN/../ && pwd)"
+CONF=$TOP/conf
 PID_FILE=$BIN/pid
 
 . $BIN/util.sh
 
-SERVER_URL=`read_property "$TOP/conf/rest-server.properties" "restserver.url"`
-SERVER_STARTUP_TIMEOUT_S=30
+GREMLIN_SERVER_URL=`read_property "$CONF/rest-server.properties" "gremlinserver.url"`
+REST_SERVER_URL=`read_property "$CONF/rest-server.properties" "restserver.url"`
 
-check_port "$SERVER_URL"
+check_port "$GREMLIN_SERVER_URL"
+check_port "$REST_SERVER_URL"
 
 echo "Starting HugeGraphServer..."
 if [ -n "$VERBOSE" ]; then
@@ -49,7 +52,7 @@ fi
 PID="$!"
 trap 'kill $PID; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 
-wait_for_startup 'HugeGraphServer' "$SERVER_URL/graphs" $SERVER_STARTUP_TIMEOUT_S || {
+wait_for_startup 'HugeGraphServer' "$REST_SERVER_URL/graphs" $SERVER_STARTUP_TIMEOUT_S || {
     echo "See $TOP/logs/hugegraph-server.log for HugeGraphServer log output." >&2
     exit 1
 }
