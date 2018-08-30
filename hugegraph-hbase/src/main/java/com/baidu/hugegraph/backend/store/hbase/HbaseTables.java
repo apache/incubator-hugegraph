@@ -157,6 +157,12 @@ public class HbaseTables {
         }
 
         @Override
+        public void eliminate(Session session, BackendEntry entry) {
+            assert entry.columns().size() == 1;
+            super.delete(session, entry);
+        }
+
+        @Override
         public void delete(Session session, BackendEntry entry) {
             /*
              * Only delete index by label will come here
@@ -164,6 +170,7 @@ public class HbaseTables {
              */
             int count = 0;
             for (BackendColumn column : entry.columns()) {
+                session.commit();
                 // Prefix query index label related indexes
                 RowIterator iter = session.scan(this.table(), column.name);
                 while (iter.hasNext()) {
