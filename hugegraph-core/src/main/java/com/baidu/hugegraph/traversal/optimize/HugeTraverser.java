@@ -138,6 +138,44 @@ public class HugeTraverser {
         return paths;
     }
 
+    public MultivaluedMap<Boolean, Path> subGraphPaths(
+                                         Id sourceV, Directions dir,
+                                         String label, int maxDepth,
+                                         long degree, long capacity,
+                                         long limit) {
+        E.checkNotNull(sourceV, "source vertex id");
+        E.checkNotNull(dir, "direction");
+        checkPositive(maxDepth, "Paths max depth");
+        checkDegree(degree);
+        checkCapacity(capacity);
+        checkLimit(limit);
+
+        MultivaluedMap<Boolean, Path> subGraphpaths = newMultivalueMap();
+        Id labelId = this.getEdgeLabelId(label);
+
+        SubGraphTraverser traverser = new SubGraphTraverser(sourceV, labelId,
+                                                            degree, capacity,
+                                                            limit);
+        while (true) {
+            Map<Boolean, List<Path>> foundPaths = traverser.forward(dir);
+            // Add loop paths
+            List<Path> paths = foundPaths.get(true);
+            if (paths != null && !paths.isEmpty()) {
+                subGraphpaths.addAll(true, paths);
+            }
+            // Add leaf paths
+            paths = foundPaths.get(false);
+            if (paths != null && !paths.isEmpty()) {
+                subGraphpaths.addAll(false, paths);
+            }
+            if (--maxDepth < 0 || traverser.reachLimit() ||
+                traverser.finished()) {
+                break;
+            }
+        }
+        return subGraphpaths;
+    }
+
     public Set<Id> kout(Id sourceV, Directions dir, String label,
                         int depth, boolean nearest,
                         long degree, long capacity, long limit) {
@@ -408,7 +446,7 @@ public class HugeTraverser {
             return PATH_NONE;
         }
 
-        public boolean reachCapacity() {
+        private boolean reachCapacity() {
             if (this.capacity == NO_LIMIT || this.size < this.capacity) {
                 return false;
             }
@@ -539,11 +577,11 @@ public class HugeTraverser {
             return paths;
         }
 
-        public int accessedNodes() {
+        private int accessedNodes() {
             return this.sourcesAll.size() + this.targetsAll.size();
         }
 
-        public boolean reachLimit() {
+        private boolean reachLimit() {
             if (this.capacity != NO_LIMIT &&
                 this.accessedNodes() > this.capacity) {
                 return true;
@@ -552,6 +590,94 @@ public class HugeTraverser {
                 return false;
             }
             return true;
+        }
+    }
+
+    private class SubGraphTraverser {
+
+        private MultivaluedMap<Id, Node> sources = newMultivalueMap();
+        private Set<Id> accessedVertices = newSet();
+
+        private final Id label;
+        private final long degree;
+        private final long capacity;
+        private final long limit;
+        private long pathCount;
+
+        public SubGraphTraverser(Id sourceV, Id label,
+                                 long degree, long capacity, long limit) {
+            this.sources.add(sourceV, new Node(sourceV));
+            this.accessedVertices.add(sourceV);
+            this.label = label;
+            this.degree = degree;
+            this.capacity = capacity;
+            this.limit = limit;
+            this.pathCount = 0L;
+        }
+
+        /**
+         * Search forward from source
+         */
+        public Map<Boolean, List<Path>> forward(Directions direction) {
+            MultivaluedMap<Boolean, Path> paths = newMultivalueMap();
+            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
+            Iterator<Edge> edges;
+            // Traversal vertices of previous level
+            for (List<Node> nodes : this.sources.values()) {
+                for (Node n : nodes) {
+                    edges = edgesOfVertex(n.id(), direction,
+                                          this.label, this.degree);
+                    if (!edges.hasNext()) {
+                        // Key 'false' means leaf path without loop
+                        paths.add(false, new Path(null, n.path()));
+                        this.pathCount++;
+                        if (reachLimit()) {
+                            return paths;
+                        }
+                        continue;
+                    }
+                    while (edges.hasNext()) {
+                        HugeEdge edge = (HugeEdge) edges.next();
+                        Id target = edge.id().otherVertexId();
+                        this.accessedVertices.add(target);
+
+                        // If have loop, add a loop path
+                        if (n.contains(target)) {
+                            List<Id> prePath = n.path();
+                            prePath.add(target);
+                            // Key 'true' means loop path
+                            paths.add(true, new Path(null, prePath));
+                            this.pathCount++;
+                            if (reachLimit()) {
+                                return paths;
+                            }
+                            continue;
+                        }
+
+                        // Add node to next start-nodes
+                        newVertices.add(target, new Node(target, n));
+                    }
+                }
+            }
+            // Re-init sources
+            this.sources = newVertices;
+
+            return paths;
+        }
+
+        private boolean reachLimit() {
+            if (this.capacity != NO_LIMIT &&
+                this.accessedVertices.size() > this.capacity) {
+                return true;
+            }
+            if (this.limit == NO_LIMIT || this.pathCount < this.limit) {
+                return false;
+            }
+            return true;
+        }
+
+        private boolean finished() {
+            return this.sources.isEmpty();
         }
     }
 

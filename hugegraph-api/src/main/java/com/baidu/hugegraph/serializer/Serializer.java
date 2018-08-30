@@ -23,6 +23,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.ws.rs.core.MultivaluedMap;
+
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -64,6 +66,10 @@ public interface Serializer {
 
     public String writePaths(String name, Collection<HugeTraverser.Path> paths,
                              boolean withCrossPoint);
+
+    public String writeSubGraphPaths(
+            MultivaluedMap<Boolean, HugeTraverser.Path> paths,
+            boolean withCrossPoint);
 
     public String writeShards(List<Shard> shards);
 }
