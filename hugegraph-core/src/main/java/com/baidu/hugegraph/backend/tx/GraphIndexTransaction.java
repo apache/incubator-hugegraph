@@ -389,6 +389,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Set offset and limit to avoid redundant element ids
         indexQuery.limit(query.limit());
         indexQuery.offset(query.offset());
+        indexQuery.capacity(query.capacity());
 
         return this.doIndexQuery(il, indexQuery);
     }
