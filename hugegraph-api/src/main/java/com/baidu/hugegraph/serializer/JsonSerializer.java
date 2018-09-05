@@ -20,11 +20,15 @@
 package com.baidu.hugegraph.serializer;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -192,6 +196,33 @@ public class JsonSerializer implements Serializer {
             pathList.add(path.toMap(withCrossPoint));
         }
         return writeList(name, pathList);
+    }
+
+    @Override
+    public String writeSubGraphPaths(
+                  MultivaluedMap<Boolean, HugeTraverser.Path> paths,
+                  boolean withCrossPoint) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {
+            out.write("{\"loop path\": ".getBytes(API.CHARSET));
+            this.writePathsList(out, paths.get(true));
+            out.write(",\"leaf path\": ".getBytes(API.CHARSET));
+            this.writePathsList(out, paths.get(false));
+            out.write("}".getBytes(API.CHARSET));
+            return out.toString(API.CHARSET);
+        } catch (Exception e) {
+            throw new HugeException("Failed to serialize sub-graph-paths", e);
+        }
+    }
+
+    private void writePathsList(ByteArrayOutputStream out,
+                                List<HugeTraverser.Path> paths)
+                                throws IOException {
+        if (paths == null) {
+            out.write("[]".getBytes(API.CHARSET));
+        } else {
+            this.writer.writeObject(out, paths.stream().map(p -> p.toMap(false))
+                       .collect(Collectors.toList()));
+        }
     }
 
     @Override

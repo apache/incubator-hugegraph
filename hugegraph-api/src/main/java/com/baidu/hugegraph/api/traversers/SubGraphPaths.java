@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import java.util.Set;
-
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -29,6 +27,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MultivaluedMap;
 
 import org.slf4j.Logger;
 
@@ -44,9 +43,9 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
-@Path("graphs/{graph}/traversers/paths")
+@Path("graphs/{graph}/traversers/subgraphpaths")
 @Singleton
-public class PathsAPI extends API {
+public class SubGraphPaths extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -55,29 +54,27 @@ public class PathsAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
-                      @QueryParam("source") String source,
-                      @QueryParam("target") String target,
+                      @QueryParam("source") String sourceV,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
-                      @QueryParam("max_depth") int maxDepth,
+                      @QueryParam("depth") int depth,
                       @QueryParam("degree") @DefaultValue("-1") long degree,
                       @QueryParam("capacity") @DefaultValue("-1") long capacity,
-                      @QueryParam("limit") @DefaultValue("10") long limit) {
-        LOG.debug("Graph [{}] get paths from '{}', to '{}' with " +
-                  "direction {}, edge label {}, max depth '{}', " +
-                  "degree '{}', capacity '{}' and limit '{}'",
-                  graph, source, target, direction, edgeLabel, maxDepth,
-                  degree, capacity, limit);
+                      @QueryParam("limit") @DefaultValue("-1") long limit) {
+        LOG.debug("Graph [{}] get sub-graph paths from '{}' with " +
+                  "direction '{}', edge label '{}', depth '{}', " +
+                  "degree '{}' and limit '{}'",
+                  graph, sourceV, direction, edgeLabel, depth, degree, limit);
 
-        Id sourceId = VertexAPI.checkAndParseVertexId(source);
-        Id targetId = VertexAPI.checkAndParseVertexId(target);
+        Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
+
         HugeTraverser traverser = new HugeTraverser(g);
-        Set<HugeTraverser.Path> paths;
-        paths = traverser.paths(sourceId, dir, targetId, dir.opposite(),
-                                edgeLabel, maxDepth, degree, capacity, limit);
-        return manager.serializer(g).writePaths("paths", paths, false);
+        MultivaluedMap paths = traverser.subGraphPaths(source, dir, edgeLabel,
+                                                       depth, degree, capacity,
+                                                       limit);
+        return manager.serializer(g).writeSubGraphPaths(paths, false);
     }
 }
