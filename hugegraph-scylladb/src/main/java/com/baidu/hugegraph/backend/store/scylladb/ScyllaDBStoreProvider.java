@@ -114,7 +114,7 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                 registerTableManager(HugeType.EDGE_IN,
                                      ScyllaDBTablesWithMV.Edge.in(store));
             } else {
-                registerTableManager(HugeType.EDGE_OUT,
+                registerTableManager(HugeType.VERTEX,
                                      new ScyllaDBTables.Vertex(store));
                 registerTableManager(HugeType.EDGE_OUT,
                                      ScyllaDBTables.Edge.out(store));
