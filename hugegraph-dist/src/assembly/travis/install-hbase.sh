@@ -2,17 +2,21 @@
 set -ev
 
 TRAVIS_DIR=`dirname $0`
+HBASE_DOWNLOAD_ADDRESS="http://archive.apache.org/dist/hbase"
+HBASE_VERSION="2.0.2"
+HBASE_PACKAGE="hbase-${HBASE_VERSION}"
+HBASE_TAR="${HBASE_PACKAGE}-bin.tar.gz"
 
 # download hbase
-if [ ! -f $HOME/downloads/hbase-2.0.1-bin.tar.gz ]; then
-  sudo wget -q -O $HOME/downloads/hbase-2.0.1-bin.tar.gz http://apache.cs.utah.edu/hbase/2.0.1/hbase-2.0.1-bin.tar.gz
+if [ ! -f $HOME/downloads/${HBASE_TAR} ]; then
+  sudo wget -q -O $HOME/downloads/${HBASE_TAR} ${HBASE_DOWNLOAD_ADDRESS}/${HBASE_VERSION}/${HBASE_TAR}
 fi
 
 # decompress hbase
-sudo cp $HOME/downloads/hbase-2.0.1-bin.tar.gz hbase-2.0.1-bin.tar.gz && tar xzf hbase-2.0.1-bin.tar.gz
+sudo cp $HOME/downloads/${HBASE_TAR} ${HBASE_TAR} && tar xzf ${HBASE_TAR}
 
 # config hbase
-sudo rm -f hbase-2.0.1/conf/hbase-site.xml && sudo cp $TRAVIS_DIR/hbase-site.xml hbase-2.0.1/conf
+sudo cp -f $TRAVIS_DIR/hbase-site.xml ${HBASE_PACKAGE}/conf
 
 # start hbase service
-sudo hbase-2.0.1/bin/start-hbase.sh
+sudo ${HBASE_PACKAGE}/bin/start-hbase.sh
