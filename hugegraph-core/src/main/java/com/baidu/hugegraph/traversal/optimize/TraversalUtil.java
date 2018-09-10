@@ -199,7 +199,7 @@ public final class TraversalUtil {
         } else if (bp instanceof RelationType) {
             condition = convRelationType2Relation(graph, type, has);
         } else if (bp instanceof Contains) {
-            condition = convIn2Relation(graph, has);
+            condition = convIn2Relation(graph, type, has);
         } else if (p instanceof AndP) {
             condition = convAnd(graph, type, has);
         } else if (p instanceof OrP) {
@@ -286,17 +286,7 @@ public final class TraversalUtil {
         assert bp instanceof Compare;
 
         HugeKeys key = string2HugeKey(has.getKey());
-        Object value = has.getValue();
-
-        if (key == HugeKeys.LABEL && !(value instanceof Id)) {
-            value = SchemaLabel.getLabelId(graph, type, value);
-        } else if (key == HugeKeys.ID && !(value instanceof Id)) {
-            if (type.isVertex()) {
-                value = HugeVertex.getIdValue(value);
-            } else {
-                value = HugeEdge.getIdValue(value);
-            }
-        }
+        Object value = convSysValueIfNeeded(graph, type, key, has.getValue());
 
         switch ((Compare) bp) {
             case eq:
@@ -360,19 +350,29 @@ public final class TraversalUtil {
     }
 
     public static Condition convIn2Relation(HugeGraph graph,
+                                            HugeType type,
                                             HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         assert bp instanceof Contains;
-        List<?> value = (List<?>) has.getValue();
+        List<?> values = (List<?>) has.getValue();
 
         try {
-            HugeKeys key = string2HugeKey(has.getKey());
+            String originKey = has.getKey();
+            if (values.size() > 1) {
+                E.checkArgument(!originKey.equals(T.key) &&
+                                !originKey.equals(T.value),
+                                "Not support hasKey() or hasValue() with " +
+                                "multiple values");
+            }
+            HugeKeys key = string2HugeKey(originKey);
+            values = convSysListValueIfNeeded(graph, type, key, values);
+
 
             switch ((Contains) bp) {
                 case within:
-                    return Condition.in(key, value);
+                    return Condition.in(key, values);
                 case without:
-                    return Condition.nin(key, value);
+                    return Condition.nin(key, values);
             }
         } catch (IllegalArgumentException e) {
             String key = has.getKey();
@@ -380,9 +380,9 @@ public final class TraversalUtil {
 
             switch ((Contains) bp) {
                 case within:
-                    return Condition.in(pkey.id(), value);
+                    return Condition.in(pkey.id(), values);
                 case without:
-                    return Condition.nin(pkey.id(), value);
+                    return Condition.nin(pkey.id(), values);
             }
         }
 
@@ -477,6 +477,31 @@ public final class TraversalUtil {
             Object value = validPredicateValue(predicate.getValue(), pkey);
             predicate.setValue(value);
         }
+    }
+
+    private static Object convSysValueIfNeeded(HugeGraph graph,HugeType type,
+                                               HugeKeys key, Object value) {
+        if (key == HugeKeys.LABEL && !(value instanceof Id)) {
+            value = SchemaLabel.getLabelId(graph, type, value);
+        } else if (key == HugeKeys.ID && !(value instanceof Id)) {
+            if (type.isVertex()) {
+                value = HugeVertex.getIdValue(value);
+            } else {
+                value = HugeEdge.getIdValue(value);
+            }
+        }
+        return value;
+    }
+
+    private static List<?> convSysListValueIfNeeded(HugeGraph graph,
+                                                    HugeType type,
+                                                    HugeKeys key,
+                                                    List<?> values) {
+        List<Object> newValues = new ArrayList<>(values.size());
+        for (Object value : values) {
+            newValues.add(convSysValueIfNeeded(graph, type, key, value));
+        }
+        return newValues;
     }
 
     public static Iterator<Edge> filterResult(Vertex vertex,
