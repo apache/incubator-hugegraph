@@ -21,8 +21,8 @@ package com.baidu.hugegraph.backend.cache;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -49,23 +49,24 @@ public class RamCache implements Cache {
     // Default expire time(ms)
     private volatile long expire = 0L;
 
-    private final KeyLock keyLock;
+    // NOTE: the count in number of items, not in bytes
     private final int capacity;
 
     // Implement LRU cache
-    private final Map<Id, LinkNode<Id, Object>> map;
+    private final ConcurrentMap<Id, LinkNode<Id, Object>> map;
     private final LinkedQueueNonBigLock<Id, Object> queue;
+
+    private final KeyLock keyLock;
 
     public RamCache() {
         this(DEFAULT_SIZE);
     }
 
-    // NOTE: count in number of items, not in bytes
     public RamCache(int capacity) {
         this.keyLock = new KeyLock();
 
-        if (capacity < 8) {
-            capacity = 8;
+        if (capacity < 1) {
+            capacity = 1;
         }
         this.capacity = capacity;
 
@@ -287,25 +288,25 @@ public class RamCache implements Cache {
 
     @Override
     public void tick() {
-        if (this.expire <= 0) {
+        long expireTime = this.expire;
+        if (expireTime <= 0) {
             return;
         }
 
+        int expireItems = 0;
         long current = now();
-        List<Id> expireItems = new LinkedList<>();
         for (LinkNode<Id, Object> node : this.map.values()) {
-            if (current - node.time() > this.expire) {
-                expireItems.add(node.key());
+            if (current - node.time() > expireTime) {
+                // Remove item while iterating map (it must be ConcurrentMap)
+                this.remove(node.key());
+                expireItems++;
             }
         }
 
-        LOG.debug("Cache expire items: {} (expire {}ms)",
-                  expireItems.size(), this.expire);
-        for (Id id : expireItems) {
-            this.remove(id);
+        if (expireItems > 0) {
+            LOG.info("Cache expired {} items cost {}ms (size {}, expire {}ms)",
+                      expireItems, now() - current, this.size(), expireTime);
         }
-        LOG.debug("Cache expired items: {} (size {})",
-                  expireItems.size(), size());
     }
 
     @Override
