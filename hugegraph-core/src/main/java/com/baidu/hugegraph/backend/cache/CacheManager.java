@@ -27,6 +27,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
+
 import com.baidu.hugegraph.util.Log;
 
 public class CacheManager {
@@ -56,14 +57,24 @@ public class CacheManager {
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
+                try {
+                    this.tick();
+                } catch (Throwable e) {
+                    LOG.warn("An exception occurred when running tick", e);
+                }
+            }
+
+            private void tick() {
                 for (Entry<String, Cache> entry : caches().entrySet()) {
                     LOG.debug("Cache '{}' expiration tick", entry.getKey());
                     entry.getValue().tick();
                 }
             }
         };
-        // The period in seconds
+
+        // Schedule task with the period in seconds
         this.timer.schedule(task, 0, (long) (period * 1000.0));
+
         return task;
     }
 

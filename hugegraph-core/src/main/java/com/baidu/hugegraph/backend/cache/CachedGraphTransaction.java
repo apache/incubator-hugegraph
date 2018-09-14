@@ -45,22 +45,27 @@ import com.google.common.collect.ImmutableList;
 
 public class CachedGraphTransaction extends GraphTransaction {
 
+    private final static int MAX_CACHE_EDGES_PER_QUERY = 100;
+
     private final Cache verticesCache;
     private final Cache edgesCache;
 
     public CachedGraphTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
-        this.verticesCache = this.cache("vertex");
-        this.edgesCache = this.cache("edge");
+
+        HugeConfig conf = graph.configuration();
+
+        int capacity = conf.get(CoreOptions.VERTEX_CACHE_CAPACITY);
+        int expire = conf.get(CoreOptions.VERTEX_CACHE_EXPIRE);
+        this.verticesCache = this.cache("vertex", capacity, expire);
+
+        capacity = conf.get(CoreOptions.EDGE_CACHE_CAPACITY);
+        expire = conf.get(CoreOptions.EDGE_CACHE_EXPIRE);
+        this.edgesCache = this.cache("edge", capacity, expire);
     }
 
-    private Cache cache(String prefix) {
-        HugeConfig conf = super.graph().configuration();
-
-        final String name = prefix + "-" + super.graph().name();
-        final int capacity = conf.get(CoreOptions.GRAPH_CACHE_CAPACITY);
-        final int expire = conf.get(CoreOptions.GRAPH_CACHE_EXPIRE);
-
+    private Cache cache(String prefix, int capacity, long expire) {
+        String name = prefix + "-" + super.graph().name();
         Cache cache = CacheManager.instance().cache(name, capacity);
         cache.expire(expire);
         return cache;
@@ -101,12 +106,16 @@ public class CachedGraphTransaction extends GraphTransaction {
             return super.queryEdges(query);
         }
 
-        Object result = this.edgesCache.getOrFetch(new QueryId(query), id -> {
-            // Iterator can't be cached, caching list instead
-            return ImmutableList.copyOf(super.queryEdges(query));
-        });
+        Id id = new QueryId(query);
         @SuppressWarnings("unchecked")
-        List<Edge> edges = (List<Edge>) result;
+        List<Edge> edges = (List<Edge>) this.edgesCache.get(id);
+        if (edges == null) {
+            // Iterator can't be cached, caching list instead
+            edges = ImmutableList.copyOf(super.queryEdges(query));
+            if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
+                this.edgesCache.update(id, edges);
+            }
+        }
         return edges.iterator();
     }
 

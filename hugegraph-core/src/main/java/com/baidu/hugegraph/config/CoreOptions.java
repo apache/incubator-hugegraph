@@ -143,23 +143,39 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> SCHEMA_CACHE_CAPACITY =
             new ConfigOption<>(
                     "schema.cache_capacity",
-                    "The max cache size(items) of schema data.",
+                    "The max cache size(items) of schema cache.",
                     rangeInt(1, Integer.MAX_VALUE),
-                    (1024 * 1024 * 1)
+                    100000
             );
 
-    public static final ConfigOption<Integer> GRAPH_CACHE_CAPACITY =
+    public static final ConfigOption<Integer> VERTEX_CACHE_CAPACITY =
             new ConfigOption<>(
-                    "graph.cache_capacity",
-                    "The max cache size(items) of graph data(vertex/edge).",
+                    "vertex.cache_capacity",
+                    "The max cache size(items) of vertex cache.",
                     rangeInt(1, Integer.MAX_VALUE),
-                    (1024 * 1024 * 10)
+                    (1000 * 1000 * 10)
             );
 
-    public static final ConfigOption<Integer> GRAPH_CACHE_EXPIRE =
+    public static final ConfigOption<Integer> VERTEX_CACHE_EXPIRE =
             new ConfigOption<>(
-                    "graph.cache_expire",
-                    "The expire time in seconds of graph data(vertex/edge).",
+                    "vertex.cache_expire",
+                    "The expire time in seconds of vertex cache.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    (60 * 10)
+            );
+
+    public static final ConfigOption<Integer> EDGE_CACHE_CAPACITY =
+            new ConfigOption<>(
+                    "edge.cache_capacity",
+                    "The max cache size(items) of edge cache.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    (1000 * 1000 * 1)
+            );
+
+    public static final ConfigOption<Integer> EDGE_CACHE_EXPIRE =
+            new ConfigOption<>(
+                    "edge.cache_expire",
+                    "The expire time in seconds of edge cache.",
                     rangeInt(0, Integer.MAX_VALUE),
                     (60 * 10)
             );
