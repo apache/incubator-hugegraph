@@ -31,7 +31,6 @@ import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
-import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
 
 public class RegisterUtil {
@@ -159,6 +158,6 @@ public class RegisterUtil {
     }
 
     public static void registerServer() {
-        OptionSpace.register("server", ServerOptions.instance());
+        OptionSpace.register("server", "com.baidu.hugegraph.config.ServerOptions");
     }
 }
