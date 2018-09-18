@@ -18,6 +18,10 @@ HugeGraph is a fast-speed and highly-scalable [graph database](https://en.wikipe
 
 The [project homepage](https://hugegraph.github.io/hugegraph-doc/) contains more information on HugeGraph and provides links to documentation, getting-started guides and release downloads.
 
+## Contributing
+
+Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) for more information.
+
 ## License
 
 HugeGraph is licensed under Apache 2.0 License.
