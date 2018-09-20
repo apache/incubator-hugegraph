@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.structure;
 
+import java.util.UUID;
+
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -26,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.util.FeatureDescriptor;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 
@@ -105,13 +108,23 @@ public class HugeFeatures implements Graph.Features {
     public class HugeElementFeatures implements ElementFeatures {
 
         @Override
-        public boolean supportsNumericIds() {
-            return false;
+        public boolean supportsAddProperty() {
+            return true;
+        }
+
+        @Override
+        public boolean supportsRemoveProperty() {
+            return true;
         }
 
         @Override
         public boolean supportsStringIds() {
             return true;
+        }
+
+        @Override
+        public boolean supportsNumericIds() {
+            return false;
         }
 
         @Override
@@ -126,12 +139,24 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean supportsCustomIds() {
-            return false;
+            return true;
         }
 
         @Override
-        public boolean supportsRemoveProperty() {
-            return true;
+        public boolean supportsUserSuppliedIds() {
+            return false;
+        }
+
+        public boolean willAllowId(Object id) {
+            if(!this.supportsUserSuppliedIds()) {
+                return false;
+            } else {
+                return this.supportsAnyIds() ||
+                       this.supportsCustomIds() && id instanceof Id ||
+                       this.supportsStringIds() && id instanceof String ||
+                       this.supportsNumericIds() && id instanceof Number ||
+                       this.supportsUuidIds() && id instanceof UUID;
+            }
         }
     }
 
@@ -221,13 +246,13 @@ public class HugeFeatures implements Graph.Features {
                                              new HugeVertexPropertyFeatures();
 
         @Override
-        public VertexPropertyFeatures properties() {
-            return this.vertexPropertyFeatures;
+        public boolean supportsUserSuppliedIds() {
+            return true;
         }
 
         @Override
-        public boolean supportsUserSuppliedIds() {
-            return true;
+        public VertexPropertyFeatures properties() {
+            return this.vertexPropertyFeatures;
         }
 
         @Override
@@ -268,11 +293,6 @@ public class HugeFeatures implements Graph.Features {
 
         private final EdgePropertyFeatures edgePropertyFeatures =
                                            new HugeEdgePropertyFeatures();
-
-        @Override
-        public boolean supportsUserSuppliedIds() {
-            return false;
-        }
 
         @Override
         public EdgePropertyFeatures properties() {
