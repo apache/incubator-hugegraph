@@ -344,15 +344,14 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
                                        .mapPkId2Name(vertexLabel.properties());
         Set<String> appendProps = this.properties;
 
-        E.checkArgument(CollectionUtils.union(originProps, appendProps)
+        E.checkArgument(CollectionUtil.union(originProps, appendProps)
                         .containsAll(this.nullableKeys),
                         "The nullableKeys: %s to be created or appended " +
                         "must belong to the origin/new properties: %s/%s",
                         this.nullableKeys, originProps, appendProps);
 
-        Collection<String> intersecKeys = CollectionUtils.intersection(
-                                          this.primaryKeys, this.nullableKeys);
-        E.checkArgument(intersecKeys.isEmpty(),
+        E.checkArgument(!CollectionUtil.hasIntersection(this.primaryKeys,
+                                                        this.nullableKeys),
                         "The nullableKeys: %s are not allowed to " +
                         "belong to primaryKeys: %s of vertex label '%s'",
                         this.nullableKeys, this.primaryKeys, this.name);

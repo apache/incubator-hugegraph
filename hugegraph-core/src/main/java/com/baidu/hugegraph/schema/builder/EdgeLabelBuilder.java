@@ -342,15 +342,14 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
                                        .mapPkId2Name(edgeLabel.properties());
         Set<String> appendProps = this.properties;
 
-        E.checkArgument(CollectionUtils.union(originProps, appendProps)
+        E.checkArgument(CollectionUtil.union(originProps, appendProps)
                         .containsAll(this.nullableKeys),
                         "The nullableKeys: %s to be created or appended " +
                         "must belong to the origin/new properties: %s/%s ",
                         this.nullableKeys, originProps, appendProps);
 
-        Collection<String> intersecKeys = CollectionUtils.intersection(
-                                          this.sortKeys, this.nullableKeys);
-        E.checkArgument(intersecKeys.isEmpty(),
+        E.checkArgument(!CollectionUtil.hasIntersection(this.sortKeys,
+                                                        this.nullableKeys),
                         "The nullableKeys: %s are not allowed to " +
                         "belong to sortKeys: %s of edge label '%s'",
                         this.nullableKeys, this.sortKeys, this.name);

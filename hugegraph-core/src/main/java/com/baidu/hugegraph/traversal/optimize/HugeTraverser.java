@@ -599,7 +599,7 @@ public class HugeTraverser {
             Collections.reverse(backPath);
 
             // Avoid loop in path
-            if (!CollectionUtils.intersection(path, backPath).isEmpty()) {
+            if (CollectionUtils.containsAny(path, backPath)) {
                 return ImmutableList.of();
             }
 
