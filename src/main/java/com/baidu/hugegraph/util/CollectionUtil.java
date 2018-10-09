@@ -84,4 +84,83 @@ public final class CollectionUtil {
         }
         return new LinkedHashSet<>(list.subList(from, to));
     }
+
+    public static <T> Set<T> union(Collection<T> first, Collection<T> second) {
+        E.checkNotNull(first, "first");
+        E.checkNotNull(second, "second");
+        HashSet<T> results = new HashSet<>(first);
+        results.addAll(second);
+        return results;
+    }
+
+    /**
+     * Find the intersection of two collections, the original collections
+     * will not be modified
+     * @param first the first collection
+     * @param second the second collection
+     * @param <T> element type of collection
+     * @return intersection of the two collections
+     */
+    public static <T> Collection<T> intersect(Collection<T> first,
+                                              Collection<T> second) {
+        E.checkNotNull(first, "first");
+        E.checkNotNull(second, "second");
+
+        HashSet<T> results = null;
+        if (first instanceof HashSet) {
+            @SuppressWarnings("unchecked")
+            HashSet<T> clone = (HashSet<T>) ((HashSet<T>) first).clone();
+            results = clone;
+        } else {
+            results = new HashSet<>(first);
+        }
+        results.retainAll(second);
+        return results;
+    }
+
+    /**
+     * Find the intersection of two collections, note that the first collection
+     * will be modified and store the results
+     * @param first the first collection, it will be modified
+     * @param second the second collection
+     * @param <T> element type of collection
+     * @return intersection of the two collections
+     */
+    public static <T> Collection<T> intersectWithModify(Collection<T> first,
+                                                        Collection<T> second) {
+        E.checkNotNull(first, "first");
+        E.checkNotNull(second, "second");
+        first.retainAll(second);
+        return first;
+    }
+
+    public static <T> boolean hasIntersection(List<T> first, Set<T> second) {
+        E.checkNotNull(first, "first");
+        E.checkNotNull(second, "second");
+        for (T firstElem : first) {
+            if (second.contains(firstElem)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static <T> boolean hasIntersection(Set<T> first, Set<T> second) {
+        E.checkNotNull(first, "first");
+        E.checkNotNull(second, "second");
+        if (first.size() <= second.size()) {
+            for (T firstElem : first) {
+                if (second.contains(firstElem)) {
+                    return true;
+                }
+            }
+        } else {
+            for (T secondElem : second) {
+                if (first.contains(secondElem)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
