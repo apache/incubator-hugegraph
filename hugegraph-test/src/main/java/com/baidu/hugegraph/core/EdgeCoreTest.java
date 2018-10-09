@@ -579,19 +579,19 @@ public class EdgeCoreTest extends BaseCoreTest {
         init18Edges();
 
         List<Vertex> vertices = graph.traversal().V()
-                                .hasLabel("person").has("name", "Louise")
-                                .outE("look").inV().toList();
+                                     .hasLabel("person").has("name", "Louise")
+                                     .outE("look").inV().toList();
         /*
          * This should be 4 vertices, but the gremlin:
-         * ".outE("look").inV()" will be replaced with ".out("look")",
-         * then the duplicate edges would be removed by core.
+         * `.outE("look").inV()` will be replaced with `.out("look")`,
          * For more details see IncidentToAdjacentStrategy.
          */
-        Assert.assertEquals(3, vertices.size());
+        Assert.assertEquals(4, vertices.size());
 
+        // This will call EdgeVertexStep when `.inV()`
         vertices = graph.traversal().V()
-                   .hasLabel("person").has("name", "Louise")
-                   .outE("look").order().by("time").inV().toList();
+                        .hasLabel("person").has("name", "Louise")
+                        .outE("look").order().by("time").inV().toList();
         Assert.assertEquals(4, vertices.size());
     }
 
@@ -754,14 +754,22 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = vertex("author", "id", 1);
 
         List<Edge> edges = graph.traversal().V()
-                           .hasLabel("person").has("name", "Louise")
-                           .outE("look").inV()
-                           .inE("authored")
-                           .toList();
-        Assert.assertEquals(3, edges.size());
+                                .hasLabel("person").has("name", "Louise")
+                                .outE("look").inV()
+                                .inE("authored")
+                                .toList();
+        Assert.assertEquals(4, edges.size());
         Assert.assertEquals(james, edges.get(0).outVertex());
         Assert.assertEquals(james, edges.get(1).outVertex());
         Assert.assertEquals(james, edges.get(2).outVertex());
+        Assert.assertEquals(james, edges.get(2).outVertex());
+
+        edges = graph.traversal().V()
+                     .hasLabel("person").has("name", "Louise")
+                     .outE("look").inV().dedup()
+                     .inE("authored")
+                     .toList();
+        Assert.assertEquals(3, edges.size());
 
         edges = graph.traversal().V()
                 .hasLabel("person").has("name", "Louise")
@@ -772,7 +780,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         edges = graph.traversal().V()
                 .hasLabel("person").has("name", "Louise")
-                .outE("look").limit(2).inV()
+                .outE("look").limit(3).inV()
                 .inE("authored").limit(2)
                 .toList();
         Assert.assertEquals(2, edges.size());
@@ -982,6 +990,21 @@ public class EdgeCoreTest extends BaseCoreTest {
                      .has("time", "2017-5-27").has("score", 3)
                      .toList();
         Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
+    public void testQueryOutVerticesOfVertexWithSortkey() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Vertex louise = vertex("person", "name", "Louise");
+
+        Assert.assertEquals(4, graph.traversal().V(louise.id())
+                                    .out("look").count().next().longValue());
+        List<Vertex> vertices = graph.traversal().V(louise.id())
+                                     .out("look").toList();
+        // Expect duplicated vertex "java-1"
+        Assert.assertEquals(4, vertices.size());
     }
 
     @Test

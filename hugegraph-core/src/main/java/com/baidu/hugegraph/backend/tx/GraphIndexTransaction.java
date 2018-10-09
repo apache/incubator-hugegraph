@@ -31,9 +31,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.analyzer.Analyzer;
@@ -70,6 +67,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.NumericUtil;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class GraphIndexTransaction extends AbstractTransaction {
@@ -108,18 +106,16 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private void processRangeIndexLeft(ConditionQuery query,
                                        HugeElement element) {
         // Construct index ConditionQuery
-        Set<MatchedLabel> labels = collectMatchedLabels(query);
+        Set<MatchedIndex> matchedIndexes = collectMatchedIndexes(query);
         IndexQueries queries = null;
-        for (MatchedLabel label : labels) {
-            if (label.schemaLabel().id().equals(element.schemaLabel().id())) {
-                queries = label.constructIndexQueries(query);
+        for (MatchedIndex index : matchedIndexes) {
+            if (index.schemaLabel().id().equals(element.schemaLabel().id())) {
+                queries = index.constructIndexQueries(query);
                 break;
             }
         }
-        if (queries == null) {
-            throw new HugeException(
-                      "Can't construct index query for '%s'", query);
-        }
+        E.checkState(queries != null,
+                     "Can't construct left-index query for '%s'", query);
 
         for (ConditionQuery q : queries.values()) {
             if (!q.resultType().isRangeIndex()) {
@@ -398,8 +394,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private Set<Id> queryByUserprop(ConditionQuery query) {
         // Get user applied label or collect all qualified labels with
         // related index labels
-        Set<MatchedLabel> labels = this.collectMatchedLabels(query);
-        if (labels.isEmpty()) {
+        Set<MatchedIndex> indexes = this.collectMatchedIndexes(query);
+        if (indexes.isEmpty()) {
             Id label = (Id) query.condition(HugeKeys.LABEL);
             throw noIndexException(this.graph(), query, label);
         }
@@ -411,14 +407,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Do index query
         Set<Id> ids = InsertionOrderUtil.newSet();
-        for (MatchedLabel label : labels) {
-            if (label.containsSearchIndex()) {
+        for (MatchedIndex index : indexes) {
+            if (index.containsSearchIndex()) {
                 // Do search-index query
-                ids.addAll(this.queryByUserpropWithSearchIndex(query, label));
+                ids.addAll(this.queryByUserpropWithSearchIndex(query, index));
             } else {
                 // Do secondary-index or range-index query
-                IndexQueries queries = label.constructIndexQueries(query);
-                ids.addAll(this.doMultiIndexQuery(queries));
+                IndexQueries queries = index.constructIndexQueries(query);
+                ids.addAll(this.intersectIndexQueries(queries));
             }
 
             if (query.reachLimit(ids.size())) {
@@ -430,11 +426,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     private Set<Id> queryByUserpropWithSearchIndex(ConditionQuery query,
-                                                   MatchedLabel label) {
+                                                   MatchedIndex index) {
         ConditionQuery originQuery = query;
         Set<Id> indexFields = new HashSet<>();
         // Convert has(key, text) to has(key, textContainsAny(word1, word2))
-        for (IndexLabel il : label.indexLabels()) {
+        for (IndexLabel il : index.indexLabels()) {
             if (il.indexType() != IndexType.SEARCH) {
                 continue;
             }
@@ -472,8 +468,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Do query
         Set<Id> ids = InsertionOrderUtil.newSet();
         for (ConditionQuery q : ConditionQueryFlatten.flatten(query)) {
-            IndexQueries queries = label.constructIndexQueries(q);
-            ids.addAll(this.doMultiIndexQuery(queries));
+            IndexQueries queries = index.constructIndexQueries(q);
+            ids.addAll(this.intersectIndexQueries(queries));
         }
         return ids;
     }
@@ -492,6 +488,25 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return !this.store().features().supportsQueryByLabel();
     }
 
+    @Watched(prefix = "index")
+    private Collection<Id> intersectIndexQueries(IndexQueries queries) {
+        Collection<Id> intersectIds = null;
+
+        for (Map.Entry<IndexLabel, ConditionQuery> entry : queries.entrySet()) {
+            Set<Id> ids = this.doIndexQuery(entry.getKey(), entry.getValue());
+            if (intersectIds == null) {
+                intersectIds = ids;
+            } else {
+                CollectionUtil.intersectWithModify(intersectIds, ids);
+            }
+            if (intersectIds.isEmpty()) {
+                break;
+            }
+        }
+        return intersectIds;
+    }
+
+    @Watched(prefix = "index")
     private Set<Id> doIndexQuery(IndexLabel indexLabel, ConditionQuery query) {
         Set<Id> ids = InsertionOrderUtil.newSet();
         LockUtil.Locks locks = new LockUtil.Locks();
@@ -514,28 +529,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return ids;
     }
 
-    private Collection<Id> doMultiIndexQuery(IndexQueries queries) {
-        Collection<Id> interIds = null;
-
-        for (Map.Entry<IndexLabel, ConditionQuery> entry: queries.entrySet()) {
-            Set<Id> ids = this.doIndexQuery(entry.getKey(), entry.getValue());
-            if (interIds == null) {
-                interIds = ids;
-            } else {
-                interIds = CollectionUtil.intersectWithModify(interIds, ids);
-            }
-            if (ids.isEmpty() || interIds.isEmpty()) {
-                return ImmutableSet.of();
-            }
-        }
-        return interIds;
-    }
-
-    private Set<MatchedLabel> collectMatchedLabels(ConditionQuery query) {
+    @Watched(prefix = "index")
+    private Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query) {
         SchemaTransaction schema = this.graph().schemaTransaction();
         Id label = (Id) query.condition(HugeKeys.LABEL);
-        // Query-condition has label
+
+        List<? extends SchemaLabel> schemaLabels;
         if (label != null) {
+            // Query has LABEL condition
             SchemaLabel schemaLabel;
             if (query.resultType().isVertex()) {
                 schemaLabel = schema.getVertexLabel(label);
@@ -546,30 +547,29 @@ public class GraphIndexTransaction extends AbstractTransaction {
                           "Unsupported index query type: %s",
                           query.resultType()));
             }
-            MatchedLabel info = this.collectMatchedLabel(schemaLabel, query);
-            return info == null ? ImmutableSet.of() : ImmutableSet.of(info);
-        }
-
-        // Query-condition doesn't have label
-        List<? extends SchemaLabel> schemaLabels;
-        if (query.resultType().isVertex()) {
-            schemaLabels = schema.getVertexLabels();
-        } else if (query.resultType().isEdge()) {
-            schemaLabels = schema.getEdgeLabels();
+            schemaLabels = ImmutableList.of(schemaLabel);
         } else {
-            throw new AssertionError(String.format(
-                      "Unsupported index query type: %s",
-                      query.resultType()));
-        }
-
-        Set<MatchedLabel> labels = InsertionOrderUtil.newSet();
-        for (SchemaLabel schemaLabel : schemaLabels) {
-            MatchedLabel l = this.collectMatchedLabel(schemaLabel, query);
-            if (l != null) {
-                labels.add(l);
+            // Query doesn't have LABEL condition
+            if (query.resultType().isVertex()) {
+                schemaLabels = schema.getVertexLabels();
+            } else if (query.resultType().isEdge()) {
+                schemaLabels = schema.getEdgeLabels();
+            } else {
+                throw new AssertionError(String.format(
+                          "Unsupported index query type: %s",
+                          query.resultType()));
             }
         }
-        return labels;
+
+        // Collect MatchedIndex for each SchemaLabel
+        Set<MatchedIndex> matchedIndexes = InsertionOrderUtil.newSet();
+        for (SchemaLabel schemaLabel : schemaLabels) {
+            MatchedIndex index = this.collectMatchedIndex(schemaLabel, query);
+            if (index != null) {
+                matchedIndexes.add(index);
+            }
+        }
+        return matchedIndexes;
     }
 
     /**
@@ -578,25 +578,26 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * @param query conditions container
      * @return MatchedLabel object contains schemaLabel and matched indexLabels
      */
-    private MatchedLabel collectMatchedLabel(SchemaLabel schemaLabel,
+    @Watched(prefix = "index")
+    private MatchedIndex collectMatchedIndex(SchemaLabel schemaLabel,
                                              ConditionQuery query) {
         SchemaTransaction schema = this.graph().schemaTransaction();
-        Set<IndexLabel> indexLabels = schemaLabel.indexLabels().stream()
-                                                 .map(schema::getIndexLabel)
-                                                 .collect(Collectors.toSet());
-        if (indexLabels.isEmpty()) {
+        Set<IndexLabel> ils = InsertionOrderUtil.newSet();
+        for(Id il : schemaLabel.indexLabels()) {
+            ils.add(schema.getIndexLabel(il));
+        }
+        if (ils.isEmpty()) {
             return null;
         }
-        // Single or composite index
-        Set<IndexLabel> matchedIndexLabels =
-                        matchSingleOrCompositeIndex(query, indexLabels);
-        if (matchedIndexLabels.isEmpty()) {
-            // Joint indexes
-            matchedIndexLabels = matchJointIndexes(query, indexLabels);
+        // Try to match single or composite index
+        Set<IndexLabel> matchedILs = matchSingleOrCompositeIndex(query, ils);
+        if (matchedILs.isEmpty()) {
+            // Try joint indexes
+            matchedILs = matchJointIndexes(query, ils);
         }
 
-        if (!matchedIndexLabels.isEmpty()) {
-            return new MatchedLabel(schemaLabel, matchedIndexLabels);
+        if (!matchedILs.isEmpty()) {
+            return new MatchedIndex(schemaLabel, matchedILs);
         }
         return null;
     }
@@ -722,14 +723,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private static IndexQueries buildJointIndexesQueries(ConditionQuery query,
-                                                         MatchedLabel info) {
+                                                         MatchedIndex index) {
         IndexQueries queries = new IndexQueries();
-        List<IndexLabel> allILs = new ArrayList<>(info.indexLabels());
+        List<IndexLabel> allILs = new ArrayList<>(index.indexLabels());
 
         // Handle range/search indexes
         if (query.hasRangeCondition() || query.hasSearchCondition()) {
             Set<IndexLabel> matchedILs =
-                    matchRangeOrSearchIndexLabels(query, info.indexLabels());
+                    matchRangeOrSearchIndexLabels(query, index.indexLabels());
             assert !matchedILs.isEmpty();
             allILs.removeAll(matchedILs);
 
@@ -1148,12 +1149,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         } while (counter == Query.DEFAULT_CAPACITY);
     }
 
-    private static class MatchedLabel {
+    private static class MatchedIndex {
 
         private SchemaLabel schemaLabel;
         private Set<IndexLabel> indexLabels;
 
-        public MatchedLabel(SchemaLabel schemaLabel,
+        public MatchedIndex(SchemaLabel schemaLabel,
                             Set<IndexLabel> indexLabels) {
             this.schemaLabel = schemaLabel;
             this.indexLabels = indexLabels;

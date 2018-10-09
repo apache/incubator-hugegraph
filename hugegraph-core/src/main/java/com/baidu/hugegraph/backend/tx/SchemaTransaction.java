@@ -82,18 +82,22 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
+    @Watched(prefix = "schema")
     public List<PropertyKey> getPropertyKeys() {
         return this.getAllSchema(HugeType.PROPERTY_KEY);
     }
 
+    @Watched(prefix = "schema")
     public List<VertexLabel> getVertexLabels() {
         return this.getAllSchema(HugeType.VERTEX_LABEL);
     }
 
+    @Watched(prefix = "schema")
     public List<EdgeLabel> getEdgeLabels() {
         return this.getAllSchema(HugeType.EDGE_LABEL);
     }
 
+    @Watched(prefix = "schema")
     public List<IndexLabel> getIndexLabels() {
         return this.getAllSchema(HugeType.INDEX_LABEL);
     }
