@@ -148,7 +148,7 @@ public abstract class AbstractTransaction implements Transaction {
             return;
         }
 
-        // Do rate limit if need
+        // Do rate limit if needed
         RateLimiter rateLimiter = this.graph.rateLimiter();
         if (rateLimiter != null) {
             int size = this.mutationSize();
@@ -170,6 +170,7 @@ public abstract class AbstractTransaction implements Transaction {
         }
     }
 
+    @Override
     public void commitIfGtSize(int size) throws BackendException {
         if (this.mutationSize() >= size) {
             this.commit();

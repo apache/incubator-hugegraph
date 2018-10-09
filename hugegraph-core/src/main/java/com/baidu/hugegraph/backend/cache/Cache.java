@@ -32,7 +32,9 @@ public interface Cache {
 
     public void update(Id id, Object value);
 
-    public void updateIfAbsent(Id id, Object value) ;
+    public void updateIfAbsent(Id id, Object value);
+
+    public void updateIfPresent(Id id, Object value);
 
     public void invalidate(Id id);
 
