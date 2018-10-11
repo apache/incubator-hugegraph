@@ -320,7 +320,7 @@ public class HugeTask<V> extends FutureTask<V> {
         list.add(this.create);
 
         list.add(P.RETRIES);
-        list.add( this.retries);
+        list.add(this.retries);
 
         if (this.description != null) {
             list.add(P.DESCRIPTION);
