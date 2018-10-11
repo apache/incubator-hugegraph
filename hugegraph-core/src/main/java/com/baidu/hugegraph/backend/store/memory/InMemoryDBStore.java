@@ -154,6 +154,11 @@ public class InMemoryDBStore implements BackendStore {
     @Override
     public void open(HugeConfig config) {
         LOG.debug("open()");
+        /*
+         * Memory store need to init some system property,
+         * like task related propertykeys and vertexlabels
+         */
+        this.provider.init();
     }
 
     @Override
