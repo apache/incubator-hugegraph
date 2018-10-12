@@ -3169,6 +3169,11 @@ public class VertexCoreTest extends BaseCoreTest {
                                         .range(3, 5).toList();
         Assert.assertEquals(2, vertices2.size());
 
+        List<Vertex> vertices3 = graph().traversal().V()
+                                        .hasLabel("person")
+                                        .limit(4).toList();
+        Assert.assertEquals(4, vertices3.size());
+
         vertices1.addAll(vertices2);
         Assert.assertEquals(vertices.size(), vertices1.size());
         Assert.assertTrue(vertices.containsAll(vertices1));
