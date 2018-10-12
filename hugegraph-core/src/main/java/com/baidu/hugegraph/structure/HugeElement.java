@@ -20,12 +20,13 @@
 package com.baidu.hugegraph.structure;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
@@ -176,13 +177,13 @@ public abstract class HugeElement implements Element, GraphType {
                 this.setProperty(prop);
                 break;
             case SET:
-                prop = this.addPropertySet(pkey, value);
+                prop = this.addProperty(pkey, value, HashSet::new);
                 if (notify) {
                     this.onUpdateProperty(pkey.cardinality(), prop);
                 }
                 break;
             case LIST:
-                prop = this.addPropertyList(pkey, value);
+                prop = this.addProperty(pkey, value, ArrayList::new);
                 if (notify) {
                     this.onUpdateProperty(pkey.cardinality(), prop);
                 }
@@ -195,63 +196,38 @@ public abstract class HugeElement implements Element, GraphType {
     }
 
     @Watched(prefix = "element")
-    @SuppressWarnings({ "rawtypes", "unchecked" }) // (HugeProperty) propList
-    private <V> HugeProperty<V> addPropertyList(PropertyKey pkey, V value) {
-        HugeProperty<List<V>> propList;
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private <V> HugeProperty<V> addProperty(PropertyKey pkey, V value,
+                                            Supplier<Collection<V>> supplier) {
+        HugeProperty<Collection<V>> property;
         if (this.hasProperty(pkey.id())) {
-            propList = this.getProperty(pkey.id());
+            property = this.getProperty(pkey.id());
         } else {
-            propList = this.newProperty(pkey, new ArrayList<V>());
-            this.setProperty(propList);
+            property = this.newProperty(pkey, supplier.get());
+            this.setProperty(property);
         }
 
-        if (value instanceof List) {
-            E.checkArgument(pkey.checkDataType((List) value),
-                            "Invalid type of property values %s for key '%s'",
-                            value, pkey.name());
-            propList.value().addAll((List) value);
+        Collection<V> values = null;
+        if (value instanceof Collection) {
+            values = (Collection<V>) value;
         } else if (value.getClass().isArray()) {
-            List<V> valueList = CollectionUtil.toList(value);
-            E.checkArgument(pkey.checkDataType(valueList),
+            values = CollectionUtil.toList(value);
+        }
+
+        if (values != null) {
+            E.checkArgument(pkey.checkDataType(values),
                             "Invalid type of property values %s for key '%s'",
-                            valueList, pkey.name());
-            propList.value().addAll(valueList);
+                            value, pkey.name());
+            property.value().addAll(values);
         } else {
             E.checkArgument(pkey.checkDataType(value),
                             "Invalid type of property value '%s' for key '%s'",
                             value, pkey.name());
-            propList.value().add(value);
+            property.value().add(value);
         }
 
         // Any better ways?
-        return (HugeProperty) propList;
-    }
-
-    @Watched(prefix = "element")
-    @SuppressWarnings({ "rawtypes", "unchecked" }) // (HugeProperty) propSet
-    private <V> HugeProperty<V> addPropertySet(PropertyKey pkey, V value) {
-        HugeProperty<Set<V>> propSet;
-        if (this.hasProperty(pkey.id())) {
-            propSet = this.getProperty(pkey.id());
-        } else {
-            propSet = this.newProperty(pkey, new HashSet<V>());
-            this.setProperty(propSet);
-        }
-
-        if (value instanceof Set) {
-            E.checkArgument(pkey.checkDataType((Set) value),
-                            "Invalid type of property values %s for key '%s'",
-                            value, pkey.name());
-            propSet.value().addAll((Set) value);
-        } else {
-            E.checkArgument(pkey.checkDataType(value),
-                            "Invalid type of property value '%s' for key '%s'",
-                            value, pkey.name());
-            propSet.value().add(value);
-        }
-
-        // Any better ways?
-        return (HugeProperty) propSet;
+        return (HugeProperty) property;
     }
 
     public void resetProperties() {
