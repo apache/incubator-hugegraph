@@ -191,7 +191,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
                 entry = new BinaryBackendEntry(type, id);
             }
             try {
-                this.parseRowColumns(row, entry);
+                this.parseRowColumns(row, entry, query);
             } catch (IOException e) {
                 throw new BackendException("Failed to read HBase columns", e);
             }
@@ -199,7 +199,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         });
     }
 
-    protected void parseRowColumns(Result row, BackendEntry entry)
+    protected void parseRowColumns(Result row, BackendEntry entry, Query query)
                                    throws IOException {
         CellScanner cellScanner = row.cellScanner();
         while (cellScanner.advance()) {
