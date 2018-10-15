@@ -29,7 +29,8 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
     }
 
     @Override
-    protected void runTask() {
+    public Object execute() {
         SchemaTransaction.removeEdgeLabelSync(this.graph(), this.schemaId());
+        return null;
     }
 }

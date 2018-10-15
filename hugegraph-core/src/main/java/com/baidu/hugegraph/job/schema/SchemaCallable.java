@@ -13,14 +13,6 @@ public abstract class SchemaCallable extends Job<Object> {
 
     private static final String SPLITOR = ":";
 
-    @Override
-    public Object call() throws Exception {
-        this.runTask();
-        return null;
-    }
-
-    protected abstract void runTask();
-
     protected HugeType schemaType() {
         String name = this.task().name();
         String[] parts = name.split(SPLITOR);

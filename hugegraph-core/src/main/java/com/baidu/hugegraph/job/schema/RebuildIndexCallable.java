@@ -32,8 +32,9 @@ public class RebuildIndexCallable extends SchemaCallable {
     }
 
     @Override
-    protected void runTask() {
+    public Object execute() {
         this.graph().graphTransaction().rebuildIndex(this.schemaElement());
+        return null;
     }
 
     private SchemaElement schemaElement() {

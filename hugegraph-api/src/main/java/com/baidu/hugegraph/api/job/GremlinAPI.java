@@ -85,7 +85,7 @@ public class GremlinAPI extends API {
         }
 
         @Override
-        public Object call() throws Exception {
+        public Object execute() throws Exception {
             GremlinRequest input = GremlinRequest.fromJson(this.task().input());
 
             HugeScriptTraversal<?, ?> st;

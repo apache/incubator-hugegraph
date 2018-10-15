@@ -108,7 +108,7 @@ public class TaskAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeTaskScheduler scheduler = g.taskScheduler();
 
-        HugeTask task = scheduler.task(IdGenerator.of(id));
+        HugeTask<?> task = scheduler.task(IdGenerator.of(id));
         if (task.completed()) {
             scheduler.deleteTask(IdGenerator.of(id));
         } else {

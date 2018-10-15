@@ -142,8 +142,8 @@ public class HugeTaskScheduler {
         task.cancel(false);
     }
 
-    protected void remove(Id taskId) {
-        HugeTask<?> task = this.tasks.remove(taskId);
+    protected void remove(Id id) {
+        HugeTask<?> task = this.tasks.remove(id);
         assert task == null || task.completed();
     }
 
@@ -211,6 +211,12 @@ public class HugeTaskScheduler {
     }
 
     public <V> HugeTask<V> deleteTask(Id id) {
+        HugeTask<?> task = this.tasks.get(id);
+        if (task != null) {
+            E.checkState(task.completed(),
+                         "Can't delete task '%s' in status %s",
+                         id, task.status());
+        }
         return this.submit(() -> {
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
             if (vertices.hasNext()) {
