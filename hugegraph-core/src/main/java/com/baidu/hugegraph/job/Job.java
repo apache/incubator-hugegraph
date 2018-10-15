@@ -28,8 +28,20 @@ public abstract class Job<T> extends HugeTaskCallable<T> {
 
     public abstract String type();
 
+    public abstract T execute() throws Exception;
+
+    @Override
+    public T call() throws Exception {
+        this.save();
+        return this.execute();
+    }
+
     @Override
     protected void done() {
+        this.save();
+    }
+
+    private void save() {
         HugeTask<T> task = this.task();
         task.updateTime(new Date());
         this.scheduler().save(task);

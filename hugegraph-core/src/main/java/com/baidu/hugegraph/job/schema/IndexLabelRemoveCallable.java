@@ -29,7 +29,8 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
     }
 
     @Override
-    protected void runTask() {
+    public Object execute() {
         SchemaTransaction.removeIndexLabelSync(this.graph(), this.schemaId());
+        return null;
     }
 }

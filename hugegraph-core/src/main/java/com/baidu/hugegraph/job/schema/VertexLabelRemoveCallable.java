@@ -29,7 +29,8 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
     }
 
     @Override
-    public void runTask() {
+    public Object execute() {
         SchemaTransaction.removeVertexLabelSync(this.graph(), this.schemaId());
+        return null;
     }
 }
