@@ -26,7 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -36,6 +35,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
@@ -43,6 +43,7 @@ public class EventHub {
 
     private static final Logger LOG = Log.logger(EventHub.class);
 
+    public static final String EVENT_WORKER = "event-worker-%d";
     public static final String ANY_EVENT = "*";
 
     private static final List<EventListener> EMPTY = ImmutableList.of();
@@ -70,7 +71,7 @@ public class EventHub {
             return;
         }
         LOG.debug("Init pool(size {}) for EventHub", poolSize);
-        executor = Executors.newFixedThreadPool(poolSize);
+        executor = ExecutorUtil.newFixedThreadPool(poolSize, EVENT_WORKER);
     }
 
     public static synchronized boolean destroy(long timeout)
