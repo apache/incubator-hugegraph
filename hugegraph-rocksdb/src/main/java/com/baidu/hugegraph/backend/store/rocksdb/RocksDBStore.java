@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -162,28 +163,31 @@ public abstract class RocksDBStore implements BackendStore {
                 if (e.getMessage().contains("No locks available")) {
                     // Open twice, but we should support keyspace
                     sessions = dbs.get(dataPath);
-                } else if (e.getMessage().contains("Column family not found")) {
-                    // Open a keyspace after other keyspace closed
-                    try {
-                        // Will open old CFs(of other keyspace)
-                        final List<String> none = ImmutableList.of();
-                        sessions = this.openSessionPool(config, dataPath,
-                                                        walPath, none);
-                    } catch (RocksDBException e1) {
-                        // Let it throw later
-                        e = e1;
-                    }
                 }
-            } else if (e.getMessage().contains("Column family not found")) {
-                // Before init the first keyspace
+            }
+
+            if (e.getMessage().contains("Column family not found")) {
                 LOG.info("Failed to open RocksDB '{}' with database '{}', " +
                          "try to init CF later", dataPath, this.database);
+                List<String> none;
+                boolean existsOtherKeyspace = existsOtherKeyspace(dataPath);
+                if (existsOtherKeyspace) {
+                    // Open a keyspace after other keyspace closed
+                    // Set to empty list to open old CFs(of other keyspace)
+                    none = ImmutableList.of();
+                } else {
+                    // Before init the first keyspace
+                    none = null;
+                }
                 try {
-                    // Only open default CF, won't open old CFs
                     sessions = this.openSessionPool(config, dataPath,
-                                                    walPath, null);
+                                                    walPath, none);
                 } catch (RocksDBException e1) {
-                    LOG.error("Failed to open RocksDB with default CF", e1);
+                    e = e1;
+                }
+                if (sessions == null && !existsOtherKeyspace) {
+                    LOG.error("Failed to open RocksDB with default CF, " +
+                              "is there data for other programs: {}", dataPath);
                 }
             }
 
@@ -216,6 +220,17 @@ public abstract class RocksDBStore implements BackendStore {
                                           this.database, this.store,
                                           tableNames);
         }
+    }
+
+    protected String wrapPath(String path) {
+        // Ensure the `path` exists
+        try {
+            FileUtils.forceMkdir(FileUtils.getFile(path));
+        } catch (IOException e) {
+            throw new BackendException(e.getMessage(), e);
+        }
+        // Join with store type
+        return Paths.get(path, this.store).toString();
     }
 
     @Override
@@ -424,15 +439,29 @@ public abstract class RocksDBStore implements BackendStore {
         return db;
     }
 
-    protected String wrapPath(String path) {
-        // Ensure the `path` exists
+    private static boolean existsOtherKeyspace(String dataPath) {
+        Set<String> cfs;
         try {
-            FileUtils.forceMkdir(FileUtils.getFile(path));
-        } catch (IOException e) {
-            throw new BackendException(e.getMessage(), e);
+            cfs = RocksDBStdSessions.listCFs(dataPath);
+        } catch (RocksDBException e) {
+            return false;
         }
-        // Join with store type
-        return Paths.get(path, this.store).toString();
+
+        int matched = 0;
+        for (String cf : cfs) {
+            if (cf.endsWith(RocksDBTables.PropertyKey.TABLE) ||
+                cf.endsWith(RocksDBTables.VertexLabel.TABLE) ||
+                cf.endsWith(RocksDBTables.EdgeLabel.TABLE) ||
+                cf.endsWith(RocksDBTables.IndexLabel.TABLE) ||
+                cf.endsWith(RocksDBTables.SecondaryIndex.TABLE) ||
+                cf.endsWith(RocksDBTables.SearchIndex.TABLE) ||
+                cf.endsWith(RocksDBTables.RangeIndex.TABLE)) {
+                if (++matched >= 3) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /***************************** Store defines *****************************/

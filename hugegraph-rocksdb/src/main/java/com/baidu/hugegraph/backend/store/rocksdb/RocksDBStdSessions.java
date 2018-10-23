@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -54,6 +55,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
+import com.google.common.collect.ImmutableList;
 
 public class RocksDBStdSessions extends RocksDBSessions {
 
@@ -88,7 +90,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.conf = config;
 
         // Old CFs should always be opened
-        List<String> cfs = this.mergeOldCFs(dataPath, cfNames);
+        Set<String> mergedCFs = this.mergeOldCFs(dataPath, cfNames);
+        List<String> cfs = ImmutableList.copyOf(mergedCFs);
 
         // Init CFs options
         List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfs.size());
@@ -202,21 +205,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
         return cfh;
     }
 
-    private List<String> mergeOldCFs(String path, List<String> cfNames)
-                                     throws RocksDBException {
-        List<String> cfs = new ArrayList<>(cfNames);
-
-        List<byte[]> oldCFs = RocksDB.listColumnFamilies(new Options(), path);
-        if (oldCFs.isEmpty()) {
-            cfs.add("default");
-        } else {
-            for (byte[] oldCF : oldCFs) {
-                String old = decode(oldCF);
-                if (!cfNames.contains(old)) {
-                    cfs.add(old);
-                }
-            }
-        }
+    private Set<String> mergeOldCFs(String path, List<String> cfNames)
+                                    throws RocksDBException {
+        Set<String> cfs = listCFs(path);
+        cfs.addAll(cfNames);
         return cfs;
     }
 
@@ -233,6 +225,20 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 ingester.ingest(path, this.cf(cf));
             }
         }
+    }
+
+    public static Set<String> listCFs(String path) throws RocksDBException {
+        Set<String> cfs = new HashSet<>();
+
+        List<byte[]> oldCFs = RocksDB.listColumnFamilies(new Options(), path);
+        if (oldCFs.isEmpty()) {
+            cfs.add("default");
+        } else {
+            for (byte[] oldCF : oldCFs) {
+                cfs.add(decode(oldCF));
+            }
+        }
+        return cfs;
     }
 
     public static void initOptions(HugeConfig conf,
@@ -523,9 +529,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @Override
         public BackendColumnIterator scan(String table, byte[] prefix) {
             assert !this.hasChanges();
+            ReadOptions options = new ReadOptions();
             // NOTE: Options.prefix_extractor is a prerequisite
-            //ReadOptions.setPrefixSameAsStart(true);
-            RocksIterator itor = rocksdb().newIterator(cf(table));
+            options.setPrefixSameAsStart(true);
+            RocksIterator itor = rocksdb().newIterator(cf(table), options);
             return new ColumnIterator(table, itor, prefix, null,
                                       SCAN_PREFIX_WITH_BEGIN);
         }
@@ -714,7 +721,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                  */
                 assert this.keyEnd != null;
                 if (this.match(Session.SCAN_LTE_END)) {
-                    // Just compare the prefix，maybe there are excess tail
+                    // Just compare the prefix, maybe there are excess tail
                     key = Arrays.copyOfRange(key, 0, this.keyEnd.length);
                     return Bytes.compare(key, this.keyEnd) <= 0;
                 } else {

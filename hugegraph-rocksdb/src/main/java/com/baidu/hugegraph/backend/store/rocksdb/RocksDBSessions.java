@@ -29,11 +29,8 @@ import com.baidu.hugegraph.backend.store.BackendSessionPool;
 
 public abstract class RocksDBSessions extends BackendSessionPool {
 
-    private final String store;
-
     public RocksDBSessions(String database, String store) {
         super(database + "/" + store);
-        this.store = store;
     }
 
     public abstract Set<String> openedTables();
