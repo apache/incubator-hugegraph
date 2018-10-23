@@ -64,7 +64,7 @@ public class GraphsAPI extends API {
     @RolesAllowed({"admin", "$dynamic"})
     public Object list(@Context GraphManager manager,
                        @Context SecurityContext sc) {
-        Set<String> graphs = manager.graphs().keySet();
+        Set<String> graphs = manager.graphs();
         String role = sc.getUserPrincipal().getName();
         if (role.equals("admin")) {
             return ImmutableMap.of("graphs", graphs);
