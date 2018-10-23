@@ -48,7 +48,7 @@ public class CacheManager {
 
     public CacheManager() {
         this.caches = new ConcurrentHashMap<>();
-        this.timer = new Timer("Cache-Expirer", true);
+        this.timer = new Timer("cache-expirer", true);
 
         this.scheduleTimer(TIMER_TICK_PERIOD);
     }
