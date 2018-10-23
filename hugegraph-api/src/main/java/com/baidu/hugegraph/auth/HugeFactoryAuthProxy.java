@@ -27,6 +27,9 @@ import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 
 public class HugeFactoryAuthProxy {
 
+    public static final String GRAPH_FACTORY =
+           "gremlin.graph=com.baidu.hugegraph.auth.HugeFactoryAuthProxy";
+
     static {
         HugeGraphAuthProxy.setContext(Context.admin());
     }

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +35,7 @@ import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
 import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.backend.cache.Cache;
@@ -68,21 +70,19 @@ public final class GraphManager {
     }
 
     public void loadGraphs(final Map<String, String> graphConfs) {
-        graphConfs.entrySet().forEach(conf -> {
+        for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
+            String name = conf.getKey();
+            String path = conf.getValue();
             try {
-                final Graph newGraph = GraphFactory.open(conf.getValue());
-                this.graphs.put(conf.getKey(), newGraph);
-                LOG.info("Graph '{}' was successfully configured via '{}'",
-                         conf.getKey(), conf.getValue());
+                this.loadGraph(name, path);
             } catch (RuntimeException e) {
-                LOG.error("Graph '{}': '{}' can't be instantiated",
-                          conf.getKey(), conf.getValue(), e);
+                LOG.error("Graph '{}' can't be loaded: '{}'", name, path, e);
             }
-        });
+        }
     }
 
-    public Map<String, Graph> graphs() {
-        return this.graphs;
+    public Set<String> graphs() {
+        return Collections.unmodifiableSet(this.graphs.keySet());
     }
 
     public HugeGraph graph(String name) {
@@ -106,8 +106,7 @@ public final class GraphManager {
     }
 
     public void rollbackAll() {
-        this.graphs.entrySet().forEach(e -> {
-            final Graph graph = e.getValue();
+        this.graphs.values().forEach(graph -> {
             if (graph.features().graph().supportsTransactions() &&
                 graph.tx().isOpen()) {
                 graph.tx().rollback();
@@ -120,8 +119,7 @@ public final class GraphManager {
     }
 
     public void commitAll() {
-        this.graphs.entrySet().forEach(e -> {
-            final Graph graph = e.getValue();
+        this.graphs.values().forEach(graph -> {
             if (graph.features().graph().supportsTransactions() &&
                 graph.tx().isOpen()) {
                 graph.tx().commit();
@@ -137,9 +135,9 @@ public final class GraphManager {
                          final Transaction.Status tx) {
         final Set<Graph> graphsToCloseTxOn = new HashSet<>();
 
-        graphSourceNamesToCloseTxOn.forEach(r -> {
-            if (this.graphs.containsKey(r)) {
-                graphsToCloseTxOn.add(this.graphs.get(r));
+        graphSourceNamesToCloseTxOn.forEach(name -> {
+            if (this.graphs.containsKey(name)) {
+                graphsToCloseTxOn.add(this.graphs.get(name));
             }
         });
 
@@ -163,9 +161,21 @@ public final class GraphManager {
         return this.authenticator.authenticate(username, password);
     }
 
+    private void loadGraph(String name, String path) {
+        final Graph graph = GraphFactory.open(path);
+        this.graphs.put(name, graph);
+        LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
+
+        if (this.authenticator.requireAuthentication() &&
+            !(graph instanceof HugeGraphAuthProxy)) {
+            LOG.warn("You may need to support access control for '{}' with {}",
+                     path, HugeFactoryAuthProxy.GRAPH_FACTORY);
+        }
+    }
+
     private void checkBackendVersionOrExit() {
-        for (Graph graph : this.graphs.values()) {
-            HugeGraph hugegraph = (HugeGraph) graph;
+        for (String graph : this.graphs()) {
+            HugeGraph hugegraph = this.graph(graph);
             if (InMemoryDBStoreProvider.matchType(hugegraph.backend())) {
                 continue;
             }
@@ -176,6 +186,7 @@ public final class GraphManager {
                 System.exit(-1);
             }
             if (!info.checkVersion()) {
+                // Exit if versions are inconsistent
                 System.exit(-1);
             }
         }
@@ -183,7 +194,7 @@ public final class GraphManager {
 
     private void addMetrics(HugeConfig config) {
         final MetricManager metrics = MetricManager.INSTANCE;
-        // Force add server reporter
+        // Force to add server reporter
         ServerReporter reporter = ServerReporter.instance(metrics.getRegistry());
         reporter.start(60L, TimeUnit.SECONDS);
 
@@ -220,8 +231,8 @@ public final class GraphManager {
             String exp = String.format("%s.%s", key, "expire");
             String size = String.format("%s.%s", key, "size");
             String cap = String.format("%s.%s", key, "capacity");
-            // Avoid register multi times
 
+            // Avoid registering multiple times
             if (names.stream().anyMatch(name -> name.endsWith(hits))) {
                 continue;
             }

@@ -82,6 +82,9 @@ public class StandardAuthenticator extends SimpleAuthenticator {
     @Override
     public AuthenticatedUser authenticate(final Map<String, String> credentials)
                                           throws AuthenticationException {
+        if (!this.requireAuthentication()) {
+            return AuthenticatedUser.ANONYMOUS_USER;
+        }
         String username = credentials.get(PROPERTY_USERNAME);
         String password = credentials.get(PROPERTY_PASSWORD);
 
