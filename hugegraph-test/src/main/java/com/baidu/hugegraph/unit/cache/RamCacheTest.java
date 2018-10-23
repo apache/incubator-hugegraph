@@ -103,14 +103,12 @@ public class RamCacheTest extends BaseUnitTest {
         cache = new RamCache(8);
         Assert.assertEquals(8, cache.capacity());
 
-        cache = new RamCache(7);
-        Assert.assertEquals(8, cache.capacity());
-
         cache = new RamCache(1);
-        Assert.assertEquals(8, cache.capacity());
+        Assert.assertEquals(1, cache.capacity());
 
+        // The min capacity is 1
         cache = new RamCache(0);
-        Assert.assertEquals(8, cache.capacity());
+        Assert.assertEquals(1, cache.capacity());
     }
 
     @Test

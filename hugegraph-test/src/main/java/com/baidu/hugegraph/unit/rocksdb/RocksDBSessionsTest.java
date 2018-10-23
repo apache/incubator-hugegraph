@@ -188,22 +188,32 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         byte[] value21 = b("value-2-1");
         session.put(TABLE, key21, value21);
 
+        byte[] key22 = new byte[]{2, 2};
+        byte[] value22 = b("value-2-2");
+        session.put(TABLE, key22, value22);
+
+        byte[] key23 = new byte[]{2, 3};
+        byte[] value23 = b("value-2-3");
+        session.put(TABLE, key23, value23);
+
         this.commit();
 
         Map<ByteBuffer, byte[]> results = new HashMap<>();
         Iterator<BackendColumn> itor = session.scan(TABLE,
                                                     new byte[]{1, 0},
-                                                    new byte[]{1, 3});
+                                                    new byte[]{2, 3});
         while (itor.hasNext()) {
             BackendColumn col = itor.next();
             results.put(ByteBuffer.wrap(col.name), col.value);
         }
 
-        Assert.assertEquals(2, results.size());
+        Assert.assertEquals(4, results.size());
         Assert.assertArrayEquals(value11, results.get(ByteBuffer.wrap(key11)));
         Assert.assertArrayEquals(value12, results.get(ByteBuffer.wrap(key12)));
+        Assert.assertArrayEquals(value21, results.get(ByteBuffer.wrap(key21)));
+        Assert.assertArrayEquals(value22, results.get(ByteBuffer.wrap(key22)));
 
-        Assert.assertArrayEquals(value21, session.get(TABLE, key21));
+        Assert.assertArrayEquals(value23, session.get(TABLE, key23));
     }
 
     @Test
