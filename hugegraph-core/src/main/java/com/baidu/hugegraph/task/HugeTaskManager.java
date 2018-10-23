@@ -25,14 +25,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.ExecutorUtil;
 
 public class HugeTaskManager {
+
+    public static final String TASK_WORKER = "task-worker-%d";
+    public static final String TASK_DB_WORKER = "task-db-worker-%d";
 
     private static final int THREADS = 4;
     private static final HugeTaskManager MANAGER = new HugeTaskManager(THREADS);
@@ -50,9 +53,9 @@ public class HugeTaskManager {
         this.schedulers = new HashMap<>();
 
         // For execute tasks
-        this.taskExecutor = Executors.newFixedThreadPool(pool);
+        this.taskExecutor = ExecutorUtil.newFixedThreadPool(pool, TASK_WORKER);
         // For save/query task state, just one thread is ok
-        this.dbExecutor = Executors.newFixedThreadPool(1);
+        this.dbExecutor = ExecutorUtil.newFixedThreadPool(1, TASK_DB_WORKER);
     }
 
     public void addScheduler(HugeGraph graph) {
@@ -67,7 +70,6 @@ public class HugeTaskManager {
         if (scheduler != null && scheduler.close()) {
             this.schedulers.remove(graph);
         }
-
         this.closeTaskTx(graph);
     }
 
