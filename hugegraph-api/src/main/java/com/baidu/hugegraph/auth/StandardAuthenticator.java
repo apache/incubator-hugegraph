@@ -19,15 +19,12 @@
 
 package com.baidu.hugegraph.auth;
 
-import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_PASSWORD;
-import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
-
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
-import org.apache.tinkerpop.gremlin.server.auth.SimpleAuthenticator;
 
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -35,29 +32,23 @@ import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
 
-public class StandardAuthenticator extends SimpleAuthenticator {
+public class StandardAuthenticator implements HugeAuthenticator {
 
-    public static final String ROLE_NONE = "";
-    public static final String ROLE_ADMIN = "admin";
-    public static final String ROLE_USER = "user";
-    public static final String ROLE_OWNER = "$owner";
-    public static final String ROLE_DYNAMIC = "$dynamic";
+    public static final String KEY_USERNAME =
+                               CredentialGraphTokens.PROPERTY_USERNAME;
+    public static final String KEY_PASSWORD =
+                               CredentialGraphTokens.PROPERTY_PASSWORD;
 
-    public static final String USER_ADMIN = ROLE_ADMIN;
-    public static final String USER_ANONYMOUS =
-                               AuthenticatedUser.ANONYMOUS_USERNAME;
-
-    private boolean requireAuth;
     private final Map<String, String> tokens;
 
-    public StandardAuthenticator(HugeConfig config) {
-        this();
-        this.load(config);
+    public StandardAuthenticator() {
+        this.tokens = new HashMap<>();
     }
 
-    public StandardAuthenticator() {
-        this.requireAuth = true;
-        this.tokens = new HashMap<>();
+    @Override
+    public void setup(HugeConfig config) {
+        this.tokens.put(User.USER_ADMIN, config.get(ServerOptions.ADMIN_TOKEN));
+        this.tokens.putAll(config.getMap(ServerOptions.USER_TOKENS));
     }
 
     @Override
@@ -68,33 +59,33 @@ public class StandardAuthenticator extends SimpleAuthenticator {
         E.checkState(path != null,
                      "Credentials configuration missing key 'tokens'");
         OptionSpace.register("tokens", ServerOptions.instance());
-        this.load(new HugeConfig(path));
+        this.setup(new HugeConfig(path));
     }
 
     @Override
-    public boolean requireAuthentication() {
-        return this.requireAuth;
-    }
+    public User authenticate(final Map<String, String> credentials)
+                             throws AuthenticationException {
+        User user = User.ANONYMOUS;
+        if (this.requireAuthentication()) {
+            String username = credentials.get(KEY_USERNAME);
+            String password = credentials.get(KEY_PASSWORD);
 
-    /**
-     * This authentication method is for Gremlin Server
-     */
-    @Override
-    public AuthenticatedUser authenticate(final Map<String, String> credentials)
-                                          throws AuthenticationException {
-        if (!this.requireAuthentication()) {
-            return AuthenticatedUser.ANONYMOUS_USER;
+            // Currently we just use config tokens to authenticate
+            String role = this.authenticate(username, password);
+            if (!verifyRole(role)) {
+                // Throw if not certified
+                String message = "Incorrect username or password";
+                throw new AuthenticationException(message);
+            }
+            user = new User(username, role);
         }
-        String username = credentials.get(PROPERTY_USERNAME);
-        String password = credentials.get(PROPERTY_PASSWORD);
+        /*
+         * Set authentication context
+         * TODO: unset context after finishing a request
+         */
+        HugeGraphAuthProxy.setContext(new Context(user));
 
-        // Currently we just use config tokens to authenticate
-        String role = this.authenticate(username, password);
-        if (!verifyRole(role)) {
-            throw new AuthenticationException("Invalid username or password");
-        }
-
-        return new AuthenticatedUser(username);
+        return user;
     }
 
     /**
@@ -104,10 +95,10 @@ public class StandardAuthenticator extends SimpleAuthenticator {
      * @return String No permission if return ROLE_NONE else return a role
      */
     public String authenticate(final String username, final String password) {
-        E.checkArgument(username != null,
-                        "The username parameter can't be null");
-        E.checkArgument(password != null,
-                        "The password parameter can't be null");
+        E.checkArgumentNotNull(username,
+                               "The username parameter can't be null");
+        E.checkArgumentNotNull(password,
+                               "The password parameter can't be null");
 
         String role;
         if (password.equals(this.tokens.get(username))) {
@@ -117,20 +108,12 @@ public class StandardAuthenticator extends SimpleAuthenticator {
             role = ROLE_NONE;
         }
 
-        /*
-         * Set authentication context
-         * TODO: unset context after finishing a request,
-         * now must set context to update last context even if not authorized.
-         */
-        HugeGraphAuthProxy.setContext(new Context(username, role));
-
         return role;
     }
 
-    private void load(HugeConfig config) {
-        this.requireAuth = config.get(ServerOptions.REQUIRE_AUTH);
-        this.tokens.put(USER_ADMIN, config.get(ServerOptions.ADMIN_TOKEN));
-        this.tokens.putAll(config.getMap(ServerOptions.USER_TOKENS));
+    @Override
+    public SaslNegotiator newSaslNegotiator() {
+        throw new NotImplementedException("SaslNegotiator is unsupported");
     }
 
     public static final boolean verifyRole(String role) {

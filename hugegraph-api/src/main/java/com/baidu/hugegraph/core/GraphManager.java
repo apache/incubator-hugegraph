@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
@@ -35,9 +36,9 @@ import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
-import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.store.BackendStoreInfo;
@@ -51,6 +52,7 @@ import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.MetricRegistry;
 
@@ -59,11 +61,16 @@ public final class GraphManager {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     private final Map<String, Graph> graphs;
-    private final StandardAuthenticator authenticator;
+    private final HugeAuthenticator authenticator;
 
     public GraphManager(HugeConfig conf) {
         this.graphs = new ConcurrentHashMap<>();
-        this.authenticator = new StandardAuthenticator(conf);
+
+        if (conf.get(ServerOptions.AUTHENTICATOR).isEmpty()) {
+            this.authenticator = null;
+        } else {
+            this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
+        }
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         this.checkBackendVersionOrExit();
@@ -156,11 +163,16 @@ public final class GraphManager {
     }
 
     public boolean requireAuthentication() {
+        if (this.authenticator == null) {
+            return false;
+        }
         return this.authenticator.requireAuthentication();
     }
 
-    public String authenticate(String username, String password) {
-        return this.authenticator.authenticate(username, password);
+    public HugeAuthenticator.User authenticate(Map<String, String> credentials)
+                                               throws AuthenticationException {
+        E.checkState(this.authenticator != null, "Unconfigured authenticator");
+        return this.authenticator.authenticate(credentials);
     }
 
     private void loadGraph(String name, String path) {
@@ -168,7 +180,7 @@ public final class GraphManager {
         this.graphs.put(name, graph);
         LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
 
-        if (this.authenticator.requireAuthentication() &&
+        if (this.requireAuthentication() &&
             !(graph instanceof HugeGraphAuthProxy)) {
             LOG.warn("You may need to support access control for '{}' with {}",
                      path, HugeFactoryAuthProxy.GRAPH_FACTORY);

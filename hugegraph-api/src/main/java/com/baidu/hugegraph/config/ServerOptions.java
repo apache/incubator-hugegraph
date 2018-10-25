@@ -106,12 +106,13 @@ public class ServerOptions extends OptionHolder {
                     false
             );
 
-    public static final ConfigOption<Boolean> REQUIRE_AUTH =
+    public static final ConfigOption<String> AUTHENTICATOR =
             new ConfigOption<>(
-                    "auth.require_authentication",
-                    "Whether to enable authentication.",
-                    disallowEmpty(),
-                    false
+                    "auth.authenticator",
+                    "The class path of authenticator implemention. " +
+                    "e.g., com.baidu.hugegraph.auth.StandardAuthenticator",
+                    null,
+                    ""
             );
 
     public static final ConfigOption<String> ADMIN_TOKEN =

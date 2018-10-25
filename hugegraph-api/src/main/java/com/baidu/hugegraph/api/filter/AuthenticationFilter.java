@@ -37,11 +37,14 @@ import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 import javax.xml.bind.DatatypeConverter;
 
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.utils.Charsets;
 
+import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableMap;
 
 @Provider
 @PreMatching
@@ -64,16 +67,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         if (!manager.requireAuthentication()) {
             // Return anonymous user with admin role if disable authentication
-            final String username = StandardAuthenticator.USER_ANONYMOUS;
-            final String role = StandardAuthenticator.ROLE_ADMIN;
-            return new User(username, role);
+            return User.ANONYMOUS;
         }
 
         // Extract authentication credentials
         String auth = context.getHeaderString(HttpHeaders.AUTHORIZATION);
         if (auth == null) {
             throw new NotAuthorizedException(
-                      "Authentication credentials are required");
+                      "Authentication credentials are required",
+                      "Missing authentication credentials");
         }
         if (!auth.startsWith("Basic ")) {
             throw new BadRequestException(
@@ -94,12 +96,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         assert username != null && password != null;
 
         // Validate the extracted credentials
-        final String role = manager.authenticate(username, password);
-        if (!StandardAuthenticator.verifyRole(role)) {
-            throw new NotAuthorizedException("Invalid username or password");
+        try {
+            return manager.authenticate(ImmutableMap.of(
+                           StandardAuthenticator.KEY_USERNAME, username,
+                           StandardAuthenticator.KEY_PASSWORD, password));
+        } catch (AuthenticationException e) {
+            String msg = String.format("Authentication failed for user '%s'",
+                                       username);
+            throw new NotAuthorizedException(msg, e.getMessage());
         }
-
-        return new User(username, role);
     }
 
     public static class Authorizer implements SecurityContext {
@@ -117,11 +122,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         public String username() {
-            return this.user.username;
+            return this.user.username();
         }
 
-        public String userrole() {
-            return this.user.role;
+        public String role() {
+            return this.user.role();
         }
 
         @Override
@@ -140,7 +145,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 E.checkState(owner.length == 2, "Bad role format: '%s'", role);
                 role = this.getPathParameter(owner[1]);
             }
-            return role.equals(this.user.role);
+            return role.equals(this.user.role());
         }
 
         @Override
@@ -164,7 +169,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             @Override
             public String getName() {
-                return Authorizer.this.user.role;
+                return Authorizer.this.user.role();
             }
 
             @Override
@@ -181,39 +186,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             public boolean equals(Object obj) {
                 return Authorizer.this.user.equals(obj);
             }
-        }
-    }
-
-    protected static class User {
-
-        private String username;
-        private String role;
-
-        public User(String username, String role) {
-            this.username = username;
-            this.role = role;
-        }
-
-        @Override
-        public int hashCode() {
-            return this.username.hashCode() ^ this.role.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null || !(obj instanceof User)) {
-                return false;
-            }
-
-            User other = (User) obj;
-            return this.username.equals(other.username) &&
-                   this.role.equals(other.role);
-        }
-
-        @Override
-        public String toString() {
-            return String.format("User{username=%s,role=%s}",
-                                 this.username, this.role);
         }
     }
 }

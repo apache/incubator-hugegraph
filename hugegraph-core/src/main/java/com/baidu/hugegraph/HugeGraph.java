@@ -76,7 +76,7 @@ import com.google.common.util.concurrent.RateLimiter;
  * HugeGraph is the entrance of the graph system, you can modify or query
  * the schema/vertex/edge data through this class.
  */
-public class HugeGraph implements Graph {
+public class HugeGraph implements GremlinGraph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
@@ -145,10 +145,12 @@ public class HugeGraph implements Graph {
         this.variables = null;
     }
 
+    @Override
     public String name() {
         return this.name;
     }
 
+    @Override
     public String backend() {
         return this.storeProvider.type();
     }
@@ -161,10 +163,12 @@ public class HugeGraph implements Graph {
         return this.closed && this.tx.closed();
     }
 
+    @Override
     public boolean restoring() {
         return this.restoring;
     }
 
+    @Override
     public void restoring(boolean restoring) {
         this.restoring = restoring;
     }
@@ -181,6 +185,7 @@ public class HugeGraph implements Graph {
         return this.rateLimiter;
     }
 
+    @Override
     public void initBackend() {
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
@@ -195,6 +200,7 @@ public class HugeGraph implements Graph {
         }
     }
 
+    @Override
     public void clearBackend() {
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
@@ -267,6 +273,7 @@ public class HugeGraph implements Graph {
         return this.tx.graphTransaction();
     }
 
+    @Override
     public SchemaManager schema() {
         return new SchemaManager(this.schemaTransaction());
     }
@@ -550,9 +557,13 @@ public class HugeGraph implements Graph {
             return this.refs.get() == 0;
         }
 
+        /**
+         * Commit tx if batch size reaches the specified value,
+         * it may be used by Gremlin
+         */
+        @SuppressWarnings("unused")
         public void commitIfGtSize(int size) {
-            // Only committing graph transaction data if reaching batch size
-            // is OK, bacause schema transaction is auto committed.
+            // Only commit graph transaction data (schema auto committed)
             this.graphTransaction().commitIfGtSize(size);
         }
 
