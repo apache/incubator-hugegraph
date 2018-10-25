@@ -21,9 +21,11 @@ package com.baidu.hugegraph.dist;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.ServiceLoader;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
@@ -31,9 +33,15 @@ import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
+import com.baidu.hugegraph.plugin.HugeGraphPlugin;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.VersionUtil;
+import com.baidu.hugegraph.version.CoreVersion;
 
 public class RegisterUtil {
+
+    private static final Logger LOG = Log.logger(RegisterUtil.class);
 
     static {
         OptionSpace.register("core", CoreOptions.instance());
@@ -159,5 +167,35 @@ public class RegisterUtil {
 
     public static void registerServer() {
         OptionSpace.register("server", "com.baidu.hugegraph.config.ServerOptions");
+    }
+
+    /**
+     * Scan the jars in plugins directory and load them
+     */
+    public static void registerPlugins() {
+        ServiceLoader<HugeGraphPlugin> plugins = ServiceLoader.load(
+                                                 HugeGraphPlugin.class);
+        for (HugeGraphPlugin plugin : plugins) {
+            LOG.info("Loading plugin {}({})",
+                     plugin.name(), plugin.getClass().getCanonicalName());
+            String minVersion = plugin.supportsMinVersion();
+            String maxVersion = plugin.supportsMaxVersion();
+
+            if (!VersionUtil.match(CoreVersion.VERSION, minVersion,
+                                   maxVersion)) {
+                LOG.warn("Skip loading plugin '{}' due to the version range " +
+                         "'[{}, {})' that it's supported doesn't cover " +
+                         "current core version '{}'", plugin.name(),
+                         minVersion, maxVersion, CoreVersion.VERSION.get());
+                continue;
+            }
+            try {
+                plugin.register();
+                LOG.info("Loaded plugin '{}'", plugin.name());
+            } catch (Exception e) {
+                throw new HugeException("Failed to load plugin '%s'",
+                                        plugin.name(), e);
+            }
+        }
     }
 }
