@@ -27,6 +27,7 @@ import javax.json.JsonObjectBuilder;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
@@ -114,17 +115,18 @@ public class ExceptionFilter {
 
         @Override
         public Response toResponse(WebApplicationException exception) {
-
             Response response = exception.getResponse();
             if (response.hasEntity()) {
                 return response;
             }
-
+            MultivaluedMap<String, Object> headers = response.getHeaders();
             boolean trace = this.trace(response.getStatus());
-            return Response.status(response.getStatus())
-                           .type(MediaType.APPLICATION_JSON)
-                           .entity(formatException(exception, trace))
-                           .build();
+            response = Response.status(response.getStatus())
+                               .type(MediaType.APPLICATION_JSON)
+                               .entity(formatException(exception, trace))
+                               .build();
+            response.getHeaders().putAll(headers);
+            return response;
         }
 
         private boolean trace(int status) {
@@ -150,15 +152,16 @@ public class ExceptionFilter {
     }
 
     public static String formatException(Exception exception, boolean trace) {
+        String clazz = exception.getClass().toString();
         String msg = exception.getMessage() != null ?
                      exception.getMessage() : "";
         String cause = exception.getCause() != null ?
                        exception.getCause().toString() : "";
 
         JsonObjectBuilder json = Json.createObjectBuilder()
-                .add("exception", exception.getClass().toString())
-                .add("message", msg)
-                .add("cause", cause);
+                                     .add("exception", clazz)
+                                     .add("message", msg)
+                                     .add("cause", cause);
 
         if (trace) {
             JsonArrayBuilder traces = Json.createArrayBuilder();

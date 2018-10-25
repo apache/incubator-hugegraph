@@ -36,17 +36,17 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
-import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public class HugeGraphAuthProxy implements Graph {
+public class HugeGraphAuthProxy implements GremlinGraph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
@@ -111,7 +111,7 @@ public class HugeGraphAuthProxy implements Graph {
 
     @Override
     public void close() throws HugeException {
-        this.verifyPermission("admin");
+        this.verifyPermission(ROLE_ADMIN);
         this.hugegraph.close();
     }
 
@@ -148,39 +148,46 @@ public class HugeGraphAuthProxy implements Graph {
         return this.hugegraph;
     }
 
+    @Override
+    public String name() {
+        this.verifyPermission();
+        return this.hugegraph.name();
+    }
+
+    @Override
     public SchemaManager schema() {
         this.verifyPermission();
         return this.hugegraph.schema();
     }
 
+    @Override
     public String backend() {
         this.verifyPermission();
         return this.hugegraph.backend();
     }
 
+    @Override
     public void initBackend() {
         this.verifyPermission(ROLE_ADMIN);
         this.hugegraph.initBackend();
     }
 
+    @Override
     public void clearBackend() {
         this.verifyPermission(ROLE_ADMIN);
         this.hugegraph.clearBackend();
     }
 
+    @Override
     public void restoring(boolean restoring) {
         this.verifyPermission(ROLE_ADMIN);
         this.hugegraph.restoring(restoring);
     }
 
+    @Override
     public boolean restoring() {
         this.verifyPermission(ROLE_ADMIN);
         return this.hugegraph.restoring();
-    }
-
-    public TaskScheduler taskScheduler() {
-        this.verifyPermission();
-        return this.hugegraph.taskScheduler();
     }
 
     private void verifyPermission() {
@@ -197,7 +204,7 @@ public class HugeGraphAuthProxy implements Graph {
         E.checkState(context != null,
                      "Missing authentication context " +
                      "when accessing a Graph with permission control");
-        String role = context.role();
+        String role = context.user().role();
         if (!role.equals(ROLE_ADMIN) && !role.equals(permission)) {
             throw new ForbiddenException("Permission denied");
         }
@@ -232,26 +239,17 @@ public class HugeGraphAuthProxy implements Graph {
 
     public static class Context {
 
-        private final String username;
-        private final String role;
+        private static final Context ADMIN =
+                             new Context(HugeAuthenticator.User.ADMIN);
 
-        public Context(String username, String role) {
-            this.username = username;
-            this.role = role;
+        private final HugeAuthenticator.User user;
+
+        public Context(HugeAuthenticator.User user) {
+            this.user = user;
         }
 
-        public String username() {
-            return this.username;
-        }
-
-        public String role() {
-            return this.role;
-        }
-
-        private static final Context ADMIN;
-
-        static {
-            ADMIN = new Context("admin", ROLE_ADMIN);
+        public HugeAuthenticator.User user() {
+            return this.user;
         }
 
         public static Context admin() {
