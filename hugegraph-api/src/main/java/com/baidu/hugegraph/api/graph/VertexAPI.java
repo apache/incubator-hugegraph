@@ -103,7 +103,7 @@ public class VertexAPI extends BatchAPI {
         checkCreatingBody(jsonVertices);
 
         HugeGraph g = graph(manager, graph);
-        checkBatchSize(g, jsonVertices);
+        checkBatchSize(config, jsonVertices);
 
         return this.commit(config, g, jsonVertices.size(), () -> {
             List<String> ids = new ArrayList<>(jsonVertices.size());
@@ -251,8 +251,9 @@ public class VertexAPI extends BatchAPI {
         }
     }
 
-    private static void checkBatchSize(HugeGraph g, List<JsonVertex> vertices) {
-        int max = g.configuration().get(ServerOptions.MAX_VERTICES_PER_BATCH);
+    private static void checkBatchSize(HugeConfig config,
+                                       List<JsonVertex> vertices) {
+        int max = config.get(ServerOptions.MAX_VERTICES_PER_BATCH);
         if (vertices.size() > max) {
             throw new IllegalArgumentException(String.format(
                       "Too many counts of vertices for one time post, " +

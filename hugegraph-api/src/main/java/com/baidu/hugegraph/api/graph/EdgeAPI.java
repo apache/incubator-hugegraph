@@ -132,7 +132,7 @@ public class EdgeAPI extends BatchAPI {
         checkCreatingBody(jsonEdges);
 
         HugeGraph g = graph(manager, graph);
-        checkBatchSize(g, jsonEdges);
+        checkBatchSize(config, jsonEdges);
 
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
@@ -304,8 +304,9 @@ public class EdgeAPI extends BatchAPI {
         });
     }
 
-    private static void checkBatchSize(HugeGraph g, List<JsonEdge> edges) {
-        int max = g.configuration().get(ServerOptions.MAX_EDGES_PER_BATCH);
+    private static void checkBatchSize(HugeConfig config,
+                                       List<JsonEdge> edges) {
+        int max = config.get(ServerOptions.MAX_EDGES_PER_BATCH);
         if (edges.size() > max) {
             throw new IllegalArgumentException(String.format(
                       "Too many counts of edges for one time post, " +
