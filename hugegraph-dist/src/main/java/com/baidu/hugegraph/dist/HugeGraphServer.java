@@ -19,16 +19,12 @@
 
 package com.baidu.hugegraph.dist;
 
-import java.util.ServiceLoader;
-
+import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.plugin.HugeGraphPlugin;
 import com.baidu.hugegraph.util.Log;
-import com.baidu.hugegraph.util.VersionUtil;
-import com.baidu.hugegraph.version.CoreVersion;
 
 public class HugeGraphServer {
 
@@ -41,52 +37,32 @@ public class HugeGraphServer {
     }
 
     public static void main(String[] args) throws Exception {
-
         if (args.length != 2) {
             String msg = "HugeGraphServer can only accept two config files";
             LOG.error(msg);
             throw new HugeException(msg);
         }
 
+        HugeRestServer.register();
+
+        GremlinServer gremlinServer = null;
         try {
-            RegisterUtil.registerBackends();
-            // Scan the jars in plugins directory and load them
-            registerPlugins();
             // Start GremlinServer
-            HugeGremlinServer.start(args[0]);
-            // Start HugeRestServer
-            HugeRestServer.start(args[1]);
+            gremlinServer = HugeGremlinServer.start(args[0]);
         } catch (Exception e) {
-            LOG.error("HugeGraphServer error:", e);
+            LOG.error("HugeGremlinServer start error: ", e);
             HugeGraph.shutdown(30L);
             throw e;
         }
-    }
 
-    private static void registerPlugins() {
-        ServiceLoader<HugeGraphPlugin> plugins = ServiceLoader.load(
-                                                 HugeGraphPlugin.class);
-        for (HugeGraphPlugin plugin : plugins) {
-            LOG.info("Loading plugin {}({})",
-                     plugin.name(), plugin.getClass().getCanonicalName());
-            String minVersion = plugin.supportsMinVersion();
-            String maxVersion = plugin.supportsMaxVersion();
-
-            if (!VersionUtil.match(CoreVersion.VERSION, minVersion,
-                                   maxVersion)) {
-                LOG.warn("Skip loading plugin '{}' due to the version range " +
-                         "'[{}, {})' that it's supported doesn't cover " +
-                         "current core version '{}'", plugin.name(),
-                         minVersion, maxVersion, CoreVersion.VERSION.get());
-                continue;
-            }
-            try {
-                plugin.register();
-                LOG.info("Loaded plugin '{}'", plugin.name());
-            } catch (Exception e) {
-                throw new HugeException("Failed to load plugin '%s'",
-                                        plugin.name(), e);
-            }
+        try {
+            // Start HugeRestServer
+            HugeRestServer.start(args[1]);
+        } catch (Exception e) {
+            LOG.error("HugeRestServer start error: ", e);
+            gremlinServer.stop();
+            HugeGraph.shutdown(30L);
+            throw e;
         }
     }
 }

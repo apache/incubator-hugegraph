@@ -37,7 +37,6 @@ public class HugeRestServer {
         }
 
         try {
-            RegisterUtil.registerBackends();
             // Start HugeRestServer
             start(args[0]);
         } catch (Exception e) {
@@ -47,10 +46,15 @@ public class HugeRestServer {
         LOG.info("HugeRestServer stopped");
     }
 
-    public static void start(String conf) throws Exception {
+    public static void register() {
+        RegisterUtil.registerBackends();
+        RegisterUtil.registerPlugins();
+    }
+
+    public static RestServer start(String conf) throws Exception {
         RegisterUtil.registerServer();
 
         // Start RestServer
-        RestServer.start(conf);
+        return RestServer.start(conf);
     }
 }
