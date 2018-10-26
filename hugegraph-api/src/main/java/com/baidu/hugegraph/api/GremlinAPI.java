@@ -38,11 +38,18 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.metric.MetricsUtil;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
 
 @Path("gremlin")
 @Singleton
 public class GremlinAPI extends API {
+
+    private static final Histogram gremlinInputHistogram =
+            MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
+    private static final Histogram gremlinOutputHistogram =
+            MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-output");
 
     private Client client = ClientBuilder.newClient();
 
@@ -60,10 +67,12 @@ public class GremlinAPI extends API {
             r.getHeaders().putSingle(HttpHeaders.CONTENT_TYPE,
                                      r.getMediaType().withCharset(CHARSET));
         }
+        gremlinInputHistogram.update(query.length());
+        gremlinOutputHistogram.update(r.getLength());
         return r;
     }
 
-    private Response doPostRequest(String location, String auth, Object req) {
+    private Response doPostRequest(String location, String auth, String req) {
         Entity<?> body = Entity.entity(req, MediaType.APPLICATION_JSON);
         Response r = this.client.target(location)
                                 .request()
@@ -77,6 +86,8 @@ public class GremlinAPI extends API {
             r.getHeaders().putSingle(HttpHeaders.CONTENT_TYPE,
                                      r.getMediaType().withCharset(CHARSET));
         }
+        gremlinInputHistogram.update(req.length());
+        gremlinOutputHistogram.update(r.getLength());
         return r;
     }
 

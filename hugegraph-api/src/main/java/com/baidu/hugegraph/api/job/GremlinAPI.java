@@ -41,11 +41,13 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.job.JobBuilder;
+import com.baidu.hugegraph.metric.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
 
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
@@ -55,6 +57,9 @@ import jersey.repackaged.com.google.common.collect.ImmutableMap;
 public class GremlinAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
+
+    private static final Histogram gremlinJobInputHistogram =
+            MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
 
     @POST
     @Timed
@@ -66,6 +71,7 @@ public class GremlinAPI extends API {
                                 GremlinRequest request) {
         LOG.debug("Graph [{}] schedule gremlin job: {}", graph, request);
         checkCreatingBody(request);
+        gremlinJobInputHistogram.update(request.gremlin.length());
 
         HugeGraph g = graph(manager, graph);
         request.aliase(graph, "graph");

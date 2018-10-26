@@ -193,9 +193,9 @@ public final class GraphManager {
     }
 
     private void addMetrics(HugeConfig config) {
-        final MetricManager metrics = MetricManager.INSTANCE;
+        final MetricManager metric = MetricManager.INSTANCE;
         // Force to add server reporter
-        ServerReporter reporter = ServerReporter.instance(metrics.getRegistry());
+        ServerReporter reporter = ServerReporter.instance(metric.getRegistry());
         reporter.start(60L, TimeUnit.SECONDS);
 
         // Add metrics for MAX_WRITE_THREADS
