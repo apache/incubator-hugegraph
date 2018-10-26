@@ -42,16 +42,25 @@ public class SystemMetrics {
         metrics.put("heap", this.getHeapMetrics());
         metrics.put("nonheap", this.getNonHeapMetrics());
         metrics.put("thread", this.getThreadMetrics());
-        metrics.put("class-loading", this.getClassLoadingMetrics());
-        metrics.put("garbage-collector", this.getGarbageCollectionMetrics());
+        metrics.put("class_loading", this.getClassLoadingMetrics());
+        metrics.put("garbage_collector", this.getGarbageCollectionMetrics());
         return metrics;
     }
 
     private Map<String, Object> getBasicMetrics() {
         Map<String, Object> metrics = new LinkedHashMap<>();
         Runtime runtime = Runtime.getRuntime();
-        metrics.put("mem", (runtime.totalMemory() + totalNonHeapMemory()) / MB);
-        metrics.put("mem_free", runtime.freeMemory() / MB);
+        // Heap allocated memory (measured in bytes)
+        long total = runtime.totalMemory();
+        // Heap free memory
+        long free = runtime.freeMemory();
+        long used = total - free;
+
+        metrics.put("mem", (total + totalNonHeapMemory()) / MB);
+        metrics.put("mem_total", total / MB);
+        metrics.put("mem_used", used / MB);
+        metrics.put("mem_free", free / MB);
+        metrics.put("mem_unit", "MB");
         metrics.put("processors", runtime.availableProcessors());
         metrics.put("uptime", ManagementFactory.getRuntimeMXBean().getUptime());
         metrics.put("systemload_average",
@@ -60,11 +69,12 @@ public class SystemMetrics {
         return metrics;
     }
 
-    private long totalNonHeapMemory() {
+    private static long totalNonHeapMemory() {
         try {
             return ManagementFactory.getMemoryMXBean()
-                                    .getNonHeapMemoryUsage().getUsed();
-        } catch (Throwable ex) {
+                                    .getNonHeapMemoryUsage()
+                                    .getCommitted();
+        } catch (Throwable ignored) {
             return 0;
         }
     }
