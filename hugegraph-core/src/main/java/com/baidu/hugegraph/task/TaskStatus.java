@@ -21,7 +21,7 @@ package com.baidu.hugegraph.task;
 
 import com.baidu.hugegraph.type.define.SerialEnum;
 
-public enum Status implements SerialEnum {
+public enum TaskStatus implements SerialEnum {
 
     UNKNOWN(0, "UNKNOWN"),
 
@@ -37,10 +37,10 @@ public enum Status implements SerialEnum {
     private String name;
 
     static {
-        SerialEnum.register(Status.class);
+        SerialEnum.register(TaskStatus.class);
     }
 
-    Status(int status, String name) {
+    TaskStatus(int status, String name) {
         assert status < 256;
         this.status = (byte) status;
         this.name = name;

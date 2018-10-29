@@ -22,7 +22,7 @@ package com.baidu.hugegraph.job;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.HugeTaskScheduler;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
@@ -68,7 +68,7 @@ public class JobBuilder<T> {
             task.input(this.input);
         }
 
-        HugeTaskScheduler scheduler = this.graph.taskScheduler();
+        TaskScheduler scheduler = this.graph.taskScheduler();
         scheduler.schedule(task);
         scheduler.save(task);
 

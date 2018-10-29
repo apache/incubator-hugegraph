@@ -56,7 +56,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableMap;
 
-public class HugeTaskScheduler {
+public class TaskScheduler {
 
     private final HugeGraph graph;
     private final ExecutorService taskExecutor;
@@ -68,9 +68,9 @@ public class HugeTaskScheduler {
 
     private static final long NO_LIMIT = -1L;
 
-    public HugeTaskScheduler(HugeGraph graph,
-                             ExecutorService taskExecutor,
-                             ExecutorService dbExecutor) {
+    public TaskScheduler(HugeGraph graph,
+                         ExecutorService taskExecutor,
+                         ExecutorService dbExecutor) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(taskExecutor, "taskExecutor");
         E.checkNotNull(dbExecutor, "dbExecutor");
@@ -88,6 +88,10 @@ public class HugeTaskScheduler {
 
     public HugeGraph graph() {
         return this.graph;
+    }
+
+    public int pendingTasks() {
+        return this.tasks.size();
     }
 
     private TaskTransaction tx() {
@@ -119,13 +123,13 @@ public class HugeTaskScheduler {
         E.checkArgumentNotNull(task, "Task can't be null");
         E.checkState(!task.isDone(), "No need to restore task '%s', " +
                      "it has been completed", task.id());
-        task.status(Status.RESTORING);
+        task.status(TaskStatus.RESTORING);
         return this.submitTask(task);
     }
 
     public <V> Future<?> schedule(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        task.status(Status.QUEUED);
+        task.status(TaskStatus.QUEUED);
         return this.submitTask(task);
     }
 
@@ -208,7 +212,7 @@ public class HugeTaskScheduler {
         return this.queryTask(ImmutableMap.of(), limit);
     }
 
-    public <V> Iterator<HugeTask<V>> findTask(Status status, long limit) {
+    public <V> Iterator<HugeTask<V>> findTask(TaskStatus status, long limit) {
         return this.queryTask(P.STATUS, status.code(), limit);
     }
 

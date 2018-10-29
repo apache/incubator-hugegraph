@@ -29,7 +29,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.HugeTaskScheduler;
+import com.baidu.hugegraph.task.TaskScheduler;
 
 public class ExampleUtil {
 
@@ -90,7 +90,7 @@ public class ExampleUtil {
     }
 
     public static void waitAllTaskDone(HugeGraph graph) {
-        HugeTaskScheduler scheduler = graph.taskScheduler();
+        TaskScheduler scheduler = graph.taskScheduler();
         Iterator<HugeTask<Object>> tasks = scheduler.findAllTask(-1L);
         while (tasks.hasNext()) {
             try {

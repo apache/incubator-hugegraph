@@ -62,8 +62,8 @@ import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeFeatures;
-import com.baidu.hugegraph.task.HugeTaskManager;
-import com.baidu.hugegraph.task.HugeTaskScheduler;
+import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.util.E;
@@ -104,7 +104,7 @@ public class HugeGraph implements Graph {
     private final EventHub schemaEventHub;
     private final EventHub indexEventHub;
     private final RateLimiter rateLimiter;
-    private final HugeTaskManager taskManager;
+    private final TaskManager taskManager;
 
     private final HugeFeatures features;
 
@@ -122,7 +122,7 @@ public class HugeGraph implements Graph {
         final int limit = configuration.get(CoreOptions.RATE_LIMIT);
         this.rateLimiter = limit > 0 ? RateLimiter.create(limit) : null;
 
-        this.taskManager = HugeTaskManager.instance();
+        this.taskManager = TaskManager.instance();
 
         this.features = new HugeFeatures(this, true);
 
@@ -294,8 +294,8 @@ public class HugeGraph implements Graph {
         return AnalyzerFactory.analyzer(name, mode);
     }
 
-    public HugeTaskScheduler taskScheduler() {
-        HugeTaskScheduler scheduler = this.taskManager.getScheduler(this);
+    public TaskScheduler taskScheduler() {
+        TaskScheduler scheduler = this.taskManager.getScheduler(this);
         E.checkState(scheduler != null,
                      "Can't find task scheduler for graph '%s'", this);
         return scheduler;
@@ -522,7 +522,7 @@ public class HugeGraph implements Graph {
      */
     public static void shutdown(long timout) throws InterruptedException {
         EventHub.destroy(timout);
-        HugeTaskManager.instance().shutdown(timout);
+        TaskManager.instance().shutdown(timout);
     }
 
     private class TinkerpopTransaction extends AbstractThreadLocalTransaction {

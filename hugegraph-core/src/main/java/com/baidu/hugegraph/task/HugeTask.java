@@ -44,10 +44,15 @@ import com.google.common.collect.ImmutableSet;
 public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
-    private static final Set<Status> COMPLETED_STATUSES =
-            ImmutableSet.of(Status.SUCCESS, Status.CANCELLED, Status.FAILED);
+    private static final Set<TaskStatus> COMPLETED_STATUSES;
 
-    private final HugeTaskCallable<V> callable;
+    static {
+        COMPLETED_STATUSES = ImmutableSet.of(TaskStatus.SUCCESS,
+                                             TaskStatus.CANCELLED,
+                                             TaskStatus.FAILED);
+    }
+
+    private final TaskCallable<V> callable;
 
     private String type;
     private String name;
@@ -56,7 +61,7 @@ public class HugeTask<V> extends FutureTask<V> {
     private List<Id> children;
     private String description;
     private Date create;
-    private volatile Status status;
+    private volatile TaskStatus status;
     private volatile int progress;
     private volatile Date update;
     private volatile int retries;
@@ -64,11 +69,11 @@ public class HugeTask<V> extends FutureTask<V> {
     private volatile String result;
 
     public HugeTask(Id id, Id parent, String callable, String input) {
-        this(id, parent, HugeTaskCallable.fromClass(callable));
+        this(id, parent, TaskCallable.fromClass(callable));
         this.input = input;
     }
 
-    public HugeTask(Id id, Id parent, HugeTaskCallable<V> callable) {
+    public HugeTask(Id id, Id parent, TaskCallable<V> callable) {
         super(callable);
 
         E.checkArgumentNotNull(id, "Task id can't be null");
@@ -82,7 +87,7 @@ public class HugeTask<V> extends FutureTask<V> {
         this.parent = parent;
         this.children = null;
         this.description = null;
-        this.status = Status.NEW;
+        this.status = TaskStatus.NEW;
         this.progress = 0;
         this.create = new Date();
         this.update = null;
@@ -110,7 +115,7 @@ public class HugeTask<V> extends FutureTask<V> {
         this.children.add(id);
     }
 
-    public Status status() {
+    public TaskStatus status() {
         return this.status;
     }
 
@@ -193,8 +198,8 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     public void run() {
-        assert this.status.code() < Status.RUNNING.code();
-        this.status(Status.RUNNING);
+        assert this.status.code() < TaskStatus.RUNNING.code();
+        this.status(TaskStatus.RUNNING);
         super.run();
     }
 
@@ -203,7 +208,7 @@ public class HugeTask<V> extends FutureTask<V> {
         try {
             return super.cancel(mayInterruptIfRunning);
         } finally {
-            this.status(Status.CANCELLED);
+            this.status(TaskStatus.CANCELLED);
             try {
                 this.callable.cancelled();
             } catch (Throwable e) {
@@ -225,7 +230,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     protected void set(V v) {
-        this.status(Status.SUCCESS);
+        this.status(TaskStatus.SUCCESS);
         if (v != null) {
             this.result = v.toString();
         }
@@ -234,22 +239,22 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     protected void setException(Throwable e) {
-        if (!(this.status == Status.CANCELLED &&
+        if (!(this.status == TaskStatus.CANCELLED &&
               e instanceof InterruptedException)) {
             LOG.warn("An exception occurred when running task: {}",
                      this.id(), e);
             // Update status to FAILED if exception occurred(not interrupted)
-            this.status(Status.FAILED);
+            this.status(TaskStatus.FAILED);
             this.result = e.toString();
         }
         super.setException(e);
     }
 
-    protected HugeTaskCallable<V> callable() {
+    protected TaskCallable<V> callable() {
         return this.callable;
     }
 
-    protected void status(Status status) {
+    protected void status(TaskStatus status) {
         this.status = status;
     }
 
@@ -266,7 +271,7 @@ public class HugeTask<V> extends FutureTask<V> {
                 this.description = (String) value;
                 break;
             case P.STATUS:
-                this.status(SerialEnum.fromCode(Status.class, (byte) value));
+                this.status(SerialEnum.fromCode(TaskStatus.class, (byte) value));
                 break;
             case P.PROGRESS:
                 this.progress = (int) value;
@@ -388,11 +393,11 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public static <V> HugeTask<V> fromVertex(Vertex vertex) {
         String callableName = vertex.value(P.CALLABLE);
-        HugeTaskCallable<V> callable;
+        TaskCallable<V> callable;
         try {
-            callable = HugeTaskCallable.fromClass(callableName);
+            callable = TaskCallable.fromClass(callableName);
         } catch (Exception e) {
-            callable = HugeTaskCallable.empty(e);
+            callable = TaskCallable.empty(e);
         }
 
         HugeTask<V> task = new HugeTask<>((Id) vertex.id(), null, callable);

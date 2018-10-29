@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.baidu.hugegraph.HugeException;
@@ -32,24 +33,24 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 
-public class HugeTaskManager {
+public class TaskManager {
 
     public static final String TASK_WORKER = "task-worker-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
 
     private static final int THREADS = 4;
-    private static final HugeTaskManager MANAGER = new HugeTaskManager(THREADS);
+    private static final TaskManager MANAGER = new TaskManager(THREADS);
 
-    private final Map<HugeGraph, HugeTaskScheduler> schedulers;
+    private final Map<HugeGraph, TaskScheduler> schedulers;
 
     private final ExecutorService taskExecutor;
     private final ExecutorService dbExecutor;
 
-    public static HugeTaskManager instance() {
+    public static TaskManager instance() {
         return MANAGER;
     }
 
-    private HugeTaskManager(int pool) {
+    private TaskManager(int pool) {
         this.schedulers = new HashMap<>();
 
         // For execute tasks
@@ -62,11 +63,11 @@ public class HugeTaskManager {
         E.checkArgumentNotNull(graph, "The graph can't be null");
         ExecutorService task = this.taskExecutor;
         ExecutorService db = this.dbExecutor;
-        this.schedulers.put(graph, new HugeTaskScheduler(graph, task, db));
+        this.schedulers.put(graph, new TaskScheduler(graph, task, db));
     }
 
     public void closeScheduler(HugeGraph graph) {
-        HugeTaskScheduler scheduler = this.schedulers.get(graph);
+        TaskScheduler scheduler = this.schedulers.get(graph);
         if (scheduler != null && scheduler.close()) {
             this.schedulers.remove(graph);
         }
@@ -96,7 +97,7 @@ public class HugeTaskManager {
         }
     }
 
-    public HugeTaskScheduler getScheduler(HugeGraph graph) {
+    public TaskScheduler getScheduler(HugeGraph graph) {
         return this.schedulers.get(graph);
     }
 
@@ -125,5 +126,17 @@ public class HugeTaskManager {
         if (ex != null) {
             throw new HugeException("Failed to wait for TaskScheduler", ex);
         }
+    }
+
+    public int workerPoolSize() {
+        return ((ThreadPoolExecutor) this.taskExecutor).getCorePoolSize();
+    }
+
+    public int pendingTasks() {
+        int size = 0;
+        for (TaskScheduler scheduler : this.schedulers.values()) {
+            size += scheduler.pendingTasks();
+        }
+        return size;
     }
 }

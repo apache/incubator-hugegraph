@@ -50,6 +50,7 @@ import com.baidu.hugegraph.metric.ServerReporter;
 import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.MetricRegistry;
 
@@ -215,6 +216,14 @@ public final class GraphManager {
                 lastCaches.set(count);
             }
             return count;
+        });
+
+        // Add metrics for task
+        MetricsUtil.registerGauge(TaskManager.class, "workers", () -> {
+            return TaskManager.instance().workerPoolSize();
+        });
+        MetricsUtil.registerGauge(TaskManager.class, "pending-tasks", () -> {
+            return TaskManager.instance().pendingTasks();
         });
     }
 
