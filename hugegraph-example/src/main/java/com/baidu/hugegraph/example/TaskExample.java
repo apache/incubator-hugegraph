@@ -28,10 +28,10 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.HugeTaskCallable;
-import com.baidu.hugegraph.task.HugeTaskManager;
-import com.baidu.hugegraph.task.HugeTaskScheduler;
-import com.baidu.hugegraph.task.Status;
+import com.baidu.hugegraph.task.TaskStatus;
+import com.baidu.hugegraph.task.TaskCallable;
+import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.util.Log;
 
 public class TaskExample {
@@ -49,12 +49,11 @@ public class TaskExample {
         task.type("type-1");
         task.name("test-task");
 
-        HugeTaskScheduler scheduler = HugeTaskManager.instance()
-                                                     .getScheduler(graph);
+        TaskScheduler scheduler = TaskManager.instance().getScheduler(graph);
         scheduler.schedule(task);
         scheduler.save(task);
         Iterator<HugeTask<Object>> itor;
-        itor = scheduler.findTask(Status.RUNNING, -1);
+        itor = scheduler.findTask(TaskStatus.RUNNING, -1);
         System.out.println(">>>> running task: " + IteratorUtils.toList(itor));
 
         Thread.sleep(TestTask.UNIT * 33);
@@ -63,7 +62,7 @@ public class TaskExample {
         scheduler.save(task);
 
         // Find task not finished(actually it should be RUNNING)
-        itor = scheduler.findTask(Status.CANCELLED, -1);
+        itor = scheduler.findTask(TaskStatus.CANCELLED, -1);
         assert itor.hasNext();
         task = itor.next();
 
@@ -75,7 +74,7 @@ public class TaskExample {
         Thread.sleep(TestTask.UNIT * 80);
         scheduler.save(task);
 
-        itor = scheduler.findTask(Status.SUCCESS, -1);
+        itor = scheduler.findTask(TaskStatus.SUCCESS, -1);
         assert itor.hasNext();
 
         graph.close();
@@ -83,7 +82,7 @@ public class TaskExample {
         HugeGraph.shutdown(30L);
     }
 
-    public static class TestTask extends HugeTaskCallable<Integer> {
+    public static class TestTask extends TaskCallable<Integer> {
 
         public static final int UNIT = 100;
 

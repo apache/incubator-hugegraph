@@ -42,7 +42,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
-import com.baidu.hugegraph.task.HugeTaskScheduler;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -178,7 +178,7 @@ public class HugeGraphAuthProxy implements Graph {
         return this.hugegraph.restoring();
     }
 
-    public HugeTaskScheduler taskScheduler() {
+    public TaskScheduler taskScheduler() {
         this.verifyPermission();
         return this.hugegraph.taskScheduler();
     }

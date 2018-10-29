@@ -22,9 +22,9 @@ package com.baidu.hugegraph.job;
 import java.util.Date;
 
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.HugeTaskCallable;
+import com.baidu.hugegraph.task.TaskCallable;
 
-public abstract class Job<T> extends HugeTaskCallable<T> {
+public abstract class Job<T> extends TaskCallable<T> {
 
     public abstract String type();
 

@@ -25,12 +25,12 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.util.E;
 
-public abstract class HugeTaskCallable<V> implements Callable<V> {
+public abstract class TaskCallable<V> implements Callable<V> {
 
-    private HugeTaskScheduler scheduler = null;
+    private TaskScheduler scheduler = null;
     private HugeTask<V> task = null;
 
-    public HugeTaskCallable() {
+    public TaskCallable() {
         // pass
     }
 
@@ -46,11 +46,11 @@ public abstract class HugeTaskCallable<V> implements Callable<V> {
         return this.scheduler().graph();
     }
 
-    protected void scheduler(HugeTaskScheduler scheduler) {
+    protected void scheduler(TaskScheduler scheduler) {
         this.scheduler = scheduler;
     }
 
-    public HugeTaskScheduler scheduler() {
+    public TaskScheduler scheduler() {
         E.checkState(this.scheduler != null,
                      "Can't call scheduler() before scheduling task");
         return this.scheduler;
@@ -67,17 +67,17 @@ public abstract class HugeTaskCallable<V> implements Callable<V> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <V> HugeTaskCallable<V> fromClass(String className) {
+    public static <V> TaskCallable<V> fromClass(String className) {
         try {
             Class<?> clazz = Class.forName(className);
-            return (HugeTaskCallable<V>) clazz.newInstance();
+            return (TaskCallable<V>) clazz.newInstance();
         } catch (Exception e) {
             throw new HugeException("Failed to load task: %s", e, className);
         }
     }
 
-    public static <V> HugeTaskCallable<V> empty(Exception e) {
-        return new HugeTaskCallable<V>() {
+    public static <V> TaskCallable<V> empty(Exception e) {
+        return new TaskCallable<V>() {
             @Override
             public V call() throws Exception {
                 throw e;

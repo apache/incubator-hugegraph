@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.job;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,14 +40,14 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.HugeTaskScheduler;
+import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -71,8 +72,7 @@ public class TaskAPI extends API {
         LOG.debug("Graph [{}] list tasks with status {}, limit {}",
                   graph, status, limit);
 
-        HugeGraph g = graph(manager, graph);
-        HugeTaskScheduler scheduler = g.taskScheduler();
+        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
 
         Iterator<HugeTask<Object>> itor;
         if (status == null) {
@@ -97,8 +97,7 @@ public class TaskAPI extends API {
                                    @PathParam("id") long id) {
         LOG.debug("Graph [{}] get task: {}", graph, id);
 
-        HugeGraph g = graph(manager, graph);
-        HugeTaskScheduler scheduler = g.taskScheduler();
+        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
         return scheduler.task(IdGenerator.of(id)).asMap();
     }
 
@@ -110,8 +109,7 @@ public class TaskAPI extends API {
                        @PathParam("id") long id) {
         LOG.debug("Graph [{}] delete task: {}", graph, id);
 
-        HugeGraph g = graph(manager, graph);
-        HugeTaskScheduler scheduler = g.taskScheduler();
+        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
         HugeTask<?> task = scheduler.deleteTask(IdGenerator.of(id));
         E.checkArgument(task != null, "There is no task with id '%s'", id);
     }
@@ -132,11 +130,8 @@ public class TaskAPI extends API {
                       "Not support action '%s'", action));
         }
 
-        HugeGraph g = graph(manager, graph);
-        HugeTaskScheduler scheduler = g.taskScheduler();
-
+        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
-
         if (!task.completed()) {
             scheduler.cancel(task);
         } else {
@@ -146,14 +141,13 @@ public class TaskAPI extends API {
         return ImmutableMap.of("cancelled", task.isCancelled());
     }
 
-    private static com.baidu.hugegraph.task.Status parseStatus(String status) {
+    private static TaskStatus parseStatus(String status) {
         try {
-            return com.baidu.hugegraph.task.Status.valueOf(status);
+            return TaskStatus.valueOf(status);
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
-                      "Status value must be in [UNKNOWN, NEW, QUEUED, " +
-                      "RESTORING, RUNNING, SUCCESS, CANCELLED, FAILED], " +
-                      "but got '%s'", status));
+                      "Status value must be in %s, but got '%s'",
+                      Arrays.asList(TaskStatus.values()), status));
         }
     }
 }
