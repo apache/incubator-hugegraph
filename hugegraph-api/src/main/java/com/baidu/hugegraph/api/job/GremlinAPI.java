@@ -154,7 +154,9 @@ public class GremlinAPI extends API {
         @Override
         public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.gremlin,
-                                   "The gremlin script can't be null");
+                                   "The gremlin parameter can't be null");
+            E.checkArgumentNotNull(this.language,
+                                   "The language parameter can't be null");
             E.checkArgument(this.aliases == null || this.aliases.isEmpty(),
                             "There is no need to pass gremlin aliases");
         }

@@ -104,8 +104,10 @@ public class StandardAuthenticator extends SimpleAuthenticator {
      * @return String No permission if return ROLE_NONE else return a role
      */
     public String authenticate(final String username, final String password) {
-        E.checkArgumentNotNull(username, "The username can't be null");
-        E.checkArgumentNotNull(password, "The password can't be null");
+        E.checkArgument(username != null,
+                        "The username parameter can't be null");
+        E.checkArgument(password != null,
+                        "The password parameter can't be null");
 
         String role;
         if (password.equals(this.tokens.get(username))) {

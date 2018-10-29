@@ -63,7 +63,7 @@ public class EdgesAPI extends API {
         LOG.debug("Graph [{}] get edges by ids: {}", graph, stringIds);
 
         E.checkArgument(stringIds != null && !stringIds.isEmpty(),
-                        "Ids can't be null or empty");
+                        "The ids parameter can't be null or empty");
 
         Object[] ids = new Id[stringIds.size()];
         for (int i = 0; i < ids.length; i++) {

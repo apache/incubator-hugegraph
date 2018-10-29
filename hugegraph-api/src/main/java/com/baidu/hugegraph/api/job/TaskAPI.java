@@ -47,6 +47,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.HugeTaskScheduler;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
@@ -82,7 +83,7 @@ public class TaskAPI extends API {
 
         List<Object> tasks = new ArrayList<>();
         while (itor.hasNext()) {
-            tasks.add(itor.next().asMap());
+            tasks.add(itor.next().asMap(false));
         }
         return ImmutableMap.of("tasks", tasks);
     }
@@ -111,15 +112,8 @@ public class TaskAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeTaskScheduler scheduler = g.taskScheduler();
-
-        HugeTask<?> task = scheduler.task(IdGenerator.of(id));
-        if (task.completed()) {
-            scheduler.deleteTask(IdGenerator.of(id));
-        } else {
-            throw new BadRequestException(String.format(
-                      "Can't delete task '%s' with unstable status '%s'",
-                      id, task.status()));
-        }
+        HugeTask<?> task = scheduler.deleteTask(IdGenerator.of(id));
+        E.checkArgument(task != null, "There is no task with id '%s'", id);
     }
 
     @PUT

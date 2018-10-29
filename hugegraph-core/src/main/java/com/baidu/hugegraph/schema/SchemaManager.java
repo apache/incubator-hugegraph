@@ -59,28 +59,28 @@ public class SchemaManager {
     }
 
     public PropertyKey getPropertyKey(String name) {
-        E.checkArgumentNotNull(name, "Name can't be null");
+        E.checkArgumentNotNull(name, "The name parameter can't be null");
         PropertyKey propertyKey = this.transaction.getPropertyKey(name);
         checkExists(HugeType.PROPERTY_KEY, propertyKey, name);
         return propertyKey;
     }
 
     public VertexLabel getVertexLabel(String name) {
-        E.checkArgumentNotNull(name, "Name can't be null");
+        E.checkArgumentNotNull(name, "The name parameter can't be null");
         VertexLabel vertexLabel = this.transaction.getVertexLabel(name);
         checkExists(HugeType.VERTEX_LABEL, vertexLabel, name);
         return vertexLabel;
     }
 
     public EdgeLabel getEdgeLabel(String name) {
-        E.checkArgumentNotNull(name, "Name can't be null");
+        E.checkArgumentNotNull(name, "The name parameter can't be null");
         EdgeLabel edgeLabel = this.transaction.getEdgeLabel(name);
         checkExists(HugeType.EDGE_LABEL, edgeLabel, name);
         return edgeLabel;
     }
 
     public IndexLabel getIndexLabel(String name) {
-        E.checkArgumentNotNull(name, "Name can't be null");
+        E.checkArgumentNotNull(name, "The name parameter can't be null");
         IndexLabel indexLabel = this.transaction.getIndexLabel(name);
         checkExists(HugeType.INDEX_LABEL, indexLabel, name);
         return indexLabel;
