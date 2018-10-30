@@ -22,8 +22,12 @@ package com.baidu.hugegraph.backend.store.rocksdbsst;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -211,6 +215,14 @@ public class RocksDBSstSessions extends RocksDBSessions {
             this.batch.clear();
 
             return count;
+        }
+
+        /**
+         * Get property value
+         */
+        @Override
+        public String property(String property) {
+            throw new NotSupportException("RocksDBSstStore property()");
         }
 
         /**

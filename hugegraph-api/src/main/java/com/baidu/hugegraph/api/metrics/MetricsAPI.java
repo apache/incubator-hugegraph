@@ -30,17 +30,29 @@ import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.backend.store.BackendMetrics;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.metric.ServerReporter;
 import com.baidu.hugegraph.metric.SystemMetrics;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.Metric;
+import com.codahale.metrics.annotation.Timed;
 import com.codahale.metrics.json.MetricsModule;
 
 @Singleton
 @Path("metrics")
 public class MetricsAPI extends API {
+
+    private static final Logger LOG = Log.logger(MetricsAPI.class);
 
     private SystemMetrics systemMetrics;
 
@@ -53,6 +65,7 @@ public class MetricsAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("system")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
@@ -61,6 +74,29 @@ public class MetricsAPI extends API {
     }
 
     @GET
+    @Timed
+    @Path("backend")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
+    public String backend(@Context GraphManager manager) {
+        Map<String, Map<String, Object>> results = InsertionOrderUtil.newMap();
+        for (String graph : manager.graphs()) {
+            GraphTransaction tx = manager.graph(graph).graphTransaction();
+            Map<String, Object> metrics = InsertionOrderUtil.newMap();
+            metrics.put(BackendMetrics.BACKEND, tx.store().provider().type());
+            try {
+                metrics.putAll(tx.metadata(null, "metrics"));
+            } catch (NotSupportException e) {
+                metrics.put(BackendMetrics.EXCEPTION, e.toString());
+                LOG.debug("Failed to get backend metrics", e);
+            }
+            results.put(graph, metrics);
+        }
+        return JsonUtil.toJson(results);
+    }
+
+    @GET
+    @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
     public String all() {
@@ -75,6 +111,7 @@ public class MetricsAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("gauges")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
@@ -84,6 +121,7 @@ public class MetricsAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("counters")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
@@ -93,6 +131,7 @@ public class MetricsAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("histograms")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
@@ -102,6 +141,7 @@ public class MetricsAPI extends API {
     }
 
     @GET
+    @Timed
     @Path("meters")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
@@ -111,10 +151,11 @@ public class MetricsAPI extends API {
     }
 
     @GET
-    @Path("times")
+    @Timed
+    @Path("timers")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
-    public String times() {
+    public String timers() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.timers());
     }

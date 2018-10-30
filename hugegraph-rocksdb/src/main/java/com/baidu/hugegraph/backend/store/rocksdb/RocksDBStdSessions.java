@@ -420,6 +420,18 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         /**
+         * Get property value
+         */
+        @Override
+        public String property(String property) {
+            try {
+                return rocksdb().getProperty(property);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
+        }
+
+        /**
          * Get property value by name from specified table
          */
         @Override

@@ -39,11 +39,11 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.AbstractBackendStore;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
-import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -52,7 +52,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
-public abstract class RocksDBStore implements BackendStore {
+public abstract class RocksDBStore extends AbstractBackendStore {
 
     private static final Logger LOG = Log.logger(RocksDBStore.class);
 
@@ -80,12 +80,23 @@ public abstract class RocksDBStore implements BackendStore {
         this.store = store;
         this.sessions = null;
         this.tableDiskMapping = new HashMap<>();
+
+        this.registerMetaHandlers();
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            RocksDBMetrics metrics = new RocksDBMetrics(
+                                     (RocksDBSessions.Session) session);
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, RocksDBTable table) {
         this.tables.put(type, table);
     }
 
+    @Override
     protected final RocksDBTable table(HugeType type) {
         assert type != null;
         RocksDBTable table = this.tables.get(type);
@@ -372,12 +383,7 @@ public abstract class RocksDBStore implements BackendStore {
     }
 
     @Override
-    public <R> R metadata(HugeType type, String meta, Object[] args) {
-        RocksDBTable table = this.table(type);
-        return table.metadata(this.session(type), meta, args);
-    }
-
-    private Session session(HugeType tableType) {
+    protected Session session(HugeType tableType) {
         this.checkOpened();
 
         // Optimized disk

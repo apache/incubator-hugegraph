@@ -29,18 +29,20 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.AbstractBackendStore;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
-import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.MetaDispatcher;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public abstract class MysqlStore implements BackendStore {
+public abstract class MysqlStore extends AbstractBackendStore {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
 
@@ -251,7 +253,12 @@ public abstract class MysqlStore implements BackendStore {
 
     @Override
     public <R> R metadata(HugeType type, String meta, Object[] args) {
-        throw new UnsupportedOperationException("MysqlStore.metadata()");
+        throw new NotSupportException("MysqlStore.metadata()");
+    }
+
+    @Override
+    protected MetaDispatcher metaDispatcher() {
+        throw new NotSupportException("MysqlStore.metaDispatcher()");
     }
 
     @Override
@@ -278,6 +285,7 @@ public abstract class MysqlStore implements BackendStore {
         }
     }
 
+    @Override
     protected final MysqlTable table(HugeType type) {
         assert type != null;
         MysqlTable table = this.tables.get(type);
@@ -285,6 +293,12 @@ public abstract class MysqlStore implements BackendStore {
             throw new BackendException("Unsupported table type: %s", type);
         }
         return table;
+    }
+
+    @Override
+    protected MysqlSessions.Session session(HugeType type) {
+        this.checkSessionConnected();
+        return this.sessions.session();
     }
 
     protected final void checkClusterConnected() {
