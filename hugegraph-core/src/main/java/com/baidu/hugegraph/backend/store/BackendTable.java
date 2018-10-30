@@ -22,10 +22,7 @@ package com.baidu.hugegraph.backend.store;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -41,11 +38,11 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     private final String table;
 
-    private final Map<String, MetaHandler<Session>> metaHandlers;
+    private final MetaDispatcher dispatcher;
 
     public BackendTable(String table) {
         this.table = table;
-        this.metaHandlers = new ConcurrentHashMap<>();
+        this.dispatcher = new MetaDispatcher();
 
         this.registerMetaHandlers();
     }
@@ -54,16 +51,12 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         return this.table;
     }
 
-    @SuppressWarnings("unchecked")
-    public <R> R metadata(Session session, String meta, Object... args) {
-        if (!this.metaHandlers.containsKey(meta)) {
-            throw new BackendException("Invalid metadata name '%s'", meta);
-        }
-        return (R) this.metaHandlers.get(meta).handle(session, meta, args);
+    public MetaDispatcher metaDispatcher() {
+        return this.dispatcher;
     }
 
     public void registerMetaHandler(String name, MetaHandler<Session> handler) {
-        this.metaHandlers.put(name, handler);
+        this.dispatcher.registerMetaHandler(name, handler);
     }
 
     protected void registerMetaHandlers() {
@@ -122,10 +115,6 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     public abstract void append(Session session, Entry entry);
 
     public abstract void eliminate(Session session, Entry entry);
-
-    public interface MetaHandler<Session extends BackendSession> {
-        public Object handle(Session session, String meta, Object... args);
-    }
 
     /****************************** ShardSpliter ******************************/
 

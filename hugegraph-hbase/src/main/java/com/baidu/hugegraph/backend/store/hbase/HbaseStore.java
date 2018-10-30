@@ -34,18 +34,20 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.AbstractBackendStore;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
-import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.MetaDispatcher;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public abstract class HbaseStore implements BackendStore {
+public abstract class HbaseStore extends AbstractBackendStore {
 
     private static final Logger LOG = Log.logger(HbaseStore.class);
 
@@ -73,6 +75,7 @@ public abstract class HbaseStore implements BackendStore {
         this.tables.put(type, table);
     }
 
+    @Override
     protected final HbaseTable table(HugeType type) {
         assert type != null;
         HbaseTable table = this.tables.get(type);
@@ -80,6 +83,12 @@ public abstract class HbaseStore implements BackendStore {
             throw new BackendException("Unsupported table type: %s", type);
         }
         return table;
+    }
+
+    @Override
+    protected HbaseSessions.Session session(HugeType type) {
+        this.checkOpened();
+        return this.sessions.session();
     }
 
     protected List<String> tableNames() {
@@ -283,12 +292,8 @@ public abstract class HbaseStore implements BackendStore {
     }
 
     @Override
-    public <R> R metadata(HugeType type, String meta, Object[] args) {
-        this.checkOpened();
-        HbaseSessions.Session session = this.sessions.session();
-
-        HbaseTable table = this.table(type);
-        return table.metadata(session, meta, args);
+    public MetaDispatcher metaDispatcher() {
+        throw new NotSupportException("HBaseStore.metaDispatcher()");
     }
 
     private void checkOpened() {
