@@ -26,42 +26,42 @@ import com.baidu.hugegraph.task.HugeTaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
-public class JobBuilder {
+public class JobBuilder<T> {
 
     private final HugeGraph graph;
 
     private String name;
     private String input;
-    private Job<?> job;
+    private Job<T> job;
 
-    public static JobBuilder of(final HugeGraph graph) {
-        return new JobBuilder(graph);
+    public static <T> JobBuilder<T> of(final HugeGraph graph) {
+        return new JobBuilder<>(graph);
     }
 
     public JobBuilder(final HugeGraph graph) {
         this.graph = graph;
     }
 
-    public JobBuilder name(String name) {
+    public JobBuilder<T> name(String name) {
         this.name = name;
         return this;
     }
 
-    public JobBuilder input(String input) {
+    public JobBuilder<T> input(String input) {
         this.input = input;
         return this;
     }
 
-    public JobBuilder job(Job<?> job) {
+    public JobBuilder<T> job(Job<T> job) {
         this.job = job;
         return this;
     }
 
-    public Id schedule() {
+    public HugeTask<T> schedule() {
         E.checkArgumentNotNull(this.name, "Job name can't be null");
         E.checkArgumentNotNull(this.job, "Job can't be null");
 
-        HugeTask<?> task = new HugeTask<>(this.genTaskId(), null, this.job);
+        HugeTask<T> task = new HugeTask<>(this.genTaskId(), null, this.job);
         task.type(this.job.type());
         task.name(this.name);
         if (this.input != null) {
@@ -72,7 +72,7 @@ public class JobBuilder {
         scheduler.schedule(task);
         scheduler.save(task);
 
-        return task.id();
+        return task;
     }
 
     private Id genTaskId() {

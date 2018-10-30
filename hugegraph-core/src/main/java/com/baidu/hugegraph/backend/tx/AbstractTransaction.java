@@ -170,6 +170,12 @@ public abstract class AbstractTransaction implements Transaction {
         }
     }
 
+    public void commitIfGtSize(int size) throws BackendException {
+        if (this.mutationSize() >= size) {
+            this.commit();
+        }
+    }
+
     @Watched(prefix = "tx")
     @Override
     public void rollback() throws BackendException {

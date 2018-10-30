@@ -75,10 +75,11 @@ public class GremlinAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         request.aliase(graph, "graph");
-        JobBuilder builder = JobBuilder.of(g).name(request.name())
-                                       .input(request.toJson())
-                                       .job(new GremlinJob());
-        return ImmutableMap.of("task_id", builder.schedule());
+        JobBuilder<Object> builder = JobBuilder.of(g);
+        builder.name(request.name())
+               .input(request.toJson())
+               .job(new GremlinJob());
+        return ImmutableMap.of("task_id", builder.schedule().id());
     }
 
     public static class GremlinJob extends Job<Object> {

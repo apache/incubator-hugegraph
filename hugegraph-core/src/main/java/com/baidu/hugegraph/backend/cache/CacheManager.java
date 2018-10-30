@@ -87,11 +87,9 @@ public class CacheManager {
     }
 
     public Cache cache(String name, int capacity) {
-        Cache cache = this.caches.get(name);
-        if (cache == null) {
-            cache = new RamCache(capacity);
-            this.caches.put(name, cache);
+        if (!this.caches.containsKey(name)) {
+            this.caches.putIfAbsent(name, new RamCache(capacity));
         }
-        return cache;
+        return this.caches.get(name);
     }
 }

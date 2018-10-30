@@ -19,7 +19,13 @@
 
 package com.baidu.hugegraph.job.schema;
 
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.type.define.SchemaStatus;
+import com.baidu.hugegraph.util.LockUtil;
 
 public class IndexLabelRemoveCallable extends SchemaCallable {
 
@@ -30,7 +36,34 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        SchemaTransaction.removeIndexLabelSync(this.graph(), this.schemaId());
+        removeIndexLabel(this.graph(), this.schemaId());
         return null;
+    }
+
+    protected static void removeIndexLabel(HugeGraph graph, Id id) {
+        GraphTransaction graphTx = graph.graphTransaction();
+        SchemaTransaction schemaTx = graph.schemaTransaction();
+        IndexLabel indexLabel = schemaTx.getIndexLabel(id);
+        // If the index label does not exist, return directly
+        if (indexLabel == null) {
+            return;
+        }
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);
+            // TODO add update lock
+            // Set index label to "deleting" status
+            schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.DELETING);
+            // Remove index data
+            // TODO: use event to replace direct call
+            graphTx.removeIndex(indexLabel);
+            // Remove label from indexLabels of vertex or edge label
+            removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
+            removeSchema(schemaTx, indexLabel);
+            // Should commit changes to backend store before release delete lock
+            graph.tx().commit();
+        } finally {
+            locks.unlock();
+        }
     }
 }

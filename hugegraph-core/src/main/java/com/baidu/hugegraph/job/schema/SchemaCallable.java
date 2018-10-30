@@ -1,8 +1,15 @@
 package com.baidu.hugegraph.job.schema;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
@@ -36,5 +43,59 @@ public abstract class SchemaCallable extends Job<Object> {
         E.checkNotNull(schemaType, "schema type");
         E.checkNotNull(schemaId, "schema id");
         return String.join(SPLITOR, schemaType.toString(), schemaId.toString());
+    }
+
+    protected static void removeIndexLabelFromBaseLabel(SchemaTransaction tx,
+                                                        IndexLabel label) {
+        HugeType baseType = label.baseType();
+        Id baseValue = label.baseValue();
+        SchemaLabel schemaLabel;
+        if (baseType == HugeType.VERTEX_LABEL) {
+            schemaLabel = tx.getVertexLabel(baseValue);
+        } else {
+            assert baseType == HugeType.EDGE_LABEL;
+            schemaLabel = tx.getEdgeLabel(baseValue);
+        }
+        schemaLabel.removeIndexLabel(label.id());
+        updateSchema(tx, schemaLabel);
+    }
+
+    /**
+     * Use reflection to call SchemaTransaction.removeSchema(),
+     * which is protected
+     */
+    protected static void removeSchema(SchemaTransaction tx,
+                                       SchemaElement schema) {
+        try {
+            Method method = SchemaTransaction.class
+                            .getDeclaredMethod("removeSchema",
+                                               SchemaElement.class);
+            method.setAccessible(true);
+            method.invoke(tx, schema);
+        } catch (NoSuchMethodException | IllegalAccessException |
+                 InvocationTargetException e) {
+            throw new AssertionError(
+                      "Can't call SchemaTransaction.removeSchema()", e);
+        }
+
+    }
+
+    /**
+     * Use reflection to call SchemaTransaction.updateSchema(),
+     * which is protected
+     */
+    protected static void updateSchema(SchemaTransaction tx,
+                                       SchemaElement schema) {
+        try {
+            Method method = SchemaTransaction.class
+                            .getDeclaredMethod("updateSchema",
+                                               SchemaElement.class);
+            method.setAccessible(true);
+            method.invoke(tx, schema);
+        } catch (NoSuchMethodException | IllegalAccessException |
+                 InvocationTargetException e) {
+            throw new AssertionError(
+                      "Can't call SchemaTransaction.updateSchema()", e);
+        }
     }
 }

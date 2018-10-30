@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -33,7 +32,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.job.schema.EdgeLabelRemoveCallable;
@@ -48,12 +46,12 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
-import com.google.common.collect.ImmutableSet;
 
 public class SchemaTransaction extends IndexableTransaction {
 
@@ -162,58 +160,9 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     public Id removeVertexLabel(Id id) {
-        HugeConfig config = this.graph().configuration();
-        if (config.get(CoreOptions.SCHEMA_SYNC_DELETION)) {
-            removeVertexLabelSync(this.graph(), id);
-            return null;
-        } else {
-            SchemaCallable callable = new VertexLabelRemoveCallable();
-            return asyncRun(this.graph(), HugeType.VERTEX_LABEL, id, callable);
-        }
-    }
-
-    public static void removeVertexLabelSync(HugeGraph graph, Id id) {
         LOG.debug("SchemaTransaction remove vertex label '{}'", id);
-        GraphTransaction graphTx = graph.graphTransaction();
-        SchemaTransaction schemaTx = graph.schemaTransaction();
-        VertexLabel vertexLabel = schemaTx.getVertexLabel(id);
-        // If the vertex label does not exist, return directly
-        if (vertexLabel == null) {
-            return;
-        }
-
-        List<EdgeLabel> edgeLabels = schemaTx.getEdgeLabels();
-        for (EdgeLabel edgeLabel : edgeLabels) {
-            if (edgeLabel.linkWithLabel(id)) {
-                throw new HugeException(
-                          "Not allowed to remove vertex label '%s' " +
-                          "because the edge label '%s' still link with it",
-                          vertexLabel.name(), edgeLabel.name());
-            }
-        }
-
-        /*
-         * Copy index label ids because removeIndexLabel will mutate
-         * vertexLabel.indexLabels()
-         */
-        Set<Id> indexLabelIds = ImmutableSet.copyOf(vertexLabel.indexLabels());
-        LockUtil.Locks locks = new LockUtil.Locks();
-        try {
-            locks.lockWrites(LockUtil.VERTEX_LABEL_DELETE, id);
-            schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.DELETING);
-            for (Id indexLabelId : indexLabelIds) {
-                removeIndexLabelSync(graph, indexLabelId);
-            }
-
-            // TODO: use event to replace direct call
-            // Deleting a vertex will automatically deletes the held edge
-            graphTx.removeVertices(vertexLabel);
-            schemaTx.removeSchema(vertexLabel);
-            // Should commit changes to backend store before release delete lock
-            graph.tx().commit();
-        } finally {
-            locks.unlock();
-        }
+        SchemaCallable callable = new VertexLabelRemoveCallable();
+        return asyncRun(this.graph(), HugeType.VERTEX_LABEL, id, callable);
     }
 
     public void addEdgeLabel(EdgeLabel edgeLabel) {
@@ -233,43 +182,9 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     public Id removeEdgeLabel(Id id) {
-        HugeConfig config = this.graph().configuration();
-        if (config.get(CoreOptions.SCHEMA_SYNC_DELETION)) {
-            removeEdgeLabelSync(this.graph(), id);
-            return null;
-        } else {
-            SchemaCallable callable = new EdgeLabelRemoveCallable();
-            return asyncRun(this.graph(), HugeType.EDGE_LABEL, id, callable);
-        }
-    }
-
-    public static void removeEdgeLabelSync(HugeGraph graph, Id id) {
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
-        GraphTransaction graphTx = graph.graphTransaction();
-        SchemaTransaction schemaTx = graph.schemaTransaction();
-        EdgeLabel edgeLabel = schemaTx.getEdgeLabel(id);
-        // If the edge label does not exist, return directly
-        if (edgeLabel == null) {
-            return;
-        }
-        // TODO: use event to replace direct call
-        // Remove index related data(include schema) of this edge label
-        Set<Id> indexIds = ImmutableSet.copyOf(edgeLabel.indexLabels());
-        LockUtil.Locks locks = new LockUtil.Locks();
-        try {
-            locks.lockWrites(LockUtil.EDGE_LABEL_DELETE, id);
-            schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.DELETING);
-            for (Id indexId : indexIds) {
-                removeIndexLabelSync(graph, indexId);
-            }
-            // Remove all edges which has matched label
-            graphTx.removeEdges(edgeLabel);
-            schemaTx.removeSchema(edgeLabel);
-            // Should commit changes to backend store before release delete lock
-            graph.tx().commit();
-        } finally {
-            locks.unlock();
-        }
+        SchemaCallable callable = new EdgeLabelRemoveCallable();
+        return asyncRun(this.graph(), HugeType.EDGE_LABEL, id, callable);
     }
 
     public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
@@ -296,55 +211,16 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     public Id removeIndexLabel(Id id) {
-        HugeConfig config = this.graph().configuration();
-        if (config.get(CoreOptions.SCHEMA_SYNC_DELETION)) {
-            removeIndexLabelSync(this.graph(), id);
-            return null;
-        } else {
-            SchemaCallable callable = new IndexLabelRemoveCallable();
-            return asyncRun(this.graph(), HugeType.INDEX_LABEL, id, callable);
-        }
-    }
-
-    public static void removeIndexLabelSync(HugeGraph graph, Id id) {
         LOG.debug("SchemaTransaction remove index label '{}'", id);
-        GraphTransaction graphTx = graph.graphTransaction();
-        SchemaTransaction schemaTx = graph.schemaTransaction();
-        IndexLabel indexLabel = schemaTx.getIndexLabel(id);
-        // If the index label does not exist, return directly
-        if (indexLabel == null) {
-            return;
-        }
-        LockUtil.Locks locks = new LockUtil.Locks();
-        try {
-            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);
-            // TODO add update lock
-            // Set index label to "deleting" status
-            schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.DELETING);
-            // Remove index data
-            // TODO: use event to replace direct call
-            graphTx.removeIndex(indexLabel);
-            // Remove label from indexLabels of vertex or edge label
-            schemaTx.removeIndexLabelFromBaseLabel(indexLabel);
-            schemaTx.removeSchema(indexLabel);
-            // Should commit changes to backend store before release delete lock
-            graph.tx().commit();
-        } finally {
-            locks.unlock();
-        }
+        SchemaCallable callable = new IndexLabelRemoveCallable();
+        return asyncRun(this.graph(), HugeType.INDEX_LABEL, id, callable);
     }
 
     public Id rebuildIndex(SchemaElement schema) {
         LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
-        HugeGraph graph = this.graph();
-        if (graph.configuration().get(CoreOptions.SCHEMA_SYNC_DELETION)) {
-            graph.graphTransaction().rebuildIndex(schema);
-            return null;
-        } else {
-            SchemaCallable callable = new RebuildIndexCallable();
-            return asyncRun(this.graph(), schema.type(), schema.id(), callable);
-        }
+        SchemaCallable callable = new RebuildIndexCallable();
+        return asyncRun(this.graph(), schema.type(), schema.id(), callable);
     }
 
     public void updateSchemaStatus(SchemaElement schema, SchemaStatus status) {
@@ -436,20 +312,6 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
-    protected void removeIndexLabelFromBaseLabel(IndexLabel label) {
-        HugeType baseType = label.baseType();
-        Id baseValue = label.baseValue();
-        SchemaLabel schemaLabel;
-        if (baseType == HugeType.VERTEX_LABEL) {
-            schemaLabel = this.getVertexLabel(baseValue);
-        } else {
-            assert baseType == HugeType.EDGE_LABEL;
-            schemaLabel = this.getEdgeLabel(baseValue);
-        }
-        schemaLabel.removeIndexLabel(label.id());
-        this.updateSchema(schemaLabel);
-    }
-
     public Id getNextId(HugeType type) {
         LOG.debug("SchemaTransaction get next id for {}", type);
         return this.store().nextId(type);
@@ -491,7 +353,21 @@ public class SchemaTransaction extends IndexableTransaction {
     private static Id asyncRun(HugeGraph graph, HugeType schemaType,
                                Id schemaId, SchemaCallable callable) {
         String name = SchemaCallable.formatTaskName(schemaType, schemaId);
-        JobBuilder builder = JobBuilder.of(graph).name(name).job(callable);
-        return builder.schedule();
+
+        JobBuilder<Object> builder = JobBuilder.of(graph).name(name)
+                                                         .job(callable);
+        HugeTask<?> task = builder.schedule();
+
+        // If SCHEMA_SYNC_DELETION is true, wait async thread done before
+        // continue. This is used when running tests.
+        if (graph.configuration().get(CoreOptions.SCHEMA_SYNC_DELETION)) {
+            try {
+                task.get();
+                assert task.completed();
+            } catch (Exception e) {
+                throw new HugeException("Async task failed", e);
+            }
+        }
+        return task.id();
     }
 }

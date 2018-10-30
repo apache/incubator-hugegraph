@@ -76,6 +76,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static final String INDEX_EMPTY_SYM = "\u0000";
     private static final Query EMPTY_QUERY = new ConditionQuery(null);
+    private static final int REBUILD_COMMIT_BATCH = 1000;
 
     private final Analyzer textAnalyzer;
 
@@ -1100,30 +1101,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
              * They have different id lead to it can't compare and optimize
              */
             this.commit();
-
             if (type == HugeType.VERTEX_LABEL) {
-                ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-                query.eq(HugeKeys.LABEL, label);
-                query.capacity(Query.NO_CAPACITY);
-                for (Iterator<Vertex> itor = graphTx.queryVertices(query);
-                     itor.hasNext();) {
-                    HugeVertex vertex = (HugeVertex) itor.next();
-                    for (Id id : indexLabelIds) {
-                        this.updateIndex(id, vertex, false);
-                    }
-                }
+                this.rebuildIndex(HugeType.VERTEX, label, indexLabelIds,
+                                  graphTx::queryVerticesFromBackend);
             } else {
                 assert type == HugeType.EDGE_LABEL;
-                ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-                query.eq(HugeKeys.LABEL, label);
-                query.capacity(Query.NO_CAPACITY);
-                for (Iterator<Edge> itor = graphTx.queryEdges(query);
-                     itor.hasNext();) {
-                    HugeEdge edge = (HugeEdge) itor.next();
-                    for (Id id : indexLabelIds) {
-                        this.updateIndex(id, edge, false);
-                    }
-                }
+                this.rebuildIndex(HugeType.EDGE, label, indexLabelIds,
+                                  graphTx::queryEdgesFromBackend);
             }
             this.commit();
 
@@ -1134,6 +1118,34 @@ public class GraphIndexTransaction extends AbstractTransaction {
             this.autoCommit(autoCommit);
             locks.unlock();
         }
+    }
+
+    private <T> void rebuildIndex(HugeType type, Id label,
+                                  Collection<Id> indexLabelIds,
+                                  Function<Query, Iterator<T>> fetcher) {
+        assert type == HugeType.VERTEX || type == HugeType.EDGE;
+        ConditionQuery query = new ConditionQuery(type);
+        query.eq(HugeKeys.LABEL, label);
+        query.limit(Query.DEFAULT_CAPACITY);
+
+        int pass = 0;
+        int counter;
+        do {
+            counter = 0;
+            query.offset(pass++ * Query.DEFAULT_CAPACITY);
+            Iterator<T> itor = fetcher.apply(query);
+            while (itor.hasNext()) {
+                HugeElement element = (HugeElement) itor.next();
+                for (Id id : indexLabelIds) {
+                    this.updateIndex(id, element, false);
+                    // Commit per small batch to avoid too much data
+                    // in single commit, especially for Cassandra backend.
+                    this.commitIfGtSize(REBUILD_COMMIT_BATCH);
+                }
+                ++counter;
+            }
+            assert counter <= Query.DEFAULT_CAPACITY;
+        } while (counter == Query.DEFAULT_CAPACITY);
     }
 
     private static class MatchedLabel {

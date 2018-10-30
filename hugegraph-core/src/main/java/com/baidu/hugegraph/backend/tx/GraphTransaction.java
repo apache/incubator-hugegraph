@@ -446,7 +446,7 @@ public class GraphTransaction extends IndexableTransaction {
         return r;
     }
 
-    private Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
+    protected Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
         assert query.resultType().isVertex();
 
         Iterator<BackendEntry> entries = this.query(query);
@@ -562,7 +562,7 @@ public class GraphTransaction extends IndexableTransaction {
         return r;
     }
 
-    private Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
+    protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         assert query.resultType().isEdge();
 
         Iterator<BackendEntry> entries = this.query(query);
