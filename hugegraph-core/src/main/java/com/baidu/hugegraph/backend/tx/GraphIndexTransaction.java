@@ -77,6 +77,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static final String INDEX_EMPTY_SYM = "\u0000";
     private static final Query EMPTY_QUERY = new ConditionQuery(null);
+    private static final int REBUILD_COMMIT_BATCH = 1000;
 
     private final Analyzer textAnalyzer;
 
@@ -1111,6 +1112,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     HugeVertex vertex = (HugeVertex) itor.next();
                     for (Id id : indexLabelIds) {
                         this.updateIndex(id, vertex, false);
+                        // Commit per small batch to avoid too much data
+                        // in single commit, especially for Cassandra backend.
+                        this.commitIfGtSize(REBUILD_COMMIT_BATCH);
                     }
                 }
             } else {
@@ -1123,6 +1127,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     HugeEdge edge = (HugeEdge) itor.next();
                     for (Id id : indexLabelIds) {
                         this.updateIndex(id, edge, false);
+                        // Commit per small batch to avoid too much data
+                        // in single commit, especially for Cassandra backend.
+                        this.commitIfGtSize(REBUILD_COMMIT_BATCH);
                     }
                 }
             }

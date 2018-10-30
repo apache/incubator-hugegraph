@@ -550,6 +550,12 @@ public class HugeGraph implements Graph {
             return this.refs.get() == 0;
         }
 
+        public void commitIfGtSize(int size) {
+            // Only committing graph transaction data if reaching batch size
+            // is OK, bacause schema transaction is auto committed.
+            this.graphTransaction().commitIfGtSize(size);
+        }
+
         @Override
         public void commit() {
             try {
