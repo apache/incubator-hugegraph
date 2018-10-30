@@ -19,7 +19,16 @@
 
 package com.baidu.hugegraph.job.schema;
 
+import java.util.Set;
+
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.type.define.SchemaStatus;
+import com.baidu.hugegraph.util.LockUtil;
+import com.google.common.collect.ImmutableSet;
 
 public class EdgeLabelRemoveCallable extends SchemaCallable {
 
@@ -30,7 +39,35 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        SchemaTransaction.removeEdgeLabelSync(this.graph(), this.schemaId());
+        removeEdgeLabel(this.graph(), this.schemaId());
         return null;
+    }
+
+    protected static void removeEdgeLabel(HugeGraph graph, Id id) {
+        GraphTransaction graphTx = graph.graphTransaction();
+        SchemaTransaction schemaTx = graph.schemaTransaction();
+        EdgeLabel edgeLabel = schemaTx.getEdgeLabel(id);
+        // If the edge label does not exist, return directly
+        if (edgeLabel == null) {
+            return;
+        }
+        // TODO: use event to replace direct call
+        // Remove index related data(include schema) of this edge label
+        Set<Id> indexIds = ImmutableSet.copyOf(edgeLabel.indexLabels());
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.EDGE_LABEL_DELETE, id);
+            schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.DELETING);
+            for (Id indexId : indexIds) {
+                IndexLabelRemoveCallable.removeIndexLabel(graph, indexId);
+            }
+            // Remove all edges which has matched label
+            graphTx.removeEdges(edgeLabel);
+            removeSchema(schemaTx, edgeLabel);
+            // Should commit changes to backend store before release delete lock
+            graph.tx().commit();
+        } finally {
+            locks.unlock();
+        }
     }
 }
