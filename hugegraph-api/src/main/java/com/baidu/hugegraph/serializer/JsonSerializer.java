@@ -96,7 +96,11 @@ public class JsonSerializer implements Serializer {
             // Write page
             if (paging) {
                 String page = TraversalUtil.page((GraphTraversal<?, ?>) itor);
-                page = String.format(",\"page\": \"%s\"", page);
+                if (page != null) {
+                    page = String.format(",\"page\": \"%s\"", page);
+                } else {
+                    page = ",\"page\": null";
+                }
                 out.write(page.getBytes(API.CHARSET));
             }
 
