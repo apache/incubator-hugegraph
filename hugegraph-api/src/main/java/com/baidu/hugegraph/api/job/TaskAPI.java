@@ -29,6 +29,8 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotSupportedException;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -39,12 +41,12 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.HugeTaskScheduler;
-import com.baidu.hugegraph.task.Status;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
@@ -54,6 +56,8 @@ import com.google.common.collect.ImmutableMap;
 public class TaskAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
+
+    public static final String ACTION_CANCEL = "cancel";
 
     @GET
     @Timed
@@ -116,12 +120,41 @@ public class TaskAPI extends API {
                       "Can't delete task '%s' with unstable status '%s'",
                       id, task.status()));
         }
-
     }
 
-    private static Status parseStatus(String status) {
+    @PUT
+    @Timed
+    @Path("{id}")
+    @Status(Status.ACCEPTED)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public Map<String, Object> update(@Context GraphManager manager,
+                                      @PathParam("graph") String graph,
+                                      @PathParam("id") long id,
+                                      @QueryParam("action") String action) {
+        LOG.debug("Graph [{}] cancel task: {}", graph, id);
+
+        if (!ACTION_CANCEL.equals(action)) {
+            throw new NotSupportedException(String.format(
+                      "Not support action '%s'", action));
+        }
+
+        HugeGraph g = graph(manager, graph);
+        HugeTaskScheduler scheduler = g.taskScheduler();
+
+        HugeTask<?> task = scheduler.task(IdGenerator.of(id));
+
+        if (!task.completed()) {
+            scheduler.cancel(task);
+        } else {
+            throw new BadRequestException(String.format(
+                      "Can't cancel task '%s' which is completed", id));
+        }
+        return ImmutableMap.of("cancelled", task.isCancelled());
+    }
+
+    private static com.baidu.hugegraph.task.Status parseStatus(String status) {
         try {
-            return Status.valueOf(status);
+            return com.baidu.hugegraph.task.Status.valueOf(status);
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
                       "Status value must be in [UNKNOWN, NEW, QUEUED, " +

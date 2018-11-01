@@ -66,7 +66,7 @@ public class HugeTaskScheduler {
 
     private volatile TaskTransaction taskTx;
 
-    private static final long NO_LIMIT = -1l;
+    private static final long NO_LIMIT = -1L;
 
     public HugeTaskScheduler(HugeGraph graph,
                              ExecutorService taskExecutor,
@@ -139,7 +139,7 @@ public class HugeTaskScheduler {
     public <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
         this.tasks.remove(task.id());
-        task.cancel(false);
+        task.cancel(true);
     }
 
     protected void remove(Id id) {
