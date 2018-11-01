@@ -38,6 +38,10 @@ public abstract class HugeTaskCallable<V> implements Callable<V> {
         // Do nothing, subclasses may override this method
     }
 
+    protected void cancelled() {
+        // Do nothing, subclasses may override this method
+    }
+
     public HugeGraph graph() {
         return this.scheduler().graph();
     }

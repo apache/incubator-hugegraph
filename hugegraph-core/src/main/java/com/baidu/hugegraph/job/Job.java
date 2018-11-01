@@ -41,6 +41,11 @@ public abstract class Job<T> extends HugeTaskCallable<T> {
         this.save();
     }
 
+    @Override
+    protected void cancelled() {
+        this.save();
+    }
+
     private void save() {
         HugeTask<T> task = this.task();
         task.updateTime(new Date());

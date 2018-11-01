@@ -69,10 +69,13 @@ public final class ApiVersion {
      * [0.26] HugeGraph-1273: Add some monitoring counters to integrate with
      *        gremlin's monitoring framework
      * [0.27] HugeGraph-889: Use asynchronous mechanism to do schema deletion
+     *
+     * version 0.8:
+     * [0.28] Issue-153: Add task-cancel API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.27");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.28");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

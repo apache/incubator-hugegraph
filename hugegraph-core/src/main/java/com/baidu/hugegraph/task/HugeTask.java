@@ -204,6 +204,11 @@ public class HugeTask<V> extends FutureTask<V> {
             return super.cancel(mayInterruptIfRunning);
         } finally {
             this.status(Status.CANCELLED);
+            try {
+                this.callable.cancelled();
+            } catch (Throwable e) {
+                LOG.error("An exception occurred when calling cancelled()", e);
+            }
         }
     }
 
