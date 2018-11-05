@@ -1,0 +1,10 @@
+[Unit]
+Description=HugeGraph RESTful service
+
+[Service]
+Type=forking
+ExecStart=
+ExecStop=
+
+[Install]
+WantedBy=multi-user.target
