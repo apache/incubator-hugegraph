@@ -23,9 +23,9 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
-import org.junit.Assert;
 import org.junit.Test;
 
+import com.baidu.hugegraph.testutil.Assert;
 import com.google.common.collect.ImmutableMap;
 
 public class GremlinApiTest extends BaseApiTest {

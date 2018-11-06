@@ -19,7 +19,12 @@
 
 package com.baidu.hugegraph.api.gremlin;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import javax.inject.Singleton;
+import javax.json.Json;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -42,6 +47,7 @@ import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableSet;
 
 @Path("gremlin")
 @Singleton
@@ -51,6 +57,10 @@ public class GremlinAPI extends API {
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
     private static final Histogram gremlinOutputHistogram =
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-output");
+
+    private static final Set<String> INNER_EXCEPTIONS = ImmutableSet.of(
+            "java.lang.SecurityException"
+    );
 
     private Client client = ClientBuilder.newClient();
 
@@ -108,7 +118,8 @@ public class GremlinAPI extends API {
         // .build();
         String location = conf.get(ServerOptions.GREMLIN_SERVER_URL);
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
-        return doPostRequest(location, auth, request);
+        Response response = doPostRequest(location, auth, request);
+        return transformResponseIfNeed(response);
     }
 
     @GET
@@ -121,6 +132,41 @@ public class GremlinAPI extends API {
         String location = conf.get(ServerOptions.GREMLIN_SERVER_URL);
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         String query = uriInfo.getRequestUri().getRawQuery();
-        return doGetRequest(location, auth, query);
+        Response response = doGetRequest(location, auth, query);
+        return transformResponseIfNeed(response);
+    }
+
+    private static Response transformResponseIfNeed(Response response) {
+        int code = response.getStatusInfo().getStatusCode();
+        // No need to transform
+        if (code != Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()) {
+            return response;
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> map = response.readEntity(Map.class);
+        String message = (String) map.get("message");
+        String exClassName = (String) map.get("Exception-Class");
+        @SuppressWarnings("unchecked")
+        List<String> exceptions = (List<String>) map.get("exceptions");
+        if (message == null || exClassName == null || exceptions == null) {
+            throw new IllegalStateException(String.format(
+                      "Invalid response for inner exception, should contains " +
+                      "Exception-Class, but got %s", map));
+        }
+        if (INNER_EXCEPTIONS.contains(exClassName)) {
+            String cause = !exceptions.isEmpty() ? exceptions.get(0) : "";
+            String json = Json.createObjectBuilder()
+                              .add("exception", exClassName)
+                              .add("message", message)
+                              .add("cause", cause)
+                              .build().toString();
+            return Response.status(400)
+                           .type(MediaType.APPLICATION_JSON)
+                           .entity(json)
+                           .build();
+        } else {
+            return response;
+        }
     }
 }

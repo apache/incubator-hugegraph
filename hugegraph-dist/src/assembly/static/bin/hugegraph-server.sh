@@ -19,6 +19,7 @@ PLUGINS="$TOP/plugins"
 LOG="$TOP/logs"
 OUTPUT=${LOG}/hugegraph-server.log
 
+export HUGEGRAPH_HOME="$TOP"
 . ${BIN}/util.sh
 
 ensure_path_writable $LOG
@@ -79,6 +80,9 @@ fi
 # Execute the application and return its exit code
 ARGS="conf/gremlin-server.yaml conf/rest-server.properties"
 
-exec ${JAVA} -Dname="HugeGraphServer" -Dlog4j.configurationFile="${CONF}/log4j2.xml" \
+# Turn on security check
+exec ${JAVA} -Dname="HugeGraphServer" \
+-Djava.security.manager="com.baidu.hugegraph.security.HugeSecurityManager" \
+-Dlog4j.configurationFile="${CONF}/log4j2.xml" \
 ${JAVA_OPTIONS} -cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${ARGS} \
 >> ${OUTPUT} 2>&1
