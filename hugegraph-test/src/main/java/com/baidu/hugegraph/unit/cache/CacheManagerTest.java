@@ -67,18 +67,24 @@ public class CacheManagerTest extends BaseUnitTest {
 
         CacheManager manager = CacheManager.instance();
 
-        Mockito.when(this.mockCaches.get(name)).thenReturn(null);
+        Mockito.when(this.mockCaches.containsKey(name)).thenReturn(false);
+        final Cache[] cache = new Cache[1];
+        Mockito.when(this.mockCaches.putIfAbsent(Mockito.anyString(), Mockito.any()))
+               .thenAnswer(i -> cache[0] = (Cache) i.getArguments()[1]);
+        Mockito.when(this.mockCaches.get(name)).thenAnswer(i -> cache[0]);
+
         Cache cache1 = manager.cache(name);
 
         Assert.assertNotNull(cache1);
-        Mockito.verify(this.mockCaches).put(name, cache1);
+        Mockito.verify(this.mockCaches).putIfAbsent(name, cache1);
 
+        Mockito.when(this.mockCaches.containsKey(name)).thenReturn(true);
         Mockito.when(this.mockCaches.get(name)).thenReturn(cache1);
         Cache cache2 = manager.cache(name);
 
         Assert.assertSame(cache1, cache2);
         Mockito.verify(this.mockCaches, Mockito.atMost(1))
-               .put(Mockito.anyString(), Mockito.any());
+               .putIfAbsent(Mockito.anyString(), Mockito.any());
     }
 
     @Test
@@ -88,13 +94,19 @@ public class CacheManagerTest extends BaseUnitTest {
 
         CacheManager manager = CacheManager.instance();
 
-        Mockito.when(this.mockCaches.get(name)).thenReturn(null);
+        Mockito.when(this.mockCaches.containsKey(name)).thenReturn(false);
+        final Cache[] cache = new Cache[1];
+        Mockito.when(this.mockCaches.putIfAbsent(Mockito.anyString(), Mockito.any()))
+               .thenAnswer(i -> cache[0] = (Cache) i.getArguments()[1]);
+        Mockito.when(this.mockCaches.get(name)).thenAnswer(i -> cache[0]);
+
         Cache cache1 = manager.cache(name, capacity);
 
         Assert.assertNotNull(cache1);
         Assert.assertEquals(capacity, cache1.capacity());
-        Mockito.verify(this.mockCaches).put(name, cache1);
+        Mockito.verify(this.mockCaches).putIfAbsent(name, cache1);
 
+        Mockito.when(this.mockCaches.containsKey(name)).thenReturn(true);
         Mockito.when(this.mockCaches.get(name)).thenReturn(cache1);
         Cache cache2 = manager.cache(name, capacity);
 
@@ -108,7 +120,7 @@ public class CacheManagerTest extends BaseUnitTest {
         Assert.assertSame(cache1, manager.cache(name, capacity + 10));
 
         Mockito.verify(this.mockCaches, Mockito.atMost(1))
-               .put(Mockito.anyString(), Mockito.any());
+               .putIfAbsent(Mockito.anyString(), Mockito.any());
     }
 
     @Test
