@@ -1646,6 +1646,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "person", "name", "Tom",
                           "city", "Hongkong", "age", 3);
+        graph().tx().commit();
         List<Vertex> vertices;
         vertices = graph().traversal().V().has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
@@ -1711,13 +1712,11 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "dog", "name", "Tom",
                           "city", "Hongkong", "age", 3);
-
         graph().tx().commit();
-        List<Vertex> vertices;
 
-        vertices = graph().traversal().V().has("age", 3)
-                          .has("city", "Hongkong").has("name", "Tom")
-                          .toList();
+        List<Vertex> vertices = graph().traversal().V().has("age", 3)
+                                       .has("city", "Hongkong")
+                                       .has("name", "Tom").toList();
         Assert.assertEquals(1, vertices.size());
     }
 
@@ -1745,12 +1744,10 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "dog", "name", "Tom",
                           "city", "Hongkong", "age", 3);
-
         graph().tx().commit();
-        List<Vertex> vertices;
 
-        vertices = graph().traversal().V().has("age", P.gt(2))
-                          .has("city", "Hongkong").toList();
+        List<Vertex> vertices = graph().traversal().V().has("age", P.gt(2))
+                                       .has("city", "Hongkong").toList();
         Assert.assertEquals(1, vertices.size());
     }
 
@@ -1764,8 +1761,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "dog", "name", "Tom",
                           "age", 8, "weight", 3);
-
         graph().tx().commit();
+
         List<Vertex> vertices = graph().traversal().V().has("age", P.gt(2))
                                        .has("weight", P.lt(10)).toList();
         Assert.assertEquals(1, vertices.size());
