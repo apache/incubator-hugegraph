@@ -28,9 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -67,6 +65,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
@@ -76,7 +75,6 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -103,6 +101,8 @@ public class GraphTransaction extends IndexableTransaction {
     private Map<Id, HugeEdge> updatedEdges;
     private Set<HugeProperty<?>> updatedProps; // Oldest props
 
+    private LockUtil.LocksTable locksTable;
+
     private final int vertexesCapacity;
     private final int edgesCapacity;
 
@@ -115,6 +115,7 @@ public class GraphTransaction extends IndexableTransaction {
         final HugeConfig conf = graph.configuration();
         this.vertexesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
+        this.locksTable = new LockUtil.LocksTable();
     }
 
     @Override
@@ -275,12 +276,25 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Override
+    public void commit() throws BackendException {
+        try {
+            super.commit();
+        } finally {
+            this.locksTable.unlock();
+        }
+    }
+
+    @Override
     public void rollback() throws BackendException {
         // Rollback properties changes
         for (HugeProperty<?> prop : this.updatedProps) {
             prop.element().setProperty(prop);
         }
-        super.rollback();
+        try {
+            super.rollback();
+        } finally {
+            this.locksTable.unlock();
+        }
     }
 
     @Override
@@ -322,12 +336,13 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Override vertexes in local `removedVertexes`
         this.removedVertexes.remove(vertex.id());
-
-        LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.VERTEX_LABEL_DELETE, vertex.schemaLabel().id());
-            locks.lockReads(LockUtil.INDEX_LABEL_DELETE,
-                            vertex.schemaLabel().indexLabels());
+            this.locksTable.lockReads(LockUtil.VERTEX_LABEL_DELETE,
+                                      vertex.schemaLabel().id());
+            this.locksTable.lockReads(LockUtil.INDEX_LABEL_DELETE,
+                                      vertex.schemaLabel().indexLabels());
+            // Ensure vertex label still exists from vertex-construct to lock
+            this.graph().vertexLabel(vertex.schemaLabel().id());
             /*
              * No need to lock VERTEX_LABEL_ADD_UPDATE, because vertex label
              * update only can add nullable properties and user data, which is
@@ -336,8 +351,9 @@ public class GraphTransaction extends IndexableTransaction {
             this.beforeWrite();
             this.addedVertexes.put(vertex.id(), vertex);
             this.afterWrite();
-        } finally {
-            locks.unlock();
+        } catch (Throwable e){
+            this.locksTable.unlock();
+            throw e;
         }
         return vertex;
     }
@@ -478,12 +494,13 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Override edges in local `removedEdges`
         this.removedEdges.remove(edge.id());
-
-        LockUtil.Locks locks = new LockUtil.Locks();
         try {
-            locks.lockReads(LockUtil.EDGE_LABEL_DELETE, edge.schemaLabel().id());
-            locks.lockReads(LockUtil.INDEX_LABEL_DELETE,
-                            edge.schemaLabel().indexLabels());
+            this.locksTable.lockReads(LockUtil.EDGE_LABEL_DELETE,
+                                      edge.schemaLabel().id());
+            this.locksTable.lockReads(LockUtil.INDEX_LABEL_DELETE,
+                                      edge.schemaLabel().indexLabels());
+            // Ensure edge label still exists from edge-construct to lock
+            this.graph().edgeLabel(edge.schemaLabel().id());
             /*
              * No need to lock EDGE_LABEL_ADD_UPDATE, because edge label
              * update only can add nullable properties and user data, which is
@@ -492,8 +509,9 @@ public class GraphTransaction extends IndexableTransaction {
             this.beforeWrite();
             this.addedEdges.put(edge.id(), edge);
             this.afterWrite();
-        } finally {
-            locks.unlock();
+        } catch (Throwable e) {
+            this.locksTable.unlock();
+            throw e;
         }
         return edge;
     }
@@ -634,8 +652,7 @@ public class GraphTransaction extends IndexableTransaction {
                         "Can't update primary key: '%s'", prop.key());
 
         // Do property update
-        Set<Id> lockNames = relatedIndexLabels(prop, vertex.schemaLabel());
-        this.lockForUpdateProperty(lockNames, (locks) -> {
+        this.lockForUpdateProperty(vertex.schemaLabel(), prop, () -> {
             // Update old vertex to remove index (without new property)
             this.indexTx.updateVertexIndex(vertex, true);
 
@@ -684,8 +701,7 @@ public class GraphTransaction extends IndexableTransaction {
                         prop.key());
 
         // Do property update
-        Set<Id> lockIds = relatedIndexLabels(prop, vertex.schemaLabel());
-        this.lockForUpdateProperty(lockIds, (locks) -> {
+        this.lockForUpdateProperty(vertex.schemaLabel(), prop, () -> {
             // Update old vertex to remove index (with the property)
             this.indexTx.updateVertexIndex(vertex, true);
 
@@ -732,8 +748,7 @@ public class GraphTransaction extends IndexableTransaction {
                         "Can't update sort key '%s'", prop.key());
 
         // Do property update
-        Set<Id> lockIds = relatedIndexLabels(prop, edge.schemaLabel());
-        this.lockForUpdateProperty(lockIds, (locks) -> {
+        this.lockForUpdateProperty(edge.schemaLabel(), prop, () -> {
             // Update old edge to remove index (without new property)
             this.indexTx.updateEdgeIndex(edge, true);
 
@@ -784,8 +799,7 @@ public class GraphTransaction extends IndexableTransaction {
                         prop.key());
 
         // Do property update
-        Set<Id> lockIds = relatedIndexLabels(prop, edge.schemaLabel());
-        this.lockForUpdateProperty(lockIds, (locks) -> {
+        this.lockForUpdateProperty(edge.schemaLabel(), prop, () -> {
             // Update old edge to remove index (with the property)
             this.indexTx.updateEdgeIndex(edge, true);
 
@@ -1056,31 +1070,42 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private Set<Id> relatedIndexLabels(HugeProperty<?> prop,
-                                       Indexfiable indexfiable) {
-        Id pkeyId = prop.propertyKey().id();
-        return indexfiable.indexLabels().stream().filter(id ->
-            graph().indexLabel(id).indexFields().contains(pkeyId)
-        ).collect(Collectors.toSet());
-    }
-
-    private void lockForUpdateProperty(Set<Id> lockIds,
-                                       Consumer<LockUtil.Locks> callback) {
+    private void lockForUpdateProperty(SchemaLabel schemaLabel,
+                                       HugeProperty<?> prop,
+                                       Runnable callback) {
         this.checkOwnerThread();
 
-        LockUtil.Locks locks = new LockUtil.Locks();
+        Id pkey = prop.propertyKey().id();
+        Set<Id> indexIds = new HashSet<>();
+        for (Id il : schemaLabel.indexLabels()) {
+            if (graph().indexLabel(il).indexFields().contains(pkey)) {
+                indexIds.add(il);
+            }
+        }
+        String group = schemaLabel.type() == HugeType.VERTEX_LABEL ?
+                       LockUtil.VERTEX_LABEL_DELETE :
+                       LockUtil.EDGE_LABEL_DELETE;
         try {
-            locks.lockReads(LockUtil.INDEX_LABEL_DELETE, lockIds);
+            this.locksTable.lockReads(group, schemaLabel.id());
+            this.locksTable.lockReads(LockUtil.INDEX_LABEL_DELETE, indexIds);
+            // Ensure schema label still exists
+            if (schemaLabel.type() == HugeType.VERTEX_LABEL) {
+                this.graph().vertexLabel(schemaLabel.id());
+            } else {
+                assert schemaLabel.type() == HugeType.EDGE_LABEL;
+                this.graph().edgeLabel(schemaLabel.id());
+            }
             /*
              * No need to lock INDEX_LABEL_ADD_UPDATE, because index label
              * update only can add  user data, which is unconcerned with
              * update property
              */
             this.beforeWrite();
-            callback.accept(locks);
+            callback.run();
             this.afterWrite();
-        } finally {
-            locks.unlock();
+        } catch (Throwable e) {
+            this.locksTable.unlock();
+            throw e;
         }
     }
 

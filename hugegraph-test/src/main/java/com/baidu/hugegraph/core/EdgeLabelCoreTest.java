@@ -678,7 +678,6 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                       "weight", 0.3);
         marko.addEdge("write", hadoop, "time", "2014-2-28",
                       "weight", 0.5);
-
         graph().tx().commit();
 
         List<Edge> edges = graph().traversal().E().hasLabel("write").toList();
@@ -731,6 +730,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                       "weight", 0.3);
         marko.addEdge("write", hadoop, "time", "2014-2-28",
                       "weight", 0.5);
+        graph().tx().commit();
 
         List<Edge> edges = graph().traversal().E().hasLabel("write")
                            .has("weight", 0.5).toList();
@@ -785,6 +785,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
         marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
+        graph().tx().commit();
 
         List<Edge> edges = graph().traversal().E().hasLabel("write")
                            .has("time", "2016-12-12").toList();

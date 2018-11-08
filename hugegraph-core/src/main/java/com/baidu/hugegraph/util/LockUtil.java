@@ -20,8 +20,14 @@
 package com.baidu.hugegraph.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
@@ -135,6 +141,11 @@ public final class LockUtil {
         }
     }
 
+    /**
+     * Locks aggregate some locks that will be locked or unlocked together,
+     * which means Locks can only be used in scenario where one Locks object
+     * won't be accessed in different multiple threads.
+     */
     public static class Locks {
 
         public List<Lock> lockList;
@@ -143,34 +154,87 @@ public final class LockUtil {
             this.lockList = new ArrayList<>();
         }
 
+        // NOTE: when used in multi-threads, should add `synchronized`
         public void lockReads(String group, Id... locks) {
             for (Id lock : locks) {
                 this.lockList.add(lockRead(group, lock.asString()));
             }
         }
 
+        // NOTE: when used in multi-threads, should add `synchronized`
         public void lockReads(String group, Collection<Id> locks) {
             for (Id lock : locks) {
                 this.lockList.add(lockRead(group, lock.asString()));
             }
         }
 
+        // NOTE: when used in multi-threads, should add `synchronized`
         public void lockWrites(String group, Id... locks) {
             for (Id lock : locks) {
-                this.lockList.add(lockWrite(group, lock.asString(), WRITE_WAIT_TIME));
+                this.lockList.add(lockWrite(group, lock.asString(),
+                                            WRITE_WAIT_TIME));
             }
         }
 
+        // NOTE: when used in multi-threads, should add `synchronized`
         public void lockWrites(String group, Collection<Id> locks) {
             for (Id lock : locks) {
-                this.lockList.add(lockWrite(group, lock.asString(), WRITE_WAIT_TIME));
+                this.lockList.add(lockWrite(group, lock.asString(),
+                                            WRITE_WAIT_TIME));
             }
         }
 
+        // NOTE: when used in multi-threads, should add `synchronized`
         public void unlock() {
+            Collections.reverse(this.lockList);
             for (Lock lock : this.lockList) {
                 lock.unlock();
             }
+            this.lockList.clear();
+        }
+    }
+
+    /**
+     * LocksTable aggregate some locks that will be locked or unlocked together,
+     * which means LocksTable can only be used in scenario where
+     * one LocksTable object won't be accessed in different multiple threads.
+     */
+    public static class LocksTable {
+
+        private Map<String, Set<Id>> table;
+        private Locks locks;
+
+        public LocksTable() {
+            this.table = new HashMap<>();
+            this.locks = new LockUtil.Locks();
+        }
+
+        public void lockReads(String group, Id... locks) {
+            this.lockReads(group, Arrays.asList(locks));
+        }
+
+        // NOTE: when used in multi-threads, should add `synchronized`
+        public void lockReads(String group, Collection<Id> locks) {
+            List<Id> newLocks = new ArrayList<>(locks.size());
+            for (Id lock : locks) {
+                Set<Id> locked = locksOfGroup(group);
+                if (!locked.contains(lock)) {
+                    newLocks.add(lock);
+                }
+            }
+            this.locks.lockReads(group, newLocks);
+        }
+
+        // NOTE: when used in multi-threads, should add `synchronized`
+        public void unlock() {
+            this.locks.unlock();
+        }
+
+        private Set<Id> locksOfGroup(String group) {
+            if (!this.table.containsKey(group)) {
+                this.table.putIfAbsent(group, new HashSet<>());
+            }
+            return this.table.get(group);
         }
     }
 }

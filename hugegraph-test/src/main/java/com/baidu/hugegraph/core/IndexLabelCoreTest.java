@@ -549,6 +549,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
+        graph().tx().commit();
+
         Vertex vertex = graph().traversal().V().hasLabel("person")
                         .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
@@ -616,6 +618,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         assertContainsIl(authored.indexLabels(), "authoredByContri");
 
         james.addEdge("authored", java1,"contribution", "test");
+        graph().tx().commit();
 
         Edge edge = graph().traversal().E().hasLabel("authored")
                     .has("contribution", "test").next();
@@ -664,6 +667,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
+        graph().tx().commit();
+
         Vertex vertex = graph().traversal().V().hasLabel("person")
                         .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
@@ -701,6 +706,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
+        graph().tx().commit();
+
         Vertex vertex = graph().traversal().V().hasLabel("person")
                         .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
@@ -743,6 +750,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         assertContainsIl(authored.indexLabels(), "authoredByContri");
 
         james.addEdge("authored", java1,"contribution", "test");
+        graph().tx().commit();
 
         Edge edge = graph().traversal().E().hasLabel("authored")
                     .has("contribution", "test").next();
@@ -783,6 +791,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         assertContainsIl(authored.indexLabels(), "authoredByContri");
 
         james.addEdge("authored", java1,"contribution", "test");
+        graph().tx().commit();
 
         Edge edge = graph().traversal().E().hasLabel("authored")
                     .has("contribution", "test").next();
