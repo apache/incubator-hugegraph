@@ -74,7 +74,7 @@ public final class HugeGraphStep<S, E extends Element>
 
         HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
         if (this.ids != null && this.ids.length > 0) {
-            return TraversalUtil.filterResult(graph, this.hasContainers,
+            return TraversalUtil.filterResult(this.hasContainers,
                                               graph.vertices(this.ids));
         }
 
@@ -101,7 +101,7 @@ public final class HugeGraphStep<S, E extends Element>
         HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
 
         if (this.ids != null && this.ids.length > 0) {
-            return TraversalUtil.filterResult(graph, this.hasContainers,
+            return TraversalUtil.filterResult(this.hasContainers,
                                               graph.edges(this.ids));
         }
 

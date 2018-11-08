@@ -101,7 +101,7 @@ public final class HugeVertexStep<E extends Element>
         }
 
         // TODO: query by vertex index to optimize
-        return TraversalUtil.filterResult(graph, this.hasContainers, vertices);
+        return TraversalUtil.filterResult(this.hasContainers, vertices);
     }
 
     private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
@@ -154,8 +154,7 @@ public final class HugeVertexStep<E extends Element>
 
             // Do filter by edge conditions
             if (withEdgeCond && !bySortKeys) {
-                results.extend(TraversalUtil.filterResult(graph, conditions,
-                                                          edges));
+                results.extend(TraversalUtil.filterResult(conditions, edges));
             } else {
                 results.extend(edges);
             }
