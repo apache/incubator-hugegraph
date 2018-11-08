@@ -30,6 +30,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -1367,6 +1369,81 @@ public class VertexCoreTest extends BaseCoreTest {
                         .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(dates[3], vertices.get(0).value("birth"));
+    }
+
+    @Test
+    public void testQueryByDatePropertyInString() {
+        HugeGraph graph = graph();
+        initPersonIndex(false);
+        init5Persons();
+
+        List<Vertex> vertices = null;
+
+        String[] dates = new String[]{
+                "2012-01-01 12:30:00.100",
+                "2013-01-01 12:30:00.100",
+                "2014-01-01 12:30:00.100",
+                "2015-01-01 12:30:00.100",
+                "2016-01-01 12:30:00.100"
+        };
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", dates[0])
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(Utils.date(dates[0]),
+                            vertices.get(0).value("birth"));
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.gt(dates[0]))
+                        .toList();
+        Assert.assertEquals(4, vertices.size());
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.between(dates[3], dates[4]))
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(Utils.date(dates[3]),
+                            vertices.get(0).value("birth"));
+    }
+
+    @Test
+    public void testQueryByUnionHasDate() {
+        HugeGraph graph = graph();
+        initPersonIndex(false);
+        init5Persons();
+
+        GraphTraversalSource g = graph.traversal();
+        List<Vertex> vertices = null;
+
+        String[] dates = new String[]{
+                "2012-01-01 12:30:00.100",
+                "2013-01-01 12:30:00.100",
+                "2014-01-01 12:30:00.100",
+                "2015-01-01 12:30:00.100",
+                "2016-01-01 12:30:00.100"
+        };
+
+        vertices = g.V()
+                    .hasLabel("person")
+                    .union(__.<Vertex>has("birth", dates[0]))
+                    .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(Utils.date(dates[0]),
+                            vertices.get(0).value("birth"));
+
+        vertices = g.V()
+                    .hasLabel("person")
+                    .union(__.<Vertex>has("birth", P.gt(dates[0])))
+                    .toList();
+        Assert.assertEquals(4, vertices.size());
+
+        vertices = g.V()
+                    .hasLabel("person")
+                    .union(__.<Vertex>has("birth", P.lt(dates[1])),
+                           __.<Vertex>has("birth", P.gt(dates[3])))
+                    .toList();
+        Assert.assertEquals(2, vertices.size());
     }
 
     @Test

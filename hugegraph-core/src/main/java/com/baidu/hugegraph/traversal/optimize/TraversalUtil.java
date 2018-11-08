@@ -441,41 +441,70 @@ public final class TraversalUtil {
 
     @SuppressWarnings("unchecked")
     public static <V> Iterator<V> filterResult(
-                                  HugeGraph graph,
                                   List<HasContainer> hasContainers,
                                   Iterator<? extends Element> iterator) {
-        if (iterator.hasNext()) {
-            for (HasContainer has : hasContainers) {
-                convPredicateValue(graph, has);
-            }
-        }
         Iterator<?> result = new FilterIterator<>(iterator, elem -> {
             return HasContainer.testAll(elem, hasContainers);
         });
         return (Iterator<V>) result;
     }
 
-    @SuppressWarnings("unchecked")
-    private static void convPredicateValue(HugeGraph graph, HasContainer has) {
-        List<P<Object>> predicates;
-        if (has.getPredicate() instanceof ConnectiveP) {
-            P<?> p = has.getPredicate();
-            predicates = ((ConnectiveP<Object>) p).getPredicates();
-        } else {
-            predicates = ImmutableList.of((P<Object>) has.getPredicate());
+    public static void convAllHasSteps(Traversal.Admin<?, ?> traversal) {
+        // Extract all has steps in traversal
+        List<HasStep> steps = TraversalHelper
+                              .getStepsOfAssignableClassRecursively(
+                              HasStep.class, traversal);
+        HugeGraph graph = (HugeGraph) traversal.getGraph().get();
+        for (HasStep step : steps) {
+            TraversalUtil.convHasStep(graph, step);
         }
+    }
+
+    public static void convHasStep(HugeGraph graph, HasStep step) {
+        HasContainerHolder holder = step;
+        for (HasContainer has : holder.getHasContainers()) {
+            convPredicateValue(graph, has);
+        }
+    }
+
+    private static void convPredicateValue(HugeGraph graph, HasContainer has) {
         // No need to convert if key is sysprop
-        try {
-            string2HugeKey(has.getKey());
-            // Come here if key is ~id, ~label, ~key and ~value
+        if (isSysProp(has.getKey())) {
             return;
-        } catch (IllegalArgumentException e) {
-            // Ignore
         }
         PropertyKey pkey = graph.propertyKey(has.getKey());
-        for (P<Object> predicate : predicates) {
+
+        List<P<Object>> leafPredicates = new ArrayList<>();
+        collectPredicates(leafPredicates, ImmutableList.of(has.getPredicate()));
+        for (P<Object> predicate : leafPredicates) {
             Object value = validPredicateValue(predicate.getValue(), pkey);
             predicate.setValue(value);
+        }
+    }
+
+    private static boolean isSysProp(String key) {
+        if (QueryHolder.SYSPROP_PAGE.equals(key)) {
+            return true;
+        }
+        try {
+            string2HugeKey(key);
+            // Come here if key is ~id, ~label, ~key and ~value
+            return true;
+        } catch (IllegalArgumentException e) {
+            // Ignore
+            return false;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void collectPredicates(List<P<Object>> results,
+                                          List<P<?>> predicates) {
+        for (P<?> p : predicates) {
+            if (p instanceof ConnectiveP) {
+                collectPredicates(results, ((ConnectiveP) p).getPredicates());
+            } else {
+                results.add((P<Object>) p);
+            }
         }
     }
 

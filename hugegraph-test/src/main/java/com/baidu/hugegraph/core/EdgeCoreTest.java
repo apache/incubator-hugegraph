@@ -29,6 +29,8 @@ import java.util.Set;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -1224,6 +1226,111 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(dates[1], edges.get(0).value("date"));
     }
 
+    @Test
+    public void testQueryByDatePropertyInString() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.edgeLabel("buy")
+              .properties("place", "date")
+              .link("person", "book")
+              .create();
+        schema.indexLabel("buyByDate").onE("buy").by("date").range().create();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex jeff = graph.addVertex(T.label, "person", "name", "Jeff",
+                                      "city", "Beijing", "age", 22);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
+        Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
+        Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
+
+        String[] dates = new String[]{
+                "2012-01-01 12:30:00.100",
+                "2013-01-01 12:30:00.100",
+                "2014-01-01 12:30:00.100"
+        };
+
+        louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
+        jeff.addEdge("buy", java2, "place", "chaoyang", "date", dates[1]);
+        sean.addEdge("buy", java3, "place", "chaoyang", "date", dates[2]);
+
+        List<Edge> edges = graph.traversal().E().hasLabel("buy")
+                                .has("date", dates[0])
+                                .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(Utils.date(dates[0]), edges.get(0).value("date"));
+
+        edges = graph.traversal().E().hasLabel("buy")
+                     .has("date", P.gt(dates[0]))
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().E().hasLabel("buy")
+                     .has("date", P.between(dates[1], dates[2]))
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(Utils.date(dates[1]), edges.get(0).value("date"));
+    }
+
+    @Test
+    public void testQueryByUnionHasDate() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        GraphTraversalSource g = graph.traversal();
+
+        schema.edgeLabel("buy")
+              .properties("place", "date")
+              .link("person", "book")
+              .create();
+        schema.indexLabel("buyByDate").onE("buy").by("date").range().create();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex jeff = graph.addVertex(T.label, "person", "name", "Jeff",
+                                      "city", "Beijing", "age", 22);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
+        Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
+        Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
+
+        String[] dates = new String[]{
+                "2012-01-01 12:30:00.100",
+                "2013-01-01 12:30:00.100",
+                "2014-01-01 12:30:00.100"
+        };
+
+        louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
+        jeff.addEdge("buy", java2, "place", "chaoyang", "date", dates[1]);
+        sean.addEdge("buy", java3, "place", "chaoyang", "date", dates[2]);
+
+        List<Edge> edges = g.E()
+                            .hasLabel("buy")
+                            .union(__.<Edge>has("date", dates[0]))
+                            .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(Utils.date(dates[0]), edges.get(0).value("date"));
+
+        edges = g.E()
+                 .hasLabel("buy")
+                 .union(__.<Edge>has("date", P.gt(dates[0])))
+                 .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = g.E()
+                 .hasLabel("buy")
+                 .union(__.<Edge>has("date", P.lt(dates[1])),
+                        __.<Edge>has("date", P.gt(dates[1])))
+                 .toList();
+        Assert.assertEquals(2, edges.size());
+    }
+
+    @Test
     public void testQueryByOutEWithDateProperty() {
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
