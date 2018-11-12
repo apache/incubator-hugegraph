@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.FutureTask;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
@@ -39,18 +38,10 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.ImmutableSet;
 
 public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
-    private static final Set<TaskStatus> COMPLETED_STATUSES;
-
-    static {
-        COMPLETED_STATUSES = ImmutableSet.of(TaskStatus.SUCCESS,
-                                             TaskStatus.CANCELLED,
-                                             TaskStatus.FAILED);
-    }
 
     private final TaskCallable<V> callable;
 
@@ -188,7 +179,7 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public boolean completed() {
-        return COMPLETED_STATUSES.contains(this.status);
+        return TaskStatus.COMPLETED_STATUSES.contains(this.status);
     }
 
     @Override

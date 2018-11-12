@@ -119,6 +119,17 @@ public class TaskScheduler {
         });
     }
 
+    public <V> void restoreTasks() {
+        // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
+        for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
+            Iterator<HugeTask<V>> iter = this.findTask(status, NO_LIMIT);
+            while (iter.hasNext()) {
+                HugeTask<V> task = iter.next();
+                this.restore(task);
+            }
+        }
+    }
+
     public <V> Future<?> restore(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
         E.checkState(!task.isDone(), "No need to restore task '%s', " +

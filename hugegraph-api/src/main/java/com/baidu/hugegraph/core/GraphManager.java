@@ -67,6 +67,7 @@ public final class GraphManager {
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         this.checkBackendVersionOrExit();
+        this.restoreUncompletedTasks();
         this.addMetrics(conf);
     }
 
@@ -190,6 +191,14 @@ public final class GraphManager {
                 // Exit if versions are inconsistent
                 System.exit(-1);
             }
+        }
+    }
+
+    private void restoreUncompletedTasks() {
+        for (String graph : this.graphs()) {
+            HugeGraph hugegraph = this.graph(graph);
+            assert hugegraph != null;
+            hugegraph.taskScheduler().restoreTasks();
         }
     }
 

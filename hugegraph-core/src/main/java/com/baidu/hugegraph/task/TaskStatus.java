@@ -19,7 +19,12 @@
 
 package com.baidu.hugegraph.task;
 
+import java.util.List;
+import java.util.Set;
+
 import com.baidu.hugegraph.type.define.SerialEnum;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public enum TaskStatus implements SerialEnum {
 
@@ -32,6 +37,13 @@ public enum TaskStatus implements SerialEnum {
     SUCCESS(5, "success"),
     CANCELLED(6, "cancelled"),
     FAILED(7, "failed");
+
+    // NOTE: order is important(RESTORING > RUNNING > QUEUED) when restoring
+    public static final List<TaskStatus> PENDING_STATUSES = ImmutableList.of(
+           TaskStatus.RESTORING, TaskStatus.RUNNING, TaskStatus.QUEUED);
+
+    public static final Set<TaskStatus> COMPLETED_STATUSES = ImmutableSet.of(
+           TaskStatus.SUCCESS, TaskStatus.CANCELLED, TaskStatus.FAILED);
 
     private byte status = 0;
     private String name;
