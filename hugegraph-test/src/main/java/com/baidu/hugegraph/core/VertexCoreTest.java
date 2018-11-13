@@ -37,6 +37,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -3192,6 +3193,35 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices1.addAll(vertices2);
         Assert.assertEquals(vertices.size(), vertices1.size());
         Assert.assertTrue(vertices.containsAll(vertices1));
+    }
+
+    @Test
+    public void testAddCustomizedIdVerticesContainsExisted() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .useCustomizeStringId()
+              .properties("name", "age", "city")
+              .create();
+        schema.vertexLabel("designer")
+              .useCustomizeStringId()
+              .properties("name", "age", "city")
+              .create();
+
+        graph.addVertex(T.label, "programmer", T.id, "123456", "name", "marko",
+                        "age", 18, "city", "Beijing");
+        graph.tx().commit();
+
+        graph.addVertex(T.label, "programmer", T.id, "123456", "name", "marko",
+                        "age", 19, "city", "Beijing");
+        graph.tx().commit();
+
+        graph.addVertex(T.label, "designer", T.id, "123456", "name", "marko",
+                        "age", 18, "city", "Beijing");
+        Assert.assertThrows(HugeException.class, () -> {
+            graph.tx().commit();
+        });
     }
 
     private void init10Vertices() {

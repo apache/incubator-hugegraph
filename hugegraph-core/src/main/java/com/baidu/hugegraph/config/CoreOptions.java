@@ -111,6 +111,15 @@ public class CoreOptions extends OptionHolder {
                     "vertex"
             );
 
+    public static final ConfigOption<Boolean> VERTEX_CHECK_CUSTOMIZED_ID_EXIST =
+            new ConfigOption<>(
+                    "vertex.check_customzied_id_exist",
+                    "Whether to check the vertices exist for those using " +
+                    "customized id strategy",
+                    disallowEmpty(),
+                    true
+            );
+
     public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
             new ConfigOption<>(
                     "vertex.tx_capacity",
