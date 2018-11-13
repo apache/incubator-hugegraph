@@ -1,0 +1,24 @@
+# Overrides the mysql defaults in /etc/mysql/my.cnf
+# Any changes here will require a Vagrant re-provision to take effect.
+# NB: This file is only used by Vagrant/Travis, and must be kept in sync with
+# the RDS parameter group used by stage/prod:
+# https://github.com/mozilla-platform-ops/devservices-aws/blob/master/treeherder/rds.tf
+
+[mysqld]
+character_set_server="utf8"
+collation_server="utf8_bin"
+
+# Ensure operations involving astral characters fail loudly,
+# rather than mysql silently replacing each each byte of the
+# original character with a U+FFFD replacement character.
+# See bug 1275425.
+sql_mode="NO_ENGINE_SUBSTITUTION,STRICT_ALL_TABLES"
+
+# Django advises using READ-COMMITTED instead of REPEATABLE-READ:
+# https://docs.djangoproject.com/en/1.10/ref/models/querysets/#get-or-create
+# Unhelpfully MySQL uses a different (undocumented) variable name if set via config file:
+# https://bugs.mysql.com/bug.php?id=70008
+transaction-isolation=READ-COMMITTED
+
+# Vagrant/Travis only: Speed up I/O by reducing data-loss protection.
+innodb_flush_log_at_trx_commit="0"
