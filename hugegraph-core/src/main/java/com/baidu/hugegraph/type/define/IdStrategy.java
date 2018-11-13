@@ -52,4 +52,16 @@ public enum IdStrategy implements SerialEnum {
     public String string() {
         return this.name;
     }
+
+    public boolean isAutomatic() {
+        return this == AUTOMATIC;
+    }
+
+    public boolean isPrimaryKey() {
+        return this == PRIMARY_KEY;
+    }
+
+    public boolean isCustomized() {
+        return this == CUSTOMIZE_STRING || this == CUSTOMIZE_NUMBER;
+    }
 }

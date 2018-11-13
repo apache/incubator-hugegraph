@@ -103,6 +103,8 @@ public class GraphTransaction extends IndexableTransaction {
 
     private LockUtil.LocksTable locksTable;
 
+    private final boolean checkVertexExist;
+
     private final int vertexesCapacity;
     private final int edgesCapacity;
 
@@ -113,6 +115,8 @@ public class GraphTransaction extends IndexableTransaction {
         assert !this.indexTx.autoCommit();
 
         final HugeConfig conf = graph.configuration();
+        this.checkVertexExist = conf.get(
+                                CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
         this.vertexesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
         this.locksTable = new LockUtil.LocksTable();
@@ -208,6 +212,9 @@ public class GraphTransaction extends IndexableTransaction {
 
     protected void prepareAdditions(Map<Id, HugeVertex> addedVertexes,
                                     Map<Id, HugeEdge> addedEdges) {
+        if (this.checkVertexExist) {
+            this.checkVertexExistIfCustomizedId(addedVertexes);
+        }
         // Do vertex update
         for (HugeVertex v : addedVertexes.values()) {
             assert !v.removed();
@@ -233,6 +240,33 @@ public class GraphTransaction extends IndexableTransaction {
             // Update index of edge
             this.indexTx.updateEdgeIndex(e, false);
             this.indexTx.updateLabelIndex(e, false);
+        }
+    }
+
+    private void checkVertexExistIfCustomizedId(Map<Id, HugeVertex> vertices) {
+        Set<Id> ids = new HashSet<>();
+        for (HugeVertex vertex : vertices.values()) {
+            VertexLabel vl = vertex.schemaLabel();
+            if (!vl.hidden() && vl.idStrategy().isCustomized()) {
+                ids.add(vertex.id());
+            }
+        }
+        if (ids.isEmpty()) {
+            return;
+        }
+        IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
+        Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
+        if (results.hasNext()) {
+            HugeVertex existedVertex = results.next();
+            HugeVertex newVertex = vertices.get(existedVertex.id());
+            if (!existedVertex.label().equals(newVertex.label())) {
+                throw new HugeException(
+                          "The newly added vertex with id:'%s' label:'%s' " +
+                          "is not allowed to insert, because already exist " +
+                          "a vertex with same id and different label:'%s'",
+                          newVertex.id(), newVertex.label(),
+                          existedVertex.label());
+            }
         }
     }
 
