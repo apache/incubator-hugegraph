@@ -110,8 +110,9 @@ public class VertexCoreTest extends BaseCoreTest {
               .nullableKeys("dynamic")
               .create();
         schema.vertexLabel("book")
-              .properties("name")
+              .properties("name", "price")
               .primaryKeys("name")
+              .nullableKeys("price")
               .create();
         schema.vertexLabel("review")
               .properties("id", "comment", "contribution")
@@ -2994,16 +2995,33 @@ public class VertexCoreTest extends BaseCoreTest {
                         .has("~page", page).limit(1)
                         .toList();
         Assert.assertEquals(1, vertexes.size());
+        Vertex vertex1 = vertexes.get(0);
 
         vertexes = graph.traversal().V()
                         .has("~page", page).limit(33)
                         .toList();
         Assert.assertEquals(33, vertexes.size());
+        Vertex vertex2 = vertexes.get(0);
+        Assert.assertEquals(vertex1.id(), vertex2.id());
+        Assert.assertEquals(vertex1.label(), vertex2.label());
+        Assert.assertEquals(IteratorUtils.asList(vertex1.properties()),
+                            IteratorUtils.asList(vertex2.properties()));
 
         vertexes = graph.traversal().V()
                         .has("~page", page).limit(89)
                         .toList();
         Assert.assertEquals(89, vertexes.size());
+        Vertex vertex3 = vertexes.get(88);
+
+        vertexes = graph.traversal().V()
+                        .has("~page", page).limit(90)
+                        .toList();
+        Assert.assertEquals(90, vertexes.size());
+        Vertex vertex4 = vertexes.get(88);
+        Assert.assertEquals(vertex3.id(), vertex4.id());
+        Assert.assertEquals(vertex3.label(), vertex4.label());
+        Assert.assertEquals(IteratorUtils.asList(vertex3.properties()),
+                            IteratorUtils.asList(vertex4.properties()));
 
         vertexes = graph.traversal().V()
                         .has("~page", page).limit(91)
@@ -3207,7 +3225,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
 
         for (int i = 0; i < 100; i++) {
-            graph.addVertex(T.label, "book", "name", "java-" + i);
+            graph.addVertex(T.label, "book", "name", "java-" + i, "price", i);
         }
 
         graph.tx().commit();

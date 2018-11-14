@@ -86,11 +86,9 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             }
 
             // When limit exceed, stop fetching
-            if (this.query.reachLimit(this.fetched())) {
-                // Use next() to set page position if paging
-                if (this.query.paging() && this.results.hasNext()) {
-                    this.results.next();
-                }
+            if (this.query.reachLimit(this.fetched() - 1)) {
+                // Need remove last one because fetched limit + 1 records
+                this.removeLastRecord();
                 this.results.close();
                 break;
             }
@@ -129,6 +127,11 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         }
         PageState page = new PageState(position, 0);
         return page.toString();
+    }
+
+    private void removeLastRecord() {
+        int lastOne = this.current.columnsSize() - 1;
+        ((BinaryBackendEntry) this.current).removeColumn(lastOne);
     }
 
     private void skipPageOffset(String page) {

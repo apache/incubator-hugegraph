@@ -2168,16 +2168,33 @@ public class EdgeCoreTest extends BaseCoreTest {
                      .has("~page", page).limit(1)
                      .toList();
         Assert.assertEquals(1, edges.size());
+        Edge edge1 = edges.get(0);
 
         edges = graph.traversal().E()
                      .has("~page", page).limit(33)
                      .toList();
         Assert.assertEquals(33, edges.size());
+        Edge edge2 = edges.get(0);
+        Assert.assertEquals(edge1.id(), edge2.id());
+        Assert.assertEquals(edge1.label(), edge2.label());
+        Assert.assertEquals(IteratorUtils.asList(edge1.properties()),
+                            IteratorUtils.asList(edge2.properties()));
 
         edges = graph.traversal().E()
                      .has("~page", page).limit(89)
                      .toList();
         Assert.assertEquals(89, edges.size());
+        Edge edge3 = edges.get(88);
+
+        edges = graph.traversal().E()
+                     .has("~page", page).limit(90)
+                     .toList();
+        Assert.assertEquals(90, edges.size());
+        Edge edge4 = edges.get(88);
+        Assert.assertEquals(edge3.id(), edge4.id());
+        Assert.assertEquals(edge3.label(), edge4.label());
+        Assert.assertEquals(IteratorUtils.asList(edge3.properties()),
+                            IteratorUtils.asList(edge4.properties()));
 
         edges = graph.traversal().E()
                      .has("~page", page).limit(91)
