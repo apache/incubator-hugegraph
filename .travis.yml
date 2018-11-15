@@ -5,18 +5,6 @@ jdk:
 
 sudo: required
 
-services:
-  - cassandra
-  - mysql
-
-addons:
-  apt:
-    sources:
-      - mysql-5.7-trusty
-    packages:
-      - mysql-server
-      - mysql-client
-
 cache:
   directories:
     - $HOME/downloads
@@ -30,12 +18,10 @@ branches:
 install: mvn compile -Dmaven.javadoc.skip=true
 
 before_script:
-  - |
-    if [ "$BACKEND" == "hbase" ]; then
-      $TRAVIS_DIR/install-hbase.sh
-    fi
+  - $TRAVIS_DIR/install-backend.sh
 
 script:
+  - sudo ls /var/lib/mysql
   - mvn test -P core-test,$BACKEND
   - |
     if [ "$BACKEND" == "memory" ]; then
