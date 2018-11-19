@@ -133,11 +133,13 @@ public class CachedGraphTransaction extends GraphTransaction {
 
         try {
             super.commit();
-        } finally {
             // Update vertex cache
             for (HugeVertex vertex : changes) {
+                vertex = vertex.resetTx();
                 this.verticesCache.updateIfPresent(vertex.id(), vertex);
             }
+        } finally {
+            // Update removed vertex in cache whatever success or fail
             for (HugeVertex vertex : deletions) {
                 this.verticesCache.invalidate(vertex.id());
             }
