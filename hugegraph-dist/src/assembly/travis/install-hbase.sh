@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -ev
 
 TRAVIS_DIR=`dirname $0`
@@ -14,6 +15,11 @@ fi
 
 # decompress hbase
 sudo cp $HOME/downloads/${HBASE_TAR} ${HBASE_TAR} && tar xzf ${HBASE_TAR}
+
+# Using tmpfs for the Hbase data directory reduces travis test runtime by
+sudo mkdir /mnt/ramdisk
+sudo mount -t tmpfs -o size=1024m tmpfs /mnt/ramdisk
+sudo ln -s /mnt/ramdisk /tmp/hbase
 
 # config hbase
 sudo cp -f $TRAVIS_DIR/hbase-site.xml ${HBASE_PACKAGE}/conf
