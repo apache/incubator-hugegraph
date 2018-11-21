@@ -40,14 +40,13 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.MetaDispatcher;
+import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public abstract class HbaseStore extends AbstractBackendStore {
+public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     private static final Logger LOG = Log.logger(HbaseStore.class);
 
@@ -86,7 +85,7 @@ public abstract class HbaseStore extends AbstractBackendStore {
     }
 
     @Override
-    protected HbaseSessions.Session session(HugeType type) {
+    protected Session session(HugeType type) {
         this.checkOpened();
         return this.sessions.session();
     }
@@ -160,14 +159,14 @@ public abstract class HbaseStore extends AbstractBackendStore {
         }
 
         this.checkOpened();
-        HbaseSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
 
         for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
             this.mutate(session, it.next());
         }
     }
 
-    private void mutate(HbaseSessions.Session session, BackendAction item) {
+    private void mutate(Session session, BackendAction item) {
         BackendEntry entry = item.entry();
         HbaseTable table = this.table(entry.type());
 
@@ -193,7 +192,7 @@ public abstract class HbaseStore extends AbstractBackendStore {
     @Override
     public Iterator<BackendEntry> query(Query query) {
         this.checkOpened();
-        HbaseSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
         HbaseTable table = this.table(HbaseTable.tableType(query));
         return table.query(session, query);
     }
@@ -299,7 +298,7 @@ public abstract class HbaseStore extends AbstractBackendStore {
     @Override
     public void commitTx() {
         this.checkOpened();
-        HbaseSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
 
         try {
             session.commit();
@@ -311,11 +310,6 @@ public abstract class HbaseStore extends AbstractBackendStore {
     @Override
     public void rollbackTx() {
         // pass
-    }
-
-    @Override
-    public MetaDispatcher metaDispatcher() {
-        throw new NotSupportException("HBaseStore.metaDispatcher()");
     }
 
     private void checkOpened() {

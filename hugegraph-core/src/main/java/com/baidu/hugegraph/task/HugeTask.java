@@ -255,7 +255,7 @@ public class HugeTask<V> extends FutureTask<V> {
             return true;
         }
         for (Id dependency : this.dependencies) {
-            HugeTask task = this.callable.scheduler().task(dependency);
+            HugeTask<?> task = this.callable.scheduler().task(dependency);
             if (!task.completed()) {
                 // Dependent task not completed, re-schedule self
                 this.callable.scheduler().schedule(this);
@@ -455,7 +455,7 @@ public class HugeTask<V> extends FutureTask<V> {
         return task;
     }
 
-    private static <T> Collector<T, ?, Set<T>> toOrderSet() {
+    private static <V> Collector<V, ?, Set<V>> toOrderSet() {
         return Collectors.toCollection(InsertionOrderUtil::newSet);
     }
 

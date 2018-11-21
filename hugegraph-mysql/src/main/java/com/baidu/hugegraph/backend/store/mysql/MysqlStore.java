@@ -38,14 +38,13 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.MetaDispatcher;
+import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public abstract class MysqlStore extends AbstractBackendStore {
+public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
 
@@ -190,14 +189,14 @@ public abstract class MysqlStore extends AbstractBackendStore {
         }
 
         this.checkSessionConnected();
-        MysqlSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
 
         for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
             this.mutate(session, it.next());
         }
     }
 
-    private void mutate(MysqlSessions.Session session, BackendAction item) {
+    private void mutate(Session session, BackendAction item) {
         MysqlBackendEntry entry = castBackendEntry(item.entry());
         MysqlTable table = this.table(entry.type());
 
@@ -232,7 +231,7 @@ public abstract class MysqlStore extends AbstractBackendStore {
     public void beginTx() {
         this.checkSessionConnected();
 
-        MysqlSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
         try {
             session.begin();
         } catch (SQLException e) {
@@ -244,7 +243,7 @@ public abstract class MysqlStore extends AbstractBackendStore {
     public void commitTx() {
         this.checkSessionConnected();
 
-        MysqlSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
         int count = session.commit();
         if (LOG.isDebugEnabled()) {
             LOG.debug("Store {} committed {} items", this.store, count);
@@ -254,18 +253,8 @@ public abstract class MysqlStore extends AbstractBackendStore {
     @Override
     public void rollbackTx() {
         this.checkSessionConnected();
-        MysqlSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
         session.rollback();
-    }
-
-    @Override
-    public <R> R metadata(HugeType type, String meta, Object[] args) {
-        throw new NotSupportException("MysqlStore.metadata()");
-    }
-
-    @Override
-    protected MetaDispatcher metaDispatcher() {
-        throw new NotSupportException("MysqlStore.metaDispatcher()");
     }
 
     @Override
@@ -279,21 +268,21 @@ public abstract class MysqlStore extends AbstractBackendStore {
     }
 
     protected void initTables() {
-        MysqlSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
         for (MysqlTable table : this.tables()) {
             table.init(session);
         }
     }
 
     protected void clearTables() {
-        MysqlSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
         for (MysqlTable table : this.tables()) {
             table.clear(session);
         }
     }
 
     protected void truncateTables() {
-        MysqlSessions.Session session = this.sessions.session();
+        Session session = this.sessions.session();
         for (MysqlTable table : this.tables()) {
             table.truncate(session);
         }
@@ -314,7 +303,7 @@ public abstract class MysqlStore extends AbstractBackendStore {
     }
 
     @Override
-    protected MysqlSessions.Session session(HugeType type) {
+    protected Session session(HugeType type) {
         this.checkSessionConnected();
         return this.sessions.session();
     }
@@ -367,14 +356,14 @@ public abstract class MysqlStore extends AbstractBackendStore {
         @Override
         public void increaseCounter(HugeType type, long increment) {
             this.checkSessionConnected();
-            MysqlSessions.Session session = super.sessions.session();
+            Session session = super.sessions.session();
             this.counters.increaseCounter(session, type, increment);
         }
 
         @Override
         public long getCounter(HugeType type) {
             this.checkSessionConnected();
-            MysqlSessions.Session session = super.sessions.session();
+            Session session = super.sessions.session();
             return this.counters.getCounter(session, type);
         }
     }

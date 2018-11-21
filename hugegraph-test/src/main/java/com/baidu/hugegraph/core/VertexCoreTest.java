@@ -1408,6 +1408,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testQueryByUnionHasDate() {
         HugeGraph graph = graph();
         initPersonIndex(false);

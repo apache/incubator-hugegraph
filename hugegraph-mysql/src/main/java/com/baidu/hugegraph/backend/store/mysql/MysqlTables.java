@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.TableDefine;
+import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -81,7 +82,7 @@ public class MysqlTables {
             this.define.keys(HugeKeys.SCHEMA_TYPE);
         }
 
-        public long getCounter(MysqlSessions.Session session, HugeType type) {
+        public long getCounter(Session session, HugeType type) {
             String schemaCol = formatKey(HugeKeys.SCHEMA_TYPE);
             String idCol = formatKey(HugeKeys.ID);
 
@@ -101,7 +102,7 @@ public class MysqlTables {
             }
         }
 
-        public void increaseCounter(MysqlSessions.Session session,
+        public void increaseCounter(Session session,
                                     HugeType type, long increment) {
             String update = String.format(
                             "INSERT INTO %s VALUES ('%s', %s) " +
@@ -271,8 +272,7 @@ public class MysqlTables {
         }
 
         @Override
-        public void delete(MysqlSessions.Session session,
-                           MysqlBackendEntry.Row entry) {
+        public void delete(Session session, MysqlBackendEntry.Row entry) {
             // Let super class do delete if not deleting edge by label
             List<Object> idParts = this.idColumnValue(entry.id());
             if (idParts.size() > 1 || entry.columns().size() > 0) {
@@ -284,8 +284,7 @@ public class MysqlTables {
             this.deleteEdgesByLabel(session, entry.id());
         }
 
-        private void deleteEdgesByLabel(MysqlSessions.Session session,
-                                        Id label) {
+        private void deleteEdgesByLabel(Session session, Id label) {
             PreparedStatement deleteStmt;
             try {
                 // Create or get delete prepare statement

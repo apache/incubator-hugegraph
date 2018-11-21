@@ -1391,6 +1391,7 @@ public class GraphTransaction extends IndexableTransaction {
             Function<T, Boolean> filt = e -> {
                 return ((HugeElement) e).label().equals(label.name());
             };
+            @SuppressWarnings("resource")
             Iterator<T> itor = new FilterIterator<>(fetcher.apply(query), filt);
             while (itor.hasNext()) {
                 consumer.accept(itor.next());

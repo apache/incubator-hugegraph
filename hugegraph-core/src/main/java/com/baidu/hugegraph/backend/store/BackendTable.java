@@ -38,11 +38,11 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     private final String table;
 
-    private final MetaDispatcher dispatcher;
+    private final MetaDispatcher<Session> dispatcher;
 
     public BackendTable(String table) {
         this.table = table;
-        this.dispatcher = new MetaDispatcher();
+        this.dispatcher = new MetaDispatcher<>();
 
         this.registerMetaHandlers();
     }
@@ -51,7 +51,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         return this.table;
     }
 
-    public MetaDispatcher metaDispatcher() {
+    public MetaDispatcher<Session> metaDispatcher() {
         return this.dispatcher;
     }
 

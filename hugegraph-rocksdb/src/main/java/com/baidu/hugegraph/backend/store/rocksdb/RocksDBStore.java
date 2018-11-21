@@ -52,7 +52,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
-public abstract class RocksDBStore extends AbstractBackendStore {
+public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     private static final Logger LOG = Log.logger(RocksDBStore.class);
 
@@ -86,8 +86,7 @@ public abstract class RocksDBStore extends AbstractBackendStore {
 
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            RocksDBMetrics metrics = new RocksDBMetrics(
-                                     (RocksDBSessions.Session) session);
+            RocksDBMetrics metrics = new RocksDBMetrics(session);
             return metrics.getMetrics();
         });
     }

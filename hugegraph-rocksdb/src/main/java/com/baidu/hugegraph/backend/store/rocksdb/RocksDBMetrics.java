@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.rocksdb;
 import java.util.Map;
 
 import com.baidu.hugegraph.backend.store.BackendMetrics;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
@@ -32,9 +33,9 @@ public class RocksDBMetrics implements BackendMetrics {
     private static final String MEM_TABLE = "rocksdb.cur-size-all-mem-tables";
     private static final String R_DATA_SIZE = "rocksdb.estimate-live-data-size";
 
-    private final RocksDBSessions.Session session;
+    private final Session session;
 
-    public RocksDBMetrics(RocksDBSessions.Session session) {
+    public RocksDBMetrics(Session session) {
         this.session = session;
     }
 
