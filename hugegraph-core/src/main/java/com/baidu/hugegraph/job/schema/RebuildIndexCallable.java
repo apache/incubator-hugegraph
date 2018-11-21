@@ -19,10 +19,27 @@
 
 package com.baidu.hugegraph.job.schema;
 
+import java.util.Collection;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.SchemaLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.SchemaStatus;
+import com.baidu.hugegraph.util.LockUtil;
+import com.google.common.collect.ImmutableSet;
 
 public class RebuildIndexCallable extends SchemaCallable {
 
@@ -33,8 +50,114 @@ public class RebuildIndexCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        this.graph().graphTransaction().rebuildIndex(this.schemaElement());
+        this.rebuildIndex(this.schemaElement());
         return null;
+    }
+
+    private void rebuildIndex(SchemaElement schema) {
+        switch (schema.type()) {
+            case INDEX_LABEL:
+                IndexLabel indexLabel = (IndexLabel) schema;
+                SchemaLabel label;
+                if (indexLabel.baseType() == HugeType.VERTEX_LABEL) {
+                    label = this.graph().vertexLabel(indexLabel.baseValue());
+                } else {
+                    assert indexLabel.baseType() == HugeType.EDGE_LABEL;
+                    label = this.graph().edgeLabel(indexLabel.baseValue());
+                }
+                this.rebuildIndex(label, ImmutableSet.of(indexLabel.id()));
+                break;
+            case VERTEX_LABEL:
+                VertexLabel vertexLabel = (VertexLabel) schema;
+                this.rebuildIndex(vertexLabel, vertexLabel.indexLabels());
+                break;
+            case EDGE_LABEL:
+                EdgeLabel edgeLabel = (EdgeLabel) schema;
+                this.rebuildIndex(edgeLabel, edgeLabel.indexLabels());
+                break;
+            default:
+                assert schema.type() == HugeType.PROPERTY_KEY;
+                throw new AssertionError(String.format(
+                          "The %s can't rebuild index", schema.type()));
+        }
+    }
+
+    private void rebuildIndex(SchemaLabel label, Collection<Id> indexLabelIds) {
+        SchemaTransaction schemaTx = graph().schemaTransaction();
+        GraphTransaction graphTx = graph().graphTransaction();
+
+        Consumer<?> indexUpdater = (elem) -> {
+            for (Id id : indexLabelIds) {
+                graphTx.updateIndex(id, (HugeElement) elem);
+                /*
+                 * Commit per batch to avoid too much data in single commit,
+                 * especially for Cassandra backend
+                 */
+                graphTx.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+            }
+        };
+
+        LockUtil.Locks locks = new LockUtil.Locks();
+        try {
+            locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
+            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
+
+            Set<IndexLabel> ils = indexLabelIds.stream()
+                                               .map(schemaTx::getIndexLabel)
+                                               .collect(Collectors.toSet());
+            for (IndexLabel il : ils) {
+                if (il.status() == SchemaStatus.CREATING) {
+                    continue;
+                }
+                schemaTx.updateSchemaStatus(il, SchemaStatus.REBUILDING);
+            }
+
+            this.removeIndex(indexLabelIds);
+            /*
+             * Note: Here must commit index transaction firstly.
+             * Because remove index convert to (id like <?>:personByCity):
+             * `delete from index table where label = ?`,
+             * But append index will convert to (id like Beijing:personByCity):
+             * `update index element_ids += xxx where field_value = ?
+             * and index_label_name = ?`,
+             * They have different id lead to it can't compare and optimize
+             */
+            graphTx.commit();
+            if (label.type() == HugeType.VERTEX_LABEL) {
+                @SuppressWarnings("unchecked")
+                Consumer<Vertex> consumer = (Consumer<Vertex>) indexUpdater;
+                graphTx.traverseVerticesByLabel((VertexLabel) label, consumer);
+            } else {
+                assert label.type() == HugeType.EDGE_LABEL;
+                @SuppressWarnings("unchecked")
+                Consumer<Edge> consumer = (Consumer<Edge>) indexUpdater;
+                graphTx.traverseEdgesByLabel((EdgeLabel) label, consumer);
+            }
+            graphTx.commit();
+
+            for (IndexLabel il : ils) {
+                schemaTx.updateSchemaStatus(il, SchemaStatus.CREATED);
+            }
+        } finally {
+            locks.unlock();
+        }
+    }
+
+    private void removeIndex(Collection<Id> indexLabelIds) {
+        SchemaTransaction schemaTx = graph().schemaTransaction();
+        GraphTransaction graphTx = graph().graphTransaction();
+
+        for (Id id : indexLabelIds) {
+            IndexLabel indexLabel = schemaTx.getIndexLabel(id);
+            if (indexLabel == null) {
+                /*
+                 * TODO: How to deal with non-existent index name:
+                 * continue or throw exception?
+                 */
+                continue;
+            }
+            graphTx.removeIndex(indexLabel);
+        }
     }
 
     private SchemaElement schemaElement() {

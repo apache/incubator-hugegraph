@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -47,12 +46,9 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
-import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
-import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
@@ -61,7 +57,6 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -74,7 +69,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static final String INDEX_EMPTY_SYM = "\u0000";
     private static final Query EMPTY_QUERY = new ConditionQuery(null);
-    private static final int REBUILD_COMMIT_BATCH = 1000;
 
     private final Analyzer textAnalyzer;
 
@@ -232,7 +226,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     /**
      * Update index(user properties) of vertex or edge
      */
-    private void updateIndex(Id ilId, HugeElement element, boolean removed) {
+    protected void updateIndex(Id ilId, HugeElement element, boolean removed) {
         SchemaTransaction schema = graph().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(ilId);
         E.checkArgument(indexLabel != null,
@@ -1024,129 +1018,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
     public void removeIndex(IndexLabel indexLabel) {
         HugeIndex index = new HugeIndex(indexLabel);
         this.doRemove(this.serializer.writeIndex(index));
-    }
-
-    public void removeIndex(Collection<Id> indexLabelIds) {
-        SchemaTransaction schema = graph().schemaTransaction();
-        for (Id id : indexLabelIds) {
-            IndexLabel indexLabel = schema.getIndexLabel(id);
-            if (indexLabel == null) {
-                /*
-                 * TODO: How to deal with non-existent index name:
-                 * continue or throw exception?
-                 */
-                continue;
-            }
-            this.removeIndex(indexLabel);
-        }
-    }
-
-    public void rebuildIndex(SchemaElement schema) {
-        switch (schema.type()) {
-            case INDEX_LABEL:
-                IndexLabel indexLabel = (IndexLabel) schema;
-                this.rebuildIndex(indexLabel.baseType(),
-                                  indexLabel.baseValue(),
-                                  ImmutableSet.of(indexLabel.id()));
-                break;
-            case VERTEX_LABEL:
-                VertexLabel vertexLabel = (VertexLabel) schema;
-                this.rebuildIndex(vertexLabel.type(),
-                                  vertexLabel.id(),
-                                  vertexLabel.indexLabels());
-                break;
-            case EDGE_LABEL:
-                EdgeLabel edgeLabel = (EdgeLabel) schema;
-                this.rebuildIndex(edgeLabel.type(),
-                                  edgeLabel.id(),
-                                  edgeLabel.indexLabels());
-                break;
-            default:
-                assert schema.type() == HugeType.PROPERTY_KEY;
-                throw new AssertionError(String.format(
-                          "The %s can't rebuild index.", schema.type()));
-        }
-    }
-
-    public void rebuildIndex(HugeType type, Id label,
-                             Collection<Id> indexLabelIds) {
-        GraphTransaction graphTx = graph().graphTransaction();
-        SchemaTransaction schemaTx = graph().schemaTransaction();
-        // Manually commit avoid deletion override add/update
-        boolean autoCommit = this.autoCommit();
-        this.autoCommit(false);
-
-        LockUtil.Locks locks = new LockUtil.Locks();
-        try {
-            locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
-            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
-
-            Set<IndexLabel> ils = indexLabelIds.stream()
-                                               .map(schemaTx::getIndexLabel)
-                                               .collect(Collectors.toSet());
-            for (IndexLabel il : ils) {
-                if (il.status() == SchemaStatus.CREATING) {
-                    continue;
-                }
-                schemaTx.updateSchemaStatus(il, SchemaStatus.REBUILDING);
-            }
-
-            this.removeIndex(indexLabelIds);
-            /*
-             * Note: Here must commit index transaction firstly.
-             * Because remove index convert to (id like <?>:personByCity):
-             * `delete from index table where label = ?`,
-             * But append index will convert to (id like Beijing:personByCity):
-             * `update index element_ids += xxx where field_value = ?
-             * and index_label_name = ?`,
-             * They have different id lead to it can't compare and optimize
-             */
-            this.commit();
-            if (type == HugeType.VERTEX_LABEL) {
-                this.rebuildIndex(HugeType.VERTEX, label, indexLabelIds,
-                                  graphTx::queryVerticesFromBackend);
-            } else {
-                assert type == HugeType.EDGE_LABEL;
-                this.rebuildIndex(HugeType.EDGE, label, indexLabelIds,
-                                  graphTx::queryEdgesFromBackend);
-            }
-            this.commit();
-
-            for (IndexLabel il : ils) {
-                schemaTx.updateSchemaStatus(il, SchemaStatus.CREATED);
-            }
-        } finally {
-            this.autoCommit(autoCommit);
-            locks.unlock();
-        }
-    }
-
-    private <T> void rebuildIndex(HugeType type, Id label,
-                                  Collection<Id> indexLabelIds,
-                                  Function<Query, Iterator<T>> fetcher) {
-        assert type == HugeType.VERTEX || type == HugeType.EDGE;
-        ConditionQuery query = new ConditionQuery(type);
-        query.eq(HugeKeys.LABEL, label);
-        query.limit(Query.DEFAULT_CAPACITY);
-
-        int pass = 0;
-        int counter;
-        do {
-            counter = 0;
-            query.offset(pass++ * Query.DEFAULT_CAPACITY);
-            Iterator<T> itor = fetcher.apply(query);
-            while (itor.hasNext()) {
-                HugeElement element = (HugeElement) itor.next();
-                for (Id id : indexLabelIds) {
-                    this.updateIndex(id, element, false);
-                    // Commit per small batch to avoid too much data
-                    // in single commit, especially for Cassandra backend.
-                    this.commitIfGtSize(REBUILD_COMMIT_BATCH);
-                }
-                ++counter;
-            }
-            assert counter <= Query.DEFAULT_CAPACITY;
-        } while (counter == Query.DEFAULT_CAPACITY);
     }
 
     private static class MatchedIndex {
