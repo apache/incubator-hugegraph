@@ -29,17 +29,14 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
-import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -120,10 +117,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         indexLabel.status(SchemaStatus.CREATING);
         tx.addIndexLabel(schemaLabel, indexLabel);
 
-        // TODO: use event to replace direct call
-        Id rebuildTask = this.rebuildIndexIfNeeded(schemaLabel, indexLabel,
-                                                   removeTasks);
-
+        Id rebuildTask = tx.rebuildIndex(indexLabel, removeTasks);
         return new IndexLabel.CreatedIndexLabel(indexLabel, rebuildTask);
     }
 
@@ -379,29 +373,5 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             tasks.add(task);
         }
         return tasks;
-    }
-
-    private Id rebuildIndexIfNeeded(SchemaLabel schemaLabel,
-                                    IndexLabel indexLabel,
-                                    Set<Id> dependencies) {
-        GraphTransaction tx = this.transaction.graph().graphTransaction();
-        boolean needRebuild;
-        if (this.baseType == HugeType.VERTEX_LABEL) {
-            needRebuild = tx.queryVerticesByLabel((VertexLabel) schemaLabel, 1L)
-                            .hasNext();
-        } else {
-            assert this.baseType == HugeType.EDGE_LABEL;
-            needRebuild = tx.queryEdgesByLabel((EdgeLabel) schemaLabel, 1L)
-                            .hasNext();
-        }
-        Id task = null;
-        if (needRebuild) {
-            // rebuildIndex() will set status to CREATED after REBUILDING
-            task = this.transaction.rebuildIndex(indexLabel, dependencies);
-        } else {
-            this.transaction.updateSchemaStatus(indexLabel,
-                                                SchemaStatus.CREATED);
-        }
-        return task;
     }
 }

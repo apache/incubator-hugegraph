@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -63,7 +65,6 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -83,6 +84,8 @@ import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableList;
 
 public class GraphTransaction extends IndexableTransaction {
+
+    public static final int COMMIT_BATCH = 500;
 
     private final GraphIndexTransaction indexTx;
 
@@ -1297,12 +1300,12 @@ public class GraphTransaction extends IndexableTransaction {
         this.afterWrite();
     }
 
-    public void rebuildIndex(SchemaElement schema) {
+    public void updateIndex(Id ilId, HugeElement element) {
         // TODO: use event to replace direct call
         this.checkOwnerThread();
 
         this.beforeWrite();
-        this.indexTx.rebuildIndex(schema);
+        this.indexTx.updateIndex(ilId, element, false);
         this.afterWrite();
     }
 
@@ -1316,16 +1319,10 @@ public class GraphTransaction extends IndexableTransaction {
         // Commit data already in tx firstly
         this.commit();
         try {
-            Iterator<Vertex> vertices = this.queryVerticesByLabel(
-                                        vertexLabel, Query.NO_LIMIT);
-            int count = 0;
-            while (vertices.hasNext()) {
-                this.removeVertex((HugeVertex) vertices.next());
-                // Avoid reaching tx limit
-                if (++count == this.vertexesCapacity) {
-                    this.commit();
-                }
-            }
+            this.traverseVerticesByLabel(vertexLabel, vertex -> {
+                this.removeVertex((HugeVertex) vertex);
+                this.commitIfGtSize(COMMIT_BATCH);
+            });
             this.commit();
         } catch (Exception e) {
             LOG.error("Failed to remove vertices", e);
@@ -1352,16 +1349,10 @@ public class GraphTransaction extends IndexableTransaction {
                 this.doRemove(this.serializer.writeId(HugeType.EDGE_IN,
                                                       edgeLabel.id()));
             } else {
-                Iterator<Edge> edges = this.queryEdgesByLabel(edgeLabel,
-                                                              Query.NO_LIMIT);
-                int count = 0;
-                while (edges.hasNext()) {
-                    this.removeEdge((HugeEdge) edges.next());
-                    // Avoid reaching tx limit
-                    if (++count == this.edgesCapacity) {
-                        this.commit();
-                    }
-                }
+                this.traverseEdgesByLabel(edgeLabel, edge -> {
+                    this.removeEdge((HugeEdge) edge);
+                    this.commitIfGtSize(COMMIT_BATCH);
+                });
             }
             this.commit();
         } catch (Exception e) {
@@ -1372,38 +1363,60 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    public Iterator<Vertex> queryVerticesByLabel(VertexLabel vertexLabel,
-                                                 long limit) {
-        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        query.limit(limit);
-        query.capacity(Query.NO_CAPACITY);
-        if (vertexLabel.hidden()) {
-            query.showHidden(true);
-        }
-        if (!vertexLabel.enableLabelIndex()) {
-            return new FilterIterator<>(this.queryVertices(query), vertex -> {
-                return vertex.label().equals(vertexLabel.name());
-            });
-        } else {
-            query.eq(HugeKeys.LABEL, vertexLabel.id());
-            return this.queryVertices(query);
-        }
+    public void traverseVerticesByLabel(VertexLabel label,
+                                        Consumer<Vertex> consumer) {
+        this.traverseByLabel(label, this::queryVertices, consumer);
     }
 
-    public Iterator<Edge> queryEdgesByLabel(EdgeLabel edgeLabel, long limit) {
-        ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-        query.limit(limit);
-        query.capacity(Query.NO_CAPACITY);
-        if (edgeLabel.hidden()) {
+    public void traverseEdgesByLabel(EdgeLabel label,
+                                     Consumer<Edge> consumer) {
+        this.traverseByLabel(label, this::queryEdges, consumer);
+    }
+
+    private <T> void traverseByLabel(SchemaLabel label,
+                                     Function<Query, Iterator<T>> fetcher,
+                                     Consumer<T> consumer) {
+        HugeType type = label.type() == HugeType.VERTEX_LABEL ?
+                        HugeType.VERTEX : HugeType.EDGE;
+        ConditionQuery query = new ConditionQuery(type);
+
+        // Whether query system vertices
+        if (label.hidden()) {
             query.showHidden(true);
         }
-        if (!edgeLabel.enableLabelIndex()) {
-            return new FilterIterator<>(this.queryEdges(query), edge -> {
-                return edge.label().equals(edgeLabel.name());
-            });
-        } else {
-            query.eq(HugeKeys.LABEL, edgeLabel.id());
-            return this.queryEdges(query);
+
+        // Not support label index, query all and filter by label
+        if (!label.enableLabelIndex()) {
+            query.capacity(Query.NO_CAPACITY);
+            Function<T, Boolean> filt = e -> {
+                return ((HugeElement) e).label().equals(label.name());
+            };
+            Iterator<T> itor = new FilterIterator<>(fetcher.apply(query), filt);
+            while (itor.hasNext()) {
+                consumer.accept(itor.next());
+            }
+            return;
         }
+
+        /*
+         * Support label index, query by label. Set limit&capacity
+         * Query.DEFAULT_CAPACITY to limit elements number per pass
+         */
+        query.limit(Query.DEFAULT_CAPACITY);
+        query.capacity(Query.DEFAULT_CAPACITY);
+        int pass = 0;
+        int counter;
+        do {
+            counter = 0;
+            query.offset(pass++ * Query.DEFAULT_CAPACITY);
+            query.eq(HugeKeys.LABEL, label.id());
+            Iterator<T> itor = fetcher.apply(query);
+            // Process every element in current batch
+            while (itor.hasNext()) {
+                consumer.accept(itor.next());
+                ++counter;
+            }
+            assert counter <= Query.DEFAULT_CAPACITY;
+        } while (counter == Query.DEFAULT_CAPACITY); // If not, means finish
     }
 }
