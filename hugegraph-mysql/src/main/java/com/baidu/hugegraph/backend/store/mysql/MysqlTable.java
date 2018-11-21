@@ -38,14 +38,15 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PageState;
+import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
-public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
-                                                      MysqlBackendEntry.Row> {
+public abstract class MysqlTable
+                extends BackendTable<Session, MysqlBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
 
@@ -62,21 +63,20 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
     public abstract TableDefine tableDefine();
 
     @Override
-    public void init(MysqlSessions.Session session) {
+    public void init(Session session) {
         this.createTable(session, this.tableDefine());
     }
 
     @Override
-    public void clear(MysqlSessions.Session session) {
+    public void clear(Session session) {
         this.dropTable(session);
     }
 
-    public void truncate(MysqlSessions.Session session) {
+    public void truncate(Session session) {
         this.truncateTable(session);
     }
 
-    protected void createTable(MysqlSessions.Session session,
-                               TableDefine tableDefine) {
+    protected void createTable(Session session, TableDefine tableDefine) {
         StringBuilder sql = new StringBuilder();
         sql.append("CREATE TABLE IF NOT EXISTS ");
         sql.append(this.table()).append(" (");
@@ -109,7 +109,7 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         }
     }
 
-    protected void dropTable(MysqlSessions.Session session) {
+    protected void dropTable(Session session) {
         LOG.debug("Drop table: {}", this.table());
         String sql = String.format("DROP TABLE IF EXISTS %s;", this.table());
         try {
@@ -120,7 +120,7 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
         }
     }
 
-    protected void truncateTable(MysqlSessions.Session session) {
+    protected void truncateTable(Session session) {
         LOG.debug("Truncate table: {}", this.table());
         String sql = String.format("TRUNCATE TABLE %s;", this.table());
         try {
@@ -194,8 +194,7 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
      * Insert an entire row
      */
     @Override
-    public void insert(MysqlSessions.Session session,
-                       MysqlBackendEntry.Row entry) {
+    public void insert(Session session, MysqlBackendEntry.Row entry) {
         String template = this.buildInsertTemplate(entry);
 
         PreparedStatement insertStmt;
@@ -214,8 +213,7 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
     }
 
     @Override
-    public void delete(MysqlSessions.Session session,
-                       MysqlBackendEntry.Row entry) {
+    public void delete(Session session, MysqlBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
         String template = this.buildDeleteTemplate(idNames);
 
@@ -248,20 +246,17 @@ public abstract class MysqlTable extends BackendTable<MysqlSessions.Session,
     }
 
     @Override
-    public void append(MysqlSessions.Session session,
-                       MysqlBackendEntry.Row entry) {
+    public void append(Session session, MysqlBackendEntry.Row entry) {
         this.insert(session, entry);
     }
 
     @Override
-    public void eliminate(MysqlSessions.Session session,
-                          MysqlBackendEntry.Row entry) {
+    public void eliminate(Session session, MysqlBackendEntry.Row entry) {
         this.delete(session, entry);
     }
 
     @Override
-    public Iterator<BackendEntry> query(MysqlSessions.Session session,
-                                        Query query) {
+    public Iterator<BackendEntry> query(Session session, Query query) {
         ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {

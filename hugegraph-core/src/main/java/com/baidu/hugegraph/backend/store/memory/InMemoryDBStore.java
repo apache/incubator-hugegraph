@@ -38,9 +38,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.MetaDispatcher;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
 
@@ -57,7 +55,8 @@ import com.baidu.hugegraph.util.Log;
  * 1.remove by id + condition
  * 2.append/subtract edge-property
  */
-public abstract class InMemoryDBStore extends AbstractBackendStore {
+public abstract class InMemoryDBStore
+                extends AbstractBackendStore<BackendSession> {
 
     private static final Logger LOG = Log.logger(InMemoryDBStore.class);
 
@@ -74,11 +73,6 @@ public abstract class InMemoryDBStore extends AbstractBackendStore {
         this.database = database;
         this.store = store;
         this.tables = new HashMap<>();
-    }
-
-    @Override
-    public <R> R metadata(HugeType type, String meta, Object[] args) {
-        throw new NotSupportException("InMemoryDBStore.metadata()");
     }
 
     protected void registerTableManager(HugeType type, InMemoryDBTable table) {
@@ -101,12 +95,7 @@ public abstract class InMemoryDBStore extends AbstractBackendStore {
 
     @Override
     protected BackendSession session(HugeType type) {
-        throw new NotSupportException("InMemoryDBStore.session()");
-    }
-
-    @Override
-    protected MetaDispatcher metaDispatcher() {
-        throw new NotSupportException("InMemoryDBStore.metaDispatcher()");
+        return null;
     }
 
     @Override

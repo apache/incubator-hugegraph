@@ -49,7 +49,8 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 
-public abstract class CassandraStore extends AbstractBackendStore {
+public abstract class CassandraStore
+                extends AbstractBackendStore<CassandraSessionPool.Session> {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
 

@@ -134,7 +134,7 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     public void checkSessionConnected() {
-        MysqlSessions.Session session = this.session();
+        Session session = this.session();
         E.checkState(session != null, "MySQL session has not been initialized");
         E.checkState(!session.closed(), "MySQL session has been closed");
     }

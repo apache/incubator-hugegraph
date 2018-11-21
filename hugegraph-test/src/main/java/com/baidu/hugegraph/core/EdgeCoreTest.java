@@ -1300,6 +1300,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testQueryByUnionHasDate() {
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();

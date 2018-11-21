@@ -22,25 +22,25 @@ package com.baidu.hugegraph.backend.store;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.exception.NotSupportException;
 
-public class MetaDispatcher {
+public class MetaDispatcher<Session extends BackendSession> {
 
-    protected final Map<String, MetaHandler> metaHandlers;
+    protected final Map<String, MetaHandler<Session>> metaHandlers;
 
     public MetaDispatcher() {
         this.metaHandlers = new ConcurrentHashMap<>();
     }
 
-    public void registerMetaHandler(String meta, MetaHandler handler) {
+    public void registerMetaHandler(String meta, MetaHandler<Session> handler) {
         this.metaHandlers.put(meta, handler);
     }
 
     @SuppressWarnings("unchecked")
-    public <R> R dispatchMetaHandler(BackendSession session,
+    public <R> R dispatchMetaHandler(Session session,
                                      String meta, Object[] args) {
         if (!this.metaHandlers.containsKey(meta)) {
-            throw new BackendException("Invalid metadata name '%s'", meta);
+            throw new NotSupportException("metadata '%s'", meta);
         }
         return (R) this.metaHandlers.get(meta).handle(session, meta, args);
     }

@@ -21,38 +21,39 @@ package com.baidu.hugegraph.backend.store;
 
 import com.baidu.hugegraph.type.HugeType;
 
-public abstract class AbstractBackendStore implements BackendStore {
+public abstract class AbstractBackendStore<Session extends BackendSession>
+                implements BackendStore {
 
-    private final MetaDispatcher dispatcher;
+    private final MetaDispatcher<Session> dispatcher;
 
     public AbstractBackendStore() {
-        this.dispatcher = new MetaDispatcher();
+        this.dispatcher = new MetaDispatcher<>();
     }
 
-    protected MetaDispatcher metaDispatcher() {
+    protected MetaDispatcher<Session> metaDispatcher() {
         return this.dispatcher;
     }
 
-    public <Session extends BackendSession>
-           void registerMetaHandler(String name, MetaHandler<Session> handler) {
+    public void registerMetaHandler(String name, MetaHandler<Session> handler) {
         this.dispatcher.registerMetaHandler(name, handler);
     }
 
     // Get metadata by key
+    @Override
     public <R> R metadata(HugeType type, String meta, Object[] args) {
-        BackendSession session = this.session(type);
-        MetaDispatcher dispatcher = null;
+        Session session = this.session(type);
+        MetaDispatcher<Session> dispatcher = null;
         if (type == null) {
             dispatcher = this.metaDispatcher();
         } else {
-            BackendTable table = this.table(type);
+            BackendTable<Session, ?> table = this.table(type);
             dispatcher = table.metaDispatcher();
         }
         return dispatcher.dispatchMetaHandler(session, meta, args);
     }
 
-    protected abstract BackendTable table(HugeType type);
+    protected abstract BackendTable<Session, ?> table(HugeType type);
 
     // NOTE: Need to support passing null
-    protected abstract BackendSession session(HugeType type);
+    protected abstract Session session(HugeType type);
 }

@@ -191,7 +191,7 @@ public final class GraphManager {
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             if (InMemoryDBStoreProvider.matchType(hugegraph.backend())) {
-                continue;
+                hugegraph.initBackend();
             }
             BackendStoreInfo info = new BackendStoreInfo(hugegraph);
             if (!info.exist()) {

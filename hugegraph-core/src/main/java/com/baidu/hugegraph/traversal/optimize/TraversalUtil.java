@@ -457,16 +457,17 @@ public final class TraversalUtil {
 
     public static void convAllHasSteps(Traversal.Admin<?, ?> traversal) {
         // Extract all has steps in traversal
+        @SuppressWarnings("rawtypes")
         List<HasStep> steps = TraversalHelper
                               .getStepsOfAssignableClassRecursively(
                               HasStep.class, traversal);
         HugeGraph graph = (HugeGraph) traversal.getGraph().get();
-        for (HasStep step : steps) {
+        for (HasStep<?> step : steps) {
             TraversalUtil.convHasStep(graph, step);
         }
     }
 
-    public static void convHasStep(HugeGraph graph, HasStep step) {
+    public static void convHasStep(HugeGraph graph, HasStep<?> step) {
         HasContainerHolder holder = step;
         for (HasContainer has : holder.getHasContainers()) {
             convPredicateValue(graph, has);
@@ -502,7 +503,7 @@ public final class TraversalUtil {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private static void collectPredicates(List<P<Object>> results,
                                           List<P<?>> predicates) {
         for (P<?> p : predicates) {
