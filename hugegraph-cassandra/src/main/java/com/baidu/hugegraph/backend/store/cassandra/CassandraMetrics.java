@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.cassandra;
 
+import java.io.IOException;
 import java.lang.management.MemoryUsage;
 import java.util.Map;
 
@@ -43,6 +44,7 @@ public class CassandraMetrics implements BackendMetrics {
         this.port = conf.get(CassandraOptions.CASSANDRA_JMX_PORT);
         this.username = conf.get(CassandraOptions.CASSANDRA_USERNAME);
         this.password = conf.get(CassandraOptions.CASSANDRA_PASSWORD);
+        assert this.username != null && this.password != null;
     }
 
     @Override
@@ -58,16 +60,22 @@ public class CassandraMetrics implements BackendMetrics {
     private Map<String, Object> getMetricsByHost(String host) {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
         // JMX client operations for Cassandra.
-        try (NodeProbe probe = new NodeProbe(host, port, username, password)) {
+        try (NodeProbe probe = this.newNodeProbe(host)) {
             MemoryUsage heapUsage = probe.getHeapMemoryUsage();
             metrics.put(MEM_USED, heapUsage.getUsed() / Bytes.MB);
             metrics.put(MEM_COMMITED, heapUsage.getCommitted() / Bytes.MB);
             metrics.put(MEM_MAX, heapUsage.getMax() / Bytes.MB);
             metrics.put(MEM_UNIT, "MB");
             metrics.put(DATA_SIZE, probe.getLoadString());
-        } catch (Exception e) {
+        } catch (Throwable e) {
             metrics.put(EXCEPTION, e.toString());
         }
         return metrics;
+    }
+
+    private NodeProbe newNodeProbe(String host) throws IOException {
+        return this.username.isEmpty() ?
+               new NodeProbe(host, this.port) :
+               new NodeProbe(host, this.port, this.username, this.password);
     }
 }

@@ -62,6 +62,7 @@ public class VertexApiTest extends BaseApiTest {
         String content = assertResponseStatus(201, r);
 
         String id = parseId(content);
+        id = String.format("\"%s\"", id);
         r = client().get(path, id);
         assertResponseStatus(200, r);
     }
@@ -95,6 +96,7 @@ public class VertexApiTest extends BaseApiTest {
         String content = assertResponseStatus(201, r);
 
         String id = parseId(content);
+        id = String.format("\"%s\"", id);
         r = client().delete(path, id);
         assertResponseStatus(204, r);
     }

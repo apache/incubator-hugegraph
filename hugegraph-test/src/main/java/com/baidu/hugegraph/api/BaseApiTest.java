@@ -38,6 +38,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -307,8 +308,8 @@ public class BaseApiTest {
                 + "}");
     }
 
-    protected String getVertexId(String label, String key, String value)
-                                 throws IOException {
+    protected static String getVertexId(String label, String key, String value)
+                                        throws IOException {
         String props = mapper.writeValueAsString(ImmutableMap.of(key, value));
         Map<String, Object> params = ImmutableMap.of(
                 "label", label,
@@ -326,6 +327,11 @@ public class BaseApiTest {
             throw new HugeException("Failed to get vertex id: %s", content);
         }
         return (String) list.get(0).get("id");
+    }
+
+    protected static String parseId(String content) throws IOException {
+        Map<?, ?> map = mapper.readValue(content, Map.class);
+        return (String) map.get("id");
     }
 
     protected static <T> List<T> readList(String content,
@@ -359,12 +365,21 @@ public class BaseApiTest {
     protected static String assertResponseStatus(int status,
                                                  Response response) {
         String content = response.readEntity(String.class);
-        Assert.assertEquals(content, status, response.getStatus());
+        String message = String.format("Response with status %s and content %s",
+                                       response.getStatus(), content);
+        Assert.assertEquals(message, status, response.getStatus());
         return content;
     }
 
-    protected static String parseId(String content) throws IOException {
-        Map<?, ?> map = mapper.readValue(content, Map.class);
-        return (String) map.get("id");
+    public static Object assertJsonContains(String response, String key) {
+        Map<?, ?> json = JsonUtil.fromJson(response, Map.class);
+        return assertMapContains(json, key);
+    }
+
+    public static Object assertMapContains(Map<?, ?> map, String key) {
+        String message = String.format("Expect contains key '%s' in %s",
+                                       key, map);
+        Assert.assertTrue(message, map.containsKey(key));
+        return map.get(key);
     }
 }

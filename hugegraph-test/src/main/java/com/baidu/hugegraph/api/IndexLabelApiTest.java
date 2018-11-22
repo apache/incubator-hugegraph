@@ -45,7 +45,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
-        assertResponseStatus(201, r);
+        assertResponseStatus(202, r);
     }
 
     @Test
@@ -58,7 +58,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
-        assertResponseStatus(201, r);
+        assertResponseStatus(202, r);
 
         String name = "personByAge";
         r = client().get(path, name);
@@ -75,7 +75,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
-        assertResponseStatus(201, r);
+        assertResponseStatus(202, r);
 
         r = client().get(path);
         assertResponseStatus(200, r);
@@ -91,10 +91,10 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"fields\":[\"age\"]"
                 + "}";
         Response r = client().post(path, indexLabel);
-        assertResponseStatus(201, r);
+        assertResponseStatus(202, r);
 
         String name = "personByAge";
         r = client().delete(path, name);
-        assertResponseStatus(204, r);
+        assertResponseStatus(202, r);
     }
 }

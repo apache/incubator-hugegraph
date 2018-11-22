@@ -86,6 +86,9 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         return indexLabel;
     }
 
+    /**
+     * Create index label with async mode
+     */
     @Override
     public IndexLabel.CreatedIndexLabel createWithTask() {
         SchemaTransaction tx = this.transaction;
@@ -108,29 +111,33 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         this.checkFields(schemaLabel.properties());
         this.checkRepeatIndex(schemaLabel);
 
-        // Delete index label which is prefix of the new index label
+        // Async delete index label which is prefix of the new index label
         // TODO: use event to replace direct call
         Set<Id> removeTasks = this.removeSubIndex(schemaLabel);
 
-        // Create index label
+        // Create index label (just schema)
         indexLabel = this.build();
         indexLabel.status(SchemaStatus.CREATING);
         tx.addIndexLabel(schemaLabel, indexLabel);
 
+        // Async rebuild index
         Id rebuildTask = tx.rebuildIndex(indexLabel, removeTasks);
+        E.checkNotNull(rebuildTask, "rebuild-index task");
+
         return new IndexLabel.CreatedIndexLabel(indexLabel, rebuildTask);
     }
 
+    /**
+     * Create index label with sync mode
+     */
     @Override
     public IndexLabel create() {
+        // Create index label async
         IndexLabel.CreatedIndexLabel createdIndexLabel = this.createWithTask();
-        Id task = createdIndexLabel.task();
-        IndexLabel indexLabel = createdIndexLabel.indexLabel();
-        if (task == null) {
-            E.checkNotNull(indexLabel, "index label");
-            return indexLabel;
-        }
+
+        // Wait task completed (change to sync mode)
         HugeGraph graph = this.transaction.graph();
+        Id task = createdIndexLabel.task();
         long timeout = graph.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
         try {
             graph.taskScheduler().waitUntilTaskCompleted(task, timeout);
@@ -138,7 +145,9 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             throw new HugeException(
                       "Failed to wait index-creating task completed", e);
         }
-        return indexLabel;
+
+        // Return index label without task-info
+        return createdIndexLabel.indexLabel();
     }
 
     @Override

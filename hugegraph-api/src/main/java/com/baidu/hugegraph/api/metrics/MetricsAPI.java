@@ -38,7 +38,6 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.metric.ServerReporter;
 import com.baidu.hugegraph.metric.SystemMetrics;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -86,7 +85,7 @@ public class MetricsAPI extends API {
             metrics.put(BackendMetrics.BACKEND, tx.store().provider().type());
             try {
                 metrics.putAll(tx.metadata(null, "metrics"));
-            } catch (NotSupportException e) {
+            } catch (Throwable e) {
                 metrics.put(BackendMetrics.EXCEPTION, e.toString());
                 LOG.debug("Failed to get backend metrics", e);
             }

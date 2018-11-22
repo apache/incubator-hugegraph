@@ -134,6 +134,6 @@ public class EdgeLabelApiTest extends BaseApiTest {
 
         String name = "created";
         r = client().delete(path, name);
-        assertResponseStatus(204, r);
+        assertResponseStatus(202, r);
     }
 }
