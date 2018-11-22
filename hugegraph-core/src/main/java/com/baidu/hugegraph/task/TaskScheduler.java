@@ -72,6 +72,7 @@ public class TaskScheduler {
     private volatile TaskTransaction taskTx;
 
     private static final long NO_LIMIT = -1L;
+    private static final long QUERY_INTERVAL = 100L;
 
     public TaskScheduler(HugeGraph graph,
                          ExecutorService taskExecutor,
@@ -319,16 +320,17 @@ public class TaskScheduler {
 
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                                   throws TimeoutException {
+        long passes = seconds * 1000 / QUERY_INTERVAL;
         for (long pass = 0;; pass++) {
             HugeTask<V> task = this.task(id);
             if (task.completed()) {
                 return task;
             }
-            if (pass >= seconds) {
+            if (pass >= passes) {
                 break;
             }
             try {
-                Thread.sleep(1000L);
+                Thread.sleep(QUERY_INTERVAL);
             } catch (InterruptedException ignored) {
                 // Ignore InterruptedException
             }
@@ -339,18 +341,18 @@ public class TaskScheduler {
 
     public void waitUntilAllTasksCompleted(long seconds)
                                            throws TimeoutException {
-        long t100ms = seconds * 10L;
+        long passes = seconds * 1000 / QUERY_INTERVAL;
         int taskSize = 0;
         for (long pass = 0;; pass++) {
             taskSize = this.pendingTasks();
             if (taskSize == 0) {
                 return;
             }
-            if (pass >= t100ms) {
+            if (pass >= passes) {
                 break;
             }
             try {
-                Thread.sleep(100L);
+                Thread.sleep(QUERY_INTERVAL);
             } catch (InterruptedException ignored) {
                 // Ignore InterruptedException
             }

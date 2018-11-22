@@ -21,6 +21,8 @@ package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.util.Bytes;
@@ -45,7 +47,8 @@ public class RocksDBMetrics implements BackendMetrics {
         // NOTE: the unit of rocksdb mem property is kb
         metrics.put(MEM_USED, this.getMemUsed() / Bytes.BASE);
         metrics.put(MEM_UNIT, "MB");
-        metrics.put(DATA_SIZE, this.getDataSize());
+        String size = FileUtils.byteCountToDisplaySize(this.getDataSize());
+        metrics.put(DATA_SIZE, size);
         return metrics;
     }
 

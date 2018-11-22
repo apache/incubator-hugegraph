@@ -106,7 +106,7 @@ public class SystemMetrics {
         ThreadMXBean threadMxBean = ManagementFactory.getThreadMXBean();
         metrics.put("peak", threadMxBean.getPeakThreadCount());
         metrics.put("daemon", threadMxBean.getDaemonThreadCount());
-        metrics.put("totalStarted", threadMxBean.getTotalStartedThreadCount());
+        metrics.put("total_started", threadMxBean.getTotalStartedThreadCount());
         metrics.put("count", threadMxBean.getThreadCount());
         return metrics;
     }
@@ -126,14 +126,15 @@ public class SystemMetrics {
         List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory
                                                  .getGarbageCollectorMXBeans();
         for (GarbageCollectorMXBean gcMxBean : gcMxBeans) {
-            String name = this.formatName(gcMxBean.getName());
+            String name = formatName(gcMxBean.getName());
             metrics.put(name + "_count", gcMxBean.getCollectionCount());
             metrics.put(name + "_time", gcMxBean.getCollectionTime());
         }
+        metrics.put("time_unit", "ms");
         return metrics;
     }
 
-    private String formatName(String name) {
+    private static String formatName(String name) {
         return StringUtils.replace(name, " ", "_").toLowerCase();
     }
 }
