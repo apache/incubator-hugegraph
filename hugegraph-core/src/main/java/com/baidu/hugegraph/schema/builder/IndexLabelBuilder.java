@@ -135,9 +135,14 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         // Create index label async
         IndexLabel.CreatedIndexLabel createdIndexLabel = this.createWithTask();
 
+        Id task = createdIndexLabel.task();
+        if (task == null) {
+            // Task id will be null if creating index label already exists.
+            return createdIndexLabel.indexLabel();
+        }
+
         // Wait task completed (change to sync mode)
         HugeGraph graph = this.transaction.graph();
-        Id task = createdIndexLabel.task();
         long timeout = graph.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
         try {
             graph.taskScheduler().waitUntilTaskCompleted(task, timeout);

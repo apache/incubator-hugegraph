@@ -223,6 +223,7 @@ public class TaskScheduler {
     }
 
     public <V> HugeTask<V> task(Id id) {
+        E.checkArgumentNotNull(id, "Parameter task id can't be null");
         @SuppressWarnings("unchecked")
         HugeTask<V> task = (HugeTask<V>) this.tasks.get(id);
         if (task != null) {
