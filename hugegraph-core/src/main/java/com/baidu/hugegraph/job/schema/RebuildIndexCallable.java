@@ -83,8 +83,8 @@ public class RebuildIndexCallable extends SchemaCallable {
     }
 
     private void rebuildIndex(SchemaLabel label, Collection<Id> indexLabelIds) {
-        SchemaTransaction schemaTx = graph().schemaTransaction();
-        GraphTransaction graphTx = graph().graphTransaction();
+        SchemaTransaction schemaTx = this.graph().schemaTransaction();
+        GraphTransaction graphTx = this.graph().graphTransaction();
 
         Consumer<?> indexUpdater = (elem) -> {
             for (Id id : indexLabelIds) {
@@ -97,7 +97,7 @@ public class RebuildIndexCallable extends SchemaCallable {
             }
         };
 
-        LockUtil.Locks locks = new LockUtil.Locks();
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
             locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
@@ -144,8 +144,8 @@ public class RebuildIndexCallable extends SchemaCallable {
     }
 
     private void removeIndex(Collection<Id> indexLabelIds) {
-        SchemaTransaction schemaTx = graph().schemaTransaction();
-        GraphTransaction graphTx = graph().graphTransaction();
+        SchemaTransaction schemaTx = this.graph().schemaTransaction();
+        GraphTransaction graphTx = this.graph().graphTransaction();
 
         for (Id id : indexLabelIds) {
             IndexLabel indexLabel = schemaTx.getIndexLabel(id);

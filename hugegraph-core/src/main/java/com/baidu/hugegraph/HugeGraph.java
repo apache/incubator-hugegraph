@@ -93,10 +93,6 @@ public class HugeGraph implements GremlinGraph {
                                                            strategies);
     }
 
-    static {
-        LockUtil.init();
-    }
-
     private volatile boolean closed;
     private volatile GraphMode mode;
 
@@ -132,6 +128,8 @@ public class HugeGraph implements GremlinGraph {
         this.name = configuration.get(CoreOptions.STORE);
         this.closed = false;
         this.mode = GraphMode.NONE;
+
+        LockUtil.init(this.name);
 
         try {
             this.storeProvider = this.loadStoreProvider();
@@ -447,12 +445,13 @@ public class HugeGraph implements GremlinGraph {
 
     @Override
     public void close() throws HugeException {
-        this.closed = true;
+        this.taskManager.closeScheduler(this);
         try {
             this.closeTx();
         } finally {
+            this.closed = true;
             this.storeProvider.close();
-            this.taskManager.closeScheduler(this);
+            LockUtil.destroy(this.name);
         }
     }
 

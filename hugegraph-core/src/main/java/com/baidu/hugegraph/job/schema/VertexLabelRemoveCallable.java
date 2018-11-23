@@ -70,7 +70,7 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
          * vertexLabel.indexLabels()
          */
         Set<Id> indexLabelIds = ImmutableSet.copyOf(vertexLabel.indexLabels());
-        LockUtil.Locks locks = new LockUtil.Locks();
+        LockUtil.Locks locks = new LockUtil.Locks(graph.name());
         try {
             locks.lockWrites(LockUtil.VERTEX_LABEL_DELETE, id);
             schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.DELETING);
