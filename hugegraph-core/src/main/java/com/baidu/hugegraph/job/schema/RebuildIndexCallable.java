@@ -68,12 +68,9 @@ public class RebuildIndexCallable extends SchemaCallable {
                 this.rebuildIndex(label, ImmutableSet.of(indexLabel.id()));
                 break;
             case VERTEX_LABEL:
-                VertexLabel vertexLabel = (VertexLabel) schema;
-                this.rebuildIndex(vertexLabel, vertexLabel.indexLabels());
-                break;
             case EDGE_LABEL:
-                EdgeLabel edgeLabel = (EdgeLabel) schema;
-                this.rebuildIndex(edgeLabel, edgeLabel.indexLabels());
+                label = (SchemaLabel) schema;
+                this.rebuildIndex(label, label.indexLabels());
                 break;
             default:
                 assert schema.type() == HugeType.PROPERTY_KEY;

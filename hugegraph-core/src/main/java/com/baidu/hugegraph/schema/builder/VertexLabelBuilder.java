@@ -170,7 +170,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkUserData(Action.ELIMINATE);
 
         for (String key : this.userdata.keySet()) {
-            vertexLabel.removeUserData(key);
+            vertexLabel.removeUserdata(key);
         }
         this.transaction.addVertexLabel(vertexLabel);
         return vertexLabel;

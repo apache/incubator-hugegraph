@@ -39,19 +39,16 @@ public class HugeFactory {
     public static synchronized HugeGraph open(Configuration config) {
         HugeConfig conf = new HugeConfig(config);
         String name = conf.get(CoreOptions.STORE);
-        HugeGraph graph = null;
-        do {
-            graph = graphs.get(name);
-            if (graph == null || graph.closed()) {
-                graph = new HugeGraph(conf);
-                graphs.put(name, graph);
-            } else {
-                String backend = conf.get(CoreOptions.BACKEND);
-                E.checkState(backend.equals(graph.backend()),
-                             "Graph name '%s' has been used by backend '%s'",
-                             name, graph.backend());
-            }
-        } while (graph == null);
+        HugeGraph graph = graphs.get(name);
+        if (graph == null || graph.closed()) {
+            graph = new HugeGraph(conf);
+            graphs.put(name, graph);
+        } else {
+            String backend = conf.get(CoreOptions.BACKEND);
+            E.checkState(backend.equals(graph.backend()),
+                         "Graph name '%s' has been used by backend '%s'",
+                         name, graph.backend());
+        }
         return graph;
     }
 

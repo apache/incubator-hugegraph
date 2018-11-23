@@ -182,7 +182,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.checkUserData(Action.ELIMINATE);
 
         for (String key : this.userdata.keySet()) {
-            edgeLabel.removeUserData(key);
+            edgeLabel.removeUserdata(key);
         }
         this.transaction.addEdgeLabel(edgeLabel);
         return edgeLabel;

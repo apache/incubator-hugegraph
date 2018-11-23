@@ -243,33 +243,6 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private void checkVertexExistIfCustomizedId(Map<Id, HugeVertex> vertices) {
-        Set<Id> ids = new HashSet<>();
-        for (HugeVertex vertex : vertices.values()) {
-            VertexLabel vl = vertex.schemaLabel();
-            if (!vl.hidden() && vl.idStrategy().isCustomized()) {
-                ids.add(vertex.id());
-            }
-        }
-        if (ids.isEmpty()) {
-            return;
-        }
-        IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
-        Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
-        if (results.hasNext()) {
-            HugeVertex existedVertex = results.next();
-            HugeVertex newVertex = vertices.get(existedVertex.id());
-            if (!existedVertex.label().equals(newVertex.label())) {
-                throw new HugeException(
-                          "The newly added vertex with id:'%s' label:'%s' " +
-                          "is not allowed to insert, because already exist " +
-                          "a vertex with same id and different label:'%s'",
-                          newVertex.id(), newVertex.label(),
-                          existedVertex.label());
-            }
-        }
-    }
-
     protected void prepareDeletions(Map<Id, HugeVertex> removedVertexes,
                                     Map<Id, HugeEdge> removedEdges) {
         // Remove related edges of each vertex
@@ -280,6 +253,7 @@ public class GraphTransaction extends IndexableTransaction {
             while (vedges.hasNext()) {
                 this.checkTxEdgesCapacity();
                 HugeEdge edge = vedges.next();
+                // NOTE: will change the input parameter
                 removedEdges.put(edge.id(), edge);
             }
         }
@@ -1122,6 +1096,33 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
+    private void checkVertexExistIfCustomizedId(Map<Id, HugeVertex> vertices) {
+        Set<Id> ids = new HashSet<>();
+        for (HugeVertex vertex : vertices.values()) {
+            VertexLabel vl = vertex.schemaLabel();
+            if (!vl.hidden() && vl.idStrategy().isCustomized()) {
+                ids.add(vertex.id());
+            }
+        }
+        if (ids.isEmpty()) {
+            return;
+        }
+        IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
+        Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
+        if (results.hasNext()) {
+            HugeVertex existedVertex = results.next();
+            HugeVertex newVertex = vertices.get(existedVertex.id());
+            if (!existedVertex.label().equals(newVertex.label())) {
+                throw new HugeException(
+                          "The newly added vertex with id:'%s' label:'%s' " +
+                          "is not allowed to insert, because already exist " +
+                          "a vertex with same id and different label:'%s'",
+                          newVertex.id(), newVertex.label(),
+                          existedVertex.label());
+            }
+        }
+    }
+
     private void lockForUpdateProperty(SchemaLabel schemaLabel,
                                        HugeProperty<?> prop,
                                        Runnable callback) {
@@ -1379,7 +1380,6 @@ public class GraphTransaction extends IndexableTransaction {
         HugeType type = label.type() == HugeType.VERTEX_LABEL ?
                         HugeType.VERTEX : HugeType.EDGE;
         ConditionQuery query = new ConditionQuery(type);
-
         // Whether query system vertices
         if (label.hidden()) {
             query.showHidden(true);
@@ -1388,34 +1388,32 @@ public class GraphTransaction extends IndexableTransaction {
         // Not support label index, query all and filter by label
         if (!label.enableLabelIndex()) {
             query.capacity(Query.NO_CAPACITY);
-            Function<T, Boolean> filt = e -> {
-                return ((HugeElement) e).label().equals(label.name());
-            };
-            @SuppressWarnings("resource")
-            Iterator<T> itor = new FilterIterator<>(fetcher.apply(query), filt);
+            Iterator<T> itor = fetcher.apply(query);
             while (itor.hasNext()) {
-                consumer.accept(itor.next());
+                T e = itor.next();
+                SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
+                if (label.equals(elemLabel)) {
+                    consumer.accept(e);
+                }
             }
             return;
         }
 
         /*
-         * Support label index, query by label. Set limit&capacity
+         * Support label index, query by label. Set limit&capacity to
          * Query.DEFAULT_CAPACITY to limit elements number per pass
          */
         query.limit(Query.DEFAULT_CAPACITY);
         query.capacity(Query.DEFAULT_CAPACITY);
+        query.eq(HugeKeys.LABEL, label.id());
         int pass = 0;
-        int counter;
+        int counter = 0;
         do {
-            counter = 0;
             query.offset(pass++ * Query.DEFAULT_CAPACITY);
-            query.eq(HugeKeys.LABEL, label.id());
-            Iterator<T> itor = fetcher.apply(query);
             // Process every element in current batch
-            while (itor.hasNext()) {
+            Iterator<T> itor = fetcher.apply(query);
+            for (counter = 0; itor.hasNext(); ++counter) {
                 consumer.accept(itor.next());
-                ++counter;
             }
             assert counter <= Query.DEFAULT_CAPACITY;
         } while (counter == Query.DEFAULT_CAPACITY); // If not, means finish

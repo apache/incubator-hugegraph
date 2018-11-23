@@ -30,29 +30,41 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Indexfiable;
+import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaLabel extends SchemaElement
-                                  implements Indexfiable {
+                                  implements Indexfiable, Propfiable {
 
-    private Set<Id> nullableKeys;
-    private Set<Id> indexLabels;
+    private final Set<Id> properties;
+    private final Set<Id> nullableKeys;
+    private final Set<Id> indexLabels;
     private boolean enableLabelIndex;
 
     public SchemaLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
+        this.properties = new HashSet<>();
         this.nullableKeys = new HashSet<>();
         this.indexLabels = new HashSet<>();
         this.enableLabelIndex = true;
     }
 
-    public void property(Id id) {
-        this.properties.add(id);
+    @Override
+    public Set<Id> properties() {
+        return Collections.unmodifiableSet(this.properties);
+    }
+
+    public void properties(Set<Id> properties) {
+        this.properties.addAll(properties);
     }
 
     public SchemaLabel properties(Id... ids) {
         this.properties.addAll(Arrays.asList(ids));
         return this;
+    }
+
+    public void property(Id id) {
+        this.properties.add(id);
     }
 
     public Set<Id> nullableKeys() {

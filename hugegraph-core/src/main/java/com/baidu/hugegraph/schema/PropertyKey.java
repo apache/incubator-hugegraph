@@ -20,8 +20,8 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -31,13 +31,15 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 
-public class PropertyKey extends SchemaElement {
+public class PropertyKey extends SchemaElement implements Propfiable {
 
     private DataType dataType;
     private Cardinality cardinality;
@@ -51,11 +53,6 @@ public class PropertyKey extends SchemaElement {
     @Override
     public HugeType type() {
         return HugeType.PROPERTY_KEY;
-    }
-
-    public PropertyKey properties(Id... properties) {
-        this.properties.addAll(Arrays.asList(properties));
-        return this;
     }
 
     public Class<?> clazz() {
@@ -209,6 +206,18 @@ public class PropertyKey extends SchemaElement {
 
     public void cardinality(Cardinality cardinality) {
         this.cardinality = cardinality;
+    }
+
+    @Override
+    public Set<Id> properties() {
+        return Collections.emptySet();
+    }
+
+    public PropertyKey properties(Id... properties) {
+        if (properties.length > 0) {
+            throw new NotSupportException("PropertyKey.properties(Id)");
+        }
+        return this;
     }
 
     public interface Builder extends SchemaBuilder<PropertyKey> {

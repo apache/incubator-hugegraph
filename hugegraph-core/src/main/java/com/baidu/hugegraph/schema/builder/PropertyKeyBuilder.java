@@ -122,7 +122,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.checkUserData(Action.ELIMINATE);
 
         for (String key : this.userdata.keySet()) {
-            propertyKey.removeUserData(key);
+            propertyKey.removeUserdata(key);
         }
         this.transaction.addPropertyKey(propertyKey);
         return propertyKey;
