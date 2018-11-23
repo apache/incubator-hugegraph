@@ -251,7 +251,7 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void addSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction add {} with id '{}'",
                   schema.type(), schema.id());
-        LockUtil.Locks locks = new LockUtil.Locks();
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
@@ -314,7 +314,7 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
-        LockUtil.Locks locks = new LockUtil.Locks();
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());

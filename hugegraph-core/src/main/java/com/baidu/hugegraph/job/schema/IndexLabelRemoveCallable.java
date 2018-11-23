@@ -48,7 +48,7 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
         if (indexLabel == null) {
             return;
         }
-        LockUtil.Locks locks = new LockUtil.Locks();
+        LockUtil.Locks locks = new LockUtil.Locks(graph.name());
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);
             // TODO add update lock

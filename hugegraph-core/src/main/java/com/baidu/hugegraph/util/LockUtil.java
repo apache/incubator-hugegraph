@@ -54,17 +54,32 @@ public final class LockUtil {
     public static final String VERTEX_LABEL_ADD_UPDATE = "vl_add_update";
     public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
 
-    public static final long WRITE_WAIT_TIME = 30L;
+    public static final long WRITE_WAIT_TIMEOUT = 30L;
 
-    public static void init() {
-        LockManager.instance().create(INDEX_LABEL_DELETE);
-        LockManager.instance().create(EDGE_LABEL_DELETE);
-        LockManager.instance().create(VERTEX_LABEL_DELETE);
-        LockManager.instance().create(INDEX_LABEL_REBUILD);
-        LockManager.instance().create(INDEX_LABEL_ADD_UPDATE);
-        LockManager.instance().create(EDGE_LABEL_ADD_UPDATE);
-        LockManager.instance().create(VERTEX_LABEL_ADD_UPDATE);
-        LockManager.instance().create(PROPERTY_KEY_ADD_UPDATE);
+    public static void init(String graph) {
+        LockManager.instance().create(join(graph, INDEX_LABEL_DELETE));
+        LockManager.instance().create(join(graph, EDGE_LABEL_DELETE));
+        LockManager.instance().create(join(graph, VERTEX_LABEL_DELETE));
+        LockManager.instance().create(join(graph, INDEX_LABEL_REBUILD));
+        LockManager.instance().create(join(graph, INDEX_LABEL_ADD_UPDATE));
+        LockManager.instance().create(join(graph, EDGE_LABEL_ADD_UPDATE));
+        LockManager.instance().create(join(graph, VERTEX_LABEL_ADD_UPDATE));
+        LockManager.instance().create(join(graph, PROPERTY_KEY_ADD_UPDATE));
+    }
+
+    public static void destroy(String graph) {
+        LockManager.instance().destroy(join(graph, INDEX_LABEL_DELETE));
+        LockManager.instance().destroy(join(graph, EDGE_LABEL_DELETE));
+        LockManager.instance().destroy(join(graph, VERTEX_LABEL_DELETE));
+        LockManager.instance().destroy(join(graph, INDEX_LABEL_REBUILD));
+        LockManager.instance().destroy(join(graph, INDEX_LABEL_ADD_UPDATE));
+        LockManager.instance().destroy(join(graph, EDGE_LABEL_ADD_UPDATE));
+        LockManager.instance().destroy(join(graph, VERTEX_LABEL_ADD_UPDATE));
+        LockManager.instance().destroy(join(graph, PROPERTY_KEY_ADD_UPDATE));
+    }
+
+    private static String join(String graph, String group) {
+        return graph + "_" + group;
     }
 
     private static Lock lockRead(String group, String lock) {
@@ -109,9 +124,8 @@ public final class LockUtil {
         for (int i = 0; i < locks.length; i += 3) {
             switch (locks[i]) {
                 case WRITE:
-                    lockList.add(lockWrite(locks[i + 1],
-                                           locks[i + 2],
-                                           WRITE_WAIT_TIME));
+                    lockList.add(lockWrite(locks[i + 1], locks[i + 2],
+                                           WRITE_WAIT_TIMEOUT));
                     break;
                 case READ:
                     lockList.add(lockRead(locks[i + 1], locks[i + 2]));
@@ -148,40 +162,50 @@ public final class LockUtil {
      */
     public static class Locks {
 
-        public List<Lock> lockList;
+        private final String graph;
+        private final List<Lock> lockList;
 
-        public Locks() {
+        public Locks(String graph) {
+            this.graph = graph;
             this.lockList = new ArrayList<>();
         }
 
         // NOTE: when used in multi-threads, should add `synchronized`
         public void lockReads(String group, Id... locks) {
             for (Id lock : locks) {
-                this.lockList.add(lockRead(group, lock.asString()));
+                this.lockList.add(this.lockRead(group, lock));
             }
         }
 
         // NOTE: when used in multi-threads, should add `synchronized`
         public void lockReads(String group, Collection<Id> locks) {
             for (Id lock : locks) {
-                this.lockList.add(lockRead(group, lock.asString()));
+                this.lockList.add(this.lockRead(group, lock));
             }
+        }
+
+        private Lock lockRead(String group, Id lock) {
+            return LockUtil.lockRead(join(this.graph, group), lock.asString());
         }
 
         // NOTE: when used in multi-threads, should add `synchronized`
         public void lockWrites(String group, Id... locks) {
             for (Id lock : locks) {
-                this.lockList.add(lockWrite(group, lock.asString(),
-                                            WRITE_WAIT_TIME));
+                this.lockList.add(this.lockWrite(group, lock));
             }
         }
 
         // NOTE: when used in multi-threads, should add `synchronized`
         public void lockWrites(String group, Collection<Id> locks) {
             for (Id lock : locks) {
-                this.lockList.add(lockWrite(group, lock.asString(),
-                                            WRITE_WAIT_TIME));
+                this.lockList.add(this.lockWrite(group, lock));
             }
+        }
+
+        private Lock lockWrite(String group, Id lock) {
+            return LockUtil.lockWrite(join(this.graph, group),
+                                      lock.asString(),
+                                      WRITE_WAIT_TIMEOUT);
         }
 
         // NOTE: when used in multi-threads, should add `synchronized`
@@ -204,9 +228,9 @@ public final class LockUtil {
         private Map<String, Set<Id>> table;
         private Locks locks;
 
-        public LocksTable() {
+        public LocksTable(String graph) {
             this.table = new HashMap<>();
-            this.locks = new LockUtil.Locks();
+            this.locks = new LockUtil.Locks(graph);
         }
 
         public void lockReads(String group, Id... locks) {

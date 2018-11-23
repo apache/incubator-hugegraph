@@ -503,7 +503,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private Set<Id> doIndexQuery(IndexLabel indexLabel, ConditionQuery query) {
         Set<Id> ids = InsertionOrderUtil.newSet();
-        LockUtil.Locks locks = new LockUtil.Locks();
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
             locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
