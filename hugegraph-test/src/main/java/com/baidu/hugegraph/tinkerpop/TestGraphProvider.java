@@ -327,7 +327,9 @@ public class TestGraphProvider extends AbstractGraphProvider {
         }
         String graphName = config.getString(CoreOptions.STORE.name());
         if (testGraph.closed()) {
-            this.graphs.remove(graphName);
+            if (this.graphs.get(graphName) == testGraph) {
+                this.graphs.remove(graphName);
+            }
             return;
         }
 

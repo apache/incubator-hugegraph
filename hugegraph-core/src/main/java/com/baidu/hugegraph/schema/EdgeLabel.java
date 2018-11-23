@@ -70,7 +70,7 @@ public class EdgeLabel extends SchemaLabel {
     public void sourceLabel(Id id) {
         E.checkArgument(this.sourceLabel == null,
                         "Not allowed to set source label multi times " +
-                        "of edge label '%s'", this.name);
+                        "of edge label '%s'", this.name());
         this.sourceLabel = id;
     }
 
@@ -81,7 +81,7 @@ public class EdgeLabel extends SchemaLabel {
     public void targetLabel(Id id) {
         E.checkArgument(this.targetLabel == null,
                         "Not allowed to set target label multi times " +
-                        "of edge label '%s'", this.name);
+                        "of edge label '%s'", this.name());
         this.targetLabel = id;
     }
 

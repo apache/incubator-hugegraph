@@ -25,11 +25,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedBackendStore.QueryId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -125,14 +125,14 @@ public class CachedGraphTransaction extends GraphTransaction {
 
 
     @Override
-    public void commit() throws BackendException {
+    protected void commitMutation2Backend(BackendMutation... mutations) {
         // Collect changes before commit
         Collection<HugeVertex> changes = this.verticesInTxUpdated();
         Collection<HugeVertex> deletions = this.verticesInTxRemoved();
         int edgesInTxSize = this.edgesInTxSize();
 
         try {
-            super.commit();
+            super.commitMutation2Backend(mutations);
             // Update vertex cache
             for (HugeVertex vertex : changes) {
                 vertex = vertex.resetTx();

@@ -161,7 +161,10 @@ public class HugeGraph implements GremlinGraph {
     }
 
     public boolean closed() {
-        return this.closed && this.tx.closed();
+        if (this.closed && !this.tx.closed()) {
+            LOG.warn("The tx is not closed while graph '{}' is closed", this);
+        }
+        return this.closed;
     }
 
     public GraphMode mode() {
@@ -453,6 +456,9 @@ public class HugeGraph implements GremlinGraph {
             this.storeProvider.close();
             LockUtil.destroy(this.name);
         }
+        // Make sure that all transactions are closed in all threads
+        E.checkState(this.tx.closed(),
+                     "Ensure tx closed in all threads when closing graph");
     }
 
     public void closeTx() {

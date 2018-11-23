@@ -21,9 +21,7 @@ package com.baidu.hugegraph.schema;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
@@ -33,21 +31,18 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.Namifiable;
-import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.Typifiable;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 
-public abstract class SchemaElement
-                implements Namifiable, Typifiable, Propfiable {
+public abstract class SchemaElement implements Namifiable, Typifiable {
 
     protected final HugeGraph graph;
 
-    protected Id id;
-    protected String name;
-    protected Set<Id> properties;
-    protected Map<String, Object> userdata;
-    protected SchemaStatus status;
+    private final Id id;
+    private final String name;
+    private final Map<String, Object> userdata;
+    private SchemaStatus status;
 
     public SchemaElement(final HugeGraph graph, Id id, String name) {
         E.checkArgumentNotNull(id, "SchemaElement id can't be null");
@@ -55,7 +50,6 @@ public abstract class SchemaElement
         this.graph = graph;
         this.id = id;
         this.name = name;
-        this.properties = new HashSet<>();
         this.userdata = new HashMap<>();
         this.status = SchemaStatus.CREATED;
     }
@@ -73,28 +67,19 @@ public abstract class SchemaElement
         return this.name;
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s(id=%s)", this.name, this.id);
-    }
-
-    @Override
-    public Set<Id> properties() {
-        return Collections.unmodifiableSet(this.properties);
-    }
-
-    public void properties(Set<Id> properties) {
-        this.properties.addAll(properties);
-    }
-
     public Map<String, Object> userdata() {
         return Collections.unmodifiableMap(this.userdata);
     }
 
     public void userdata(String key, Object value) {
-        E.checkArgumentNotNull(key, "user data key");
-        E.checkArgumentNotNull(value, "user data value");
+        E.checkArgumentNotNull(key, "userdata key");
+        E.checkArgumentNotNull(value, "userdata value");
         this.userdata.put(key, value);
+    }
+
+    public Object removeUserdata(String key) {
+        E.checkArgumentNotNull(key, "The userdata key can't be null");
+        return this.userdata.remove(key);
     }
 
     public SchemaStatus status() {
@@ -105,17 +90,32 @@ public abstract class SchemaElement
         this.status = status;
     }
 
-    public Object removeUserData(String key) {
-        E.checkArgumentNotNull(key, "user data key");
-        return this.userdata.remove(key);
-    }
-
     public boolean primitive() {
         return false;
     }
 
     public boolean hidden() {
         return Graph.Hidden.isHidden(this.name());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof SchemaElement)) {
+            return false;
+        }
+
+        SchemaElement other = (SchemaElement) obj;
+        return this.type() == other.type() && this.id.equals(other.id());
+    }
+
+    @Override
+    public int hashCode() {
+        return this.type().hashCode() ^  this.id.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s(id=%s)", this.name, this.id);
     }
 
     public static Id schemaId(String id) {
