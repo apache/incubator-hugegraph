@@ -107,6 +107,7 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getAllSchema(HugeType.INDEX_LABEL);
     }
 
+    @Watched(prefix = "schema")
     public void addPropertyKey(PropertyKey propertyKey) {
         this.addSchema(propertyKey);
     }
@@ -123,6 +124,7 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getSchema(HugeType.PROPERTY_KEY, name);
     }
 
+    @Watched(prefix = "schema")
     public void removePropertyKey(Id id) {
         LOG.debug("SchemaTransaction remove property key '{}'", id);
         PropertyKey propertyKey = this.getPropertyKey(id);
@@ -154,6 +156,7 @@ public class SchemaTransaction extends IndexableTransaction {
         this.removeSchema(propertyKey);
     }
 
+    @Watched(prefix = "schema")
     public void addVertexLabel(VertexLabel vertexLabel) {
         this.addSchema(vertexLabel);
     }
@@ -170,12 +173,14 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getSchema(HugeType.VERTEX_LABEL, name);
     }
 
+    @Watched(prefix = "schema")
     public Id removeVertexLabel(Id id) {
         LOG.debug("SchemaTransaction remove vertex label '{}'", id);
         SchemaCallable callable = new VertexLabelRemoveCallable();
         return asyncRun(this.graph(), HugeType.VERTEX_LABEL, id, callable);
     }
 
+    @Watched(prefix = "schema")
     public void addEdgeLabel(EdgeLabel edgeLabel) {
         this.addSchema(edgeLabel);
     }
@@ -192,12 +197,14 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getSchema(HugeType.EDGE_LABEL, name);
     }
 
+    @Watched(prefix = "schema")
     public Id removeEdgeLabel(Id id) {
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
         SchemaCallable callable = new EdgeLabelRemoveCallable();
         return asyncRun(this.graph(), HugeType.EDGE_LABEL, id, callable);
     }
 
+    @Watched(prefix = "schema")
     public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
         this.addSchema(indexLabel);
 
@@ -221,24 +228,28 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getSchema(HugeType.INDEX_LABEL, name);
     }
 
+    @Watched(prefix = "schema")
     public Id removeIndexLabel(Id id) {
         LOG.debug("SchemaTransaction remove index label '{}'", id);
         SchemaCallable callable = new IndexLabelRemoveCallable();
         return asyncRun(this.graph(), HugeType.INDEX_LABEL, id, callable);
     }
 
+    @Watched(prefix = "schema")
     public Id rebuildIndex(SchemaElement schema) {
         return this.rebuildIndex(schema, ImmutableSet.of());
     }
 
+    @Watched(prefix = "schema")
     public Id rebuildIndex(SchemaElement schema, Set<Id> dependencies) {
         LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
         SchemaCallable callable = new RebuildIndexCallable();
-        return asyncRun(this.graph(), schema.type(), schema.id(), callable,
-                        dependencies);
+        return asyncRun(this.graph(), schema.type(), schema.id(),
+                        callable, dependencies);
     }
 
+    @Watched(prefix = "schema")
     public void updateSchemaStatus(SchemaElement schema, SchemaStatus status) {
         schema.status(status);
         this.updateSchema(schema);
@@ -328,22 +339,6 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
-    public Id getNextId(HugeType type) {
-        LOG.debug("SchemaTransaction get next id for {}", type);
-        return this.store().nextId(type);
-    }
-
-    public void setNextIdLowest(HugeType type, long lowest) {
-        LOG.debug("SchemaTransaction set next id to {} for {}", lowest, type);
-        this.store().setCounterLowest(type, lowest);
-    }
-
-    public Id getNextSystemId() {
-        LOG.debug("SchemaTransaction get next system id");
-        Id id = this.store().nextId(HugeType.SYS_SCHEMA);
-        return IdGenerator.of(-id.asLong());
-    }
-
     private BackendEntry serialize(SchemaElement schema) {
         switch (schema.type()) {
             case PROPERTY_KEY:
@@ -377,6 +372,7 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
+    @Watched(prefix = "schema")
     public Id validOrGenerateId(HugeType type, Id id, String name) {
         boolean forSystem = Graph.Hidden.isHidden(name);
         if (id != null) {
@@ -410,6 +406,26 @@ public class SchemaTransaction extends IndexableTransaction {
         this.setNextIdLowest(type, id.asLong());
     }
 
+    @Watched(prefix = "schema")
+    public Id getNextId(HugeType type) {
+        LOG.debug("SchemaTransaction get next id for {}", type);
+        return this.store().nextId(type);
+    }
+
+    @Watched(prefix = "schema")
+    public void setNextIdLowest(HugeType type, long lowest) {
+        LOG.debug("SchemaTransaction set next id to {} for {}", lowest, type);
+        this.store().setCounterLowest(type, lowest);
+    }
+
+    @Watched(prefix = "schema")
+    public Id getNextSystemId() {
+        LOG.debug("SchemaTransaction get next system id");
+        Id id = this.store().nextId(HugeType.SYS_SCHEMA);
+        return IdGenerator.of(-id.asLong());
+    }
+
+    @Watched(prefix = "schema")
     public void checkIdIfRestoringMode(HugeType type, Id id) {
         if (this.graph().mode() == GraphMode.RESTORING) {
             E.checkArgument(id != null,
@@ -427,6 +443,7 @@ public class SchemaTransaction extends IndexableTransaction {
                         callable, ImmutableSet.of());
     }
 
+    @Watched(prefix = "schema")
     private static Id asyncRun(HugeGraph graph, HugeType schemaType,
                                Id schemaId, SchemaCallable callable,
                                Set<Id> dependencies) {

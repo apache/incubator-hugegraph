@@ -36,6 +36,7 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
@@ -70,16 +71,19 @@ public class TestGraph implements Graph {
         return this.graph;
     }
 
+    @Watched
     protected void initBackend() {
         this.graph.initBackend();
         this.initedBackend = true;
     }
 
+    @Watched
     protected void clearBackend() {
         this.graph.clearBackend();
         this.initedBackend = false;
     }
 
+    @Watched
     protected void clearAll(String testClass) {
         List<PropertyKey> pks = this.graph.schema().getPropertyKeys();
         if (pks.isEmpty()) {
@@ -102,10 +106,12 @@ public class TestGraph implements Graph {
         }
     }
 
+    @Watched
     protected void truncateBackend() {
         this.graph.truncateBackend();
     }
 
+    @Watched
     protected void clearSchema() {
         // Clear schema and graph data will be cleared at same time
         SchemaManager schema = this.graph.schema();
@@ -127,6 +133,7 @@ public class TestGraph implements Graph {
         });
     }
 
+    @Watched
     protected void clearVariables() {
         Variables variables = this.variables();
         variables.keys().forEach(key -> variables.remove(key));
@@ -136,6 +143,7 @@ public class TestGraph implements Graph {
         return this.graph.closed();
     }
 
+    @Watched
     @Override
     public Vertex addVertex(Object... keyValues) {
         boolean needRedefineSchema = false;
@@ -186,11 +194,13 @@ public class TestGraph implements Graph {
         return this.graph.addVertex(keyValues);
     }
 
+    @Watched
     @Override
     public Iterator<Vertex> vertices(Object... vertexIds) {
         return this.graph.vertices(vertexIds);
     }
 
+    @Watched
     @Override
     public Iterator<Edge> edges(Object... edgeIds) {
         return this.graph.edges(edgeIds);
@@ -201,6 +211,7 @@ public class TestGraph implements Graph {
         return this.graph.tx();
     }
 
+    @Watched
     @Override
     public void close() throws Exception {
         this.graph.close();
@@ -288,6 +299,7 @@ public class TestGraph implements Graph {
         }
     }
 
+    @Watched
     public void initPropertyKey(String key, String type) {
         SchemaManager schema = this.graph.schema();
 
@@ -343,6 +355,7 @@ public class TestGraph implements Graph {
 
     }
 
+    @Watched
     public void initGratefulSchema(IdStrategy idStrategy) {
         SchemaManager schema = this.graph.schema();
 
@@ -400,6 +413,7 @@ public class TestGraph implements Graph {
               .range().ifNotExist().create();
     }
 
+    @Watched
     public void initModernSchema(IdStrategy idStrategy) {
         SchemaManager schema = this.graph.schema();
 
@@ -516,6 +530,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
     }
 
+    @Watched
     public void initClassicSchema(IdStrategy idStrategy) {
         SchemaManager schema = this.graph.schema();
 
@@ -556,12 +571,14 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
     }
 
+    @Watched
     public void initBasicSchema(IdStrategy idStrategy, String defaultVL) {
         this.initBasicPropertyKey();
         this.initBasicVertexLabelV(idStrategy, defaultVL);
         this.initBasicVertexLabelAndEdgeLabelExceptV(defaultVL);
     }
 
+    @Watched
     private void initBasicPropertyKey() {
         SchemaManager schema = this.graph.schema();
 
@@ -630,6 +647,7 @@ public class TestGraph implements Graph {
         }
     }
 
+    @Watched
     private void initBasicVertexLabelV(IdStrategy idStrategy,
                                        String defaultVL) {
         SchemaManager schema = this.graph.schema();
@@ -695,6 +713,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
     }
 
+    @Watched
     private void initBasicVertexLabelAndEdgeLabelExceptV(String defaultVL) {
         SchemaManager schema = this.graph.schema();
 
