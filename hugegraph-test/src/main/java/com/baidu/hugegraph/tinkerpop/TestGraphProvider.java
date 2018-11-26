@@ -51,6 +51,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
@@ -273,12 +274,14 @@ public class TestGraphProvider extends AbstractGraphProvider {
         return idStrategy;
     }
 
+    @Watched
     private TestGraph newTestGraph(final Configuration config) {
         TestGraph testGraph = ((TestGraph) super.openTestGraph(config));
         testGraph.initBackend();
         return testGraph;
     }
 
+    @Watched
     @Override
     public Graph openTestGraph(final Configuration config) {
         String graphName = config.getString(CoreOptions.STORE.name());
@@ -319,6 +322,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         return testGraph;
     }
 
+    @Watched
     @Override
     public void clear(Graph graph, Configuration config) throws Exception {
         TestGraph testGraph = (TestGraph) graph;
@@ -353,6 +357,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         }
     }
 
+    @Watched
     @SuppressWarnings("rawtypes")
     @Override
     public void loadGraphData(final Graph graph,
@@ -369,6 +374,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         super.loadGraphData(graph, loadGraphWith, testClass, testName);
     }
 
+    @Watched
     public void loadGraphData(final Graph graph,
                               final LoadGraphWith.GraphData loadGraphWith) {
         TestGraph testGraph = (TestGraph) graph;
