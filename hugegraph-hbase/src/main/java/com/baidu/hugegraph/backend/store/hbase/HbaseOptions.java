@@ -56,4 +56,12 @@ public class HbaseOptions extends OptionHolder {
                     rangeInt(1024, 10000),
                     2181
             );
+
+    public static final ConfigOption<Integer> HBASE_THREADS_MAX =
+            new ConfigOption<>(
+                    "hbase.threads_max",
+                    "The max threads num of hbase connections.",
+                    rangeInt(1, 1000),
+                    64
+            );
 }
