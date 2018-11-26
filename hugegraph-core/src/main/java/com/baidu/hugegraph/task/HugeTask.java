@@ -196,10 +196,14 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     public void run() {
-        assert this.status.code() < TaskStatus.RUNNING.code();
-        if (this.checkDependenciesSuccess()) {
-            this.status(TaskStatus.RUNNING);
-            super.run();
+        try {
+            assert this.status.code() < TaskStatus.RUNNING.code();
+            if (this.checkDependenciesSuccess()) {
+                this.status(TaskStatus.RUNNING);
+                super.run();
+            }
+        } catch (Throwable e) {
+            this.setException(e);
         }
     }
 
@@ -338,7 +342,7 @@ public class HugeTask<V> extends FutureTask<V> {
         E.checkState(this.type != null, "Task type can't be null");
         E.checkState(this.name != null, "Task name can't be null");
 
-        List<Object> list = new ArrayList<>(24);
+        List<Object> list = new ArrayList<>(28);
 
         list.add(T.label);
         list.add(P.TASK);

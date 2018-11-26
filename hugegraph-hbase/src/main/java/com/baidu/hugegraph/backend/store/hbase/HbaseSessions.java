@@ -86,6 +86,9 @@ public class HbaseSessions extends BackendSessionPool {
         Configuration config = HBaseConfiguration.create();
         config.set("hbase.zookeeper.quorum", hosts);
         config.set("hbase.zookeeper.property.clientPort", String.valueOf(port));
+        // Set hbase.hconnection.threads.max 64 to avoid OOM(default value: 256)
+        config.setInt("hbase.hconnection.threads.max",
+                      conf.get(HbaseOptions.HBASE_THREADS_MAX));
 
         this.hbase = ConnectionFactory.createConnection(config);
     }
