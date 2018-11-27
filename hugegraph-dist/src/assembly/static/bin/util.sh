@@ -1,5 +1,14 @@
 #!/bin/bash
 
+function command_available() {
+    local cmd=$1
+    if [ `command -v $cmd >/dev/null 2>&1` ]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
 # read a property from .properties file
 function read_property() {
     # file path
@@ -57,10 +66,13 @@ function process_id() {
 # check the port of rest server is occupied
 function check_port() {
     local port=`echo $1 | awk -F':' '{print $3}'`
+    if ! command_available "lsof"; then
+        echo "Required lsof but it is unavailable"
+        exit 1
+    fi
     lsof -i :$port >/dev/null
-
     if [ $? -eq 0 ]; then
-        echo "The port "$port" has already used"
+        echo "The port $port has already been used"
         exit 1
     fi
 }
@@ -127,12 +139,10 @@ function free_memory() {
         local mem_free=`cat /proc/meminfo | grep -w "MemFree" | awk '{print $2}'`
         local mem_buffer=`cat /proc/meminfo | grep -w "Buffers" | awk '{print $2}'`
         local mem_cached=`cat /proc/meminfo | grep -w "Cached" | awk '{print $2}'`
-
         if [[ "$mem_free" == "" || "$mem_buffer" == "" || "$mem_cached" == "" ]]; then
             echo "Failed to get free memory"
             exit 1
         fi
-
         free=`expr $mem_free + $mem_buffer + $mem_cached`
         free=`expr $free / 1024`
     elif [ "$os" == "Darwin" ]; then
@@ -202,9 +212,29 @@ function get_ip() {
     local loopback="127.0.0.1"
     local ip=""
     case $os in
-        Linux) ip=`ifconfig | grep 'inet addr:'| grep -v "$loopback" | cut -d: -f2 | awk '{ print $1}'`;;
-        FreeBSD|OpenBSD|Darwin) ip=`ifconfig  | grep -E 'inet.[0-9]' | grep -v "$loopback" | awk '{ print $2}'`;;
-        SunOS) ip=`ifconfig -a | grep inet | grep -v "$loopback" | awk '{ print $2} '`;;
+        Linux)
+            if command_available "ifconfig"; then
+                ip=`ifconfig | grep 'inet addr:' | grep -v "$loopback" | cut -d: -f2 | awk '{ print $1}'`
+            elif command_available "ip"; then
+                ip=`ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | awk -F"/" '{print $1}'`
+            else
+                ip=$loopback
+            fi
+            ;;
+        FreeBSD|OpenBSD|Darwin)
+            if command_available "ifconfig"; then
+                ip=`ifconfig | grep -E 'inet.[0-9]' | grep -v "$loopback" | awk '{ print $2}'`
+            else
+                ip=$loopback
+            fi
+            ;;
+        SunOS)
+            if command_available "ifconfig"; then
+                ip=`ifconfig -a | grep inet | grep -v "$loopback" | awk '{ print $2} '`
+            else
+                ip=$loopback
+            fi
+            ;;
         *) ip=$loopback;;
     esac
     echo $ip
@@ -214,13 +244,14 @@ function download() {
     local path=$1
     local link_url=$2
 
-    if command -v wget >/dev/null 2>&1; then
+    if command_available "wget"; then
         wget --help | grep -q '\--show-progress' && progress_opt="-q --show-progress" || progress_opt=""
         wget ${link_url} -P ${path} $progress_opt
-    elif command -v curl >/dev/null 2>&1; then
+    elif command_available "curl"; then
         curl ${link_url} -o ${path}/${link_url}
     else
-        echo "Required wget or curl but they are not installed"
+        echo "Required wget or curl but they are unavailable"
+        exit 1
     fi
 }
 

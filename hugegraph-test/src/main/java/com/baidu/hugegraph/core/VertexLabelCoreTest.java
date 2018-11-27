@@ -777,7 +777,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddVertexLabelWithUserData() {
+    public void testAddVertexLabelWithUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -799,7 +799,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAppendVertexLabelWithUserData() {
+    public void testAppendVertexLabelWithUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -819,7 +819,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testEliminateVertexLabelWithUserData() {
+    public void testEliminateVertexLabelWithUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -840,7 +840,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testEliminateVertexLabelWithNonUserData() {
+    public void testEliminateVertexLabelWithNonUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 

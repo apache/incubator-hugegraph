@@ -133,7 +133,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.checkProperties(Action.INSERT);
         this.checkSortKeys();
         this.checkNullableKeys(Action.INSERT);
-        this.checkNullableKeys(Action.INSERT);
+        this.checkUserdata(Action.INSERT);
 
         edgeLabel = this.build();
         tx.addEdgeLabel(edgeLabel);
@@ -151,7 +151,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.APPEND);
         this.checkNullableKeys(Action.APPEND);
-        this.checkUserData(Action.APPEND);
+        this.checkUserdata(Action.APPEND);
 
         for (String key : this.properties) {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
@@ -179,7 +179,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.ELIMINATE);
         this.checkNullableKeys(Action.ELIMINATE);
-        this.checkUserData(Action.ELIMINATE);
+        this.checkUserdata(Action.ELIMINATE);
 
         for (String key : this.userdata.keySet()) {
             edgeLabel.removeUserdata(key);
@@ -450,7 +450,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         }
     }
 
-    private void checkUserData(Action action) {
+    private void checkUserdata(Action action) {
         switch (action) {
             case INSERT:
             case APPEND:

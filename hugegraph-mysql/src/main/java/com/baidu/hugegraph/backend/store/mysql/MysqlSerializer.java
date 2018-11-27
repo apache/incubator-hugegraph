@@ -144,14 +144,14 @@ public class MysqlSerializer extends TableSerializer {
     }
 
     @Override
-    protected void writeUserData(SchemaElement schema,
+    protected void writeUserdata(SchemaElement schema,
                                  TableBackendEntry entry) {
         assert entry instanceof MysqlBackendEntry;
         entry.column(HugeKeys.USER_DATA, JsonUtil.toJson(schema.userdata()));
     }
 
     @Override
-    protected void readUserData(SchemaElement schema,
+    protected void readUserdata(SchemaElement schema,
                                 TableBackendEntry entry) {
         assert entry instanceof MysqlBackendEntry;
         // Parse all user data of a schema element
