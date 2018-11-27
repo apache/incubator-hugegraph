@@ -460,7 +460,7 @@ public class TextSerializer extends AbstractSerializer {
                      writeIds(vertexLabel.indexLabels()));
         entry.column(HugeKeys.ENABLE_LABEL_INDEX,
                      JsonUtil.toJson(vertexLabel.enableLabelIndex()));
-        writeUserData(vertexLabel, entry);
+        writeUserdata(vertexLabel, entry);
         entry.column(HugeKeys.STATUS,
                      JsonUtil.toJson(vertexLabel.status()));
         return entry;
@@ -494,7 +494,7 @@ public class TextSerializer extends AbstractSerializer {
         vertexLabel.indexLabels(readIds(indexLabels));
         vertexLabel.enableLabelIndex(JsonUtil.fromJson(enableLabelIndex,
                                                        Boolean.class));
-        readUserData(vertexLabel, entry);
+        readUserdata(vertexLabel, entry);
         vertexLabel.status(JsonUtil.fromJson(status, SchemaStatus.class));
         return vertexLabel;
     }
@@ -514,7 +514,7 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_LABELS, writeIds(edgeLabel.indexLabels()));
         entry.column(HugeKeys.ENABLE_LABEL_INDEX,
                      JsonUtil.toJson(edgeLabel.enableLabelIndex()));
-        writeUserData(edgeLabel, entry);
+        writeUserdata(edgeLabel, entry);
         entry.column(HugeKeys.STATUS,
                      JsonUtil.toJson(edgeLabel.status()));
         return entry;
@@ -551,7 +551,7 @@ public class TextSerializer extends AbstractSerializer {
         edgeLabel.indexLabels(readIds(indexLabels));
         edgeLabel.enableLabelIndex(JsonUtil.fromJson(enableLabelIndex,
                                                      Boolean.class));
-        readUserData(edgeLabel, entry);
+        readUserdata(edgeLabel, entry);
         edgeLabel.status(JsonUtil.fromJson(status, SchemaStatus.class));
         return edgeLabel;
     }
@@ -565,7 +565,7 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.CARDINALITY,
                      JsonUtil.toJson(propertyKey.cardinality()));
         entry.column(HugeKeys.PROPERTIES, writeIds(propertyKey.properties()));
-        writeUserData(propertyKey, entry);
+        writeUserdata(propertyKey, entry);
         entry.column(HugeKeys.STATUS,
                      JsonUtil.toJson(propertyKey.status()));
         return entry;
@@ -592,7 +592,7 @@ public class TextSerializer extends AbstractSerializer {
         propertyKey.cardinality(JsonUtil.fromJson(cardinality,
                                                   Cardinality.class));
         propertyKey.properties(readIds(properties));
-        readUserData(propertyKey, entry);
+        readUserdata(propertyKey, entry);
         propertyKey.status(JsonUtil.fromJson(status, SchemaStatus.class));
         return propertyKey;
     }
@@ -720,12 +720,12 @@ public class TextSerializer extends AbstractSerializer {
         return ids;
     }
 
-    private static void writeUserData(SchemaElement schema,
+    private static void writeUserdata(SchemaElement schema,
                                       TextBackendEntry entry) {
         entry.column(HugeKeys.USER_DATA, JsonUtil.toJson(schema.userdata()));
     }
 
-    private static void readUserData(SchemaElement schema,
+    private static void readUserdata(SchemaElement schema,
                                      TextBackendEntry entry) {
         // Parse all user data of a schema element
         String userdataStr = entry.column(HugeKeys.USER_DATA);

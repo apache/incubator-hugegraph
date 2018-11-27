@@ -102,6 +102,7 @@ public class HugeGraph implements GremlinGraph {
 
     private final EventHub schemaEventHub;
     private final EventHub indexEventHub;
+    @SuppressWarnings("UnstableApiUsage")
     private final RateLimiter rateLimiter;
     private final TaskManager taskManager;
 
@@ -183,6 +184,7 @@ public class HugeGraph implements GremlinGraph {
         return this.indexEventHub;
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     public RateLimiter rateLimiter() {
         return this.rateLimiter;
     }

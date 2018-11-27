@@ -121,7 +121,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkProperties(Action.INSERT);
         this.checkIdStrategy();
         this.checkNullableKeys(Action.INSERT);
-        this.checkUserData(Action.INSERT);
+        this.checkUserdata(Action.INSERT);
 
         vertexLabel = this.build();
         tx.addVertexLabel(vertexLabel);
@@ -139,7 +139,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.APPEND);
         this.checkNullableKeys(Action.APPEND);
-        this.checkUserData(Action.APPEND);
+        this.checkUserdata(Action.APPEND);
 
         for (String key : this.properties) {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
@@ -167,7 +167,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.ELIMINATE);
         this.checkNullableKeys(Action.ELIMINATE);
-        this.checkUserData(Action.ELIMINATE);
+        this.checkUserdata(Action.ELIMINATE);
 
         for (String key : this.userdata.keySet()) {
             vertexLabel.removeUserdata(key);
@@ -450,7 +450,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         }
     }
 
-    private void checkUserData(Action action) {
+    private void checkUserdata(Action action) {
         switch (action) {
             case INSERT:
             case APPEND:

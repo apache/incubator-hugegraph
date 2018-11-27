@@ -194,7 +194,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddPropertyKeyWithUserData() {
+    public void testAddPropertyKeyWithUserdata() {
         SchemaManager schema = graph().schema();
 
         PropertyKey age = schema.propertyKey("age")
@@ -223,7 +223,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAppendPropertyKeyWithUserData() {
+    public void testAppendPropertyKeyWithUserdata() {
         SchemaManager schema = graph().schema();
 
         PropertyKey age = schema.propertyKey("age")
@@ -242,7 +242,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testEliminatePropertyKeyWithUserData() {
+    public void testEliminatePropertyKeyWithUserdata() {
         SchemaManager schema = graph().schema();
 
         PropertyKey age = schema.propertyKey("age")
@@ -261,7 +261,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testUpdatePropertyKeyWithNonUserData() {
+    public void testUpdatePropertyKeyWithNonUserdata() {
         SchemaManager schema = graph().schema();
 
         schema.propertyKey("age")

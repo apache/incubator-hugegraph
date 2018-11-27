@@ -128,7 +128,7 @@ public class CassandraSerializer extends TableSerializer {
     }
 
     @Override
-    protected void writeUserData(SchemaElement schema,
+    protected void writeUserdata(SchemaElement schema,
                                  TableBackendEntry entry) {
         assert entry instanceof CassandraBackendEntry;
         for (Map.Entry<String, Object> e : schema.userdata().entrySet()) {
@@ -138,7 +138,7 @@ public class CassandraSerializer extends TableSerializer {
     }
 
     @Override
-    protected void readUserData(SchemaElement schema,
+    protected void readUserdata(SchemaElement schema,
                                 TableBackendEntry entry) {
         assert entry instanceof CassandraBackendEntry;
         // Parse all user data of a schema element

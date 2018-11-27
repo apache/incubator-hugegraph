@@ -807,7 +807,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddEdgeLabelWithUserData() {
+    public void testAddEdgeLabelWithUserdata() {
         super.initPropertyKeys();
 
         SchemaManager schema = graph().schema();
@@ -844,7 +844,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAppendEdgeLabelWithUserData() {
+    public void testAppendEdgeLabelWithUserdata() {
         super.initPropertyKeys();
 
         SchemaManager schema = graph().schema();
@@ -879,7 +879,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testEliminateEdgeLabelWithUserData() {
+    public void testEliminateEdgeLabelWithUserdata() {
         super.initPropertyKeys();
 
         SchemaManager schema = graph().schema();
@@ -915,7 +915,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testEliminateVertexLabelWithNonUserData() {
+    public void testEliminateVertexLabelWithNonUserdata() {
         super.initPropertyKeys();
 
         SchemaManager schema = graph().schema();

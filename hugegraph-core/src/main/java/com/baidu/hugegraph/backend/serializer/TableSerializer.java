@@ -381,7 +381,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_LABELS,
                      this.toLongSet(vertexLabel.indexLabels()));
         this.writeEnableLabelIndex(vertexLabel, entry);
-        this.writeUserData(vertexLabel, entry);
+        this.writeUserdata(vertexLabel, entry);
         entry.column(HugeKeys.STATUS, vertexLabel.status().code());
         return entry;
     }
@@ -403,7 +403,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_LABELS,
                      this.toLongSet(edgeLabel.indexLabels()));
         this.writeEnableLabelIndex(edgeLabel, entry);
-        this.writeUserData(edgeLabel, entry);
+        this.writeUserdata(edgeLabel, entry);
         entry.column(HugeKeys.STATUS, edgeLabel.status().code());
         return entry;
     }
@@ -417,7 +417,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.CARDINALITY, propertyKey.cardinality().code());
         entry.column(HugeKeys.PROPERTIES,
                      this.toLongSet(propertyKey.properties()));
-        this.writeUserData(propertyKey, entry);
+        this.writeUserdata(propertyKey, entry);
         entry.column(HugeKeys.STATUS, propertyKey.status().code());
         return entry;
     }
@@ -448,7 +448,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         vertexLabel.nullableKeys(this.toIdArray(nullableKeys));
         vertexLabel.indexLabels(this.toIdArray(indexLabels));
         this.readEnableLabelIndex(vertexLabel, entry);
-        this.readUserData(vertexLabel, entry);
+        this.readUserdata(vertexLabel, entry);
         vertexLabel.status(SerialEnum.fromCode(SchemaStatus.class,
                                                status.byteValue()));
         return vertexLabel;
@@ -483,7 +483,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         edgeLabel.nullableKeys(this.toIdArray(nullableKeys));
         edgeLabel.indexLabels(this.toIdArray(indexLabels));
         this.readEnableLabelIndex(edgeLabel, entry);
-        this.readUserData(edgeLabel, entry);
+        this.readUserdata(edgeLabel, entry);
         edgeLabel.status(SerialEnum.fromCode(SchemaStatus.class,
                                              status.byteValue()));
         return edgeLabel;
@@ -512,7 +512,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                                                     cardinality.byteValue()));
         propertyKey.properties(this.toIdArray(properties));
 
-        this.readUserData(propertyKey, entry);
+        this.readUserdata(propertyKey, entry);
         propertyKey.status(SerialEnum.fromCode(SchemaStatus.class,
                                                status.byteValue()));
         return propertyKey;
@@ -588,9 +588,9 @@ public abstract class TableSerializer extends AbstractSerializer {
         schema.enableLabelIndex(enableLabelIndex);
     }
 
-    protected abstract void writeUserData(SchemaElement schema,
+    protected abstract void writeUserdata(SchemaElement schema,
                                           TableBackendEntry entry);
 
-    protected abstract void readUserData(SchemaElement schema,
+    protected abstract void readUserdata(SchemaElement schema,
                                          TableBackendEntry entry);
 }

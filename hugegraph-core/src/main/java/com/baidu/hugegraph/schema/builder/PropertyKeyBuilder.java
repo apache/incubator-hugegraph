@@ -87,7 +87,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         }
         tx.checkIdIfRestoringMode(HugeType.PROPERTY_KEY, this.id);
 
-        this.checkUserData(Action.INSERT);
+        this.checkUserdata(Action.INSERT);
 
         propertyKey = this.build();
         tx.addPropertyKey(propertyKey);
@@ -102,7 +102,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserData(Action.APPEND);
+        this.checkUserdata(Action.APPEND);
 
         for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
             propertyKey.userdata(entry.getKey(), entry.getValue());
@@ -119,7 +119,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserData(Action.ELIMINATE);
+        this.checkUserdata(Action.ELIMINATE);
 
         for (String key : this.userdata.keySet()) {
             propertyKey.removeUserdata(key);
@@ -271,7 +271,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         }
     }
 
-    private void checkUserData(Action action) {
+    private void checkUserdata(Action action) {
         switch (action) {
             case INSERT:
             case APPEND:
