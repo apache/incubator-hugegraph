@@ -41,7 +41,7 @@ import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
-import com.baidu.hugegraph.backend.store.BackendStoreInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -193,7 +193,7 @@ public final class GraphManager {
             if (InMemoryDBStoreProvider.matchType(hugegraph.backend())) {
                 hugegraph.initBackend();
             }
-            BackendStoreInfo info = new BackendStoreInfo(hugegraph);
+            BackendStoreSystemInfo info = new BackendStoreSystemInfo(hugegraph);
             if (!info.exist()) {
                 LOG.error("The backend store of '{}' has not been initialized",
                           hugegraph.name());

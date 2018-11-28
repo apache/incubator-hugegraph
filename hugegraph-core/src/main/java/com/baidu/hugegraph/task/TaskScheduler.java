@@ -31,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -375,8 +376,11 @@ public class TaskScheduler {
                 query.limit(limit);
             }
             Iterator<Vertex> vertices = this.tx().queryVertices(query);
-            return new MapperIterator<>(vertices, HugeTask::fromVertex);
-        });
+            @SuppressWarnings("unchecked")
+            List<HugeTask<V>> tasks = IteratorUtils.toList(new MapperIterator<>(
+                                      vertices, HugeTask::fromVertex));
+            return tasks;
+        }).iterator();
     }
 
     private <V> V call(Runnable runnable) {

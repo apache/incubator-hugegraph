@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendStoreInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.util.E;
@@ -93,7 +93,7 @@ public class InitStore {
         LOG.info("Init graph with config file: {}", config);
         HugeGraph graph = HugeFactory.open(config);
 
-        BackendStoreInfo backendStoreInfo = new BackendStoreInfo(graph);
+        BackendStoreSystemInfo backendStoreInfo = new BackendStoreSystemInfo(graph);
         try {
             if (backendStoreInfo.exist()) {
                 LOG.info("Skip init-store due to the backend store of '{}' " +

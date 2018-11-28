@@ -314,7 +314,7 @@ public class RamCache implements Cache {
 
         if (expireItems > 0) {
             LOG.info("Cache expired {} items cost {}ms (size {}, expire {}ms)",
-                      expireItems, now() - current, this.size(), expireTime);
+                     expireItems, now() - current, this.size(), expireTime);
         }
     }
 
