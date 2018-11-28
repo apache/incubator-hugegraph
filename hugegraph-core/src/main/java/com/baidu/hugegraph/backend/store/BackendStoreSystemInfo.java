@@ -28,10 +28,12 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public class BackendStoreInfo {
+public class BackendStoreSystemInfo {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
@@ -39,18 +41,23 @@ public class BackendStoreInfo {
 
     private final HugeGraph graph;
 
-    public BackendStoreInfo(HugeGraph graph) {
+    public BackendStoreSystemInfo(HugeGraph graph) {
         this.graph = graph;
     }
 
     public void init() {
         SchemaTransaction schema = this.graph.schemaTransaction();
+        // Use property key to store backend version
         String backendVersion = this.graph.backendVersion();
         PropertyKey backendInfo = this.graph.schema()
                                             .propertyKey(PK_BACKEND_INFO)
                                             .userdata("version", backendVersion)
                                             .build();
         schema.addPropertyKey(backendInfo);
+
+        // Set schema counter to reserve primitive system id
+        schema.setNextIdLowest(HugeType.SYS_SCHEMA,
+                               SchemaElement.MAX_PRIMITIVE_SYS_ID);
     }
 
     private Map<String, Object> info() {

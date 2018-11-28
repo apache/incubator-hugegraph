@@ -1223,6 +1223,7 @@ public class GraphTransaction extends IndexableTransaction {
                                     Map<Id, V> addedTxRecords,
                                     Map<Id, V> removedTxRecords,
                                     Map<Id, V> updatedTxRecords) {
+        this.checkOwnerThread();
         // Return the origin results if there is no change in tx
         if (addedTxRecords.isEmpty() &&
             removedTxRecords.isEmpty() &&
