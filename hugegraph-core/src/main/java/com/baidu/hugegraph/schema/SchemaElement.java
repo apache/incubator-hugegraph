@@ -37,6 +37,9 @@ import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaElement implements Namifiable, Typifiable {
 
+    public static final int MAX_PRIMITIVE_SYS_ID = 32;
+    public static final int NEXT_PRIMITIVE_SYS_ID = 7;
+
     protected final HugeGraph graph;
 
     private final Id id;

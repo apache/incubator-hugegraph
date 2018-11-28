@@ -33,6 +33,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -263,11 +264,7 @@ public class TaskScheduler {
     }
 
     public <V> Iterator<HugeTask<V>> findTasks(List<Id> ids) {
-        Object[] idArray = ids.toArray(new Id[ids.size()]);
-        return this.call(() -> {
-            Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
-            return new MapperIterator<>(vertices, HugeTask::fromVertex);
-        });
+        return this.queryTask(ids);
     }
 
     public <V> Iterator<HugeTask<V>> findAllTask(long limit) {
@@ -375,8 +372,22 @@ public class TaskScheduler {
                 query.limit(limit);
             }
             Iterator<Vertex> vertices = this.tx().queryVertices(query);
-            return new MapperIterator<>(vertices, HugeTask::fromVertex);
-        });
+            Iterator<HugeTask<V>> tasks =
+                    new MapperIterator<>(vertices, HugeTask::fromVertex);
+            // Convert iterator to list to avoid across thread tx accessed
+            return IteratorUtils.list(tasks);
+        }).iterator();
+    }
+
+    private <V> Iterator<HugeTask<V>> queryTask(List<Id> ids) {
+        return this.call(() -> {
+            Object[] idArray = ids.toArray(new Id[ids.size()]);
+            Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
+            Iterator<HugeTask<V>> tasks =
+                    new MapperIterator<>(vertices, HugeTask::fromVertex);
+            // Convert iterator to list to avoid across thread tx accessed
+            return IteratorUtils.list(tasks);
+        }).iterator();
     }
 
     private <V> V call(Runnable runnable) {

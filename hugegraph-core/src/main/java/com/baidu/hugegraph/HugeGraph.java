@@ -48,7 +48,7 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.BackendStoreInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -196,7 +196,7 @@ public class HugeGraph implements GremlinGraph {
         this.loadGraphStore().open(this.configuration);
         try {
             this.storeProvider.init();
-            this.initBackendStoreInfo();
+            this.initBackendStoreSystemInfo();
         } finally {
             this.loadGraphStore().close();
             this.loadSystemStore().close();
@@ -225,7 +225,7 @@ public class HugeGraph implements GremlinGraph {
         this.waitUntilAllTasksCompleted();
 
         this.storeProvider.truncate();
-        this.initBackendStoreInfo();
+        this.initBackendStoreSystemInfo();
     }
 
     private void waitUntilAllTasksCompleted() {
@@ -237,8 +237,8 @@ public class HugeGraph implements GremlinGraph {
         }
     }
 
-    private void initBackendStoreInfo() {
-        new BackendStoreInfo(this).init();
+    private void initBackendStoreSystemInfo() {
+        new BackendStoreSystemInfo(this).init();
     }
 
     private SchemaTransaction openSchemaTransaction() throws HugeException {

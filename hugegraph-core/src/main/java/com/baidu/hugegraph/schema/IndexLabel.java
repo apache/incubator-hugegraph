@@ -128,13 +128,23 @@ public class IndexLabel extends SchemaElement {
         throw new NotSupportException("user data for index label");
     }
 
-    public static final IndexLabel VL_IL = new IndexLabel(-1, "~vli");
-    public static final IndexLabel EL_IL = new IndexLabel(-2, "~eli");
+    // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID
+    private static final int VL_IL_ID = -1;
+    private static final int EL_IL_ID = -2;
+    private static final int PKN_IL_ID = -3;
+    private static final int VLN_IL_ID = -4;
+    private static final int ELN_IL_ID = -5;
+    private static final int ILN_IL_ID = -6;
 
-    public static final IndexLabel PK_NAME_IL = new IndexLabel(-3, "~pkni");
-    public static final IndexLabel VL_NAME_IL = new IndexLabel(-4, "~vlni");
-    public static final IndexLabel EL_NAME_IL = new IndexLabel(-5, "~elni");
-    public static final IndexLabel IL_NAME_IL = new IndexLabel(-6, "~ilni");
+    // Label index
+    static final IndexLabel VL_IL = new IndexLabel(VL_IL_ID, "~vli");
+    static final IndexLabel EL_IL = new IndexLabel(EL_IL_ID, "~eli");
+
+    // Schema name index
+    static final IndexLabel PKN_IL = new IndexLabel(PKN_IL_ID, "~pkni");
+    static final IndexLabel VLN_IL = new IndexLabel(VLN_IL_ID, "~vlni");
+    static final IndexLabel ELN_IL = new IndexLabel(ELN_IL_ID, "~elni");
+    static final IndexLabel ILN_IL = new IndexLabel(ILN_IL_ID, "~ilni");
 
     public static IndexLabel label(HugeType type) {
         switch (type) {
@@ -145,13 +155,13 @@ public class IndexLabel extends SchemaElement {
             case EDGE_IN:
                 return EL_IL;
             case PROPERTY_KEY:
-                return PK_NAME_IL;
+                return PKN_IL;
             case VERTEX_LABEL:
-                return VL_NAME_IL;
+                return VLN_IL;
             case EDGE_LABEL:
-                return EL_NAME_IL;
+                return ELN_IL;
             case INDEX_LABEL:
-                return IL_NAME_IL;
+                return ILN_IL;
             default:
                 throw new AssertionError(String.format(
                           "No primitive index label for '%s'", type));
@@ -160,20 +170,21 @@ public class IndexLabel extends SchemaElement {
 
     public static IndexLabel label(HugeGraph graph, Id id) {
         // Primitive IndexLabel first
-        if (id.asLong() < 0) {
+        if (id.asLong() < 0 &&
+            id.asLong() > -SchemaElement.NEXT_PRIMITIVE_SYS_ID) {
             switch ((int) id.asLong()) {
-                case -1:
+                case VL_IL_ID:
                     return VL_IL;
-                case -2:
+                case EL_IL_ID:
                     return EL_IL;
-                case -3:
-                    return PK_NAME_IL;
-                case -4:
-                    return VL_NAME_IL;
-                case -5:
-                    return EL_NAME_IL;
-                case -6:
-                    return IL_NAME_IL;
+                case PKN_IL_ID:
+                    return PKN_IL;
+                case VLN_IL_ID:
+                    return VLN_IL;
+                case ELN_IL_ID:
+                    return ELN_IL;
+                case ILN_IL_ID:
+                    return ILN_IL;
                 default:
                     throw new AssertionError(String.format(
                               "No primitive index label for '%s'", id));
