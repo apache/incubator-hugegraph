@@ -36,8 +36,10 @@ public class CacheManager {
 
     private static CacheManager INSTANCE = new CacheManager();
 
-    // Check the cache expiration every 10s by default
-    private static final long TIMER_TICK_PERIOD = 10;
+    // Check the cache expiration every 30s by default
+    private static final long TIMER_TICK_PERIOD = 30;
+    // Log if tick cost time > 1000ms
+    private static final long LOG_TICK_COST_TIME = 1000L;
 
     private final Map<String, Cache> caches;
     private final Timer timer;
@@ -58,17 +60,24 @@ public class CacheManager {
             @Override
             public void run() {
                 try {
-                    this.tick();
+                    for (Entry<String, Cache> entry : caches().entrySet()) {
+                        this.tick(entry.getKey(), entry.getValue());
+                    }
                 } catch (Throwable e) {
                     LOG.warn("An exception occurred when running tick", e);
                 }
             }
 
-            private void tick() {
-                for (Entry<String, Cache> entry : caches().entrySet()) {
-                    LOG.debug("Cache '{}' expiration tick", entry.getKey());
-                    entry.getValue().tick();
+            private void tick(String name, Cache cache) {
+                long start = System.currentTimeMillis();
+                long items = cache.tick();
+                long cost = System.currentTimeMillis() - start;
+                if (cost > LOG_TICK_COST_TIME) {
+                    LOG.info("Cache '{}' expired {} items cost {}ms > {}ms " +
+                             "(size {}, expire {}ms)", name, items, cost,
+                             LOG_TICK_COST_TIME, cache.size(), cache.expire());
                 }
+                LOG.debug("Cache '{}' expiration tick cost {}ms", name, cost);
             }
         };
 

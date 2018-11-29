@@ -155,7 +155,7 @@ public class CacheManagerTest extends BaseUnitTest {
     @Test
     public void testCacheExpire() {
         Cache cache1 = new RamCache();
-        cache1.expire(32);
+        cache1.expire(28);
 
         Cache cache2 = new RamCache();
         cache2.expire(0);
@@ -172,8 +172,8 @@ public class CacheManagerTest extends BaseUnitTest {
         waitTillNext(40);
 
         // Would call tick() per 10s
-        Mockito.verify(mockCache1, Mockito.times(4)).tick();
-        Mockito.verify(mockCache2, Mockito.times(4)).tick();
+        Mockito.verify(mockCache1, Mockito.times(1)).tick();
+        Mockito.verify(mockCache2, Mockito.times(1)).tick();
 
         Assert.assertEquals(0, cache1.size());
         Assert.assertEquals(1, cache2.size());
