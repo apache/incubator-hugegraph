@@ -296,10 +296,10 @@ public class RamCache implements Cache {
     }
 
     @Override
-    public void tick() {
+    public long tick() {
         long expireTime = this.expire;
         if (expireTime <= 0) {
-            return;
+            return 0L;
         }
 
         int expireItems = 0;
@@ -313,9 +313,10 @@ public class RamCache implements Cache {
         }
 
         if (expireItems > 0) {
-            LOG.info("Cache expired {} items cost {}ms (size {}, expire {}ms)",
+            LOG.debug("Cache expired {} items cost {}ms (size {}, expire {}ms)",
                       expireItems, now() - current, this.size(), expireTime);
         }
+        return expireItems;
     }
 
     @Override

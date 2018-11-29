@@ -46,7 +46,7 @@ public interface Cache {
 
     public long expire();
 
-    public void tick();
+    public long tick();
 
     public long capacity();
 
