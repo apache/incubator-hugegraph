@@ -60,12 +60,12 @@ public class HugeTraverser {
     }
 
     public List<Id> shortestPath(Id sourceV, Id targetV, Directions dir,
-                                 String label, int maxDepth,
-                                 long degree, long capacity) {
+                                 String label, int depth, long degree,
+                                 long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
         E.checkNotNull(dir, "direction");
-        checkPositive(maxDepth, "Shortest path max depth");
+        checkPositive(depth, "max depth");
         checkDegree(degree);
         checkCapacity(capacity);
 
@@ -81,12 +81,12 @@ public class HugeTraverser {
         while (true) {
             // Found, reach max depth or reach capacity, stop searching
             if ((path = traverser.forward()) != PATH_NONE ||
-                --maxDepth <= 0 || traverser.reachCapacity()) {
+                --depth <= 0 || traverser.reachCapacity()) {
                 break;
             }
 
             if ((path = traverser.backward()) != PATH_NONE ||
-                --maxDepth <= 0 || traverser.reachCapacity()) {
+                --depth <= 0 || traverser.reachCapacity()) {
                 Collections.reverse(path);
                 break;
             }
@@ -95,9 +95,8 @@ public class HugeTraverser {
     }
 
     public Set<Path> paths(Id sourceV, Directions sourceDir,
-                           Id targetV, Directions targetDir,
-                           String label, int maxDepth,
-                           long degree, long capacity, long limit) {
+                           Id targetV, Directions targetDir, String label,
+                           int depth, long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
         E.checkNotNull(sourceDir, "source direction");
@@ -106,7 +105,7 @@ public class HugeTraverser {
                         sourceDir == targetDir.opposite(),
                         "Source direction must equal to target direction," +
                         "or opposite to target direction");
-        checkPositive(maxDepth, "Paths max depth");
+        checkPositive(depth, "max depth");
         checkDegree(degree);
         checkCapacity(capacity);
         checkLimit(limit);
@@ -120,13 +119,13 @@ public class HugeTraverser {
         PathsTraverser traverser = new PathsTraverser(sourceV, targetV, labelId,
                                                       degree, capacity, limit);
         while (true) {
-            if (--maxDepth < 0 || traverser.reachLimit()) {
+            if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
             List<Path> foundPaths = traverser.forward(sourceDir);
             paths.addAll(foundPaths);
 
-            if (--maxDepth < 0 || traverser.reachLimit()) {
+            if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
             foundPaths = traverser.backward(targetDir);
@@ -139,25 +138,23 @@ public class HugeTraverser {
     }
 
     public List<Path> rays(Id sourceV, Directions dir, String label,
-                           int maxDepth, long degree, long capacity,
-                           long limit) {
-        return this.subGraphPaths(sourceV, dir, label, maxDepth, degree,
+                           int depth, long degree, long capacity, long limit) {
+        return this.subGraphPaths(sourceV, dir, label, depth, degree,
                                   capacity, limit, false);
     }
 
     public List<Path> rings(Id sourceV, Directions dir, String label,
-                            int maxDepth, long degree, long capacity,
-                            long limit) {
-        return this.subGraphPaths(sourceV, dir, label, maxDepth, degree,
+                            int depth, long degree, long capacity, long limit) {
+        return this.subGraphPaths(sourceV, dir, label, depth, degree,
                                   capacity, limit, true);
     }
 
     private List<Path> subGraphPaths(Id sourceV, Directions dir, String label,
-                                     int maxDepth, long degree, long capacity,
+                                     int depth, long degree, long capacity,
                                      long limit, boolean rings) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
-        checkPositive(maxDepth, "Paths max depth");
+        checkPositive(depth, "max depth");
         checkDegree(degree);
         checkCapacity(capacity);
         checkLimit(limit);
@@ -169,7 +166,7 @@ public class HugeTraverser {
         List<Path> paths = new ArrayList<>();
         while (true) {
             paths.addAll(traverser.forward(dir));
-            if (--maxDepth < 0 || traverser.reachLimit() ||
+            if (--depth < 0 || traverser.reachLimit() ||
                 traverser.finished()) {
                 break;
             }
@@ -182,7 +179,7 @@ public class HugeTraverser {
                         long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
-        checkPositive(depth, "K-out depth");
+        checkPositive(depth, "k-out depth");
         checkDegree(degree);
         checkCapacity(capacity);
         checkLimit(limit);
@@ -238,7 +235,7 @@ public class HugeTraverser {
                              long degree, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
-        checkPositive(depth, "K-neighbor depth");
+        checkPositive(depth, "k-neighbor depth");
         checkDegree(degree);
         checkLimit(limit);
 
@@ -312,24 +309,25 @@ public class HugeTraverser {
 
     private static void checkPositive(int value, String name) {
         E.checkArgument(value > 0,
-                        "%s must be > 0, but got '%s'", name, value);
+                        "The %s parameter must be > 0, but got '%s'",
+                        name, value);
     }
 
     private static void checkDegree(long degree) {
-        checkLimit(degree, "Degree");
+        checkPositiveOrNoLimit(degree, "max degree");
     }
 
     private static void checkCapacity(long capacity) {
-        checkLimit(capacity, "Capacity");
+        checkPositiveOrNoLimit(capacity, "capacity");
     }
 
     private static void checkLimit(long limit) {
-        checkLimit(limit, "Limit");
+        checkPositiveOrNoLimit(limit, "limit");
     }
 
-    private static void checkLimit(long value, String name) {
+    private static void checkPositiveOrNoLimit(long value, String name) {
         E.checkArgument(value > 0 || value == NO_LIMIT,
-                        "%s must be > 0 or == %s, but got: %s",
+                        "The %s parameter must be > 0 or == %s, but got: %s",
                         name, NO_LIMIT, value);
     }
 

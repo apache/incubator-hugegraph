@@ -427,6 +427,7 @@ public class TaskScheduler {
             return false;
         }
 
+        @SuppressWarnings("unused")
         private void deleteIndex(HugeVertex vertex) {
             // Delete the old record if exist
             Iterator<Vertex> old = this.queryVertices(vertex.id());

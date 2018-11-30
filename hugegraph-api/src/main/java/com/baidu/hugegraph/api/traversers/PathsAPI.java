@@ -59,14 +59,14 @@ public class PathsAPI extends API {
                       @QueryParam("target") String target,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
-                      @QueryParam("max_depth") int maxDepth,
-                      @QueryParam("degree") @DefaultValue("-1") long degree,
+                      @QueryParam("max_depth") int depth,
+                      @QueryParam("max_degree") @DefaultValue("-1") long degree,
                       @QueryParam("capacity") @DefaultValue("-1") long capacity,
                       @QueryParam("limit") @DefaultValue("10") long limit) {
         LOG.debug("Graph [{}] get paths from '{}', to '{}' with " +
                   "direction {}, edge label {}, max depth '{}', " +
-                  "degree '{}', capacity '{}' and limit '{}'",
-                  graph, source, target, direction, edgeLabel, maxDepth,
+                  "max degree '{}', capacity '{}' and limit '{}'",
+                  graph, source, target, direction, edgeLabel, depth,
                   degree, capacity, limit);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
@@ -77,7 +77,7 @@ public class PathsAPI extends API {
         HugeTraverser traverser = new HugeTraverser(g);
         Set<HugeTraverser.Path> paths;
         paths = traverser.paths(sourceId, dir, targetId, dir.opposite(),
-                                edgeLabel, maxDepth, degree, capacity, limit);
+                                edgeLabel, depth, degree, capacity, limit);
         return manager.serializer(g).writePaths("paths", paths, false);
     }
 }
