@@ -58,15 +58,15 @@ public class KoutAPI extends API {
                       @QueryParam("source") String source,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
-                      @QueryParam("depth") int depth,
+                      @QueryParam("max_depth") int depth,
                       @QueryParam("nearest")
                       @DefaultValue("true")  boolean nearest,
-                      @QueryParam("degree") @DefaultValue("-1") long degree,
+                      @QueryParam("max_degree") @DefaultValue("-1") long degree,
                       @QueryParam("capacity") @DefaultValue("-1") long capacity,
                       @QueryParam("limit") @DefaultValue("-1") long limit) {
         LOG.debug("Graph [{}] get k-out from '{}' with " +
-                  "direction '{}', edge label '{}', depth '{}', nearest '{}'," +
-                  " degree '{}', capacity '{}' and limit '{}'",
+                  "direction '{}', edge label '{}', max depth '{}', nearest " +
+                  "'{}', max degree '{}', capacity '{}' and limit '{}'",
                   graph, source, direction, edgeLabel, depth, nearest,
                   degree, capacity, limit);
 

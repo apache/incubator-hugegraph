@@ -59,14 +59,14 @@ public class ShortestPathAPI extends API {
                       @QueryParam("target") String target,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
-                      @QueryParam("max_depth") int maxDepth,
-                      @QueryParam("degree") @DefaultValue("-1") long degree,
+                      @QueryParam("max_depth") int depth,
+                      @QueryParam("max_degree") @DefaultValue("-1") long degree,
                       @QueryParam("capacity")
                       @DefaultValue("-1") long capacity) {
         LOG.debug("Graph [{}] get shortest path from '{}', to '{}' with " +
                   "direction {}, edge label {}, max depth '{}', " +
-                  "degree '{}' and capacity '{}'",
-                  graph, source, target, direction, edgeLabel, maxDepth,
+                  "max degree '{}' and capacity '{}'",
+                  graph, source, target, direction, edgeLabel, depth,
                   degree, capacity);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
@@ -77,8 +77,8 @@ public class ShortestPathAPI extends API {
 
         HugeTraverser traverser = new HugeTraverser(g);
         List<Id> path = traverser.shortestPath(sourceId, targetId, dir,
-                                               edgeLabel, maxDepth,
-                                               degree, capacity);
+                                               edgeLabel, depth, degree,
+                                               capacity);
         return manager.serializer(g).writeIds("path", path);
     }
 }

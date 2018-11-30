@@ -59,15 +59,15 @@ public class CrosspointsAPI extends API {
                       @QueryParam("target") String target,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
-                      @QueryParam("max_depth") int maxDepth,
-                      @QueryParam("degree") @DefaultValue("-1") long degree,
+                      @QueryParam("max_depth") int depth,
+                      @QueryParam("max_degree") @DefaultValue("-1") long degree,
                       @QueryParam("capacity") @DefaultValue("-1") long capacity,
                       @QueryParam("limit") @DefaultValue("10") long limit) {
         LOG.debug("Graph [{}] get crosspoints with paths from '{}', to '{}' " +
                   "with direction '{}', edge label '{}', max depth '{}', " +
-                  "degree '{}', capacity '{}' and limit '{}'",
+                  "max degree '{}', capacity '{}' and limit '{}'",
                   graph, source, target, direction, edgeLabel,
-                  maxDepth, degree, capacity, limit);
+                  depth, degree, capacity, limit);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
@@ -77,7 +77,7 @@ public class CrosspointsAPI extends API {
         HugeTraverser traverser = new HugeTraverser(g);
         Set<HugeTraverser.Path> paths = traverser.paths(sourceId, dir,
                                                         targetId, dir,
-                                                        edgeLabel, maxDepth,
+                                                        edgeLabel, depth,
                                                         degree, capacity,
                                                         limit);
         return manager.serializer(g).writePaths("crosspoints", paths, true);
