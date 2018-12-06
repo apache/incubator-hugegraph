@@ -53,7 +53,7 @@ public class HbaseOptions extends OptionHolder {
             new ConfigOption<>(
                     "hbase.port",
                     "The port address of HBase zookeeper.",
-                    rangeInt(1024, 10000),
+                    rangeInt(1, 65535),
                     2181
             );
 

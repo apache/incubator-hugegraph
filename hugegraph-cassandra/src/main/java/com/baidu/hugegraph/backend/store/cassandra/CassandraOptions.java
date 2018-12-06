@@ -54,7 +54,7 @@ public class CassandraOptions extends OptionHolder {
             new ConfigOption<>(
                     "cassandra.port",
                     "The seeds port address of cassandra cluster.",
-                    rangeInt(1024, 10000),
+                    rangeInt(1, 65535),
                     9042
             );
 
