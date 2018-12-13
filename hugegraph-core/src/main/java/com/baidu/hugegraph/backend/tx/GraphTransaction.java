@@ -312,6 +312,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         List<Query> queries = new ArrayList<>();
+        IdQuery ids = new IdQuery(query.resultType(), query);
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query)) {
             Query q = this.optimizeQuery(cq);
@@ -320,13 +321,18 @@ public class GraphTransaction extends IndexableTransaction {
              * 1.sysprop-query, which would not be empty.
              * 2.index-query result(ids after optimization), which may be empty.
              */
-            if (!q.empty()) {
+            if (q.getClass() == IdQuery.class && !q.ids().isEmpty()) {
+                ids.query(q.ids());
+            } else if (!q.empty()) {
                 // Return empty if there is no result after index-query
                 queries.add(q);
             }
         }
 
         ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
+        if (!ids.empty()) {
+            queries.add(ids);
+        }
         for (Query q : queries) {
             rs.extend(super.query(q));
         }

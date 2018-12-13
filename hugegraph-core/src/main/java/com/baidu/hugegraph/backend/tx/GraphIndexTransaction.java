@@ -89,11 +89,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // TODO: remove left index in async thread
-        // Process range index
-        this.processRangeIndexLeft(query, element);
-        // Process secondary index or search index
-        this.processSecondaryOrSearchIndexLeft(query, element);
-
+        for (ConditionQuery cq: ConditionQueryFlatten.flatten(query)) {
+            // Process range index
+            this.processRangeIndexLeft(cq, element);
+            // Process secondary index or search index
+            this.processSecondaryOrSearchIndexLeft(cq, element);
+        }
         this.commit();
     }
 
