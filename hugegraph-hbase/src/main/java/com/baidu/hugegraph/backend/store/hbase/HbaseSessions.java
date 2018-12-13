@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Future;
 
 import org.apache.hadoop.conf.Configuration;
@@ -51,6 +52,10 @@ import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
+import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.FilterList.Operator;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter.RowRange;
 import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 
@@ -384,6 +389,29 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
+         * Get multi records by rowkeys from a table
+         */
+        public RowIterator get(String table, byte[] family,
+                               Set<byte[]> rowkeys) {
+            assert !this.hasChanges();
+
+            List<Get> gets = new ArrayList<>(rowkeys.size());
+            for (byte[] rowkey : rowkeys) {
+                Get get = new Get(rowkey);
+                if (family != null) {
+                    get.addFamily(family);
+                }
+                gets.add(get);
+            }
+
+            try (Table htable = table(table)) {
+                return new RowIterator(htable.get(gets));
+            } catch (IOException e) {
+                throw new BackendException(e);
+            }
+        }
+
+        /**
          * Scan all records from a table
          */
         public RowIterator scan(String table, long limit) {
@@ -401,6 +429,27 @@ public class HbaseSessions extends BackendSessionPool {
         public RowIterator scan(String table, byte[] prefix) {
             assert !this.hasChanges();
             return this.scan(table, prefix, true, prefix);
+        }
+
+        /**
+         * Scan records by multi rowkey prefixs from a table
+         */
+        public RowIterator scan(String table, Set<byte[]> prefixs) {
+            assert !this.hasChanges();
+
+            FilterList orFilters = new FilterList(Operator.MUST_PASS_ONE);
+            for (byte[] prefix : prefixs) {
+                FilterList andFilters = new FilterList(Operator.MUST_PASS_ALL);
+                List<RowRange> ranges = new ArrayList<>();
+                ranges.add(new RowRange(prefix, true, null, true));
+                andFilters.addFilter(new MultiRowRangeFilter(ranges));
+                andFilters.addFilter(new PrefixFilter(prefix));
+
+                orFilters.addFilter(andFilters);
+            }
+
+            Scan scan = new Scan().setFilter(orFilters);
+            return this.scan(table, scan);
         }
 
         /**

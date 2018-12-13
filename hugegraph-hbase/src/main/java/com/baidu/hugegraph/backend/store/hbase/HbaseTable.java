@@ -22,6 +22,8 @@ package com.baidu.hugegraph.backend.store.hbase;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
@@ -45,7 +47,6 @@ import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.RowIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
@@ -133,11 +134,14 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         // Query by id
         if (query.conditions().isEmpty()) {
             assert !query.ids().isEmpty();
-            ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
-            for (Id id : query.ids()) {
-                rs.extend(newEntryIterator(this.queryById(session, id), query));
+            RowIterator rowIterator = null;
+            if (query.ids().size() == 1) {
+                Id id = query.ids().iterator().next();
+                rowIterator = this.queryById(session, id);
+            } else {
+                rowIterator = this.queryByIds(session, query.ids());
             }
-            return rs;
+            return newEntryIterator(rowIterator, query);
         }
 
         // Query by condition (or condition + id)
@@ -157,6 +161,12 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
     protected RowIterator queryById(Session session, Id id) {
         return session.get(this.table(), null, id.asBytes());
+    }
+
+    protected RowIterator queryByIds(Session session, Set<Id> ids) {
+        Set<byte[]> rowkeys = ids.stream().map(Id::asBytes)
+                                 .collect(Collectors.toSet());
+        return session.get(this.table(), null, rowkeys);
     }
 
     protected RowIterator queryByCond(Session session, ConditionQuery query) {
