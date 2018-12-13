@@ -240,8 +240,8 @@ public final class LockUtil {
         // NOTE: when used in multi-threads, should add `synchronized`
         public void lockReads(String group, Collection<Id> locks) {
             List<Id> newLocks = new ArrayList<>(locks.size());
+            Set<Id> locked = locksOfGroup(group);
             for (Id lock : locks) {
-                Set<Id> locked = locksOfGroup(group);
                 if (!locked.contains(lock)) {
                     newLocks.add(lock);
                 }

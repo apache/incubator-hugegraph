@@ -1566,18 +1566,13 @@ public class VertexCoreTest extends BaseCoreTest {
                  .and(P.lt(29).or(P.eq(35)).or(P.gt(45)))
                 ).values("name").toList();
 
-        Assert.assertEquals(5, vertices.size());
+        Assert.assertEquals(4, vertices.size());
 
         Set<String> names = ImmutableSet.of("Hebe", "James",
                                             "Tom Cat", "Lisa");
-        int numJames = 0;
         for (Object name : vertices) {
             Assert.assertTrue(names.contains(name));
-            if (name.equals("James")) {
-                numJames++;
-            }
         }
-        Assert.assertEquals(2, numJames);
     }
 
     @Test
