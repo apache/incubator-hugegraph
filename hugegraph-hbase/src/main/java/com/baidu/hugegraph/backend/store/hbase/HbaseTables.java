@@ -22,6 +22,8 @@ package com.baidu.hugegraph.backend.store.hbase;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
@@ -142,6 +144,13 @@ public class HbaseTables {
         protected RowIterator queryById(Session session, Id id) {
             byte[] prefix = id.asBytes();
             return session.scan(this.table(), prefix);
+        }
+
+        @Override
+        protected RowIterator queryByIds(Session session, Set<Id> ids) {
+            Set<byte[]> prefixs = ids.stream().map(Id::asBytes)
+                                     .collect(Collectors.toSet());
+            return session.scan(this.table(), prefixs);
         }
 
         @Override
