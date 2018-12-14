@@ -45,7 +45,7 @@ public class Example2 {
         HugeGraph graph = ExampleUtil.loadGraph();
 
         Example2.load(graph);
-        traversal(graph);
+//        traversal(graph);
 
         graph.close();
 
@@ -151,99 +151,56 @@ public class Example2 {
         schema.propertyKey("price").asInt().ifNotExist().create();
 
         schema.vertexLabel("person")
-              .properties("name", "age", "city")
-              .primaryKeys("name")
-              .nullableKeys("age")
+              .properties("name")
+              .useCustomizeStringId()
               .ifNotExist()
               .create();
 
-        schema.vertexLabel("software")
-              .properties("name", "lang", "price")
-              .primaryKeys("name")
-              .nullableKeys("price")
+        schema.vertexLabel("movie")
+              .properties("name")
+              .useCustomizeStringId()
               .ifNotExist()
               .create();
 
-        schema.indexLabel("personByCity")
-              .onV("person")
-              .by("city")
-              .secondary()
-              .ifNotExist()
-              .create();
-
-        schema.indexLabel("personByAgeAndCity")
-              .onV("person")
-              .by("age", "city")
-              .secondary()
-              .ifNotExist()
-              .create();
-
-        schema.indexLabel("softwareByPrice")
-              .onV("software")
-              .by("price")
-              .range()
-              .ifNotExist()
-              .create();
-
-        schema.edgeLabel("knows")
-              .multiTimes()
+        schema.edgeLabel("follow")
               .sourceLabel("person")
               .targetLabel("person")
-              .properties("date", "weight")
-              .sortKeys("date")
-              .nullableKeys("weight")
               .ifNotExist()
               .create();
 
-        schema.edgeLabel("created")
-              .sourceLabel("person").targetLabel("software")
-              .properties("date", "weight")
-              .nullableKeys("weight")
-              .ifNotExist()
-              .create();
-
-        schema.indexLabel("createdByDate")
-              .onE("created")
-              .by("date")
-              .secondary()
-              .ifNotExist()
-              .create();
-
-        schema.indexLabel("createdByWeight")
-              .onE("created")
-              .by("weight")
-              .range()
-              .ifNotExist()
-              .create();
-
-        schema.indexLabel("knowsByWeight")
-              .onE("knows")
-              .by("weight")
-              .range()
+        schema.edgeLabel("like")
+              .sourceLabel("person")
+              .targetLabel("movie")
               .ifNotExist()
               .create();
 
         graph.tx().open();
 
-        Vertex marko = graph.addVertex(T.label, "person", "name", "marko",
-                                       "age", 29, "city", "Beijing");
-        Vertex vadas = graph.addVertex(T.label, "person", "name", "vadas",
-                                       "age", 27, "city", "Hongkong");
-        Vertex lop = graph.addVertex(T.label, "software", "name", "lop",
-                                     "lang", "java", "price", 328);
-        Vertex josh = graph.addVertex(T.label, "person", "name", "josh",
-                                      "age", 32, "city", "Beijing");
-        Vertex ripple = graph.addVertex(T.label, "software", "name", "ripple",
-                                        "lang", "java", "price", 199);
-        Vertex peter = graph.addVertex(T.label, "person", "name", "peter",
-                                       "age", 35, "city", "Shanghai");
+        Vertex A = graph.addVertex(T.label, "person", T.id, "A", "name", "A");
+        Vertex B = graph.addVertex(T.label, "person", T.id, "B", "name", "B");
+        Vertex C = graph.addVertex(T.label, "person", T.id, "C", "name", "C");
+        Vertex a = graph.addVertex(T.label, "person", T.id, "a", "name", "a");
+        Vertex b = graph.addVertex(T.label, "person", T.id, "b", "name", "b");
+        Vertex c = graph.addVertex(T.label, "person", T.id, "c", "name", "c");
+        Vertex d = graph.addVertex(T.label, "person", T.id, "d", "name", "d");
 
-        marko.addEdge("knows", vadas, "date", "20160110", "weight", 0.5);
-        marko.addEdge("knows", josh, "date", "20130220", "weight", 1.0);
-        marko.addEdge("created", lop, "date", "20171210", "weight", 0.4);
-        josh.addEdge("created", lop, "date", "20091111", "weight", 0.4);
-        josh.addEdge("created", ripple, "date", "20171210", "weight", 1.0);
-        peter.addEdge("created", lop, "date", "20170324", "weight", 0.2);
+        Vertex m1 = graph.addVertex(T.label, "movie", T.id, "m1", "name", "m1");
+        Vertex m2 = graph.addVertex(T.label, "movie", T.id, "m2", "name", "m2");
+        Vertex m3 = graph.addVertex(T.label, "movie", T.id, "m3", "name", "m3");
+
+        A.addEdge("follow", a);
+        A.addEdge("follow", c);
+        B.addEdge("follow", a);
+        B.addEdge("follow", b);
+        B.addEdge("follow", c);
+        B.addEdge("follow", d);
+        C.addEdge("follow", c);
+        C.addEdge("follow", d);
+
+        a.addEdge("like", m1);
+        b.addEdge("like", m1);
+        c.addEdge("like", m2);
+        d.addEdge("like", m3);
 
         graph.tx().commit();
     }
