@@ -151,7 +151,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Override
-    protected AbstractTransaction indexTransaction() {
+    protected GraphIndexTransaction indexTransaction() {
         return this.indexTx;
     }
 
@@ -1026,7 +1026,7 @@ public class GraphTransaction extends IndexableTransaction {
          */
         this.beforeRead();
         try {
-            return this.indexTx.query(query);
+            return this.indexTx.indexQuery(query);
         } finally {
             this.afterRead();
         }
@@ -1206,7 +1206,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         if (cq.optimized() == OptimizedType.INDEX.ordinal()) {
             LOG.info("Remove left index: {}, query: {}", elem, cq);
-            this.indexTx.removeIndexLeft(cq, elem);
+            this.indexTx.asyncRemoveIndexLeft(cq, elem);
         }
         return false;
     }
