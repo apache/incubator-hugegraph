@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -40,7 +39,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableSet;
 
-public class CachedSchemaTransaction extends SchemaTransaction {
+public final class CachedSchemaTransaction extends SchemaTransaction {
 
     private final Cache idCache;
     private final Cache nameCache;
@@ -153,44 +152,6 @@ public class CachedSchemaTransaction extends SchemaTransaction {
         return IdGenerator.of(type.string() + "-" + name);
     }
 
-    private Object getOrFetch(HugeType type, Id id,
-                              Function<Id, Object> fetcher) {
-        Id prefixedId = generateId(type, id);
-        Object value = this.idCache.get(prefixedId);
-        if (value == null) {
-            value = fetcher.apply(id);
-            if (value != null) {
-                this.resetCachedAllIfReachedCapacity();
-
-                this.idCache.update(prefixedId, value);
-
-                SchemaElement schema = (SchemaElement) value;
-                Id prefixedName = generateId(schema.type(), schema.name());
-                this.nameCache.update(prefixedName, schema);
-            }
-        }
-        return value;
-    }
-
-    private Object getOrFetch(HugeType type, String name,
-                              Function<String, Object> fetcher) {
-        Id prefixedName = generateId(type, name);
-        Object value = this.nameCache.get(prefixedName);
-        if (value == null) {
-            value = fetcher.apply(name);
-            if (value != null) {
-                this.resetCachedAllIfReachedCapacity();
-
-                this.nameCache.update(prefixedName, value);
-
-                SchemaElement schema = (SchemaElement) value;
-                Id prefixedId = generateId(schema.type(), schema.id());
-                this.idCache.update(prefixedId, schema);
-            }
-        }
-        return value;
-    }
-
     @Override
     protected void addSchema(SchemaElement schema) {
         super.addSchema(schema);
@@ -207,8 +168,20 @@ public class CachedSchemaTransaction extends SchemaTransaction {
     @Override
     @SuppressWarnings("unchecked")
     protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
-        Object value = this.getOrFetch(type, id,
-                                       k -> super.getSchema(type, id));
+        Id prefixedId = generateId(type, id);
+        Object value = this.idCache.get(prefixedId);
+        if (value == null) {
+            value = super.getSchema(type, id);
+            if (value != null) {
+                this.resetCachedAllIfReachedCapacity();
+
+                this.idCache.update(prefixedId, value);
+
+                SchemaElement schema = (SchemaElement) value;
+                Id prefixedName = generateId(schema.type(), schema.name());
+                this.nameCache.update(prefixedName, schema);
+            }
+        }
         return (T) value;
     }
 
@@ -216,8 +189,20 @@ public class CachedSchemaTransaction extends SchemaTransaction {
     @SuppressWarnings("unchecked")
     protected <T extends SchemaElement> T getSchema(HugeType type,
                                                     String name) {
-        Object value = this.getOrFetch(type, name,
-                                       k -> super.getSchema(type, name));
+        Id prefixedName = generateId(type, name);
+        Object value = this.nameCache.get(prefixedName);
+        if (value == null) {
+            value = super.getSchema(type, name);
+            if (value != null) {
+                this.resetCachedAllIfReachedCapacity();
+
+                this.nameCache.update(prefixedName, value);
+
+                SchemaElement schema = (SchemaElement) value;
+                Id prefixedId = generateId(schema.type(), schema.id());
+                this.idCache.update(prefixedId, schema);
+            }
+        }
         return (T) value;
     }
 

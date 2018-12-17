@@ -19,33 +19,15 @@
 
 package com.baidu.hugegraph.backend.store.rocksdbsst;
 
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStoreProvider;
 import com.baidu.hugegraph.backend.store.rocksdbsst.RocksDBSstStore.RocksDBSstGraphStore;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 
 public class RocksDBSstStoreProvider extends RocksDBStoreProvider {
 
-    private static final Logger LOG = Log.logger(RocksDBSstStore.class);
-
     @Override
-    public BackendStore loadGraphStore(String name) {
-        LOG.debug("RocksDBSstStoreProvider load GraphStore '{}'", name);
-
-        this.checkOpened();
-        if (!this.stores.containsKey(name)) {
-            BackendStore s = new RocksDBSstGraphStore(this, database(), name);
-            this.stores.putIfAbsent(name, s);
-        }
-
-        BackendStore store = this.stores.get(name);
-        E.checkNotNull(store, "store");
-        E.checkState(store instanceof RocksDBSstGraphStore,
-                     "GraphStore must be an instance of RocksDBSstGraphStore");
-        return store;
+    protected BackendStore newGraphStore(String store) {
+        return new RocksDBSstGraphStore(this, this.database(), store);
     }
 
     @Override

@@ -120,12 +120,12 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public final synchronized Session session() {
+    public final Session session() {
         return (Session) super.getOrNewSession();
     }
 
     @Override
-    protected final synchronized Session newSession() {
+    protected Session newSession() {
         return new SstSession();
     }
 
@@ -173,14 +173,6 @@ public class RocksDBSstSessions extends RocksDBSessions {
         }
 
         /**
-         * Clear updates not committed in the session
-         */
-        @Override
-        public void clear() {
-            this.batch.clear();
-        }
-
-        /**
          * Any change in the session
          */
         @Override
@@ -220,6 +212,14 @@ public class RocksDBSstSessions extends RocksDBSessions {
             this.batch.clear();
 
             return count;
+        }
+
+        /**
+         * Rollback updates not committed in the session
+         */
+        @Override
+        public void rollback() {
+            this.batch.clear();
         }
 
         /**

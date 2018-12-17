@@ -247,7 +247,7 @@ public class RocksDBTables {
             if (max == null) {
                 E.checkArgumentNotNull(prefix, "Range index prefix is missing");
                 return session.scan(this.table(), begin, prefix.asBytes(),
-                                    Session.SCAN_PREFIX_WITH_END);
+                                    Session.SCAN_PREFIX_END);
             } else {
                 byte[] end = max.asBytes();
                 int type = maxEq ? Session.SCAN_LTE_END : Session.SCAN_LT_END;

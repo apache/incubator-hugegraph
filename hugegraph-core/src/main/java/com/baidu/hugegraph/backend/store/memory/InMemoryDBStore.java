@@ -315,6 +315,11 @@ public abstract class InMemoryDBStore
     private static final BackendFeatures FEATURES = new BackendFeatures() {
 
         @Override
+        public boolean supportsPersistence() {
+            return false;
+        }
+
+        @Override
         public boolean supportsScanToken() {
             return false;
         }

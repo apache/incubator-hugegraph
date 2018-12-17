@@ -168,7 +168,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
                                                   IdPrefixQuery query) {
         int type = query.inclusiveStart() ?
                    Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;
-        type |= Session.SCAN_PREFIX_WITH_END;
+        type |= Session.SCAN_PREFIX_END;
         return session.scan(this.table(), query.start().asBytes(),
                             query.prefix().asBytes(), type);
     }

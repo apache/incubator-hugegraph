@@ -25,7 +25,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 
-public class IdRangeQuery extends Query {
+public final class IdRangeQuery extends Query {
 
     private final Id start;
     private final Id end;

@@ -28,15 +28,15 @@ public abstract class IdGenerator {
 
     public abstract Id generate(HugeVertex vertex);
 
-    public static Id of(String id) {
+    public final static Id of(String id) {
         return new StringId(id);
     }
 
-    public static Id of(long id) {
+    public final static Id of(long id) {
         return new LongId(id);
     }
 
-    public static Id of(byte[] bytes, boolean number) {
+    public final static Id of(byte[] bytes, boolean number) {
         return number ? new LongId(bytes) : new StringId(bytes);
     }
 
@@ -45,7 +45,7 @@ public abstract class IdGenerator {
      * @param id original string id value
      * @return   wrapped id object
      */
-    public Id generate(String id) {
+    public final Id generate(String id) {
         return of(id);
     }
 
@@ -54,7 +54,7 @@ public abstract class IdGenerator {
      * @param id original long id value
      * @return   wrapped id object
      */
-    public Id generate(long id) {
+    public final Id generate(long id) {
         return of(id);
     }
 

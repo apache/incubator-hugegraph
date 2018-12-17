@@ -38,7 +38,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.google.common.base.Function;
 
-public class ConditionQuery extends IdQuery {
+public final class ConditionQuery extends IdQuery {
 
     // Conditions will be concated with `and` by default
     private Set<Condition> conditions = new LinkedHashSet<>();
@@ -136,8 +136,7 @@ public class ConditionQuery extends IdQuery {
         return relations;
     }
 
-    public Object condition(Object key) {
-        this.checkFlattened();
+    public <T> T condition(Object key) {
         List<Object> values = new ArrayList<>();
         for (Condition c : this.conditions) {
             if (c.isRelation()) {
@@ -152,15 +151,16 @@ public class ConditionQuery extends IdQuery {
         }
         E.checkState(values.size() == 1,
                      "Illegal key '%s' with more than one value", key);
-        return values.get(0);
+        @SuppressWarnings("unchecked")
+        T value = (T) values.get(0);
+        return value;
     }
 
     public void unsetCondition(Object key) {
-        this.checkFlattened();
         for (Iterator<Condition> iter = this.conditions.iterator();
              iter.hasNext();) {
             Condition c = iter.next();
-            assert c.isRelation();
+            E.checkState(c.isRelation(), "Can't unset condition '%s'", c);
             if (((Condition.Relation) c).key().equals(key)) {
                 iter.remove();
             }
@@ -197,6 +197,15 @@ public class ConditionQuery extends IdQuery {
     public boolean allSysprop() {
         for (Condition c : this.conditions) {
             if (!c.isSysprop()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean allRelation() {
+        for (Condition c : this.conditions) {
+            if (!c.isRelation()) {
                 return false;
             }
         }
@@ -388,11 +397,17 @@ public class ConditionQuery extends IdQuery {
     }
 
     public void checkFlattened() {
+        E.checkState(this.isFlattened(),
+                     "Query has none-flatten condition: %s", this);
+    }
+
+    public boolean isFlattened() {
         for (Condition condition : this.conditions) {
-            E.checkState(condition.isFlattened(),
-                         "Condition Query has none-flatten condition '%s'",
-                         condition);
+            if (!condition.isFlattened()) {
+                return false;
+            }
         }
+        return true;
     }
 
     public void optimized(int optimizedType) {

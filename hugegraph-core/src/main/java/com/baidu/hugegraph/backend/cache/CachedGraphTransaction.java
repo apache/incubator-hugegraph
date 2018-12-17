@@ -40,7 +40,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.google.common.collect.ImmutableList;
 
-public class CachedGraphTransaction extends GraphTransaction {
+public final class CachedGraphTransaction extends GraphTransaction {
 
     private final static int MAX_CACHE_EDGES_PER_QUERY = 100;
 

@@ -35,6 +35,8 @@ public class SerializerFactory {
     public static AbstractSerializer serializer(String name) {
         if (name.equalsIgnoreCase("binary")) {
             return new BinarySerializer();
+        } else if (name.equalsIgnoreCase("binaryinline")) {
+            return new BinaryInlineSerializer();
         } else if (name.equalsIgnoreCase("text")) {
             return new TextSerializer();
         }

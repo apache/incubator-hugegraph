@@ -311,28 +311,36 @@ public class GraphTransaction extends IndexableTransaction {
             return super.query(query);
         }
 
-        List<Query> queries = new ArrayList<>();
-        IdQuery ids = new IdQuery(query.resultType(), query);
-        for (ConditionQuery cq: ConditionQueryFlatten.flatten(
-                                (ConditionQuery) query)) {
-            Query q = this.optimizeQuery(cq);
+        ConditionQuery cq = (ConditionQuery) query;
+        if (cq.isFlattened()) {
             /*
              * NOTE: There are two possibilities for this query:
              * 1.sysprop-query, which would not be empty.
              * 2.index-query result(ids after optimization), which may be empty.
              */
+            Query q = this.optimizeQuery(cq);
+            // Return empty if there is no result after index-query
+            if (q.empty()) {
+                return Collections.emptyIterator();
+            }
+            return super.query(q);
+        }
+
+        // Flatten and optimize the query
+        List<Query> queries = new ArrayList<>();
+        IdQuery idQuery = new IdQuery(query.resultType(), query);
+        for (ConditionQuery fcq: ConditionQueryFlatten.flatten(cq)) {
+            Query q = this.optimizeQuery(fcq);
             if (q.getClass() == IdQuery.class && !q.ids().isEmpty()) {
-                ids.query(q.ids());
+                idQuery.query(q.ids());
             } else if (!q.empty()) {
-                // Return empty if there is no result after index-query
                 queries.add(q);
             }
         }
-
-        ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
-        if (!ids.empty()) {
-            queries.add(ids);
+        if (!idQuery.empty()) {
+            queries.add(idQuery);
         }
+        ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
         for (Query q : queries) {
             rs.extend(super.query(q));
         }
@@ -604,7 +612,9 @@ public class GraphTransaction extends IndexableTransaction {
     public Iterator<Edge> queryEdges(Query query) {
         Iterator<HugeEdge> results = this.queryEdgesFromBackend(query);
 
-        Set<Id> returnedEdges = new HashSet<>();
+        // TODO: any unconsidered case, maybe the query with OR condition?
+        boolean withDuplicatedEdge = false;
+        Set<Id> returnedEdges = withDuplicatedEdge ? new HashSet<>() : null;
         results = new FilterIterator<>(results, edge -> {
             // Filter hidden results
             if (!query.showHidden() && Graph.Hidden.isHidden(edge.label())) {
@@ -614,12 +624,15 @@ public class GraphTransaction extends IndexableTransaction {
             if (!this.filterResultFromIndexQuery(query, edge)) {
                 return false;
             }
-
-            // Filter repeat edges (TODO: split edges table into OUT&IN table)
+            // Without repeated edges if not querying by BOTH all edges
+            if (!withDuplicatedEdge) {
+                return true;
+            }
+            // Filter duplicated edges (edge may be repeated query both)
             if (!returnedEdges.contains(edge.id())) {
                 /*
-                 * NOTE: Maybe some edges are IN and others are OUT if
-                 * querying edges both directions, perhaps it would look
+                 * NOTE: Maybe some edges are IN and others are OUT
+                 * if querying edges both directions, perhaps it would look
                  * better if we convert all edges in results to OUT, but
                  * that would break the logic when querying IN edges.
                  */

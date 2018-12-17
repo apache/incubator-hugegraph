@@ -447,7 +447,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return StringFactory.edgeString(this);
     }
 
-    public static Id getIdValue(Object idValue) {
+    public static final Id getIdValue(Object idValue) {
         Id id = HugeElement.getIdValue(idValue);
         if (id == null || id instanceof EdgeId) {
             return id;
