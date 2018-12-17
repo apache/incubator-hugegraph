@@ -29,6 +29,7 @@ import com.baidu.hugegraph.unit.iterator.FlatMapperFilterIteratorTest;
 import com.baidu.hugegraph.unit.iterator.FlatMapperIteratorTest;
 import com.baidu.hugegraph.unit.iterator.MapperIteratorTest;
 import com.baidu.hugegraph.unit.util.BytesTest;
+import com.baidu.hugegraph.unit.util.CollectionUtilTest;
 import com.baidu.hugegraph.unit.util.HashUtilTest;
 import com.baidu.hugegraph.unit.util.VersionUtilTest;
 
@@ -43,6 +44,7 @@ import com.baidu.hugegraph.unit.util.VersionUtilTest;
     FlatMapperFilterIteratorTest.class,
 
     BytesTest.class,
+    CollectionUtilTest.class,
     HashUtilTest.class,
     VersionUtilTest.class
 })
