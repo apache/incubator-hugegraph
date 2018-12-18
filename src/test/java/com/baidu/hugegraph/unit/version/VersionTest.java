@@ -17,15 +17,21 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.unit.version;
 
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import org.junit.Test;
 
-public class CommonVersion {
+import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.util.VersionUtil;
+import com.baidu.hugegraph.version.CommonVersion;
 
-    public static final String NAME = "hugegraph-common";
+public class VersionTest {
 
-    // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(CommonVersion.class,
-                                                     "1.5.4");
+    @Test
+    public void testGetCommonVersion() {
+        String version = CommonVersion.VERSION.get();
+        Assert.assertNotNull(version);
+        String pomVersion = VersionUtil.getPomVersion();
+        Assert.assertEquals(version, pomVersion);
+    }
 }

@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>1.5.3</version>
+    <version>1.5.4</version>
 
     <name>hugegraph-common</name>
     <url>https://github.com/hugegraph/hugegraph-common</url>
@@ -67,6 +67,7 @@
         <jsr305.version>3.0.1</jsr305.version>
         <javassist.version>3.21.0-GA</javassist.version>
         <jersey.version>2.25.1</jersey.version>
+        <jersey.hk2.version>2.27</jersey.hk2.version>
         <junit.version>4.12</junit.version>
     </properties>
 
@@ -155,6 +156,11 @@
             <artifactId>jersey-media-json-jackson</artifactId>
             <version>${jersey.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.inject</groupId>
+            <artifactId>jersey-hk2</artifactId>
+            <version>${jersey.hk2.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -192,7 +198,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>1.5.3.0</Implementation-Version>
+                            <Implementation-Version>1.5.4.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

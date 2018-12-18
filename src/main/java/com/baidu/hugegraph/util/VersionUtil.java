@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.util;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -84,6 +86,38 @@ public final class VersionUtil {
         }
         return manifest.getMainAttributes()
                        .getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+    }
+
+    /**
+     * Get version from pom.xml
+     * @return      The pom version
+     */
+    public static String getPomVersion() {
+        String cmd = "mvn help:evaluate -Dexpression=project.version " +
+                     "-q -DforceStdout";
+        Process process = null;
+        InputStreamReader isr = null;
+        try {
+            process = Runtime.getRuntime().exec(cmd);
+            process.waitFor();
+
+            isr = new InputStreamReader(process.getInputStream());
+            BufferedReader br = new BufferedReader(isr);
+            return br.readLine();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (isr != null) {
+                try {
+                    isr.close();
+                } catch (Exception ignored) {}
+            }
+
+            // Destroy child process
+            if (process != null) {
+                process.destroy();
+            }
+        }
     }
 
     /**
