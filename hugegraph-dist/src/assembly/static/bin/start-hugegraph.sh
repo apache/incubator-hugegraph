@@ -35,6 +35,9 @@ PID_FILE=$BIN/pid
 . $BIN/util.sh
 
 GREMLIN_SERVER_URL=`read_property "$CONF/rest-server.properties" "gremlinserver.url"`
+if [ -z "$GREMLIN_SERVER_URL" ]; then
+    GREMLIN_SERVER_URL="http://127.0.0.1:8182"
+fi
 REST_SERVER_URL=`read_property "$CONF/rest-server.properties" "restserver.url"`
 
 check_port "$GREMLIN_SERVER_URL"
