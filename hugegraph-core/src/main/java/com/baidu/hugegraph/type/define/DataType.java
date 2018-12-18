@@ -20,12 +20,10 @@
 package com.baidu.hugegraph.type.define;
 
 import java.io.Serializable;
-import java.text.ParseException;
 import java.util.Date;
 import java.util.UUID;
 
-import com.baidu.hugegraph.io.HugeGraphSONModule;
-import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.DateUtil;
 
 public enum DataType implements SerialEnum {
 
@@ -132,13 +130,7 @@ public enum DataType implements SerialEnum {
             if (value instanceof Number) {
                 return new Date(((Number) value).longValue());
             } else if (value instanceof String) {
-                try {
-                    return HugeGraphSONModule.DATE_FORMAT.parse((String) value);
-                } catch (ParseException e) {
-                    E.checkArgument(false, "%s, expect format: %s",
-                                    e.getMessage(),
-                                    HugeGraphSONModule.DATE_FORMAT.toPattern());
-                }
+                return DateUtil.parse((String) value);
             }
         }
         return null;

@@ -1346,11 +1346,11 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = null;
 
         Date[] dates = new Date[]{
-                Utils.date("2012-01-01 12:30:00.100"),
-                Utils.date("2013-01-01 12:30:00.100"),
-                Utils.date("2014-01-01 12:30:00.100"),
-                Utils.date("2015-01-01 12:30:00.100"),
-                Utils.date("2016-01-01 12:30:00.100")
+                Utils.date("2012-01-01 00:00:00.000"),
+                Utils.date("2013-01-01 00:00:00.000"),
+                Utils.date("2014-01-01 00:00:00.000"),
+                Utils.date("2015-01-01 00:00:00.000"),
+                Utils.date("2016-01-01 00:00:00.000")
         };
 
         vertices = graph.traversal().V().hasLabel("person")
@@ -1380,11 +1380,11 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = null;
 
         String[] dates = new String[]{
-                "2012-01-01 12:30:00.100",
-                "2013-01-01 12:30:00.100",
-                "2014-01-01 12:30:00.100",
-                "2015-01-01 12:30:00.100",
-                "2016-01-01 12:30:00.100"
+                "2012-01-01 00:00:00.000",
+                "2013-01-01 00:00:00.000",
+                "2014-01-01 00:00:00.000",
+                "2015-01-01 00:00:00.000",
+                "2016-01-01 00:00:00.000"
         };
 
         vertices = graph.traversal().V().hasLabel("person")
@@ -1418,11 +1418,11 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = null;
 
         String[] dates = new String[]{
-                "2012-01-01 12:30:00.100",
-                "2013-01-01 12:30:00.100",
-                "2014-01-01 12:30:00.100",
-                "2015-01-01 12:30:00.100",
-                "2016-01-01 12:30:00.100"
+                "2012-01-01 00:00:00.000",
+                "2013-01-01 00:00:00.000",
+                "2014-01-01 00:00:00.000",
+                "2015-01-01 00:00:00.000",
+                "2016-01-01 00:00:00.000"
         };
 
         vertices = g.V()
@@ -1445,6 +1445,42 @@ public class VertexCoreTest extends BaseCoreTest {
                            __.<Vertex>has("birth", P.gt(dates[3])))
                     .toList();
         Assert.assertEquals(2, vertices.size());
+    }
+
+    @Test
+    public void testQueryByDatePropertyInMultiFormatString() {
+        HugeGraph graph = graph();
+        initPersonIndex(false);
+        init5Persons();
+
+        List<Vertex> vertices = null;
+
+        String[] dates = new String[]{
+                "2012-01-01",
+                "2013-01-01 00:00:00.000",
+                "2014-01-01 00:00:00.000",
+                "2015-01-01 00:00:00",
+                "2016-01-01 00:00:00.000"
+        };
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", dates[0])
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(Utils.date(dates[0]),
+                            vertices.get(0).value("birth"));
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.gt(dates[0]))
+                        .toList();
+        Assert.assertEquals(4, vertices.size());
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.between(dates[3], dates[4]))
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(Utils.date(dates[3]),
+                            vertices.get(0).value("birth"));
     }
 
     @Test
@@ -3336,19 +3372,19 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph.addVertex(T.label, "person", "name", "Baby",
                         "city", "Hongkong", "age", 3,
-                        "birth", Utils.date("2012-01-01 12:30:00.100"));
+                        "birth", Utils.date("2012-01-01"));
         graph.addVertex(T.label, "person", "name", "James",
                         "city", "Beijing", "age", 19,
-                        "birth", Utils.date("2013-01-01 12:30:00.100"));
+                        "birth", Utils.date("2013-01-01 00:00:00.000"));
         graph.addVertex(T.label, "person", "name", "Tom Cat",
                         "city", "Beijing", "age", 20,
-                        "birth", Utils.date("2014-01-01 12:30:00.100"));
+                        "birth", Utils.date("2014-01-01 00:00:00"));
         graph.addVertex(T.label, "person", "name", "Lisa",
                         "city", "Beijing", "age", 20,
-                        "birth", Utils.date("2015-01-01 12:30:00.100"));
+                        "birth", Utils.date("2015-01-01 00:00:00.000"));
         graph.addVertex(T.label, "person", "name", "Hebe",
                         "city", "Taipei", "age", 21,
-                        "birth", Utils.date("2016-01-01 12:30:00.100"));
+                        "birth", Utils.date("2016-01-01 00:00:00.000"));
 
         graph.tx().commit();
     }

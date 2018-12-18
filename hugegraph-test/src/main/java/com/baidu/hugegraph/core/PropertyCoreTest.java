@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.text.ParseException;
 import java.util.Date;
 import java.util.UUID;
 
@@ -31,6 +32,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.testutil.Utils;
 
 public abstract class PropertyCoreTest extends BaseCoreTest {
 
@@ -155,9 +157,17 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testTypeDate() {
+    public void testTypeDate() throws ParseException {
         Date time = new Date();
         Assert.assertEquals(time, property("time", time));
+
+        Date expected = Utils.date("2018-12-12 00:00:00.000");
+        String date = "2018-12-12";
+        Assert.assertEquals(expected, property("time", date));
+        date = "2018-12-12 00:00:00";
+        Assert.assertEquals(expected, property("time", date));
+        date = "2018-12-12 00:00:00.000";
+        Assert.assertEquals(expected, property("time", date));
     }
 
     @Test
