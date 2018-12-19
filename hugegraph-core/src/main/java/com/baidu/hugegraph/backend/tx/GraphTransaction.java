@@ -1411,7 +1411,7 @@ public class GraphTransaction extends IndexableTransaction {
          * Query.DEFAULT_CAPACITY to limit elements number per pass
          */
         query.limit(Query.DEFAULT_CAPACITY);
-        query.capacity(Query.DEFAULT_CAPACITY);
+        query.capacity(Query.NO_CAPACITY);
         query.eq(HugeKeys.LABEL, label.id());
         int pass = 0;
         int counter = 0;
