@@ -58,6 +58,15 @@ public abstract class IndexableTransaction extends AbstractTransaction {
     }
 
     @Override
+    public void commitIfGtSize(int size) throws BackendException {
+        int totalSize = this.mutationSize() +
+                        this.indexTransaction().mutationSize();
+        if (totalSize >= size) {
+            this.commit();
+        }
+    }
+
+    @Override
     public void rollback() throws BackendException {
         try {
             super.rollback();
