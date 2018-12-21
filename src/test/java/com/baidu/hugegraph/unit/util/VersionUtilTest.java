@@ -75,6 +75,22 @@ public class VersionUtilTest extends BaseUnitTest {
     }
 
     @Test
+    public void testVersionGte() {
+        String version = "0.2";
+
+        Assert.assertTrue(VersionUtil.gte(version, "0.2"));
+        Assert.assertTrue(VersionUtil.gte(version, "0.2.0"));
+        Assert.assertTrue(VersionUtil.gte(version, "0.1"));
+        Assert.assertTrue(VersionUtil.gte(version, "0.1.9"));
+        Assert.assertTrue(VersionUtil.gte(version, "0.0.3"));
+
+        Assert.assertFalse(VersionUtil.gte(version, "0.2.0.1"));
+        Assert.assertFalse(VersionUtil.gte(version, "0.2.1"));
+        Assert.assertFalse(VersionUtil.gte(version, "0.3"));
+        Assert.assertFalse(VersionUtil.gte(version, "0.10"));
+    }
+
+    @Test
     public void testVersionCheck() {
         Version version = Version.of("0.6.5");
 

@@ -29,9 +29,10 @@ public class VersionTest {
 
     @Test
     public void testGetCommonVersion() {
+        String pomVersion = VersionUtil.getPomVersion();
+        Assert.assertNotNull(pomVersion);
         String version = CommonVersion.VERSION.get();
         Assert.assertNotNull(version);
-        String pomVersion = VersionUtil.getPomVersion();
-        Assert.assertEquals(version, pomVersion);
+        Assert.assertEquals(pomVersion, version);
     }
 }

@@ -32,10 +32,13 @@ import com.baidu.hugegraph.unit.util.BytesTest;
 import com.baidu.hugegraph.unit.util.CollectionUtilTest;
 import com.baidu.hugegraph.unit.util.HashUtilTest;
 import com.baidu.hugegraph.unit.util.InsertionOrderUtilTest;
+import com.baidu.hugegraph.unit.util.LongEncodingTest;
 import com.baidu.hugegraph.unit.util.VersionUtilTest;
+import com.baidu.hugegraph.unit.version.VersionTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    VersionTest.class,
     EventHubTest.class,
 
     ExtendableIteratorTest.class,
@@ -48,7 +51,8 @@ import com.baidu.hugegraph.unit.util.VersionUtilTest;
     CollectionUtilTest.class,
     HashUtilTest.class,
     InsertionOrderUtilTest.class,
-    VersionUtilTest.class
+    VersionUtilTest.class,
+    LongEncodingTest.class
 })
 public class UnitTestSuite {
 }

@@ -42,6 +42,17 @@ public final class VersionUtil {
     }
 
     /**
+     * Compare if a version is greater than the other one (inclusive)
+     * @param version   The version to be compared
+     * @param begin     The lower bound of the range
+     * @return          true if it's greater than the other, otherwise false
+     */
+    public static boolean gte(String version, String other) {
+        E.checkArgumentNotNull(version, "The version to match is null");
+        return new Version(version).compareTo(new Version(other)) >= 0;
+    }
+
+    /**
      * Check whether a component version is matched expected range,
      * throw an exception if it's not matched.
      * @param version   The version to be checked

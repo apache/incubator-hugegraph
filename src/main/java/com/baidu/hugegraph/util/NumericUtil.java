@@ -103,6 +103,48 @@ public final class NumericUtil {
         return bits ^ (bits >> 31) & 0x7fffffff;
     }
 
+    public static long numberToSortableLong(Number number) {
+        if (number instanceof Double) {
+            return doubleToSortableLong(number.doubleValue());
+        } else if (number instanceof Float) {
+            return floatToSortableInt(number.floatValue());
+        } else if (number instanceof Long || number instanceof Integer ||
+                   number instanceof Short || number instanceof Byte) {
+            return number.longValue();
+        } else if (number instanceof BigDecimal) {
+            BigDecimal bd = (BigDecimal) number;
+            boolean intNumber = bd.stripTrailingZeros().scale() <= 0;
+            return intNumber ? bd.longValueExact() :
+                   doubleToSortableLong(bd.doubleValue());
+        }
+        // TODO: support other number types
+        throw new IllegalArgumentException(String.format(
+                  "Unsupported number type: %s(%s)",
+                  number.getClass().getSimpleName(), number));
+    }
+
+    public static Number sortableLongToNumber(long value, Class<?> clazz) {
+        assert NumericUtil.isNumber(clazz);
+
+        if (clazz == Double.class) {
+            return sortableLongToDouble(value);
+        } else if (clazz == Float.class) {
+            return sortableIntToFloat((int) value);
+        } else if (clazz == Long.class) {
+            return value;
+        } else if (clazz == Integer.class) {
+            return (int) value;
+        } else if (clazz == Short.class) {
+            return (short) value;
+        } else if (clazz == Byte.class) {
+            return (byte) value;
+        }
+
+        // TODO: support other number types
+        throw new IllegalArgumentException(String.format(
+                  "Unsupported number type: %s", clazz.getSimpleName()));
+    }
+
     public static byte[] numberToSortableBytes(Number number) {
         if (number instanceof Long) {
             return longToBytes(number.longValue());
@@ -117,7 +159,9 @@ public final class NumericUtil {
         }
 
         // TODO: support other number types
-        return null;
+        throw new IllegalArgumentException(String.format(
+                  "Unsupported number type: %s(%s)",
+                  number.getClass().getSimpleName(), number));
     }
 
     public static Number sortableBytesToNumber(byte[] bytes, Class<?> clazz) {
@@ -138,7 +182,8 @@ public final class NumericUtil {
         }
 
         // TODO: support other number types
-        return null;
+        throw new IllegalArgumentException(String.format(
+                  "Unsupported number type: %s", clazz.getSimpleName()));
     }
 
     public static byte[] longToBytes(long value) {
@@ -174,16 +219,23 @@ public final class NumericUtil {
         return Number.class.isAssignableFrom(clazz);
     }
 
-    public static Object convertToNumber(Object value) {
-        if (!isNumber(value) && value != null) {
+    public static Number convertToNumber(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        Number number;
+        if (isNumber(value)) {
+            number = (Number) value;
+        } else {
             if (value instanceof Date) {
-                value = ((Date) value).getTime();
+                number = ((Date) value).getTime();
             } else {
                 // TODO: add some more types to convert
-                value = new BigDecimal(value.toString());
+                number = new BigDecimal(value.toString());
             }
         }
-        return value;
+        return number;
     }
 
     /**

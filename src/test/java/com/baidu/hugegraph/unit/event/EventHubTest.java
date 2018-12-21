@@ -461,7 +461,7 @@ public class EventHubTest extends BaseUnitTest {
 
                 event.checkArgs(Integer.class);
                 int i = (int) event.args()[0];
-                if (i % 100000 == 0) {
+                if (i % 10000 == 0) {
                     System.out.println("On event '" + notify + "': " + i);
                 }
                 return null;
@@ -469,8 +469,8 @@ public class EventHubTest extends BaseUnitTest {
         };
 
         Thread listenerUpdateThread = new Thread(() -> {
-            // This will cost about 10s
-            for (int i = 0; i < 100; i++) {
+            // This will cost about 1s
+            for (int i = 0; i < 10; i++) {
                 this.eventHub.listen(notify, listener1);
                 if (!this.eventHub.listeners(notify).contains(listener2)) {
                     this.eventHub.listen(notify, listener2);
@@ -478,7 +478,7 @@ public class EventHubTest extends BaseUnitTest {
 
                 this.wait100ms();
 
-                if (i % 10 == 0) {
+                if (i % 2 == 0) {
                     this.eventHub.unlisten(notify);
                 } else {
                     this.eventHub.unlisten(notify, listener1);
@@ -488,8 +488,8 @@ public class EventHubTest extends BaseUnitTest {
         listenerUpdateThread.start();
 
         runWithThreads(THREADS_NUM, () -> {
-            // This will cost about 10s ~ 20s
-            for (int i = 0; i < 10000 * 100; i++) {
+            // This will cost about 1s ~ 2s
+            for (int i = 0; i < 10000 * 10; i++) {
                 this.eventHub.notify(notify, i);
                 Thread.yield();
             }
