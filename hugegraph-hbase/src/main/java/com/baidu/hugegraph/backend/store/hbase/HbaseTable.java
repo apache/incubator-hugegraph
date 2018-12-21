@@ -35,6 +35,8 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdPrefixQuery;
+import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
@@ -131,6 +133,18 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
             return newEntryIterator(this.queryAll(session, query), query);
         }
 
+        // Query by prefix
+        if (query instanceof IdPrefixQuery) {
+            IdPrefixQuery pq = (IdPrefixQuery) query;
+            return newEntryIterator(this.queryByPrefix(session, pq), query);
+        }
+
+        // Query by range
+        if (query instanceof IdRangeQuery) {
+            IdRangeQuery rq = (IdRangeQuery) query;
+            return newEntryIterator(this.queryByRange(session, rq), query);
+        }
+
         // Query by id
         if (query.conditions().isEmpty()) {
             assert !query.ids().isEmpty();
@@ -169,6 +183,18 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         return session.get(this.table(), null, rowkeys);
     }
 
+    protected RowIterator queryByPrefix(Session session, IdPrefixQuery query) {
+        return session.scan(this.table(), query.start().asBytes(),
+                            query.inclusiveStart(), query.prefix().asBytes());
+    }
+
+    protected RowIterator queryByRange(Session session, IdRangeQuery query) {
+        byte[] start = query.start().asBytes();
+        byte[] end = query.end() == null ? null : query.end().asBytes();
+        return session.scan(this.table(), start, query.inclusiveStart(),
+                            end, query.inclusiveEnd());
+    }
+
     protected RowIterator queryByCond(Session session, ConditionQuery query) {
         if (query.containsScanCondition()) {
             E.checkArgument(query.relations().size() == 1,
@@ -178,10 +204,6 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
             return this.queryByRange(session, shard);
         }
         throw new NotSupportException("query: %s", query);
-    }
-
-    protected RowIterator queryByRange(Session session, Id begin, Id end) {
-        return session.scan(this.table(), begin.asBytes(), end.asBytes());
     }
 
     protected RowIterator queryByRange(Session session, Shard shard) {

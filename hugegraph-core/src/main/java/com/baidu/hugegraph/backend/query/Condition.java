@@ -204,6 +204,10 @@ public abstract class Condition {
                this.type() == ConditionType.OR;
     }
 
+    public boolean isFlattened() {
+        return this.isRelation();
+    }
+
     public static Condition and(Condition left, Condition right) {
         return new And(left, right);
     }
@@ -392,6 +396,12 @@ public abstract class Condition {
         @Override
         public Condition copy() {
             return new And(this.left().copy(), this.right().copy());
+        }
+
+        @Override
+        public boolean isFlattened() {
+            // If this is flattened, its sub-condition should not be nested
+            return this.left().isRelation() && this.right().isRelation();
         }
     }
 

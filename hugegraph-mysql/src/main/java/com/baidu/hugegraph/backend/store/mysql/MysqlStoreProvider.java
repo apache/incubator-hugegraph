@@ -69,7 +69,8 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
          * Versions history:
          * [1.0] HugeGraph-1328: supports backend table version checking
          * [1.1] HugeGraph-1322: add support for full-text search
+         * [1.2] #296: support range sortKey feature
          */
-        return "1.1";
+        return "1.2";
     }
 }

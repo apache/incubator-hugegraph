@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.structure;
 
-import java.util.Date;
 import java.util.NoSuchElementException;
 
 import org.apache.tinkerpop.gremlin.structure.Property;
@@ -80,10 +79,7 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
     }
 
     public Object serialValue() {
-        if (this.value instanceof Date) {
-            return ((Date) this.value).getTime();
-        }
-        return this.value;
+        return this.pkey.serialValue(this.value);
     }
 
     @Override

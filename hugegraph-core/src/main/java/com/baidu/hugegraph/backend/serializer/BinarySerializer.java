@@ -32,7 +32,9 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
+import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -63,6 +65,10 @@ public class BinarySerializer extends AbstractSerializer {
 
     private static final byte[] EMPTY_BYTES = new byte[0];
 
+    /*
+     * Id is stored in column name if keyWithIdPrefix=true like RocksDB,
+     * else stored in rowkey like HBase.
+     */
     private final boolean keyWithIdPrefix;
 
     public BinarySerializer() {
@@ -296,15 +302,24 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected byte[] formatIndexName(HugeIndex index) {
-        Id indexId = index.id();
-        if (indexIdLengthExceedLimit(indexId)) {
-            indexId = index.hashId();
-        }
         Id elemId = index.elementId();
-        BytesBuffer buffer = BytesBuffer.allocate(1 + indexId.length() +
-                                                  1 + elemId.length());
-        // Write index-id + element-id
-        buffer.writeId(indexId);
+        int idLen = 1 + elemId.length();
+
+        BytesBuffer buffer;
+        if (!this.keyWithIdPrefix) {
+            buffer = BytesBuffer.allocate(idLen);
+        } else {
+            Id indexId = index.id();
+            if (indexIdLengthExceedLimit(indexId)) {
+                indexId = index.hashId();
+            }
+            // Write index-id
+            idLen += 1 + indexId.length();
+            buffer = BytesBuffer.allocate(idLen);
+            buffer.writeId(indexId);
+        }
+
+        // Write element-id
         buffer.writeId(elemId, true);
 
         return buffer.bytes();
@@ -314,11 +329,13 @@ public class BinarySerializer extends AbstractSerializer {
                                   Object fieldValues) {
         for (BackendColumn col : entry.columns()) {
             if (indexFieldValuesUnmatched(col.value, fieldValues)) {
-                // Skip if field-values don't matched (just the same hash)
+                // Skip if field-values is not matched (just the same hash)
                 continue;
             }
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
-            buffer.readId();
+            if (this.keyWithIdPrefix) {
+                buffer.readId();
+            }
             index.elementIds(buffer.readId(true));
         }
     }
@@ -463,16 +480,83 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    protected Id writeQueryEdgeCondition(Query query) {
+    protected Query writeQueryEdgeCondition(Query query) {
+        ConditionQuery cq = (ConditionQuery) query;
+        if (cq.hasRangeCondition()) {
+            return this.writeQueryEdgeRangeCondition(cq);
+        } else {
+            return this.writeQueryEdgePrefixCondition(cq);
+        }
+    }
+
+    private Query writeQueryEdgeRangeCondition(ConditionQuery cq) {
+        List<Condition> sortValues = cq.syspropConditions(HugeKeys.SORT_VALUES);
+        E.checkArgument(sortValues.size() >= 1 && sortValues.size() <= 2,
+                        "Edge range query must be with sort-values range");
+        // Would ignore target vertex
+        Object vertex = cq.condition(HugeKeys.OWNER_VERTEX);
+        Object direction = cq.condition(HugeKeys.DIRECTION);
+        if (direction == null) {
+            direction = Directions.OUT;
+        }
+        Object label = cq.condition(HugeKeys.LABEL);
+
+        BytesBuffer start = BytesBuffer.allocate(256);
+        start.writeId(HugeVertex.getIdValue(vertex));
+        start.write(((Directions) direction).type().code());
+        start.writeId((Id) label);
+
+        BytesBuffer end = BytesBuffer.allocate(256);
+        end.copyFrom(start);
+
+        int minEq = -1;
+        int maxEq = -1;
+        for (Condition sortValue : sortValues) {
+            Condition.Relation r = (Condition.Relation) sortValue;
+            switch (r.relation()) {
+                case GTE:
+                    minEq = 1;
+                    start.writeString((String) r.value());
+                    break;
+                case GT:
+                    minEq = 0;
+                    start.writeString((String) r.value());
+                    break;
+                case LTE:
+                    maxEq = 1;
+                    end.writeString((String) r.value());
+                    break;
+                case LT:
+                    maxEq = 0;
+                    end.writeString((String) r.value());
+                    break;
+                default:
+                    E.checkArgument(false, "Unsupported relation '%s'",
+                                    r.relation());
+            }
+        }
+
+        // Sort-value will be empty if there is no start sort-value
+        Id startId = new BinaryId(start.bytes(), null);
+        // Set endId as prefix if there is no end sort-value
+        Id endId = new BinaryId(end.bytes(), null);
+        if (maxEq == -1) {
+            return new IdPrefixQuery(cq, startId, minEq == 1, endId);
+        }
+        return new IdRangeQuery(cq, startId, minEq == 1, endId, maxEq == 1);
+    }
+
+    private Query writeQueryEdgePrefixCondition(ConditionQuery cq) {
         int count = 0;
         BytesBuffer buffer = BytesBuffer.allocate(256);
         for (HugeKeys key : EdgeId.KEYS) {
-            Object value = ((ConditionQuery) query).condition(key);
+            Object value = cq.condition(key);
 
             if (value != null) {
                 count++;
             } else {
                 if (key == HugeKeys.DIRECTION) {
+                    // Direction is null, set to OUT
                     value = Directions.OUT;
                 } else {
                     break;
@@ -498,8 +582,8 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         if (count > 0) {
-            assert count == query.conditions().size();
-            return new BinaryId(buffer.bytes(), null);
+            assert count == cq.conditions().size();
+            return new IdPrefixQuery(cq, new BinaryId(buffer.bytes(), null));
         }
 
         return null;
@@ -526,49 +610,6 @@ public class BinarySerializer extends AbstractSerializer {
 
         E.checkState(false, "Unsupported index query: %s", type);
         return null;
-    }
-
-    private BinaryBackendEntry formatILDeletion(HugeIndex index) {
-        Id id = index.indexLabel();
-        BinaryBackendEntry entry = newBackendEntry(index.type(), id);
-        switch (index.type()) {
-            case SECONDARY_INDEX:
-            case SEARCH_INDEX:
-                String idString = id.asString();
-                int idLength = idString.length();
-                // TODO: to improve, use BytesBuffer to generate a mask
-                for (int i = idLength - 1; i < 128; i++) {
-                    BytesBuffer buffer = BytesBuffer.allocate(idLength + 1);
-                    /*
-                     * Index id type is always non-number, that it will prefix
-                     * with '0b1xxx xxxx'
-                     */
-                    buffer.writeUInt8(i | 0x80);
-                    buffer.write(IdGenerator.of(idString).asBytes());
-                    entry.column(buffer.bytes(), null);
-                }
-                break;
-            case RANGE_INDEX:
-                int il = (int) id.asLong();
-                for (int i = 0; i < 4; i++) {
-                    /*
-                     * Field value(Number type) length is 1, 2, 4, 8.
-                     * Index label id length is 4
-                     */
-                    int length = (int) Math.pow(2, i) + 4;
-                    length -= 1;
-                    BytesBuffer buffer = BytesBuffer.allocate(1 + 4);
-                    buffer.writeUInt8(length | 0x80);
-                    buffer.writeInt(il);
-                    entry.column(buffer.bytes(), null);
-                }
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Index type must be Secondary or Range, " +
-                          "but got '%s'", index.type()));
-        }
-        return entry;
     }
 
     private Query writeStringIndexQuery(ConditionQuery query) {
@@ -645,30 +686,68 @@ public class BinarySerializer extends AbstractSerializer {
             keyMinEq = true;
         }
 
-        query = query.copy();
-        query.resetConditions();
-
         Id min = formatIndexId(type, index, keyMin);
-        if (keyMinEq) {
-            query.gte(HugeKeys.ID, min);
-        } else {
-            query.gt(HugeKeys.ID, min);
+        if (!keyMinEq) {
+            /*
+             * Increase 1 to keyMin, index GT query is a scan with GT prefix,
+             * inclusiveStart=false will also match index started with keyMin
+             */
+            increaseOne(min.asBytes());
+            keyMinEq = true;
         }
 
         if (keyMax == null) {
             Id prefix = formatIndexId(type, index, null);
             // Reset the first byte to make same length-prefix
             prefix.asBytes()[0] = min.asBytes()[0];
-            query.prefix(HugeKeys.ID, prefix);
+            return new IdPrefixQuery(query, min, keyMinEq, prefix);
         } else {
             Id max = formatIndexId(type, index, keyMax);
-            if (keyMaxEq) {
-                query.lte(HugeKeys.ID, max);
-            } else {
-                query.lt(HugeKeys.ID, max);
-            }
+            return new IdRangeQuery(query, min, keyMinEq, max, keyMaxEq);
         }
-        return query;
+    }
+
+    private BinaryBackendEntry formatILDeletion(HugeIndex index) {
+        Id id = index.indexLabel();
+        BinaryBackendEntry entry = newBackendEntry(index.type(), id);
+        switch (index.type()) {
+            case SECONDARY_INDEX:
+            case SEARCH_INDEX:
+                String idString = id.asString();
+                int idLength = idString.length();
+                // TODO: to improve, use BytesBuffer to generate a mask
+                for (int i = idLength - 1; i < 128; i++) {
+                    BytesBuffer buffer = BytesBuffer.allocate(idLength + 1);
+                    /*
+                     * Index id type is always non-number, that it will prefix
+                     * with '0b1xxx xxxx'
+                     */
+                    buffer.writeUInt8(i | 0x80);
+                    buffer.write(IdGenerator.of(idString).asBytes());
+                    entry.column(buffer.bytes(), null);
+                }
+                break;
+            case RANGE_INDEX:
+                int il = (int) id.asLong();
+                for (int i = 0; i < 4; i++) {
+                    /*
+                     * Field value(Number type) length is 1, 2, 4, 8.
+                     * Index label id length is 4
+                     */
+                    int length = (int) Math.pow(2, i) + 4;
+                    length -= 1;
+                    BytesBuffer buffer = BytesBuffer.allocate(1 + 4);
+                    buffer.writeUInt8(length | 0x80);
+                    buffer.writeInt(il);
+                    entry.column(buffer.bytes(), null);
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Index type must be Secondary or Range, " +
+                          "but got '%s'", index.type()));
+        }
+        return entry;
     }
 
     private static BinaryId writeEdgeId(Id id) {
@@ -709,6 +788,28 @@ public class BinarySerializer extends AbstractSerializer {
             }
         }
         return false;
+    }
+
+    public static final byte[] increaseOne(byte[] bytes) {
+        final byte BYTE_MAX_VALUE = (byte) 0xff;
+        assert bytes.length > 0;
+        byte last = bytes[bytes.length - 1];
+        if (last != BYTE_MAX_VALUE) {
+            bytes[bytes.length - 1] += 0x01;
+        } else {
+            // Process overflow (like [1, 255] => [2, 0])
+            int i = bytes.length - 1;
+            for (; i > 0 && bytes[i] == BYTE_MAX_VALUE; --i) {
+                bytes[i] += 0x01;
+            }
+            if (bytes[i] == BYTE_MAX_VALUE) {
+                assert i == 0;
+                throw new BackendException("Unable to increase bytes: %s",
+                                           Bytes.toHex(bytes));
+            }
+            bytes[i] += 0x01;
+        }
+        return bytes;
     }
 
     // TODO: remove these methods when improving schema serialize

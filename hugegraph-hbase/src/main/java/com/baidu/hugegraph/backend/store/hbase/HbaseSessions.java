@@ -33,6 +33,9 @@ import java.util.Set;
 import java.util.concurrent.Future;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellScanner;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.RegionMetrics;
@@ -58,6 +61,7 @@ import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter.RowRange;
 import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
+import org.apache.hadoop.hbase.util.VersionInfo;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
@@ -65,7 +69,10 @@ import com.baidu.hugegraph.backend.store.BackendEntry.BackendIterator;
 import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.StringEncoding;
+import com.baidu.hugegraph.util.VersionUtil;
 
 public class HbaseSessions extends BackendSessionPool {
 
@@ -480,11 +487,27 @@ public class HbaseSessions extends BackendSessionPool {
             assert !this.hasChanges();
             Scan scan = new Scan().withStartRow(startRow, inclusiveStart);
             if (stopRow != null) {
+                String version = VersionInfo.getVersion();
+                if (inclusiveStop && !VersionUtil.gte(version, "2.0")) {
+                    // The parameter stoprow-inclusive doesn't work before v2.0
+                    // https://issues.apache.org/jira/browse/HBASE-20675
+                    inclusiveStop = false;
+                    // Add a trailing 0 byte to stopRow
+                    stopRow = Arrays.copyOf(stopRow, stopRow.length + 1);
+                }
+                if (Bytes.equals(startRow, stopRow) &&
+                    inclusiveStart && !inclusiveStop) {
+                    // Bug https://issues.apache.org/jira/browse/HBASE-21618
+                    return new RowIterator();
+                }
                 scan.withStopRow(stopRow, inclusiveStop);
             }
             return this.scan(table, scan);
         }
 
+        /**
+         * Inner scan: send scan request to HBase and get iterator
+         */
         private RowIterator scan(String table, Scan scan) {
             try (Table htable = table(table)) {
                 return new RowIterator(htable.getScanner(scan));
@@ -511,6 +534,29 @@ public class HbaseSessions extends BackendSessionPool {
          */
         public long storeSize(String table) throws IOException {
             return HbaseSessions.this.storeSize(table);
+        }
+
+        /**
+         * Just for debug
+         */
+        @SuppressWarnings("unused")
+        private void dump(String table, Scan scan) throws IOException {
+            System.out.println(String.format(">>>> scan table %s with %s",
+                                             table, scan));
+            RowIterator iterator = this.scan(table, scan);
+            while (iterator.hasNext()) {
+                Result row = iterator.next();
+                System.out.println(StringEncoding.format(row.getRow()));
+                CellScanner cellScanner = row.cellScanner();
+                while (cellScanner.advance()) {
+                    Cell cell = cellScanner.current();
+                    byte[] key = CellUtil.cloneQualifier(cell);
+                    byte[] val = CellUtil.cloneValue(cell);
+                    System.out.println(String.format("  %s=%s",
+                                       StringEncoding.format(key),
+                                       StringEncoding.format(val)));
+                }
+            }
         }
     }
 

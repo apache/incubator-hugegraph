@@ -22,8 +22,6 @@ package com.baidu.hugegraph.backend.store.hbase;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
@@ -141,27 +139,28 @@ public class HbaseTables {
         }
 
         @Override
-        protected RowIterator queryById(Session session, Id id) {
-            byte[] prefix = id.asBytes();
-            return session.scan(this.table(), prefix);
-        }
-
-        @Override
-        protected RowIterator queryByIds(Session session, Set<Id> ids) {
-            Set<byte[]> prefixs = ids.stream().map(Id::asBytes)
-                                     .collect(Collectors.toSet());
-            return session.scan(this.table(), prefixs);
+        public void insert(Session session, BackendEntry entry) {
+            for (BackendColumn col : entry.columns()) {
+                E.checkArgument(col.name.length == 0,
+                                "Expect empty column name, " +
+                                "please ensure hbase serializer is used");
+            }
+            super.insert(session, entry);
         }
 
         @Override
         protected void parseRowColumns(Result row, BackendEntry entry,
                                        Query query) throws IOException {
+            /*
+             * Collapse owner-vertex id from edge id, NOTE: unneeded to
+             * collapse if BinarySerializer.keyWithIdPrefix set to true
+             */
             byte[] key = row.getRow();
-            // Collapse owner vertex id
             key = Arrays.copyOfRange(key, entry.id().length(), key.length);
 
+            long total = query.total();
             CellScanner cellScanner = row.cellScanner();
-            while (cellScanner.advance()) {
+            while (cellScanner.advance() && total-- > 0) {
                 Cell cell = cellScanner.current();
                 assert CellUtil.cloneQualifier(cell).length == 0;
                 entry.columns(BackendColumn.of(key, CellUtil.cloneValue(cell)));
@@ -207,15 +206,6 @@ public class HbaseTables {
                 session.commit();
             }
         }
-    }
-
-    public static class SecondaryIndex extends IndexTable {
-
-        public static final String TABLE = "si";
-
-        public SecondaryIndex(String store) {
-            super(joinTableName(store, TABLE));
-        }
 
         @Override
         protected void parseRowColumns(Result row, BackendEntry entry,
@@ -224,16 +214,22 @@ public class HbaseTables {
                 super.parseRowColumns(row, entry, query);
                 return;
             }
+            long total = query.total();
             CellScanner cellScanner = row.cellScanner();
-            long total = query.offset() + query.limit();
-            for (long i = 0; i < total; i++) {
-                if (!cellScanner.advance()) {
-                    break;
-                }
+            while (cellScanner.advance() && total-- > 0) {
                 Cell cell = cellScanner.current();
                 entry.columns(BackendColumn.of(CellUtil.cloneQualifier(cell),
                                                CellUtil.cloneValue(cell)));
             }
+        }
+    }
+
+    public static class SecondaryIndex extends IndexTable {
+
+        public static final String TABLE = "si";
+
+        public SecondaryIndex(String store) {
+            super(joinTableName(store, TABLE));
         }
     }
 

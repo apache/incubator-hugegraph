@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -39,12 +40,14 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableList;
 
 public class InMemoryDBTables {
@@ -95,6 +98,180 @@ public class InMemoryDBTables {
         @Override
         public void eliminate(BackendSession session, TextBackendEntry entry) {
             throw new UnsupportedOperationException("Edge eliminate");
+        }
+
+        @Override
+        protected Map<Id, BackendEntry> queryById(
+                                        Set<Id> ids,
+                                        Map<Id, BackendEntry> entries) {
+            // Query edge(in a vertex) by id
+            return this.queryEdgeById(ids, false, entries);
+        }
+
+        @Override
+        protected Map<Id, BackendEntry> queryByIdPrefix(
+                                        Id start,
+                                        boolean inclusiveStart,
+                                        Id prefix,
+                                        Map<Id, BackendEntry> entries) {
+            // Query edge(in a vertex) by v-id + column-name-prefix
+            BackendEntry value = this.getEntryById(start, entries);
+            if (value == null) {
+                return Collections.emptyMap();
+            }
+
+            Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
+
+            // TODO: Compatible with BackendEntry
+            TextBackendEntry entry = (TextBackendEntry) value;
+            // Prefix edges in the vertex
+            String startColumn = columnOfEdge(start);
+            String prefixColumn = columnOfEdge(prefix);
+            BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
+                                                      entry.id());
+            edges.columns(entry.columnsWithPrefix(startColumn, inclusiveStart,
+                                                  prefixColumn));
+
+            BackendEntry result = rs.get(entry.id());
+            if (result == null) {
+                rs.put(entry.id(), edges);
+            } else {
+                result.merge(edges);
+            }
+
+            return rs;
+        }
+
+        @Override
+        protected Map<Id, BackendEntry> queryByIdRange(
+                                        Id start,
+                                        boolean inclusiveStart,
+                                        Id end,
+                                        boolean inclusiveEnd,
+                                        Map<Id, BackendEntry> entries) {
+            BackendEntry value = this.getEntryById(start, entries);
+            if (value == null) {
+                return Collections.emptyMap();
+            }
+
+            Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
+
+            // TODO: Compatible with BackendEntry
+            TextBackendEntry entry = (TextBackendEntry) value;
+            // Range edges in the vertex
+            String startColumn = columnOfEdge(start);
+            String endColumn = columnOfEdge(end);
+            BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
+                                                      entry.id());
+            edges.columns(entry.columnsWithRange(startColumn, inclusiveStart,
+                                                 endColumn, inclusiveEnd));
+
+            BackendEntry result = rs.get(entry.id());
+            if (result == null) {
+                rs.put(entry.id(), edges);
+            } else {
+                result.merge(edges);
+            }
+
+            return rs;
+        }
+
+        private Map<Id, BackendEntry> queryEdgeById(
+                                      Set<Id> ids, boolean prefix,
+                                      Map<Id, BackendEntry> entries) {
+            assert ids.size() > 0;
+            Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
+
+            for (Id id : ids) {
+                BackendEntry value = this.getEntryById(id, entries);
+                if (value != null) {
+                    // TODO: Compatible with BackendEntry
+                    TextBackendEntry entry = (TextBackendEntry) value;
+                    String column = columnOfEdge(id);
+                    if (column == null) {
+                        // All edges in the vertex
+                        rs.put(entry.id(), entry);
+                    } else if ((!prefix && entry.contains(column)) ||
+                               (prefix && entry.containsPrefix(column))) {
+                        BackendEntry edges = new TextBackendEntry(
+                                                 HugeType.VERTEX, entry.id());
+                        if (prefix) {
+                            // Some edges with specified prefix in the vertex
+                            edges.columns(entry.columnsWithPrefix(column));
+                        } else {
+                            // An edge with specified id in the vertex
+                            BackendColumn col = entry.columns(column);
+                            if (col != null) {
+                                edges.columns(col);
+                            }
+                        }
+
+                        BackendEntry result = rs.get(entry.id());
+                        if (result == null) {
+                            rs.put(entry.id(), edges);
+                        } else {
+                            result.merge(edges);
+                        }
+                    }
+                }
+            }
+
+            return rs;
+        }
+
+        private BackendEntry getEntryById(Id id,
+                                          Map<Id, BackendEntry> entries) {
+            // TODO: improve id split
+            Id entryId = IdGenerator.of(EdgeId.split(id)[0]);
+            return entries.get(entryId);
+        }
+
+        @Override
+        protected Map<Id, BackendEntry> queryByFilter(
+                                        Set<Condition> conditions,
+                                        Map<Id, BackendEntry> entries) {
+            if (conditions.isEmpty()) {
+                return entries;
+            }
+
+            // Only support querying edge by label
+            E.checkState(conditions.size() == 1,
+                         "Not support querying edge by %s", conditions);
+            Condition cond = conditions.iterator().next();
+            E.checkState(cond.isRelation(),
+                         "Not support querying edge by %s", conditions);
+            Condition.Relation relation = (Condition.Relation) cond;
+            E.checkState(relation.key().equals(HugeKeys.LABEL),
+                         "Not support querying edge by %s", conditions);
+            String label = (String) relation.serialValue();
+
+            Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
+
+            for (BackendEntry value : entries.values()) {
+                // TODO: Compatible with BackendEntry
+                TextBackendEntry entry = (TextBackendEntry) value;
+                String out = EdgeId.concat(HugeType.EDGE_OUT.string(), label);
+                String in = EdgeId.concat(HugeType.EDGE_IN.string(), label);
+                if (entry.containsPrefix(out)) {
+                    BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
+                                                              entry.id());
+                    edges.columns(entry.columnsWithPrefix(out));
+                    rs.put(edges.id(), edges);
+                }
+                if (entry.containsPrefix(in)) {
+                    BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
+                                                              entry.id());
+                    edges.columns(entry.columnsWithPrefix(in));
+                    BackendEntry result = rs.get(edges.id());
+                    if (result == null) {
+                        rs.put(edges.id(), edges);
+                    } else {
+                        result.merge(edges);
+                    }
+                }
+            }
+
+            return rs;
         }
 
         @Override
@@ -154,6 +331,19 @@ public class InMemoryDBTables {
             // Assume the first part is owner vertex id
             String vertexId = EdgeId.split(entry.id())[0];
             return IdGenerator.of(vertexId);
+        }
+
+        private static String columnOfEdge(Id id) {
+            // TODO: improve id split
+            String[] parts = EdgeId.split(id);
+            if (parts.length > 1) {
+                parts = Arrays.copyOfRange(parts, 1, parts.length);
+                return EdgeId.concat(parts);
+            } else {
+                // All edges
+                assert parts.length == 1;
+            }
+            return null;
         }
     }
 

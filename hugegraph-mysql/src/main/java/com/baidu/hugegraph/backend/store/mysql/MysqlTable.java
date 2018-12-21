@@ -98,7 +98,7 @@ public abstract class MysqlTable
             }
         }
 
-        sql.append(")) ENGINE=InnoDB DEFAULT CHARSET=utf8;");
+        sql.append(")) ENGINE=InnoDB;");
 
         LOG.debug("Create table: {}", sql);
         try {

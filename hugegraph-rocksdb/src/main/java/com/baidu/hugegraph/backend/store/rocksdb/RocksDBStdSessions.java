@@ -49,6 +49,7 @@ import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -350,28 +351,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
         return StringEncoding.decode(bytes);
     }
 
-    public static final byte[] increaseOne(byte[] bytes) {
-        final byte BYTE_MAX_VALUE = (byte) 0xff;
-        assert bytes.length > 0;
-        byte last = bytes[bytes.length - 1];
-        if (last != BYTE_MAX_VALUE) {
-            bytes[bytes.length - 1] += 0x01;
-        } else {
-            // Process overflow (like [1, 255] => [2, 0])
-            int i = bytes.length - 1;
-            for (; i > 0 && bytes[i] == BYTE_MAX_VALUE; --i) {
-                bytes[i] += 0x01;
-            }
-            if (bytes[i] == BYTE_MAX_VALUE) {
-                assert i == 0;
-                throw new BackendException("Unable to increase bytes: %s",
-                                           Bytes.toHex(bytes));
-            }
-            bytes[i] += 0x01;
-        }
-        return bytes;
-    }
-
     /**
      * StdSession implement for RocksDB
      */
@@ -511,7 +490,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         public void delete(String table, byte[] key) {
             byte[] keyFrom = key;
             byte[] keyTo = Arrays.copyOf(key, key.length);
-            keyTo = increaseOne(keyTo);
+            keyTo = BinarySerializer.increaseOne(keyTo);
             this.batch.deleteRange(cf(table), keyFrom, keyTo);
         }
 
@@ -662,15 +641,15 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @SuppressWarnings("unused")
         private void dump() {
-            this.itor.seekToFirst();
-            System.out.println(">>>> seek from " + this.table + ": "  +
+            this.seek();
+            System.out.println(">>>> scan from " + this.table + ": "  +
                                (this.keyBegin == null ? "*" :
-                                StringEncoding.decode(this.keyBegin)) +
+                                StringEncoding.format(this.keyBegin)) +
                                (this.itor.isValid() ? "" : " - No data"));
             for (; this.itor.isValid(); this.itor.next()) {
-                System.out.println(StringEncoding.decode(this.itor.key()) +
-                                   ": " +
-                                   StringEncoding.decode(this.itor.value()));
+                System.out.println(String.format("%s=%s",
+                                   StringEncoding.format(this.itor.key()),
+                                   StringEncoding.format(this.itor.value())));
             }
         }
 
@@ -715,9 +694,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 // Skip `keyBegin` if set SCAN_GT_BEGIN (key > 'xx')
                 if (this.match(Session.SCAN_GT_BEGIN) &&
                     !this.match(Session.SCAN_GTE_BEGIN)) {
-                    while (this.hasNext() && !Bytes.equals(this.itor.key(),
-                                                           this.keyBegin)) {
-                        this.next();
+                    while (this.itor.isValid() &&
+                           Bytes.equals(this.itor.key(), this.keyBegin)) {
+                        this.itor.next();
                     }
                 }
             }
@@ -752,7 +731,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
                     return Bytes.compare(key, this.keyEnd) < 0;
                 }
             } else {
-                assert this.match(Session.SCAN_ANY) : "Unknow scan type";
+                assert this.match(Session.SCAN_ANY) ||
+                       this.match(Session.SCAN_GT_BEGIN) ||
+                       this.match(Session.SCAN_GTE_BEGIN) :
+                       "Unknow scan type";
                 return true;
             }
         }

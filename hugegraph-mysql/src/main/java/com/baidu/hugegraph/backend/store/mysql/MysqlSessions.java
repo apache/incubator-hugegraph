@@ -154,8 +154,8 @@ public class MysqlSessions extends BackendSessionPool {
 
     protected String buildCreateDatabase(String database) {
         return String.format("CREATE DATABASE IF NOT EXISTS %s " +
-                             "DEFAULT CHARSET utf8 COLLATE " +
-                             "utf8_general_ci;", database);
+                             "DEFAULT CHARSET utf8 COLLATE utf8_bin;",
+                             database);
     }
 
     public void dropDatabase() {

@@ -430,8 +430,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 continue;
             }
             Id indexField = il.indexField();
-            Object fieldValue = query.userpropValue(indexField);
-            Set<String> words = this.segmentWords(fieldValue.toString());
+            String fieldValue = (String) query.userpropValue(indexField);
+            Set<String> words = this.segmentWords(fieldValue);
             indexFields.add(indexField);
 
             query = query.copy();
@@ -447,7 +447,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     // This is an index field of search index
                     Id field = (Id) key;
                     String propValue = elem.<String>getPropertyValue(field);
-                    String fvalue = originQuery.userpropValue(field).toString();
+                    String fvalue = (String) originQuery.userpropValue(field);
                     if (this.matchSearchIndexWords(propValue, fvalue)) {
                         continue;
                     }
@@ -882,6 +882,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              "Invalid index fields size for %s: %s",
                              indexType, indexFields);
                 Object fieldValue = query.userpropValue(indexFields.get(0));
+                assert fieldValue instanceof String;
                 // Query search index from SECONDARY_INDEX table
                 indexQuery = new ConditionQuery(indexType.type(), query);
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
@@ -911,10 +912,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 for (Condition condition : query.userpropConditions()) {
                     assert condition instanceof Condition.Relation;
                     Condition.Relation r = (Condition.Relation) condition;
+                    Number value = NumericUtil.convertToNumber(r.value());
                     Condition.Relation sys = new Condition.SyspropRelation(
-                            HugeKeys.FIELD_VALUES,
-                            r.relation(),
-                            NumericUtil.convertToNumber(r.value()));
+                                                 HugeKeys.FIELD_VALUES,
+                                                 r.relation(), value);
                     condition = condition.replace(r, sys);
                     indexQuery.query(condition);
                 }
@@ -1093,7 +1094,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     public static enum OptimizedType {
         NONE,
         PRIMARY_KEY,
-        SORT_KEY,
+        SORT_KEYS,
         INDEX
     }
 }
