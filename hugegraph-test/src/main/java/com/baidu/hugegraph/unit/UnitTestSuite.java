@@ -28,6 +28,7 @@ import com.baidu.hugegraph.unit.core.AnalyzerTest;
 import com.baidu.hugegraph.unit.core.BackendMutationTest;
 import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
 import com.baidu.hugegraph.unit.core.EdgeIdTest;
+import com.baidu.hugegraph.unit.core.VersionTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
 
@@ -36,6 +37,7 @@ import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
     RamCacheTest.class,
     CacheManagerTest.class,
 
+    VersionTest.class,
     BackendMutationTest.class,
     ConditionQueryFlattenTest.class,
     EdgeIdTest.class,

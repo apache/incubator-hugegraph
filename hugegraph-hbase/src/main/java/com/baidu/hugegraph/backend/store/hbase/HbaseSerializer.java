@@ -19,38 +19,11 @@
 
 package com.baidu.hugegraph.backend.store.hbase;
 
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
-import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
-import com.baidu.hugegraph.structure.HugeIndex;
 
 public class HbaseSerializer extends BinarySerializer {
 
     public HbaseSerializer() {
         super(false);
-    }
-
-    @Override
-    protected byte[] formatIndexName(HugeIndex index) {
-        Id elemId = index.elementId();
-        BytesBuffer buffer = BytesBuffer.allocate(1 + elemId.length());
-        // Write element-id
-        buffer.writeId(elemId, true);
-        return buffer.bytes();
-    }
-
-    @Override
-    protected void parseIndexName(BinaryBackendEntry entry, HugeIndex index,
-                                  Object fieldValues) {
-        for (BackendColumn col : entry.columns()) {
-            if (indexFieldValuesUnmatched(col.value, fieldValues)) {
-                // Skip if field-values don't matched (just the same hash)
-                continue;
-            }
-            BytesBuffer buffer = BytesBuffer.wrap(col.name);
-            index.elementIds(buffer.readId(true));
-        }
     }
 }

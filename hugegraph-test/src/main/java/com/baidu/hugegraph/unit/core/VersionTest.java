@@ -17,29 +17,28 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.unit.core;
 
+import org.junit.Test;
+
+import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.util.VersionUtil;
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import com.baidu.hugegraph.version.CoreVersion;
 
-public class CoreVersion {
+public class VersionTest {
 
-    static {
-        // Check versions of the dependency packages
-        CoreVersion.check();
+    @Test
+    public void testCoreVersionGet() {
+        String pomVersion = VersionUtil.getPomVersion();
+        Assert.assertNotNull(pomVersion);
+        String version = CoreVersion.VERSION.get();
+        Assert.assertNotNull(version);
+        Assert.assertEquals(pomVersion, version);
     }
 
-    public static final String NAME = "hugegraph-core";
-
-    // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(CoreVersion.class,
-                                                     "0.9.1");
-
-    public static final String GREMLIN_VERSION = "3.2.5";
-
-    public static void check() {
-        // Check version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "1.5.0", "1.6",
-                          CommonVersion.NAME);
+    @Test
+    public void testCoreVersionCheck() {
+        // Expect not throw exception
+        CoreVersion.check();
     }
 }

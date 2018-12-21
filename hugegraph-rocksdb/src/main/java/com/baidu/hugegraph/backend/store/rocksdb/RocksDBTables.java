@@ -27,8 +27,11 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIteratorWrapper;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -135,6 +138,16 @@ public class RocksDBTables {
         public static Edge in(String database) {
             return new Edge(false, database);
         }
+
+        @Override
+        protected BackendColumnIterator queryById(Session session, Id id) {
+            byte[] value = session.get(this.table(), id.asBytes());
+            if (value == null) {
+                return BackendColumnIterator.empty();
+            }
+            BackendColumn col = BackendColumn.of(id.asBytes(), value);
+            return new BackendColumnIteratorWrapper(col);
+        }
     }
 
     public static class IndexTable extends RocksDBTable {
@@ -228,7 +241,7 @@ public class RocksDBTables {
             E.checkArgumentNotNull(min, "Range index begin key is missing");
             byte[] begin = min.asBytes();
             if (!minEq) {
-                begin = RocksDBStdSessions.increaseOne(begin);
+                begin = BinarySerializer.increaseOne(begin);
             }
 
             if (max == null) {

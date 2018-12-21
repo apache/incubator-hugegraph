@@ -142,7 +142,7 @@ public class ConditionQuery extends IdQuery {
         for (Condition c : this.conditions) {
             if (c.isRelation()) {
                 Condition.Relation r = (Condition.Relation) c;
-                if (r.key().equals(key)) {
+                if (r.key().equals(key) && r.relation() == RelationType.EQ) {
                     values.add(r.value());
                 }
             }
@@ -277,11 +277,11 @@ public class ConditionQuery extends IdQuery {
 
     /**
      * This method is only used for secondary index scenario,
-     * relation must be EQ
+     * its relation must be EQ
      * @param fields the user property fields
-     * @return       the corresponding user property values of fileds
+     * @return the corresponding user property serial values of fields
      */
-    public List<Object> userpropValues(List<Id> fields) {
+    public String userpropValuesString(List<Id> fields) {
         List<Object> values = new ArrayList<>(fields.size());
         for (Id field : fields) {
             boolean got = false;
@@ -290,9 +290,9 @@ public class ConditionQuery extends IdQuery {
                     E.checkState(r.relation == RelationType.EQ,
                                  "Method userpropValues(List<String>) only " +
                                  "used for secondary index, " +
-                                 "relation must be EQ, but got '%s'",
+                                 "relation must be EQ, but got %s",
                                  r.relation());
-                    values.add(r.value());
+                    values.add(r.serialValue());
                     got = true;
                 }
             }
@@ -302,18 +302,14 @@ public class ConditionQuery extends IdQuery {
                           field, this);
             }
         }
-        return values;
-    }
-
-    public String userpropValuesString(List<Id> fields) {
-        return SplicingIdGenerator.concatValues(this.userpropValues(fields));
+        return  SplicingIdGenerator.concatValues(values);
     }
 
     public Set<Object> userpropValues(Id field) {
         Set<Object> values = new HashSet<>();
         for (Relation r : this.userpropRelations()) {
             if (r.key().equals(field)) {
-                values.add(r.value());
+                values.add(r.serialValue());
             }
         }
         return values;
@@ -325,8 +321,8 @@ public class ConditionQuery extends IdQuery {
             return null;
         }
         E.checkState(values.size() == 1,
-                     "Expect one user-property value of field '%s', but got %s",
-                     field, values.size());
+                     "Expect one user-property value of field '%s', " +
+                     "but got '%s'", field, values.size());
         return values.iterator().next();
     }
 
@@ -393,7 +389,7 @@ public class ConditionQuery extends IdQuery {
 
     public void checkFlattened() {
         for (Condition condition : this.conditions) {
-            E.checkState(condition.isRelation(),
+            E.checkState(condition.isFlattened(),
                          "Condition Query has none-flatten condition '%s'",
                          condition);
         }

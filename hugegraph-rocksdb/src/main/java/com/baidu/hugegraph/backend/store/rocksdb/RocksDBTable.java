@@ -26,6 +26,8 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdPrefixQuery;
+import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
@@ -120,6 +122,18 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             return newEntryIterator(this.queryAll(session, query), query);
         }
 
+        // Query by prefix
+        if (query instanceof IdPrefixQuery) {
+            IdPrefixQuery pq = (IdPrefixQuery) query;
+            return newEntryIterator(this.queryByPrefix(session, pq), query);
+        }
+
+        // Query by range
+        if (query instanceof IdRangeQuery) {
+            IdRangeQuery rq = (IdRangeQuery) query;
+            return newEntryIterator(this.queryByRange(session, rq), query);
+        }
+
         // Query by id
         if (query.conditions().isEmpty()) {
             assert !query.ids().isEmpty();
@@ -146,7 +160,30 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected BackendColumnIterator queryById(Session session, Id id) {
+        // TODO: change to get() after vertex and schema don't use id prefix
         return session.scan(this.table(), id.asBytes());
+    }
+
+    protected BackendColumnIterator queryByPrefix(Session session,
+                                                  IdPrefixQuery query) {
+        int type = query.inclusiveStart() ?
+                   Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;
+        type |= Session.SCAN_PREFIX_WITH_END;
+        return session.scan(this.table(), query.start().asBytes(),
+                            query.prefix().asBytes(), type);
+    }
+
+    protected BackendColumnIterator queryByRange(Session session,
+                                                 IdRangeQuery query) {
+        byte[] start = query.start().asBytes();
+        byte[] end = query.end() == null ? null : query.end().asBytes();
+        int type = query.inclusiveStart() ?
+                   Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;
+        if (end != null) {
+            type |= query.inclusiveEnd() ?
+                    Session.SCAN_LTE_END : Session.SCAN_LT_END;
+        }
+        return session.scan(this.table(), start, end, type);
     }
 
     protected BackendColumnIterator queryByCond(Session session,
@@ -159,11 +196,6 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             return this.queryByRange(session, shard);
         }
         throw new NotSupportException("query: %s", query);
-    }
-
-    protected BackendColumnIterator queryByRange(Session session,
-                                                 Id begin, Id end) {
-        return session.scan(this.table(), begin.asBytes(), end.asBytes());
     }
 
     protected BackendColumnIterator queryByRange(Session session, Shard shard) {

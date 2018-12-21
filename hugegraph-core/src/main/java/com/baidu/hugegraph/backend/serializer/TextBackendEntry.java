@@ -26,8 +26,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -44,13 +45,13 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
     private final HugeType type;
     private final Id id;
     private Id subId;
-    private Map<String, String> columns;
+    private NavigableMap<String, String> columns;
 
     public TextBackendEntry(HugeType type, Id id) {
         this.type = type;
         this.id = id;
         this.subId = null;
-        this.columns = new ConcurrentHashMap<>();
+        this.resetColumns();
     }
 
     @Override
@@ -92,17 +93,63 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         return this.columns.get(column);
     }
 
+    public BackendColumn columns(String column) {
+        String value = this.columns.get(column);
+        if (value == null) {
+            return null;
+        }
+        return BackendColumn.of(StringEncoding.encode(column),
+                                StringEncoding.encode(value));
+    }
+
+    public Collection<BackendColumn> columnsWithPrefix(String prefix) {
+        return this.columnsWithPrefix(prefix, true, prefix);
+    }
+
+    public Collection<BackendColumn> columnsWithPrefix(String start,
+                                                       boolean inclusiveStart,
+                                                       String prefix) {
+        List<BackendColumn> list = new ArrayList<>();
+        Map<String, String> map = this.columns.tailMap(start, inclusiveStart);
+        for (Map.Entry<String, String> e : map.entrySet()) {
+            String key = e.getKey();
+            String value = e.getValue();
+            if (key.startsWith(prefix)) {
+                list.add(BackendColumn.of(StringEncoding.encode(key),
+                                          StringEncoding.encode(value)));
+            }
+        }
+        return list;
+    }
+
+    public Collection<BackendColumn> columnsWithRange(String start,
+                                                      boolean inclusiveStart,
+                                                      String end,
+                                                      boolean inclusiveEnd) {
+        List<BackendColumn> list = new ArrayList<>();
+        Map<String, String> map = this.columns.subMap(start, inclusiveStart,
+                                                      end, inclusiveEnd);
+        for (Map.Entry<String, String> e : map.entrySet()) {
+            String key = e.getKey();
+            String value = e.getValue();
+            list.add(BackendColumn.of(StringEncoding.encode(key),
+                                      StringEncoding.encode(value)));
+        }
+        return list;
+    }
+
     public boolean contains(String column) {
         return this.columns.containsKey(column);
     }
 
     public boolean contains(String column, String value) {
-        return this.columns.containsKey(column) &&
-               this.columns.get(column).equals(value);
+        String col = this.columns.get(column);
+        return col != null && col.equals(value);
     }
 
     public boolean containsPrefix(String column) {
-        for (String c : this.columns.keySet()) {
+        Map<String, String> map = this.columns.tailMap(column, true);
+        for (String c : map.keySet()) {
             if (c.startsWith(column)) {
                 return true;
             }
@@ -112,19 +159,6 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
 
     public boolean containsValue(String value) {
         return this.columns.values().contains(value);
-    }
-
-    public Collection<BackendColumn> columnsWithPrefix(String column) {
-        List<BackendColumn> list = new ArrayList<>();
-        for (Map.Entry<String, String> e : this.columns.entrySet()) {
-            String key = e.getKey();
-            String value = e.getValue();
-            if (key.startsWith(column)) {
-                list.add(BackendColumn.of(StringEncoding.encode(key),
-                                          StringEncoding.encode(value)));
-            }
-        }
-        return list;
     }
 
     public void append(TextBackendEntry entry) {
@@ -232,10 +266,14 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         this.columns.clear();
     }
 
+    private void resetColumns() {
+        this.columns = new ConcurrentSkipListMap<>();
+    }
+
     public TextBackendEntry copy() {
         try {
             TextBackendEntry clone = (TextBackendEntry) this.clone();
-            clone.columns = new ConcurrentHashMap<>(this.columns);
+            clone.columns = new ConcurrentSkipListMap<>(this.columns);
             return clone;
         } catch (CloneNotSupportedException e) {
             throw new BackendException(e);
@@ -249,7 +287,7 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         } catch (CloneNotSupportedException e) {
             throw new BackendException(e);
         }
-        clone.columns = new ConcurrentHashMap<>();
+        clone.resetColumns();
 
         // Copy the last count columns
         Iterator<Entry<String, String>> it = this.columns.entrySet().iterator();
@@ -271,7 +309,7 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         } catch (CloneNotSupportedException e) {
             throw new BackendException(e);
         }
-        clone.columns = new ConcurrentHashMap<>();
+        clone.resetColumns();
 
         // Copy the head count columns
         Iterator<Entry<String, String>> it = this.columns.entrySet().iterator();

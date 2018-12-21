@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.type.HugeType;
@@ -76,11 +75,11 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
             // We assume query OUT edges
             type = HugeType.EDGE_OUT;
 
-            if (!query.ids().isEmpty() && query instanceof IdQuery &&
-                query.originQuery() != null) {
+            while (!(query instanceof ConditionQuery ||
+                     query.originQuery() == null)) {
                 /*
-                 * Some backends may trans ConditionQuery to IdQuery like
-                 * RocksDB, so we should get the origin query
+                 * Some backends(like RocksDB) may trans ConditionQuery to
+                 * IdQuery or IdPrefixQuery, so we should get the origin query.
                  */
                 query = query.originQuery();
             }

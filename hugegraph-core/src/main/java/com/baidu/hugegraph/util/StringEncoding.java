@@ -81,4 +81,10 @@ public final class StringEncoding {
             throw new HugeException("Failed to decode string", e);
         }
     }
+
+    public static String format(byte[] bytes) {
+        return String.format("%s[0x%s]",
+                             StringEncoding.decode(bytes),
+                             Bytes.toHex(bytes));
+    }
 }

@@ -36,6 +36,8 @@ import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdPrefixQuery;
+import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -384,12 +386,79 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    protected Id writeQueryEdgeCondition(Query query) {
+    protected Query writeQueryEdgeCondition(Query query) {
+        ConditionQuery cq = (ConditionQuery) query;
+        if (cq.hasRangeCondition()) {
+            return this.writeQueryEdgeRangeCondition(cq);
+        } else {
+            return this.writeQueryEdgePrefixCondition(cq);
+        }
+    }
+
+    private Query writeQueryEdgeRangeCondition(ConditionQuery cq) {
+        List<Condition> sortValues = cq.syspropConditions(HugeKeys.SORT_VALUES);
+        E.checkArgument(sortValues.size() >= 1 && sortValues.size() <= 2,
+                        "Edge range query must be with sort-values range");
+        // Would ignore target vertex
+        Object vertex = cq.condition(HugeKeys.OWNER_VERTEX);
+        Object direction = cq.condition(HugeKeys.DIRECTION);
+        if (direction == null) {
+            direction = Directions.OUT;
+        }
+        Object label = cq.condition(HugeKeys.LABEL);
+
+        List<String> start = new ArrayList<>(cq.conditions().size());
+        start.add(writeEntryId((Id) vertex));
+        start.add(writeType(((Directions) direction).type()));
+        start.add(writeId((Id) label));
+
+        List<String> end = new ArrayList<>(start);
+
+        int minEq = -1;
+        int maxEq = -1;
+        for (Condition sortValue : sortValues) {
+            Condition.Relation r = (Condition.Relation) sortValue;
+            switch (r.relation()) {
+                case GTE:
+                    minEq = 1;
+                    start.add((String) r.value());
+                    break;
+                case GT:
+                    minEq = 0;
+                    start.add((String) r.value());
+                    break;
+                case LTE:
+                    maxEq = 1;
+                    end.add((String) r.value());
+                    break;
+                case LT:
+                    maxEq = 0;
+                    end.add((String) r.value());
+                    break;
+                default:
+                    E.checkArgument(false, "Unsupported relation '%s'",
+                                    r.relation());
+            }
+        }
+
+        // Sort-value will be empty if there is no start sort-value
+        String startId = EdgeId.concat(start.toArray(new String[0]));
+        // Set endId as prefix if there is no end sort-value
+        String endId = EdgeId.concat(end.toArray(new String[0]));
+        if (maxEq == -1) {
+            return new IdPrefixQuery(cq, IdGenerator.of(startId), minEq == 1,
+                                     IdGenerator.of(endId));
+        }
+        return new IdRangeQuery(cq, IdGenerator.of(startId), minEq == 1,
+                                IdGenerator.of(endId), maxEq == 1);
+    }
+
+    private Query writeQueryEdgePrefixCondition(ConditionQuery cq) {
         // Convert query-by-condition to query-by-id
-        List<String> condParts = new ArrayList<>(query.conditions().size());
+        List<String> condParts = new ArrayList<>(cq.conditions().size());
 
         for (HugeKeys key : EdgeId.KEYS) {
-            Object value = ((ConditionQuery) query).condition(key);
+            Object value = cq.condition(key);
             if (value == null) {
                 break;
             }
@@ -408,7 +477,7 @@ public class TextSerializer extends AbstractSerializer {
         if (condParts.size() > 0) {
             // Conditions to id
             String id = EdgeId.concat(condParts.toArray(new String[0]));
-            return IdGenerator.of(id);
+            return new IdPrefixQuery(cq, IdGenerator.of(id));
         }
 
         return null;

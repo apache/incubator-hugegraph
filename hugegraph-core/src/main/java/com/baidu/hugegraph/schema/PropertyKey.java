@@ -38,6 +38,7 @@ import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.LongEncoding;
 
 public class PropertyKey extends SchemaElement implements Propfiable {
 
@@ -53,6 +54,34 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     @Override
     public HugeType type() {
         return HugeType.PROPERTY_KEY;
+    }
+
+    public DataType dataType() {
+        return this.dataType;
+    }
+
+    public void dataType(DataType dataType) {
+        this.dataType = dataType;
+    }
+
+    public Cardinality cardinality() {
+        return this.cardinality;
+    }
+
+    public void cardinality(Cardinality cardinality) {
+        this.cardinality = cardinality;
+    }
+
+    @Override
+    public Set<Id> properties() {
+        return Collections.emptySet();
+    }
+
+    public PropertyKey properties(Id... properties) {
+        if (properties.length > 0) {
+            throw new NotSupportException("PropertyKey.properties(Id)");
+        }
+        return this;
     }
 
     public Class<?> clazz() {
@@ -136,6 +165,17 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         return valid;
     }
 
+    public <V> Object serialValue(V value) {
+        V validValue = this.validValue(value);
+        E.checkArgument(validValue != null,
+                        "Invalid property value '%s' for key '%s'",
+                        value, this.name());
+        if (this.dataType.isNumber() || this.dataType.isDate()) {
+            return LongEncoding.encodeNumber(validValue);
+        }
+        return validValue;
+    }
+
     public <V> V validValue(V value) {
         return this.convValue(value, true);
     }
@@ -190,34 +230,6 @@ public class PropertyKey extends SchemaElement implements Propfiable {
             return uuid;
         }
         return value;
-    }
-
-    public DataType dataType() {
-        return this.dataType;
-    }
-
-    public void dataType(DataType dataType) {
-        this.dataType = dataType;
-    }
-
-    public Cardinality cardinality() {
-        return this.cardinality;
-    }
-
-    public void cardinality(Cardinality cardinality) {
-        this.cardinality = cardinality;
-    }
-
-    @Override
-    public Set<Id> properties() {
-        return Collections.emptySet();
-    }
-
-    public PropertyKey properties(Id... properties) {
-        if (properties.length > 0) {
-            throw new NotSupportException("PropertyKey.properties(Id)");
-        }
-        return this;
     }
 
     public interface Builder extends SchemaBuilder<PropertyKey> {

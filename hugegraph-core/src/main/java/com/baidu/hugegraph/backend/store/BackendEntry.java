@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -54,7 +55,17 @@ public interface BackendEntry {
             if (other == null) {
                 return 1;
             }
-            return Bytes.compare(name, other.name);
+            return Bytes.compare(this.name, other.name);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof BackendColumn)) {
+                return false;
+            }
+            BackendColumn other = (BackendColumn) obj;
+            return Bytes.equals(this.name, other.name) &&
+                   Bytes.equals(this.value, other.value);
         }
     }
 
@@ -84,12 +95,16 @@ public interface BackendEntry {
 
         public byte[] position();
 
-        @SuppressWarnings("unchecked")
-        public static <T> BackendIterator<T> empty() {
-            return (BackendIterator<T>) EMPTY;
+    }
+
+    public interface BackendColumnIterator
+           extends BackendIterator<BackendColumn> {
+
+        public static BackendColumnIterator empty() {
+            return EMPTY;
         }
 
-        public final BackendIterator<?> EMPTY = new BackendIterator<Object>() {
+        public final BackendColumnIterator EMPTY = new BackendColumnIterator() {
 
             @Override
             public boolean hasNext() {
@@ -97,7 +112,7 @@ public interface BackendEntry {
             }
 
             @Override
-            public Object next() {
+            public BackendColumn next() {
                 throw new NoSuchElementException();
             }
 
@@ -113,11 +128,37 @@ public interface BackendEntry {
         };
     }
 
-    public interface BackendColumnIterator
-           extends BackendIterator<BackendColumn> {
+    public static class BackendColumnIteratorWrapper
+           implements BackendColumnIterator {
 
-        public static BackendColumnIterator empty() {
-            return (BackendColumnIterator) EMPTY;
+        private final Iterator<BackendColumn> itor;
+
+        public BackendColumnIteratorWrapper(Iterator<BackendColumn> itor) {
+            this.itor = itor;
         }
-    };
+
+        public BackendColumnIteratorWrapper(BackendColumn... cols) {
+            this.itor = Arrays.asList(cols).iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return itor.hasNext();
+        }
+
+        @Override
+        public BackendColumn next() {
+            return itor.next();
+        }
+
+        @Override
+        public void close() {
+            // pass
+        }
+
+        @Override
+        public byte[] position() {
+            return null;
+        }
+    }
 }

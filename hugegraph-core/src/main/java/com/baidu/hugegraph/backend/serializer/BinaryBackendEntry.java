@@ -31,7 +31,6 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.StringEncoding;
 
 public class BinaryBackendEntry implements BackendEntry {
 
@@ -229,7 +228,7 @@ public class BinaryBackendEntry implements BackendEntry {
 
         @Override
         public String toString() {
-            return StringEncoding.decode(this.bytes);
+            return "0x" + Bytes.toHex(this.bytes);
         }
     }
 }

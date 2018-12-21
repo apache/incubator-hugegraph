@@ -101,6 +101,10 @@ public final class BytesBuffer {
         }
     }
 
+    public BytesBuffer copyFrom(BytesBuffer other) {
+        return this.write(other.bytes());
+    }
+
     public int remaining() {
         return this.buffer.remaining();
     }

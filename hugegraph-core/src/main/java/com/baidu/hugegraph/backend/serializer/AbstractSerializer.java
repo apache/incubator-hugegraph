@@ -38,7 +38,7 @@ public abstract class AbstractSerializer
 
     protected abstract Id writeQueryId(HugeType type, Id id);
 
-    protected abstract Id writeQueryEdgeCondition(Query query);
+    protected abstract Query writeQueryEdgeCondition(Query query);
 
     protected abstract Query writeQueryCondition(Query query);
 
@@ -53,9 +53,9 @@ public abstract class AbstractSerializer
                                            "and by condition at the same time");
             }
 
-            Id id = this.writeQueryEdgeCondition(query);
-            if (id != null) {
-                return new IdQuery(query, id);
+            Query result = this.writeQueryEdgeCondition(query);
+            if (result != null) {
+                return result;
             }
         }
 

@@ -331,7 +331,7 @@ public abstract class TableSerializer extends AbstractSerializer {
     }
 
     @Override
-    protected Id writeQueryEdgeCondition(Query query) {
+    protected Query writeQueryEdgeCondition(Query query) {
         ConditionQuery result = (ConditionQuery) query;
         for (Condition.Relation r : result.relations()) {
             Object value = r.value();

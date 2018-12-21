@@ -175,9 +175,9 @@ public class Example1 {
               .sortKeys("time")
               .create();
 
-        schema.edgeLabel("look").multiTimes().properties("time")
+        schema.edgeLabel("look").multiTimes().properties("timestamp")
               .sourceLabel("person").targetLabel("book")
-              .sortKeys("time")
+              .sortKeys("timestamp")
               .create();
 
         schema.edgeLabel("created").singleTime()
@@ -407,7 +407,8 @@ public class Example1 {
         assert vertices.size() == 1;
         Vertex james = vertices.get(0);
         Vertex book6 = graph.addVertex(T.label, "book", "name", "java-6");
-        james.addEdge("look", book6, "time", "2017-5-3");
+        james.addEdge("look", book6, "timestamp", "2017-5-2 12:00:08.0");
+        james.addEdge("look", book6, "timestamp", "2017-5-3 12:00:08.0");
         graph.tx().commit();
         assert graph.traversal().V(book6.id()).bothE().hasNext();
         System.out.println(">>>> removing vertex: " + james);

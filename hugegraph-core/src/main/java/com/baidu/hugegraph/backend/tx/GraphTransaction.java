@@ -952,9 +952,8 @@ public class GraphTransaction extends IndexableTransaction {
                     String primaryValues = query.userpropValuesString(keys);
                     LOG.debug("Query vertices by primaryKeys: {}", query);
                     // Convert {vertex-label + primary-key} to vertex-id
-                    Id id = SplicingIdGenerator.splicing(
-                                                vertexLabel.id().asString(),
-                                                primaryValues);
+                    Id id = SplicingIdGenerator.splicing(label.asString(),
+                                                         primaryValues);
                     /*
                      * Just query by primary-key(id), ignore other userprop(if
                      * exists) that it will be filtered by queryVertices(Query)
@@ -971,11 +970,34 @@ public class GraphTransaction extends IndexableTransaction {
                 query.condition(HugeKeys.DIRECTION) != null &&
                 !keys.isEmpty() && query.matchUserpropKeys(keys)) {
                 // Query edge by sourceVertex + direction + label + sort-values
-                query.optimized(OptimizedType.SORT_KEY.ordinal());
+                query.optimized(OptimizedType.SORT_KEYS.ordinal());
                 query = query.copy();
-                query.eq(HugeKeys.SORT_VALUES,
-                         query.userpropValuesString(keys));
+                // Serialize sort-values
+                for (Condition.Relation r : query.userpropRelations()) {
+                    if (!keys.contains(r.key())) {
+                        continue;
+                    }
+                    PropertyKey pk = this.graph().propertyKey((Id) r.key());
+                    r.serialValue(pk.serialValue(r.value()));
+                }
+                // Convert to sysprop condition {SORT_VALUES=value}
+                if (query.hasRangeCondition()) {
+                    for (Condition condition : query.userpropConditions()) {
+                        assert condition instanceof Condition.Relation;
+                        Condition.Relation r = (Condition.Relation) condition;
+                        Condition.Relation sys = new Condition.SyspropRelation(
+                                                     HugeKeys.SORT_VALUES,
+                                                     r.relation(),
+                                                     r.serialValue());
+                        condition = condition.replace(r, sys);
+                        query.query(condition);
+                    }
+                } else {
+                    query.eq(HugeKeys.SORT_VALUES,
+                             query.userpropValuesString(keys));
+                }
                 query.resetUserpropConditions();
+
                 LOG.debug("Query edges by sortKeys: {}", query);
                 return query;
             }
