@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -53,10 +55,8 @@ public class BaseApiTest {
     private static final String SCHEMA_PKS = "/schema/propertykeys";
     private static final String SCHEMA_VLS = "/schema/vertexlabels";
     private static final String SCHEMA_ELS = "/schema/edgelabels";
-    @SuppressWarnings("unused")
     private static final String SCHEMA_ILS = "/schema/indexlabels";
     private static final String GRAPH_VERTEX = "/graph/vertices";
-    @SuppressWarnings("unused")
     private static final String GRAPH_EDGE = "/graph/edges";
 
     private static RestClient client;
@@ -329,6 +329,50 @@ public class BaseApiTest {
         return (String) list.get(0).get("id");
     }
 
+    protected static void clearGraph() {
+        Consumer<String> consumer = (urlSuffix) -> {
+            String path = URL_PREFIX + urlSuffix;
+            String type = urlSuffix.substring(urlSuffix.lastIndexOf('/') + 1);
+            Response r = client.get(path);
+            if (r.getStatus() != 200) {
+                throw new HugeException("Failed to list " + type);
+            }
+            String content = r.readEntity(String.class);
+            List<Map> list = readList(content, type, Map.class);
+            List<Object> ids = list.stream().map(e -> e.get("id"))
+                                   .collect(Collectors.toList());
+            ids.forEach(id -> {
+                client.delete(path, (String) id);
+            });
+        };
+
+        consumer.accept(GRAPH_EDGE);
+        consumer.accept(GRAPH_VERTEX);
+    }
+
+    protected static void clearSchema() {
+        Consumer<String> consumer = (urlSuffix) -> {
+            String path = URL_PREFIX + urlSuffix;
+            String type = urlSuffix.substring(urlSuffix.lastIndexOf('/') + 1);
+            Response r = client.get(path);
+            if (r.getStatus() != 200) {
+                throw new HugeException("Failed to list " + type);
+            }
+            String content = r.readEntity(String.class);
+            List<Map> list = readList(content, type, Map.class);
+            List<Object> names = list.stream().map(e -> e.get("name"))
+                                     .collect(Collectors.toList());
+            names.forEach(name -> {
+                client.delete(path, (String) name);
+            });
+        };
+
+        consumer.accept(SCHEMA_ILS);
+        consumer.accept(SCHEMA_ELS);
+        consumer.accept(SCHEMA_VLS);
+        consumer.accept(SCHEMA_PKS);
+    }
+
     protected static String parseId(String content) throws IOException {
         Map<?, ?> map = mapper.readValue(content, Map.class);
         return (String) map.get("id");
@@ -354,6 +398,11 @@ public class BaseApiTest {
     }
 
     protected static void clearData() {
+        clearGraph();
+        clearSchema();
+    }
+
+    protected static void truncate() {
         String token = "162f7848-0b6d-4faf-b557-3a0797869c55";
         String message = "I'm sure to delete all data";
 

@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.api;
 
-import org.apache.commons.configuration.ConfigurationException;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -40,7 +39,7 @@ import com.baidu.hugegraph.dist.RegisterUtil;
 public class ApiTestSuite {
 
     @BeforeClass
-    public static void initEnv() throws ConfigurationException {
+    public static void initEnv() {
         RegisterUtil.registerBackends();
     }
 }
