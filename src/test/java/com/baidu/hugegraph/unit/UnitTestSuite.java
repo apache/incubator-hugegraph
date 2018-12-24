@@ -31,6 +31,7 @@ import com.baidu.hugegraph.unit.iterator.MapperIteratorTest;
 import com.baidu.hugegraph.unit.util.BytesTest;
 import com.baidu.hugegraph.unit.util.CollectionUtilTest;
 import com.baidu.hugegraph.unit.util.HashUtilTest;
+import com.baidu.hugegraph.unit.util.InsertionOrderUtilTest;
 import com.baidu.hugegraph.unit.util.VersionUtilTest;
 
 @RunWith(Suite.class)
@@ -46,6 +47,7 @@ import com.baidu.hugegraph.unit.util.VersionUtilTest;
     BytesTest.class,
     CollectionUtilTest.class,
     HashUtilTest.class,
+    InsertionOrderUtilTest.class,
     VersionUtilTest.class
 })
 public class UnitTestSuite {

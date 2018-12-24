@@ -21,16 +21,89 @@ package com.baidu.hugegraph.unit.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.util.CollectionUtil;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
-public class CollectionUtilTest {
+public class CollectionUtilTest extends BaseUnitTest {
+
+    @Test
+    public void testToList() {
+        Object array1 = new Integer[]{1, 2, 3};
+        Assert.assertEquals(ImmutableList.of(1, 2, 3),
+                            CollectionUtil.toList(array1));
+
+        Object array2 = new String[]{"1", "2", "3"};
+        Assert.assertEquals(ImmutableList.of("1", "2", "3"),
+                            CollectionUtil.toList(array2));
+
+        Assert.assertThrows(NullPointerException.class, () -> {
+            CollectionUtil.toList(null);
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            CollectionUtil.toList("123");
+        });
+    }
+
+    @Test
+    public void testPrefixOf() {
+        List<Integer> list = ImmutableList.of(1, 2, 3);
+
+        List<Integer> list1 = ImmutableList.of();
+        Assert.assertTrue(CollectionUtil.prefixOf(list1, list));
+
+        List<Integer> list2 = ImmutableList.of(1, 2);
+        Assert.assertTrue(CollectionUtil.prefixOf(list2, list));
+
+        List<Integer> list3 = ImmutableList.of(1, 2, 3);
+        Assert.assertTrue(CollectionUtil.prefixOf(list3, list));
+
+        List<Integer> list4 = ImmutableList.of(1, 2, 3, 4);
+        Assert.assertFalse(CollectionUtil.prefixOf(list4, list));
+    }
+
+    @Test
+    public void testAllUnique() {
+        List<Integer> list = ImmutableList.of();
+        Assert.assertTrue(CollectionUtil.allUnique(list));
+
+        list = ImmutableList.of(1, 2, 3, 2, 3);
+        Assert.assertFalse(CollectionUtil.allUnique(list));
+
+        list = ImmutableList.of(1, 2, 3, 4, 5);
+        Assert.assertTrue(CollectionUtil.allUnique(list));
+
+        list = ImmutableList.of(1, 1, 1, 1, 1);
+        Assert.assertFalse(CollectionUtil.allUnique(list));
+    }
+
+    @Test
+    public void testSubSet() {
+        Set<Integer> originSet = ImmutableSet.of(1, 2, 3, 4, 5);
+
+        Set<Integer> subSet = CollectionUtil.subSet(originSet, 1, 1);
+        Assert.assertEquals(ImmutableSet.of(), subSet);
+
+        subSet = CollectionUtil.subSet(originSet, 2, 4);
+        Assert.assertEquals(ImmutableSet.of(3, 4), subSet);
+
+        subSet = CollectionUtil.subSet(originSet, 2, 5);
+        Assert.assertEquals(ImmutableSet.of(3, 4, 5), subSet);
+
+        subSet = CollectionUtil.subSet(originSet, 0, 5);
+        Assert.assertEquals(ImmutableSet.of(1, 2, 3, 4, 5), subSet);
+    }
 
     @Test
     public void testUnion() {
@@ -136,5 +209,85 @@ public class CollectionUtilTest {
 
         second.add(1);
         Assert.assertTrue(CollectionUtil.hasIntersection(first, second));
+    }
+
+    @Test
+    public void testMapSortByStringKey() {
+        Map<String, Integer> unordered = new HashMap<>();
+        unordered.put("D", 1);
+        unordered.put("B", 2);
+        unordered.put("E", 3);
+        unordered.put("A", 4);
+        unordered.put("C", 5);
+
+        Map<String, Integer> incrOrdered = CollectionUtil.sortByKey(unordered,
+                                                                    true);
+        Assert.assertEquals(ImmutableList.of("A", "B", "C", "D", "E"),
+                            ImmutableList.copyOf(incrOrdered.keySet()));
+
+        Map<String, Integer> decrOrdered = CollectionUtil.sortByKey(unordered,
+                                                                    false);
+        Assert.assertEquals(ImmutableList.of("E", "D", "C", "B", "A"),
+                            ImmutableList.copyOf(decrOrdered.keySet()));
+    }
+
+    @Test
+    public void testMapSortByIntegerKey() {
+        Map<Integer, String> unordered = new HashMap<>();
+        unordered.put(4, "A");
+        unordered.put(2, "B");
+        unordered.put(5, "C");
+        unordered.put(1, "D");
+        unordered.put(3, "E");
+
+        Map<Integer, String> incrOrdered = CollectionUtil.sortByKey(unordered,
+                                                                    true);
+        Assert.assertEquals(ImmutableList.of(1, 2, 3, 4, 5),
+                            ImmutableList.copyOf(incrOrdered.keySet()));
+
+        Map<Integer, String> decrOrdered = CollectionUtil.sortByKey(unordered,
+                                                                    false);
+        Assert.assertEquals(ImmutableList.of(5, 4, 3, 2, 1),
+                            ImmutableList.copyOf(decrOrdered.keySet()));
+    }
+
+    @Test
+    public void testMapSortByIntegerValue() {
+        Map<String, Integer> unordered = new HashMap<>();
+        unordered.put("A", 4);
+        unordered.put("B", 2);
+        unordered.put("C", 5);
+        unordered.put("D", 1);
+        unordered.put("E", 3);
+
+        Map<String, Integer> incrOrdered = CollectionUtil.sortByValue(unordered,
+                                                                      true);
+        Assert.assertEquals(ImmutableList.of(1, 2, 3, 4, 5),
+                            ImmutableList.copyOf(incrOrdered.values()));
+
+        Map<String, Integer> decrOrdered = CollectionUtil.sortByValue(unordered,
+                                                                      false);
+        Assert.assertEquals(ImmutableList.of(5, 4, 3, 2, 1),
+                            ImmutableList.copyOf(decrOrdered.values()));
+    }
+
+    @Test
+    public void testMapSortByStringValue() {
+        Map<Integer, String> unordered = new HashMap<>();
+        unordered.put(1, "D");
+        unordered.put(2, "B");
+        unordered.put(3, "E");
+        unordered.put(4, "A");
+        unordered.put(5, "C");
+
+        Map<Integer, String> incrOrdered = CollectionUtil.sortByValue(unordered,
+                                                                      true);
+        Assert.assertEquals(ImmutableList.of("A", "B", "C", "D", "E"),
+                            ImmutableList.copyOf(incrOrdered.values()));
+
+        Map<Integer, String> decrOrdered = CollectionUtil.sortByValue(unordered,
+                                                                      false);
+        Assert.assertEquals(ImmutableList.of("E", "D", "C", "B", "A"),
+                            ImmutableList.copyOf(decrOrdered.values()));
     }
 }
