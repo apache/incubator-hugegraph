@@ -67,6 +67,18 @@
                             </configuration>
                         </execution>
                         <execution>
+                            <id>api-test</id>
+                            <configuration>
+                                <testSourceDirectory>${basedir}/src/main/java/
+                                </testSourceDirectory>
+                                <testClassesDirectory>${basedir}/target/classes/
+                                </testClassesDirectory>
+                                <includes>
+                                    <include>**/ApiTestSuite.java</include>
+                                </includes>
+                            </configuration>
+                        </execution>
+                        <execution>
                             <id>tinkerpop-structure-test</id>
                             <configuration>
                                 <testSourceDirectory>${basedir}/src/main/java/

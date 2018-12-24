@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.core;
 
-import org.apache.commons.configuration.ConfigurationException;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -53,7 +52,7 @@ public class CoreTestSuite {
     private static HugeGraph graph = null;
 
     @BeforeClass
-    public static void initEnv() throws ConfigurationException {
+    public static void initEnv() {
         RegisterUtil.registerBackends();
     }
 
@@ -65,7 +64,7 @@ public class CoreTestSuite {
     }
 
     @AfterClass
-    public static void clear() throws Exception {
+    public static void clear() {
         if (graph == null) {
             return;
         }
