@@ -528,11 +528,14 @@ public class HbaseSessions extends BackendSessionPool {
 
         public RowIterator(Result... results) {
             this.resultScanner = null;
-            if (results.length == 1 && results[0].isEmpty()) {
-                this.results = Collections.emptyIterator();
-            } else {
-                this.results = Arrays.asList(results).iterator();
+            List<Result> rs = new ArrayList<>(results.length);
+            for (Result result : results) {
+                // Get by Ids may return empty result
+                if (!result.isEmpty()) {
+                    rs.add(result);
+                }
             }
+            this.results = rs.iterator();
         }
 
         @Override
