@@ -3302,6 +3302,101 @@ public class VertexCoreTest extends BaseCoreTest {
         });
     }
 
+    @Test
+    public void testQueryVerticesByIdsWithHasIdFilterAndNumberId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("user").useCustomizeNumberId().create();
+
+        graph.addVertex(T.label, "user", T.id, 123);
+        graph.addVertex(T.label, "user", T.id, 456);
+        graph.addVertex(T.label, "user", T.id, 789);
+        graph.tx().commit();
+
+        GraphTraversalSource g = graph.traversal();
+        List<Vertex> vertices;
+
+        vertices = g.V().hasId(P.within(123)).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = g.V(123, 456).hasId(P.within(123)).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = g.V(123, 456).hasId(123).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = g.V(123, 456, 789).hasId(P.within(123, 456)).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = g.V(123, 456, 789).hasId(456, 789).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = g.V(123, 456, 789).hasId(P.within(123, 456, 789)).toList();
+        Assert.assertEquals(3, vertices.size());
+    }
+
+    @Test
+    public void testQueryVerticesByLabelsWithOneLabelNotExist() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("user1").useCustomizeNumberId().create();
+        schema.vertexLabel("user2").useCustomizeNumberId().create();
+
+        graph.addVertex(T.label, "user1", T.id, 123);
+        graph.addVertex(T.label, "user2", T.id, 456);
+        graph.addVertex(T.label, "user2", T.id, 789);
+        graph.tx().commit();
+
+        GraphTraversalSource g = graph.traversal();
+        List<Vertex> vertices;
+
+        vertices = g.V().hasLabel("user1").toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = g.V().hasLabel("user2").toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = g.V().hasLabel("user1", "user2").toList();
+        Assert.assertEquals(3, vertices.size());
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.V().hasLabel("user3").toList();
+        }, e -> {
+            Assert.assertEquals("Undefined vertex label: 'user3'",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.V().hasLabel("user1", "user3").toList();
+        }, e -> {
+            Assert.assertEquals("Undefined vertex label: 'user3'",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.V().hasLabel("user3", "user1").toList();
+        }, e -> {
+            Assert.assertEquals("Undefined vertex label: 'user3'",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.V().hasLabel("user3", "user4").toList();
+        }, e -> {
+            Assert.assertEquals("Undefined vertex label: 'user3'",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.V().hasLabel("user4", "user3").toList();
+        }, e -> {
+            Assert.assertEquals("Undefined vertex label: 'user4'",
+                                e.getMessage());
+        });
+    }
+
     private void init10Vertices() {
         HugeGraph graph = graph();
 

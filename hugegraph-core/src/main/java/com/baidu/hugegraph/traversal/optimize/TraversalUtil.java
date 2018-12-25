@@ -362,25 +362,31 @@ public final class TraversalUtil {
         assert bp instanceof Contains;
         List<?> values = (List<?>) has.getValue();
 
-        try {
-            String originKey = has.getKey();
-            if (values.size() > 1) {
-                E.checkArgument(!originKey.equals(T.key) &&
-                                !originKey.equals(T.value),
-                                "Not support hasKey() or hasValue() with " +
-                                "multiple values");
-            }
-            HugeKeys key = string2HugeKey(originKey);
-            values = convSysListValueIfNeeded(graph, type, key, values);
+        String originKey = has.getKey();
+        if (values.size() > 1) {
+            E.checkArgument(!originKey.equals(T.key) &&
+                            !originKey.equals(T.value),
+                            "Not support hasKey() or hasValue() with " +
+                            "multiple values");
+        }
 
+        HugeKeys hugeKey = null;
+        try {
+            hugeKey = string2HugeKey(originKey);
+        } catch (IllegalArgumentException ignored) {
+            // Ignore
+        }
+
+        if (hugeKey != null) {
+            values = convSysListValueIfNeeded(graph, type, hugeKey, values);
 
             switch ((Contains) bp) {
                 case within:
-                    return Condition.in(key, values);
+                    return Condition.in(hugeKey, values);
                 case without:
-                    return Condition.nin(key, values);
+                    return Condition.nin(hugeKey, values);
             }
-        } catch (IllegalArgumentException e) {
+        } else {
             String key = has.getKey();
             PropertyKey pkey = graph.propertyKey(key);
 
