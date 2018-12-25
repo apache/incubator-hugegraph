@@ -184,10 +184,10 @@ public abstract class IdGenerator {
 
         @Override
         public boolean equals(Object other) {
-            if (!(other instanceof LongId)) {
+            if (!(other instanceof Number)) {
                 return false;
             }
-            return this.id == ((LongId) other).id;
+            return this.id == ((Number) other).longValue();
         }
 
         @Override
