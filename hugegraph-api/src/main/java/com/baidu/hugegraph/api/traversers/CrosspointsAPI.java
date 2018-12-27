@@ -39,10 +39,15 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.traversal.optimize.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.PathsTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 @Path("graphs/{graph}/traversers/crosspoints")
 @Singleton
@@ -60,9 +65,12 @@ public class CrosspointsAPI extends API {
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_depth") int depth,
-                      @QueryParam("max_degree") @DefaultValue("-1") long degree,
-                      @QueryParam("capacity") @DefaultValue("-1") long capacity,
-                      @QueryParam("limit") @DefaultValue("10") long limit) {
+                      @QueryParam("max_degree")
+                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @QueryParam("capacity")
+                      @DefaultValue(DEFAULT_CAPACITY) long capacity,
+                      @QueryParam("limit")
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
         LOG.debug("Graph [{}] get crosspoints with paths from '{}', to '{}' " +
                   "with direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",
@@ -74,7 +82,7 @@ public class CrosspointsAPI extends API {
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
-        HugeTraverser traverser = new HugeTraverser(g);
+        PathsTraverser traverser = new PathsTraverser(g);
         Set<HugeTraverser.Path> paths = traverser.paths(sourceId, dir,
                                                         targetId, dir,
                                                         edgeLabel, depth,

@@ -19,7 +19,7 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
-            <version>1.5.6</version>
+            <version>1.5.8</version>
         </dependency>
 
         <!-- tinkerpop -->

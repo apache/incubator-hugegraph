@@ -56,6 +56,20 @@ public enum Directions implements SerialEnum {
         }
     }
 
+    public Direction direction() {
+        switch (this) {
+            case OUT:
+                return Direction.OUT;
+            case IN:
+                return Direction.IN;
+            case BOTH:
+                return Direction.BOTH;
+            default:
+                throw new AssertionError(String.format(
+                          "Unrecognized direction: '%s'", this));
+        }
+    }
+
     public static Directions convert(Direction direction) {
         switch (direction) {
             case OUT:

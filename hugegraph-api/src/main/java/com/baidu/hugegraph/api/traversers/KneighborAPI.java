@@ -39,10 +39,13 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.traversal.optimize.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 
 @Path("graphs/{graph}/traversers/kneighbor")
 @Singleton
@@ -59,8 +62,10 @@ public class KneighborAPI extends API {
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_depth") int depth,
-                      @QueryParam("max_degree") @DefaultValue("-1") long degree,
-                      @QueryParam("limit") @DefaultValue("-1") long limit) {
+                      @QueryParam("max_degree")
+                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @QueryParam("limit")
+                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
         LOG.debug("Graph [{}] get k-neighbor from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}' and limit '{}'",
