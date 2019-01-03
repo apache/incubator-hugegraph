@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.serializer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.NotImplementedException;
 
@@ -53,10 +54,17 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.SchemaStatus;
+import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.KryoUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.baidu.hugegraph.util.StringUtil;
@@ -812,96 +820,330 @@ public class BinarySerializer extends AbstractSerializer {
         return bytes;
     }
 
-    // TODO: remove these methods when improving schema serialize
-    private static String splitKeyId(byte[] bytes) {
-        BytesBuffer buffer = BytesBuffer.wrap(bytes);
-        buffer.readId();
-        return buffer.readStringFromRemaining();
-    }
-
-    private static byte[] joinIdKey(Id id, String key) {
-        int size = 1 + id.length() + key.length();
-        BytesBuffer buffer = BytesBuffer.allocate(size);
-        buffer.writeId(id);
-        buffer.writeStringToRemaining(key);
-        return buffer.bytes();
-    }
-
-    private BackendEntry text2bin(BackendEntry entry) {
-        Id id = IdGenerator.of(entry.id().asLong());
-        BinaryBackendEntry bin = newBackendEntry(entry.type(), id);
-        TextBackendEntry text = (TextBackendEntry) entry;
-        for (String name : text.columnNames()) {
-            String value = text.column(name);
-            bin.column(joinIdKey(id, name),
-                       StringEncoding.encode(value));
-        }
-        return bin;
-    }
-
-    private BackendEntry bin2text(BackendEntry entry) {
-        if (entry == null) {
-            return null;
-        }
-        BinaryBackendEntry bin = (BinaryBackendEntry) entry;
-        Id id = IdGenerator.of(bin.id().origin().asString());
-        TextBackendEntry text = new TextBackendEntry(null, id);
-        for (BackendColumn col : bin.columns()) {
-            String name = splitKeyId(col.name);
-            String value = StringEncoding.decode(col.value);
-            text.column(name, value);
-        }
-        return text;
-    }
-
-    // TODO: improve schema serialize
-    private final TextSerializer textSerializer = new TextSerializer();
-
     @Override
     public BackendEntry writeVertexLabel(VertexLabel vertexLabel) {
-        // TODO Auto-generated method stub
-        return text2bin(this.textSerializer.writeVertexLabel(vertexLabel));
+        SchemaSerializer serializer = new SchemaSerializer();
+        return serializer.writeVertexLabel(vertexLabel);
     }
 
     @Override
-    public VertexLabel readVertexLabel(HugeGraph graph, BackendEntry entry) {
-        // TODO Auto-generated method stub
-        return this.textSerializer.readVertexLabel(graph, bin2text(entry));
+    public VertexLabel readVertexLabel(HugeGraph graph,
+                                       BackendEntry backendEntry) {
+        if (backendEntry == null) {
+            return null;
+        }
+        BinaryBackendEntry entry = this.convertEntry(backendEntry);
+
+        SchemaSerializer serializer = new SchemaSerializer();
+        return serializer.readVertexLabel(graph, entry);
     }
 
     @Override
     public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel) {
-        // TODO Auto-generated method stub
-        return text2bin(this.textSerializer.writeEdgeLabel(edgeLabel));
+        SchemaSerializer serializer = new SchemaSerializer();
+        return serializer.writeEdgeLabel(edgeLabel);
     }
 
     @Override
-    public EdgeLabel readEdgeLabel(HugeGraph graph, BackendEntry entry) {
-        // TODO Auto-generated method stub
-        return this.textSerializer.readEdgeLabel(graph, bin2text(entry));
+    public EdgeLabel readEdgeLabel(HugeGraph graph, BackendEntry backendEntry) {
+        if (backendEntry == null) {
+            return null;
+        }
+        BinaryBackendEntry entry = this.convertEntry(backendEntry);
+
+        SchemaSerializer serializer = new SchemaSerializer();
+        return serializer.readEdgeLabel(graph, entry);
     }
 
     @Override
     public BackendEntry writePropertyKey(PropertyKey propertyKey) {
-        // TODO Auto-generated method stub
-        return text2bin(this.textSerializer.writePropertyKey(propertyKey));
+        SchemaSerializer serializer = new SchemaSerializer();
+        return serializer.writePropertyKey(propertyKey);
     }
 
     @Override
-    public PropertyKey readPropertyKey(HugeGraph graph, BackendEntry entry) {
-        // TODO Auto-generated method stub
-        return this.textSerializer.readPropertyKey(graph, bin2text(entry));
+    public PropertyKey readPropertyKey(HugeGraph graph,
+                                       BackendEntry backendEntry) {
+        if (backendEntry == null) {
+            return null;
+        }
+        BinaryBackendEntry entry = this.convertEntry(backendEntry);
+
+        SchemaSerializer serializer = new SchemaSerializer();
+        return serializer.readPropertyKey(graph, entry);
     }
 
     @Override
     public BackendEntry writeIndexLabel(IndexLabel indexLabel) {
-        // TODO Auto-generated method stub
-        return text2bin(this.textSerializer.writeIndexLabel(indexLabel));
+        SchemaSerializer serializer = new SchemaSerializer();
+        return serializer.writeIndexLabel(indexLabel);
     }
 
     @Override
-    public IndexLabel readIndexLabel(HugeGraph graph, BackendEntry entry) {
-        // TODO Auto-generated method stub
-        return this.textSerializer.readIndexLabel(graph, bin2text(entry));
+    public IndexLabel readIndexLabel(HugeGraph graph,
+                                     BackendEntry backendEntry) {
+        if (backendEntry == null) {
+            return null;
+        }
+        BinaryBackendEntry entry = this.convertEntry(backendEntry);
+
+        SchemaSerializer serializer = new SchemaSerializer();
+        return serializer.readIndexLabel(graph, entry);
+    }
+
+    private final class SchemaSerializer {
+
+        private BinaryBackendEntry entry;
+
+        public BinaryBackendEntry writeVertexLabel(VertexLabel schema) {
+            this.entry = newBackendEntry(schema);
+            writeString(HugeKeys.NAME, schema.name());
+            writeEnum(HugeKeys.ID_STRATEGY, schema.idStrategy());
+            writeIds(HugeKeys.PROPERTIES, schema.properties());
+            writeIds(HugeKeys.PRIMARY_KEYS, schema.primaryKeys());
+            writeIds(HugeKeys.NULLABLE_KEYS, schema.nullableKeys());
+            writeIds(HugeKeys.INDEX_LABELS, schema.indexLabels());
+            writeBool(HugeKeys.ENABLE_LABEL_INDEX, schema.enableLabelIndex());
+            writeEnum(HugeKeys.STATUS, schema.status());
+            writeUserdata(schema);
+            return this.entry;
+        }
+
+        public VertexLabel readVertexLabel(HugeGraph graph,
+                                           BinaryBackendEntry entry) {
+            E.checkNotNull(entry, "entry");
+            this.entry = entry;
+            Id id = entry.id().origin();
+            String name = readString(HugeKeys.NAME);
+
+            VertexLabel vertexLabel = new VertexLabel(graph, id, name);
+            vertexLabel.idStrategy(readEnum(HugeKeys.ID_STRATEGY,
+                                            IdStrategy.class));
+            vertexLabel.properties(readIds(HugeKeys.PROPERTIES));
+            vertexLabel.primaryKeys(readIds(HugeKeys.PRIMARY_KEYS));
+            vertexLabel.nullableKeys(readIds(HugeKeys.NULLABLE_KEYS));
+            vertexLabel.indexLabels(readIds(HugeKeys.INDEX_LABELS));
+            vertexLabel.enableLabelIndex(readBool(HugeKeys.ENABLE_LABEL_INDEX));
+            vertexLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
+            readUserdata(vertexLabel);
+            return vertexLabel;
+        }
+
+        public BinaryBackendEntry writeEdgeLabel(EdgeLabel schema) {
+            this.entry = newBackendEntry(schema);
+            writeString(HugeKeys.NAME, schema.name());
+            writeId(HugeKeys.SOURCE_LABEL, schema.sourceLabel());
+            writeId(HugeKeys.TARGET_LABEL, schema.targetLabel());
+            writeEnum(HugeKeys.FREQUENCY, schema.frequency());
+            writeIds(HugeKeys.PROPERTIES, schema.properties());
+            writeIds(HugeKeys.SORT_KEYS, schema.sortKeys());
+            writeIds(HugeKeys.NULLABLE_KEYS, schema.nullableKeys());
+            writeIds(HugeKeys.INDEX_LABELS, schema.indexLabels());
+            writeBool(HugeKeys.ENABLE_LABEL_INDEX, schema.enableLabelIndex());
+            writeEnum(HugeKeys.STATUS, schema.status());
+            writeUserdata(schema);
+            return this.entry;
+        }
+
+        public EdgeLabel readEdgeLabel(HugeGraph graph,
+                                       BinaryBackendEntry entry) {
+            E.checkNotNull(entry, "entry");
+            this.entry = entry;
+            Id id = entry.id().origin();
+            String name = readString(HugeKeys.NAME);
+
+            EdgeLabel edgeLabel = new EdgeLabel(graph, id, name);
+            edgeLabel.sourceLabel(readId(HugeKeys.SOURCE_LABEL));
+            edgeLabel.targetLabel(readId(HugeKeys.TARGET_LABEL));
+            edgeLabel.frequency(readEnum(HugeKeys.FREQUENCY, Frequency.class));
+            edgeLabel.properties(readIds(HugeKeys.PROPERTIES));
+            edgeLabel.sortKeys(readIds(HugeKeys.SORT_KEYS));
+            edgeLabel.nullableKeys(readIds(HugeKeys.NULLABLE_KEYS));
+            edgeLabel.indexLabels(readIds(HugeKeys.INDEX_LABELS));
+            edgeLabel.enableLabelIndex(readBool(HugeKeys.ENABLE_LABEL_INDEX));
+            edgeLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
+            readUserdata(edgeLabel);
+            return edgeLabel;
+        }
+
+        public BinaryBackendEntry writePropertyKey(PropertyKey schema) {
+            this.entry = newBackendEntry(schema);
+            writeString(HugeKeys.NAME, schema.name());
+            writeEnum(HugeKeys.DATA_TYPE, schema.dataType());
+            writeEnum(HugeKeys.CARDINALITY, schema.cardinality());
+            writeIds(HugeKeys.PROPERTIES, schema.properties());
+            writeEnum(HugeKeys.STATUS, schema.status());
+            writeUserdata(schema);
+            return this.entry;
+        }
+
+        public PropertyKey readPropertyKey(HugeGraph graph,
+                                           BinaryBackendEntry entry) {
+            E.checkNotNull(entry, "entry");
+            this.entry = entry;
+            Id id = entry.id().origin();
+            String name = readString(HugeKeys.NAME);
+
+            PropertyKey propertyKey = new PropertyKey(graph, id, name);
+            propertyKey.dataType(readEnum(HugeKeys.DATA_TYPE, DataType.class));
+            propertyKey.cardinality(readEnum(HugeKeys.CARDINALITY,
+                                             Cardinality.class));
+            propertyKey.properties(readIds(HugeKeys.PROPERTIES));
+            propertyKey.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
+            readUserdata(propertyKey);
+            return propertyKey;
+        }
+
+        public BinaryBackendEntry writeIndexLabel(IndexLabel schema) {
+            this.entry = newBackendEntry(schema);
+            writeString(HugeKeys.NAME, schema.name());
+            writeEnum(HugeKeys.BASE_TYPE, schema.baseType());
+            writeId(HugeKeys.BASE_VALUE, schema.baseValue());
+            writeEnum(HugeKeys.INDEX_TYPE, schema.indexType());
+            writeIds(HugeKeys.FIELDS, schema.indexFields());
+            writeEnum(HugeKeys.STATUS, schema.status());
+            return this.entry;
+        }
+
+        public IndexLabel readIndexLabel(HugeGraph graph,
+                                         BinaryBackendEntry entry) {
+            E.checkNotNull(entry, "entry");
+            this.entry = entry;
+            Id id = entry.id().origin();
+            String name = readString(HugeKeys.NAME);
+
+            IndexLabel indexLabel = new IndexLabel(graph, id, name);
+            indexLabel.baseType(readEnum(HugeKeys.BASE_TYPE, HugeType.class));
+            indexLabel.baseValue(readId(HugeKeys.BASE_VALUE));
+            indexLabel.indexType(readEnum(HugeKeys.INDEX_TYPE,
+                                          IndexType.class));
+            indexLabel.indexFields(readIds(HugeKeys.FIELDS));
+            indexLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
+            return indexLabel;
+        }
+
+        private void writeUserdata(SchemaElement schema) {
+            String userdataStr = JsonUtil.toJson(schema.userdata());
+            writeString(HugeKeys.USER_DATA, userdataStr);
+        }
+
+        private void readUserdata(SchemaElement schema) {
+            // Parse all user data of a schema element
+            byte[] userdataBytes = column(HugeKeys.USER_DATA);
+            String userdataStr = StringEncoding.decode(userdataBytes);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> userdata = JsonUtil.fromJson(userdataStr,
+                                                             Map.class);
+            for (Map.Entry<String, Object> e : userdata.entrySet()) {
+                schema.userdata(e.getKey(), e.getValue());
+            }
+        }
+
+        private void writeString(HugeKeys key, String value) {
+            this.entry.column(formatColumnName(key),
+                              StringEncoding.encode(value));
+        }
+
+        private String readString(HugeKeys key) {
+            return StringEncoding.decode(column(key));
+        }
+
+        private void writeEnum(HugeKeys key, SerialEnum value) {
+            this.entry.column(formatColumnName(key), new byte[]{value.code()});
+        }
+
+        private <T extends SerialEnum> T readEnum(HugeKeys key,
+                                                  Class<T> clazz) {
+            byte[] value = column(key);
+            E.checkState(value.length == 1,
+                         "The length of column '%s' must be 1, but is '%s'",
+                         key, value.length);
+            return SerialEnum.fromCode(clazz, value[0]);
+        }
+
+        private void writeId(HugeKeys key, Id value) {
+            this.entry.column(formatColumnName(key), writeId(value));
+        }
+
+        private Id readId(HugeKeys key) {
+            return readId(column(key));
+        }
+
+        private void writeIds(HugeKeys key, Collection<Id> value) {
+            this.entry.column(formatColumnName(key), writeIds(value));
+        }
+
+        private Id[] readIds(HugeKeys key) {
+            return readIds(column(key));
+        }
+
+        private void writeBool(HugeKeys key, boolean value) {
+            this.entry.column(formatColumnName(key),
+                              new byte[]{(byte) (value ? 1 : 0)});
+        }
+
+        private boolean readBool(HugeKeys key) {
+            byte[] value = column(key);
+            E.checkState(value.length == 1,
+                         "The length of column '%s' must be 1, but is '%s'",
+                         key, value.length);
+            return value[0] != (byte) 0;
+        }
+
+        private byte[] writeId(Id id) {
+            int size = 1 + id.length();
+            BytesBuffer buffer = BytesBuffer.allocate(size);
+            buffer.writeId(id);
+            return buffer.bytes();
+        }
+
+        private Id readId(byte[] value) {
+            BytesBuffer buffer = BytesBuffer.wrap(value);
+            return buffer.readId();
+        }
+
+        private byte[] writeIds(Collection<Id> ids) {
+            E.checkState(ids.size() <= BytesBuffer.UINT16_MAX,
+                         "The number of properties of vertex/edge label " +
+                         "cannot exceed '%s'", BytesBuffer.UINT16_MAX);
+            int size = 2;
+            for (Id id : ids) {
+                size += (1 + id.length());
+            }
+            BytesBuffer buffer = BytesBuffer.allocate(size);
+            buffer.writeUInt16(ids.size());
+            for (Id id : ids) {
+                buffer.writeId(id);
+            }
+            return buffer.bytes();
+        }
+
+        private Id[] readIds(byte[] value) {
+            BytesBuffer buffer = BytesBuffer.wrap(value);
+            int size = buffer.readUInt16();
+            Id[] ids = new Id[size];
+            for (int i = 0; i < size; i++) {
+                Id id = buffer.readId();
+                ids[i] = id;
+            }
+            return ids;
+        }
+
+        private byte[] column(HugeKeys key) {
+            BackendColumn column = this.entry.column(formatColumnName(key));
+            E.checkState(column != null, "Not found key '%s' from entry %s",
+                         key, this.entry);
+            E.checkNotNull(column.value, "column.value");
+            return column.value;
+        }
+
+        private byte[] formatColumnName(HugeKeys key) {
+            Id id = this.entry.id().origin();
+            int size = 1 + id.length() + 1;
+            BytesBuffer buffer = BytesBuffer.allocate(size);
+            buffer.writeId(id);
+            buffer.write(key.code());
+            return buffer.bytes();
+        }
     }
 }
