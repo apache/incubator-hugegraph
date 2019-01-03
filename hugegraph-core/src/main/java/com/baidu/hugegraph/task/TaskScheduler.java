@@ -118,18 +118,12 @@ public class TaskScheduler {
     }
 
     private EventListener listenChanges() {
-        // Listen store event: "store.init", "store.truncate"
-        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INIT,
-                                                  Events.STORE_TRUNCATE);
+        // Listen store event: "store.inited"
+        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INITED);
         EventListener eventListener = event -> {
-            /*
-             * Ensure schema cache has been cleared before calling initSchema()
-             * otherwise we would see schema from cache even if store truncated
-             */
+            // Ensure task schema create after system info initialized
             if (storeEvents.contains(event.name())) {
                 this.call(() -> this.tx().initSchema());
-                // Ensure we receive notify after the cache-schema (trick)
-                this.relistenChanges();
                 return true;
             }
             return false;
@@ -140,11 +134,6 @@ public class TaskScheduler {
 
     private void unlistenChanges() {
         this.graph.loadSystemStore().provider().unlisten(this.eventListener);
-    }
-
-    private void relistenChanges() {
-        this.graph.loadSystemStore().provider().unlisten(this.eventListener);
-        this.graph.loadSystemStore().provider().listen(this.eventListener);
     }
 
     public <V> void restoreTasks() {

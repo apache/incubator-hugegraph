@@ -25,6 +25,7 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
@@ -79,6 +80,7 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void open(String graph) {
+        LOG.debug("Graph '{}' open StoreProvider", this.graph);
         E.checkArgument(graph != null, "The graph name can't be null");
         E.checkArgument(!graph.isEmpty(), "The graph name can't be empty");
 
@@ -90,6 +92,7 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void close() throws BackendException {
+        LOG.debug("Graph '{}' close StoreProvider", this.graph);
         this.checkOpened();
         this.storeEventHub.notify(Events.STORE_CLOSE, this);
     }
@@ -102,7 +105,7 @@ public abstract class AbstractBackendStoreProvider
         }
         this.notifyAndWaitEvent(Events.STORE_INIT);
 
-        LOG.info("Graph '{}' has been initialized", this.graph);
+        LOG.debug("Graph '{}' store has been initialized", this.graph);
     }
 
     @Override
@@ -113,7 +116,7 @@ public abstract class AbstractBackendStoreProvider
         }
         this.notifyAndWaitEvent(Events.STORE_CLEAR);
 
-        LOG.info("Graph '{}' has been cleared", this.graph);
+        LOG.debug("Graph '{}' store has been cleared", this.graph);
     }
 
     @Override
@@ -124,7 +127,17 @@ public abstract class AbstractBackendStoreProvider
         }
         this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
 
-        LOG.info("Graph '{}' has been truncated", this.graph);
+        LOG.debug("Graph '{}' store has been truncated", this.graph);
+    }
+
+    @Override
+    public void initSystemInfo(HugeGraph graph) {
+        this.checkOpened();
+        BackendStoreSystemInfo info = new BackendStoreSystemInfo(graph);
+        info.init();
+        this.notifyAndWaitEvent(Events.STORE_INITED);
+
+        LOG.debug("Graph '{}' system info has been initialized", this.graph);
     }
 
     @Override

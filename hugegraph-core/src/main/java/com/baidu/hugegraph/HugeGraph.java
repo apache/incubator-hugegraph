@@ -48,7 +48,6 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -102,7 +101,6 @@ public class HugeGraph implements GremlinGraph {
 
     private final EventHub schemaEventHub;
     private final EventHub indexEventHub;
-    @SuppressWarnings("UnstableApiUsage")
     private final RateLimiter rateLimiter;
     private final TaskManager taskManager;
 
@@ -184,7 +182,9 @@ public class HugeGraph implements GremlinGraph {
         return this.indexEventHub;
     }
 
-    @SuppressWarnings("UnstableApiUsage")
+    /**
+     * @SuppressWarnings("UnstableApiUsage")
+     */
     public RateLimiter rateLimiter() {
         return this.rateLimiter;
     }
@@ -196,12 +196,14 @@ public class HugeGraph implements GremlinGraph {
         this.loadGraphStore().open(this.configuration);
         try {
             this.storeProvider.init();
-            this.initBackendStoreSystemInfo();
+            this.storeProvider.initSystemInfo(this);
         } finally {
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
         }
+
+        LOG.info("Graph '{}' has been initialized", this.name);
     }
 
     @Override
@@ -218,6 +220,8 @@ public class HugeGraph implements GremlinGraph {
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
         }
+
+        LOG.info("Graph '{}' has been cleared", this.name);
     }
 
     @Override
@@ -225,7 +229,9 @@ public class HugeGraph implements GremlinGraph {
         this.waitUntilAllTasksCompleted();
 
         this.storeProvider.truncate();
-        this.initBackendStoreSystemInfo();
+        this.storeProvider.initSystemInfo(this);
+
+        LOG.info("Graph '{}' has been truncated", this.name);
     }
 
     private void waitUntilAllTasksCompleted() {
@@ -235,10 +241,6 @@ public class HugeGraph implements GremlinGraph {
         } catch (TimeoutException e) {
             throw new HugeException("Failed to wait all tasks to complete", e);
         }
-    }
-
-    private void initBackendStoreSystemInfo() {
-        new BackendStoreSystemInfo(this).init();
     }
 
     private SchemaTransaction openSchemaTransaction() throws HugeException {
