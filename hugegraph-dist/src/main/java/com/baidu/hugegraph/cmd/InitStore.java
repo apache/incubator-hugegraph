@@ -93,12 +93,12 @@ public class InitStore {
         LOG.info("Init graph with config file: {}", config);
         HugeGraph graph = HugeFactory.open(config);
 
-        BackendStoreSystemInfo backendStoreInfo = new BackendStoreSystemInfo(graph);
+        BackendStoreSystemInfo sysInfo = new BackendStoreSystemInfo(graph);
         try {
-            if (backendStoreInfo.exist()) {
+            if (sysInfo.exist()) {
                 LOG.info("Skip init-store due to the backend store of '{}' " +
                          "had been initialized", graph.name());
-                backendStoreInfo.checkVersion();
+                sysInfo.checkVersion();
             } else {
                 initBackend(graph);
             }

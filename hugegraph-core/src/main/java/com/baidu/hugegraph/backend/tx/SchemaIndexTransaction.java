@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.tx;
 
+import java.util.Collections;
 import java.util.Iterator;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -34,7 +35,6 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableList;
 
 public class SchemaIndexTransaction extends AbstractTransaction {
 
@@ -101,7 +101,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
             idQuery.query(index.elementIds());
         }
         if (idQuery.ids().isEmpty()) {
-            return ImmutableList.<BackendEntry>of().iterator();
+            return Collections.emptyIterator();
         }
         assert idQuery.ids().size() == 1 : idQuery.ids();
         return super.query(idQuery);

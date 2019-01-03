@@ -170,8 +170,7 @@ public class IndexLabel extends SchemaElement {
 
     public static IndexLabel label(HugeGraph graph, Id id) {
         // Primitive IndexLabel first
-        if (id.asLong() < 0 &&
-            id.asLong() > -SchemaElement.NEXT_PRIMITIVE_SYS_ID) {
+        if (id.asLong() < 0 && id.asLong() > -NEXT_PRIMITIVE_SYS_ID) {
             switch ((int) id.asLong()) {
                 case VL_IL_ID:
                     return VL_IL;

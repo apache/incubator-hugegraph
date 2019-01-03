@@ -47,6 +47,11 @@ public class BackendStoreSystemInfo {
 
     public void init() {
         SchemaTransaction schema = this.graph.schemaTransaction();
+
+        // Set schema counter to reserve primitive system id
+        schema.setNextIdLowest(HugeType.SYS_SCHEMA,
+                               SchemaElement.MAX_PRIMITIVE_SYS_ID);
+
         // Use property key to store backend version
         String backendVersion = this.graph.backendVersion();
         PropertyKey backendInfo = this.graph.schema()
@@ -54,10 +59,6 @@ public class BackendStoreSystemInfo {
                                             .userdata("version", backendVersion)
                                             .build();
         schema.addPropertyKey(backendInfo);
-
-        // Set schema counter to reserve primitive system id
-        schema.setNextIdLowest(HugeType.SYS_SCHEMA,
-                               SchemaElement.MAX_PRIMITIVE_SYS_ID);
     }
 
     private Map<String, Object> info() {
