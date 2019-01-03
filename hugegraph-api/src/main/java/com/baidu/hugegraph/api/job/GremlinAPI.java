@@ -19,6 +19,11 @@
 
 package com.baidu.hugegraph.api.job;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,6 +37,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
@@ -57,6 +63,8 @@ import jersey.repackaged.com.google.common.collect.ImmutableMap;
 public class GremlinAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
+
+    private static final int MAX_NAME_LENGTH = 256;
 
     private static final Histogram gremlinJobInputHistogram =
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
@@ -148,7 +156,27 @@ public class GremlinAPI extends API {
 
         public String name() {
             // Get the first line of script as the name
-            return this.gremlin.split("\r\n|\r|\n", 2)[0];
+            String firstLine = this.gremlin.split("\r\n|\r|\n", 2)[0];
+            final Charset charset = Charset.forName(CHARSET);
+            final byte[] bytes = firstLine.getBytes(charset);
+            if (bytes.length <= MAX_NAME_LENGTH) {
+                return firstLine;
+            }
+
+            /*
+             * Reference https://stackoverflow.com/questions/3576754/truncating-strings-by-bytes
+             */
+            CharsetDecoder decoder = charset.newDecoder();
+            decoder.onMalformedInput(CodingErrorAction.IGNORE);
+            decoder.reset();
+
+            ByteBuffer buffer = ByteBuffer.wrap(bytes, 0, MAX_NAME_LENGTH);
+            try {
+                return decoder.decode(buffer).toString();
+            } catch (CharacterCodingException e) {
+                throw new HugeException("Failed to decode truncated bytes of " +
+                                        "gremlin first line", e);
+            }
         }
 
         @Override
