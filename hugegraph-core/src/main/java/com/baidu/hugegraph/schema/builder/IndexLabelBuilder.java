@@ -37,6 +37,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -345,6 +346,18 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     private void checkRepeatIndex(SchemaLabel schemaLabel) {
+        if (schemaLabel instanceof VertexLabel) {
+            VertexLabel vl = (VertexLabel) schemaLabel;
+            if (vl.idStrategy().isPrimaryKey()) {
+                List<String> pkFields = this.transaction.graph()
+                                            .mapPkId2Name(vl.primaryKeys());
+                E.checkArgument(!this.indexFields.containsAll(pkFields),
+                                "No need to build index on properties %s, " +
+                                "because they contains all primary keys %s " +
+                                "for vertex label '%s'",
+                                this.indexFields, pkFields, vl.name());
+            }
+        }
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
             if (this.indexType != old.indexType()) {
