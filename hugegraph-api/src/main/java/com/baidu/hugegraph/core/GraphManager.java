@@ -54,7 +54,6 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-import com.codahale.metrics.MetricRegistry;
 
 public final class GraphManager {
 
@@ -226,15 +225,16 @@ public final class GraphManager {
             return maxWriteThreads;
         });
 
-        // Add metrics for cache
+        // Add metrics for caches
         Map<String, Cache> caches = CacheManager.instance().caches();
-        final AtomicInteger lastCaches = new AtomicInteger(caches.size());
+        registerCacheMetrics(caches);
+        final AtomicInteger lastCachesSize = new AtomicInteger(caches.size());
         MetricsUtil.registerGauge(Cache.class, "instances", () -> {
             int count = caches.size();
-            if (count != lastCaches.get()) {
-                registerCacheMetrics();
-            } else {
-                lastCaches.set(count);
+            if (count != lastCachesSize.get()) {
+                // Update if caches changed (effect in the next report period)
+                registerCacheMetrics(caches);
+                lastCachesSize.set(count);
             }
             return count;
         });
@@ -248,10 +248,8 @@ public final class GraphManager {
         });
     }
 
-    private void registerCacheMetrics() {
-        Map<String, Cache> caches = CacheManager.instance().caches();
-        final MetricRegistry registry = MetricManager.INSTANCE.getRegistry();
-        Set<String> names = registry.getNames();
+    private static void registerCacheMetrics(Map<String, Cache> caches) {
+        Set<String> names = MetricManager.INSTANCE.getRegistry().getNames();
         for (Map.Entry<String, Cache> entry : caches.entrySet()) {
             String key = entry.getKey();
             Cache cache = entry.getValue();
