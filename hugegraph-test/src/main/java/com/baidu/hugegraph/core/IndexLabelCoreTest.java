@@ -531,6 +531,43 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddIndexLabelOnPrimaryKeyProps() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByName").onV("person").secondary()
+                  .by("name").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByNameAge").onV("student").secondary()
+                  .by("name", "age").create();
+        });
+
+        schema.vertexLabel("student").properties("name", "age", "city")
+              .primaryKeys("name", "age").create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("studentByNameAge").onV("student").secondary()
+                  .by("name", "age").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("studentByAgeName").onV("student").secondary()
+                  .by("age", "name").create();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("studentByNameAgeCity").onV("student").secondary()
+                  .by("name", "age", "city").create();
+        });
+
+        schema.indexLabel("studentByName").onV("student").secondary()
+              .by("name").create();
+    }
+
+    @Test
     public void testRemoveIndexLabelOfVertex() {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());
