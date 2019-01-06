@@ -30,6 +30,8 @@ import com.baidu.hugegraph.unit.iterator.FlatMapperFilterIteratorTest;
 import com.baidu.hugegraph.unit.iterator.FlatMapperIteratorTest;
 import com.baidu.hugegraph.unit.iterator.MapperIteratorTest;
 import com.baidu.hugegraph.unit.perf.PerfUtilTest;
+import com.baidu.hugegraph.unit.rest.RestClientTest;
+import com.baidu.hugegraph.unit.rest.RestResultTest;
 import com.baidu.hugegraph.unit.util.BytesTest;
 import com.baidu.hugegraph.unit.util.CollectionUtilTest;
 import com.baidu.hugegraph.unit.util.HashUtilTest;
@@ -46,6 +48,8 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     HugeConfigTest.class,
     EventHubTest.class,
     PerfUtilTest.class,
+    RestClientTest.class,
+    RestResultTest.class,
     VersionTest.class,
 
     ExtendableIteratorTest.class,

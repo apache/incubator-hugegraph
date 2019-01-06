@@ -34,9 +34,9 @@ public class RestResult {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private int status;
-    private MultivaluedMap<String, Object> headers;
-    private String content;
+    private final int status;
+    private final MultivaluedMap<String, Object> headers;
+    private final String content;
 
     public RestResult(Response response) {
         this.status = response.getStatus();

@@ -44,7 +44,7 @@ public final class VersionUtil {
     /**
      * Compare if a version is greater than the other one (inclusive)
      * @param version   The version to be compared
-     * @param begin     The lower bound of the range
+     * @param other     The lower bound of the range
      * @return          true if it's greater than the other, otherwise false
      */
     public static boolean gte(String version, String other) {

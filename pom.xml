@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>1.5.8</version>
+    <version>1.5.9</version>
 
     <name>hugegraph-common</name>
     <url>https://github.com/hugegraph/hugegraph-common</url>
@@ -66,9 +66,11 @@
         <javax.json.version>1.0</javax.json.version>
         <jsr305.version>3.0.1</jsr305.version>
         <javassist.version>3.21.0-GA</javassist.version>
-        <jersey.version>2.25.1</jersey.version>
+        <!--TODO: Update to 2.29 when released-->
+        <jersey.version>2.22</jersey.version>
         <jersey.hk2.version>2.27</jersey.hk2.version>
         <junit.version>4.12</junit.version>
+        <mockito.version>2.25.1</mockito.version>
     </properties>
 
     <dependencies>
@@ -77,6 +79,12 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- Logging -->
@@ -158,6 +166,11 @@
             <version>${jersey.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.glassfish.jersey.connectors</groupId>
+            <artifactId>jersey-apache-connector</artifactId>
+            <version>${jersey.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.glassfish.jersey.inject</groupId>
             <artifactId>jersey-hk2</artifactId>
             <version>${jersey.hk2.version}</version>
@@ -199,7 +212,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>1.5.8.0</Implementation-Version>
+                            <Implementation-Version>1.5.9.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
