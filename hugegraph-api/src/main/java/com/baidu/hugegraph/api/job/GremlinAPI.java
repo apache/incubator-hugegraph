@@ -24,7 +24,10 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Singleton;
@@ -55,6 +58,7 @@ import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
@@ -93,6 +97,8 @@ public class GremlinAPI extends API {
     public static class GremlinJob extends Job<Object> {
 
         public static final String TASK_TYPE = "gremlin";
+        public static final String TASK_BIND_NAME = "gremlinJob";
+        public static final int TASK_RESULTS_MAX_SIZE = 10000;
 
         @Override
         public String type() {
@@ -102,17 +108,19 @@ public class GremlinAPI extends API {
         @Override
         public Object execute() throws Exception {
             GremlinRequest input = GremlinRequest.fromJson(this.task().input());
+            input.binding(TASK_BIND_NAME, new GremlinJobProxy());
 
             HugeScriptTraversal<?, ?> st;
             st = new HugeScriptTraversal<>(this.graph().traversal(),
                                            input.language(), input.gremlin(),
                                            input.bindings(), input.aliases());
-            long count = 0;
+            List<Object> results = new ArrayList<>();
             long capacity = Query.defaultCapacity(Query.NO_CAPACITY);
             try {
                 while (st.hasNext()) {
-                    st.next();
-                    ++count;
+                    Object result = st.next();
+                    results.add(result);
+                    checkResultsSize(results);
                     Thread.yield();
                 }
             } finally {
@@ -122,20 +130,58 @@ public class GremlinAPI extends API {
             }
 
             Object result = st.result();
-            return result != null ? result : count;
+            if (result != null) {
+                checkResultsSize(result);
+                return result;
+            } else {
+                return results;
+            }
+        }
+
+        private void checkResultsSize(Object results) {
+            int size = 0;
+            if (results instanceof Collection) {
+                size = ((Collection<?>) results).size();
+            }
+            E.checkState(size <= TASK_RESULTS_MAX_SIZE,
+                         "Job results size %s has exceeded the max limit %s",
+                         size, TASK_RESULTS_MAX_SIZE);
+        }
+
+        /**
+         * Used by gremlin script
+         */
+        @SuppressWarnings("unused")
+        private class GremlinJobProxy {
+
+            public void setMinSaveInterval(long seconds) {
+                GremlinJob.this.setMinSaveInterval(seconds);
+            }
+
+            public void updateProgress(int progress) {
+                GremlinJob.this.updateProgress(progress);
+            }
         }
     }
 
     private static class GremlinRequest implements Checkable {
 
         // See org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
-        public String gremlin;
-        public Map<String, Object> bindings = new HashMap<>();
-        public String language;
-        public Map<String, String> aliases = new HashMap<>();
+        @JsonProperty
+        private String gremlin;
+        @JsonProperty
+        private Map<String, Object> bindings = new HashMap<>();
+        @JsonProperty
+        private String language;
+        @JsonProperty
+        private Map<String, String> aliases = new HashMap<>();
 
         public void aliase(String key, String value) {
             this.aliases.put(key, value);
+        }
+
+        public void binding(String name, Object value) {
+            this.bindings.put(name, value);
         }
 
         public Map<String, Object> bindings() {

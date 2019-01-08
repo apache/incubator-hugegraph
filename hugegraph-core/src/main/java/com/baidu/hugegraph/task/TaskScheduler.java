@@ -74,6 +74,7 @@ public class TaskScheduler {
 
     private static final long NO_LIMIT = -1L;
     private static final long QUERY_INTERVAL = 100L;
+    private static final int MAX_PENDING_TASKS = 10000;
 
     public TaskScheduler(HugeGraph graph,
                          ExecutorService taskExecutor,
@@ -149,8 +150,9 @@ public class TaskScheduler {
 
     public <V> Future<?> restore(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        E.checkState(!task.isDone(), "No need to restore task '%s', " +
-                     "it has been completed", task.id());
+        E.checkArgument(!task.isDone(),
+                        "No need to restore task '%s', it has been completed",
+                        task.id());
         task.status(TaskStatus.RESTORING);
         return this.submitTask(task);
     }
@@ -162,6 +164,10 @@ public class TaskScheduler {
     }
 
     private <V> Future<?> submitTask(HugeTask<V> task) {
+        int size = this.tasks.size() + 1;
+        E.checkArgument(size <= MAX_PENDING_TASKS,
+                        "Pending tasks size %s has exceeded the max limit %s",
+                        size, MAX_PENDING_TASKS);
         this.tasks.put(task.id(), task);
         task.callable().scheduler(this);
         task.callable().task(task);
@@ -275,10 +281,10 @@ public class TaskScheduler {
          * when the database status is inconsistent.
          */
         if (task != null) {
-            E.checkState(task.completed(),
-                         "Can't delete incomplete task '%s' in status '%s'. " +
-                         "Please try to cancel the task first",
-                         id, task.status());
+            E.checkArgument(task.completed(),
+                            "Can't delete incomplete task '%s' in status %s" +
+                            ", Please try to cancel the task first",
+                            id, task.status());
             this.remove(id);
         }
         return this.call(() -> {
@@ -288,7 +294,7 @@ public class TaskScheduler {
                 HugeVertex vertex = (HugeVertex) vertices.next();
                 result = HugeTask.fromVertex(vertex);
                 E.checkState(result.completed(),
-                             "Can't delete incomplete task '%s' in status '%s'",
+                             "Can't delete incomplete task '%s' in status %s",
                              id, result.status());
                 this.tx().removeVertex(vertex);
                 assert !vertices.hasNext();
@@ -337,7 +343,7 @@ public class TaskScheduler {
             }
         }
         throw new TimeoutException(String.format(
-                  "There are still %d incomplete tasks after %s seconds",
+                  "There are still %s incomplete tasks after %s seconds",
                   taskSize, seconds));
     }
 

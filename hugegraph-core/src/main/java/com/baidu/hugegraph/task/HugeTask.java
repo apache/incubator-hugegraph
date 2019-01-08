@@ -414,7 +414,6 @@ public class HugeTask<V> extends FutureTask<V> {
 
         map.put(Hidden.unHide(P.TYPE), this.type);
         map.put(Hidden.unHide(P.NAME), this.name);
-        map.put(Hidden.unHide(P.CALLABLE), this.callable.getClass().getName());
         map.put(Hidden.unHide(P.STATUS), this.status.string());
         map.put(Hidden.unHide(P.PROGRESS), this.progress);
         map.put(Hidden.unHide(P.CREATE), this.create);
@@ -431,11 +430,16 @@ public class HugeTask<V> extends FutureTask<V> {
                                                         .collect(toOrderSet());
             map.put(Hidden.unHide(P.DEPENDENCIES), value);
         }
-        if (withDetails && this.input != null) {
-            map.put(Hidden.unHide(P.INPUT), this.input);
-        }
-        if (withDetails && this.result != null) {
-            map.put(Hidden.unHide(P.RESULT), this.result);
+
+        if (withDetails) {
+            map.put(Hidden.unHide(P.CALLABLE),
+                    this.callable.getClass().getName());
+            if (this.input != null) {
+                map.put(Hidden.unHide(P.INPUT), this.input);
+            }
+            if (this.result != null) {
+                map.put(Hidden.unHide(P.RESULT), this.result);
+            }
         }
 
         return map;
