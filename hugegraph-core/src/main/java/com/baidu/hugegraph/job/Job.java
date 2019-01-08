@@ -23,8 +23,12 @@ import java.util.Date;
 
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskCallable;
+import com.baidu.hugegraph.util.E;
 
 public abstract class Job<T> extends TaskCallable<T> {
+
+    private volatile long lastSaveTime = System.currentTimeMillis();
+    private volatile long saveInterval = 1000 * 30;
 
     public abstract String type();
 
@@ -44,6 +48,23 @@ public abstract class Job<T> extends TaskCallable<T> {
     @Override
     protected void cancelled() {
         this.save();
+    }
+
+    public void setMinSaveInterval(long seconds) {
+        E.checkArgument(seconds > 0,
+                        "Must set interval > 0, bug got '%s'", seconds);
+        this.saveInterval = seconds * 1000L;
+    }
+
+    public void updateProgress(int progress) {
+        HugeTask<T> task = this.task();
+        task.progress(progress);
+
+        long elapse = System.currentTimeMillis() - this.lastSaveTime;
+        if (elapse > this.saveInterval) {
+            this.save();
+            this.lastSaveTime = System.currentTimeMillis();
+        }
     }
 
     private void save() {
