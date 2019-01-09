@@ -40,7 +40,7 @@ public class PerfExample4 extends PerfExample3 {
      *             product of 2nd and 3rd is total number of "person" vertices
      * @throws InterruptedException
      */
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         PerfExample4 tester = new PerfExample4();
         tester.test(args);
 

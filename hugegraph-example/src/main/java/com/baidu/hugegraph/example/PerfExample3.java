@@ -34,7 +34,7 @@ public class PerfExample3 extends PerfExampleBase {
 
     private static final Logger LOG = Log.logger(PerfExample3.class);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         PerfExample3 tester = new PerfExample3();
         tester.test(args);
 
@@ -46,24 +46,26 @@ public class PerfExample3 extends PerfExampleBase {
     protected void initSchema(SchemaManager schema) {
         // Schema changes will be commit directly into the back-end
         LOG.info("===============  propertyKey  ================");
-        schema.propertyKey("id").asInt().create();
-        schema.propertyKey("name").asText().create();
-        schema.propertyKey("age").asInt().valueSingle().create();
-        schema.propertyKey("city").asText().create();
+        schema.propertyKey("id").asInt().ifNotExist().create();
+        schema.propertyKey("name").asText().ifNotExist().create();
+        schema.propertyKey("age").asInt().valueSingle().ifNotExist().create();
+        schema.propertyKey("city").asText().ifNotExist().create();
 
         LOG.info("===============  vertexLabel  ================");
 
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
-              .create();
+              .ifNotExist().create();
 
         LOG.info("===============  vertexLabel & index  ================");
 
         schema.indexLabel("personByCity")
-              .onV("person").secondary().by("city").create();
+              .onV("person").secondary().by("city")
+              .ifNotExist().create();
         schema.indexLabel("personByAge")
-              .onV("person").range().by("age").create();
+              .onV("person").range().by("age")
+              .ifNotExist().create();
 
         LOG.info("===============  edgeLabel  ================");
 
