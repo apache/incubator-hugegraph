@@ -21,16 +21,17 @@ package com.baidu.hugegraph.example;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.util.Log;
 
-public class PerfExample1ThreadTest {
+public class ThreadRangePerfTest {
 
-    private static final Logger LOG = Log.logger(PerfExample1ThreadTest.class);
+    private static final Logger LOG = Log.logger(ThreadRangePerfTest.class);
 
-    public static void main(String[] args) throws InterruptedException {
-        if (args.length != 5) {
+    public static void main(String[] args) throws Exception {
+        if (args.length != 6) {
             System.out.println("Usage: minThread maxThread threadStep " +
-                               "times multiple");
+                               "times multiple profile");
             return;
         }
 
@@ -39,19 +40,23 @@ public class PerfExample1ThreadTest {
         int threadStep = Integer.parseInt(args[2]);
         int times = Integer.parseInt(args[3]);
         int multiple = Integer.parseInt(args[4]);
+        boolean profile = Boolean.parseBoolean(args[5]);
 
-        args = new String[3];
+        String[] newargs = new String[4];
         for (int i = minThread; i <= maxThread; i += threadStep) {
-            args[0] = String.valueOf(i);
-            args[1] = String.valueOf(times);
-            args[2] = String.valueOf(multiple);
+            int threads = i;
+            newargs[0] = String.valueOf(threads);
+            newargs[1] = String.valueOf(times);
+            newargs[2] = String.valueOf(multiple);
+            newargs[3] = String.valueOf(profile);
 
             LOG.info("===================================");
-            LOG.info("threads: {}, times: {}, multiple: {}",
-                     i, times, multiple);
-            PerfExample1.main(args);
+            LOG.info("threads: {}, times: {}, multiple: {}, profile: {}",
+                     threads, times, multiple, profile);
+            new PerfExample1().test(newargs);
         }
 
-        System.exit(0);
+        // Stop daemon thread
+        HugeGraph.shutdown(30L);
     }
 }

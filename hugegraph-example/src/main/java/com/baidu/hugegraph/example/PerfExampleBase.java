@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CyclicBarrier;
 import java.util.function.Consumer;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
@@ -56,20 +57,22 @@ public abstract class PerfExampleBase {
 
     protected Set<Object> vertices = Collections.newSetFromMap(
                                      new ConcurrentHashMap<Object, Boolean>());
+    protected boolean profile = false;
 
-    public int test(String[] args) throws InterruptedException {
-        if (args.length != 3) {
-            System.out.println("Usage: threadCount times multiple");
+    public int test(String[] args) throws Exception {
+        if (args.length != 4) {
+            System.out.println("Usage: threadCount times multiple profile");
             return -1;
         }
 
         int threadCount = Integer.parseInt(args[0]);
         int times = Integer.parseInt(args[1]);
         int multiple = Integer.parseInt(args[2]);
+        this.profile = Boolean.parseBoolean(args[3]);
 
         // NOTE: this test with HugeGraph is for local, change it into
         // client if test with restful server from remote
-        HugeGraph hugegraph = ExampleUtil.loadGraph(true, true);
+        HugeGraph hugegraph = ExampleUtil.loadGraph(true, this.profile);
         GraphManager graph = new GraphManager(hugegraph);
 
         initSchema(hugegraph.schema());
@@ -101,34 +104,34 @@ public abstract class PerfExampleBase {
                                int threadCount,
                                int times,
                                int multiple)
-                               throws InterruptedException {
+                               throws Exception {
         // Total vertices/edges
         long n = threadCount * times * multiple;
         long vertices = (PERSON_NUM + SOFTWARE_NUM) * n;
         long edges = EDGE_NUM * n;
 
-        long cost = this.execute(i -> {
+        long cost = this.execute(graph, i -> {
             this.testInsert(graph, times, multiple);
-            graph.close();
         }, threadCount);
 
         LOG.info("Insert rate with threads: {} vertices/s & {} edges/s, " +
                  "insert total {} vertices & {} edges, cost time: {}ms",
                  vertices * 1000 / cost, edges * 1000 / cost,
                  vertices, edges, cost);
+
+        graph.clearVertexCache();
     }
 
     public void testQueryVertexPerf(GraphManager graph,
                                     int threadCount,
                                     int times,
                                     int multiple)
-                                    throws InterruptedException {
-        long cost = this.execute(i -> {
+                                    throws Exception {
+        long cost = this.execute(graph, i -> {
             this.testQueryVertex(graph, threadCount, i, multiple);
-            graph.close();
         }, threadCount);
 
-        final int size = (PERSON_NUM + SOFTWARE_NUM) * threadCount * times;
+        final long size = (PERSON_NUM + SOFTWARE_NUM) * threadCount * times;
         LOG.info("Query rate with threads: {} vertices/s, " +
                  "query total vertices {}, cost time: {}ms",
                  size * 1000 / cost, size, cost);
@@ -138,41 +141,61 @@ public abstract class PerfExampleBase {
                                   int threadCount,
                                   int times,
                                   int multiple)
-                                  throws InterruptedException {
-        long cost = this.execute(i -> {
+                                  throws Exception {
+        long cost = this.execute(graph, i -> {
             this.testQueryEdge(graph, threadCount, i, multiple);
-            graph.close();
         }, threadCount);
 
-        final int size = (PERSON_NUM + SOFTWARE_NUM) * threadCount * times;
+        final long size = (PERSON_NUM + SOFTWARE_NUM) * threadCount * times;
         LOG.info("Query rate with threads: {} vedges/s, " +
                  "query total vedges {}, cost time: {}ms",
                  size * 1000 / cost, size, cost);
     }
 
-    protected long execute(Consumer<Integer> task, int threadCount)
-                           throws InterruptedException {
+    protected long execute(GraphManager graph, Consumer<Integer> task,
+                           int threadCount) throws Exception {
+        CyclicBarrier startBarrier  = new CyclicBarrier(threadCount + 1);
+        CyclicBarrier endBarrier  = new CyclicBarrier(threadCount + 1);
         List<Thread> threads = new ArrayList<>(threadCount);
         for (int i = 0; i < threadCount; i++) {
             int j = i;
             Thread t = new Thread(() -> {
+                graph.initEnv();
+                try {
+                    startBarrier.await();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
                 task.accept(j);
-                LOG.info("option = {}", PerfUtil.instance().toECharts());
+
+                try {
+                    endBarrier.await();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+                if (this.profile) {
+                    LOG.info("option = {}", PerfUtil.instance().toECharts());
+                }
+                graph.destroyEnv();
             });
             threads.add(t);
         }
-
-        long beginTime = System.currentTimeMillis();
 
         for (Thread t : threads) {
             t.start();
         }
 
+        startBarrier.await();
+        long beginTime = System.currentTimeMillis();
+
+        endBarrier.await();
+        long endTime = System.currentTimeMillis();
+
         for (Thread t : threads) {
             t.join();
         }
-
-        long endTime = System.currentTimeMillis();
 
         return endTime - beginTime;
     }
@@ -244,16 +267,21 @@ public abstract class PerfExampleBase {
             this.hugegraph = hugegraph;
         }
 
+        public void initEnv() {
+            // Cost about 6s
+            this.hugegraph.graphTransaction();
+        }
+
+        public void destroyEnv() {
+            this.hugegraph.closeTx();
+        }
+
         public Transaction tx() {
             return this.hugegraph.tx();
         }
 
         public GraphTraversalSource traversal() {
             return this.hugegraph.traversal();
-        }
-
-        public void close() {
-            this.hugegraph.close();
         }
 
         public Vertex addVertex(Object... keyValues) {
@@ -266,6 +294,10 @@ public abstract class PerfExampleBase {
             return ((Vertex) this.cache.getOrFetch((Id) id, k -> {
                 return this.hugegraph.vertices(k).next();
             }));
+        }
+
+        public void clearVertexCache() {
+            this.cache.clear();
         }
 
         public Vertex queryVertex(Object id) {

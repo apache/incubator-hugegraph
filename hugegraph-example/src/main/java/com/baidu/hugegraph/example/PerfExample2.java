@@ -36,7 +36,7 @@ import com.datastax.driver.core.exceptions.NoHostAvailableException;
  */
 public class PerfExample2 extends PerfExampleBase {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         PerfExample2 tester = new PerfExample2();
         tester.test(args);
 
@@ -46,7 +46,7 @@ public class PerfExample2 extends PerfExampleBase {
 
     @Override
     protected void initSchema(SchemaManager schema) {
-        schema.propertyKey("name").asText().create();
+        schema.propertyKey("name").asText().ifNotExist().create();
 
         schema.vertexLabel("person")
               .useAutomaticId()
