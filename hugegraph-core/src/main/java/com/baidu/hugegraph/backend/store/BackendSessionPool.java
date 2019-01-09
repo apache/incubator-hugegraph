@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.config.HugeConfig;
@@ -63,39 +64,42 @@ public abstract class BackendSessionPool {
         return session;
     }
 
-    public int closeSession() {
+    public Pair<Integer, Integer> closeSession() {
         BackendSession session = this.threadLocalSession.get();
         if (session == null) {
             LOG.warn("Current session has ever been closed");
-            return -1;
+            return Pair.of(this.sessionCount.get(), -1);
         }
+
         int ref = session.detach();
         assert ref >= 0 : ref;
-        if (ref == 0) {
-            try {
-                session.close();
-            } catch (Throwable e) {
-                session.attach();
-                throw e;
-            }
-            this.threadLocalSession.remove();
-            this.sessionCount.decrementAndGet();
+        if (ref > 0) {
+            return Pair.of(this.sessionCount.get(), ref);
         }
-        return ref;
+
+        // Close session when ref=0
+        try {
+            session.close();
+        } catch (Throwable e) {
+            session.attach();
+            throw e;
+        }
+        this.threadLocalSession.remove();
+        return Pair.of(this.sessionCount.decrementAndGet(), ref);
     }
 
     public void close() {
-        int ref = -1;
+        Pair<Integer, Integer> result = Pair.of(-1, -1);
         try {
-            ref = this.closeSession();
+            result = this.closeSession();
         } finally {
-            if (this.sessionCount.get() == 0) {
+            if (result.getLeft() == 0) {
                 this.doClose();
             }
         }
         LOG.debug("Now(after close({})) session count is: {}, " +
                   "current session reference is: {}",
-                  this, this.sessionCount.get(), ref);
+                  this, result.getLeft(), result.getRight());
     }
 
     public boolean closed() {
