@@ -106,6 +106,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
         this.tables.remove(table);
     }
 
+    @Override
+    public String property(String property) {
+        throw new NotSupportException("RocksDBSstStore property()");
+    }
+
     private SstFileWriter table(String table) {
         SstFileWriter sst = this.tables.get(table);
         if (sst == null) {
@@ -215,14 +220,6 @@ public class RocksDBSstSessions extends RocksDBSessions {
             this.batch.clear();
 
             return count;
-        }
-
-        /**
-         * Get property value
-         */
-        @Override
-        public String property(String property) {
-            throw new NotSupportException("RocksDBSstStore property()");
         }
 
         /**

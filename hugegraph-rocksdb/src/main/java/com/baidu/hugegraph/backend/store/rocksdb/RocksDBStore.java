@@ -49,6 +49,7 @@ import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
@@ -86,7 +87,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            RocksDBMetrics metrics = new RocksDBMetrics(session);
+            List<RocksDBSessions> dbs = new ArrayList<>();
+            dbs.add(sessions);
+            dbs.addAll(tableDBMapping().values());
+
+            RocksDBMetrics metrics = new RocksDBMetrics(dbs, session);
             return metrics.getMetrics();
         });
     }
@@ -243,6 +248,16 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         return Paths.get(path, this.store).toString();
     }
 
+    protected Map<String, RocksDBSessions> tableDBMapping() {
+        Map<String, RocksDBSessions> tableDBMap = InsertionOrderUtil.newMap();
+        for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
+            String table = this.table(e.getKey()).table();
+            RocksDBSessions db = db(e.getValue());
+            tableDBMap.put(table, db);
+        }
+        return tableDBMap;
+    }
+
     @Override
     public void close() {
         LOG.debug("Store close: {}", this.store);
@@ -305,10 +320,9 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         // Create table with optimized disk
-        for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
-            String table = this.table(e.getKey()).table();
-            RocksDBSessions db = db(e.getValue());
-            this.createTable(db, table);
+        Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
+        for (Map.Entry<String, RocksDBSessions> e : tableDBMap.entrySet()) {
+            this.createTable(e.getValue(), e.getKey());
         }
 
         LOG.debug("Store initialized: {}", this.store);
@@ -332,10 +346,9 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         // Drop table with optimized disk
-        for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
-            String table = this.table(e.getKey()).table();
-            RocksDBSessions db = db(e.getValue());
-            this.dropTable(db, table);
+        Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
+        for (Map.Entry<String, RocksDBSessions> e : tableDBMap.entrySet()) {
+            this.dropTable(e.getValue(), e.getKey());
         }
 
         LOG.debug("Store cleared: {}", this.store);
