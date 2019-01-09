@@ -38,6 +38,7 @@ import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
+import org.rocksdb.Env;
 import org.rocksdb.InfoLogLevel;
 import org.rocksdb.MutableColumnFamilyOptionsInterface;
 import org.rocksdb.Options;
@@ -45,6 +46,7 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.SstFileManager;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
@@ -64,6 +66,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     private final HugeConfig conf;
     private final RocksDB rocksdb;
+    private final SstFileManager sstFileManager;
 
     public RocksDBStdSessions(HugeConfig config, String dataPath,
                               String walPath, String database, String store)
@@ -76,6 +79,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
         Options options = new Options();
         RocksDBStdSessions.initOptions(this.conf, options, options, options);
         options.setWalDir(walPath);
+
+        this.sstFileManager = new SstFileManager(Env.getDefault());
+        options.setSstFileManager(this.sstFileManager);
 
         /*
          * Open RocksDB at the first time
@@ -107,6 +113,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
         DBOptions options = new DBOptions();
         RocksDBStdSessions.initOptions(this.conf, options, null, null);
         options.setWalDir(walPath);
+
+        this.sstFileManager = new SstFileManager(Env.getDefault());
+        options.setSstFileManager(this.sstFileManager);
 
         // Open RocksDB with CFs
         List<ColumnFamilyHandle> cfhs = new ArrayList<>();
@@ -162,6 +171,18 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.rocksdb.dropColumnFamily(cfh);
         cfh.close();
         this.cfs.remove(table);
+    }
+
+    @Override
+    public String property(String property) {
+        try {
+            if (property.equals(RocksDBMetrics.DISK_USAGE)) {
+                return String.valueOf(this.sstFileManager.getTotalSize());
+            }
+            return rocksdb().getProperty(property);
+        } catch (RocksDBException e) {
+            throw new BackendException(e);
+        }
     }
 
     @Override
@@ -399,18 +420,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         /**
-         * Get property value
-         */
-        @Override
-        public String property(String property) {
-            try {
-                return rocksdb().getProperty(property);
-            } catch (RocksDBException e) {
-                throw new BackendException(e);
-            }
-        }
-
-        /**
          * Get property value by name from specified table
          */
         @Override
@@ -450,7 +459,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void put(String table, byte[] key, byte[] value) {
-            this.batch.put(cf(table), key, value);
+            try {
+                this.batch.put(cf(table), key, value);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
         }
 
         /**
@@ -460,7 +473,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void merge(String table, byte[] key, byte[] value) {
-            this.batch.merge(cf(table), key, value);
+            try {
+                this.batch.merge(cf(table), key, value);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
         }
 
         /**
@@ -480,7 +497,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void remove(String table, byte[] key) {
-            this.batch.remove(cf(table), key);
+            try {
+                this.batch.singleDelete(cf(table), key);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
         }
 
         /**
@@ -491,7 +512,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
             byte[] keyFrom = key;
             byte[] keyTo = Arrays.copyOf(key, key.length);
             keyTo = BinarySerializer.increaseOne(keyTo);
-            this.batch.deleteRange(cf(table), keyFrom, keyTo);
+            try {
+                this.batch.deleteRange(cf(table), keyFrom, keyTo);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
         }
 
         /**
@@ -499,7 +524,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void delete(String table, byte[] keyFrom, byte[] keyTo) {
-            this.batch.deleteRange(cf(table), keyFrom, keyTo);
+            try {
+                this.batch.deleteRange(cf(table), keyFrom, keyTo);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
         }
 
         /**

@@ -38,6 +38,8 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     public abstract void createTable(String table) throws RocksDBException;
     public abstract void dropTable(String table) throws RocksDBException;
 
+    public abstract String property(String property);
+
     @Override
     public abstract Session session();
 
@@ -54,7 +56,6 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static final int SCAN_LT_END = 0x10;
         public static final int SCAN_LTE_END = 0x30;
 
-        public abstract String property(String property);
         public abstract String property(String table, String property);
 
         public abstract void put(String table, byte[] key, byte[] value);
