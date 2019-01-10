@@ -338,6 +338,7 @@ public class BaseApiTest {
                 throw new HugeException("Failed to list " + type);
             }
             String content = r.readEntity(String.class);
+            @SuppressWarnings("rawtypes")
             List<Map> list = readList(content, type, Map.class);
             List<Object> ids = list.stream().map(e -> e.get("id"))
                                    .collect(Collectors.toList());
@@ -359,6 +360,7 @@ public class BaseApiTest {
                 throw new HugeException("Failed to list " + type);
             }
             String content = r.readEntity(String.class);
+            @SuppressWarnings("rawtypes")
             List<Map> list = readList(content, type, Map.class);
             List<Object> names = list.stream().map(e -> e.get("name"))
                                      .collect(Collectors.toList());

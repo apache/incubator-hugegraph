@@ -53,6 +53,9 @@ else
 fi
 
 PID="$!"
+# Write pid to file
+echo "$PID" > $PID_FILE
+
 trap 'kill $PID; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 
 wait_for_startup 'HugeGraphServer' "$REST_SERVER_URL/graphs" $SERVER_STARTUP_TIMEOUT_S || {
@@ -60,9 +63,6 @@ wait_for_startup 'HugeGraphServer' "$REST_SERVER_URL/graphs" $SERVER_STARTUP_TIM
     exit 1
 }
 disown
-
-# Write pid to file
-echo "$PID" > $PID_FILE
 
 if [ "$OPEN_MONITOR" == "true" ]; then
     $BIN/start-monitor.sh

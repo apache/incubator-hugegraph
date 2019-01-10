@@ -34,7 +34,7 @@ public final class DateUtil {
             "yyyy-MM-dd",
             "^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{2}:\\d{2}:\\d{2}",
             "yyyy-MM-dd HH:mm:ss",
-            "^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{3}",
+            "^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{1,3}",
             "yyyy-MM-dd HH:mm:ss.SSS"
     );
 
