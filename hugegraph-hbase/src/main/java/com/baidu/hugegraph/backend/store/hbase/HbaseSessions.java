@@ -36,6 +36,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.RegionMetrics;
 import org.apache.hadoop.hbase.ServerName;
@@ -93,10 +94,12 @@ public class HbaseSessions extends BackendSessionPool {
     public synchronized void open(HugeConfig conf) throws IOException {
         String hosts = conf.get(HbaseOptions.HBASE_HOSTS);
         int port = conf.get(HbaseOptions.HBASE_PORT);
+        String znodeParent = conf.get(HbaseOptions.HBASE_ZNODE_PARENT);
 
         Configuration config = HBaseConfiguration.create();
-        config.set("hbase.zookeeper.quorum", hosts);
-        config.set("hbase.zookeeper.property.clientPort", String.valueOf(port));
+        config.set(HConstants.ZOOKEEPER_QUORUM, hosts);
+        config.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
+        config.set(HConstants.ZOOKEEPER_ZNODE_PARENT, znodeParent);
         // Set hbase.hconnection.threads.max 64 to avoid OOM(default value: 256)
         config.setInt("hbase.hconnection.threads.max",
                       conf.get(HbaseOptions.HBASE_THREADS_MAX));
