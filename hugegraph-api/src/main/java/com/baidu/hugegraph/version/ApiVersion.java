@@ -77,10 +77,11 @@ public final class ApiVersion {
      * [0.31] Issue-182: Support restore graph in restoring and merging mode
      * [0.32] Issue-250: Keep depth and degree consistent for traverser api
      * [0.33] Issue-305: Implement customized paths and crosspoints RESTful API
+     * [0.34] Issue-307: Let VertexAPI use simplified property serializer
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.33");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.34");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

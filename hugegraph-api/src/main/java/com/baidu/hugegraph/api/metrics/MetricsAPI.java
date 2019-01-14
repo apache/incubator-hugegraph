@@ -38,6 +38,7 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.metric.MetricsModule;
 import com.baidu.hugegraph.metric.ServerReporter;
 import com.baidu.hugegraph.metric.SystemMetrics;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -45,7 +46,6 @@ import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.annotation.Timed;
-import com.codahale.metrics.json.MetricsModule;
 
 @Singleton
 @Path("metrics")
