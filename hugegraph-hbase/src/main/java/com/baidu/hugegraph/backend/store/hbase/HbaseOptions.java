@@ -57,6 +57,14 @@ public class HbaseOptions extends OptionHolder {
                     2181
             );
 
+    public static final ConfigOption<String> HBASE_ZNODE_PARENT =
+            new ConfigOption<>(
+                    "hbase.znode_parent",
+                    "The znode parent path of HBase zookeeper.",
+                    disallowEmpty(),
+                    "/hbase"
+            );
+
     public static final ConfigOption<Integer> HBASE_THREADS_MAX =
             new ConfigOption<>(
                     "hbase.threads_max",
