@@ -91,7 +91,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                       HugeElement element) {
         RemoveLeftIndexJob callable = new RemoveLeftIndexJob(query, element);
         HugeTask<?> task = EphemeralJobBuilder.of(this.graph())
-                                              .name(element.name())
+                                              .name(element.id().asString())
                                               .job(callable)
                                               .schedule();
         return task.id();
@@ -1199,6 +1199,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        Collection<Id> ilFields,
                                        Map<PropertyKey, Object> incorrectPKs) {
             HugeElement elem = this.newestElement(element);
+            if (elem == null) {
+                return false;
+            }
             for (Map.Entry<PropertyKey, Object> e : incorrectPKs.entrySet()) {
                 PropertyKey pk = e.getKey();
                 Object value = e.getValue();

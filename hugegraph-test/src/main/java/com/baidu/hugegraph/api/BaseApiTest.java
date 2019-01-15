@@ -249,6 +249,20 @@ public class BaseApiTest {
                 + "}");
     }
 
+    protected static void initIndexLabel() {
+        String path = URL_PREFIX + SCHEMA_ILS;
+
+        client.post(path, "{\n"
+                + "\"name\": \"personByCity\",\n"
+                + "\"base_type\": \"VERTEX_LABEL\",\n"
+                + "\"base_value\": \"person\",\n"
+                + "\"index_type\": \"SECONDARY\",\n"
+                + "\"fields\": [\n"
+                + "\"city\"\n"
+                + "]\n"
+                + "}");
+    }
+
     protected static void initVertex() {
         String path = URL_PREFIX + GRAPH_VERTEX;
 
@@ -422,15 +436,32 @@ public class BaseApiTest {
         return content;
     }
 
-    public static Object assertJsonContains(String response, String key) {
+    public static <T> T assertJsonContains(String response, String key) {
         Map<?, ?> json = JsonUtil.fromJson(response, Map.class);
         return assertMapContains(json, key);
     }
 
-    public static Object assertMapContains(Map<?, ?> map, String key) {
+    @SuppressWarnings("unchecked")
+    public static <T> T assertMapContains(Map<?, ?> map, String key) {
         String message = String.format("Expect contains key '%s' in %s",
                                        key, map);
         Assert.assertTrue(message, map.containsKey(key));
-        return map.get(key);
+        return (T) map.get(key);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<?, ?> assertArrayContains(List<Map<?, ?>> list,
+                                                String key, Object value) {
+        String message = String.format("Expect contains {'%s':'%s'} in list %s",
+                                       key, value, list);
+        Map<?, ?> found = null;
+        for (Map<?, ?> map : list) {
+            if (map.get(key).equals(value)) {
+                found = map;
+                break;
+            }
+        }
+        Assert.assertTrue(message, found != null);
+        return found;
     }
 }

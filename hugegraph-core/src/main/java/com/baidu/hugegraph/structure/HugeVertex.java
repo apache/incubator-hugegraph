@@ -93,12 +93,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public String name() {
-        assert this.label.idStrategy() == IdStrategy.PRIMARY_KEY;
+        E.checkState(this.label.idStrategy() == IdStrategy.PRIMARY_KEY,
+                     "Only primary key vertex has name, " +
+                     "but got '%s' with id strategy '%s'",
+                     this, this.label.idStrategy());
         if (this.name == null) {
             if (this.id != null) {
                 String[] parts = SplicingIdGenerator.parse(this.id);
                 E.checkState(parts.length == 2,
-                             "Invalid vertex id '%s'", this.id);
+                             "Invalid primary key vertex id '%s'", this.id);
                 this.name = parts[1];
             } else {
                 assert this.id == null;

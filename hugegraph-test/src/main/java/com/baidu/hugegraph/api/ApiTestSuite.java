@@ -33,6 +33,7 @@ import com.baidu.hugegraph.dist.RegisterUtil;
     IndexLabelApiTest.class,
     VertexApiTest.class,
     EdgeApiTest.class,
+    TaskApiTest.class,
     GremlinApiTest.class,
     MetricsApiTest.class
 })
