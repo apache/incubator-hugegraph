@@ -24,6 +24,6 @@ import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 public class HbaseSerializer extends BinarySerializer {
 
     public HbaseSerializer() {
-        super(false);
+        super(false, true);
     }
 }

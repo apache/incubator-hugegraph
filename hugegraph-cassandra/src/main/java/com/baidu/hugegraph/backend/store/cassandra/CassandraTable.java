@@ -127,25 +127,6 @@ public abstract class CassandraTable
                       "currently, it will be replaced by [0, offset + limit)");
         }
 
-        // Set limit
-        if (query.limit() != Query.NO_LIMIT) {
-            long total = query.total();
-            String page = query.page();
-            if (page == null) {
-                select.limit((int) total);
-            } else {
-                select.setFetchSize((int) total);
-                // It's the first time if page is empty
-                if (!page.isEmpty()) {
-                    try {
-                        select.setPagingState(PagingState.fromString(page));
-                    } catch (PagingStateException e) {
-                        throw new BackendException(e.getMessage());
-                    }
-                }
-            }
-        }
-
         // Set order-by
         for (Map.Entry<HugeKeys, Order> order : query.orders().entrySet()) {
             String name = formatKey(order.getKey());
@@ -162,16 +143,42 @@ public abstract class CassandraTable
 
         if (query.conditions().isEmpty()) {
             // Query only by id
+            this.setPageState(query, ids);
             LOG.debug("Query only by id(s): {}", ids);
             return ids;
         } else {
-            List<Select> conds = new ArrayList<Select>(ids.size());
+            List<Select> conds = new ArrayList<>(ids.size());
             for (Select selection : ids) {
                 // Query by condition
                 conds.addAll(this.queryCondition2Select(query, selection));
             }
+            this.setPageState(query, conds);
             LOG.debug("Query by conditions: {}", conds);
             return conds;
+        }
+    }
+
+    protected void setPageState(Query query, List<Select> selects) {
+        if (query.limit() == Query.NO_LIMIT) {
+            return;
+        }
+        for (Select select : selects) {
+            long total = query.total();
+            String page = query.page();
+            if (page == null) {
+                // Set limit
+                select.limit((int) total);
+            } else {
+                select.setFetchSize((int) total);
+                // It's the first time if page is empty
+                if (!page.isEmpty()) {
+                    try {
+                        select.setPagingState(PagingState.fromString(page));
+                    } catch (PagingStateException e) {
+                        throw new BackendException(e);
+                    }
+                }
+            }
         }
     }
 

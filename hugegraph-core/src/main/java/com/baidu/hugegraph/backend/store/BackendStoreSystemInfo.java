@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
@@ -66,7 +68,8 @@ public class BackendStoreSystemInfo {
         PropertyKey pkey = null;
         try {
             pkey = schema.getPropertyKey(PK_BACKEND_INFO);
-        } catch (BackendException | IllegalStateException ignored) {
+        } catch (BackendException | IllegalStateException |
+                 UncheckedIOException ignored) {
             // pass
         }
         return pkey != null ? pkey.userdata() : null;

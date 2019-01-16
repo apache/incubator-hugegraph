@@ -173,13 +173,16 @@ public class VertexAPI extends BatchAPI {
         LOG.debug("Graph [{}] query vertices by label: {}, properties: {}, " +
                   "offset: {}, page: {}, limit: {}",
                   graph, label, properties, offset, page, limit);
-        if (page != null) {
-            E.checkArgument(label == null && properties == null && offset == 0,
-                            "Not support quering vertices based on paging " +
-                            "and [label, properties, offset] together");
-        }
 
         Map<String, Object> props = parseProperties(properties);
+        if (page != null) {
+            E.checkArgument(offset == 0,
+                            "Not support querying vertices based on paging " +
+                            "and offset together");
+            E.checkArgument(props.size() <= 1,
+                            "Not support querying vertices based on paging " +
+                            "and more than one property");
+        }
 
         HugeGraph g = graph(manager, graph);
 

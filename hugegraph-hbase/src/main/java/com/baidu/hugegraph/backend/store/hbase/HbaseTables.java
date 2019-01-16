@@ -34,8 +34,12 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
+import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
+import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.RowIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
@@ -177,9 +181,20 @@ public class HbaseTables {
         }
 
         @Override
+        public void insert(Session session, BackendEntry entry) {
+            assert !entry.columns().isEmpty();
+            for (BackendColumn col : entry.columns()) {
+                assert entry.belongToMe(col) : entry;
+                session.put(this.table(), CF, col.name, col.value);
+            }
+        }
+
+        @Override
         public void eliminate(Session session, BackendEntry entry) {
-            assert entry.columns().size() == 1;
-            super.delete(session, entry);
+            for (BackendColumn col : entry.columns()) {
+                assert entry.belongToMe(col) : entry;
+                session.delete(this.table(), CF, col.name);
+            }
         }
 
         @Override
@@ -205,6 +220,22 @@ public class HbaseTables {
             if (count > 0) {
                 session.commit();
             }
+        }
+
+        @Override
+        protected BackendEntryIterator newEntryIterator(RowIterator rows,
+                                                        Query query) {
+            return new BinaryEntryIterator<>(rows, query, (entry, row) -> {
+                BackendColumn col = BackendColumn.of(row.getRow(),
+                                    BinarySerializer.EMPTY_BYTES);
+                if (entry == null || !entry.belongToMe(col)) {
+                    HugeType type = query.resultType();
+                    // NOTE: only support BinaryBackendEntry currently
+                    entry = new BinaryBackendEntry(type, col.name);
+                }
+                entry.columns(col);
+                return entry;
+            });
         }
 
         @Override
@@ -242,7 +273,7 @@ public class HbaseTables {
         }
     }
 
-    public static class RangeIndex extends HbaseTable {
+    public static class RangeIndex extends IndexTable {
 
         public static final String TABLE = "ri";
 

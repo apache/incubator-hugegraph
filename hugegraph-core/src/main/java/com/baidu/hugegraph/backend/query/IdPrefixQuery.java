@@ -39,6 +39,10 @@ public final class IdPrefixQuery extends Query {
         this(originQuery.resultType(), originQuery, prefix, true, prefix);
     }
 
+    public IdPrefixQuery(Query originQuery, Id start, Id prefix) {
+        this(originQuery.resultType(), originQuery, start, true, prefix);
+    }
+
     public IdPrefixQuery(Query originQuery,
                          Id start, boolean inclusive, Id prefix) {
         this(originQuery.resultType(), originQuery, start, inclusive, prefix);

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -44,7 +45,7 @@ public final class ConditionQueryFlatten {
         List<ConditionQuery> queries = new ArrayList<>();
 
         // Flatten IN/NOT_IN if needed
-        Set<Condition> conditions = new HashSet<>();
+        Set<Condition> conditions = InsertionOrderUtil.newSet();
         for (Condition condition : query.conditions()) {
             Condition cond = flattenIn(condition);
             if (cond == null) {
@@ -166,7 +167,7 @@ public final class ConditionQueryFlatten {
     }
 
     private static Set<Relations> flattenAndOr(Condition condition) {
-        Set<Relations> result = new HashSet<>();
+        Set<Relations> result = InsertionOrderUtil.newSet();
         switch (condition.type()) {
             case RELATION:
                 Relation relation = (Relation) condition;
@@ -191,7 +192,7 @@ public final class ConditionQueryFlatten {
 
     private static Set<Relations> and(Set<Relations> left,
                                       Set<Relations> right) {
-        Set<Relations> result = new HashSet<>();
+        Set<Relations> result = InsertionOrderUtil.newSet();
         for (Relations leftRelations : left) {
             for (Relations rightRelations : right) {
                 Relations relations = new Relations();
@@ -205,7 +206,7 @@ public final class ConditionQueryFlatten {
 
     private static Set<Relations> or(Set<Relations> left,
                                      Set<Relations> right) {
-        Set<Relations> result = new HashSet<>(left);
+        Set<Relations> result = InsertionOrderUtil.newSet(left);
         result.addAll(right);
         return result;
     }
@@ -467,8 +468,9 @@ public final class ConditionQueryFlatten {
 
     /**
      * Rename Relation Set to Relations to make code more readable
+     * Use `LinkedHashSet` to keep relation in order with insertion
      */
-    private static class Relations extends HashSet<Relation> {
+    private static class Relations extends LinkedHashSet<Relation> {
 
         private static final long serialVersionUID = -2110811280408887334L;
 

@@ -311,38 +311,58 @@ public class GraphTransaction extends IndexableTransaction {
             return super.query(query);
         }
 
-        ConditionQuery cq = (ConditionQuery) query;
-        if (cq.isFlattened()) {
+        IdHolderChain chain = new IdHolderChain(query.paging());
+        List<Query> queries = new ArrayList<>();
+        for (ConditionQuery cq: ConditionQueryFlatten.flatten(
+                                (ConditionQuery) query)) {
+            Query q = this.optimizeQuery(cq);
             /*
              * NOTE: There are two possibilities for this query:
              * 1.sysprop-query, which would not be empty.
              * 2.index-query result(ids after optimization), which may be empty.
              */
-            Query q = this.optimizeQuery(cq);
-            // Return empty if there is no result after index-query
-            if (q.empty()) {
-                return Collections.emptyIterator();
-            }
-            return super.query(q);
-        }
-
-        // Flatten and optimize the query
-        List<Query> queries = new ArrayList<>();
-        IdQuery idQuery = new IdQuery(query.resultType(), query);
-        for (ConditionQuery fcq: ConditionQueryFlatten.flatten(cq)) {
-            Query q = this.optimizeQuery(fcq);
-            if (q.getClass() == IdQuery.class && !q.ids().isEmpty()) {
-                idQuery.query(q.ids());
+            if (q == null) {
+                chain.link(this.indexQuery(cq));
             } else if (!q.empty()) {
                 queries.add(q);
             }
         }
-        if (!idQuery.empty()) {
-            queries.add(idQuery);
-        }
+
         ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
-        for (Query q : queries) {
-            rs.extend(super.query(q));
+        if (query.paging()) {
+            String page = query.page();
+            int pageSize = this.graph().configuration()
+                               .get(CoreOptions.INDEX_PAGE_SIZE);
+            long limit = query.limit();
+            if (!chain.idsHolders().isEmpty()) {
+                PagedIdsIterator idsItor = new PagedIdsIterator(chain, page,
+                                                                pageSize, limit);
+                rs.extend(new FlatMapperIterator<>(idsItor, (ids) -> {
+                    IdQuery idQuery = new IdQuery(query.resultType(), ids);
+                    return super.query(idQuery);
+                }));
+            }
+            if (!queries.isEmpty()) {
+                PagedEntryIterator entryItor = new PagedEntryIterator(
+                                               queries, page, limit, (q) -> {
+                    return super.query(q);
+                });
+                rs.extend(entryItor);
+            }
+        } else {
+            List<IdHolder> idHolders = chain.idsHolders();
+            if (!idHolders.isEmpty()) {
+                E.checkState(idHolders.size() == 1,
+                             "IdHolder should have only one in non-paged mode");
+                IdHolder idHolder = idHolders.get(0);
+                Set<Id> ids = ((EntireIdHolder) idHolder).all();
+                if (!ids.isEmpty()) {
+                    queries.add(new IdQuery(query, ids));
+                }
+            }
+            for (Query q : queries) {
+                rs.extend(super.query(q));
+            }
         }
         return rs;
     }
@@ -947,7 +967,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    protected Query optimizeQuery(ConditionQuery query) {
+    private Query optimizeQuery(ConditionQuery query) {
         Id label = (Id) query.condition(HugeKeys.LABEL);
 
         // Optimize vertex query
@@ -1032,6 +1052,10 @@ public class GraphTransaction extends IndexableTransaction {
             }
         }
 
+        return null;
+    }
+
+    private IdHolderChain indexQuery(ConditionQuery query) {
         /*
          * Optimize by index-query
          * It will return a list of id (maybe empty) if success,

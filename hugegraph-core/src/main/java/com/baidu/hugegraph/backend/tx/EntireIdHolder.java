@@ -17,29 +17,30 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.backend.tx;
 
-import com.baidu.hugegraph.util.VersionUtil;
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import java.util.Set;
 
-public class CoreVersion {
+import com.baidu.hugegraph.backend.id.Id;
 
-    static {
-        // Check versions of the dependency packages
-        CoreVersion.check();
+public class EntireIdHolder implements IdHolder {
+
+    private final Set<Id> ids;
+
+    public EntireIdHolder(Set<Id> ids) {
+        this.ids = ids;
     }
 
-    public static final String NAME = "hugegraph-core";
+    public void merge(EntireIdHolder holder) {
+        this.all().addAll(holder.all());
+    }
 
-    // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(CoreVersion.class,
-                                                     "0.9.2");
+    public Set<Id> all() {
+        return this.ids;
+    }
 
-    public static final String GREMLIN_VERSION = "3.2.5";
-
-    public static void check() {
-        // Check version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "1.5.0", "1.6",
-                          CommonVersion.NAME);
+    @Override
+    public int size() {
+        return this.all().size();
     }
 }

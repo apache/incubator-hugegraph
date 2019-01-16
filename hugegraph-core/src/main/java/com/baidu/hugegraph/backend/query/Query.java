@@ -178,6 +178,10 @@ public class Query implements Cloneable {
         this.page = page;
     }
 
+    public void resetPage() {
+        this.page = "";
+    }
+
     public boolean paging() {
         return this.page != null;
     }
@@ -265,8 +269,9 @@ public class Query implements Cloneable {
 
     @Override
     public String toString() {
-        return String.format("Query for %s offset=%d, limit=%d, order by %s",
+        return String.format("Query for %s page=%s, offset=%d, limit=%d, order by %s",
                              this.resultType,
+                             this.page,
                              this.offset,
                              this.limit,
                              this.orders.toString());

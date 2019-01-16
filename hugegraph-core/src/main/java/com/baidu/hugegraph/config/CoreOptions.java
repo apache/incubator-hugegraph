@@ -207,6 +207,14 @@ public class CoreOptions extends OptionHolder {
                     (60 * 10)
             );
 
+    public static final ConfigOption<Integer> INDEX_PAGE_SIZE =
+            new ConfigOption<>(
+                    "index.page_size",
+                    "The size of each page when query by index in paging.",
+                    rangeInt(0, 1000),
+                    500
+            );
+
     public static final ConfigOption<Long> SNOWFLAKE_WORKER_ID =
             new ConfigOption<>(
                     "snowflake.worker_id",

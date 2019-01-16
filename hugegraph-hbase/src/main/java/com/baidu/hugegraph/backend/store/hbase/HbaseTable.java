@@ -41,6 +41,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator.PageState;
+import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
@@ -52,6 +53,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
@@ -178,8 +180,10 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected RowIterator queryByIds(Session session, Set<Id> ids) {
-        Set<byte[]> rowkeys = ids.stream().map(Id::asBytes)
-                                 .collect(Collectors.toSet());
+        Set<byte[]> rowkeys = InsertionOrderUtil.newSet();
+        for (Id id : ids) {
+            rowkeys.add(id.asBytes());
+        }
         return session.get(this.table(), null, rowkeys);
     }
 
@@ -191,6 +195,11 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
     protected RowIterator queryByRange(Session session, IdRangeQuery query) {
         byte[] start = query.start().asBytes();
         byte[] end = query.end() == null ? null : query.end().asBytes();
+        if (query.inclusiveEnd() && end != null) {
+            BinarySerializer.increaseOne(end);
+            return session.scan(this.table(), start, query.inclusiveStart(),
+                                end, false);
+        }
         return session.scan(this.table(), start, query.inclusiveStart(),
                             end, query.inclusiveEnd());
     }
@@ -212,8 +221,8 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         return session.scan(this.table(), start, end);
     }
 
-    private BackendEntryIterator newEntryIterator(RowIterator rows,
-                                                  Query query) {
+    protected BackendEntryIterator newEntryIterator(RowIterator rows,
+                                                    Query query) {
         return new BinaryEntryIterator<>(rows, query, (entry, row) -> {
             E.checkState(!row.isEmpty(), "Can't parse empty HBase result");
             byte[] id = row.getRow();

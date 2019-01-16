@@ -17,29 +17,20 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.backend.tx;
 
-import com.baidu.hugegraph.util.VersionUtil;
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import java.util.Iterator;
 
-public class CoreVersion {
+import com.baidu.hugegraph.iterator.Metadatable;
 
-    static {
-        // Check versions of the dependency packages
-        CoreVersion.check();
-    }
+public abstract class PagedIterator<T> implements Iterator<T>, Metadatable {
 
-    public static final String NAME = "hugegraph-core";
+    // The number of records remaining to be fetched
+    protected long remaining;
+    protected int offset;
 
-    // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(CoreVersion.class,
-                                                     "0.9.2");
-
-    public static final String GREMLIN_VERSION = "3.2.5";
-
-    public static void check() {
-        // Check version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "1.5.0", "1.6",
-                          CommonVersion.NAME);
+    public PagedIterator(long remaining, int offset) {
+        this.remaining = remaining;
+        this.offset = offset;
     }
 }

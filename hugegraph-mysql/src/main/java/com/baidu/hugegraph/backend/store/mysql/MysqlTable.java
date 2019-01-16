@@ -497,6 +497,9 @@ public abstract class MysqlTable
             boolean startWithWhere = query.conditions().isEmpty();
             WhereBuilder where = new WhereBuilder(startWithWhere);
             where.gte(formatKeys(idColumnNames), values);
+            if (!startWithWhere) {
+                select.append(" AND");
+            }
             select.append(where.build());
         }
 

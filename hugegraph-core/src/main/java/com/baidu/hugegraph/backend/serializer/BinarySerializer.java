@@ -34,10 +34,10 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdPrefixQuery;
-import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
+import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator.PageState;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -71,20 +71,23 @@ import com.baidu.hugegraph.util.StringUtil;
 
 public class BinarySerializer extends AbstractSerializer {
 
-    private static final byte[] EMPTY_BYTES = new byte[0];
+    public static final byte[] EMPTY_BYTES = new byte[0];
 
     /*
      * Id is stored in column name if keyWithIdPrefix=true like RocksDB,
      * else stored in rowkey like HBase.
      */
     private final boolean keyWithIdPrefix;
+    private final boolean indexWithIdPrefix;
 
     public BinarySerializer() {
-        this(true);
+        this(true, true);
     }
 
-    public BinarySerializer(boolean keyWithIdPrefix) {
+    public BinarySerializer(boolean keyWithIdPrefix,
+                            boolean indexWithIdPrefix) {
         this.keyWithIdPrefix = keyWithIdPrefix;
+        this.indexWithIdPrefix = indexWithIdPrefix;
     }
 
     @Override
@@ -323,7 +326,7 @@ public class BinarySerializer extends AbstractSerializer {
         int idLen = 1 + elemId.length();
 
         BytesBuffer buffer;
-        if (!this.keyWithIdPrefix) {
+        if (!this.indexWithIdPrefix) {
             buffer = BytesBuffer.allocate(idLen);
         } else {
             Id indexId = index.id();
@@ -350,7 +353,7 @@ public class BinarySerializer extends AbstractSerializer {
                 continue;
             }
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
-            if (this.keyWithIdPrefix) {
+            if (this.indexWithIdPrefix) {
                 buffer.readId();
             }
             index.elementIds(buffer.readId(true));
@@ -642,11 +645,26 @@ public class BinarySerializer extends AbstractSerializer {
         E.checkArgument(index != null, "Please specify the index label");
         E.checkArgument(key != null, "Please specify the index key");
 
-        Id id = formatIndexId(query.resultType(), index, key);
-        IdQuery idQuery = new IdQuery(query, id);
-        idQuery.limit(query.limit());
-        idQuery.offset(query.offset());
-        return idQuery;
+        Id prefix = formatIndexId(query.resultType(), index, key);
+
+        /*
+         * If used paging and the page number is not empty, deserialize
+         * the page to id and use it as the starting row for this query
+         */
+        Query newQuery;
+        if (query.paging() && !query.page().isEmpty()) {
+            byte[] position = PageState.fromString(query.page()).position();
+            E.checkState(Bytes.compare(position, prefix.asBytes()) >= 0,
+                         "Invalid page out of lower bound");
+            BinaryId start = new BinaryId(position, null);
+            newQuery = new IdPrefixQuery(query, start, prefix);
+        } else {
+            newQuery = new IdPrefixQuery(query, prefix);
+        }
+        newQuery.page(query.page());
+        newQuery.limit(query.limit());
+        newQuery.offset(query.offset());
+        return newQuery;
     }
 
     private Query writeRangeIndexQuery(ConditionQuery query) {
@@ -689,10 +707,11 @@ public class BinarySerializer extends AbstractSerializer {
         HugeType type = query.resultType();
         if (keyEq != null) {
             Id id = formatIndexId(type, index, keyEq);
-            IdQuery idQuery = new IdQuery(query, id);
-            idQuery.limit(query.limit());
-            idQuery.offset(query.offset());
-            return idQuery;
+            Query newQuery = new IdPrefixQuery(query, id);
+            newQuery.page(query.page());
+            newQuery.limit(query.limit());
+            newQuery.offset(query.offset());
+            return newQuery;
         }
 
         if (keyMin == null) {
@@ -713,15 +732,28 @@ public class BinarySerializer extends AbstractSerializer {
             keyMinEq = true;
         }
 
+        Id start = min;
+        if (query.paging() && !query.page().isEmpty()) {
+            byte[] position = PageState.fromString(query.page()).position();
+            E.checkArgument(Bytes.compare(position, start.asBytes()) >= 0,
+                            "Invalid page out of lower bound");
+            start = new BinaryId(position, null);
+        }
+
+        Query newQuery;
         if (keyMax == null) {
             Id prefix = formatIndexId(type, index, null);
             // Reset the first byte to make same length-prefix
             prefix.asBytes()[0] = min.asBytes()[0];
-            return new IdPrefixQuery(query, min, keyMinEq, prefix);
+            newQuery = new IdPrefixQuery(query, start, keyMinEq, prefix);
         } else {
             Id max = formatIndexId(type, index, keyMax);
-            return new IdRangeQuery(query, min, keyMinEq, max, keyMaxEq);
+            newQuery = new IdRangeQuery(query, start, keyMinEq, max, keyMaxEq);
         }
+        newQuery.page(query.page());
+        newQuery.limit(query.limit());
+        newQuery.offset(query.offset());
+        return newQuery;
     }
 
     private BinaryBackendEntry formatILDeletion(HugeIndex index) {

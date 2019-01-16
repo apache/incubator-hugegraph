@@ -64,6 +64,7 @@ import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.util.VersionInfo;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendIterator;
 import com.baidu.hugegraph.backend.store.BackendSession;
@@ -318,6 +319,16 @@ public class HbaseSessions extends BackendSessionPool {
             for (BackendColumn column : columns) {
                 put.addColumn(family, column.name, column.value);
             }
+            this.batch(table, put);
+        }
+
+        /**
+         * Add a row record to a table(for index)
+         */
+        public void put(String table, byte[] family,
+                        byte[] rowkey, byte[] value) {
+            Put put = new Put(rowkey);
+            put.addColumn(family, BinarySerializer.EMPTY_BYTES, value);
             this.batch(table, put);
         }
 
