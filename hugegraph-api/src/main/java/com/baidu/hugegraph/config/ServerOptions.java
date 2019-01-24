@@ -48,6 +48,13 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:8080"
             );
 
+    public static final ConfigOption<Integer> MAX_WORKER_THREADS =
+            new ConfigOption<>(
+                    "restserver.max_worker_threads",
+                    "The maximum worker threads of rest server.",
+                    positiveInt(),
+                    2 * Runtime.getRuntime().availableProcessors());
+
     public static final ConfigOption<String> GREMLIN_SERVER_URL =
             new ConfigOption<>(
                     "gremlinserver.url",

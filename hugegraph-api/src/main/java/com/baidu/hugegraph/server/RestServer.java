@@ -56,16 +56,29 @@ public class RestServer {
 
         ResourceConfig rc = new ApplicationConfig(this.conf);
 
-        this.httpServer = GrizzlyHttpServerFactory.createHttpServer(uri, rc);
+        this.httpServer = this.configHttpServer(uri, rc);
         this.httpServer.start();
 
         this.calcMaxWriteThreads();
     }
 
-    @SuppressWarnings("deprecation") // TODO: use shutdown instead
-    public void stop() {
+    private HttpServer configHttpServer(URI uri, ResourceConfig rc) {
+        HttpServer server = GrizzlyHttpServerFactory.createHttpServer(uri, rc,
+                                                                      false);
+        Collection<NetworkListener> listeners = server.getListeners();
+        E.checkState(listeners.size() > 0,
+                     "Http Server should have some listeners, but now is none");
+        int maxWorkerThreads = this.conf.get(ServerOptions.MAX_WORKER_THREADS);
+        listeners.iterator().next().getTransport()
+                 .getWorkerThreadPoolConfig()
+                 .setCorePoolSize(maxWorkerThreads)
+                 .setMaxPoolSize(maxWorkerThreads);
+        return server;
+    }
+
+    public void shutdownNow() {
         E.checkNotNull(this.httpServer, "http server");
-        this.httpServer.stop();
+        this.httpServer.shutdownNow();
     }
 
     public static RestServer start(String conf) throws Exception {
@@ -90,8 +103,8 @@ public class RestServer {
 
         int maxWriteRatio = this.conf.get(ServerOptions.MAX_WRITE_RATIO);
         assert maxWriteRatio >= 0 && maxWriteRatio <= 100;
-        int maxThreadPoolSize = this.maxThreadPoolSize();
-        maxWriteThreads = maxThreadPoolSize * maxWriteRatio / 100;
+        int maxWorkerThreads = this.conf.get(ServerOptions.MAX_WORKER_THREADS);
+        maxWriteThreads = maxWorkerThreads * maxWriteRatio / 100;
         E.checkState(maxWriteThreads >= 0,
                      "Invalid value of maximum batch writing threads '%s'",
                      maxWriteThreads);
@@ -102,21 +115,12 @@ public class RestServer {
                          "set to '%s' at least to ensure one thread." +
                          "If you want to disable batch write, " +
                          "please let max_write_ratio be 0", maxWriteRatio,
-                         (int) Math.ceil(100.0 / maxThreadPoolSize));
+                         (int) Math.ceil(100.0 / maxWorkerThreads));
         }
         LOG.info("The maximum batch writing threads is {} (total threads {})",
-                 maxWriteThreads, maxThreadPoolSize);
+                 maxWriteThreads, maxWorkerThreads);
         this.conf.addProperty(ServerOptions.MAX_WRITE_THREADS.name(),
                               String.valueOf(maxWriteThreads));
-    }
-
-    private int maxThreadPoolSize() {
-        Collection<NetworkListener> listeners = this.httpServer.getListeners();
-        if (listeners.size() == 0) {
-            return -1;
-        }
-        return listeners.iterator().next().getTransport()
-                        .getWorkerThreadPoolConfig().getMaxPoolSize();
     }
 
     public static void main(String[] args) throws Exception {
