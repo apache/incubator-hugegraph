@@ -34,6 +34,7 @@ import org.glassfish.jersey.server.monitoring.RequestEventListener;
 
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.core.WorkLoad;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
@@ -55,6 +56,9 @@ public class ApplicationConfig extends ResourceConfig {
 
         // Register GraphManager to context
         register(new GraphManagerFactory(conf));
+
+        // Register WorkLoad to context
+        register(new WorkLoadFactory());
 
         // Let @Metric annotations work
         MetricRegistry registry = MetricManager.INSTANCE.getRegistry();
@@ -125,6 +129,31 @@ public class ApplicationConfig extends ResourceConfig {
         @Override
         public void dispose(GraphManager manager) {
             // pass
+        }
+    }
+
+    private class WorkLoadFactory extends AbstractBinder
+                                  implements Factory<WorkLoad> {
+
+        private final WorkLoad load;
+
+        public WorkLoadFactory() {
+            this.load = new WorkLoad();
+        }
+
+        @Override
+        public WorkLoad provide() {
+            return this.load;
+        }
+
+        @Override
+        public void dispose(WorkLoad workLoad) {
+            // pass
+        }
+
+        @Override
+        protected void configure() {
+            bindFactory(this).to(WorkLoad.class).in(RequestScoped.class);
         }
     }
 }
