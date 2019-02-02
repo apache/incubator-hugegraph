@@ -90,6 +90,10 @@ public class HugeGraph implements GremlinGraph {
                                  HugeGraphStepStrategy.instance());
         TraversalStrategies.GlobalCache.registerStrategies(HugeGraph.class,
                                                            strategies);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            HugeGraph.shutdown(30L);
+        }));
     }
 
     private volatile boolean closed;
@@ -568,9 +572,16 @@ public class HugeGraph implements GremlinGraph {
      * @param timout seconds
      * @throws InterruptedException when be interrupted
      */
-    public static void shutdown(long timout) throws InterruptedException {
-        EventHub.destroy(timout);
-        TaskManager.instance().shutdown(timout);
+    public static void shutdown(long timeout) {
+        try {
+            if (!EventHub.destroy(timeout)) {
+                throw new TimeoutException(timeout + "s");
+            }
+            TaskManager.instance().shutdown(timeout);
+        } catch (Throwable e) {
+            LOG.error("Error while shutdown", e);
+            throw new HugeException("Failed to shutdown", e);
+        }
     }
 
     private class TinkerpopTransaction extends AbstractThreadLocalTransaction {

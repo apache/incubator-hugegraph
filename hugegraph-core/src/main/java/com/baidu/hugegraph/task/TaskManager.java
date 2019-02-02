@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -116,27 +117,33 @@ public class TaskManager {
     }
 
     public void shutdown(long timeout) {
-        Throwable ex = null;
         assert this.schedulers.isEmpty() : this.schedulers.size();
+
+        Throwable ex = null;
+        boolean terminated = this.taskExecutor.isTerminated();
+        final TimeUnit unit = TimeUnit.SECONDS;
 
         if (!this.taskExecutor.isShutdown()) {
             this.taskExecutor.shutdown();
             try {
-                this.taskExecutor.awaitTermination(timeout, TimeUnit.SECONDS);
+                terminated = this.taskExecutor.awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }
         }
 
-        if (!this.dbExecutor.isShutdown()) {
+        if (terminated && !this.dbExecutor.isShutdown()) {
             this.dbExecutor.shutdown();
             try {
-                this.dbExecutor.awaitTermination(timeout, TimeUnit.SECONDS);
+                terminated = this.dbExecutor.awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }
         }
 
+        if (!terminated) {
+            ex = new TimeoutException(timeout + "s");
+        }
         if (ex != null) {
             throw new HugeException("Failed to wait for TaskScheduler", ex);
         }
