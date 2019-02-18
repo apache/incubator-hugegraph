@@ -66,6 +66,7 @@ public class InitStore {
 
         String confFile = args[0];
         RegisterUtil.registerBackends();
+        RegisterUtil.registerPlugins();
 
         YamlConfiguration config = new YamlConfiguration();
         config.load(confFile);
