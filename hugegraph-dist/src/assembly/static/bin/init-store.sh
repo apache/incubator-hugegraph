@@ -12,8 +12,13 @@ abs_path() {
 
 BIN=`abs_path`
 TOP="$(cd $BIN/../ && pwd)"
-CONF=$TOP/conf
-LIB=$TOP/lib
+CONF="$TOP/conf"
+LIB="$TOP/lib"
+PLUGINS="$TOP/plugins"
+
+. ${BIN}/util.sh
+
+ensure_path_writable $PLUGINS
 
 if [ -n "$JAVA_HOME" ]; then
     JAVA="$JAVA_HOME"/bin/java
@@ -25,5 +30,5 @@ cd $TOP
 
 echo "Initing HugeGraph Store..."
 
-exec $JAVA -cp $LIB/hugegraph-dist-*.jar -Djava.ext.dirs=$LIB/ \
+exec $JAVA -cp $LIB/hugegraph-dist-*.jar -Djava.ext.dirs=$LIB:$PLUGINS \
 com.baidu.hugegraph.cmd.InitStore $CONF/gremlin-server.yaml | grep "com.baidu.hugegraph"
