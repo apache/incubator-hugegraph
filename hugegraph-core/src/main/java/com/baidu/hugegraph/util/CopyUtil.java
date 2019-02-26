@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.util;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
@@ -33,25 +34,38 @@ public final class CopyUtil {
         }
         for (Field field : o.getClass().getDeclaredFields()) {
             field.setAccessible(true);
-            Object childObj = field.get(o);
-            if (childObj == null || Modifier.isFinal(field.getModifiers())) {
+            Object value = field.get(o);
+            if (value == null || Modifier.isFinal(field.getModifiers())) {
                 continue;
             }
 
             Class<?> declareType = field.getType();
-            Class<?> valueType = childObj.getClass();
+            Class<?> valueType = value.getClass();
             if (ReflectionUtil.isSimpleType(declareType) ||
                 ReflectionUtil.isSimpleType(valueType)) {
-                field.set(clone, field.get(o));
+                field.set(clone, value);
+            } else if (declareType.isArray() && valueType.isArray() &&
+                       valueType.getComponentType().isPrimitive()) {
+                field.set(clone, cloneArray(value));
             } else {
-                if (childObj == o) {
+                if (value == o) {
                     field.set(clone, clone);
                 } else {
-                    field.set(clone, cloneObject(field.get(o), null));
+                    field.set(clone, cloneObject(value, null));
                 }
             }
         }
         return clone;
+    }
+
+    private static Object cloneArray(Object value) {
+        Class<?> valueType = value.getClass();
+        assert valueType.isArray() &&
+               valueType.getComponentType().isPrimitive();
+        int len = Array.getLength(value);
+        Object array = Array.newInstance(valueType.getComponentType(), len);
+        System.arraycopy(value, 0, array, 0, len);
+        return array;
     }
 
     public static <T> T copy(T object) {
