@@ -22,8 +22,8 @@ before_script:
   - $TRAVIS_DIR/install-backend.sh
 
 script:
-  - mvn test -P core-test,$BACKEND &&
-    mvn package -DskipTests && $TRAVIS_DIR/start-server.sh && mvn test -P api-test,$BACKEND
+  - mvn test -P core-test,$BACKEND,jacoco coveralls:report
+#  &&  mvn package -DskipTests && $TRAVIS_DIR/start-server.sh && mvn test -P api-test,$BACKEND
   - |
     if [ "$BACKEND" == "memory" ]; then
       mvn test -P unit-test
@@ -36,6 +36,9 @@ script:
     if [[ "$TRAVIS_BRANCH" =~ $RELEASE_BRANCH ]]; then
       mvn test -P tinkerpop-process-test,$BACKEND
     fi
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
 
 jobs:
   include:
@@ -72,11 +75,6 @@ jobs:
 env:
   matrix:
     - BACKEND=memory
-    - BACKEND=cassandra
-    - BACKEND=scylladb
-    - BACKEND=mysql
-    - BACKEND=hbase
-    - BACKEND=rocksdb
   global:
     - RELEASE_BRANCH=^release-.*$
     - RELEASE_TAG=^v[0-9]\..*$
