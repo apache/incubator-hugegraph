@@ -7,6 +7,7 @@ sudo: required
 
 cache:
   directories:
+    - $HOME/.m2
     - $HOME/downloads
 
 branches:
@@ -37,6 +38,9 @@ script:
       mvn test -P tinkerpop-process-test,$BACKEND
     fi
 
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
 jobs:
   include:
     - stage: deploy
@@ -47,7 +51,6 @@ jobs:
         - |
           if [ $DEPLOYED = 0 ]; then
             DEPLOYED=1
-            mvn cobertura:cobertura > /dev/null && bash <(curl -s https://codecov.io/bash)
             mvn clean package -DskipTests
           else
             echo "Skipping before_deploy since it has been executed once."
