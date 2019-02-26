@@ -104,7 +104,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfs.size());
         for (String cf : cfs) {
             ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
-            ColumnFamilyOptions options = cfd.columnFamilyOptions();
+            ColumnFamilyOptions options = cfd.getOptions();
             RocksDBStdSessions.initOptions(this.conf, null, options, options);
             cfds.add(cfd);
         }
@@ -156,7 +156,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         // Should we use options.setCreateMissingColumnFamilies() to create CF
         ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(table));
-        ColumnFamilyOptions options = cfd.columnFamilyOptions();
+        ColumnFamilyOptions options = cfd.getOptions();
         initOptions(this.conf, null, options, options);
         this.cfs.put(table, this.rocksdb.createColumnFamily(cfd));
 
@@ -263,6 +263,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         return cfs;
     }
 
+    @SuppressWarnings("deprecation") // setMaxBackgroundFlushes
     public static void initOptions(HugeConfig conf,
                                    DBOptionsInterface<?> db,
                                    ColumnFamilyOptionsInterface<?> cf,
@@ -284,6 +285,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
             db.setInfoLogLevel(InfoLogLevel.valueOf(
                     conf.get(RocksDBOptions.LOG_LEVEL) + "_LEVEL"));
 
+            /*
+             * TODO: migrate to max_background_jobs option
+             * https://github.com/facebook/rocksdb/pull/2205/files
+             */
             db.setMaxBackgroundCompactions(
                     conf.get(RocksDBOptions.MAX_BG_COMPACTIONS));
             db.setMaxSubcompactions(
