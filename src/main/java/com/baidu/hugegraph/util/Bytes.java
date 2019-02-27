@@ -44,6 +44,13 @@ public final class Bytes {
         return CMP.compare(bytes1, bytes2);
     }
 
+    public static byte[] concat(byte[] bytes1, byte[] bytes2) {
+        byte[] result = new byte[bytes1.length + bytes2.length];
+        System.arraycopy(bytes1, 0, result, 0, bytes1.length);
+        System.arraycopy(bytes2, 0, result, bytes1.length, bytes2.length);
+        return result;
+    }
+
     public static boolean prefixWith(byte[] bytes, byte[] prefix) {
         if (bytes.length < prefix.length) {
             return false;

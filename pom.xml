@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>1.5.7</version>
+    <version>1.5.8</version>
 
     <name>hugegraph-common</name>
     <url>https://github.com/hugegraph/hugegraph-common</url>
@@ -60,8 +60,8 @@
         <commons.configuration.version>1.10</commons.configuration.version>
         <commons.configuration2.version>2.1.1</commons.configuration2.version>
         <commons.collections.version>3.2.2</commons.collections.version>
-        <commons.io.version>20030203.000550</commons.io.version>
-        <commons.codec.version>20041127.091804</commons.codec.version>
+        <commons.io.version>2.4</commons.io.version>
+        <commons.codec.version>1.11</commons.codec.version>
         <guava.version>19.0</guava.version>
         <javax.json.version>1.0</javax.json.version>
         <jsr305.version>3.0.1</jsr305.version>
@@ -146,6 +146,7 @@
             <version>${javassist.version}</version>
         </dependency>
 
+        <!-- jersey -->
         <dependency>
             <groupId>org.glassfish.jersey.core</groupId>
             <artifactId>jersey-client</artifactId>
@@ -198,7 +199,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>1.5.6.0</Implementation-Version>
+                            <Implementation-Version>1.5.8.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

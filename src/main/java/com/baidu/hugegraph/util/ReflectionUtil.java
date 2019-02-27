@@ -42,6 +42,7 @@ public final class ReflectionUtil {
         if (type.isPrimitive() ||
             type.equals(String.class) ||
             type.equals(Boolean.class) ||
+            type.equals(Character.class) ||
             NumericUtil.isNumber(type)) {
             return true;
         }
@@ -49,9 +50,9 @@ public final class ReflectionUtil {
     }
 
     public static List<Method> getMethodsAnnotatedWith(
-            Class<?> type,
-            Class<? extends Annotation> annotation,
-            boolean withSuperClass) {
+                               Class<?> type,
+                               Class<? extends Annotation> annotation,
+                               boolean withSuperClass) {
         final List<Method> methods = new LinkedList<>();
         Class<?> klass = type;
         do {
@@ -66,9 +67,10 @@ public final class ReflectionUtil {
     }
 
     public static List<CtMethod> getMethodsAnnotatedWith(
-            CtClass type,
-            Class<? extends Annotation> annotation,
-            boolean withSuperClass) throws NotFoundException {
+                                 CtClass type,
+                                 Class<? extends Annotation> annotation,
+                                 boolean withSuperClass)
+                                 throws NotFoundException {
         final List<CtMethod> methods = new LinkedList<>();
 
         CtClass klass = type;
@@ -84,7 +86,7 @@ public final class ReflectionUtil {
     }
 
     public static Iterator<ClassInfo> classes(String... packages)
-            throws IOException {
+                                              throws IOException {
         ClassPath path = ClassPath.from(ReflectionUtil.class.getClassLoader());
         ExtendableIterator<ClassInfo> results = new ExtendableIterator<>();
         for (String p : packages) {
@@ -94,7 +96,7 @@ public final class ReflectionUtil {
     }
 
     public static List<String> superClasses(String clazz)
-            throws NotFoundException {
+                                            throws NotFoundException {
         CtClass klass = ClassPool.getDefault().get(clazz);
         klass = klass.getSuperclass();
 

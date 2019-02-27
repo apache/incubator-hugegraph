@@ -30,8 +30,8 @@ public class BytesTest extends BaseUnitTest {
 
     @Test
     public void testBytesEquals() {
-        Assert.assertTrue(Bytes.equals("12345678".getBytes(),
-                                       "12345678".getBytes()));
+        Assert.assertTrue(Bytes.equals(b("12345678"),
+                                       b("12345678")));
         Assert.assertTrue(Bytes.equals(new byte[]{1, 3, 5, 7},
                                        new byte[]{1, 3, 5, 7}));
 
@@ -43,10 +43,8 @@ public class BytesTest extends BaseUnitTest {
 
     @Test
     public void testBytesPrefixWith() {
-        Assert.assertTrue(Bytes.prefixWith("12345678".getBytes(),
-                                           "12345678".getBytes()));
-        Assert.assertTrue(Bytes.prefixWith("12345678".getBytes(),
-                                           "1234567".getBytes()));
+        Assert.assertTrue(Bytes.prefixWith(b("12345678"), b("12345678")));
+        Assert.assertTrue(Bytes.prefixWith(b("12345678"), b("1234567")));
 
         Assert.assertTrue(Bytes.prefixWith(new byte[]{1, 3, 5, 7},
                                            new byte[]{1, 3, 5, 7}));
@@ -65,12 +63,9 @@ public class BytesTest extends BaseUnitTest {
 
     @Test
     public void testBytesCompare() {
-        Assert.assertTrue(Bytes.compare("12345678".getBytes(),
-                                        "12345678".getBytes()) == 0);
-        Assert.assertTrue(Bytes.compare("12345678".getBytes(),
-                                        "1234567".getBytes()) > 0);
-        Assert.assertTrue(Bytes.compare("12345678".getBytes(),
-                                        "12345679".getBytes()) < 0);
+        Assert.assertTrue(Bytes.compare(b("12345678"), b("12345678")) == 0);
+        Assert.assertTrue(Bytes.compare(b("12345678"), b("1234567")) > 0);
+        Assert.assertTrue(Bytes.compare(b("12345678"), b("12345679")) < 0);
 
         Assert.assertTrue(Bytes.compare(new byte[]{1, 3, 5, 7},
                                         new byte[]{1, 3, 5, 7}) == 0);
@@ -113,15 +108,29 @@ public class BytesTest extends BaseUnitTest {
     }
 
     @Test
-    public void testBytesTohex() {
+    public void testBytesConcat() {
+        Assert.assertArrayEquals(b("12345678"),
+                                 Bytes.concat(b("1234"), b("5678")));
+        Assert.assertArrayEquals(b("12345678"),
+                                 Bytes.concat(b("12345678"), b("")));
+        Assert.assertArrayEquals(b("12345678"),
+                                 Bytes.concat(b(""), b("12345678")));
+    }
+
+    @Test
+    public void testBytesToHex() {
         int value = 0x0103807f;
         byte[] bytes = NumericUtil.intToBytes(value);
         Assert.assertEquals("0103807f", Bytes.toHex(bytes));
     }
 
     @Test
-    public void testBytesFromhex() {
+    public void testBytesFromHex() {
         Assert.assertEquals(0x0103807f,
                             NumericUtil.bytesToInt(Bytes.fromHex("0103807f")));
+    }
+
+    private static byte[] b(String string) {
+        return string.getBytes();
     }
 }

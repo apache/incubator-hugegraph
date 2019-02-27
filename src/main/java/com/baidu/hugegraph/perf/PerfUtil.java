@@ -26,8 +26,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.security.InvalidParameterException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.func.TriFunction;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.ReflectionUtil;
 import com.google.common.reflect.ClassPath.ClassInfo;
@@ -52,10 +53,10 @@ import javassist.NotFoundException;
 public class PerfUtil {
 
     private static final Logger LOG = Log.logger(PerfUtil.class);
-    private static ThreadLocal<PerfUtil> instance = new ThreadLocal<>();
+    private static final ThreadLocal<PerfUtil> INSTANCE = new ThreadLocal<>();
 
-    private Map<String, Stopwatch> stopwatches;
-    private Stack<String> callStack;
+    private final Map<String, Stopwatch> stopwatches;
+    private final Stack<String> callStack;
 
     private PerfUtil() {
         this.stopwatches = new HashMap<>();
@@ -63,10 +64,10 @@ public class PerfUtil {
     }
 
     public static PerfUtil instance() {
-        PerfUtil p = instance.get();
+        PerfUtil p = INSTANCE.get();
         if (p == null) {
             p = new PerfUtil();
-            instance.set(p);
+            INSTANCE.set(p);
         }
         return p;
     }
@@ -89,6 +90,7 @@ public class PerfUtil {
     }
 
     public boolean end(String name) {
+        long time = now();
         String current = this.callStack.pop();
         assert current.endsWith(name);
 
@@ -97,15 +99,21 @@ public class PerfUtil {
         if (item == null) {
             throw new InvalidParameterException(name);
         }
-        item.endTime(now());
+        item.endTime(time);
 
         return true;
     }
 
-    public void profilePackage(String... packages) throws
-            NotFoundException, CannotCompileException,
-            ClassNotFoundException, IOException {
-        Set<String> loadedClasses = new LinkedHashSet<>();
+    public void clear() {
+        E.checkState(this.callStack.empty(),
+                     "Can't be cleared when the call has not ended yet");
+        this.stopwatches.clear();
+    }
+
+    public void profilePackage(String... packages)
+                               throws NotFoundException, IOException,
+                               ClassNotFoundException, CannotCompileException {
+        Set<String> loadedClasses = new HashSet<>();
 
         Iterator<ClassInfo> classes = ReflectionUtil.classes(packages);
         while (classes.hasNext()) {
@@ -125,8 +133,9 @@ public class PerfUtil {
         }
     }
 
-    public void profileClass(String... classes) throws
-            NotFoundException, CannotCompileException, ClassNotFoundException {
+    public void profileClass(String... classes)
+                             throws NotFoundException, CannotCompileException,
+                             ClassNotFoundException {
         ClassPool classPool = ClassPool.getDefault();
 
         for (String cls : classes) {
@@ -145,7 +154,7 @@ public class PerfUtil {
     }
 
     private void profile(CtMethod ctMethod)
-            throws CannotCompileException, ClassNotFoundException {
+                         throws CannotCompileException, ClassNotFoundException {
         final String START =
                 "com.baidu.hugegraph.perf.PerfUtil.instance().start(\"%s\");";
         final String END =

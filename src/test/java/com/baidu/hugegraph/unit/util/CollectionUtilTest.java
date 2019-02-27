@@ -74,6 +74,29 @@ public class CollectionUtilTest extends BaseUnitTest {
     }
 
     @Test
+    public void testRandomSet() {
+        Set<Integer> set = CollectionUtil.randomSet(0, 100, 10);
+        for (int i : set) {
+            Assert.assertTrue(0 <= i && i < 100);
+        }
+
+        // invalid min
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            CollectionUtil.randomSet(200, 100, 10);
+        });
+
+        // invalid count = 0
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            CollectionUtil.randomSet(1, 100, 0);
+        });
+
+        // invalid count > max - min
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            CollectionUtil.randomSet(1, 100, 100);
+        });
+    }
+
+    @Test
     public void testAllUnique() {
         List<Integer> list = ImmutableList.of();
         Assert.assertTrue(CollectionUtil.allUnique(list));

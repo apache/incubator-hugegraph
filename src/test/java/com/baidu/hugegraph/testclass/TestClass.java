@@ -17,15 +17,37 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.testclass;
 
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 
-public class CommonVersion {
+public class TestClass {
 
-    public static final String NAME = "hugegraph-common";
+    public static class Foo {
 
-    // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(CommonVersion.class,
-                                                     "1.5.8");
+        @Watched
+        public void foo() {
+            this.bar();
+        }
+
+        @Watched
+        public void bar() {}
+    }
+
+    public static class Base {
+
+        @Watched
+        public void func() {}
+    }
+
+    public static class Sub extends Base {
+
+        @Watched
+        public void func1() {}
+
+        public void func2() {}
+
+        @Watched
+        public void func3() {}
+    }
 }

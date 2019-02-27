@@ -60,30 +60,31 @@ public class HugeConfig extends PropertiesConfiguration {
         this(loadConfigFile(configFile));
     }
 
-    private void reloadIfNeed(Configuration config) {
-        if (config instanceof AbstractFileConfiguration) {
-            AbstractFileConfiguration fileConfig =
-                                      (AbstractFileConfiguration) config;
+    private void reloadIfNeed(Configuration conf) {
+        if (!(conf instanceof AbstractFileConfiguration)) {
+            return;
+        }
 
-            File file = fileConfig.getFile();
-            if (file != null) {
-                // May need to use the original file
-                this.setFile(file);
-            }
+        AbstractFileConfiguration fileConfig = (AbstractFileConfiguration) conf;
 
-            if (!fileConfig.isDelimiterParsingDisabled()) {
-                /*
-                 * PropertiesConfiguration will parse the containing comma
-                 * config options into list directly, but we want to do
-                 * this work by ourselves, so reload it and parse into `String`
-                 */
-                fileConfig.setDelimiterParsingDisabled(true);
-                try {
-                    fileConfig.refresh();
-                } catch (ConfigurationException e) {
-                    throw new ConfigException("Unable to load config file: %s",
-                                              e, file);
-                }
+        File file = fileConfig.getFile();
+        if (file != null) {
+            // May need to use the original file
+            this.setFile(file);
+        }
+
+        if (!fileConfig.isDelimiterParsingDisabled()) {
+            /*
+             * PropertiesConfiguration will parse the containing comma
+             * config options into list directly, but we want to do
+             * this work by ourselves, so reload it and parse into `String`
+             */
+            fileConfig.setDelimiterParsingDisabled(true);
+            try {
+                fileConfig.refresh();
+            } catch (ConfigurationException e) {
+                throw new ConfigException("Unable to load config file: %s",
+                                          e, file);
             }
         }
     }

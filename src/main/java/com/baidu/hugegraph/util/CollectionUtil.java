@@ -29,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class CollectionUtil {
 
@@ -66,6 +67,18 @@ public final class CollectionUtil {
             }
         }
         return true;
+    }
+
+    public static Set<Integer> randomSet(int min, int max, int count) {
+        E.checkArgument(max > min, "Invalid min/max: %s/%s", min, max);
+        E.checkArgument(0 < count && count <= max - min,
+                        "Invalid count %s", count);
+
+        Set<Integer> randoms = new HashSet<>();
+        while (randoms.size() < count) {
+            randoms.add(ThreadLocalRandom.current().nextInt(min, max));
+        }
+        return randoms;
     }
 
     public static boolean allUnique(Collection<?> collection) {

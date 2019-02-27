@@ -22,24 +22,31 @@ package com.baidu.hugegraph.unit;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import com.baidu.hugegraph.unit.config.HugeConfigTest;
 import com.baidu.hugegraph.unit.event.EventHubTest;
 import com.baidu.hugegraph.unit.iterator.ExtendableIteratorTest;
 import com.baidu.hugegraph.unit.iterator.FilterIteratorTest;
 import com.baidu.hugegraph.unit.iterator.FlatMapperFilterIteratorTest;
 import com.baidu.hugegraph.unit.iterator.FlatMapperIteratorTest;
 import com.baidu.hugegraph.unit.iterator.MapperIteratorTest;
+import com.baidu.hugegraph.unit.perf.PerfUtilTest;
 import com.baidu.hugegraph.unit.util.BytesTest;
 import com.baidu.hugegraph.unit.util.CollectionUtilTest;
 import com.baidu.hugegraph.unit.util.HashUtilTest;
 import com.baidu.hugegraph.unit.util.InsertionOrderUtilTest;
 import com.baidu.hugegraph.unit.util.LongEncodingTest;
+import com.baidu.hugegraph.unit.util.NumericUtilTest;
+import com.baidu.hugegraph.unit.util.ReflectionUtilTest;
+import com.baidu.hugegraph.unit.util.TimeUtilTest;
 import com.baidu.hugegraph.unit.util.VersionUtilTest;
 import com.baidu.hugegraph.unit.version.VersionTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    VersionTest.class,
+    HugeConfigTest.class,
     EventHubTest.class,
+    PerfUtilTest.class,
+    VersionTest.class,
 
     ExtendableIteratorTest.class,
     FilterIteratorTest.class,
@@ -51,6 +58,9 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     CollectionUtilTest.class,
     HashUtilTest.class,
     InsertionOrderUtilTest.class,
+    NumericUtilTest.class,
+    ReflectionUtilTest.class,
+    TimeUtilTest.class,
     VersionUtilTest.class,
     LongEncodingTest.class
 })

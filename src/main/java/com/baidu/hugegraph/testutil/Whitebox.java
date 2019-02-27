@@ -26,12 +26,12 @@ public class Whitebox {
     public static void setInternalState(Object target, String fieldName,
                                         Object value) {
         try {
-            Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
+            Field f = getFieldFromHierarchy(target.getClass(), fieldName);
+            f.setAccessible(true);
+            f.set(target, value);
         } catch (Exception e) {
             Assert.fail(String.format("Can't change value of '%s' against " +
-                                      "target '%s'", fieldName, target));
+                                      "target '%s': %s", fieldName, target, e));
         }
     }
 

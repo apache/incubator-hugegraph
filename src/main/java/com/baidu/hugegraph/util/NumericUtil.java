@@ -90,7 +90,7 @@ public final class NumericUtil {
      * @return The sortable long value
      */
     public static long sortableDoubleBits(long bits) {
-        return bits ^ (bits >> 63) & 0x7fffffffffffffffL;
+        return bits ^ ((bits >> 63) & 0x7fffffffffffffffL);
     }
 
     /**
@@ -100,7 +100,12 @@ public final class NumericUtil {
      * @return The sortable int value
      */
     public static int sortableFloatBits(int bits) {
-        return bits ^ (bits >> 31) & 0x7fffffff;
+        /*
+         * Convert to its inverse digits if negative else keep the origin
+         * NOTE: (bits >> 31) is 0x00000000 if bits >= 0
+         *       (bits >> 31) is 0xFFFFFFFF if bits < 0
+         */
+        return bits ^ ((bits >> 31) & 0x7fffffff);
     }
 
     public static long numberToSortableLong(Number number) {
