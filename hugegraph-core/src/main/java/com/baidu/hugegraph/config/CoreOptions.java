@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.config;
 
+import static com.baidu.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
@@ -133,7 +134,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "vertex.tx_capacity",
                     "The max size(items) of vertices(uncommitted) in transaction.",
-                    rangeInt(1, 1000000),
+                    rangeInt(COMMIT_BATCH, 1000000),
                     10000
             );
 
@@ -141,7 +142,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "edge.tx_capacity",
                     "The max size(items) of edges(uncommitted) in transaction.",
-                    rangeInt(1, 1000000),
+                    rangeInt(COMMIT_BATCH, 1000000),
                     10000
             );
 
