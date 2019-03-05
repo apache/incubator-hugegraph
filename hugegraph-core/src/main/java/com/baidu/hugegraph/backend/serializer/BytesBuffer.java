@@ -383,7 +383,10 @@ public final class BytesBuffer {
     }
 
     private long readNumber(int b) {
-        // Parse length from byte 0x0llsnnnn: bits `ll` is the number length
+        // Parse length from byte 0b0llsnnnn: bits `ll` is the number length
+        E.checkArgument((b & 0x80) == 0,
+                        "Not a number type with prefix byte '0x%s'",
+                        Integer.toHexString(b));
         int length = b >> 5;
         boolean positive = (b & 0x10) > 0;
         switch (length) {
