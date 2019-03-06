@@ -300,11 +300,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         this.checkOpened();
         Session session = this.sessions.session();
 
-        try {
-            session.commit();
-        } finally {
-            session.clear();
-        }
+        session.commit();
     }
 
     @Override

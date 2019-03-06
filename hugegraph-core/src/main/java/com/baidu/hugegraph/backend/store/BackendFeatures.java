@@ -21,6 +21,10 @@ package com.baidu.hugegraph.backend.store;
 
 public interface BackendFeatures {
 
+    public default boolean supportsPersistence() {
+        return true;
+    }
+
     public boolean supportsScanToken();
 
     public boolean supportsScanKeyPrefix();

@@ -65,7 +65,7 @@ public class PaloSessions extends MysqlSessions {
         // Scan disk files and restore session information
         this.restoreSessionInfo(config, tableDirs);
 
-        this.timer = new Timer();
+        this.timer = new Timer(true);
         long interval = config.get(PaloOptions.PALO_POLL_INTERVAL);
         this.loadTask = new PaloLoadTask(tableDirs);
         this.timer.schedule(this.loadTask, 0, interval * 1000);
@@ -95,25 +95,21 @@ public class PaloSessions extends MysqlSessions {
     }
 
     @Override
-    protected final synchronized Session newSession() {
+    public final Session session() {
+        return (Session) super.getOrNewSession();
+    }
+
+    @Override
+    protected final Session newSession() {
         int id = this.counter.incrementAndGet();
         this.locks.put(id, new ReentrantReadWriteLock());
         return new Session(id);
     }
 
     @Override
-    public final synchronized Session session() {
-        return (Session) super.getOrNewSession();
-    }
-
-    @Override
     public void close() {
-        if (this.loadTask != null) {
-            this.loadTask.join();
-        }
-        if (this.timer != null) {
-            this.timer.cancel();
-        }
+        this.loadTask.join();
+        this.timer.cancel();
         super.close();
     }
 

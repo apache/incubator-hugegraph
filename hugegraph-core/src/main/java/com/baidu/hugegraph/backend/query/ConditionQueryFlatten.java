@@ -34,14 +34,14 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 
-public class ConditionQueryFlatten {
+public final class ConditionQueryFlatten {
 
     public static List<ConditionQuery> flatten(ConditionQuery query) {
-        List<ConditionQuery> queries = new ArrayList<>();
-        if (query.conditions().isEmpty()) {
-            queries.add(query.copy());
-            return queries;
+        if (query.isFlattened()) {
+            return Arrays.asList(query);
         }
+
+        List<ConditionQuery> queries = new ArrayList<>();
 
         // Flatten IN/NOT_IN if needed
         Set<Condition> conditions = new HashSet<>();
@@ -65,6 +65,8 @@ public class ConditionQueryFlatten {
                 results = and(results, flattenAndOr(condition));
             }
         }
+
+        // Optimize useless condition
         assert results != null;
         for (Relations relations : results) {
             relations = optimizeRelations(relations);
@@ -80,6 +82,7 @@ public class ConditionQueryFlatten {
                 queries.add(cq);
             }
         }
+
         return queries;
     }
 

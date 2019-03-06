@@ -356,7 +356,7 @@ public abstract class CassandraStore
 
         session.txState(TxState.ROLLBACKING);
         try {
-            session.clear();
+            session.rollback();
         } finally {
             // Assume batch commit would auto rollback
             session.txState(TxState.CLEAN);

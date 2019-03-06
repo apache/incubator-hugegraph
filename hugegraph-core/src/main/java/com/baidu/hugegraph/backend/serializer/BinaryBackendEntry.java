@@ -78,7 +78,7 @@ public class BinaryBackendEntry implements BackendEntry {
 
     public BackendColumn column(byte[] name) {
         for (BackendColumn col : this.columns) {
-            if (Arrays.equals(col.name, name)) {
+            if (Bytes.equals(col.name, name)) {
                 return col;
             }
         }
@@ -157,7 +157,7 @@ public class BinaryBackendEntry implements BackendEntry {
         return true;
     }
 
-    protected static class BinaryId implements Id {
+    protected static final class BinaryId implements Id {
 
         private final byte[] bytes;
         private final Id id;

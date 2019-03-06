@@ -397,12 +397,6 @@ public abstract class Condition {
         public Condition copy() {
             return new And(this.left().copy(), this.right().copy());
         }
-
-        @Override
-        public boolean isFlattened() {
-            // If this is flattened, its sub-condition should not be nested
-            return this.left().isRelation() && this.right().isRelation();
-        }
     }
 
     public static class Or extends BinCondition {
@@ -442,6 +436,10 @@ public abstract class Condition {
         // The value serialized(code/string) by backend store.
         protected Object serialValue;
 
+        protected Set<RelationType> UNFLATTEN_RELATION_TYPES = ImmutableSet.of(
+                                    RelationType.IN, RelationType.NOT_IN,
+                                    RelationType.TEXT_CONTAINS_ANY);
+
         @Override
         public ConditionType type() {
             return ConditionType.RELATION;
@@ -474,6 +472,11 @@ public abstract class Condition {
         @Override
         public boolean test(Object value) {
             return this.relation.test(value, this.value);
+        }
+
+        @Override
+        public boolean isFlattened() {
+            return !this.UNFLATTEN_RELATION_TYPES.contains(this.relation);
         }
 
         @Override

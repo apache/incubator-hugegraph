@@ -45,11 +45,46 @@ public class RamCacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testUpdateGet() {
+    public void testUpdateAndGet() {
         RamCache cache = new RamCache();
         Id id = IdGenerator.of("1");
+        Assert.assertNull(cache.get(id));
+
         cache.update(id, "value-1");
         Assert.assertEquals("value-1", cache.get(id));
+
+        cache.update(id, "value-2");
+        Assert.assertEquals("value-2", cache.get(id));
+    }
+
+    @Test
+    public void testUpdateAndGetWithSizeEqualCapacity() {
+        RamCache cache = new RamCache(4);
+        cache.update(IdGenerator.of("1"), "value-1");
+        cache.update(IdGenerator.of("2"), "value-2");
+        cache.update(IdGenerator.of("3"), "value-3");
+        cache.update(IdGenerator.of("4"), "value-4");
+
+        Assert.assertEquals("value-1", cache.get(IdGenerator.of("1")));
+        Assert.assertEquals("value-2", cache.get(IdGenerator.of("2")));
+        Assert.assertEquals("value-3", cache.get(IdGenerator.of("3")));
+        Assert.assertEquals("value-4", cache.get(IdGenerator.of("4")));
+    }
+
+    @Test
+    public void testGetOrFetch() {
+        RamCache cache = new RamCache();
+        Id id = IdGenerator.of("1");
+        Assert.assertNull(cache.get(id));
+
+        Assert.assertEquals("value-1",  cache.getOrFetch(id, key -> {
+            return "value-1";
+        }));
+
+        cache.update(id, "value-2");
+        Assert.assertEquals("value-2",  cache.getOrFetch(id, key -> {
+            return "value-1";
+        }));
     }
 
     @Test
@@ -67,6 +102,19 @@ public class RamCacheTest extends BaseUnitTest {
         cache.update(id, "value-1");
         cache.updateIfAbsent(id, "value-2");
         Assert.assertEquals("value-1", cache.get(id));
+    }
+
+    @Test
+    public void testUpdateIfPresent() {
+        RamCache cache = new RamCache();
+        Id id = IdGenerator.of("1");
+        cache.updateIfPresent(id, "value-1");
+        Assert.assertEquals(null, cache.get(id));
+
+        cache.update(id, "value-1");
+        Assert.assertEquals("value-1", cache.get(id));
+        cache.updateIfPresent(id, "value-2");
+        Assert.assertEquals("value-2", cache.get(id));
     }
 
     @Test
@@ -106,9 +154,12 @@ public class RamCacheTest extends BaseUnitTest {
         cache = new RamCache(1);
         Assert.assertEquals(1, cache.capacity());
 
-        // The min capacity is 1
         cache = new RamCache(0);
-        Assert.assertEquals(1, cache.capacity());
+        Assert.assertEquals(0, cache.capacity());
+
+        // The min capacity is 0
+        cache = new RamCache(-1);
+        Assert.assertEquals(0, cache.capacity());
     }
 
     @Test

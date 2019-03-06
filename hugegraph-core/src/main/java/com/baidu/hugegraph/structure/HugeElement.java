@@ -47,8 +47,11 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableMap;
 
 public abstract class HugeElement implements Element, GraphType {
+
+    private static final Map<Id, HugeProperty<?>> EMPTY = ImmutableMap.of();
 
     private final HugeGraph graph;
 
@@ -62,7 +65,7 @@ public abstract class HugeElement implements Element, GraphType {
         E.checkArgument(graph != null, "HugeElement graph can't be null");
         this.graph = graph;
         this.id = id;
-        this.properties = new HashMap<>();
+        this.properties = EMPTY;
         this.removed = false;
         this.fresh = false;
         this.propLoaded = true;
@@ -149,6 +152,9 @@ public abstract class HugeElement implements Element, GraphType {
     @Watched(prefix = "element")
     public <V> HugeProperty<?> setProperty(HugeProperty<V> prop) {
         PropertyKey pkey = prop.propertyKey();
+        if (this.properties == EMPTY) {
+            this.properties = new HashMap<>();
+        }
         return this.properties.put(pkey.id(), prop);
     }
 
@@ -276,7 +282,7 @@ public abstract class HugeElement implements Element, GraphType {
      * @return          Key-value pairs that are classified and processed
      */
     @Watched(prefix = "element")
-    public static ElementKeys classifyKeys(Object... keyValues) {
+    public static final ElementKeys classifyKeys(Object... keyValues) {
         ElementKeys elemKeys = new ElementKeys();
 
         if ((keyValues.length & 1) == 1) {
@@ -305,7 +311,7 @@ public abstract class HugeElement implements Element, GraphType {
         return elemKeys;
     }
 
-    public static Id getIdValue(HugeType type, Object idValue) {
+    public static final Id getIdValue(HugeType type, Object idValue) {
         assert type.isGraph();
         Id id = getIdValue(idValue);
         if (type.isVertex()) {
@@ -342,7 +348,7 @@ public abstract class HugeElement implements Element, GraphType {
     }
 
     @Watched(prefix = "element")
-    public static Object getLabelValue(Object... keyValues) {
+    public static final Object getLabelValue(Object... keyValues) {
         Object labelValue = null;
         for (int i = 0; i < keyValues.length; i = i + 2) {
             if (keyValues[i].equals(T.label)) {
@@ -351,7 +357,7 @@ public abstract class HugeElement implements Element, GraphType {
                                 labelValue instanceof VertexLabel,
                                 "Expect a string or a VertexLabel object " +
                                 "as the vertex label argument, but got: '%s'",
-                        labelValue);
+                                labelValue);
                 if (labelValue instanceof String) {
                     ElementHelper.validateLabel((String) labelValue);
                 }
@@ -361,7 +367,7 @@ public abstract class HugeElement implements Element, GraphType {
         return labelValue;
     }
 
-    public static class ElementKeys {
+    public static final class ElementKeys {
 
         private Object label = null;
         private Object id = null;

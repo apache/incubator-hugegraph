@@ -94,18 +94,17 @@ public class BinarySerializer extends AbstractSerializer {
         return new BinaryBackendEntry(type, bid);
     }
 
-    private BinaryBackendEntry newBackendEntry(HugeVertex vertex) {
+    protected final BinaryBackendEntry newBackendEntry(HugeVertex vertex) {
         return newBackendEntry(vertex.type(), vertex.id());
     }
 
-    private BinaryBackendEntry newBackendEntry(HugeEdge edge) {
+    protected final BinaryBackendEntry newBackendEntry(HugeEdge edge) {
         BinaryId id = new BinaryId(formatEdgeName(edge),
                                    edge.idWithDirection());
         return new BinaryBackendEntry(edge.type(), id);
     }
 
-    @SuppressWarnings("unused")
-    private BinaryBackendEntry newBackendEntry(SchemaElement elem) {
+    protected final BinaryBackendEntry newBackendEntry(SchemaElement elem) {
         return newBackendEntry(elem.type(), elem.id());
     }
 
@@ -182,6 +181,25 @@ public class BinarySerializer extends AbstractSerializer {
         }
     }
 
+    protected void formatProperties(Collection<HugeProperty<?>> props,
+                                    BytesBuffer buffer) {
+        // Write properties size
+        buffer.writeInt(props.size());
+
+        // Write properties data
+        for (HugeProperty<?> property : props) {
+            buffer.writeId(property.propertyKey().id());
+            buffer.writeBytes(KryoUtil.toKryo(property.value()));
+        }
+    }
+
+    protected void parseProperties(BytesBuffer buffer, HugeElement owner) {
+        int size = buffer.readInt();
+        for (int i = 0; i < size; i++) {
+            this.parseProperty(buffer.readId(), buffer.readBytes(), owner);
+        }
+    }
+
     protected byte[] formatEdgeName(HugeEdge edge) {
         // owner-vertex + dir + edge-label + sort-values + other-vertex
 
@@ -203,14 +221,8 @@ public class BinarySerializer extends AbstractSerializer {
         // Write edge id
         //buffer.writeId(edge.id());
 
-        // Write edge properties size
-        buffer.writeInt(propsCount);
-
-        // Write edge properties data
-        for (HugeProperty<?> property : edge.getProperties().values()) {
-            buffer.writeId(property.propertyKey().id());
-            buffer.writeBytes(KryoUtil.toKryo(property.value()));
-        }
+        // Write edge properties
+        this.formatProperties(edge.getProperties().values(), buffer);
 
         return buffer.bytes();
     }
@@ -271,16 +283,13 @@ public class BinarySerializer extends AbstractSerializer {
         vertex.propNotLoaded();
         otherVertex.propNotLoaded();
 
-        // Write edge-id + edge-properties
+        // Parse edge-id + edge-properties
         buffer = BytesBuffer.wrap(col.value);
 
         //Id id = buffer.readId();
 
-        // Write edge properties
-        int size = buffer.readInt();
-        for (int i = 0; i < size; i++) {
-            this.parseProperty(buffer.readId(), buffer.readBytes(), edge);
-        }
+        // Parse edge properties
+        this.parseProperties(buffer, edge);
     }
 
     protected void parseColumn(BackendColumn col, HugeVertex vertex) {
@@ -502,19 +511,20 @@ public class BinarySerializer extends AbstractSerializer {
         E.checkArgument(sortValues.size() >= 1 && sortValues.size() <= 2,
                         "Edge range query must be with sort-values range");
         // Would ignore target vertex
-        Object vertex = cq.condition(HugeKeys.OWNER_VERTEX);
-        Object direction = cq.condition(HugeKeys.DIRECTION);
+        Id vertex = cq.condition(HugeKeys.OWNER_VERTEX);
+        Directions direction = cq.condition(HugeKeys.DIRECTION);
         if (direction == null) {
             direction = Directions.OUT;
         }
-        Object label = cq.condition(HugeKeys.LABEL);
+        Id label = cq.condition(HugeKeys.LABEL);
 
-        BytesBuffer start = BytesBuffer.allocate(256);
-        start.writeId(HugeVertex.getIdValue(vertex));
-        start.write(((Directions) direction).type().code());
-        start.writeId((Id) label);
+        int size = 1 + vertex.length() + 1 + label.length() + 16;
+        BytesBuffer start = BytesBuffer.allocate(size);
+        start.writeId(vertex);
+        start.write(direction.type().code());
+        start.writeId(label);
 
-        BytesBuffer end = BytesBuffer.allocate(256);
+        BytesBuffer end = BytesBuffer.allocate(size);
         end.copyFrom(start);
 
         int minEq = -1;
@@ -556,7 +566,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     private Query writeQueryEdgePrefixCondition(ConditionQuery cq) {
         int count = 0;
-        BytesBuffer buffer = BytesBuffer.allocate(256);
+        BytesBuffer buffer = BytesBuffer.allocate(64);
         for (HugeKeys key : EdgeId.KEYS) {
             Object value = cq.condition(key);
 
@@ -573,8 +583,7 @@ public class BinarySerializer extends AbstractSerializer {
 
             if (key == HugeKeys.OWNER_VERTEX ||
                 key == HugeKeys.OTHER_VERTEX) {
-                Id id = HugeVertex.getIdValue(value);
-                buffer.writeId(id);
+                buffer.writeId((Id) value);
             } else if (key == HugeKeys.DIRECTION) {
                 byte t = ((Directions) value).type().code();
                 buffer.write(t);

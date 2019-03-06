@@ -89,7 +89,7 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
         try {
             this.rocks.session().commit();
         } finally {
-            this.rocks.session().clear();
+            this.rocks.session().rollback();
         }
     }
 

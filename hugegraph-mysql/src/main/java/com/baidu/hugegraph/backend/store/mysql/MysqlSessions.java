@@ -47,7 +47,7 @@ public class MysqlSessions extends BackendSessionPool {
 
     private HugeConfig config;
     private String database;
-    private boolean opened;
+    private volatile boolean opened;
 
     public MysqlSessions(HugeConfig config, String database, String store) {
         super(database + "/" + store);
@@ -69,7 +69,7 @@ public class MysqlSessions extends BackendSessionPool {
      * @throws SQLException if a database access error occurs
      */
     @Override
-    public void open(HugeConfig config) throws Exception {
+    public synchronized void open(HugeConfig config) throws Exception {
         try (Connection conn = this.open(false)) {
             this.opened = true;
         }
@@ -119,18 +119,18 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     @Override
-    protected synchronized Session newSession() {
-        return new Session();
-    }
-
-    @Override
     protected void doClose() {
         // pass
     }
 
     @Override
-    public synchronized Session session() {
+    public Session session() {
         return (Session) super.getOrNewSession();
+    }
+
+    @Override
+    protected Session newSession() {
+        return new Session();
     }
 
     public void checkSessionConnected() {
@@ -269,7 +269,6 @@ public class MysqlSessions extends BackendSessionPool {
             return !this.opened;
         }
 
-        @Override
         public void clear() {
             this.count = 0;
             SQLException exception = null;
@@ -316,6 +315,7 @@ public class MysqlSessions extends BackendSessionPool {
             return updated;
         }
 
+        @Override
         public void rollback() {
             this.clear();
             try {

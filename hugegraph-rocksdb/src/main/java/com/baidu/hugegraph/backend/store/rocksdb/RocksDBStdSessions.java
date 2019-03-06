@@ -138,7 +138,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     @Override
     protected boolean opened() {
-        return this.rocksdb != null;
+        return this.rocksdb != null && this.rocksdb.isOwningHandle();
     }
 
     @Override
@@ -186,13 +186,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public final synchronized Session session() {
+    public final Session session() {
         return (Session) super.getOrNewSession();
     }
 
     @Override
-    protected final synchronized Session newSession() {
-        E.checkState(this.rocksdb != null,
+    protected final Session newSession() {
+        E.checkState(this.rocksdb.isOwningHandle(),
                      "RocksDB has not been initialized");
         return new StdSession(this.conf);
     }
@@ -215,7 +215,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     private RocksDB rocksdb() {
-        assert this.rocksdb.isOwningHandle();
+        this.checkValid();
         return this.rocksdb;
     }
 
@@ -409,14 +409,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         /**
-         * Clear updates not committed in the session
-         */
-        @Override
-        public void clear() {
-            this.batch.clear();
-        }
-
-        /**
          * Any change in the session
          */
         @Override
@@ -457,6 +449,14 @@ public class RocksDBStdSessions extends RocksDBSessions {
             this.batch.clear();
 
             return count;
+        }
+
+        /**
+         * Rollback all updates(put/delete) not committed
+         */
+        @Override
+        public void rollback() {
+            this.batch.clear();
         }
 
         /**
@@ -571,7 +571,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             options.setPrefixSameAsStart(true);
             RocksIterator itor = rocksdb().newIterator(cf(table), options);
             return new ColumnIterator(table, itor, prefix, null,
-                                      SCAN_PREFIX_WITH_BEGIN);
+                                      SCAN_PREFIX_BEGIN);
         }
 
         /**
@@ -623,22 +623,22 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         private void checkArguments() {
-            E.checkArgument(!(this.match(Session.SCAN_PREFIX_WITH_BEGIN) &&
-                              this.match(Session.SCAN_PREFIX_WITH_END)),
+            E.checkArgument(!(this.match(Session.SCAN_PREFIX_BEGIN) &&
+                              this.match(Session.SCAN_PREFIX_END)),
                             "Can't set SCAN_PREFIX_WITH_BEGIN and " +
                             "SCAN_PREFIX_WITH_END at the same time");
 
-            E.checkArgument(!(this.match(Session.SCAN_PREFIX_WITH_BEGIN) &&
+            E.checkArgument(!(this.match(Session.SCAN_PREFIX_BEGIN) &&
                               this.match(Session.SCAN_GT_BEGIN)),
                             "Can't set SCAN_PREFIX_WITH_BEGIN and " +
                             "SCAN_GT_BEGIN/SCAN_GTE_BEGIN at the same time");
 
-            E.checkArgument(!(this.match(Session.SCAN_PREFIX_WITH_END) &&
+            E.checkArgument(!(this.match(Session.SCAN_PREFIX_END) &&
                               this.match(Session.SCAN_LT_END)),
                             "Can't set SCAN_PREFIX_WITH_END and " +
                             "SCAN_LT_END/SCAN_LTE_END at the same time");
 
-            if (this.match(Session.SCAN_PREFIX_WITH_BEGIN)) {
+            if (this.match(Session.SCAN_PREFIX_BEGIN)) {
                 E.checkArgument(this.keyBegin != null,
                                 "Parameter `keyBegin` can't be null " +
                                 "if set SCAN_PREFIX_WITH_BEGIN");
@@ -647,7 +647,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                 "if set SCAN_PREFIX_WITH_BEGIN");
             }
 
-            if (this.match(Session.SCAN_PREFIX_WITH_END)) {
+            if (this.match(Session.SCAN_PREFIX_END)) {
                 E.checkArgument(this.keyEnd != null,
                                 "Parameter `keyEnd` can't be null " +
                                 "if set SCAN_PREFIX_WITH_END");
@@ -667,7 +667,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         private boolean match(int expected) {
-            return (expected & this.scanType) == expected;
+            return Session.matchScanType(expected, this.scanType);
         }
 
         /**
@@ -737,13 +737,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         private boolean filter(byte[] key) {
-            if (this.match(Session.SCAN_PREFIX_WITH_BEGIN)) {
+            if (this.match(Session.SCAN_PREFIX_BEGIN)) {
                 /*
                  * Prefix with `keyBegin`?
                  * TODO: use custom prefix_extractor instead
                  */
                 return Bytes.prefixWith(key, this.keyBegin);
-            } else if (this.match(Session.SCAN_PREFIX_WITH_END)) {
+            } else if (this.match(Session.SCAN_PREFIX_END)) {
                 /*
                  * Prefix with `keyEnd`?
                  * like the following query for range index:

@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -69,8 +70,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private final Map<HugeType, String> tableDiskMapping;
 
     // DataPath:RocksDB mapping
-    private static final Map<String, RocksDBSessions> dbs =
-                                                      new ConcurrentHashMap<>();
+    protected static final ConcurrentMap<String, RocksDBSessions> dbs;
+
+    static {
+        dbs = new ConcurrentHashMap<>();
+    }
 
     public RocksDBStore(final BackendStoreProvider provider,
                         final String database, final String store) {
@@ -148,10 +152,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         // Open base disk
-        String dataPath = this.wrapPath(config.get(RocksDBOptions.DATA_PATH));
-        String walPath = this.wrapPath(config.get(RocksDBOptions.WAL_PATH));
-
-        this.sessions = this.open(config, dataPath, walPath, this.tableNames());
+        this.sessions = this.open(config, this.tableNames());
 
         // Open tables with optimized disk
         List<String> disks = config.get(RocksDBOptions.DATA_DISKS);
@@ -163,6 +164,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 this.open(config, disk, disk, Arrays.asList(table));
             }
         }
+    }
+
+    protected RocksDBSessions open(HugeConfig config, List<String> tableNames) {
+        String dataPath = this.wrapPath(config.get(RocksDBOptions.DATA_PATH));
+        String walPath = this.wrapPath(config.get(RocksDBOptions.WAL_PATH));
+        return this.open(config, dataPath, walPath, tableNames);
     }
 
     protected RocksDBSessions open(HugeConfig config, String dataPath,
@@ -400,7 +407,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.checkOpened();
 
         for (Session session : this.session()) {
-            session.clear();
+            session.rollback();
         }
     }
 
@@ -435,7 +442,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     private void checkOpened() {
         E.checkState(this.sessions != null && !this.sessions.closed(),
-                     "RocksDB store has not been opened");
+                     "The '%s' store of %s has not been opened",
+                     this.database, this.provider.type());
     }
 
     private void parseTableDiskMapping(List<String> disks) {

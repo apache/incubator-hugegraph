@@ -385,10 +385,6 @@ public class HugeGraph implements GremlinGraph {
         return this.graphTransaction().queryVertices(query);
     }
 
-    public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
-        return this.graphTransaction().queryAdjacentVertices(edges);
-    }
-
     @Override
     public Iterator<Edge> edges(Object... objects) {
         if (objects.length == 0) {
@@ -399,6 +395,14 @@ public class HugeGraph implements GremlinGraph {
 
     public Iterator<Edge> edges(Query query) {
         return this.graphTransaction().queryEdges(query);
+    }
+
+    public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
+        return this.graphTransaction().queryAdjacentVertices(edges);
+    }
+
+    public Iterator<Edge> adjacentEdges(Id vertexId) {
+        return this.graphTransaction().queryEdgesByVertex(vertexId);
     }
 
     public PropertyKey propertyKey(Id id) {

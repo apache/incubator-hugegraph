@@ -38,9 +38,9 @@ public abstract class BackendSession {
 
     public abstract boolean closed();
 
-    public abstract void clear();
-
     public abstract Object commit();
+
+    public abstract void rollback();
 
     public abstract boolean hasChanges();
 

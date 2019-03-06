@@ -51,6 +51,7 @@ public class RamCache implements Cache {
 
     // NOTE: the count in number of items, not in bytes
     private final int capacity;
+    private final int halfCapacity;
 
     // Implement LRU cache
     private final ConcurrentMap<Id, LinkNode<Id, Object>> map;
@@ -63,14 +64,14 @@ public class RamCache implements Cache {
     }
 
     public RamCache(int capacity) {
-        this.keyLock = new KeyLock();
-
-        if (capacity < 1) {
-            capacity = 1;
+        if (capacity < 0) {
+            capacity = 0;
         }
+        this.keyLock = new KeyLock();
         this.capacity = capacity;
+        this.halfCapacity = this.capacity >> 1;
 
-        int initialCapacity = capacity >> 3;
+        int initialCapacity = capacity >= MB ? capacity >> 10 : 256;
         if (initialCapacity > MAX_INIT_CAP) {
             initialCapacity = MAX_INIT_CAP;
         }
@@ -80,8 +81,17 @@ public class RamCache implements Cache {
     }
 
     @Watched(prefix = "ramcache")
-    private Object access(Id id) {
+    private final Object access(Id id) {
         assert id != null;
+
+        if (this.map.size() <= this.halfCapacity) {
+            LinkNode<Id, Object> node = this.map.get(id);
+            if (node == null) {
+                return null;
+            }
+            assert id.equals(node.key());
+            return node.value();
+        }
 
         final Lock lock = this.keyLock.lock(id);
         try {
@@ -91,20 +101,13 @@ public class RamCache implements Cache {
             }
 
             // NOTE: update the queue only if the size > capacity/2
-            if (this.map.size() > this.capacity >> 1) {
+            if (this.map.size() > this.halfCapacity) {
                 // Move the node from mid to tail
                 if (this.queue.remove(node) == null) {
                     // The node may be removed by others through dequeue()
                     return null;
                 }
                 this.queue.enqueue(node);
-            }
-
-            // Ignore concurrent write for hits
-            ++this.hits;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("RamCache cached '{}' (hits={}, miss={})",
-                          id, this.hits, this.miss);
             }
 
             assert id.equals(node.key());
@@ -115,7 +118,7 @@ public class RamCache implements Cache {
     }
 
     @Watched(prefix = "ramcache")
-    private void write(Id id, Object value) {
+    private final void write(Id id, Object value) {
         assert id != null;
         assert this.capacity > 0;
 
@@ -163,14 +166,13 @@ public class RamCache implements Cache {
 
             // Add the new item to tail of the queue, then map it
             this.map.put(id, this.queue.enqueue(id, value));
-
         } finally {
             lock.unlock();
         }
     }
 
     @Watched(prefix = "ramcache")
-    private void remove(Id id) {
+    private final void remove(Id id) {
         assert id != null;
 
         final Lock lock = this.keyLock.lock(id);
@@ -192,15 +194,22 @@ public class RamCache implements Cache {
     @Override
     public Object get(Id id) {
         Object value = null;
-        if (this.map.containsKey(id)) {
+        if (this.map.size() <= this.halfCapacity || this.map.containsKey(id)) {
             // Maybe the id removed by other threads and returned null value
             value = this.access(id);
         }
+
         if (value == null) {
             ++this.miss;
             if (LOG.isDebugEnabled()) {
                 LOG.debug("RamCache missed '{}' (miss={}, hits={})",
                           id, this.miss, this.hits);
+            }
+        } else {
+            ++this.hits;
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("RamCache cached '{}' (hits={}, miss={})",
+                          id, this.hits, this.miss);
             }
         }
         return value;
@@ -210,10 +219,11 @@ public class RamCache implements Cache {
     @Override
     public Object getOrFetch(Id id, Function<Id, Object> fetcher) {
         Object value = null;
-        if (this.map.containsKey(id)) {
+        if (this.map.size() <= this.halfCapacity || this.map.containsKey(id)) {
             // Maybe the id removed by other threads and returned null value
             value = this.access(id);
         }
+
         if (value == null) {
             ++this.miss;
             if (LOG.isDebugEnabled()) {
@@ -223,6 +233,12 @@ public class RamCache implements Cache {
             // Do fetch and update the cache
             value = fetcher.apply(id);
             this.update(id, value);
+        } else {
+            ++this.hits;
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("RamCache cached '{}' (hits={}, miss={})",
+                          id, this.hits, this.miss);
+            }
         }
         return value;
     }

@@ -163,7 +163,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "schema.cache_capacity",
                     "The max cache size(items) of schema cache.",
-                    rangeInt(1, Integer.MAX_VALUE),
+                    rangeInt(0, Integer.MAX_VALUE),
                     100000
             );
 
@@ -179,7 +179,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "vertex.cache_capacity",
                     "The max cache size(items) of vertex cache.",
-                    rangeInt(1, Integer.MAX_VALUE),
+                    rangeInt(0, Integer.MAX_VALUE),
                     (1000 * 1000 * 10)
             );
 
@@ -195,7 +195,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "edge.cache_capacity",
                     "The max cache size(items) of edge cache.",
-                    rangeInt(1, Integer.MAX_VALUE),
+                    rangeInt(0, Integer.MAX_VALUE),
                     (1000 * 1000 * 1)
             );
 

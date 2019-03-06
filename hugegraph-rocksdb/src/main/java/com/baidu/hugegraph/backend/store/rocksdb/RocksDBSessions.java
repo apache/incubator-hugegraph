@@ -49,8 +49,8 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     public static abstract class Session extends BackendSession {
 
         public static final int SCAN_ANY = 0x80;
-        public static final int SCAN_PREFIX_WITH_BEGIN = 0x01;
-        public static final int SCAN_PREFIX_WITH_END = 0x02;
+        public static final int SCAN_PREFIX_BEGIN = 0x01;
+        public static final int SCAN_PREFIX_END = 0x02;
         public static final int SCAN_GT_BEGIN = 0x04;
         public static final int SCAN_GTE_BEGIN = 0x0c;
         public static final int SCAN_LT_END = 0x10;
@@ -80,6 +80,10 @@ public abstract class RocksDBSessions extends BackendSessionPool {
                                           byte[] keyFrom,
                                           byte[] keyTo) {
             return this.scan(table, keyFrom, keyTo, SCAN_LT_END);
+        }
+
+        public static boolean matchScanType(int expected, int actual) {
+            return (expected & actual) == expected;
         }
     }
 }

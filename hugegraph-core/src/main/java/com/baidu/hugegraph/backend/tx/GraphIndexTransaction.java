@@ -374,8 +374,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Do query
         Set<Id> ids = InsertionOrderUtil.newSet();
-        for (ConditionQuery q : ConditionQueryFlatten.flatten(query)) {
-            IndexQueries queries = index.constructIndexQueries(q);
+        for (ConditionQuery cq : ConditionQueryFlatten.flatten(query)) {
+            IndexQueries queries = index.constructIndexQueries(cq);
             ids.addAll(this.intersectIndexQueries(queries));
         }
         return ids;

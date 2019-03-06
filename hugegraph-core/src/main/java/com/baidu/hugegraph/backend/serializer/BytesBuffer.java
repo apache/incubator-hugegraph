@@ -48,6 +48,10 @@ public final class BytesBuffer {
     public static final int ID_MAX_LEN = UINT8_MAX & 0x7f + 1; // 128
     public static final int BIG_ID_MAX_LEN = UINT16_MAX & 0x7fff + 1; // 32768
 
+    public static final long ID_MIN = Long.MIN_VALUE >> 3;
+    public static final long ID_MAX = Long.MAX_VALUE >> 3;
+    public static final long ID_MASK = 0x0fffffffffffffffL;
+
     // The value must be in range [8, 128(ID_MAX_LEN)]
     public static final int INDEX_ID_MAX_LENGTH = 32;
 
@@ -194,6 +198,10 @@ public final class BytesBuffer {
         return this;
     }
 
+    public byte peek() {
+        return this.buffer.get(this.buffer.position());
+    }
+
     public byte read() {
         return this.buffer.get();
     }
@@ -323,12 +331,13 @@ public final class BytesBuffer {
     }
 
     public Id readId(boolean big) {
-        int b = this.readUInt8();
+        int b = this.peek();
         boolean number = (b & 0x80) == 0;
-        int len = b & 0x7f;
         if (number) {
-            return IdGenerator.of(this.readNumber(len));
+            return IdGenerator.of(this.readNumber(b));
         } else {
+            this.readUInt8();
+            int len = b & 0x7f;
             if (big) {
                 int high = len << 8;
                 int low = this.readUInt8();
@@ -355,31 +364,50 @@ public final class BytesBuffer {
     }
 
     private void writeNumber(long val) {
+        int positive = val >= 0 ? 0x10 : 0x00;
         if (Byte.MIN_VALUE <= val && val <= Byte.MAX_VALUE) {
-            this.writeUInt8(1);
+            this.writeUInt8(0x00 | positive);
             this.write((byte) val);
         } else if (Short.MIN_VALUE <= val && val <= Short.MAX_VALUE) {
-            this.writeUInt8(2);
+            this.writeUInt8(0x20 | positive);
             this.writeShort((short) val);
         } else if (Integer.MIN_VALUE <= val && val <= Integer.MAX_VALUE) {
-            this.writeUInt8(4);
+            this.writeUInt8(0x40 | positive);
             this.writeInt((int) val);
         } else {
-            this.writeUInt8(8);
-            this.writeLong(val);
+            E.checkArgument(ID_MIN < val && val < ID_MAX,
+                            "Id value must be in [%s, %s], but got %s",
+                            ID_MIN, ID_MAX, val);
+            this.writeLong((val & ID_MASK) | ((0x60L | positive) << 56));
         }
     }
 
-    private long readNumber(int len) {
-        if (len <= 1) {
-            return this.read();
-        } else if (len <= 2) {
-            return this.readShort();
-        } else if (len <= 4) {
-            return this.readInt();
-        } else {
-            assert len == 8 : len;
-            return this.readLong();
+    private long readNumber(int b) {
+        // Parse length from byte 0b0llsnnnn: bits `ll` is the number length
+        E.checkArgument((b & 0x80) == 0,
+                        "Not a number type with prefix byte '0x%s'",
+                        Integer.toHexString(b));
+        int length = b >> 5;
+        boolean positive = (b & 0x10) > 0;
+        switch (length) {
+            case 0:
+                this.read();
+                return this.read();
+            case 1:
+                this.read();
+                return this.readShort();
+            case 2:
+                this.read();
+                return this.readInt();
+            case 3:
+                long value = this.readLong();
+                value &= ID_MASK;
+                if (!positive) {
+                    value |= Long.MIN_VALUE;
+                }
+                return value;
+            default:
+                throw new AssertionError("Invalid length of number: " + length);
         }
     }
 }

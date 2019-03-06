@@ -539,7 +539,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return StringFactory.vertexString(this);
     }
 
-    public static Id getIdValue(Object idValue) {
+    public static final Id getIdValue(Object idValue) {
         return HugeElement.getIdValue(idValue);
     }
 }

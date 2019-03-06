@@ -42,7 +42,6 @@ import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
-import com.baidu.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -189,7 +188,9 @@ public final class GraphManager {
     private void checkBackendVersionOrExit() {
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
-            if (InMemoryDBStoreProvider.matchType(hugegraph.backend())) {
+            boolean persistence = hugegraph.graphTransaction().store()
+                                           .features().supportsPersistence();
+            if (!persistence) {
                 hugegraph.initBackend();
             }
             BackendStoreSystemInfo info = new BackendStoreSystemInfo(hugegraph);

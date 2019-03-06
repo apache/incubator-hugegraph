@@ -25,7 +25,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 
-public class IdPrefixQuery extends Query {
+public final class IdPrefixQuery extends Query {
 
     private final Id start;
     private final boolean inclusiveStart;

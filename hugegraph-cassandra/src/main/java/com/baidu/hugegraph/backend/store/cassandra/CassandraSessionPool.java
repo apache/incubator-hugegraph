@@ -104,12 +104,12 @@ public class CassandraSessionPool extends BackendSessionPool {
     }
 
     @Override
-    public final synchronized Session session() {
+    public final Session session() {
         return (Session) super.getOrNewSession();
     }
 
     @Override
-    protected final synchronized Session newSession() {
+    protected Session newSession() {
         E.checkState(this.cluster != null,
                      "Cassandra cluster has not been initialized");
         return new Session();
@@ -157,7 +157,7 @@ public class CassandraSessionPool extends BackendSessionPool {
         }
 
         @Override
-        public void clear() {
+        public void rollback() {
             this.batch.clear();
         }
 

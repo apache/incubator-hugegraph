@@ -44,6 +44,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -57,6 +58,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
@@ -392,20 +394,79 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithAutomaticIdStrategyAndNotPassedId() {
+    public void testAddVertexWithAutomaticIdStrategy() {
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
+
+        // May be set forceString=true by config
+        Whitebox.setInternalState(SnowflakeIdGenerator.instance(graph),
+                                  "forceString", false);
 
         schema.vertexLabel("programmer")
               .useAutomaticId()
               .properties("name", "age", "city")
               .create();
 
-        graph.addVertex(T.label, "programmer", "name", "marko",
-                        "age", 18, "city", "Beijing");
+        Vertex v1 = graph.addVertex(T.label, "programmer", "name", "marko",
+                                    "age", 18, "city", "Beijing");
         graph.tx().commit();
 
         List<Vertex> vertices = graph.traversal().V().toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 18, "city", "Beijing");
+
+        Vertex v2 = graph.addVertex(T.label, "programmer", "name", "marko",
+                                    "age", 18, "city", "Beijing");
+        graph.tx().commit();
+
+        Assert.assertNotEquals(v1.id(), v2.id());
+
+        vertices = graph.traversal().V().toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(v2.id()).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 18, "city", "Beijing");
+    }
+
+    @Test
+    public void testAddVertexWithAutomaticIdStrategyAndForceStringId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        // May be set forceString=false by config
+        Whitebox.setInternalState(SnowflakeIdGenerator.instance(graph),
+                                  "forceString", true);
+
+        schema.vertexLabel("programmer")
+              .useAutomaticId()
+              .properties("name", "age", "city")
+              .create();
+
+        Vertex v1 = graph.addVertex(T.label, "programmer", "name", "marko",
+                                    "age", 18, "city", "Beijing");
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V().toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 18, "city", "Beijing");
+
+        Vertex v2 = graph.addVertex(T.label, "programmer", "name", "marko",
+                                    "age", 18, "city", "Beijing");
+        graph.tx().commit();
+
+        Assert.assertNotEquals(v1.id(), v2.id());
+
+        vertices = graph.traversal().V().toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(v2.id()).toList();
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices,
                        T.label, "programmer", "name", "marko",
@@ -578,6 +639,25 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query all
         List<Vertex> vertexes = graph.traversal().V().toList();
+
+        Assert.assertEquals(10, vertexes.size());
+
+        assertContains(vertexes,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
+
+        assertContains(vertexes, T.label, "language", "name", "java");
+
+        assertContains(vertexes, T.label, "book", "name", "java-1");
+    }
+
+    @Test
+    public void testQueryAllWithGraphAPI() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        // Query all
+        List<Vertex> vertexes = ImmutableList.copyOf(graph.vertices());
 
         Assert.assertEquals(10, vertexes.size());
 
@@ -1728,11 +1808,32 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryWithTxNotCommittedUpdatedProp() {
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "person", "name", "marko",
+                        "age", 18, "city", "Beijing");
+        Vertex v = graph.addVertex(T.label, "person", "name", "james",
+                                   "age", 19, "city", "Hongkong");
+        graph().tx().commit();
+
+        v.property("age", 20);
+
+        List<Vertex> vertices = graph.traversal().V()
+                                     .where(__.values("age").is(20))
+                                     .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(v.id(), vertices.get(0).id());
+    }
+
+    @Test
     public void testQueryByJointIndexes() {
         initPersonIndex(true);
 
         graph().addVertex(T.label, "person", "name", "Baby",
                           "city", "Hongkong", "age", 3);
+        graph().tx().commit();
+
         List<Vertex> vertices;
         vertices = graph().traversal().V().has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
@@ -1757,6 +1858,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "person", "name", "Tom",
                           "city", "Hongkong", "age", 3);
         graph().tx().commit();
+
         List<Vertex> vertices;
         vertices = graph().traversal().V().has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());

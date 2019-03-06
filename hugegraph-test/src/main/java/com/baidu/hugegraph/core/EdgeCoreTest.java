@@ -42,6 +42,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
@@ -558,6 +559,33 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryAllEdgesWithGraphAPI() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        // All edges
+        List<Edge> edges = ImmutableList.copyOf(graph.edges());
+
+        Assert.assertEquals(18, edges.size());
+
+        Vertex james = vertex("author", "id", 1);
+        Vertex guido = vertex("author", "id", 2);
+
+        Vertex java = vertex("language", "name", "java");
+        Vertex python = vertex("language", "name", "python");
+
+        Vertex java1 = vertex("book", "name", "java-1");
+        Vertex java2 = vertex("book", "name", "java-2");
+        Vertex java3 = vertex("book", "name", "java-3");
+
+        assertContains(edges, "created", james, java);
+        assertContains(edges, "created", guido, python);
+        assertContains(edges, "authored", james, java1);
+        assertContains(edges, "authored", james, java2);
+        assertContains(edges, "authored", james, java3);
+    }
+
+    @Test
     public void testQueryEdgesWithOrderBy() {
         HugeGraph graph = graph();
         init18Edges();
@@ -844,6 +872,48 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryEdgesByIdWithGraphAPI() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Object id = graph.traversal().E().toList().get(0).id();
+        List<Edge> edges = ImmutableList.copyOf(graph.edges(id));
+        Assert.assertEquals(1, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesByIdWithGraphAPIAndNotCommitedUpdate() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Edge edge = graph.traversal().E().hasLabel("look").toList().get(0);
+        Object id = edge.id();
+        Assert.assertTrue(graph.edges(id).hasNext());
+
+        edge.property("score", 101);
+
+        List<Edge> edges = ImmutableList.copyOf(graph.edges(id));
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(101, (int) edges.get(0).value("score"));
+    }
+
+    @Test
+    public void testQueryEdgesByIdWithGraphAPIAndNotCommitedRemoved() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Edge edge = graph.traversal().E().toList().get(0);
+        Object id = edge.id();
+        Assert.assertTrue(graph.edges(id).hasNext());
+
+        edge.remove();
+        Assert.assertFalse(graph.edges(id).hasNext());
+
+        graph.tx().rollback();
+        Assert.assertTrue(graph.edges(id).hasNext());
+    }
+
+    @Test
     public void testQueryEdgesByIdNotFound() {
         HugeGraph graph = graph();
         init18Edges();
@@ -888,6 +958,9 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         edges = graph.traversal().E().hasLabel("know").toList();
         Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().E().hasLabel("created", "authored").toList();
+        Assert.assertEquals(5, edges.size());
     }
 
     @Test
@@ -912,6 +985,21 @@ public class EdgeCoreTest extends BaseCoreTest {
         // Query edges of a vertex
         Vertex james = vertex("author", "id", 1);
         List<Edge> edges = graph.traversal().V(james.id()).bothE().toList();
+        Assert.assertEquals(6, edges.size());
+
+        edges = ImmutableList.copyOf(james.edges(Direction.BOTH));
+        Assert.assertEquals(6, edges.size());
+    }
+
+    @Test
+    public void testQueryBothEdgesOfVertexWithGraphAPI() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        // Query edges of a vertex
+        Vertex james = vertex("author", "id", 1);
+        List<Edge> edges = ImmutableList.copyOf(
+                           graph.adjacentEdges((Id) james.id()));
         Assert.assertEquals(6, edges.size());
 
         edges = ImmutableList.copyOf(james.edges(Direction.BOTH));

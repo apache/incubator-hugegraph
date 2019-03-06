@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.unit.cache;
 
+import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -171,12 +172,22 @@ public class CacheManagerTest extends BaseUnitTest {
 
         waitTillNext(40);
 
-        // Would call tick() per 10s
+        // Would call tick() per 30s
         Mockito.verify(mockCache1, Mockito.times(1)).tick();
         Mockito.verify(mockCache2, Mockito.times(1)).tick();
 
         Assert.assertEquals(0, cache1.size());
         Assert.assertEquals(1, cache2.size());
+    }
+
+    @SuppressWarnings("unused")
+    private static Cache newCacheProxy(Cache cache) {
+        Object p = Proxy.newProxyInstance(Cache.class.getClassLoader(),
+                                          new Class[]{Cache.class},
+                                          (proxy, method, args) -> {
+                                              return method.invoke(cache, args);
+                                          });
+        return (Cache) p;
     }
 }
 
