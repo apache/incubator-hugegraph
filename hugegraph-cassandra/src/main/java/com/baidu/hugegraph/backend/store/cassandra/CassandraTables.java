@@ -558,12 +558,18 @@ public class CassandraTables {
             }
 
             final String FIELD_VALUES = formatKey(HugeKeys.FIELD_VALUES);
+            int count = 0;
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 fieldValues = it.next().get(FIELD_VALUES, String.class);
                 Delete delete = QueryBuilder.delete().from(this.table());
                 delete.where(formatEQ(HugeKeys.INDEX_LABEL_ID, indexLabel));
                 delete.where(formatEQ(HugeKeys.FIELD_VALUES, fieldValues));
                 session.add(delete);
+
+                if (++count >= COMMIT_DELETE_BATCH) {
+                    session.commit();
+                    count = 0;
+                }
             }
         }
 

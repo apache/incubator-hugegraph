@@ -123,12 +123,14 @@ public class RebuildIndexCallable extends SchemaCallable {
             if (label.type() == HugeType.VERTEX_LABEL) {
                 @SuppressWarnings("unchecked")
                 Consumer<Vertex> consumer = (Consumer<Vertex>) indexUpdater;
-                graphTx.traverseVerticesByLabel((VertexLabel) label, consumer);
+                graphTx.traverseVerticesByLabel((VertexLabel) label,
+                                                consumer, false);
             } else {
                 assert label.type() == HugeType.EDGE_LABEL;
                 @SuppressWarnings("unchecked")
                 Consumer<Edge> consumer = (Consumer<Edge>) indexUpdater;
-                graphTx.traverseEdgesByLabel((EdgeLabel) label, consumer);
+                graphTx.traverseEdgesByLabel((EdgeLabel) label,
+                                             consumer, false);
             }
             graphTx.commit();
 
