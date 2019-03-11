@@ -1365,7 +1365,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.traverseVerticesByLabel(vertexLabel, vertex -> {
                 this.removeVertex((HugeVertex) vertex);
                 this.commitIfGtSize(COMMIT_BATCH);
-            });
+            }, true);
             this.commit();
         } catch (Exception e) {
             LOG.error("Failed to remove vertices", e);
@@ -1395,7 +1395,7 @@ public class GraphTransaction extends IndexableTransaction {
                 this.traverseEdgesByLabel(edgeLabel, edge -> {
                     this.removeEdge((HugeEdge) edge);
                     this.commitIfGtSize(COMMIT_BATCH);
-                });
+                }, true);
             }
             this.commit();
         } catch (Exception e) {
@@ -1407,18 +1407,19 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public void traverseVerticesByLabel(VertexLabel label,
-                                        Consumer<Vertex> consumer) {
-        this.traverseByLabel(label, this::queryVertices, consumer);
+                                        Consumer<Vertex> consumer,
+                                        boolean remove) {
+        this.traverseByLabel(label, this::queryVertices, consumer, remove);
     }
 
-    public void traverseEdgesByLabel(EdgeLabel label,
-                                     Consumer<Edge> consumer) {
-        this.traverseByLabel(label, this::queryEdges, consumer);
+    public void traverseEdgesByLabel(EdgeLabel label, Consumer<Edge> consumer,
+                                     boolean remove) {
+        this.traverseByLabel(label, this::queryEdges, consumer, remove);
     }
 
     private <T> void traverseByLabel(SchemaLabel label,
                                      Function<Query, Iterator<T>> fetcher,
-                                     Consumer<T> consumer) {
+                                     Consumer<T> consumer, boolean remove) {
         HugeType type = label.type() == HugeType.VERTEX_LABEL ?
                         HugeType.VERTEX : HugeType.EDGE;
         ConditionQuery query = new ConditionQuery(type);
@@ -1449,9 +1450,11 @@ public class GraphTransaction extends IndexableTransaction {
         query.capacity(Query.NO_CAPACITY);
         query.eq(HugeKeys.LABEL, label.id());
         int pass = 0;
-        int counter = 0;
+        int counter;
         do {
-            query.offset(pass++ * Query.DEFAULT_CAPACITY);
+            if (!remove) {
+                query.offset(pass++ * Query.DEFAULT_CAPACITY);
+            }
             // Process every element in current batch
             Iterator<T> itor = fetcher.apply(query);
             for (counter = 0; itor.hasNext(); ++counter) {
