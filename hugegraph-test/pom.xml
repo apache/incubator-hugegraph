@@ -188,6 +188,11 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.3</version>
+                <configuration>
+                    <excludes>
+                        <exclude>com/baidu/hugegraph/traversal/algorithm/*.class</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>pre-test</id>

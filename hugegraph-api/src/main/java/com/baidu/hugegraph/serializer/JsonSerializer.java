@@ -40,8 +40,11 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.traversal.optimize.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class JsonSerializer implements Serializer {
 
@@ -202,12 +205,40 @@ public class JsonSerializer implements Serializer {
 
     @Override
     public String writePaths(String name, Collection<HugeTraverser.Path> paths,
-                             boolean withCrossPoint) {
+                             boolean withCrossPoint,
+                             Iterator<Vertex> vertices) {
         List<Map<String, Object>> pathList = new ArrayList<>(paths.size());
         for (HugeTraverser.Path path : paths) {
             pathList.add(path.toMap(withCrossPoint));
         }
-        return writeList(name, pathList);
+
+        Map<String, Object> results;
+        if (vertices == null) {
+            results = ImmutableMap.of(name, pathList);
+        } else {
+            results = ImmutableMap.of(name, pathList, "vertices", vertices);
+        }
+        return writeObject(results);
+    }
+
+    @Override
+    public String writeCrosspoints(CrosspointsPaths paths,
+                                   Iterator<Vertex> iterator,
+                                   boolean withPath) {
+        Map<String, Object> results;
+        List<Map<String, Object>> pathList;
+        if (withPath) {
+            pathList = new ArrayList<>();
+            for (HugeTraverser.Path path : paths.paths()) {
+                pathList.add(path.toMap(false));
+            }
+        } else {
+            pathList = ImmutableList.of();
+        }
+        results = ImmutableMap.of("crosspoints", paths.crosspoints(),
+                                  "paths", pathList,
+                                  "vertices", iterator);
+        return writeObject(results);
     }
 
     @Override

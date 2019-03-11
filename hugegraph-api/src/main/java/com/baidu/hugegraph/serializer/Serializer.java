@@ -32,7 +32,8 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.traversal.optimize.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 
 public interface Serializer {
 
@@ -65,7 +66,16 @@ public interface Serializer {
     public String writeIds(String name, Collection<Id> ids);
 
     public String writePaths(String name, Collection<HugeTraverser.Path> paths,
-                             boolean withCrossPoint);
+                             boolean withCrossPoint, Iterator<Vertex> vertices);
+
+    public default String writePaths(String name,
+                                     Collection<HugeTraverser.Path> paths,
+                                     boolean withCrossPoint) {
+        return this.writePaths(name, paths, withCrossPoint, null);
+    }
+
+    public String writeCrosspoints(CrosspointsPaths paths,
+                                   Iterator<Vertex> iterator, boolean withPath);
 
     public String writeShards(List<Shard> shards);
 }
