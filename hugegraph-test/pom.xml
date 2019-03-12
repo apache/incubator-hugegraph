@@ -191,8 +191,6 @@
                 <configuration>
                     <excludes>
                         <exclude>com/baidu/hugegraph/traversal/algorithm/*.class</exclude>
-                        <exclude>com/baidu/hugegraph/io/HugeGraphSONModule.class</exclude>
-                        <exclude>com/baidu/hugegraph/util/JsonUtil.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
