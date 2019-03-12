@@ -36,18 +36,17 @@ import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Timer;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 
 public class ServerReporter extends ScheduledReporter {
-
+    
     private static volatile ServerReporter instance = null;
 
-    @SuppressWarnings("rawtypes")
-    private Map<String, Gauge> gauges;
-    private Map<String, Counter> counters;
-    private Map<String, Histogram> histograms;
-    private Map<String, Meter> meters;
-    private Map<String, Timer> timers;
+    private SortedMap<String, Gauge> gauges;
+    private SortedMap<String, Counter> counters;
+    private SortedMap<String, Histogram> histograms;
+    private SortedMap<String, Meter> meters;
+    private SortedMap<String, Timer> timers;
 
     public static synchronized ServerReporter instance(MetricRegistry registry) {
         if (instance == null) {
@@ -72,18 +71,17 @@ public class ServerReporter extends ScheduledReporter {
     private ServerReporter(MetricRegistry registry, TimeUnit rateUnit,
                            TimeUnit durationUnit, MetricFilter filter) {
         super(registry, "server-reporter", filter, rateUnit, durationUnit);
-        this.gauges = ImmutableMap.of();
-        this.counters = ImmutableMap.of();
-        this.histograms = ImmutableMap.of();
-        this.meters = ImmutableMap.of();
-        this.timers = ImmutableMap.of();
+        this.gauges = ImmutableSortedMap.of();
+        this.counters = ImmutableSortedMap.of();
+        this.histograms = ImmutableSortedMap.of();
+        this.meters = ImmutableSortedMap.of();
+        this.timers = ImmutableSortedMap.of();
     }
 
     public Map<String, Timer> timers() {
         return Collections.unmodifiableMap(this.timers);
     }
 
-    @SuppressWarnings("rawtypes")
     public Map<String, Gauge> gauges() {
         return Collections.unmodifiableMap(this.gauges);
     }
@@ -101,7 +99,6 @@ public class ServerReporter extends ScheduledReporter {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
     public void report(SortedMap<String, Gauge> gauges,
                        SortedMap<String, Counter> counters,
                        SortedMap<String, Histogram> histograms,

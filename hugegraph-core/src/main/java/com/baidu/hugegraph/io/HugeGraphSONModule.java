@@ -31,6 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.io.graphson.TinkerPopJacksonModule
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
 import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
+import org.apache.tinkerpop.shaded.jackson.databind.JsonSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
@@ -38,6 +39,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.ser.std.DateSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.UUIDSerializer;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -47,6 +49,10 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeProperty;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 @SuppressWarnings("serial")
@@ -63,7 +69,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                          new GraphSONSchemaSerializer();
 
     private static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
-    public static final SafeDateFormat DATE_FORMAT = new SafeDateFormat(DF);
+    private static final SafeDateFormat DATE_FORMAT = new SafeDateFormat(DF);
 
     static {
         TYPE_DEFINITIONS = new ConcurrentHashMap<>();
@@ -82,6 +88,10 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         TYPE_DEFINITIONS.put(VertexLabel.class, "VertexLabel");
         TYPE_DEFINITIONS.put(EdgeLabel.class, "EdgeLabel");
         TYPE_DEFINITIONS.put(IndexLabel.class, "IndexLabel");
+
+        // HugeGraph vertex/edge serializer
+        TYPE_DEFINITIONS.put(HugeVertex.class, "HugeVertex");
+        TYPE_DEFINITIONS.put(HugeEdge.class, "HugeEdge");
 
         // HugeGraph shard serializer
         TYPE_DEFINITIONS.put(Shard.class, "Shard");
@@ -117,6 +127,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
         addSerializer(IndexLabel.class, new IndexLabelSerializer());
 
+        addSerializer(HugeVertex.class, new HugeVertexSerializer());
+        addSerializer(HugeEdge.class, new HugeEdgeSerializer());
+
         addSerializer(Shard.class, new ShardSerializer());
     }
 
@@ -141,7 +154,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         @Override
         public void serialize(Optional optional,
                               JsonGenerator jsonGenerator,
-                              SerializerProvider serializer)
+                              SerializerProvider provider)
                               throws IOException {
             if (optional.isPresent()) {
                 jsonGenerator.writeObject(optional.get());
@@ -151,7 +164,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    private static class IdSerializer<T extends Id> extends StdSerializer<T> {
+    public static class IdSerializer<T extends Id> extends StdSerializer<T> {
 
         public IdSerializer(Class<T> clazz) {
             super(clazz);
@@ -160,7 +173,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         @Override
         public void serialize(T value,
                               JsonGenerator jsonGenerator,
-                              SerializerProvider serializer)
+                              SerializerProvider provider)
                               throws IOException {
             if (value.number()) {
                 jsonGenerator.writeNumber(value.asLong());
@@ -172,18 +185,18 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         @Override
         public void serializeWithType(T value,
                                       JsonGenerator jsonGenerator,
-                                      SerializerProvider serializers,
+                                      SerializerProvider provider,
                                       TypeSerializer typeSer)
                                       throws IOException {
             typeSer.writeTypePrefixForScalar(value, jsonGenerator);
-            this.serialize(value, jsonGenerator, serializers);
+            this.serialize(value, jsonGenerator, provider);
             typeSer.writeTypeSuffixForScalar(value, jsonGenerator);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private static class IdDeserializer<T extends Id>
-                   extends StdDeserializer<T> {
+    public static class IdDeserializer<T extends Id>
+                  extends StdDeserializer<T> {
 
         public IdDeserializer(Class<T> clazz) {
             super(clazz);
@@ -219,8 +232,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         jsonGenerator.writeEndObject();
     }
 
-    private static class PropertyKeySerializer
-                   extends StdSerializer<PropertyKey> {
+    public static class PropertyKeySerializer
+                  extends StdSerializer<PropertyKey> {
 
         public PropertyKeySerializer() {
             super(PropertyKey.class);
@@ -229,14 +242,14 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         @Override
         public void serialize(PropertyKey pk,
                               JsonGenerator jsonGenerator,
-                              SerializerProvider serializer)
+                              SerializerProvider provider)
                               throws IOException {
             writeEntry(jsonGenerator, schemaSerializer.writePropertyKey(pk));
         }
     }
 
-    private static class VertexLabelSerializer
-                   extends StdSerializer<VertexLabel> {
+    public static class VertexLabelSerializer
+                  extends StdSerializer<VertexLabel> {
 
         public VertexLabelSerializer() {
             super(VertexLabel.class);
@@ -245,13 +258,13 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         @Override
         public void serialize(VertexLabel vl,
                               JsonGenerator jsonGenerator,
-                              SerializerProvider serializer)
+                              SerializerProvider provider)
                               throws IOException {
             writeEntry(jsonGenerator, schemaSerializer.writeVertexLabel(vl));
         }
     }
 
-    private static class EdgeLabelSerializer extends StdSerializer<EdgeLabel> {
+    public static class EdgeLabelSerializer extends StdSerializer<EdgeLabel> {
 
         public EdgeLabelSerializer() {
             super(EdgeLabel.class);
@@ -260,14 +273,14 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         @Override
         public void serialize(EdgeLabel el,
                               JsonGenerator jsonGenerator,
-                              SerializerProvider serializer)
+                              SerializerProvider provider)
                               throws IOException {
             writeEntry(jsonGenerator, schemaSerializer.writeEdgeLabel(el));
         }
     }
 
-    private static class IndexLabelSerializer
-                   extends StdSerializer<IndexLabel> {
+    public static class IndexLabelSerializer
+                  extends StdSerializer<IndexLabel> {
 
         public IndexLabelSerializer() {
             super(IndexLabel.class);
@@ -276,13 +289,117 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         @Override
         public void serialize(IndexLabel il,
                               JsonGenerator jsonGenerator,
-                              SerializerProvider serializer)
+                              SerializerProvider provider)
                               throws IOException {
             writeEntry(jsonGenerator, schemaSerializer.writeIndexLabel(il));
         }
     }
 
-    private static class ShardSerializer extends StdSerializer<Shard> {
+    protected static abstract class HugeElementSerializer<T extends HugeElement>
+                              extends StdSerializer<T> {
+
+        public HugeElementSerializer(Class<T> clazz) {
+            super(clazz);
+        }
+
+        public void writeIdField(String fieldName, Id id,
+                                 JsonGenerator generator)
+                                 throws IOException {
+            generator.writeFieldName(fieldName);
+            if (id.number()) {
+                generator.writeNumber(id.asLong());
+            } else {
+                generator.writeString(id.asString());
+            }
+        }
+
+        public void writePropertiesField(Map<Id, HugeProperty<?>> properties,
+                                         JsonGenerator generator,
+                                         SerializerProvider provider)
+                                         throws IOException {
+            // Start write properties
+            generator.writeFieldName("properties");
+            generator.writeStartObject();
+
+            for (HugeProperty<?> property : properties.values()) {
+                String key = property.key();
+                Object val = property.value();
+                try {
+                    generator.writeFieldName(key);
+                    if (val != null) {
+                        JsonSerializer<Object> serializer =
+                                provider.findValueSerializer(val.getClass());
+                        serializer.serialize(val, generator, provider);
+                    } else {
+                        generator.writeNull();
+                    }
+                } catch (IOException e) {
+                    throw new HugeException(
+                              "Failed to serialize property(%s: %s) " +
+                              "for vertex '%s'", key, val, property.element());
+                }
+            };
+            // End wirte properties
+            generator.writeEndObject();
+        }
+    }
+
+    public static class HugeVertexSerializer
+                  extends HugeElementSerializer<HugeVertex> {
+
+        public HugeVertexSerializer() {
+            super(HugeVertex.class);
+        }
+
+        @Override
+        public void serialize(HugeVertex vertex, JsonGenerator generator,
+                              SerializerProvider provider)
+                              throws IOException {
+            generator.writeStartObject();
+
+            this.writeIdField("id", vertex.id(), generator);
+            generator.writeStringField("label", vertex.label());
+            generator.writeStringField("type", "vertex");
+
+            this.writePropertiesField(vertex.getProperties(), generator,
+                                      provider);
+
+            generator.writeEndObject();
+        }
+    }
+
+    public static class HugeEdgeSerializer
+                  extends HugeElementSerializer<HugeEdge> {
+
+        public HugeEdgeSerializer() {
+            super(HugeEdge.class);
+        }
+
+        @Override
+        public void serialize(HugeEdge edge, JsonGenerator generator,
+                              SerializerProvider provider)
+                              throws IOException {
+            generator.writeStartObject();
+
+            // Write id, label, type
+            this.writeIdField("id", edge.id(), generator);
+            generator.writeStringField("label", edge.label());
+            generator.writeStringField("type", "edge");
+
+            HugeVertex outVertex = (HugeVertex) edge.outVertex();
+            HugeVertex inVertex = (HugeVertex) edge.inVertex();
+            this.writeIdField("outV", outVertex.id(), generator);
+            generator.writeStringField("outVLabel", outVertex.label());
+            this.writeIdField("inV", inVertex.id(), generator);
+            generator.writeStringField("inVLabel", inVertex.label());
+
+            this.writePropertiesField(edge.getProperties(), generator, provider);
+
+            generator.writeEndObject();
+        }
+    }
+
+    public static class ShardSerializer extends StdSerializer<Shard> {
 
         public ShardSerializer() {
             super(Shard.class);
@@ -290,7 +407,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
         @Override
         public void serialize(Shard shard, JsonGenerator jsonGenerator,
-                              SerializerProvider serializer)
+                              SerializerProvider provider)
                               throws IOException {
             jsonGenerator.writeStartObject();
             jsonGenerator.writeStringField("start", shard.start());
