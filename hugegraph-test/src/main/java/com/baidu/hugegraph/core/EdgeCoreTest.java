@@ -2394,7 +2394,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals("", edge.value("tool"));
 
         edge = graph.traversal().E().has("tool", "").has("place", "park")
-               .has("reason", "jeer").next();
+                    .has("reason", "jeer").next();
         Assert.assertEquals(1, (int) edge.value("id"));
     }
 
@@ -2578,6 +2578,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(90, edges.size());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testQueryEdgeByPageResultsMatched() {
         Assume.assumeTrue("Not support paging",
@@ -2593,17 +2594,19 @@ public class EdgeCoreTest extends BaseCoreTest {
         String page = PageState.PAGE_NONE;
         int size = 20;
 
+        Set<Edge> pageAll = new HashSet<>();
         for (int i = 0; i < 100 / size; i++) {
             iter = graph.traversal().E()
                         .has("~page", page).limit(size);
-            List<?> vertexes = IteratorUtils.asList(iter);
-            Assert.assertEquals(size, vertexes.size());
+            List<Edge> edges = IteratorUtils.asList(iter);
+            Assert.assertEquals(size, edges.size());
 
-            List<Edge> expected = all.subList(i * size, (i + 1) * size);
-            Assert.assertEquals(expected, vertexes);
+            pageAll.addAll(edges);
 
             page = TraversalUtil.page(iter);
         }
+        Assert.assertEquals(100, pageAll.size());
+        Assert.assertTrue(all.containsAll(pageAll));
         Assert.assertNull(page);
     }
 

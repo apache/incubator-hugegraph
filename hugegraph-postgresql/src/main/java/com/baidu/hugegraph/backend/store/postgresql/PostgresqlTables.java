@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store.mysql;
+package com.baidu.hugegraph.backend.store.postgresql;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -34,32 +34,34 @@ import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.TableDefine;
+import com.baidu.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
+import com.baidu.hugegraph.backend.store.mysql.MysqlTables;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 
-public class MysqlTables {
+public class PostgresqlTables {
 
-    private static final String INT = "INT";
+    private static final String NOT_NULL = "NOT NULL";
+    private static final String DEFAULT_EMPTY = "DEFAULT ''";
 
     private static final String DATATYPE_PK = "INT";
     private static final String DATATYPE_SL = "INT"; // VL/EL
     private static final String DATATYPE_IL = "INT";
 
-    private static final String BOOLEAN = "BOOLEAN";
-    private static final String TINYINT = "TINYINT";
-    private static final String DOUBLE = "DOUBLE";
+    private static final String INT = "INT";
+    private static final String FLOAT = "FLOAT";
     private static final String VARCHAR = "VARCHAR(255)";
-    private static final String SMALL_JSON = "VARCHAR(1024)";
-    private static final String LARGE_JSON = "TEXT";
+    private static final String TEXT = "VARCHAR(65533)";
+    private static final String BOOL = "BOOL";
 
-    public static class MysqlTableTemplate extends MysqlTable {
+    public static class PostgresqlTableTemplate extends PostgresqlTable {
 
         protected TableDefine define;
 
-        public MysqlTableTemplate(String table) {
+        public PostgresqlTableTemplate(String table) {
             super(table);
         }
 
@@ -69,7 +71,7 @@ public class MysqlTables {
         }
     }
 
-    public static class Counters extends MysqlTableTemplate {
+    public static class Counters extends PostgresqlTableTemplate {
 
         public static final String TABLE = "counters";
 
@@ -102,106 +104,111 @@ public class MysqlTables {
             }
         }
 
-        public void increaseCounter(Session session,
-                                    HugeType type, long increment) {
-            String update = String.format(
-                            "INSERT INTO %s VALUES ('%s', %s) " +
-                            "ON DUPLICATE KEY UPDATE ID = ID + %s;",
-                            TABLE, type.name(), increment, increment);
+        public void increaseCounter(Session session, HugeType type,
+                                    long increment) {
+            String update = String.format("INSERT INTO %s (%s, %s) VALUES " +
+                                          "('%s', %s) ON CONFLICT (%s) " +
+                                          "DO UPDATE SET ID = %s.ID + %s;",
+                                          TABLE,
+                                          formatKey(HugeKeys.SCHEMA_TYPE),
+                                          formatKey(HugeKeys.ID),
+                                          type.name(), increment,
+                                          formatKey(HugeKeys.SCHEMA_TYPE),
+                                          TABLE, increment);
             try {
                 session.execute(update);
             } catch (SQLException e) {
-                throw new BackendException("Failed to update counters " +
-                                           "with '%s'", e, update);
+                throw new BackendException(
+                          "Failed to update counters with type '%s'", e, type);
             }
         }
     }
 
-    public static class VertexLabel extends MysqlTableTemplate {
+    public static class VertexLabel extends PostgresqlTableTemplate {
 
         public static final String TABLE = "vertex_labels";
 
         public VertexLabel() {
             super(TABLE);
-
             this.define = new TableDefine();
-            this.define.column(HugeKeys.ID, DATATYPE_SL);
-            this.define.column(HugeKeys.NAME, VARCHAR);
-            this.define.column(HugeKeys.ID_STRATEGY, TINYINT);
-            this.define.column(HugeKeys.PRIMARY_KEYS, SMALL_JSON);
-            this.define.column(HugeKeys.PROPERTIES, SMALL_JSON);
-            this.define.column(HugeKeys.NULLABLE_KEYS, SMALL_JSON);
-            this.define.column(HugeKeys.INDEX_LABELS, SMALL_JSON);
-            this.define.column(HugeKeys.ENABLE_LABEL_INDEX, BOOLEAN);
-            this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
-            this.define.column(HugeKeys.STATUS, TINYINT);
+            this.define.column(HugeKeys.ID, DATATYPE_SL, NOT_NULL);
+            this.define.column(HugeKeys.NAME, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.ID_STRATEGY, INT, NOT_NULL);
+            this.define.column(HugeKeys.PRIMARY_KEYS, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.PROPERTIES, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.NULLABLE_KEYS, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.INDEX_LABELS, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.ENABLE_LABEL_INDEX, BOOL, NOT_NULL);
+            this.define.column(HugeKeys.USER_DATA, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.STATUS, INT, NOT_NULL);
+            // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
     }
 
-    public static class EdgeLabel extends MysqlTableTemplate {
+    public static class EdgeLabel extends PostgresqlTableTemplate {
 
         public static final String TABLE = "edge_labels";
 
         public EdgeLabel() {
             super(TABLE);
-
             this.define = new TableDefine();
-            this.define.column(HugeKeys.ID, DATATYPE_SL);
-            this.define.column(HugeKeys.NAME, VARCHAR);
-            this.define.column(HugeKeys.FREQUENCY, TINYINT);
-            this.define.column(HugeKeys.SOURCE_LABEL, DATATYPE_SL);
-            this.define.column(HugeKeys.TARGET_LABEL, DATATYPE_SL);
-            this.define.column(HugeKeys.SORT_KEYS, SMALL_JSON);
-            this.define.column(HugeKeys.PROPERTIES, SMALL_JSON);
-            this.define.column(HugeKeys.NULLABLE_KEYS, SMALL_JSON);
-            this.define.column(HugeKeys.INDEX_LABELS, SMALL_JSON);
-            this.define.column(HugeKeys.ENABLE_LABEL_INDEX, BOOLEAN);
-            this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
-            this.define.column(HugeKeys.STATUS, TINYINT);
+            this.define.column(HugeKeys.ID, DATATYPE_SL, NOT_NULL);
+            this.define.column(HugeKeys.NAME, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.FREQUENCY, INT, NOT_NULL);
+            this.define.column(HugeKeys.SOURCE_LABEL, INT, NOT_NULL);
+            this.define.column(HugeKeys.TARGET_LABEL, INT, NOT_NULL);
+            this.define.column(HugeKeys.SORT_KEYS, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.PROPERTIES, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.NULLABLE_KEYS, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.INDEX_LABELS, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.ENABLE_LABEL_INDEX, BOOL, NOT_NULL);
+            this.define.column(HugeKeys.USER_DATA, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.STATUS, INT, NOT_NULL);
+            // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
     }
 
-    public static class PropertyKey extends MysqlTableTemplate {
+    public static class PropertyKey extends PostgresqlTableTemplate {
 
         public static final String TABLE = "property_keys";
 
         public PropertyKey() {
             super(TABLE);
-
             this.define = new TableDefine();
-            this.define.column(HugeKeys.ID, DATATYPE_PK);
-            this.define.column(HugeKeys.NAME, VARCHAR);
-            this.define.column(HugeKeys.DATA_TYPE, TINYINT);
-            this.define.column(HugeKeys.CARDINALITY, TINYINT);
-            this.define.column(HugeKeys.PROPERTIES, SMALL_JSON);
-            this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
-            this.define.column(HugeKeys.STATUS, TINYINT);
+            this.define.column(HugeKeys.ID, DATATYPE_PK, NOT_NULL);
+            this.define.column(HugeKeys.NAME, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.DATA_TYPE, INT, NOT_NULL);
+            this.define.column(HugeKeys.CARDINALITY, INT, NOT_NULL);
+            this.define.column(HugeKeys.PROPERTIES, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.USER_DATA, VARCHAR, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.STATUS, INT, NOT_NULL);
+            // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
     }
 
-    public static class IndexLabel extends MysqlTableTemplate {
+    public static class IndexLabel extends PostgresqlTableTemplate {
 
         public static final String TABLE = "index_labels";
 
         public IndexLabel() {
             super(TABLE);
-
             this.define = new TableDefine();
-            this.define.column(HugeKeys.ID, DATATYPE_IL);
-            this.define.column(HugeKeys.NAME, VARCHAR);
-            this.define.column(HugeKeys.BASE_TYPE, TINYINT);
-            this.define.column(HugeKeys.BASE_VALUE, DATATYPE_SL);
-            this.define.column(HugeKeys.INDEX_TYPE, TINYINT);
-            this.define.column(HugeKeys.FIELDS, SMALL_JSON);
-            this.define.column(HugeKeys.STATUS, TINYINT);
+            this.define.column(HugeKeys.ID, DATATYPE_IL, NOT_NULL);
+            this.define.column(HugeKeys.NAME, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.BASE_TYPE, INT, NOT_NULL);
+            this.define.column(HugeKeys.BASE_VALUE, INT, NOT_NULL);
+            this.define.column(HugeKeys.INDEX_TYPE, INT, NOT_NULL);
+            this.define.column(HugeKeys.FIELDS, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.STATUS, INT, NOT_NULL);
+            // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
     }
 
-    public static class Vertex extends MysqlTableTemplate {
+    public static class Vertex extends PostgresqlTableTemplate {
 
         public static final String TABLE = "vertices";
 
@@ -209,22 +216,21 @@ public class MysqlTables {
             super(joinTableName(store, TABLE));
 
             this.define = new TableDefine();
-            this.define.column(HugeKeys.ID, VARCHAR);
-            this.define.column(HugeKeys.LABEL, DATATYPE_SL);
-            this.define.column(HugeKeys.PROPERTIES, LARGE_JSON);
+            this.define.column(HugeKeys.ID, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.LABEL, INT, NOT_NULL);
+            this.define.column(HugeKeys.PROPERTIES, TEXT, DEFAULT_EMPTY);
+            // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
     }
 
-    public static class Edge extends MysqlTableTemplate {
-
-        public static final String TABLE_PREFIX = "edges";
+    public static class Edge extends PostgresqlTableTemplate {
 
         private final Directions direction;
         private final String delByLabelTemplate;
 
-        protected Edge(String store, Directions direction) {
-            super(joinTableName(store, table(direction)));
+        public Edge(String store, Directions direction) {
+            super(joinTableName(store, MysqlTables.Edge.table(direction)));
 
             this.direction = direction;
             this.delByLabelTemplate = String.format(
@@ -232,12 +238,14 @@ public class MysqlTables {
                                       this.table(), formatKey(HugeKeys.LABEL));
 
             this.define = new TableDefine();
-            this.define.column(HugeKeys.OWNER_VERTEX, VARCHAR);
-            this.define.column(HugeKeys.DIRECTION, TINYINT);
-            this.define.column(HugeKeys.LABEL, DATATYPE_SL);
-            this.define.column(HugeKeys.SORT_VALUES, VARCHAR);
-            this.define.column(HugeKeys.OTHER_VERTEX, VARCHAR);
-            this.define.column(HugeKeys.PROPERTIES, LARGE_JSON);
+            this.define.column(HugeKeys.OWNER_VERTEX, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.DIRECTION, INT, NOT_NULL);
+            this.define.column(HugeKeys.LABEL, INT, NOT_NULL);
+            this.define.column(HugeKeys.SORT_VALUES, VARCHAR, NOT_NULL,
+                               DEFAULT_EMPTY);
+            this.define.column(HugeKeys.OTHER_VERTEX, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.PROPERTIES, TEXT, DEFAULT_EMPTY);
+            // Unique keys/hash keys
             this.define.keys(HugeKeys.OWNER_VERTEX, HugeKeys.DIRECTION,
                              HugeKeys.LABEL, HugeKeys.SORT_VALUES,
                              HugeKeys.OTHER_VERTEX);
@@ -337,22 +345,9 @@ public class MysqlTables {
             vertex.subRow(edge.row());
             return vertex;
         }
-
-        public static String table(Directions direction) {
-            assert direction == Directions.OUT || direction == Directions.IN;
-            return TABLE_PREFIX + "_" + direction.string();
-        }
-
-        public static MysqlTable out(String store) {
-            return new Edge(store, Directions.OUT);
-        }
-
-        public static MysqlTable in(String store) {
-            return new Edge(store, Directions.IN);
-        }
     }
 
-    public abstract static class Index extends MysqlTableTemplate {
+    public abstract static class Index extends PostgresqlTableTemplate {
 
         public Index(String table) {
             super(table);
@@ -368,13 +363,15 @@ public class MysqlTables {
         public SecondaryIndex(String store) {
             this(store, TABLE);
         }
-        public SecondaryIndex(String store, String table) {
+
+        protected SecondaryIndex(String store, String table) {
             super(joinTableName(store, table));
 
             this.define = new TableDefine();
-            this.define.column(HugeKeys.FIELD_VALUES, VARCHAR);
-            this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
-            this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR);
+            this.define.column(HugeKeys.FIELD_VALUES, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.INDEX_LABEL_ID, INT, NOT_NULL);
+            this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR, NOT_NULL);
+            // Unique keys/hash keys
             this.define.keys(HugeKeys.FIELD_VALUES,
                              HugeKeys.INDEX_LABEL_ID,
                              HugeKeys.ELEMENT_IDS);
@@ -383,7 +380,7 @@ public class MysqlTables {
         @Override
         protected final String entryId(MysqlBackendEntry entry) {
             String fieldValues = entry.column(HugeKeys.FIELD_VALUES);
-            Integer labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
+            Long labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
             return SplicingIdGenerator.concat(fieldValues, labelId.toString());
         }
     }
@@ -405,9 +402,10 @@ public class MysqlTables {
             super(joinTableName(store, TABLE));
 
             this.define = new TableDefine();
-            this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
-            this.define.column(HugeKeys.FIELD_VALUES, DOUBLE);
-            this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR);
+            this.define.column(HugeKeys.INDEX_LABEL_ID, INT, NOT_NULL);
+            this.define.column(HugeKeys.FIELD_VALUES, FLOAT, NOT_NULL);
+            this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR, NOT_NULL);
+            // Unique keys/hash keys
             this.define.keys(HugeKeys.INDEX_LABEL_ID,
                              HugeKeys.FIELD_VALUES,
                              HugeKeys.ELEMENT_IDS);
@@ -416,7 +414,7 @@ public class MysqlTables {
         @Override
         protected final String entryId(MysqlBackendEntry entry) {
             Double fieldValue = entry.<Double>column(HugeKeys.FIELD_VALUES);
-            Integer labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
+            Long labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
             return SplicingIdGenerator.concat(labelId.toString(),
                                               fieldValue.toString());
         }

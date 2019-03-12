@@ -10,4 +10,6 @@ elif [ "$BACKEND" == "hbase" ]; then
     $TRAVIS_DIR/install-hbase.sh
 elif [ "$BACKEND" == "mysql" ]; then
     $TRAVIS_DIR/install-mysql.sh
+elif [ "$BACKEND" == "postgresql" ]; then
+    $TRAVIS_DIR/install-postgresql.sh
 fi

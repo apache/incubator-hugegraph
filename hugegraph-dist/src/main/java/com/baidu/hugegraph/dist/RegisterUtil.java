@@ -89,6 +89,9 @@ public class RegisterUtil {
             case "palo":
                 registerPalo();
                 break;
+            case "postgresql":
+                registerPostgresql();
+                break;
             default:
                 throw new HugeException("Unsupported backend type '%s'", backend);
         }
@@ -163,6 +166,18 @@ public class RegisterUtil {
         // Register backend
         BackendProviderFactory.register("palo",
                 "com.baidu.hugegraph.backend.store.palo.PaloStoreProvider");
+    }
+
+    public static void registerPostgresql() {
+        // Register config
+        OptionSpace.register("postgresql",
+                             "com.baidu.hugegraph.backend.store.postgresql.PostgresqlOptions");
+        // Register serializer
+        SerializerFactory.register("postgresql",
+                                   "com.baidu.hugegraph.backend.store.postgresql.PostgresqlSerializer");
+        // Register backend
+        BackendProviderFactory.register("postgresql",
+                                        "com.baidu.hugegraph.backend.store.postgresql.PostgresqlStoreProvider");
     }
 
     public static void registerServer() {

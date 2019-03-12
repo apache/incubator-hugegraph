@@ -57,7 +57,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     private final Map<HugeType, MysqlTable> tables;
 
-    private MysqlSessions sessions;
+    protected MysqlSessions sessions;
 
     public MysqlStore(final BackendStoreProvider provider,
                       final String database, final String store) {
@@ -114,7 +114,8 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         try {
             this.sessions.open(config);
         } catch (Exception e) {
-            if (!e.getMessage().startsWith("Unknown database")) {
+            if (!e.getMessage().startsWith("Unknown database") &&
+                !e.getMessage().endsWith("does not exist")) {
                 throw new BackendException("Failed connect with mysql, " +
                                            "please ensure it's ok", e);
             }

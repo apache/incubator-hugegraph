@@ -5,6 +5,9 @@ jdk:
 
 sudo: required
 
+addons:
+  postgresql: "9.5"
+
 cache:
   directories:
     - $HOME/.m2
@@ -80,6 +83,7 @@ env:
     - BACKEND=mysql
     - BACKEND=hbase
     - BACKEND=rocksdb
+    - BACKEND=postgresql
   global:
     - RELEASE_BRANCH=^release-.*$
     - RELEASE_TAG=^v[0-9]\..*$

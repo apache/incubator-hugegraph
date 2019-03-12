@@ -60,6 +60,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-postgresql</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>airline</artifactId>
             <version>0.6</version>

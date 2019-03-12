@@ -521,7 +521,7 @@ public abstract class MysqlTable
         select.append(";");
     }
 
-    private static Object serializeValue(Object value) {
+    protected static Object serializeValue(Object value) {
         if (value instanceof Id) {
             value = ((Id) value).asObject();
         }
