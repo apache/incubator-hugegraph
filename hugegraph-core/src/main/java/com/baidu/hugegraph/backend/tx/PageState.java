@@ -32,7 +32,7 @@ public class PageState {
     private final String page;
 
     public PageState(int offset, String page) {
-        E.checkArgument(offset >= 0, "offset must >= 0");
+        E.checkArgument(offset >= 0, "The offset must >= 0");
         E.checkNotNull(page, "page");
         this.offset = offset;
         this.page = page;

@@ -388,8 +388,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private IdHolder doSingleOrCompositeIndex(IndexQueries queries) {
         assert queries.size() == 1;
-        Map.Entry<IndexLabel, ConditionQuery> e = queries.entrySet()
-                                                         .iterator().next();
+        Map.Entry<IndexLabel, ConditionQuery> e = queries.one();
         IndexLabel indexLabel = e.getKey();
         ConditionQuery query = e.getValue();
         if (query.paging()) {
@@ -511,7 +510,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 while (entries.hasNext()) {
                     HugeIndex index = this.serializer.readIndex(graph(), query,
                                                                 entries.next());
-                    System.out.println(index.elementIds());
                     ids.addAll(index.elementIds());
                 }
                 // If there is no data, the entries is not a Metadatable object
@@ -1096,6 +1094,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
             IndexQueries indexQueries = new IndexQueries();
             indexQueries.put(il, query);
             return indexQueries;
+        }
+
+        public Map.Entry<IndexLabel, ConditionQuery> one() {
+            E.checkState(this.size() == 1,
+                         "Please ensure index queries only contains one entry");
+            return this.entrySet().iterator().next();
         }
     }
 

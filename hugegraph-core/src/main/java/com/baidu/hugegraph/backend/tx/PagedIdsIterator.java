@@ -139,6 +139,9 @@ public class PagedIdsIterator extends PagedIterator<Set<Id>> {
     @Override
     public Object metadata(String meta, Object... args) {
         if ("page".equals(meta)) {
+            if (this.offset >= this.holders.size()) {
+                return null;
+            }
             PagedIdHolder holder = this.holders.get(this.offset);
             Object page = holder.metadata(meta, args);
             if (page == null) {

@@ -654,8 +654,8 @@ public class BinarySerializer extends AbstractSerializer {
         Query newQuery;
         if (query.paging() && !query.page().isEmpty()) {
             byte[] position = PageState.fromString(query.page()).position();
-            E.checkState(Bytes.compare(position, prefix.asBytes()) >= 0,
-                         "Invalid page out of lower bound");
+            E.checkArgument(Bytes.compare(position, prefix.asBytes()) >= 0,
+                            "Invalid page out of lower bound");
             BinaryId start = new BinaryId(position, null);
             newQuery = new IdPrefixQuery(query, start, prefix);
         } else {

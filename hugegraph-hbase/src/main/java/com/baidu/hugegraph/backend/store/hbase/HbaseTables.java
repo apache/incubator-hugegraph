@@ -182,19 +182,17 @@ public class HbaseTables {
 
         @Override
         public void insert(Session session, BackendEntry entry) {
-            assert !entry.columns().isEmpty();
-            for (BackendColumn col : entry.columns()) {
-                assert entry.belongToMe(col) : entry;
-                session.put(this.table(), CF, col.name, col.value);
-            }
+            assert entry.columns().size() == 1;
+            BackendColumn col = entry.columns().iterator().next();
+            session.put(this.table(), CF, col.name,
+                        BinarySerializer.EMPTY_BYTES, col.value);
         }
 
         @Override
         public void eliminate(Session session, BackendEntry entry) {
-            for (BackendColumn col : entry.columns()) {
-                assert entry.belongToMe(col) : entry;
-                session.delete(this.table(), CF, col.name);
-            }
+            assert entry.columns().size() == 1;
+            BackendColumn col = entry.columns().iterator().next();
+            session.delete(this.table(), CF, col.name);
         }
 
         @Override
@@ -226,32 +224,11 @@ public class HbaseTables {
         protected BackendEntryIterator newEntryIterator(RowIterator rows,
                                                         Query query) {
             return new BinaryEntryIterator<>(rows, query, (entry, row) -> {
-                BackendColumn col = BackendColumn.of(row.getRow(),
-                                    BinarySerializer.EMPTY_BYTES);
-                if (entry == null || !entry.belongToMe(col)) {
-                    HugeType type = query.resultType();
-                    // NOTE: only support BinaryBackendEntry currently
-                    entry = new BinaryBackendEntry(type, col.name);
-                }
+                BackendColumn col = BackendColumn.of(row.getRow(), row.value());
+                entry = new BinaryBackendEntry(query.resultType(), col.name);
                 entry.columns(col);
                 return entry;
             });
-        }
-
-        @Override
-        protected void parseRowColumns(Result row, BackendEntry entry,
-                                       Query query) throws IOException {
-            if (query.limit() == Query.NO_LIMIT) {
-                super.parseRowColumns(row, entry, query);
-                return;
-            }
-            long total = query.total();
-            CellScanner cellScanner = row.cellScanner();
-            while (cellScanner.advance() && total-- > 0) {
-                Cell cell = cellScanner.current();
-                entry.columns(BackendColumn.of(CellUtil.cloneQualifier(cell),
-                                               CellUtil.cloneValue(cell)));
-            }
         }
     }
 

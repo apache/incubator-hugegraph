@@ -211,7 +211,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "index.page_size",
                     "The size of each page when query by index in paging.",
-                    rangeInt(0, 1000),
+                    rangeInt(0, 10000),
                     500
             );
 

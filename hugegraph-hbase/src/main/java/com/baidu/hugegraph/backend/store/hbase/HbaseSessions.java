@@ -326,9 +326,9 @@ public class HbaseSessions extends BackendSessionPool {
          * Add a row record to a table(for index)
          */
         public void put(String table, byte[] family,
-                        byte[] rowkey, byte[] value) {
+                        byte[] rowkey, byte[] qualifier, byte[] value) {
             Put put = new Put(rowkey);
-            put.addColumn(family, BinarySerializer.EMPTY_BYTES, value);
+            put.addColumn(family, qualifier, value);
             this.batch(table, put);
         }
 

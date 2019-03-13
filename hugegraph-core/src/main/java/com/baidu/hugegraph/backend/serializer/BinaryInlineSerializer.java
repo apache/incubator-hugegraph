@@ -33,7 +33,7 @@ import com.baidu.hugegraph.util.Bytes;
 public class BinaryInlineSerializer extends BinarySerializer {
 
     public BinaryInlineSerializer() {
-        super(true);
+        super(true, true);
     }
 
     @Override

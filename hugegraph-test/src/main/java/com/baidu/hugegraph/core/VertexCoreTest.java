@@ -4158,7 +4158,7 @@ public class VertexCoreTest extends BaseCoreTest {
              */
             String city = cities[(i - 1) / 6];
             graph().addVertex(T.label, "programmer", T.id, id, "name", "marko",
-                    "age", 30, "city", city);
+                              "age", 30, "city", city);
         }
 
         for (int i = 1; i <= 16; i++) {
@@ -4169,7 +4169,7 @@ public class VertexCoreTest extends BaseCoreTest {
              */
             int price = ((i - 1) / 4 + 1) * 100;
             graph().addVertex(T.label, "software", T.id, id, "name", "marko",
-                    "lang", "java", "price", price);
+                              "lang", "java", "price", price);
         }
         graph().tx().commit();
     }
