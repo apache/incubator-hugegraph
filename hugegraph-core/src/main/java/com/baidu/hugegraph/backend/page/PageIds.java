@@ -17,30 +17,27 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.tx;
+package com.baidu.hugegraph.backend.page;
 
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
 
-public class EntireIdHolder implements IdHolder {
+public final class PageIds {
 
     private final Set<Id> ids;
+    private final String page;
 
-    public EntireIdHolder(Set<Id> ids) {
+    public PageIds(Set<Id> ids, String page) {
         this.ids = ids;
+        this.page = page;
     }
 
-    public void merge(EntireIdHolder holder) {
-        this.all().addAll(holder.all());
-    }
-
-    public Set<Id> all() {
+    public Set<Id> ids() {
         return this.ids;
     }
 
-    @Override
-    public int size() {
-        return this.all().size();
+    public String page() {
+        return this.page;
     }
 }

@@ -45,6 +45,9 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.page.IdHolder;
+import com.baidu.hugegraph.backend.page.PageEntryIterator;
+import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
@@ -311,8 +314,7 @@ public class GraphTransaction extends IndexableTransaction {
             return super.query(query);
         }
 
-        IdHolderChain chain = new IdHolderChain(query.paging());
-        List<Query> queries = new ArrayList<>();
+        QueryList queries = new QueryList(query, q -> super.query(q));
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query)) {
             Query q = this.optimizeQuery(cq);
@@ -322,49 +324,19 @@ public class GraphTransaction extends IndexableTransaction {
              * 2.index-query result(ids after optimization), which may be empty.
              */
             if (q == null) {
-                chain.link(this.indexQuery(cq));
+                queries.add(this.indexQuery(cq));
             } else if (!q.empty()) {
                 queries.add(q);
             }
         }
 
-        ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
-        if (query.paging()) {
-            String page = query.page();
-            int pageSize = this.graph().configuration()
-                               .get(CoreOptions.INDEX_PAGE_SIZE);
-            long limit = query.limit();
-            if (!chain.idsHolders().isEmpty()) {
-                PagedIdsIterator idsItor = new PagedIdsIterator(chain, page,
-                                                                pageSize, limit);
-                rs.extend(new FlatMapperIterator<>(idsItor, (ids) -> {
-                    IdQuery idQuery = new IdQuery(query.resultType(), ids);
-                    return super.query(idQuery);
-                }));
-            }
-            if (!queries.isEmpty()) {
-                PagedEntryIterator entryItor = new PagedEntryIterator(
-                                               queries, page, limit, (q) -> {
-                    return super.query(q);
-                });
-                rs.extend(entryItor);
-            }
-        } else {
-            List<IdHolder> idHolders = chain.idsHolders();
-            if (!idHolders.isEmpty()) {
-                E.checkState(idHolders.size() == 1,
-                             "IdHolder should have only one in non-paged mode");
-                IdHolder idHolder = idHolders.get(0);
-                Set<Id> ids = ((EntireIdHolder) idHolder).all();
-                if (!ids.isEmpty()) {
-                    queries.add(new IdQuery(query, ids));
-                }
-            }
-            for (Query q : queries) {
-                rs.extend(super.query(q));
-            }
+        if (query.paging() && !queries.empty()) {
+            int pageSize = this.config().get(CoreOptions.INDEX_PAGE_SIZE);
+            return new PageEntryIterator(queries, pageSize);
+        } else if (!queries.empty()) {
+            return queries.fetchAll();
         }
-        return rs;
+        return Collections.emptyIterator();
     }
 
     @Watched(prefix = "graph")
@@ -1055,7 +1027,7 @@ public class GraphTransaction extends IndexableTransaction {
         return null;
     }
 
-    private IdHolderChain indexQuery(ConditionQuery query) {
+    private List<IdHolder> indexQuery(ConditionQuery query) {
         /*
          * Optimize by index-query
          * It will return a list of id (maybe empty) if success,

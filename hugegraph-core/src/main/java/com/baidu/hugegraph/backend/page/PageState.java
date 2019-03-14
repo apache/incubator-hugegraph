@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.tx;
+package com.baidu.hugegraph.backend.page;
 
 import java.util.Base64;
 
@@ -26,20 +26,31 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 
-public class PageState {
+public final class PageState {
 
-    private final int offset;
-    private final String page;
+    public static final String PAGE_NONE = "";
+
+    private int offset;
+    private String page;
 
     public PageState(int offset, String page) {
-        E.checkArgument(offset >= 0, "The offset must >= 0");
+        E.checkArgument(offset >= 0, "The offset must be >= 0");
         E.checkNotNull(page, "page");
         this.offset = offset;
         this.page = page;
     }
 
+    public void increase() {
+        this.offset++;
+        this.page = PAGE_NONE;
+    }
+
     public int offset() {
         return this.offset;
+    }
+
+    public void page(String page) {
+        this.page = page;
     }
 
     public String page() {

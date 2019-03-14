@@ -178,10 +178,6 @@ public class Query implements Cloneable {
         this.page = page;
     }
 
-    public void resetPage() {
-        this.page = "";
-    }
-
     public boolean paging() {
         return this.page != null;
     }
