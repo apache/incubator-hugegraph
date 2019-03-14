@@ -43,7 +43,7 @@ public class ConfDumper {
 
         String input = args[0];
         File output = new File(input + ".default");
-        System.out.println("Output config: " + input);
+        System.out.println("Input config: " + input);
         System.out.println("Output config: " + output.getPath());
 
         RegisterUtil.registerBackends();

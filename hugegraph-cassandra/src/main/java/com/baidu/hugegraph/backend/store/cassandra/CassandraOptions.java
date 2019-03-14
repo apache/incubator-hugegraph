@@ -19,12 +19,13 @@
 
 package com.baidu.hugegraph.backend.store.cassandra;
 
+import com.baidu.hugegraph.config.ConfigListOption;
+import com.baidu.hugegraph.config.ConfigOption;
+import com.baidu.hugegraph.config.OptionHolder;
+
 import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
-
-import com.baidu.hugegraph.config.ConfigOption;
-import com.baidu.hugegraph.config.OptionHolder;
 
 public class CassandraOptions extends OptionHolder {
 
@@ -91,17 +92,20 @@ public class CassandraOptions extends OptionHolder {
     public static final ConfigOption<String> CASSANDRA_STRATEGY =
             new ConfigOption<>(
                     "cassandra.keyspace.strategy",
-                    "The keyspace strategy.",
-                    disallowEmpty(),
+                    "The replication strategy of keyspace, valid value is " +
+                    "SimpleStrategy or NetworkTopologyStrategy.",
+                    allowValues("SimpleStrategy", "NetworkTopologyStrategy"),
                     "SimpleStrategy"
             );
 
-    public static final ConfigOption<Integer> CASSANDRA_REPLICATION =
-            new ConfigOption<>(
+    public static final ConfigListOption<String> CASSANDRA_REPLICATION =
+            new ConfigListOption<>(
                     "cassandra.keyspace.replication",
-                    "The keyspace replication factor.",
-                    rangeInt(1, 100),
-                    3
+                    "The keyspace replication factor of SimpleStrategy, " +
+                    "like '[3]'. Or replicas in each datacenter of " +
+                    "NetworkTopologyStrategy, like '[dc1:2,dc2:1]'.",
+                    disallowEmpty(),
+                    "3"
             );
 
     public static final ConfigOption<String> CASSANDRA_COMPRESSION =
