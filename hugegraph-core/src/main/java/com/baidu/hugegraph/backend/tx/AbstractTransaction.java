@@ -78,10 +78,6 @@ public abstract class AbstractTransaction implements Transaction {
         return this.graph;
     }
 
-    public HugeConfig config() {
-        return this.graph().configuration();
-    }
-
     public BackendStore store() {
         E.checkNotNull(this.graph, "store");
         return this.store;

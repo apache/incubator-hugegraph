@@ -225,7 +225,7 @@ public final class QueryList {
         public PageIterator iterator(int index, String page, long pageSize) {
             IdHolder holder = this.holders.get(index);
             PageIds pageIds = holder.fetchNext(page, pageSize);
-            if (pageIds == null) {
+            if (pageIds.empty()) {
                 return PageIterator.EMPTY;
             }
             IdQuery query = new IdQuery(parent.resultType(), pageIds.ids());

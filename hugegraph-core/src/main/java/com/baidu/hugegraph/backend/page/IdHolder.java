@@ -79,16 +79,15 @@ public final class IdHolder {
 
     public PageIds fetchNext(String page, long pageSize) {
         if (this.exhausted) {
-            return null;
+            return PageIds.EMPTY;
         }
 
         this.query.page(page);
         this.query.limit(pageSize);
 
         PageIds result = this.idsFetcher.get();
-        if (result == null) {
-            return null;
-        }
+
+        assert result != null;
         this.ids = result.ids();
         if (this.ids.size() != this.query.limit() || result.page() == null) {
             this.exhausted = true;

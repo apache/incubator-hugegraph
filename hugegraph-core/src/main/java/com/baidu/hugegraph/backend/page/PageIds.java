@@ -22,8 +22,11 @@ package com.baidu.hugegraph.backend.page;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.google.common.collect.ImmutableSet;
 
 public final class PageIds {
+
+    public static final PageIds EMPTY = new PageIds(ImmutableSet.of(), null);
 
     private final Set<Id> ids;
     private final String page;
@@ -39,5 +42,9 @@ public final class PageIds {
 
     public String page() {
         return this.page;
+    }
+
+    public boolean empty() {
+        return this.ids.isEmpty();
     }
 }

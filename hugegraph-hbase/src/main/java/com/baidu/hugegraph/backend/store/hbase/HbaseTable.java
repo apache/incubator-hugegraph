@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
@@ -41,7 +40,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator.PageState;
-import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
@@ -195,11 +193,6 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
     protected RowIterator queryByRange(Session session, IdRangeQuery query) {
         byte[] start = query.start().asBytes();
         byte[] end = query.end() == null ? null : query.end().asBytes();
-        if (query.inclusiveEnd() && end != null) {
-            BinarySerializer.increaseOne(end);
-            return session.scan(this.table(), start, query.inclusiveStart(),
-                                end, false);
-        }
         return session.scan(this.table(), start, query.inclusiveStart(),
                             end, query.inclusiveEnd());
     }

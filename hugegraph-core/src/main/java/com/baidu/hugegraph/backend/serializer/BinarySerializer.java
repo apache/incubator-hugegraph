@@ -748,6 +748,10 @@ public class BinarySerializer extends AbstractSerializer {
             newQuery = new IdPrefixQuery(query, start, keyMinEq, prefix);
         } else {
             Id max = formatIndexId(type, index, keyMax);
+            if (keyMaxEq) {
+                keyMaxEq = false;
+                increaseOne(max.asBytes());
+            }
             newQuery = new IdRangeQuery(query, start, keyMinEq, max, keyMaxEq);
         }
         newQuery.page(query.page());

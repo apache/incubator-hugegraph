@@ -224,6 +224,7 @@ public class HbaseTables {
         protected BackendEntryIterator newEntryIterator(RowIterator rows,
                                                         Query query) {
             return new BinaryEntryIterator<>(rows, query, (entry, row) -> {
+                assert row.size() == 1;
                 BackendColumn col = BackendColumn.of(row.getRow(), row.value());
                 entry = new BinaryBackendEntry(query.resultType(), col.name);
                 entry.columns(col);
