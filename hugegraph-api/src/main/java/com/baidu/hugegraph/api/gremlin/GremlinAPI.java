@@ -58,7 +58,7 @@ public class GremlinAPI extends API {
     private static final Histogram gremlinOutputHistogram =
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-output");
 
-    private static final Set<String> INNER_EXCEPTIONS = ImmutableSet.of(
+    private static final Set<String> BAD_REQUEST_EXCEPTIONS = ImmutableSet.of(
             "java.lang.SecurityException"
     );
 
@@ -137,9 +137,9 @@ public class GremlinAPI extends API {
     }
 
     private static Response transformResponseIfNeed(Response response) {
-        int code = response.getStatusInfo().getStatusCode();
         // No need to transform
-        if (code != Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()) {
+        if (response.getStatus() != Response.Status.INTERNAL_SERVER_ERROR
+                                                   .getStatusCode()) {
             return response;
         }
 
@@ -154,14 +154,14 @@ public class GremlinAPI extends API {
                       "Invalid response for inner exception, should contains " +
                       "Exception-Class, but got %s", map));
         }
-        if (INNER_EXCEPTIONS.contains(exClassName)) {
+        if (BAD_REQUEST_EXCEPTIONS.contains(exClassName)) {
             String cause = !exceptions.isEmpty() ? exceptions.get(0) : "";
             String json = Json.createObjectBuilder()
                               .add("exception", exClassName)
                               .add("message", message)
                               .add("cause", cause)
                               .build().toString();
-            return Response.status(400)
+            return Response.status(Response.Status.BAD_REQUEST)
                            .type(MediaType.APPLICATION_JSON)
                            .entity(json)
                            .build();

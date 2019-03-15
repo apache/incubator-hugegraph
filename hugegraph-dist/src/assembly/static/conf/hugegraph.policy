@@ -1,6 +1,0 @@
-// Standard extensions get all permissions by default
-
-// 目录要使用变量
-grant codeBase "file:/Users/liningrui/IdeaProjects/baidu/xbu-data/hugegraph/hugegraph-0.8.0/hugegraph-core-0.8.0.jar" {
-    permission java.security.AllPermission;
-};
