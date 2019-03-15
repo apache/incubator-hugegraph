@@ -86,9 +86,10 @@ public final class IdHolder {
         this.query.limit(pageSize);
 
         PageIds result = this.idsFetcher.get();
+        if (result == null) {
+            return null;
+        }
         this.ids = result.ids();
-
-        assert this.ids != null;
         if (this.ids.size() != this.query.limit() || result.page() == null) {
             this.exhausted = true;
         }

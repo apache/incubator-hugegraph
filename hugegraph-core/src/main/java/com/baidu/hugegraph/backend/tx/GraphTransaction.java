@@ -46,7 +46,6 @@ import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.IdHolder;
-import com.baidu.hugegraph.backend.page.PageEntryIterator;
 import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -314,7 +313,8 @@ public class GraphTransaction extends IndexableTransaction {
             return super.query(query);
         }
 
-        QueryList queries = new QueryList(query, q -> super.query(q));
+        QueryList queries = new QueryList(this.graph(), query,
+                                          q -> super.query(q));
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query)) {
             Query q = this.optimizeQuery(cq);
@@ -330,13 +330,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
         }
 
-        if (query.paging() && !queries.empty()) {
-            int pageSize = this.config().get(CoreOptions.INDEX_PAGE_SIZE);
-            return new PageEntryIterator(queries, pageSize);
-        } else if (!queries.empty()) {
-            return queries.fetchAll();
-        }
-        return Collections.emptyIterator();
+        return !queries.empty() ? queries.fetch() : Collections.emptyIterator();
     }
 
     @Watched(prefix = "graph")

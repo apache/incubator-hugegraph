@@ -28,10 +28,12 @@ import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -40,13 +42,15 @@ import com.google.common.collect.ImmutableSet;
 
 public final class QueryList {
 
+    private final HugeGraph graph;
     private final Query parent;
     // The size of each page fetched by the inner page
     private final Function<Query, Iterator<BackendEntry>> fetcher;
     private final List<QueryHolder> queries;
 
-    public QueryList(Query parent,
+    public QueryList(HugeGraph graph, Query parent,
                      Function<Query, Iterator<BackendEntry>> fetcher) {
+        this.graph = graph;
         this.parent = parent;
         this.fetcher = fetcher;
         this.queries = new ArrayList<>();
@@ -85,7 +89,18 @@ public final class QueryList {
         return this.queries.isEmpty();
     }
 
-    public Iterator<BackendEntry> fetchAll() {
+    public Iterator<BackendEntry> fetch() {
+        assert !queries.isEmpty();
+        if (this.parent.paging()) {
+            int pageSize = this.graph.configuration()
+                                     .get(CoreOptions.INDEX_PAGE_SIZE);
+            return new PageEntryIterator(this, pageSize);
+        } else {
+            return this.fetchAll();
+        }
+    }
+
+    private Iterator<BackendEntry> fetchAll() {
         return new FlatMapperIterator<>(this.queries.iterator(), q -> {
             return q.iterator();
         });
@@ -210,7 +225,7 @@ public final class QueryList {
         public PageIterator iterator(int index, String page, long pageSize) {
             IdHolder holder = this.holders.get(index);
             PageIds pageIds = holder.fetchNext(page, pageSize);
-            if (pageIds == null || pageIds.ids().isEmpty()) {
+            if (pageIds == null) {
                 return PageIterator.EMPTY;
             }
             IdQuery query = new IdQuery(parent.resultType(), pageIds.ids());

@@ -495,7 +495,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
                 // If there is no data, the entries is not a Metadatable object
                 if (ids.isEmpty()) {
-                    return new PageIds(ids, null);
+                    return null;
                 }
 
                 E.checkState(entries instanceof Metadatable,
