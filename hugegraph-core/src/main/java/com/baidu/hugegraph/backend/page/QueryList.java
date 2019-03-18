@@ -93,20 +93,20 @@ public final class QueryList {
         assert !queries.isEmpty();
         if (this.parent.paging()) {
             int pageSize = this.graph.configuration()
-                                     .get(CoreOptions.INDEX_PAGE_SIZE);
+                                     .get(CoreOptions.QUERY_PAGE_SIZE);
             return new PageEntryIterator(this, pageSize);
         } else {
             return this.fetchAll();
         }
     }
 
-    private Iterator<BackendEntry> fetchAll() {
+    protected Iterator<BackendEntry> fetchAll() {
         return new FlatMapperIterator<>(this.queries.iterator(), q -> {
             return q.iterator();
         });
     }
 
-    public PageIterator fetchNext(PageState pageState, long pageSize) {
+    protected PageIterator fetchNext(PageState pageState, long pageSize) {
         QueryHolder query = null;
         int offset = pageState.offset();
         int current = 0;
