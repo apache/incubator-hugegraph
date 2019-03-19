@@ -72,7 +72,7 @@ public class ShortestPathAPINew extends API {
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
-        ShortestPathTraverserNew1 traverser = new ShortestPathTraverserNew1(g);
+        ShortestPathTraverserNew traverser = new ShortestPathTraverserNew(g);
         List<Id> path = traverser.shortestPath(sourceId, targetId, dir,
                                                edgeLabel, depth,max_edges, degree, // max_edges超级节点的边数。
                                                capacity);
