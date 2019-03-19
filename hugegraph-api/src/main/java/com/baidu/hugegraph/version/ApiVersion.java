@@ -82,10 +82,11 @@ public final class ApiVersion {
      * [0.34] Issue-307: Let VertexAPI use simplified property serializer
      * [0.35] Issue-287: Support pagination when do index query
      * [0.36] Issue-360: Support paging for scan api
+     * [0.37] Issue-391: Add skip_super_node for shortest path
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.36");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.37");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

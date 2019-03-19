@@ -41,11 +41,11 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.ShortestPathTraverser;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.*;
 
 @Path("graphs/{graph}/traversers/shortestpath")
 @Singleton
@@ -65,13 +65,15 @@ public class ShortestPathAPI extends API {
                       @QueryParam("max_depth") int depth,
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @QueryParam("skip_degree")
+                      @DefaultValue("0") long skipDegree,
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity) {
         LOG.debug("Graph [{}] get shortest path from '{}', to '{}' with " +
                   "direction {}, edge label {}, max depth '{}', " +
-                  "max degree '{}' and capacity '{}'",
+                  "max degree '{}', skipped degree '{}' and capacity '{}'",
                   graph, source, target, direction, edgeLabel, depth,
-                  degree, capacity);
+                  degree, skipDegree, capacity);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
@@ -82,7 +84,7 @@ public class ShortestPathAPI extends API {
         ShortestPathTraverser traverser = new ShortestPathTraverser(g);
         List<Id> path = traverser.shortestPath(sourceId, targetId, dir,
                                                edgeLabel, depth, degree,
-                                               capacity);
+                                               skipDegree, capacity);
         return manager.serializer(g).writeIds("path", path);
     }
 }
