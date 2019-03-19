@@ -74,7 +74,7 @@ public class ShortestPathAPINew extends API {
         HugeGraph g = graph(manager, graph);
         ShortestPathTraverserNew1 traverser = new ShortestPathTraverserNew1(g);
         List<Id> path = traverser.shortestPath(sourceId, targetId, dir,
-                                               edgeLabel, depth,max_edges, degree // max_edges超级节点的边数。
+                                               edgeLabel, depth,max_edges, degree, // max_edges超级节点的边数。
                                                capacity);
         return manager.serializer(g).writeIds("path", path);
     }
