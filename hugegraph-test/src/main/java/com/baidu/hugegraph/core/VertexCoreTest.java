@@ -3458,7 +3458,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByMultiLabelInPage() {
         Assume.assumeTrue("Not support paging",
-                storeFeatures().supportsQueryByPage());
+                          storeFeatures().supportsQueryByPage());
 
         HugeGraph graph = graph();
         GraphTraversalSource g = graph.traversal();

@@ -480,16 +480,16 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private IdHolder doIndexQueryInPage(IndexLabel indexLabel,
                                         ConditionQuery query) {
-        return new IdHolder(query, () -> {
+        return new IdHolder(query, (q) -> {
             LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
             try {
                 locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
                 locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
 
                 Set<Id> ids = InsertionOrderUtil.newSet();
-                Iterator<BackendEntry> entries = super.query(query);
+                Iterator<BackendEntry> entries = super.query(q);
                 while (entries.hasNext()) {
-                    HugeIndex index = this.serializer.readIndex(graph(), query,
+                    HugeIndex index = this.serializer.readIndex(graph(), q,
                                                                 entries.next());
                     ids.addAll(index.elementIds());
                 }

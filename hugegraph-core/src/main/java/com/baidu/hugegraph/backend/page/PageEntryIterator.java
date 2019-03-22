@@ -86,7 +86,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
 
     @Override
     public BackendEntry next() {
-        if (!this.results.iterator().hasNext() && !this.hasNext()) {
+        if (!this.hasNext()) {
             throw new NoSuchElementException();
         }
         BackendEntry entry = this.results.iterator().next();

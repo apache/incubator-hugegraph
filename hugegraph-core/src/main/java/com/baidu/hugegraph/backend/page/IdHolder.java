@@ -20,16 +20,16 @@
 package com.baidu.hugegraph.backend.page;
 
 import java.util.Set;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.util.E;
 
 public final class IdHolder {
 
-    private final Query query;
-    private final Supplier<PageIds> idsFetcher;
+    private final ConditionQuery query;
+    private final Function<ConditionQuery, PageIds> idsFetcher;
     private boolean exhausted;
 
     private Set<Id> ids;
@@ -47,11 +47,12 @@ public final class IdHolder {
     /**
      * For paged situation
      */
-    public IdHolder(Query query, Supplier<PageIds> idsFetcher) {
+    public IdHolder(ConditionQuery query,
+                    Function<ConditionQuery, PageIds> idsFetcher) {
         E.checkArgument(query.paging(),
                         "Query '%s' must carry the page info in paged mode",
                         query);
-        this.query = query;
+        this.query = query.copy();
         this.idsFetcher = idsFetcher;
         this.exhausted = false;
         this.ids = null;
@@ -85,7 +86,7 @@ public final class IdHolder {
         this.query.page(page);
         this.query.limit(pageSize);
 
-        PageIds result = this.idsFetcher.get();
+        PageIds result = this.idsFetcher.apply(this.query);
 
         assert result != null;
         this.ids = result.ids();
