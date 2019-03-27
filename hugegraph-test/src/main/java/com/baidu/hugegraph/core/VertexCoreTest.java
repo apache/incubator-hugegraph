@@ -52,6 +52,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NoIndexException;
+import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -3005,6 +3006,32 @@ public class VertexCoreTest extends BaseCoreTest {
             vertexes.addAll(ImmutableList.copyOf(graph.vertices(q)));
         }
 
+        Assert.assertEquals(10, vertexes.size());
+    }
+
+    @Test
+    public void testScanVertexInPaging() {
+        HugeGraph graph = graph();
+        Assume.assumeTrue("Not support scan",
+                          storeFeatures().supportsScanToken() ||
+                          storeFeatures().supportsScanKeyRange());
+        init10Vertices();
+
+        List<Vertex> vertexes = new LinkedList<>();
+
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.scan(String.valueOf(Long.MIN_VALUE),
+                   String.valueOf(Long.MAX_VALUE));
+        query.limit(1);
+        String page = "";
+        while (page != null) {
+            query.page(page);
+            Iterator<Vertex> iterator = graph.vertices(query);
+            while (iterator.hasNext()) {
+                vertexes.add(iterator.next());
+            }
+            page = (String) ((Metadatable) iterator).metadata("page");
+        }
         Assert.assertEquals(10, vertexes.size());
     }
 

@@ -36,6 +36,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.Shard;
+import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -100,7 +101,16 @@ public class JsonSerializer implements Serializer {
 
             // Write page
             if (paging) {
-                String page = TraversalUtil.page((GraphTraversal<?, ?>) itor);
+                String page;
+                if (itor instanceof GraphTraversal<?, ?>) {
+                    page = TraversalUtil.page((GraphTraversal<?, ?>) itor);
+                } else if (itor instanceof Metadatable) {
+                    page = (String) ((Metadatable) itor).metadata("page");
+                } else {
+                    throw new HugeException(
+                              "Error type '%s' of paging iterator '%s'",
+                              itor.getClass(), itor);
+                }
                 if (page != null) {
                     page = String.format(",\"page\": \"%s\"", page);
                 } else {

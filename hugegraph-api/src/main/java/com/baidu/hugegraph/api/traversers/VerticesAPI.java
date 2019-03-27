@@ -39,6 +39,7 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -101,16 +102,19 @@ public class VerticesAPI extends API {
     public String scan(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("start") String start,
-                       @QueryParam("end") String end) {
-        LOG.debug("Graph [{}] query vertices by shard(start: {}, end: {}) ",
-                  graph, start, end);
+                       @QueryParam("end") String end,
+                       @QueryParam("page") String page) {
+        LOG.debug("Graph [{}] query vertices by shard(start: {}, end: {}, " +
+                  "page: {}) ", graph, start, end, page);
 
         HugeGraph g = graph(manager, graph);
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.scan(start, end);
+        query.limit(Query.DEFAULT_CAPACITY);
+        query.page(page);
         Iterator<Vertex> vertices = g.vertices(query);
 
-        return manager.serializer(g).writeVertices(vertices, false);
+        return manager.serializer(g).writeVertices(vertices, true);
     }
 }
