@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.inject.Singleton;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -46,6 +47,8 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAGE_LIMIT;
 
 @Path("graphs/{graph}/traversers/edges")
 @Singleton
@@ -101,16 +104,23 @@ public class EdgesAPI extends API {
     public String scan(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("start") String start,
-                       @QueryParam("end") String end) {
-        LOG.debug("Graph [{}] query edges by shard(start: {}, end: {}) ",
-                  graph, start, end);
+                       @QueryParam("end") String end,
+                       @QueryParam("page") String page,
+                       @QueryParam("page_limit")
+                       @DefaultValue(DEFAULT_PAGE_LIMIT) long pageLimit) {
+        LOG.debug("Graph [{}] query edges by shard(start: {}, end: {}, " +
+                  "page: {}) ", graph, start, end, page);
 
         HugeGraph g = graph(manager, graph);
 
         ConditionQuery query = new ConditionQuery(HugeType.EDGE_OUT);
         query.scan(start, end);
+        query.page(page);
+        if (query.paging()) {
+            query.limit(pageLimit);
+        }
         Iterator<Edge> edges = g.edges(query);
 
-        return manager.serializer(g).writeEdges(edges, false);
+        return manager.serializer(g).writeEdges(edges, query.paging());
     }
 }

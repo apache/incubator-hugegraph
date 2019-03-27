@@ -46,12 +46,14 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NoIndexException;
+import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -3009,6 +3011,32 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testScanVertexInPaging() {
+        HugeGraph graph = graph();
+        Assume.assumeTrue("Not support scan",
+                          storeFeatures().supportsScanToken() ||
+                          storeFeatures().supportsScanKeyRange());
+        init10Vertices();
+
+        List<Vertex> vertexes = new LinkedList<>();
+
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.scan(String.valueOf(Long.MIN_VALUE),
+                   String.valueOf(Long.MAX_VALUE));
+        query.limit(1);
+        String page = PageState.PAGE_NONE;
+        while (page != null) {
+            query.page(page);
+            Iterator<Vertex> iterator = graph.vertices(query);
+            while (iterator.hasNext()) {
+                vertexes.add(iterator.next());
+            }
+            page = (String) ((Metadatable) iterator).metadata("page");
+        }
+        Assert.assertEquals(10, vertexes.size());
+    }
+
+    @Test
     public void testScanVertexWithSplitSizeLt1MB() {
         HugeGraph graph = graph();
         Assume.assumeTrue("Not support scan",
@@ -3250,7 +3278,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         GraphTraversal<Vertex, Vertex> itor;
 
-        String page = "";
+        String page = PageState.PAGE_NONE;
         int size = 20;
 
         for (int i = 0; i < 100 / size; i++) {

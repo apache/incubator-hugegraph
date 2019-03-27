@@ -86,7 +86,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>0.35.0.0</Implementation-Version>
+                            <Implementation-Version>0.36.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

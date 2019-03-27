@@ -66,6 +66,9 @@ public class HugeTraverser {
     public static final String DEFAULT_SAMPLE = "100";
     public static final String DEFAULT_WEIGHT = "0";
 
+    // Empirical value of scan limit, with which results can be returned in 3s
+    public static final String DEFAULT_PAGE_LIMIT = "100000";
+
     public static final long NO_LIMIT = -1L;
 
     public HugeTraverser(HugeGraph graph) {
