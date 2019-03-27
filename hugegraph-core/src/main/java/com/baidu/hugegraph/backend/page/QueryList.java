@@ -149,13 +149,13 @@ public final class QueryList {
     private interface QueryHolder {
 
         /**
-         * For non-paged situation
+         * For non-paging situation
          * @return          BackendEntry iterator
          */
         public Iterator<BackendEntry> iterator();
 
         /**
-         * For paged situation
+         * For paging situation
          * @param index     position IdHolder(Query)
          * @param page      set query page
          * @param pageSize  set query page size

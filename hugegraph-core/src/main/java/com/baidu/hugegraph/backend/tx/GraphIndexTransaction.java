@@ -289,12 +289,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery.offset(query.offset());
         indexQuery.capacity(query.capacity());
 
-        IdHolder idHolder;
-        if (query.paging()) {
-            idHolder = this.doIndexQueryInPage(il, indexQuery);
-        } else {
-            idHolder = this.doIndexQuery(il, indexQuery);
-        }
+        IdHolder idHolder = this.doIndexQuery(il, indexQuery);
         List<IdHolder> holders = new IdHolderList(query.paging());
         holders.add(idHolder);
         return holders;
@@ -321,7 +316,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         long idsSize = 0;
         for (MatchedIndex index : indexes) {
             if (paging && index.indexLabels().size() > 1) {
-                throw new NotSupportException("joint index query in page mode");
+                throw new NotSupportException("joint index query in paging");
             }
 
             if (index.containsSearchIndex()) {
@@ -351,7 +346,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             IndexQueries queries = index.constructIndexQueries(q);
             assert !query.paging() || queries.size() <= 1;
             IdHolder holder = this.doIndexQueries(queries);
-            // NOTE: ids will be merged into one IdHolder if not in paging mode
+            // NOTE: ids will be merged into one IdHolder if not in paging
             holders.add(holder);
         }
         return holders;
@@ -372,11 +367,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Map.Entry<IndexLabel, ConditionQuery> e = queries.one();
         IndexLabel indexLabel = e.getKey();
         ConditionQuery query = e.getValue();
-        if (query.paging()) {
-            return this.doIndexQueryInPage(indexLabel, query);
-        } else {
-            return this.doIndexQuery(indexLabel, query);
-        }
+        return this.doIndexQuery(indexLabel, query);
     }
 
     @Watched(prefix = "index")
@@ -454,8 +445,20 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private IdHolder doIndexQuery(IndexLabel indexLabel,
-                                  ConditionQuery query) {
+    private IdHolder doIndexQuery(IndexLabel indexLabel, ConditionQuery query) {
+        if (!query.paging()) {
+            PageIds pageIds = this.doIndexQueryOnce(indexLabel, query);
+            return new IdHolder(pageIds.ids());
+        } else {
+            return new IdHolder(query, (q) -> {
+                return this.doIndexQueryOnce(indexLabel, q);
+            });
+        }
+    }
+
+    @Watched(prefix = "index")
+    private PageIds doIndexQueryOnce(IndexLabel indexLabel,
+                                     ConditionQuery query) {
         LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
@@ -471,43 +474,23 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     break;
                 }
             }
-            return new IdHolder(ids);
+            // If there is no data, the entries is not a Metadatable object
+            if (ids.isEmpty()) {
+                return PageIds.EMPTY;
+            }
+            // NOTE: Memory backend's iterator is not Metadatable
+            if (!query.paging()) {
+                return new PageIds(ids, null);
+            }
+            E.checkState(entries instanceof Metadatable,
+                         "The entries must be Metadatable when query " +
+                         "in paging, but got '%s'",
+                         entries.getClass().getName());
+            Object page = ((Metadatable) entries).metadata("page");
+            return new PageIds(ids, (String) page);
         } finally {
             locks.unlock();
         }
-    }
-
-    @Watched(prefix = "index")
-    private IdHolder doIndexQueryInPage(IndexLabel indexLabel,
-                                        ConditionQuery query) {
-        return new IdHolder(query, (q) -> {
-            LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
-            try {
-                locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
-                locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
-
-                Set<Id> ids = InsertionOrderUtil.newSet();
-                Iterator<BackendEntry> entries = super.query(q);
-                while (entries.hasNext()) {
-                    HugeIndex index = this.serializer.readIndex(graph(), q,
-                                                                entries.next());
-                    ids.addAll(index.elementIds());
-                }
-                // If there is no data, the entries is not a Metadatable object
-                if (ids.isEmpty()) {
-                    return PageIds.EMPTY;
-                }
-
-                E.checkState(entries instanceof Metadatable,
-                             "The entries must be Metadatable when query " +
-                             "in paging, but got '%s'",
-                             entries.getClass().getName());
-                Object page = ((Metadatable) entries).metadata("page");
-                return new PageIds(ids, (String) page);
-            } finally {
-                locks.unlock();
-            }
-        });
     }
 
     @Watched(prefix = "index")

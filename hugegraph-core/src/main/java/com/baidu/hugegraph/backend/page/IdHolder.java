@@ -25,6 +25,8 @@ import java.util.function.Function;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableSet;
 
 public final class IdHolder {
 
@@ -35,23 +37,26 @@ public final class IdHolder {
     private Set<Id> ids;
 
     /**
-     * For non-paged situation
+     * For non-paging situation
      */
     public IdHolder(Set<Id> ids) {
         this.query = null;
         this.idsFetcher = null;
         this.exhausted = false;
-        this.ids = ids;
+        if (ids instanceof ImmutableSet) {
+            this.ids = InsertionOrderUtil.newSet(ids);
+        } else {
+            this.ids = ids;
+        }
     }
 
     /**
-     * For paged situation
+     * For paging situation
      */
     public IdHolder(ConditionQuery query,
                     Function<ConditionQuery, PageIds> idsFetcher) {
         E.checkArgument(query.paging(),
-                        "Query '%s' must carry the page info in paged mode",
-                        query);
+                        "Query '%s' must include page info", query);
         this.query = query.copy();
         this.idsFetcher = idsFetcher;
         this.exhausted = false;

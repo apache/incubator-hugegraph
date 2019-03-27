@@ -40,7 +40,7 @@ public final class IdHolderList extends ArrayList<IdHolder> {
     public boolean add(IdHolder holder) {
         E.checkArgument(this.paging == holder.paging(),
                         "The IdHolder to be linked must be " +
-                        "IdHolder in same paging mode");
+                        "in same paging mode");
         if (this.paging || this.isEmpty()) {
             super.add(holder);
         } else {
