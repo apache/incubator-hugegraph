@@ -34,8 +34,12 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
+import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
+import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.RowIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
@@ -177,9 +181,18 @@ public class HbaseTables {
         }
 
         @Override
+        public void insert(Session session, BackendEntry entry) {
+            assert entry.columns().size() == 1;
+            BackendColumn col = entry.columns().iterator().next();
+            session.put(this.table(), CF, col.name,
+                        BinarySerializer.EMPTY_BYTES, col.value);
+        }
+
+        @Override
         public void eliminate(Session session, BackendEntry entry) {
             assert entry.columns().size() == 1;
-            super.delete(session, entry);
+            BackendColumn col = entry.columns().iterator().next();
+            session.delete(this.table(), CF, col.name);
         }
 
         @Override
@@ -208,19 +221,15 @@ public class HbaseTables {
         }
 
         @Override
-        protected void parseRowColumns(Result row, BackendEntry entry,
-                                       Query query) throws IOException {
-            if (query.limit() == Query.NO_LIMIT) {
-                super.parseRowColumns(row, entry, query);
-                return;
-            }
-            long total = query.total();
-            CellScanner cellScanner = row.cellScanner();
-            while (cellScanner.advance() && total-- > 0) {
-                Cell cell = cellScanner.current();
-                entry.columns(BackendColumn.of(CellUtil.cloneQualifier(cell),
-                                               CellUtil.cloneValue(cell)));
-            }
+        protected BackendEntryIterator newEntryIterator(RowIterator rows,
+                                                        Query query) {
+            return new BinaryEntryIterator<>(rows, query, (entry, row) -> {
+                assert row.size() == 1;
+                BackendColumn col = BackendColumn.of(row.getRow(), row.value());
+                entry = new BinaryBackendEntry(query.resultType(), col.name);
+                entry.columns(col);
+                return entry;
+            });
         }
     }
 
@@ -242,7 +251,7 @@ public class HbaseTables {
         }
     }
 
-    public static class RangeIndex extends HbaseTable {
+    public static class RangeIndex extends IndexTable {
 
         public static final String TABLE = "ri";
 

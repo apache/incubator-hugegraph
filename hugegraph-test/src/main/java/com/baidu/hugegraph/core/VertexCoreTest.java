@@ -1188,8 +1188,8 @@ public class VertexCoreTest extends BaseCoreTest {
         init5Persons();
 
         List<Vertex> vertexes = graph.traversal().V()
-                                .hasLabel("person").has("age", P.lte(20))
-                                .toList();
+                                     .hasLabel("person").has("age", P.lte(20))
+                                     .toList();
 
         Assert.assertEquals(4, vertexes.size());
     }
@@ -2998,7 +2998,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         long splitSize = 1 * 1024 * 1024;
         Object splits = graph.graphTransaction()
-                        .metadata(HugeType.VERTEX, "splits", splitSize);
+                             .metadata(HugeType.VERTEX, "splits", splitSize);
         for (Shard split : (List<Shard>) splits) {
             ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
             q.scan(split.start(), split.end());
@@ -3333,6 +3333,491 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByLabelInPageWithLimitLtePageSize() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.V().hasLabel("unknown").has("~page", "").limit(1).toList();
+        });
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            g.V().hasLabel("programmer").has("~page", "").limit(0).toList();
+        });
+
+        List<Vertex> vertices = g.V().hasLabel("programmer")
+                                 .has("~page", "").limit(1)
+                                 .toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertEquals("programmer", v.label());
+        });
+
+        vertices = g.V().hasLabel("software")
+                    .has("~page", "").limit(5)
+                    .toList();
+        Assert.assertEquals(5, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertEquals("software", v.label());
+        });
+
+        vertices = g.V().hasLabel("programmer")
+                    .has("~page", "").limit(10)
+                    .toList();
+        Assert.assertEquals(10, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertEquals("programmer", v.label());
+        });
+    }
+
+    @Test
+    public void testQueryByLabelInPageWithLimitGtPageSize() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        // Limit > page-size(10), test internal paging
+        List<Vertex> vertices = g.V().hasLabel("programmer")
+                                 .has("~page", "").limit(11)
+                                 .toList();
+        Assert.assertEquals(11, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertEquals("programmer", v.label());
+        });
+
+        vertices = g.V().hasLabel("software")
+                    .has("~page", "").limit(15)
+                    .toList();
+        Assert.assertEquals(15, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertEquals("software", v.label());
+        });
+
+        vertices = g.V().hasLabel("programmer")
+                    .has("~page", "").limit(20)
+                    .toList();
+        // Programmer only has 18
+        Assert.assertEquals(18, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertEquals("programmer", v.label());
+        });
+    }
+
+    @Test
+    public void testQueryBySingleLabelInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        GraphTraversal<Vertex, Vertex> itor = g.V().hasLabel("programmer")
+                                               .has("~page", "").limit(1);
+        Assert.assertEquals(1, IteratorUtils.count(itor));
+
+        String page = TraversalUtil.page(itor);
+        List<Vertex> vertices;
+
+        vertices = g.V().hasLabel("programmer")
+                    .has("~page", page).limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex vertex1 = vertices.get(0);
+
+        vertices = g.V().hasLabel("programmer")
+                    .has("~page", page).limit(9).toList();
+        Assert.assertEquals(9, vertices.size());
+        Vertex vertex2 = vertices.get(0);
+        Assert.assertEquals(vertex1.id(), vertex2.id());
+        Assert.assertEquals(vertex1.label(), vertex2.label());
+        Assert.assertEquals(IteratorUtils.asList(vertex1.properties()),
+                            IteratorUtils.asList(vertex2.properties()));
+
+        vertices = g.V().hasLabel("programmer")
+                    .has("~page", page).limit(17).toList();
+        Assert.assertEquals(17, vertices.size());
+        Vertex vertex3 = vertices.get(16);
+
+        vertices = g.V().hasLabel("programmer")
+                    .has("~page", page).limit(18).toList();
+        Assert.assertEquals(17, vertices.size());
+        Vertex vertex4 = vertices.get(16);
+        Assert.assertEquals(vertex3.id(), vertex4.id());
+        Assert.assertEquals(vertex3.label(), vertex4.label());
+        Assert.assertEquals(IteratorUtils.asList(vertex3.properties()),
+                            IteratorUtils.asList(vertex4.properties()));
+    }
+
+    @Test
+    public void testQueryByMultiLabelInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.V().hasLabel("unknown", "programmer")
+             .has("~page", "").limit(1)
+             .toList();
+        });
+
+        GraphTraversal<Vertex, Vertex> itor;
+
+        itor = g.V().hasLabel("programmer", "software").has("~page", "")
+                .limit(1);
+        Assert.assertEquals(1, IteratorUtils.count(itor));
+
+        String page = TraversalUtil.page(itor);
+        List<Vertex> vertices;
+
+        vertices = g.V().hasLabel("programmer", "software")
+                    .has("~page", page).limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex vertex1 = vertices.get(0);
+
+        vertices = g.V().hasLabel("programmer", "software")
+                    .has("~page", page).limit(9).toList();
+        Assert.assertEquals(9, vertices.size());
+        Vertex vertex2 = vertices.get(0);
+        Assert.assertEquals(vertex1.id(), vertex2.id());
+        Assert.assertEquals(vertex1.label(), vertex2.label());
+        Assert.assertEquals(IteratorUtils.asList(vertex1.properties()),
+                            IteratorUtils.asList(vertex2.properties()));
+
+        vertices = g.V().hasLabel("programmer", "software")
+                    .has("~page", page).limit(18).toList();
+        Assert.assertEquals(18, vertices.size());
+        Vertex vertex3 = vertices.get(17);
+
+        vertices = g.V().hasLabel("programmer", "software")
+                    .has("~page", page).limit(33).toList();
+        Assert.assertEquals(33, vertices.size());
+        Vertex vertex4 = vertices.get(17);
+        Assert.assertEquals(vertex3.id(), vertex4.id());
+        Assert.assertEquals(vertex3.label(), vertex4.label());
+        Assert.assertEquals(IteratorUtils.asList(vertex3.properties()),
+                            IteratorUtils.asList(vertex4.properties()));
+    }
+
+    @Test
+    public void testQueryByPropertyInPageWithLimitLtePageSize() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            g.V().has("name", "marko").has("~page", "").limit(0).toList();
+        });
+
+        // Secondary
+        List<Vertex> vertices = g.V().has("name", "marko")
+                                 .has("~page", "").limit(1)
+                                 .toList();
+        Assert.assertEquals(1, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertEquals("marko", v.value("name"));
+        });
+
+        // Range
+        vertices = g.V().has("price", P.between(200, 400))
+                    .has("~page", "").limit(5)
+                    .toList();
+        Assert.assertEquals(5, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertTrue((int) v.value("price") >= 200);
+            Assert.assertTrue((int) v.value("price") < 400);
+        });
+
+        // Search
+        vertices = g.V().has("city", Text.contains("Beijing"))
+                    .has("~page", "").limit(10)
+                    .toList();
+        Assert.assertEquals(10, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertTrue(((String) v.value("city")).contains("Beijing"));
+        });
+    }
+
+    @Test
+    public void testQueryByPropertyInPageWithLimitGtPageSize() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        // Limit > page-size(10), test internal paging
+        // Secondary
+        List<Vertex> vertices = g.V().has("name", "marko")
+                                 .has("~page", "").limit(11)
+                                 .toList();
+        Assert.assertEquals(11, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertEquals("marko", v.value("name"));
+        });
+
+        // Range
+        vertices = g.V().has("price", P.between(100, 400))
+                    .has("~page", "").limit(15)
+                    .toList();
+        Assert.assertEquals(12, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertTrue((int) v.value("price") >= 100);
+            Assert.assertTrue((int) v.value("price") < 400);
+        });
+
+        // Search
+        vertices = g.V().has("city", Text.contains("Beijing"))
+                    .has("~page", "").limit(20)
+                    .toList();
+        Assert.assertEquals(12, vertices.size());
+        vertices.forEach(v -> {
+            Assert.assertTrue(((String) v.value("city")).contains("Beijing"));
+        });
+    }
+
+    @Test
+    public void testQueryBySingleSecondaryPropertyInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        GraphTraversal<Vertex, Vertex> itor = g.V().has("name", "marko")
+                                               .has("~page", "").limit(1);
+        Assert.assertEquals(1, IteratorUtils.count(itor));
+
+        String page = TraversalUtil.page(itor);
+        List<Vertex> vertices;
+
+        vertices = g.V().has("name", "marko")
+                    .has("~page", page).limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex vertex1 = vertices.get(0);
+
+        vertices = g.V().has("name", "marko")
+                    .has("~page", page).limit(9).toList();
+        Assert.assertEquals(9, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex1));
+
+        vertices = g.V().has("name", "marko")
+                    .has("~page", page).limit(18).toList();
+        Assert.assertEquals(18, vertices.size());
+        Vertex vertex3 = vertices.get(17);
+
+        vertices = g.V().has("name", "marko")
+                    .has("~page", page).limit(40).toList();
+        Assert.assertEquals(33, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex3));
+    }
+
+    @Test
+    public void testQueryBySingleRangePropertyInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        GraphTraversal<Vertex, Vertex> itor = g.V().has("price", P.gte(100))
+                                               .has("~page", "").limit(1);
+        Assert.assertEquals(1, IteratorUtils.count(itor));
+
+        String page = TraversalUtil.page(itor);
+        List<Vertex> vertices;
+
+        vertices = g.V().has("price", P.gte(100))
+                    .has("~page", page).limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex vertex1 = vertices.get(0);
+
+        vertices = g.V().has("price", P.gte(100))
+                    .has("~page", page).limit(9).toList();
+        Assert.assertEquals(9, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex1));
+
+        vertices = g.V().has("price", P.gte(100))
+                    .has("~page", page).limit(11).toList();
+        Assert.assertEquals(11, vertices.size());
+        Vertex vertex3 = vertices.get(10);
+
+        vertices = g.V().has("price", P.gte(100))
+                    .has("~page", page).limit(20).toList();
+        Assert.assertEquals(15, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex3));
+    }
+
+    @Test
+    public void testQueryBySingleSearchPropertyInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        GraphTraversal<Vertex, Vertex> itor;
+
+        itor = g.V().has("city", Text.contains("Beijing Shanghai"))
+                .has("~page", "").limit(1);
+        Assert.assertEquals(1, IteratorUtils.count(itor));
+
+        String page = TraversalUtil.page(itor);
+        List<Vertex> vertices;
+
+        vertices = g.V().has("city", Text.contains("Beijing Shanghai"))
+                    .has("~page", page).limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex vertex1 = vertices.get(0);
+
+        vertices = g.V().has("city", Text.contains("Beijing Shanghai"))
+                    .has("~page", page).limit(9).toList();
+        Assert.assertEquals(9, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex1));
+
+        vertices = g.V().has("city", Text.contains("Beijing Shanghai"))
+                    .has("~page", page).limit(11).toList();
+        Assert.assertEquals(11, vertices.size());
+        Vertex vertex3 = vertices.get(10);
+
+        vertices = g.V().has("city", Text.contains("Beijing Shanghai"))
+                    .has("~page", page).limit(20).toList();
+        Assert.assertEquals(17, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex3));
+    }
+
+    @Test
+    public void testQueryByCompositePropertyInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        GraphTraversal<Vertex, Vertex> itor;
+
+        itor = g.V().has("name", "marko").has("age", 30)
+                .has("~page", "").limit(1);
+        Assert.assertEquals(1, IteratorUtils.count(itor));
+
+        String page = TraversalUtil.page(itor);
+        List<Vertex> vertices;
+
+        vertices = g.V().has("name", "marko").has("age", 30)
+                    .has("~page", page).limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex vertex1 = vertices.get(0);
+
+        vertices = g.V().has("name", "marko").has("age", 30)
+                    .has("~page", page).limit(9).toList();
+        Assert.assertEquals(9, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex1));
+
+        vertices = g.V().has("name", "marko").has("age", 30)
+                    .has("~page", page).limit(11).toList();
+        Assert.assertEquals(11, vertices.size());
+        Vertex vertex3 = vertices.get(10);
+
+        vertices = g.V().has("name", "marko").has("age", 30)
+                    .has("~page", page).limit(40).toList();
+        Assert.assertEquals(17, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex3));
+    }
+
+    @Test
+    public void testQueryByJointPropertyInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        Assert.assertThrows(HugeException.class, () -> {
+            g.V().has("name", "marko").has("city", Text.contains("Beijing"))
+             .has("~page", "").limit(10).toList();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            g.V().has("age", 30).has("city", Text.contains("Beijing"))
+             .has("~page", "").limit(10).toList();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            g.V().has("name", "marko").has("lang", "java")
+             .has("~page", "").limit(10).toList();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            g.V().has("lang", "java").has("price", 200)
+             .has("~page", "").limit(10).toList();
+        });
+    }
+
+    @Test
+    public void testQueryByUnionIndexInPageWithSomeIndexNoData() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        // Author has index by name but no data
+        schema.indexLabel("authorByName")
+              .onV("author")
+              .by("name")
+              .secondary()
+              .ifNotExist()
+              .create();
+
+        GraphTraversal<Vertex, Vertex> itor = g.V().has("name", "marko")
+                                               .has("~page", "").limit(1);
+        Assert.assertEquals(1, IteratorUtils.count(itor));
+
+        String page = TraversalUtil.page(itor);
+        List<Vertex> vertices;
+
+        vertices = g.V().has("name", "marko")
+                    .has("~page", page).limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex vertex1 = vertices.get(0);
+
+        vertices = g.V().has("name", "marko")
+                    .has("~page", page).limit(9).toList();
+        Assert.assertEquals(9, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex1));
+
+        vertices = g.V().has("name", "marko")
+                    .has("~page", page).limit(18).toList();
+        Assert.assertEquals(18, vertices.size());
+        Vertex vertex3 = vertices.get(17);
+
+        vertices = g.V().has("name", "marko")
+                    .has("~page", page).limit(40).toList();
+        Assert.assertEquals(33, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex3));
+    }
+
+    @Test
     public void testQueryBySecondaryIndexWithLimitAndOffset() {
         initPersonIndex(true);
         init5Persons();
@@ -3608,6 +4093,85 @@ public class VertexCoreTest extends BaseCoreTest {
                         "price", 6999);
 
         graph.tx().commit();
+    }
+
+    private void initPageTestData() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("lang").asText().ifNotExist().create();
+
+        schema.vertexLabel("programmer")
+              .properties("name", "age", "city")
+              .useCustomizeStringId()
+              .nullableKeys("age")
+              .ifNotExist()
+              .create();
+
+        schema.vertexLabel("software")
+              .properties("name", "lang", "price")
+              .useCustomizeStringId()
+              .nullableKeys("price")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("programmerByNameAndAge")
+              .onV("programmer")
+              .by("name", "age")
+              .secondary()
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("programmerByCity")
+              .onV("programmer")
+              .search()
+              .by("city")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("softwareByName")
+              .onV("software")
+              .secondary()
+              .by("name")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("softwareByLang")
+              .onV("software")
+              .secondary()
+              .by("lang")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("softwareByPrice")
+              .onV("software")
+              .by("price")
+              .range()
+              .ifNotExist()
+              .create();
+
+        String[] cities = {"Beijing Haidian", "Beijing Chaoyang", "Shanghai"};
+        for (int i = 1; i <= 18; i++) {
+            String id = "p_marko" + i;
+            /*
+             * The city of each programmer is:
+             * [1, 6]: Beijing Haidian, [7, 12]: Beijing Chaoyang,
+             * [13, 18]: Shanghai
+             */
+            String city = cities[(i - 1) / 6];
+            graph().addVertex(T.label, "programmer", T.id, id, "name", "marko",
+                              "age", 30, "city", city);
+        }
+
+        for (int i = 1; i <= 16; i++) {
+            String id = "s_marko" + i;
+            /*
+             * The price of each software is:
+             * [1, 4]: 100, [5, 8]: 200, [9, 12]: 300, [13, 16]: 400
+             */
+            int price = ((i - 1) / 4 + 1) * 100;
+            graph().addVertex(T.label, "software", T.id, id, "name", "marko",
+                              "lang", "java", "price", price);
+        }
+        graph().tx().commit();
     }
 
     private Vertex vertex(String label, String pkName, Object pkValue) {

@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
@@ -52,6 +51,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
@@ -178,8 +178,10 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected RowIterator queryByIds(Session session, Set<Id> ids) {
-        Set<byte[]> rowkeys = ids.stream().map(Id::asBytes)
-                                 .collect(Collectors.toSet());
+        Set<byte[]> rowkeys = InsertionOrderUtil.newSet();
+        for (Id id : ids) {
+            rowkeys.add(id.asBytes());
+        }
         return session.get(this.table(), null, rowkeys);
     }
 
@@ -212,8 +214,8 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         return session.scan(this.table(), start, end);
     }
 
-    private BackendEntryIterator newEntryIterator(RowIterator rows,
-                                                  Query query) {
+    protected BackendEntryIterator newEntryIterator(RowIterator rows,
+                                                    Query query) {
         return new BinaryEntryIterator<>(rows, query, (entry, row) -> {
             E.checkState(!row.isEmpty(), "Can't parse empty HBase result");
             byte[] id = row.getRow();

@@ -358,27 +358,6 @@ public class MysqlTables {
             super(table);
         }
 
-        @Override
-        protected BackendEntry mergeEntries(BackendEntry e1, BackendEntry e2) {
-            MysqlBackendEntry current = (MysqlBackendEntry) e1;
-            MysqlBackendEntry next = (MysqlBackendEntry) e2;
-
-            E.checkState(current == null || current.type().isIndex(),
-                         "The current entry must be null or INDEX");
-            E.checkState(next != null && next.type().isIndex(),
-                         "The next entry must be INDEX");
-
-            if (current != null) {
-                String currentId = this.entryId(current);
-                String nextId = this.entryId(next);
-                if (currentId.equals(nextId)) {
-                    current.subRow(next.row());
-                    return current;
-                }
-            }
-            return next;
-        }
-
         protected abstract String entryId(MysqlBackendEntry entry);
     }
 

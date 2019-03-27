@@ -59,8 +59,7 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/jobs/gremlin")
 @Singleton

@@ -222,17 +222,20 @@ public class EdgeAPI extends BatchAPI {
         LOG.debug("Graph [{}] query edges by vertex: {}, direction: {}, " +
                   "label: {}, properties: {}, offset: {}, page: {}, limit: {}",
                   vertexId, direction, label, properties, offset, page, limit);
+
+        Map<String, Object> props = parseProperties(properties);
         if (page != null) {
             E.checkArgument(vertexId == null && direction == null &&
-                            label == null && properties == null && offset == 0,
-                            "Not support quering edges based on paging and " +
-                            "[vertex, direction, label, properties, offset] " +
-                            "together");
+                            offset == 0,
+                            "Not support querying edges based on paging " +
+                            "and [vertex, direction, offset] together");
+            E.checkArgument(props.size() <= 1,
+                            "Not support querying edges based on paging " +
+                            "and more than one property");
         }
 
         Id vertex = VertexAPI.checkAndParseVertexId(vertexId);
         Direction dir = parseDirection(direction);
-        Map<String, Object> props = parseProperties(properties);
 
         HugeGraph g = graph(manager, graph);
 

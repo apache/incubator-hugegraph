@@ -40,16 +40,19 @@ import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.page.IdHolder;
+import com.baidu.hugegraph.backend.page.IdHolderList;
+import com.baidu.hugegraph.backend.page.PageIds;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
-import com.baidu.hugegraph.backend.query.IdQuery;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NoIndexException;
+import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.job.EphemeralJobBuilder;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -76,7 +79,6 @@ import com.google.common.collect.ImmutableSet;
 public class GraphIndexTransaction extends AbstractTransaction {
 
     private static final String INDEX_EMPTY_SYM = "\u0000";
-    private static final Query EMPTY_QUERY = new ConditionQuery(null);
 
     private final Analyzer textAnalyzer;
 
@@ -226,7 +228,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * @return      converted id query
      */
     @Watched(prefix = "index")
-    public Query indexQuery(ConditionQuery query) {
+    public List<IdHolder> indexQuery(ConditionQuery query) {
         // Index query must have been flattened in Graph tx
         query.checkFlattened();
 
@@ -245,29 +247,21 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Query by index
         query.optimized(OptimizedType.INDEX.ordinal());
-        Set<Id> ids;
         if (query.allSysprop() && conds.size() == 1 &&
             query.containsCondition(HugeKeys.LABEL)) {
             // Query only by label
-            ids = this.queryByLabel(query);
+            return this.queryByLabel(query);
         } else {
             // Query by userprops (or userprops + label)
-            ids = this.queryByUserprop(query);
+            return this.queryByUserprop(query);
         }
-
-        if (ids.isEmpty()) {
-            return EMPTY_QUERY;
-        }
-
-        // Wrap id(s) by IdQuery
-        return new IdQuery(query, ids);
     }
 
     @Watched(prefix = "index")
-    private Set<Id> queryByLabel(ConditionQuery query) {
+    private List<IdHolder> queryByLabel(ConditionQuery query) {
         HugeType queryType = query.resultType();
         IndexLabel il = IndexLabel.label(queryType);
-        Id label = (Id) query.condition(HugeKeys.LABEL);
+        Id label = query.condition(HugeKeys.LABEL);
         assert label != null;
 
         SchemaLabel schemaLabel;
@@ -290,50 +284,111 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
         // Set offset and limit to avoid redundant element ids
+        indexQuery.page(query.page());
         indexQuery.limit(query.limit());
         indexQuery.offset(query.offset());
         indexQuery.capacity(query.capacity());
 
-        return this.doIndexQuery(il, indexQuery);
+        IdHolder idHolder = this.doIndexQuery(il, indexQuery);
+        List<IdHolder> holders = new IdHolderList(query.paging());
+        holders.add(idHolder);
+        return holders;
     }
 
     @Watched(prefix = "index")
-    private Set<Id> queryByUserprop(ConditionQuery query) {
+    private List<IdHolder> queryByUserprop(ConditionQuery query) {
         // Get user applied label or collect all qualified labels with
         // related index labels
         Set<MatchedIndex> indexes = this.collectMatchedIndexes(query);
         if (indexes.isEmpty()) {
-            Id label = (Id) query.condition(HugeKeys.LABEL);
+            Id label = query.condition(HugeKeys.LABEL);
             throw noIndexException(this.graph(), query, label);
         }
 
         // Value type of Condition not matched
         if (!validQueryConditionValues(this.graph(), query)) {
-            return ImmutableSet.of();
+            return ImmutableList.of();
         }
 
+        boolean paging = query.paging();
         // Do index query
-        Set<Id> ids = InsertionOrderUtil.newSet();
+        IdHolderList holders = new IdHolderList(paging);
+        long idsSize = 0;
         for (MatchedIndex index : indexes) {
+            if (paging && index.indexLabels().size() > 1) {
+                throw new NotSupportException("joint index query in paging");
+            }
+
             if (index.containsSearchIndex()) {
                 // Do search-index query
-                ids.addAll(this.queryByUserpropWithSearchIndex(query, index));
+                holders.addAll(this.doSearchIndex(query, index));
             } else {
                 // Do secondary-index or range-index query
                 IndexQueries queries = index.constructIndexQueries(query);
-                ids.addAll(this.intersectIndexQueries(queries));
+                assert !paging || queries.size() <= 1;
+                IdHolder holder = this.doIndexQueries(queries);
+                holders.add(holder);
             }
 
-            if (query.reachLimit(ids.size())) {
+            idsSize += holders.idsSize();
+            if (query.reachLimit(idsSize)) {
                 break;
             }
         }
-        return limit(ids, query);
+        return holders;
+    }
+
+    private List<IdHolder> doSearchIndex(ConditionQuery query,
+                                         MatchedIndex index) {
+        query = this.constructSearchQuery(query, index);
+        List<IdHolder> holders = new IdHolderList(query.paging());
+        for (ConditionQuery q : ConditionQueryFlatten.flatten(query)) {
+            IndexQueries queries = index.constructIndexQueries(q);
+            assert !query.paging() || queries.size() <= 1;
+            IdHolder holder = this.doIndexQueries(queries);
+            // NOTE: ids will be merged into one IdHolder if not in paging
+            holders.add(holder);
+        }
+        return holders;
     }
 
     @Watched(prefix = "index")
-    private Set<Id> queryByUserpropWithSearchIndex(ConditionQuery query,
-                                                   MatchedIndex index) {
+    private IdHolder doIndexQueries(IndexQueries queries) {
+        if (queries.size() == 1) {
+            return this.doSingleOrCompositeIndex(queries);
+        } else {
+            return this.doJointIndex(queries);
+        }
+    }
+
+    @Watched(prefix = "index")
+    private IdHolder doSingleOrCompositeIndex(IndexQueries queries) {
+        assert queries.size() == 1;
+        Map.Entry<IndexLabel, ConditionQuery> e = queries.one();
+        IndexLabel indexLabel = e.getKey();
+        ConditionQuery query = e.getValue();
+        return this.doIndexQuery(indexLabel, query);
+    }
+
+    @Watched(prefix = "index")
+    private IdHolder doJointIndex(IndexQueries queries) {
+        Set<Id> intersectIds = null;
+        for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
+            Set<Id> ids = this.doIndexQuery(e.getKey(), e.getValue()).ids();
+            if (intersectIds == null) {
+                intersectIds = ids;
+            } else {
+                CollectionUtil.intersectWithModify(intersectIds, ids);
+            }
+            if (intersectIds.isEmpty()) {
+                break;
+            }
+        }
+        return new IdHolder(intersectIds);
+    }
+
+    private ConditionQuery constructSearchQuery(ConditionQuery query,
+                                                MatchedIndex index) {
         ConditionQuery originQuery = query;
         Set<Id> indexFields = new HashSet<>();
         // Convert has(key, text) to has(key, textContainsAny(word1, word2))
@@ -372,13 +427,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return true;
         });
 
-        // Do query
-        Set<Id> ids = InsertionOrderUtil.newSet();
-        for (ConditionQuery cq : ConditionQueryFlatten.flatten(query)) {
-            IndexQueries queries = index.constructIndexQueries(cq);
-            ids.addAll(this.intersectIndexQueries(queries));
-        }
-        return ids;
+        return query;
     }
 
     private boolean matchSearchIndexWords(String propValue, String fieldValue) {
@@ -396,31 +445,26 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private Collection<Id> intersectIndexQueries(IndexQueries queries) {
-        Collection<Id> intersectIds = null;
-
-        for (Map.Entry<IndexLabel, ConditionQuery> entry : queries.entrySet()) {
-            Set<Id> ids = this.doIndexQuery(entry.getKey(), entry.getValue());
-            if (intersectIds == null) {
-                intersectIds = ids;
-            } else {
-                CollectionUtil.intersectWithModify(intersectIds, ids);
-            }
-            if (intersectIds.isEmpty()) {
-                break;
-            }
+    private IdHolder doIndexQuery(IndexLabel indexLabel, ConditionQuery query) {
+        if (!query.paging()) {
+            PageIds pageIds = this.doIndexQueryOnce(indexLabel, query);
+            return new IdHolder(pageIds.ids());
+        } else {
+            return new IdHolder(query, (q) -> {
+                return this.doIndexQueryOnce(indexLabel, q);
+            });
         }
-        return intersectIds;
     }
 
     @Watched(prefix = "index")
-    private Set<Id> doIndexQuery(IndexLabel indexLabel, ConditionQuery query) {
-        Set<Id> ids = InsertionOrderUtil.newSet();
+    private PageIds doIndexQueryOnce(IndexLabel indexLabel,
+                                     ConditionQuery query) {
         LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
             locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
 
+            Set<Id> ids = InsertionOrderUtil.newSet();
             Iterator<BackendEntry> entries = super.query(query);
             while(entries.hasNext()) {
                 HugeIndex index = this.serializer.readIndex(graph(), query,
@@ -430,16 +474,29 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     break;
                 }
             }
+            // If there is no data, the entries is not a Metadatable object
+            if (ids.isEmpty()) {
+                return PageIds.EMPTY;
+            }
+            // NOTE: Memory backend's iterator is not Metadatable
+            if (!query.paging()) {
+                return new PageIds(ids, null);
+            }
+            E.checkState(entries instanceof Metadatable,
+                         "The entries must be Metadatable when query " +
+                         "in paging, but got '%s'",
+                         entries.getClass().getName());
+            Object page = ((Metadatable) entries).metadata("page");
+            return new PageIds(ids, (String) page);
         } finally {
             locks.unlock();
         }
-        return ids;
     }
 
     @Watched(prefix = "index")
     private Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query) {
         SchemaTransaction schema = this.graph().schemaTransaction();
-        Id label = (Id) query.condition(HugeKeys.LABEL);
+        Id label = query.condition(HugeKeys.LABEL);
 
         List<? extends SchemaLabel> schemaLabels;
         if (label != null) {
@@ -908,27 +965,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return indexLabels;
     }
 
-    private static Set<Id> limit(Set<Id> ids, Query query) {
-        long fromIndex = query.offset();
-        E.checkArgument(fromIndex <= Integer.MAX_VALUE,
-                        "Offset must be <= 0x7fffffff, but got '%s'",
-                        fromIndex);
-
-        if (query.offset() >= ids.size()) {
-            return ImmutableSet.of();
-        }
-        if (query.limit() == Query.NO_LIMIT && query.offset() == 0) {
-            return ids;
-        }
-        long toIndex = query.offset() + query.limit();
-        if (query.limit() == Query.NO_LIMIT || toIndex > ids.size()) {
-            toIndex = ids.size();
-        }
-        assert fromIndex < ids.size();
-        assert toIndex <= ids.size();
-        return CollectionUtil.subSet(ids, (int) fromIndex, (int) toIndex);
-    }
-
     public void removeIndex(IndexLabel indexLabel) {
         HugeIndex index = new HugeIndex(indexLabel);
         this.doRemove(this.serializer.writeIndex(index));
@@ -968,6 +1004,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                  * Not set offset because this query might be a sub-query,
                  * see queryByUserprop()
                  */
+                indexQuery.page(query.page());
                 indexQuery.limit(query.total());
 
                 return IndexQueries.of(il, indexQuery);
@@ -1000,6 +1037,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
             IndexQueries indexQueries = new IndexQueries();
             indexQueries.put(il, query);
             return indexQueries;
+        }
+
+        public Map.Entry<IndexLabel, ConditionQuery> one() {
+            E.checkState(this.size() == 1,
+                         "Please ensure index queries only contains one entry");
+            return this.entrySet().iterator().next();
         }
     }
 
