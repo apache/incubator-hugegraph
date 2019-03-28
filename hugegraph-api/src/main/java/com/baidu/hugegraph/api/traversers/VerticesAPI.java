@@ -39,7 +39,6 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -113,7 +112,7 @@ public class VerticesAPI extends API {
         query.scan(start, end);
         query.page(page);
         if (query.paging()) {
-            query.limit(Query.DEFAULT_CAPACITY);
+            query.limit(SCAN_LIMIT);
         }
         Iterator<Vertex> vertices = g.vertices(query);
 
