@@ -112,12 +112,11 @@ public class VerticesAPI extends API {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.scan(start, end);
         query.page(page);
-        boolean paging = page != null;
-        if (paging) {
+        if (query.paging()) {
             query.limit(Query.DEFAULT_CAPACITY);
         }
         Iterator<Vertex> vertices = g.vertices(query);
 
-        return manager.serializer(g).writeVertices(vertices, paging);
+        return manager.serializer(g).writeVertices(vertices, query.paging());
     }
 }

@@ -112,12 +112,11 @@ public class EdgesAPI extends API {
         ConditionQuery query = new ConditionQuery(HugeType.EDGE_OUT);
         query.scan(start, end);
         query.page(page);
-        boolean paging = page != null;
-        if (paging) {
+        if (query.paging()) {
             query.limit(Query.DEFAULT_CAPACITY);
         }
         Iterator<Edge> edges = g.edges(query);
 
-        return manager.serializer(g).writeEdges(edges, paging);
+        return manager.serializer(g).writeEdges(edges, query.paging());
     }
 }
