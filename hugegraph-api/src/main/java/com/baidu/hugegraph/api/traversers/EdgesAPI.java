@@ -112,7 +112,7 @@ public class EdgesAPI extends API {
         query.scan(start, end);
         query.page(page);
         if (query.paging()) {
-            query.limit(SCAN_LIMIT);
+            query.limit(SCAN_PAGE_LIMIT);
         }
         Iterator<Edge> edges = g.edges(query);
 

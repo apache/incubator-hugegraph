@@ -49,7 +49,7 @@ public class API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     // Empirical value of scan limit, with which results can be returned in 3s
-    protected static final long SCAN_LIMIT = 100_000L;
+    protected static final long SCAN_PAGE_LIMIT = 100_000L;
 
     public static final String CHARSET = "UTF-8";
 
