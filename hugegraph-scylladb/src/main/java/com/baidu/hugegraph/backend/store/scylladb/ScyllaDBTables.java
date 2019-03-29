@@ -33,6 +33,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraBackendEntry;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraSessionPool;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTable;
@@ -123,7 +124,7 @@ public class ScyllaDBTables {
         }
 
         ConditionQuery q = (ConditionQuery) query;
-        Id label = (Id) q.condition(HugeKeys.LABEL);
+        Id label = q.condition(HugeKeys.LABEL);
         if (label != null && q.allSysprop() && conditions.size() == 1 &&
             q.containsCondition(HugeKeys.LABEL, Condition.RelationType.EQ)) {
 
@@ -211,11 +212,11 @@ public class ScyllaDBTables {
         public Iterator<BackendEntry> query(
                CassandraSessionPool.Session session,
                Query query) {
-            query = queryByLabelIndex(session, indexTable(), query);
-            if (query == null) {
-                return ImmutableList.<BackendEntry>of().iterator();
+            Query idQuery = queryByLabelIndex(session, indexTable(), query);
+            if (idQuery == null) {
+                return new BackendEntryIterator.EmptyIterator(query);
             }
-            return super.query(session, query);
+            return super.query(session, idQuery);
         }
     }
 
@@ -317,12 +318,11 @@ public class ScyllaDBTables {
         @Override
         public Iterator<BackendEntry> query(
                CassandraSessionPool.Session session, Query query) {
-            query = queryByLabelIndex(session, indexTable(), query);
-
-            if (query == null) {
-                return ImmutableList.<BackendEntry>of().iterator();
+            Query idQuery = queryByLabelIndex(session, indexTable(), query);
+            if (idQuery == null) {
+                return new BackendEntryIterator.EmptyIterator(query);
             }
-            return super.query(session, query);
+            return super.query(session, idQuery);
         }
 
         public static Edge out(String store) {
