@@ -48,6 +48,7 @@ public class Query implements Cloneable {
     private String page;
     private long capacity;
     private boolean showHidden;
+    private boolean includeDeleting;
 
     private Query originQuery;
 
@@ -70,6 +71,7 @@ public class Query implements Cloneable {
         this.capacity = defaultCapacity();
 
         this.showHidden = false;
+        this.includeDeleting = false;
     }
 
     public HugeType resultType() {
@@ -210,6 +212,14 @@ public class Query implements Cloneable {
 
     public void showHidden(boolean showHidden) {
         this.showHidden = showHidden;
+    }
+
+    public boolean includeDeleting() {
+        return this.includeDeleting;
+    }
+
+    public void includeDeleting(boolean includeDeleting) {
+        this.includeDeleting = includeDeleting;
     }
 
     public Set<Id> ids() {

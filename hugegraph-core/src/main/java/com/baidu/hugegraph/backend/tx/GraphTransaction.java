@@ -81,6 +81,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
@@ -482,6 +483,11 @@ public class GraphTransaction extends IndexableTransaction {
             if (!query.showHidden() && Graph.Hidden.isHidden(vertex.label())) {
                 return false;
             }
+            // Filter vertices of deleting vertex label
+            if (vertex.schemaLabel().status() == SchemaStatus.DELETING &&
+                !query.includeDeleting()) {
+                return false;
+            }
             // Process results that query from left index or primary-key
             if (query.resultType().isVertex() &&
                 !filterResultFromIndexQuery(query, vertex)) {
@@ -606,6 +612,11 @@ public class GraphTransaction extends IndexableTransaction {
         results = new FilterIterator<>(results, edge -> {
             // Filter hidden results
             if (!query.showHidden() && Graph.Hidden.isHidden(edge.label())) {
+                return false;
+            }
+            // Filter edges of deleting edge label
+            if (edge.schemaLabel().status() == SchemaStatus.DELETING &&
+                !query.includeDeleting()) {
                 return false;
             }
             // Process results that query from left index
@@ -1417,9 +1428,11 @@ public class GraphTransaction extends IndexableTransaction {
             return;
         }
         if (!label.enableLabelIndex()) {
-            this.traverseByLabelWithoutIndexInPage(label, fetcher, consumer);
+            this.traverseByLabelWithoutIndexInPage(label, fetcher,
+                                                   consumer, remove);
         } else {
-            this.traverseByLabelWithIndexInPage(label, fetcher, consumer);
+            this.traverseByLabelWithIndexInPage(label, fetcher,
+                                                consumer, remove);
         }
     }
 
@@ -1433,7 +1446,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (label.hidden()) {
             query.showHidden(true);
         }
-
+        query.includeDeleting(remove);
         // Not support label index, query all and filter by label
         if (!label.enableLabelIndex()) {
             query.capacity(Query.NO_CAPACITY);
@@ -1472,7 +1485,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     private <T> void traverseByLabelWithIndexInPage(
                      SchemaLabel label, Function<Query, Iterator<T>> fetcher,
-                     Consumer<T> consumer) {
+                     Consumer<T> consumer, boolean remove) {
         HugeType type = label.type() == HugeType.VERTEX_LABEL ?
                         HugeType.VERTEX : HugeType.EDGE;
         ConditionQuery query = new ConditionQuery(type);
@@ -1482,6 +1495,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (label.hidden()) {
             query.showHidden(true);
         }
+        query.includeDeleting(remove);
 
         Iterator<T> itor;
         String page = "";
@@ -1497,7 +1511,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     private <T> void traverseByLabelWithoutIndexInPage(
                      SchemaLabel label, Function<Query, Iterator<T>> fetcher,
-                     Consumer<T> consumer) {
+                     Consumer<T> consumer, boolean remove) {
         HugeType type = label.type() == HugeType.VERTEX_LABEL ?
                         HugeType.VERTEX : HugeType.EDGE;
         Query query = new Query(type);
@@ -1506,6 +1520,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (label.hidden()) {
             query.showHidden(true);
         }
+        query.includeDeleting(remove);
 
         Iterator<T> itor;
         // Not support label index, query all and filter by label
