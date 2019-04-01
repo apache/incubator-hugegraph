@@ -285,7 +285,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
         // Set offset and limit to avoid redundant element ids
-        indexQuery.page(query.page());
+        indexQuery.page(query.pageWithoutCheck());
         indexQuery.limit(query.limit());
         indexQuery.offset(query.offset());
         indexQuery.capacity(query.capacity());

@@ -90,7 +90,7 @@ public final class QueryList {
     }
 
     public Iterator<BackendEntry> fetch() {
-        assert !queries.isEmpty();
+        assert !this.queries.isEmpty();
         if (this.parent.paging()) {
             int pageSize = this.graph.configuration()
                                      .get(CoreOptions.QUERY_PAGE_SIZE);
@@ -122,6 +122,7 @@ public final class QueryList {
         return query.iterator(offset - current, pageState.page(), pageSize);
     }
 
+    @SuppressWarnings("unused")
     private static Set<Id> limit(Set<Id> ids, Query query) {
         long fromIndex = query.offset();
         E.checkArgument(fromIndex <= Integer.MAX_VALUE,
@@ -167,7 +168,7 @@ public final class QueryList {
     }
 
     /**
-     * Generate queries from index.optimizeQuery()
+     * Generate queries from tx.optimizeQuery()
      */
     private class OptimizedQuery implements QueryHolder {
 
@@ -183,9 +184,14 @@ public final class QueryList {
 
         public PageIterator iterator(int index, String page, long pageSize) {
             assert index == 0;
-            this.query.page(page);
-            Iterator<BackendEntry> iterator = fetcher.apply(this.query);
-            // Must iterate all entries before getting the next page info
+            Query query = this.query.copy();
+            query.page(page);
+            // Not set limit to pageSize due to PageEntryIterator.remaining
+            if (this.query.limit() == Query.NO_LIMIT) {
+                query.limit(pageSize);
+            }
+            Iterator<BackendEntry> iterator = fetcher.apply(query);
+            // Must iterate all entries before get the next page
             List<BackendEntry> results = IteratorUtils.list(iterator);
             return new PageIterator(results.iterator(),
                                     PageState.page(iterator));
@@ -197,7 +203,7 @@ public final class QueryList {
     }
 
     /**
-     * Generate queries from index.indexQuery()
+     * Generate queries from tx.indexQuery()
      */
     private class IndexQuery implements QueryHolder {
 
@@ -214,10 +220,15 @@ public final class QueryList {
                     return null;
                 }
                 Set<Id> ids = holder.ids();
-                if (ids.size() > parent.limit()) {
-                    ids = limit(ids, parent);
+                if (parent.limit() != Query.NO_LIMIT &&
+                    ids.size() > parent.limit()) {
+                    /*
+                     * Avoid too many ids in one time query,
+                     * Assume it will get one result by each id
+                     */
+                    ids = CollectionUtil.subSet(ids, 0, (int) parent.limit());
                 }
-                IdQuery query = new IdQuery(parent.resultType(), ids);
+                IdQuery query = new IdQuery(parent, ids);
                 return fetcher.apply(query);
             });
         }
@@ -228,7 +239,7 @@ public final class QueryList {
             if (pageIds.empty()) {
                 return PageIterator.EMPTY;
             }
-            IdQuery query = new IdQuery(parent.resultType(), pageIds.ids());
+            IdQuery query = new IdQuery(parent, pageIds.ids());
             return new PageIterator(fetcher.apply(query), pageIds.page());
         }
 

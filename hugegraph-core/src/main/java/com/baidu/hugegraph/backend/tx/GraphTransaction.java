@@ -46,6 +46,7 @@ import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.IdHolder;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -485,7 +486,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
             // Filter vertices of deleting vertex label
             if (vertex.schemaLabel().status() == SchemaStatus.DELETING &&
-                !query.includeDeleting()) {
+                !query.showDeleting()) {
                 return false;
             }
             // Process results that query from left index or primary-key
@@ -616,7 +617,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
             // Filter edges of deleting edge label
             if (edge.schemaLabel().status() == SchemaStatus.DELETING &&
-                !query.includeDeleting()) {
+                !query.showDeleting()) {
                 return false;
             }
             // Process results that query from left index
@@ -1411,131 +1412,59 @@ public class GraphTransaction extends IndexableTransaction {
 
     public void traverseVerticesByLabel(VertexLabel label,
                                         Consumer<Vertex> consumer,
-                                        boolean remove) {
-        this.traverseByLabel(label, this::queryVertices, consumer, remove);
+                                        boolean deleting) {
+        this.traverseByLabel(label, this::queryVertices, consumer, deleting);
     }
 
     public void traverseEdgesByLabel(EdgeLabel label, Consumer<Edge> consumer,
-                                     boolean remove) {
-        this.traverseByLabel(label, this::queryEdges, consumer, remove);
+                                     boolean deleting) {
+        this.traverseByLabel(label, this::queryEdges, consumer, deleting);
     }
 
     private <T> void traverseByLabel(SchemaLabel label,
                                      Function<Query, Iterator<T>> fetcher,
-                                     Consumer<T> consumer, boolean remove) {
-        if (!this.store().features().supportsQueryByPage()) {
-            this.traverseByLabelWithoutPage(label, fetcher, consumer, remove);
-            return;
-        }
-        if (!label.enableLabelIndex()) {
-            this.traverseByLabelWithoutIndexInPage(label, fetcher,
-                                                   consumer, remove);
-        } else {
-            this.traverseByLabelWithIndexInPage(label, fetcher,
-                                                consumer, remove);
-        }
-    }
-
-    private <T> void traverseByLabelWithoutPage(
-                     SchemaLabel label, Function<Query, Iterator<T>> fetcher,
-                     Consumer<T> consumer, boolean remove) {
+                                     Consumer<T> consumer, boolean deleting) {
         HugeType type = label.type() == HugeType.VERTEX_LABEL ?
                         HugeType.VERTEX : HugeType.EDGE;
-        ConditionQuery query = new ConditionQuery(type);
-        // Whether query system vertices
-        if (label.hidden()) {
-            query.showHidden(true);
-        }
-        query.includeDeleting(remove);
-        // Not support label index, query all and filter by label
-        if (!label.enableLabelIndex()) {
-            query.capacity(Query.NO_CAPACITY);
-            Iterator<T> itor = fetcher.apply(query);
-            while (itor.hasNext()) {
-                T e = itor.next();
-                SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
-                if (label.equals(elemLabel)) {
-                    consumer.accept(e);
-                }
-            }
-            return;
-        }
-
-        /*
-         * Support label index, query by label. Set limit&capacity to
-         * Query.DEFAULT_CAPACITY to limit elements number per pass
-         */
-        query.limit(Query.DEFAULT_CAPACITY);
+        Query query = label.enableLabelIndex() ?
+                      new ConditionQuery(type) :
+                      new Query(type);
         query.capacity(Query.NO_CAPACITY);
-        query.eq(HugeKeys.LABEL, label.id());
-        int pass = 0;
-        int counter;
-        do {
-            if (!remove) {
-                query.offset(pass++ * Query.DEFAULT_CAPACITY);
-            }
-            // Process every element in current batch
+        query.limit(Query.NO_LIMIT);
+        if (this.store().features().supportsQueryByPage()) {
+            query.page(PageState.PAGE_NONE);
+        }
+        if (label.hidden()) {
+            query.showHidden(true);
+        }
+        query.showDeleting(deleting);
+
+        if (label.enableLabelIndex()) {
+            // Support label index, query by label index
+            ((ConditionQuery) query).eq(HugeKeys.LABEL, label.id());
             Iterator<T> itor = fetcher.apply(query);
-            for (counter = 0; itor.hasNext(); ++counter) {
-                consumer.accept(itor.next());
-            }
-            assert counter <= Query.DEFAULT_CAPACITY;
-        } while (counter == Query.DEFAULT_CAPACITY); // If not, means finish
-    }
-
-    private <T> void traverseByLabelWithIndexInPage(
-                     SchemaLabel label, Function<Query, Iterator<T>> fetcher,
-                     Consumer<T> consumer, boolean remove) {
-        HugeType type = label.type() == HugeType.VERTEX_LABEL ?
-                        HugeType.VERTEX : HugeType.EDGE;
-        ConditionQuery query = new ConditionQuery(type);
-        query.eq(HugeKeys.LABEL, label.id());
-        query.limit(TRAVERSE_BATCH);
-        // Whether query system vertices
-        if (label.hidden()) {
-            query.showHidden(true);
-        }
-        query.includeDeleting(remove);
-
-        Iterator<T> itor;
-        String page = "";
-        while (page != null) {
-            query.page(page);
-            itor = fetcher.apply(query);
             while (itor.hasNext()) {
                 consumer.accept(itor.next());
             }
-            page = (String) ((Metadatable) itor).metadata("page");
-        }
-    }
-
-    private <T> void traverseByLabelWithoutIndexInPage(
-                     SchemaLabel label, Function<Query, Iterator<T>> fetcher,
-                     Consumer<T> consumer, boolean remove) {
-        HugeType type = label.type() == HugeType.VERTEX_LABEL ?
-                        HugeType.VERTEX : HugeType.EDGE;
-        Query query = new Query(type);
-        query.limit(TRAVERSE_BATCH);
-        // Whether query system vertices
-        if (label.hidden()) {
-            query.showHidden(true);
-        }
-        query.includeDeleting(remove);
-
-        Iterator<T> itor;
-        // Not support label index, query all and filter by label
-        String page = "";
-        while (page != null) {
-            query.page(page);
-            itor = fetcher.apply(query);
-            while (itor.hasNext()) {
-                T e = itor.next();
-                SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
-                if (label.equals(elemLabel)) {
-                    consumer.accept(e);
+        } else {
+            // Not support label index, query all and filter by label
+            if (query.paging()) {
+                query.limit(TRAVERSE_BATCH);
+            }
+            String page = null;
+            do {
+                Iterator<T> itor = fetcher.apply(query);
+                while (itor.hasNext()) {
+                    T e = itor.next();
+                    SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
+                    if (label.equals(elemLabel)) {
+                        consumer.accept(e);
+                    }
                 }
-            }
-            page = (String) ((Metadatable) itor).metadata("page");
+                if (query.paging()) {
+                    page = (String) ((Metadatable) itor).metadata("page");
+                }
+            } while (page != null);
         }
     }
 }
