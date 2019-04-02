@@ -22,6 +22,7 @@ package com.baidu.hugegraph.core;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -43,6 +44,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
@@ -51,6 +53,7 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
@@ -1746,6 +1749,32 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testScanEdgeInPaging() {
+        HugeGraph graph = graph();
+        Assume.assumeTrue("Not support scan",
+                          storeFeatures().supportsScanToken() ||
+                          storeFeatures().supportsScanKeyRange());
+        init18Edges();
+
+        List<Edge> edges = new LinkedList<>();
+
+        ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+        query.scan(String.valueOf(Long.MIN_VALUE),
+                   String.valueOf(Long.MAX_VALUE));
+        query.limit(1);
+        String page = PageState.PAGE_NONE;
+        while (page != null) {
+            query.page(page);
+            Iterator<Edge> iterator = graph.edges(query);
+            while (iterator.hasNext()) {
+                edges.add(iterator.next());
+            }
+            page = (String) ((Metadatable) iterator).metadata("page");
+        }
+        Assert.assertEquals(18, edges.size());
+    }
+
+    @Test
     public void testRemoveEdge() {
         HugeGraph graph = graph();
 
@@ -2562,7 +2591,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         GraphTraversal<Edge, Edge> itor;
 
-        String page = "";
+        String page = PageState.PAGE_NONE;
         int size = 20;
 
         for (int i = 0; i < 100 / size; i++) {
