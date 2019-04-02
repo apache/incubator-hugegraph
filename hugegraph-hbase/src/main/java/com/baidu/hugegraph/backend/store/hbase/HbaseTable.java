@@ -203,21 +203,14 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
                             "Invalid scan with multi conditions: %s", query);
             Relation scan = query.relations().iterator().next();
             Shard shard = (Shard) scan.value();
-            return this.queryByRange(session, shard, query.page());
+            return this.queryByRange(session, shard);
         }
         throw new NotSupportException("query: %s", query);
     }
 
-    protected RowIterator queryByRange(Session session, Shard shard,
-                                       String page) {
+    protected RowIterator queryByRange(Session session, Shard shard) {
         byte[] start = this.shardSpliter.position(shard.start());
         byte[] end = this.shardSpliter.position(shard.end());
-        if (page != null && !page.isEmpty()) {
-            byte[] position = PageState.fromString(page).position();
-            E.checkArgument(Bytes.compare(position, start) >= 0,
-                            "Invalid page out of lower bound");
-            start = position;
-        }
         return session.scan(this.table(), start, end);
     }
 

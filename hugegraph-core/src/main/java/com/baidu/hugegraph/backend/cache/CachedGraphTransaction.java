@@ -105,8 +105,8 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     @Override
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
-        if (query.empty() || query.paging()) {
-            // Query all edges or query edges in paging, don't cache it
+        if (query.empty()) {
+            // Query all edges, don't cache it
             return super.queryEdgesFromBackend(query);
         }
 
