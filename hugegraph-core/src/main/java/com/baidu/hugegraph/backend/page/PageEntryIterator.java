@@ -72,7 +72,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         assert this.results != null;
 
         if (this.results.iterator().hasNext()) {
-            if (results.page() == null) {
+            if (this.results.page() == null) {
                 this.pageState.increase();
             } else {
                 this.pageState.page(this.results.page());
@@ -96,7 +96,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
 
     @Override
     public Object metadata(String meta, Object... args) {
-        if ("page".equals(meta)) {
+        if (PageState.PAGE.equals(meta)) {
             if (this.pageState.offset() >= this.queries.total()) {
                 return null;
             }

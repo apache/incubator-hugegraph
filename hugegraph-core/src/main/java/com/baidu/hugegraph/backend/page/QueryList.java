@@ -185,10 +185,10 @@ public final class QueryList {
             assert index == 0;
             this.query.page(page);
             Iterator<BackendEntry> iterator = fetcher.apply(this.query);
-            // Must iterate all entries before get the next page
+            // Must iterate all entries before getting the next page info
             List<BackendEntry> results = IteratorUtils.list(iterator);
-            page = (String) ((Metadatable) iterator).metadata("page");
-            return new PageIterator(results.iterator(), page);
+            return new PageIterator(results.iterator(),
+                                    PageState.page(iterator));
         }
 
         public int total() {

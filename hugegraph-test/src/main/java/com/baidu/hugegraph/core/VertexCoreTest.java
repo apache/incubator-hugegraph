@@ -53,7 +53,6 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NoIndexException;
-import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -3031,7 +3030,7 @@ public class VertexCoreTest extends BaseCoreTest {
             while (iterator.hasNext()) {
                 vertexes.add(iterator.next());
             }
-            page = (String) ((Metadatable) iterator).metadata("page");
+            page = PageState.page(iterator);
         }
         Assert.assertEquals(10, vertexes.size());
     }

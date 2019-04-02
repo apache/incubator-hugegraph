@@ -35,6 +35,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -105,11 +106,10 @@ public class JsonSerializer implements Serializer {
                 if (itor instanceof GraphTraversal<?, ?>) {
                     page = TraversalUtil.page((GraphTraversal<?, ?>) itor);
                 } else if (itor instanceof Metadatable) {
-                    page = (String) ((Metadatable) itor).metadata("page");
+                    page = PageState.page(itor);
                 } else {
-                    throw new HugeException(
-                              "Error type '%s' of paging iterator '%s'",
-                              itor.getClass(), itor);
+                    throw new HugeException("Invalid paging iterator: %s",
+                                            itor.getClass());
                 }
                 if (page != null) {
                     page = String.format(",\"page\": \"%s\"", page);

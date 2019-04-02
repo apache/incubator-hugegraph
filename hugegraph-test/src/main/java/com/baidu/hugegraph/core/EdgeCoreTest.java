@@ -53,7 +53,6 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
@@ -1769,7 +1768,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             while (iterator.hasNext()) {
                 edges.add(iterator.next());
             }
-            page = (String) ((Metadatable) iterator).metadata("page");
+            page = PageState.page(iterator);
         }
         Assert.assertEquals(18, edges.size());
     }

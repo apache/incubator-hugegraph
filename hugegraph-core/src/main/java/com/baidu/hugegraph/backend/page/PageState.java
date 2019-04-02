@@ -20,14 +20,17 @@
 package com.baidu.hugegraph.backend.page;
 
 import java.util.Base64;
+import java.util.Iterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 
 public final class PageState {
 
+    public static final String PAGE = "page";
     public static final String PAGE_NONE = "";
 
     private int offset;
@@ -82,7 +85,7 @@ public final class PageState {
     public static PageState fromBytes(byte[] bytes) {
         if (bytes.length == 0) {
             // The first page
-            return new PageState(0, "");
+            return new PageState(0, PAGE_NONE);
         }
         try {
             BytesBuffer buffer = BytesBuffer.wrap(bytes);
@@ -93,5 +96,12 @@ public final class PageState {
             throw new HugeException("Invalid page: '0x%s'",
                                     e, Bytes.toHex(bytes));
         }
+    }
+
+    public static String page(Iterator<?> iterator) {
+        E.checkState(iterator instanceof Metadatable,
+                     "Invalid paging iterator: %s", iterator.getClass());
+        Object page = ((Metadatable) iterator).metadata(PAGE);
+        return (String) page;
     }
 }
