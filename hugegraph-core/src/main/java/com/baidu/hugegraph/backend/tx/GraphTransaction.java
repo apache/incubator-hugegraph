@@ -1462,7 +1462,7 @@ public class GraphTransaction extends IndexableTransaction {
                     }
                 }
                 if (query.paging()) {
-                    page = (String) ((Metadatable) itor).metadata("page");
+                    page = PageState.page(itor);
                 }
             } while (page != null);
         }
