@@ -43,6 +43,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.IdHolder;
 import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageIds;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -486,8 +487,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                          "The entries must be Metadatable when query " +
                          "in paging, but got '%s'",
                          entries.getClass().getName());
-            Object page = ((Metadatable) entries).metadata("page");
-            return new PageIds(ids, (String) page);
+            return new PageIds(ids, PageState.page(entries));
         } finally {
             locks.unlock();
         }

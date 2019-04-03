@@ -55,6 +55,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
@@ -587,14 +588,15 @@ public final class TraversalUtil {
 
     public static String page(GraphTraversal<?, ?> traversal) {
         QueryHolder holder = rootStep(traversal);
-        E.checkState(holder != null, "Invalid traversal: %s", traversal);
-        return (String) holder.metadata("page");
+        E.checkState(holder != null,
+                     "Invalid paging traversal: %s", traversal.getClass());
+        return (String) holder.metadata(PageState.PAGE);
     }
 
     public static QueryHolder rootStep(GraphTraversal<?, ?> traversal) {
         for (final Step<?, ?> step : traversal.asAdmin().getSteps()) {
             if (step instanceof QueryHolder) {
-                return ((QueryHolder) step);
+                return (QueryHolder) step;
             }
         }
         return null;
