@@ -76,6 +76,7 @@ public class EventHub {
 
     public static synchronized boolean destroy(long timeout)
                                                throws InterruptedException {
+        E.checkState(executor != null, "EventHub has not been initialized");
         LOG.debug("Destroy pool for EventHub");
         executor.shutdown();
         return executor.awaitTermination(timeout, TimeUnit.SECONDS);

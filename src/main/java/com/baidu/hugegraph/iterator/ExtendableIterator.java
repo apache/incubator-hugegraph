@@ -40,9 +40,9 @@ public class ExtendableIterator<T> extends WrappedIterator<T> {
         this.currentIterator = null;
     }
 
-    public ExtendableIterator(Iterator<T> itor) {
+    public ExtendableIterator(Iterator<T> iter) {
         this();
-        this.extend(itor);
+        this.extend(iter);
     }
 
     public ExtendableIterator(Iterator<T> itor1, Iterator<T> itor2) {
@@ -51,25 +51,25 @@ public class ExtendableIterator<T> extends WrappedIterator<T> {
         this.extend(itor2);
     }
 
-    public ExtendableIterator<T> extend(Iterator<T> itor) {
+    public ExtendableIterator<T> extend(Iterator<T> iter) {
         E.checkState(this.currentIterator == null,
                      "Can't extend iterator after iterating");
-        if (itor != null) {
-            this.itors.addLast(itor);
+        if (iter != null) {
+            this.itors.addLast(iter);
         }
         return this;
     }
 
     @Override
     public void close() throws Exception {
-        for (Iterator<T> itor : this.removedItors) {
-            if (itor instanceof AutoCloseable) {
-                ((AutoCloseable) itor).close();
+        for (Iterator<T> iter : this.removedItors) {
+            if (iter instanceof AutoCloseable) {
+                ((AutoCloseable) iter).close();
             }
         }
-        for (Iterator<T> itor : this.itors) {
-            if (itor instanceof AutoCloseable) {
-                ((AutoCloseable) itor).close();
+        for (Iterator<T> iter : this.itors) {
+            if (iter instanceof AutoCloseable) {
+                ((AutoCloseable) iter).close();
             }
         }
     }

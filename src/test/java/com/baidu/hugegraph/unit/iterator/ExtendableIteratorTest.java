@@ -205,21 +205,21 @@ public class ExtendableIteratorTest extends BaseUnitTest {
     protected static class CloseableItor<V> implements Iterator<V>,
                                                        AutoCloseable {
 
-        private final Iterator<V> itor;
+        private final Iterator<V> iter;
         private boolean closed = false;
 
-        public CloseableItor(Iterator<V> itor) {
-            this.itor = itor;
+        public CloseableItor(Iterator<V> iter) {
+            this.iter = iter;
         }
 
         @Override
         public boolean hasNext() {
-            return this.itor.hasNext();
+            return this.iter.hasNext();
         }
 
         @Override
         public V next() {
-            return this.itor.next();
+            return this.iter.next();
         }
 
         @Override
