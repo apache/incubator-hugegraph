@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.page;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
@@ -44,7 +45,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
     }
 
     private PageState parsePageState() {
-        String page = this.queries.parent().page();
+        String page = this.queries.parent().pageWithoutCheck();
         PageState pageState = PageState.fromString(page);
         E.checkState(pageState.offset() < this.queries.total(),
                      "Invalid page '%s' with an offset '%s' exceeds " +
@@ -61,13 +62,15 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
     }
 
     private boolean fetch() {
-        if (this.remaining <= 0 ||
+        if ((this.remaining != Query.NO_LIMIT && this.remaining <= 0L) ||
             this.pageState.offset() >= this.queries.total()) {
             return false;
         }
 
-        long pageSize = this.remaining < this.pageSize ?
-                        this.remaining : this.pageSize;
+        long pageSize = this.pageSize;
+        if (this.remaining != Query.NO_LIMIT && this.remaining < pageSize) {
+            pageSize = this.remaining;
+        }
         this.results = this.queries.fetchNext(this.pageState, pageSize);
         assert this.results != null;
 
@@ -90,7 +93,10 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
             throw new NoSuchElementException();
         }
         BackendEntry entry = this.results.iterator().next();
-        this.remaining--;
+        if (this.remaining != Query.NO_LIMIT) {
+            // Assume one result in each entry (just for index query)
+            this.remaining--;
+        }
         return entry;
     }
 

@@ -26,6 +26,8 @@ import com.baidu.hugegraph.util.E;
 
 public final class IdHolderList extends ArrayList<IdHolder> {
 
+    private static final long serialVersionUID = -738694176552424990L;
+
     private final boolean paging;
 
     public IdHolderList(boolean paging) {

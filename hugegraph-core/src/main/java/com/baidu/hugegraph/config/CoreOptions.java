@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.config;
 
+import com.baidu.hugegraph.backend.query.Query;
+
 import static com.baidu.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
@@ -211,7 +213,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "query.page_size",
                     "The size of each page when query using paging.",
-                    rangeInt(0, 10000),
+                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
                     500
             );
 

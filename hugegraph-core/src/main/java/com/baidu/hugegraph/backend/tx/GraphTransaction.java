@@ -46,6 +46,7 @@ import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.IdHolder;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -63,6 +64,7 @@ import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -80,6 +82,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
@@ -88,6 +91,7 @@ import com.google.common.collect.ImmutableList;
 public class GraphTransaction extends IndexableTransaction {
 
     public static final int COMMIT_BATCH = 500;
+    private static final long TRAVERSE_BATCH = 100_000L;
 
     private final GraphIndexTransaction indexTx;
 
@@ -480,6 +484,11 @@ public class GraphTransaction extends IndexableTransaction {
             if (!query.showHidden() && Graph.Hidden.isHidden(vertex.label())) {
                 return false;
             }
+            // Filter vertices of deleting vertex label
+            if (vertex.schemaLabel().status() == SchemaStatus.DELETING &&
+                !query.showDeleting()) {
+                return false;
+            }
             // Process results that query from left index or primary-key
             if (query.resultType().isVertex() &&
                 !filterResultFromIndexQuery(query, vertex)) {
@@ -604,6 +613,11 @@ public class GraphTransaction extends IndexableTransaction {
         results = new FilterIterator<>(results, edge -> {
             // Filter hidden results
             if (!query.showHidden() && Graph.Hidden.isHidden(edge.label())) {
+                return false;
+            }
+            // Filter edges of deleting edge label
+            if (edge.schemaLabel().status() == SchemaStatus.DELETING &&
+                !query.showDeleting()) {
                 return false;
             }
             // Process results that query from left index
@@ -1398,59 +1412,59 @@ public class GraphTransaction extends IndexableTransaction {
 
     public void traverseVerticesByLabel(VertexLabel label,
                                         Consumer<Vertex> consumer,
-                                        boolean remove) {
-        this.traverseByLabel(label, this::queryVertices, consumer, remove);
+                                        boolean deleting) {
+        this.traverseByLabel(label, this::queryVertices, consumer, deleting);
     }
 
     public void traverseEdgesByLabel(EdgeLabel label, Consumer<Edge> consumer,
-                                     boolean remove) {
-        this.traverseByLabel(label, this::queryEdges, consumer, remove);
+                                     boolean deleting) {
+        this.traverseByLabel(label, this::queryEdges, consumer, deleting);
     }
 
     private <T> void traverseByLabel(SchemaLabel label,
                                      Function<Query, Iterator<T>> fetcher,
-                                     Consumer<T> consumer, boolean remove) {
+                                     Consumer<T> consumer, boolean deleting) {
         HugeType type = label.type() == HugeType.VERTEX_LABEL ?
                         HugeType.VERTEX : HugeType.EDGE;
-        ConditionQuery query = new ConditionQuery(type);
-        // Whether query system vertices
+        Query query = label.enableLabelIndex() ?
+                      new ConditionQuery(type) :
+                      new Query(type);
+        query.capacity(Query.NO_CAPACITY);
+        query.limit(Query.NO_LIMIT);
+        if (this.store().features().supportsQueryByPage()) {
+            query.page(PageState.PAGE_NONE);
+        }
         if (label.hidden()) {
             query.showHidden(true);
         }
+        query.showDeleting(deleting);
 
-        // Not support label index, query all and filter by label
-        if (!label.enableLabelIndex()) {
-            query.capacity(Query.NO_CAPACITY);
+        if (label.enableLabelIndex()) {
+            // Support label index, query by label index
+            ((ConditionQuery) query).eq(HugeKeys.LABEL, label.id());
             Iterator<T> itor = fetcher.apply(query);
             while (itor.hasNext()) {
-                T e = itor.next();
-                SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
-                if (label.equals(elemLabel)) {
-                    consumer.accept(e);
-                }
-            }
-            return;
-        }
-
-        /*
-         * Support label index, query by label. Set limit&capacity to
-         * Query.DEFAULT_CAPACITY to limit elements number per pass
-         */
-        query.limit(Query.DEFAULT_CAPACITY);
-        query.capacity(Query.NO_CAPACITY);
-        query.eq(HugeKeys.LABEL, label.id());
-        int pass = 0;
-        int counter;
-        do {
-            if (!remove) {
-                query.offset(pass++ * Query.DEFAULT_CAPACITY);
-            }
-            // Process every element in current batch
-            Iterator<T> itor = fetcher.apply(query);
-            for (counter = 0; itor.hasNext(); ++counter) {
                 consumer.accept(itor.next());
             }
-            assert counter <= Query.DEFAULT_CAPACITY;
-        } while (counter == Query.DEFAULT_CAPACITY); // If not, means finish
+        } else {
+            // Not support label index, query all and filter by label
+            if (query.paging()) {
+                query.limit(TRAVERSE_BATCH);
+            }
+            String page = null;
+            do {
+                Iterator<T> itor = fetcher.apply(query);
+                while (itor.hasNext()) {
+                    T e = itor.next();
+                    SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
+                    if (label.equals(elemLabel)) {
+                        consumer.accept(e);
+                    }
+                }
+                if (query.paging()) {
+                    page = PageState.page(itor);
+                }
+            } while (page != null);
+        }
     }
 }

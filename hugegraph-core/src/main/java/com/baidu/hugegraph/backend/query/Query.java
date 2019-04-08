@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.query;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -31,7 +32,6 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
@@ -48,6 +48,7 @@ public class Query implements Cloneable {
     private String page;
     private long capacity;
     private boolean showHidden;
+    private boolean showDeleting;
 
     private Query originQuery;
 
@@ -70,6 +71,7 @@ public class Query implements Cloneable {
         this.capacity = defaultCapacity();
 
         this.showHidden = false;
+        this.showDeleting = false;
     }
 
     public HugeType resultType() {
@@ -174,6 +176,10 @@ public class Query implements Cloneable {
         return this.page;
     }
 
+    public String pageWithoutCheck() {
+        return this.page;
+    }
+
     public void page(String page) {
         this.page = page;
     }
@@ -212,6 +218,14 @@ public class Query implements Cloneable {
         this.showHidden = showHidden;
     }
 
+    public boolean showDeleting() {
+        return this.showDeleting;
+    }
+
+    public void showDeleting(boolean showDeleting) {
+        this.showDeleting = showDeleting;
+    }
+
     public Set<Id> ids() {
         return ImmutableSet.of();
     }
@@ -246,8 +260,7 @@ public class Query implements Cloneable {
                this.orders.equals(other.orders) &&
                this.offset == other.offset &&
                this.limit == other.limit &&
-               ((this.page == null && other.page == null) ||
-                this.page.equals(other.page)) &&
+               Objects.equals(this.page, other.page) &&
                this.ids().equals(other.ids()) &&
                this.conditions().equals(other.conditions());
     }
