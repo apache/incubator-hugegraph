@@ -233,10 +233,10 @@ public class VertexAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
         // TODO: add removeVertex(id) to improve
         commit(g, () -> {
-            Iterator<Vertex> itor = g.vertices(id);
-            E.checkArgument(itor.hasNext(),
+            Iterator<Vertex> iter = g.vertices(id);
+            E.checkArgument(iter.hasNext(),
                             "No such vertex with id: '%s'", idValue);
-            itor.next().remove();
+            iter.next().remove();
         });
     }
 

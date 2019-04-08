@@ -577,11 +577,11 @@ public final class TraversalUtil {
 
     public static void retriveSysprop(List<HasContainer> hasContainers,
                                       Function<HasContainer, Boolean> func) {
-        for (Iterator<HasContainer> itor = hasContainers.iterator();
-             itor.hasNext();) {
-            HasContainer container = itor.next();
+        for (Iterator<HasContainer> iter = hasContainers.iterator();
+             iter.hasNext();) {
+            HasContainer container = iter.next();
             if (container.getKey().startsWith("~") && func.apply(container)) {
-                itor.remove();
+                iter.remove();
             }
         }
     }

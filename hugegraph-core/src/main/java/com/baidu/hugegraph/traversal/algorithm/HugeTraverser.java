@@ -311,7 +311,6 @@ public class HugeTraverser {
             return this.id;
         }
 
-        @SuppressWarnings("unused")
         public Node parent() {
             return this.parent;
         }

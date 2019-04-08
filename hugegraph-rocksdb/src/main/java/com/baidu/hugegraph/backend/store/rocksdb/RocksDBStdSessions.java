@@ -556,8 +556,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @Override
         public BackendColumnIterator scan(String table) {
             assert !this.hasChanges();
-            RocksIterator itor = rocksdb().newIterator(cf(table));
-            return new ColumnIterator(table, itor, null, null, SCAN_ANY);
+            RocksIterator iter = rocksdb().newIterator(cf(table));
+            return new ColumnIterator(table, iter, null, null, SCAN_ANY);
         }
 
         /**
@@ -569,8 +569,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
             ReadOptions options = new ReadOptions();
             // NOTE: Options.prefix_extractor is a prerequisite
             options.setPrefixSameAsStart(true);
-            RocksIterator itor = rocksdb().newIterator(cf(table), options);
-            return new ColumnIterator(table, itor, prefix, null,
+            RocksIterator iter = rocksdb().newIterator(cf(table), options);
+            return new ColumnIterator(table, iter, prefix, null,
                                       SCAN_PREFIX_BEGIN);
         }
 
@@ -583,8 +583,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
             assert !this.hasChanges();
             ReadOptions options = new ReadOptions();
             options.setTotalOrderSeek(true); // Not sure if it must be set
-            RocksIterator itor = rocksdb().newIterator(cf(table), options);
-            return new ColumnIterator(table, itor, keyFrom, keyTo, scanType);
+            RocksIterator iter = rocksdb().newIterator(cf(table), options);
+            return new ColumnIterator(table, iter, keyFrom, keyTo, scanType);
         }
     }
 
@@ -594,7 +594,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private static class ColumnIterator implements BackendColumnIterator {
 
         private final String table;
-        private final RocksIterator itor;
+        private final RocksIterator iter;
         private final byte[] keyBegin;
         private final byte[] keyEnd;
         private final int scanType;
@@ -602,12 +602,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private byte[] position;
         private boolean matched;
 
-        public ColumnIterator(String table, RocksIterator itor,
+        public ColumnIterator(String table, RocksIterator iter,
                               byte[] keyBegin, byte[] keyEnd, int scanType) {
-            E.checkNotNull(itor, "itor");
+            E.checkNotNull(iter, "iter");
             this.table = table;
 
-            this.itor = itor;
+            this.iter = iter;
             this.keyBegin = keyBegin;
             this.keyEnd = keyEnd;
             this.scanType = scanType;
@@ -679,26 +679,26 @@ public class RocksDBStdSessions extends RocksDBSessions {
             System.out.println(">>>> scan from " + this.table + ": "  +
                                (this.keyBegin == null ? "*" :
                                 StringEncoding.format(this.keyBegin)) +
-                               (this.itor.isValid() ? "" : " - No data"));
-            for (; this.itor.isValid(); this.itor.next()) {
+                               (this.iter.isValid() ? "" : " - No data"));
+            for (; this.iter.isValid(); this.iter.next()) {
                 System.out.println(String.format("%s=%s",
-                                   StringEncoding.format(this.itor.key()),
-                                   StringEncoding.format(this.itor.value())));
+                                   StringEncoding.format(this.iter.key()),
+                                   StringEncoding.format(this.iter.value())));
             }
         }
 
         @Override
         public boolean hasNext() {
-            this.matched = this.itor.isOwningHandle();
+            this.matched = this.iter.isOwningHandle();
             if (!this.matched) {
                 // Maybe closed
                 return this.matched;
             }
 
-            this.matched = this.itor.isValid();
+            this.matched = this.iter.isValid();
             if (this.matched) {
                 // Update position for paging
-                this.position = this.itor.key();
+                this.position = this.iter.key();
                 // Do filter if not SCAN_ANY
                 if (!this.match(Session.SCAN_ANY)) {
                     this.matched = this.filter(this.position);
@@ -716,21 +716,21 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private void seek() {
             if (this.keyBegin == null) {
                 // Seek to the first if no `keyBegin`
-                this.itor.seekToFirst();
+                this.iter.seekToFirst();
             } else {
                 /*
                  * Seek to `keyBegin`:
                  * if set SCAN_GT_BEGIN/SCAN_GTE_BEGIN (key > / >= 'xx')
                  * or if set SCAN_PREFIX_WITH_BEGIN (key prefix with 'xx')
                  */
-                this.itor.seek(this.keyBegin);
+                this.iter.seek(this.keyBegin);
 
                 // Skip `keyBegin` if set SCAN_GT_BEGIN (key > 'xx')
                 if (this.match(Session.SCAN_GT_BEGIN) &&
                     !this.match(Session.SCAN_GTE_BEGIN)) {
-                    while (this.itor.isValid() &&
-                           Bytes.equals(this.itor.key(), this.keyBegin)) {
-                        this.itor.next();
+                    while (this.iter.isValid() &&
+                           Bytes.equals(this.iter.key(), this.keyBegin)) {
+                        this.iter.next();
                     }
                 }
             }
@@ -781,9 +781,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 }
             }
 
-            BackendColumn col = BackendColumn.of(this.itor.key(),
-                                                 this.itor.value());
-            this.itor.next();
+            BackendColumn col = BackendColumn.of(this.iter.key(),
+                                                 this.iter.value());
+            this.iter.next();
             this.matched = false;
 
             return col;
@@ -796,8 +796,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public void close() {
-            if (this.itor.isOwningHandle()) {
-                this.itor.close();
+            if (this.iter.isOwningHandle()) {
+                this.iter.close();
             }
         }
     }

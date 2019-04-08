@@ -300,11 +300,11 @@ public class SchemaTransaction extends IndexableTransaction {
         this.beforeRead();
         ConditionQuery query = new ConditionQuery(type);
         query.eq(HugeKeys.NAME, name);
-        Iterator<BackendEntry> itor = this.indexTx.query(query);
+        Iterator<BackendEntry> iter = this.indexTx.query(query);
         this.afterRead();
-        if (itor.hasNext()) {
-            T schema = this.deserialize(itor.next(), type);
-            E.checkState(!itor.hasNext(),
+        if (iter.hasNext()) {
+            T schema = this.deserialize(iter.next(), type);
+            E.checkState(!iter.hasNext(),
                          "Should not exist schema with same name '%s'", name);
             return schema;
         }

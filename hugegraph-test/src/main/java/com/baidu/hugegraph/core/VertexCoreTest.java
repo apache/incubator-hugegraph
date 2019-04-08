@@ -689,8 +689,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Query query = new Query(HugeType.VERTEX);
         query.limit(1);
-        Iterator<Vertex> itor = graph.graphTransaction().queryVertices(query);
-        List<Vertex> vertices = IteratorUtils.list(itor);
+        Iterator<Vertex> iter = graph.graphTransaction().queryVertices(query);
+        List<Vertex> vertices = IteratorUtils.list(iter);
         Assert.assertEquals(1, vertices.size());
     }
 
@@ -3220,10 +3220,10 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init100Books();
 
-        GraphTraversal<Vertex, Vertex> itor = graph.traversal().V()
+        GraphTraversal<Vertex, Vertex> iter = graph.traversal().V()
                                                    .has("~page", "").limit(10);
-        Assert.assertEquals(10, IteratorUtils.count(itor));
-        String page = TraversalUtil.page(itor);
+        Assert.assertEquals(10, IteratorUtils.count(iter));
+        String page = TraversalUtil.page(iter);
 
         List<Vertex> vertexes;
 
@@ -3275,21 +3275,21 @@ public class VertexCoreTest extends BaseCoreTest {
 
         List<Vertex> all = graph.traversal().V().toList();
 
-        GraphTraversal<Vertex, Vertex> itor;
+        GraphTraversal<Vertex, Vertex> iter;
 
         String page = PageState.PAGE_NONE;
         int size = 20;
 
         for (int i = 0; i < 100 / size; i++) {
-            itor = graph.traversal().V()
+            iter = graph.traversal().V()
                         .has("~page", page).limit(size);
-            List<?> vertexes = IteratorUtils.asList(itor);
+            List<?> vertexes = IteratorUtils.asList(iter);
             Assert.assertEquals(size, vertexes.size());
 
             List<Vertex> expected = all.subList(i * size, (i + 1) * size);
             Assert.assertEquals(expected, vertexes);
 
-            page = TraversalUtil.page(itor);
+            page = TraversalUtil.page(iter);
         }
         Assert.assertNull(page);
     }
@@ -3446,11 +3446,11 @@ public class VertexCoreTest extends BaseCoreTest {
         GraphTraversalSource g = graph.traversal();
         initPageTestData();
 
-        GraphTraversal<Vertex, Vertex> itor = g.V().hasLabel("programmer")
+        GraphTraversal<Vertex, Vertex> iter = g.V().hasLabel("programmer")
                                                .has("~page", "").limit(1);
-        Assert.assertEquals(1, IteratorUtils.count(itor));
+        Assert.assertEquals(1, IteratorUtils.count(iter));
 
-        String page = TraversalUtil.page(itor);
+        String page = TraversalUtil.page(iter);
         List<Vertex> vertices;
 
         vertices = g.V().hasLabel("programmer")
@@ -3497,13 +3497,13 @@ public class VertexCoreTest extends BaseCoreTest {
              .toList();
         });
 
-        GraphTraversal<Vertex, Vertex> itor;
+        GraphTraversal<Vertex, Vertex> iter;
 
-        itor = g.V().hasLabel("programmer", "software").has("~page", "")
+        iter = g.V().hasLabel("programmer", "software").has("~page", "")
                 .limit(1);
-        Assert.assertEquals(1, IteratorUtils.count(itor));
+        Assert.assertEquals(1, IteratorUtils.count(iter));
 
-        String page = TraversalUtil.page(itor);
+        String page = TraversalUtil.page(iter);
         List<Vertex> vertices;
 
         vertices = g.V().hasLabel("programmer", "software")
@@ -3625,11 +3625,11 @@ public class VertexCoreTest extends BaseCoreTest {
         GraphTraversalSource g = graph.traversal();
         initPageTestData();
 
-        GraphTraversal<Vertex, Vertex> itor = g.V().has("name", "marko")
+        GraphTraversal<Vertex, Vertex> iter = g.V().has("name", "marko")
                                                .has("~page", "").limit(1);
-        Assert.assertEquals(1, IteratorUtils.count(itor));
+        Assert.assertEquals(1, IteratorUtils.count(iter));
 
-        String page = TraversalUtil.page(itor);
+        String page = TraversalUtil.page(iter);
         List<Vertex> vertices;
 
         vertices = g.V().has("name", "marko")
@@ -3662,11 +3662,11 @@ public class VertexCoreTest extends BaseCoreTest {
         GraphTraversalSource g = graph.traversal();
         initPageTestData();
 
-        GraphTraversal<Vertex, Vertex> itor = g.V().has("price", P.gte(100))
+        GraphTraversal<Vertex, Vertex> iter = g.V().has("price", P.gte(100))
                                                .has("~page", "").limit(1);
-        Assert.assertEquals(1, IteratorUtils.count(itor));
+        Assert.assertEquals(1, IteratorUtils.count(iter));
 
-        String page = TraversalUtil.page(itor);
+        String page = TraversalUtil.page(iter);
         List<Vertex> vertices;
 
         vertices = g.V().has("price", P.gte(100))
@@ -3699,13 +3699,13 @@ public class VertexCoreTest extends BaseCoreTest {
         GraphTraversalSource g = graph.traversal();
         initPageTestData();
 
-        GraphTraversal<Vertex, Vertex> itor;
+        GraphTraversal<Vertex, Vertex> iter;
 
-        itor = g.V().has("city", Text.contains("Beijing Shanghai"))
+        iter = g.V().has("city", Text.contains("Beijing Shanghai"))
                 .has("~page", "").limit(1);
-        Assert.assertEquals(1, IteratorUtils.count(itor));
+        Assert.assertEquals(1, IteratorUtils.count(iter));
 
-        String page = TraversalUtil.page(itor);
+        String page = TraversalUtil.page(iter);
         List<Vertex> vertices;
 
         vertices = g.V().has("city", Text.contains("Beijing Shanghai"))
@@ -3738,13 +3738,13 @@ public class VertexCoreTest extends BaseCoreTest {
         GraphTraversalSource g = graph.traversal();
         initPageTestData();
 
-        GraphTraversal<Vertex, Vertex> itor;
+        GraphTraversal<Vertex, Vertex> iter;
 
-        itor = g.V().has("name", "marko").has("age", 30)
+        iter = g.V().has("name", "marko").has("age", 30)
                 .has("~page", "").limit(1);
-        Assert.assertEquals(1, IteratorUtils.count(itor));
+        Assert.assertEquals(1, IteratorUtils.count(iter));
 
-        String page = TraversalUtil.page(itor);
+        String page = TraversalUtil.page(iter);
         List<Vertex> vertices;
 
         vertices = g.V().has("name", "marko").has("age", 30)
@@ -3816,11 +3816,11 @@ public class VertexCoreTest extends BaseCoreTest {
               .ifNotExist()
               .create();
 
-        GraphTraversal<Vertex, Vertex> itor = g.V().has("name", "marko")
+        GraphTraversal<Vertex, Vertex> iter = g.V().has("name", "marko")
                                                .has("~page", "").limit(1);
-        Assert.assertEquals(1, IteratorUtils.count(itor));
+        Assert.assertEquals(1, IteratorUtils.count(iter));
 
-        String page = TraversalUtil.page(itor);
+        String page = TraversalUtil.page(iter);
         List<Vertex> vertices;
 
         vertices = g.V().has("name", "marko")

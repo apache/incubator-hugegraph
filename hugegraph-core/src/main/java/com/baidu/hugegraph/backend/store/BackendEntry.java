@@ -131,24 +131,24 @@ public interface BackendEntry {
     public static class BackendColumnIteratorWrapper
            implements BackendColumnIterator {
 
-        private final Iterator<BackendColumn> itor;
+        private final Iterator<BackendColumn> iter;
 
-        public BackendColumnIteratorWrapper(Iterator<BackendColumn> itor) {
-            this.itor = itor;
+        public BackendColumnIteratorWrapper(Iterator<BackendColumn> iter) {
+            this.iter = iter;
         }
 
         public BackendColumnIteratorWrapper(BackendColumn... cols) {
-            this.itor = Arrays.asList(cols).iterator();
+            this.iter = Arrays.asList(cols).iterator();
         }
 
         @Override
         public boolean hasNext() {
-            return itor.hasNext();
+            return iter.hasNext();
         }
 
         @Override
         public BackendColumn next() {
-            return itor.next();
+            return iter.next();
         }
 
         @Override

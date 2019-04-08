@@ -455,9 +455,9 @@ public class HugeTask<V> extends FutureTask<V> {
         }
 
         HugeTask<V> task = new HugeTask<>((Id) vertex.id(), null, callable);
-        for (Iterator<VertexProperty<Object>> itor = vertex.properties();
-             itor.hasNext();) {
-            VertexProperty<Object> prop = itor.next();
+        for (Iterator<VertexProperty<Object>> iter = vertex.properties();
+             iter.hasNext();) {
+            VertexProperty<Object> prop = iter.next();
             task.property(prop.key(), prop.value());
         }
         return task;

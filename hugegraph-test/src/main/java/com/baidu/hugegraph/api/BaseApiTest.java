@@ -449,7 +449,6 @@ public class BaseApiTest {
         return (T) map.get(key);
     }
 
-    @SuppressWarnings("unchecked")
     public static Map<?, ?> assertArrayContains(List<Map<?, ?>> list,
                                                 String key, Object value) {
         String message = String.format("Expect contains {'%s':'%s'} in list %s",
