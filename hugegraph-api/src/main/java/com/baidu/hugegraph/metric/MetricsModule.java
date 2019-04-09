@@ -47,7 +47,10 @@ public class MetricsModule extends Module {
                                                        "com.baidu.hugegraph",
                                                        "hugegraph-api");
 
+    @SuppressWarnings("rawtypes")
     private static class GaugeSerializer extends StdSerializer<Gauge> {
+
+        private static final long serialVersionUID = -5347786455542725809L;
 
         private GaugeSerializer() {
             super(Gauge.class);
@@ -70,6 +73,8 @@ public class MetricsModule extends Module {
 
     private static class CounterSerializer extends StdSerializer<Counter> {
 
+        private static final long serialVersionUID = -209508117719806468L;
+
         private CounterSerializer() {
             super(Counter.class);
         }
@@ -84,6 +89,8 @@ public class MetricsModule extends Module {
     }
 
     private static class HistogramSerializer extends StdSerializer<Histogram> {
+
+        private static final long serialVersionUID = -775852382644934747L;
 
         private final boolean showSamples;
 
@@ -108,7 +115,7 @@ public class MetricsModule extends Module {
             json.writeNumberField("p99", snapshot.get99thPercentile());
             json.writeNumberField("p999", snapshot.get999thPercentile());
 
-            if (showSamples) {
+            if (this.showSamples) {
                 json.writeObjectField("values", snapshot.getValues());
             }
 
@@ -118,6 +125,8 @@ public class MetricsModule extends Module {
     }
 
     private static class MeterSerializer extends StdSerializer<Meter> {
+
+        private static final long serialVersionUID = 5418467941358294770L;
 
         private final String rateUnit;
         private final double rateFactor;
@@ -133,16 +142,22 @@ public class MetricsModule extends Module {
                               SerializerProvider provider) throws IOException {
             json.writeStartObject();
             json.writeNumberField("count", meter.getCount());
-            json.writeNumberField("m15_rate", meter.getFifteenMinuteRate() * rateFactor);
-            json.writeNumberField("m1_rate", meter.getOneMinuteRate() * rateFactor);
-            json.writeNumberField("m5_rate", meter.getFiveMinuteRate() * rateFactor);
-            json.writeNumberField("mean_rate", meter.getMeanRate() * rateFactor);
-            json.writeStringField("units", rateUnit);
+            json.writeNumberField("m15_rate", meter.getFifteenMinuteRate() *
+                                              this.rateFactor);
+            json.writeNumberField("m1_rate", meter.getOneMinuteRate() *
+                                             this.rateFactor);
+            json.writeNumberField("m5_rate", meter.getFiveMinuteRate() *
+                                             this.rateFactor);
+            json.writeNumberField("mean_rate", meter.getMeanRate() *
+                                               this.rateFactor);
+            json.writeStringField("units", this.rateUnit);
             json.writeEndObject();
         }
     }
 
     private static class TimerSerializer extends StdSerializer<Timer> {
+
+        private static final long serialVersionUID = 6283520188524929099L;
 
         private final String rateUnit;
         private final double rateFactor;
@@ -166,39 +181,55 @@ public class MetricsModule extends Module {
             json.writeStartObject();
             final Snapshot snapshot = timer.getSnapshot();
             json.writeNumberField("count", timer.getCount());
-            json.writeNumberField("max", snapshot.getMax() * durationFactor);
-            json.writeNumberField("mean", snapshot.getMean() * durationFactor);
-            json.writeNumberField("min", snapshot.getMin() * durationFactor);
+            json.writeNumberField("max", snapshot.getMax() *
+                                         this.durationFactor);
+            json.writeNumberField("mean", snapshot.getMean() *
+                                          this.durationFactor);
+            json.writeNumberField("min", snapshot.getMin() *
+                                         this.durationFactor);
 
-            json.writeNumberField("p50", snapshot.getMedian() * durationFactor);
-            json.writeNumberField("p75", snapshot.get75thPercentile() * durationFactor);
-            json.writeNumberField("p95", snapshot.get95thPercentile() * durationFactor);
-            json.writeNumberField("p98", snapshot.get98thPercentile() * durationFactor);
-            json.writeNumberField("p99", snapshot.get99thPercentile() * durationFactor);
-            json.writeNumberField("p999", snapshot.get999thPercentile() * durationFactor);
+            json.writeNumberField("p50", snapshot.getMedian() *
+                                         this.durationFactor);
+            json.writeNumberField("p75", snapshot.get75thPercentile() *
+                                         this.durationFactor);
+            json.writeNumberField("p95", snapshot.get95thPercentile() *
+                                         this.durationFactor);
+            json.writeNumberField("p98", snapshot.get98thPercentile() *
+                                         this.durationFactor);
+            json.writeNumberField("p99", snapshot.get99thPercentile() *
+                                         this.durationFactor);
+            json.writeNumberField("p999", snapshot.get999thPercentile() *
+                                          this.durationFactor);
 
-            if (showSamples) {
+            if (this.showSamples) {
                 final long[] values = snapshot.getValues();
                 final double[] scaledValues = new double[values.length];
                 for (int i = 0; i < values.length; i++) {
-                    scaledValues[i] = values[i] * durationFactor;
+                    scaledValues[i] = values[i] * this.durationFactor;
                 }
                 json.writeObjectField("values", scaledValues);
             }
 
-            json.writeNumberField("stddev", snapshot.getStdDev() * durationFactor);
-            json.writeNumberField("m15_rate", timer.getFifteenMinuteRate() * rateFactor);
-            json.writeNumberField("m1_rate", timer.getOneMinuteRate() * rateFactor);
-            json.writeNumberField("m5_rate", timer.getFiveMinuteRate() * rateFactor);
-            json.writeNumberField("mean_rate", timer.getMeanRate() * rateFactor);
-            json.writeStringField("duration_units", durationUnit);
-            json.writeStringField("rate_units", rateUnit);
+            json.writeNumberField("stddev", snapshot.getStdDev() *
+                                            this.durationFactor);
+            json.writeNumberField("m15_rate", timer.getFifteenMinuteRate() *
+                                              this.rateFactor);
+            json.writeNumberField("m1_rate", timer.getOneMinuteRate() *
+                                             this.rateFactor);
+            json.writeNumberField("m5_rate", timer.getFiveMinuteRate() *
+                                             this.rateFactor);
+            json.writeNumberField("mean_rate", timer.getMeanRate() *
+                                               this.rateFactor);
+            json.writeStringField("duration_units", this.durationUnit);
+            json.writeStringField("rate_units", this.rateUnit);
             json.writeEndObject();
         }
     }
 
     private static class MetricRegistrySerializer
                    extends StdSerializer<MetricRegistry> {
+
+        private static final long serialVersionUID = 3717001164181726933L;
 
         private final MetricFilter filter;
 
@@ -212,11 +243,13 @@ public class MetricsModule extends Module {
                               SerializerProvider provider) throws IOException {
             json.writeStartObject();
             json.writeStringField("version", VERSION.toString());
-            json.writeObjectField("gauges", registry.getGauges(filter));
-            json.writeObjectField("counters", registry.getCounters(filter));
-            json.writeObjectField("histograms", registry.getHistograms(filter));
-            json.writeObjectField("meters", registry.getMeters(filter));
-            json.writeObjectField("timers", registry.getTimers(filter));
+            json.writeObjectField("gauges", registry.getGauges(this.filter));
+            json.writeObjectField("counters",
+                                  registry.getCounters(this.filter));
+            json.writeObjectField("histograms",
+                                  registry.getHistograms(this.filter));
+            json.writeObjectField("meters", registry.getMeters(this.filter));
+            json.writeObjectField("timers", registry.getTimers(this.filter));
             json.writeEndObject();
         }
     }
@@ -254,10 +287,11 @@ public class MetricsModule extends Module {
         context.addSerializers(new SimpleSerializers(Arrays.asList(
                 new GaugeSerializer(),
                 new CounterSerializer(),
-                new HistogramSerializer(showSamples),
-                new MeterSerializer(rateUnit),
-                new TimerSerializer(rateUnit, durationUnit, showSamples),
-                new MetricRegistrySerializer(filter)
+                new HistogramSerializer(this.showSamples),
+                new MeterSerializer(this.rateUnit),
+                new TimerSerializer(this.rateUnit, this.durationUnit,
+                                    this.showSamples),
+                new MetricRegistrySerializer(this.filter)
         )));
     }
 

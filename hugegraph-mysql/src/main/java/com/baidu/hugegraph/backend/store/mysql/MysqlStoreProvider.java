@@ -51,9 +51,9 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
          * We should drop database once only with stores(schema/graph/system),
          * otherwise it will easily lead to blocking when drop tables
          */
-        Iterator<BackendStore> itor = this.stores.values().iterator();
-        if (itor.hasNext()) {
-            itor.next().clear();
+        Iterator<BackendStore> iter = this.stores.values().iterator();
+        if (iter.hasNext()) {
+            iter.next().clear();
         }
         this.notifyAndWaitEvent(Events.STORE_CLEAR);
     }

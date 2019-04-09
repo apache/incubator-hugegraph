@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+
 import java.util.List;
 
 import javax.inject.Singleton;
@@ -41,11 +44,8 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.ShortestPathTraverser;
 import com.baidu.hugegraph.type.define.Directions;
-import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.*;
 
 @Path("graphs/{graph}/traversers/shortestpath")
 @Singleton

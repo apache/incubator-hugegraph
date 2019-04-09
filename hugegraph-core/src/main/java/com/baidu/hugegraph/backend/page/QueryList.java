@@ -35,7 +35,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
-import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableSet;
@@ -56,8 +55,12 @@ public final class QueryList {
         this.queries = new ArrayList<>();
     }
 
-    public Query parent() {
+    protected Query parent() {
         return this.parent;
+    }
+
+    protected Function<Query, Iterator<BackendEntry>> fetcher() {
+        return this.fetcher;
     }
 
     public void add(List<IdHolder> holders) {
@@ -178,10 +181,12 @@ public final class QueryList {
             this.query = query;
         }
 
+        @Override
         public Iterator<BackendEntry> iterator() {
-            return fetcher.apply(this.query);
+            return fetcher().apply(this.query);
         }
 
+        @Override
         public PageIterator iterator(int index, String page, long pageSize) {
             assert index == 0;
             Query query = this.query.copy();
@@ -190,13 +195,14 @@ public final class QueryList {
             if (this.query.limit() == Query.NO_LIMIT) {
                 query.limit(pageSize);
             }
-            Iterator<BackendEntry> iterator = fetcher.apply(query);
+            Iterator<BackendEntry> iterator = fetcher().apply(query);
             // Must iterate all entries before get the next page
             List<BackendEntry> results = IteratorUtils.list(iterator);
             return new PageIterator(results.iterator(),
                                     PageState.page(iterator));
         }
 
+        @Override
         public int total() {
             return 1;
         }
@@ -214,35 +220,38 @@ public final class QueryList {
             this.holders = holders;
         }
 
+        @Override
         public Iterator<BackendEntry> iterator() {
             return new FlatMapperIterator<>(this.holders.iterator(), holder -> {
                 if (holder.ids().isEmpty()) {
                     return null;
                 }
                 Set<Id> ids = holder.ids();
-                if (parent.limit() != Query.NO_LIMIT &&
-                    ids.size() > parent.limit()) {
+                if (parent().limit() != Query.NO_LIMIT &&
+                    ids.size() > parent().limit()) {
                     /*
                      * Avoid too many ids in one time query,
                      * Assume it will get one result by each id
                      */
-                    ids = CollectionUtil.subSet(ids, 0, (int) parent.limit());
+                    ids = CollectionUtil.subSet(ids, 0, (int) parent().limit());
                 }
-                IdQuery query = new IdQuery(parent, ids);
-                return fetcher.apply(query);
+                IdQuery query = new IdQuery(parent(), ids);
+                return fetcher().apply(query);
             });
         }
 
+        @Override
         public PageIterator iterator(int index, String page, long pageSize) {
             IdHolder holder = this.holders.get(index);
             PageIds pageIds = holder.fetchNext(page, pageSize);
             if (pageIds.empty()) {
                 return PageIterator.EMPTY;
             }
-            IdQuery query = new IdQuery(parent, pageIds.ids());
-            return new PageIterator(fetcher.apply(query), pageIds.page());
+            IdQuery query = new IdQuery(parent(), pageIds.ids());
+            return new PageIterator(fetcher().apply(query), pageIds.page());
         }
 
+        @Override
         public int total() {
             return this.holders.size();
         }

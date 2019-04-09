@@ -275,16 +275,16 @@ public class InMemoryDBTables {
         }
 
         @Override
-        protected Iterator<BackendEntry> skipOffset(Iterator<BackendEntry> itor,
+        protected Iterator<BackendEntry> skipOffset(Iterator<BackendEntry> iter,
                                                     long offset) {
             long count = 0;
             BackendEntry last = null;
-            while (count < offset && itor.hasNext()) {
-                last = itor.next();
+            while (count < offset && iter.hasNext()) {
+                last = iter.next();
                 count += last.columnsSize();
             }
             if (count == offset) {
-                return itor;
+                return iter;
             } else if (count < offset) {
                 return Collections.emptyIterator();
             }
@@ -297,18 +297,18 @@ public class InMemoryDBTables {
 
             ExtendableIterator<BackendEntry> all = new ExtendableIterator<>();
             all.extend(ImmutableList.of(last).iterator());
-            all.extend(itor);
+            all.extend(iter);
             return all;
         }
 
         @Override
-        protected Iterator<BackendEntry> dropTails(Iterator<BackendEntry> itor,
+        protected Iterator<BackendEntry> dropTails(Iterator<BackendEntry> iter,
                                                    long limit) {
             long count = 0;
             BackendEntry last = null;
             List<BackendEntry> entries = new ArrayList<>();
-            while (count < limit && itor.hasNext()) {
-                last = itor.next();
+            while (count < limit && iter.hasNext()) {
+                last = iter.next();
                 count += last.columnsSize();
                 entries.add(last);
             }

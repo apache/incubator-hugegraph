@@ -75,12 +75,12 @@ public class BackendMutation {
         final List<BackendAction> items = this.updates.get(entry.type(), id);
         assert items != null;
         boolean ignoreCurrent = false;
-        for (Iterator<BackendAction> itor = items.iterator(); itor.hasNext();) {
-            BackendAction originItem = itor.next();
+        for (Iterator<BackendAction> iter = items.iterator(); iter.hasNext();) {
+            BackendAction originItem = iter.next();
             Action originAction = originItem.action();
             switch (action) {
                 case INSERT:
-                    itor.remove();
+                    iter.remove();
                     break;
                 case DELETE:
                     if (originAction == Action.INSERT) {
@@ -88,7 +88,7 @@ public class BackendMutation {
                     } else if (originAction == Action.DELETE) {
                         ignoreCurrent = true;
                     } else {
-                        itor.remove();
+                        iter.remove();
                     }
                     break;
                 case APPEND:
@@ -101,7 +101,7 @@ public class BackendMutation {
                         Id originSubId = originItem.entry().subId();
                         assert subId != null;
                         if (subId == originSubId || subId.equals(originSubId)) {
-                            itor.remove();
+                            iter.remove();
                         }
                     }
                     break;

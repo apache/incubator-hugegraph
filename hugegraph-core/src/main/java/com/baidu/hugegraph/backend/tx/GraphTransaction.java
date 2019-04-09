@@ -64,7 +64,6 @@ import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -1442,9 +1441,9 @@ public class GraphTransaction extends IndexableTransaction {
         if (label.enableLabelIndex()) {
             // Support label index, query by label index
             ((ConditionQuery) query).eq(HugeKeys.LABEL, label.id());
-            Iterator<T> itor = fetcher.apply(query);
-            while (itor.hasNext()) {
-                consumer.accept(itor.next());
+            Iterator<T> iter = fetcher.apply(query);
+            while (iter.hasNext()) {
+                consumer.accept(iter.next());
             }
         } else {
             // Not support label index, query all and filter by label
@@ -1453,16 +1452,16 @@ public class GraphTransaction extends IndexableTransaction {
             }
             String page = null;
             do {
-                Iterator<T> itor = fetcher.apply(query);
-                while (itor.hasNext()) {
-                    T e = itor.next();
+                Iterator<T> iter = fetcher.apply(query);
+                while (iter.hasNext()) {
+                    T e = iter.next();
                     SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
                     if (label.equals(elemLabel)) {
                         consumer.accept(e);
                     }
                 }
                 if (query.paging()) {
-                    page = PageState.page(itor);
+                    page = PageState.page(iter);
                 }
             } while (page != null);
         }

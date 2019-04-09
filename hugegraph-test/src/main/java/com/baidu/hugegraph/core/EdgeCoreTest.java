@@ -647,8 +647,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Query query = new Query(HugeType.EDGE);
         query.limit(1);
-        Iterator<Edge> itor = graph.graphTransaction().queryEdges(query);
-        List<Edge> edges = IteratorUtils.list(itor);
+        Iterator<Edge> iter = graph.graphTransaction().queryEdges(query);
+        List<Edge> edges = IteratorUtils.list(iter);
         Assert.assertEquals(1, edges.size());
     }
 
@@ -2533,10 +2533,10 @@ public class EdgeCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init100LookEdges();
 
-        GraphTraversal<Edge, Edge> itor = graph.traversal().E()
+        GraphTraversal<Edge, Edge> iter = graph.traversal().E()
                                                .has("~page", "").limit(10);
-        Assert.assertEquals(10, IteratorUtils.count(itor));
-        String page = TraversalUtil.page(itor);
+        Assert.assertEquals(10, IteratorUtils.count(iter));
+        String page = TraversalUtil.page(iter);
 
         List<Edge> edges;
 
@@ -2588,21 +2588,21 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         List<Edge> all = graph.traversal().E().toList();
 
-        GraphTraversal<Edge, Edge> itor;
+        GraphTraversal<Edge, Edge> iter;
 
         String page = PageState.PAGE_NONE;
         int size = 20;
 
         for (int i = 0; i < 100 / size; i++) {
-            itor = graph.traversal().E()
+            iter = graph.traversal().E()
                         .has("~page", page).limit(size);
-            List<?> vertexes = IteratorUtils.asList(itor);
+            List<?> vertexes = IteratorUtils.asList(iter);
             Assert.assertEquals(size, vertexes.size());
 
             List<Edge> expected = all.subList(i * size, (i + 1) * size);
             Assert.assertEquals(expected, vertexes);
 
-            page = TraversalUtil.page(itor);
+            page = TraversalUtil.page(iter);
         }
         Assert.assertNull(page);
     }

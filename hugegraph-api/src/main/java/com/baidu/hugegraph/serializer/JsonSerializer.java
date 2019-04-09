@@ -81,7 +81,7 @@ public class JsonSerializer implements Serializer {
         }
     }
 
-    private String writeIterator(String label, Iterator<?> itor,
+    private String writeIterator(String label, Iterator<?> iter,
                                  boolean paging) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {
             out.write("{".getBytes(API.CHARSET));
@@ -90,26 +90,26 @@ public class JsonSerializer implements Serializer {
 
             // Write data
             boolean first = true;
-            while (itor.hasNext()) {
+            while (iter.hasNext()) {
                 if (!first) {
                     out.write(",".getBytes(API.CHARSET));
                 } else {
                     first = false;
                 }
-                out.write(JsonUtil.toJson(itor.next()).getBytes(API.CHARSET));
+                out.write(JsonUtil.toJson(iter.next()).getBytes(API.CHARSET));
             }
             out.write("]".getBytes(API.CHARSET));
 
             // Write page
             if (paging) {
                 String page;
-                if (itor instanceof GraphTraversal<?, ?>) {
-                    page = TraversalUtil.page((GraphTraversal<?, ?>) itor);
-                } else if (itor instanceof Metadatable) {
-                    page = PageState.page(itor);
+                if (iter instanceof GraphTraversal<?, ?>) {
+                    page = TraversalUtil.page((GraphTraversal<?, ?>) iter);
+                } else if (iter instanceof Metadatable) {
+                    page = PageState.page(iter);
                 } else {
                     throw new HugeException("Invalid paging iterator: %s",
-                                            itor.getClass());
+                                            iter.getClass());
                 }
                 if (page != null) {
                     page = String.format(",\"page\": \"%s\"", page);
@@ -127,7 +127,7 @@ public class JsonSerializer implements Serializer {
             throw new HugeException("Failed to serialize %s", e, label);
         } finally {
             try {
-                CloseableIterator.closeIterator(itor);
+                CloseableIterator.closeIterator(iter);
             } catch (Exception e) {
                 throw new HugeException("Failed to close for %s", e, label);
             }

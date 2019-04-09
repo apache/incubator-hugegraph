@@ -52,9 +52,9 @@ public class TaskExample {
         TaskScheduler scheduler = TaskManager.instance().getScheduler(graph);
         scheduler.schedule(task);
         scheduler.save(task);
-        Iterator<HugeTask<Object>> itor;
-        itor = scheduler.findTask(TaskStatus.RUNNING, -1);
-        System.out.println(">>>> running task: " + IteratorUtils.toList(itor));
+        Iterator<HugeTask<Object>> iter;
+        iter = scheduler.findTask(TaskStatus.RUNNING, -1);
+        System.out.println(">>>> running task: " + IteratorUtils.toList(iter));
 
         Thread.sleep(TestTask.UNIT * 33);
         task.cancel(true);
@@ -62,9 +62,9 @@ public class TaskExample {
         scheduler.save(task);
 
         // Find task not finished(actually it should be RUNNING)
-        itor = scheduler.findTask(TaskStatus.CANCELLED, -1);
-        assert itor.hasNext();
-        task = itor.next();
+        iter = scheduler.findTask(TaskStatus.CANCELLED, -1);
+        assert iter.hasNext();
+        task = iter.next();
 
         System.out.println(">>>> task may be interrupted");
 
@@ -74,8 +74,8 @@ public class TaskExample {
         Thread.sleep(TestTask.UNIT * 80);
         scheduler.save(task);
 
-        itor = scheduler.findTask(TaskStatus.SUCCESS, -1);
-        assert itor.hasNext();
+        iter = scheduler.findTask(TaskStatus.SUCCESS, -1);
+        assert iter.hasNext();
 
         graph.close();
 

@@ -33,7 +33,6 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.type.HugeType;

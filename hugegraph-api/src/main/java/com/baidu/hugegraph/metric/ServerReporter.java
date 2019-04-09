@@ -39,16 +39,17 @@ import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableSortedMap;
 
 public class ServerReporter extends ScheduledReporter {
-    
+
     private static volatile ServerReporter instance = null;
 
-    private SortedMap<String, Gauge> gauges;
+    private SortedMap<String, Gauge<?>> gauges;
     private SortedMap<String, Counter> counters;
     private SortedMap<String, Histogram> histograms;
     private SortedMap<String, Meter> meters;
     private SortedMap<String, Timer> timers;
 
-    public static synchronized ServerReporter instance(MetricRegistry registry) {
+    public static synchronized ServerReporter instance(
+                                              MetricRegistry registry) {
         if (instance == null) {
             synchronized (ServerReporter.class) {
                 if (instance == null) {
@@ -82,7 +83,7 @@ public class ServerReporter extends ScheduledReporter {
         return Collections.unmodifiableMap(this.timers);
     }
 
-    public Map<String, Gauge> gauges() {
+    public Map<String, Gauge<?>> gauges() {
         return Collections.unmodifiableMap(this.gauges);
     }
 
@@ -98,13 +99,14 @@ public class ServerReporter extends ScheduledReporter {
         return Collections.unmodifiableMap(this.meters);
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public void report(SortedMap<String, Gauge> gauges,
                        SortedMap<String, Counter> counters,
                        SortedMap<String, Histogram> histograms,
                        SortedMap<String, Meter> meters,
                        SortedMap<String, Timer> timers) {
-        this.gauges = gauges;
+        this.gauges = (SortedMap) gauges;
         this.counters = counters;
         this.histograms = histograms;
         this.meters = meters;

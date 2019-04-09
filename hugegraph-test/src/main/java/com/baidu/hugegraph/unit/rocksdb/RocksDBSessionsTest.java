@@ -122,9 +122,9 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
 
         Map<String, String> results = new HashMap<>();
         Session session = this.rocks.session();
-        Iterator<BackendColumn> itor = session.scan(TABLE, b("person:1"));
-        while (itor.hasNext()) {
-            BackendColumn col = itor.next();
+        Iterator<BackendColumn> iter = session.scan(TABLE, b("person:1"));
+        while (iter.hasNext()) {
+            BackendColumn col = iter.next();
             results.put(s(col.name), s(col.value));
         }
 
@@ -152,11 +152,11 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
 
         Map<String, String> results = new HashMap<>();
         Session session = this.rocks.session();
-        Iterator<BackendColumn> itor = session.scan(TABLE,
+        Iterator<BackendColumn> iter = session.scan(TABLE,
                                                     b("person:1"),
                                                     b("person:3"));
-        while (itor.hasNext()) {
-            BackendColumn col = itor.next();
+        while (iter.hasNext()) {
+            BackendColumn col = iter.next();
             results.put(s(col.name), s(col.value));
         }
 
@@ -199,11 +199,11 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         this.commit();
 
         Map<ByteBuffer, byte[]> results = new HashMap<>();
-        Iterator<BackendColumn> itor = session.scan(TABLE,
+        Iterator<BackendColumn> iter = session.scan(TABLE,
                                                     new byte[]{1, 0},
                                                     new byte[]{2, 3});
-        while (itor.hasNext()) {
-            BackendColumn col = itor.next();
+        while (iter.hasNext()) {
+            BackendColumn col = iter.next();
             results.put(ByteBuffer.wrap(col.name), col.value);
         }
 
@@ -238,15 +238,15 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
 
         this.commit();
 
-        Iterator<BackendColumn> itor;
+        Iterator<BackendColumn> iter;
 
-        itor = session.scan(TABLE, new byte[]{1, -1}, new byte[]{1, 3});
-        Assert.assertFalse(itor.hasNext());
+        iter = session.scan(TABLE, new byte[]{1, -1}, new byte[]{1, 3});
+        Assert.assertFalse(iter.hasNext());
 
-        itor = session.scan(TABLE, new byte[]{1, 1}, new byte[]{1, -1});
+        iter = session.scan(TABLE, new byte[]{1, 1}, new byte[]{1, -1});
         Map<ByteBuffer, byte[]> results = new HashMap<>();
-        while (itor.hasNext()) {
-            BackendColumn col = itor.next();
+        while (iter.hasNext()) {
+            BackendColumn col = iter.next();
             results.put(ByteBuffer.wrap(col.name), col.value);
         }
 

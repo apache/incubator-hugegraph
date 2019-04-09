@@ -78,7 +78,7 @@ public class TaskAPI extends API {
 
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
 
-        Iterator<HugeTask<Object>> itor;
+        Iterator<HugeTask<Object>> iter;
 
         if (!ids.isEmpty()) {
             LOG.debug("Graph [{}] list tasks with ids {}, limit {}",
@@ -90,20 +90,20 @@ public class TaskAPI extends API {
             limit = NO_LIMIT;
             List<Id> idList = ids.stream().map(IdGenerator::of)
                                           .collect(Collectors.toList());
-            itor = scheduler.tasks(idList);
+            iter = scheduler.tasks(idList);
         } else {
             LOG.debug("Graph [{}] list tasks with status {}, limit {}",
                       graph, status, limit);
             if (status == null) {
-                itor = scheduler.findAllTask(limit);
+                iter = scheduler.findAllTask(limit);
             } else {
-                itor = scheduler.findTask(parseStatus(status), limit);
+                iter = scheduler.findTask(parseStatus(status), limit);
             }
         }
 
         List<Object> tasks = new ArrayList<>();
-        while (itor.hasNext()) {
-            tasks.add(itor.next().asMap(false));
+        while (iter.hasNext()) {
+            tasks.add(iter.next().asMap(false));
         }
         if (limit != NO_LIMIT && tasks.size() > limit) {
             tasks = tasks.subList(0, (int) limit);

@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Map;
 
