@@ -29,7 +29,6 @@ import java.util.Map;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONWriter;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
@@ -51,23 +50,15 @@ import com.google.common.collect.ImmutableMap;
 
 public class JsonSerializer implements Serializer {
 
-    private final GraphSONWriter writer;
-
-    private static final int BUF_SIZE = 128;
     private static final int LBUF_SIZE = 1024;
 
-    public JsonSerializer(GraphSONWriter writer) {
-        this.writer = writer;
+    private static JsonSerializer INSTANCE = new JsonSerializer();
+
+    private JsonSerializer() {
     }
 
-    private String writeObject(Object object) {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream(BUF_SIZE)) {
-            this.writer.writeObject(out, object);
-            return out.toString(API.CHARSET);
-        } catch (Exception e) {
-            throw new HugeException("Failed to serialize %s", e,
-                                    object.getClass().getSimpleName());
-        }
+    public static JsonSerializer instance() {
+        return INSTANCE;
     }
 
     private String writeList(String label, List<?> list) {
@@ -136,7 +127,7 @@ public class JsonSerializer implements Serializer {
 
     @Override
     public String writePropertyKey(PropertyKey propertyKey) {
-        return writeObject(propertyKey);
+        return JsonUtil.toJson(propertyKey);
     }
 
     @Override
@@ -146,7 +137,7 @@ public class JsonSerializer implements Serializer {
 
     @Override
     public String writeVertexLabel(VertexLabel vertexLabel) {
-        return writeObject(vertexLabel);
+        return JsonUtil.toJson(vertexLabel);
     }
 
     @Override
@@ -156,7 +147,7 @@ public class JsonSerializer implements Serializer {
 
     @Override
     public String writeEdgeLabel(EdgeLabel edgeLabel) {
-        return writeObject(edgeLabel);
+        return JsonUtil.toJson(edgeLabel);
     }
 
     @Override
@@ -166,7 +157,7 @@ public class JsonSerializer implements Serializer {
 
     @Override
     public String writeIndexlabel(IndexLabel indexLabel) {
-        return writeObject(indexLabel);
+        return JsonUtil.toJson(indexLabel);
     }
 
     @Override
@@ -188,7 +179,7 @@ public class JsonSerializer implements Serializer {
 
     @Override
     public String writeVertex(Vertex vertex) {
-        return writeObject(vertex);
+        return JsonUtil.toJson(vertex);
     }
 
     @Override
@@ -198,7 +189,7 @@ public class JsonSerializer implements Serializer {
 
     @Override
     public String writeEdge(Edge edge) {
-        return writeObject(edge);
+        return JsonUtil.toJson(edge);
     }
 
     @Override
@@ -209,9 +200,9 @@ public class JsonSerializer implements Serializer {
     @Override
     public String writeIds(String name, Collection<Id> ids) {
         if (ids instanceof List) {
-            return writeList(name, (List<?>) ids);
+            return this.writeList(name, (List<?>) ids);
         } else {
-            return writeList(name, new ArrayList<>(ids));
+            return this.writeList(name, new ArrayList<>(ids));
         }
     }
 
