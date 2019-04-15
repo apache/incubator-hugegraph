@@ -34,6 +34,9 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
 
+    // TODO: read Scylla version from conf
+    private static final int VERSION = 20;
+
     private static final BackendFeatures FEATURES = new ScyllaDBFeatures();
 
     @Override
@@ -80,10 +83,7 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                                    String keyspace, String store) {
             super(provider, keyspace, store);
 
-            // TODO: read Scylla version from conf
-            int version = 20;
-
-            if (version >= 20) {
+            if (VERSION >= 20) {
                 registerTableManager(HugeType.VERTEX_LABEL,
                                      new ScyllaDBTablesWithMV.VertexLabel());
                 registerTableManager(HugeType.EDGE_LABEL,
@@ -117,10 +117,7 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                                   String keyspace, String store) {
             super(provider, keyspace, store);
 
-            // TODO: read Scylla version from conf
-            int version = 20;
-
-            if (version >= 20) {
+            if (VERSION >= 20) {
                 registerTableManager(HugeType.VERTEX,
                                      new ScyllaDBTablesWithMV.Vertex(store));
                 registerTableManager(HugeType.EDGE_OUT,
