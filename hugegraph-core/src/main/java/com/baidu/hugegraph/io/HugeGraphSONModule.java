@@ -89,9 +89,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         TYPE_DEFINITIONS.put(EdgeLabel.class, "EdgeLabel");
         TYPE_DEFINITIONS.put(IndexLabel.class, "IndexLabel");
 
-        // HugeGraph vertex/edge serializer
+        // HugeGraph vertex serializer
         TYPE_DEFINITIONS.put(HugeVertex.class, "HugeVertex");
-        TYPE_DEFINITIONS.put(HugeEdge.class, "HugeEdge");
+        // TYPE_DEFINITIONS.put(HugeEdge.class, "HugeEdge");
 
         // HugeGraph shard serializer
         TYPE_DEFINITIONS.put(Shard.class, "Shard");
@@ -128,7 +128,13 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         addSerializer(IndexLabel.class, new IndexLabelSerializer());
 
         addSerializer(HugeVertex.class, new HugeVertexSerializer());
-        addSerializer(HugeEdge.class, new HugeEdgeSerializer());
+        /*
+         * Use customized edge serializer need to be compatible with V1 and V2
+         * Graphson, and seems need to implement edge deserializer，it is
+         * a little complicated.
+         * Honestly, I don't know why there is no problem with vertex serializer
+         */
+        // addSerializer(HugeEdge.class, new HugeEdgeSerializer());
 
         addSerializer(Shard.class, new ShardSerializer());
     }

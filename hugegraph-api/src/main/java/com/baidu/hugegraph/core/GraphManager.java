@@ -31,7 +31,6 @@ import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
@@ -107,9 +106,7 @@ public final class GraphManager {
     }
 
     public Serializer serializer(Graph g) {
-        // TODO: cache Serializer
-        return new JsonSerializer(g.io(IoCore.graphson()).writer()
-                                   .wrapAdjacencyList(true).create());
+        return JsonSerializer.instance();
     }
 
     public void rollbackAll() {

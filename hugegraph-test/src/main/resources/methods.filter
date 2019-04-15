@@ -61,6 +61,11 @@ org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveVertices: Random UU
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldRemoveEdges: Random UUID as edge label
 org.apache.tinkerpop.gremlin.structure.TransactionTest.shouldExecuteWithCompetingThreads: Hang the tests because property 'test' have both String and long value
 
+## vertex properties doesn't have nested structures
+org.apache.tinkerpop.gremlin.structure.SerializationTest.GraphSONTest.shouldSerializeVertex: Vertex properties doesn't have nested structures
+org.apache.tinkerpop.gremlin.structure.SerializationTest.GraphSONTest.shouldSerializePath: Vertex properties doesn't have nested structures
+org.apache.tinkerpop.gremlin.structure.SerializationTest.GraphSONTest.shouldSerializeTree: Vertex properties doesn't have nested structures
+
 ####################    process suite    ####################
 
 # unsupported automatic edge id, therefore number of edge is wrong
