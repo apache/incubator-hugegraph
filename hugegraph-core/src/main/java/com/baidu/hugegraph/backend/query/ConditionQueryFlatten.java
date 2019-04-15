@@ -37,8 +37,12 @@ import com.google.common.collect.ImmutableList;
 
 public final class ConditionQueryFlatten {
 
+    private static final List<HugeKeys> SPECIAL_KEYS = ImmutableList.of(
+            HugeKeys.LABEL
+    );
+
     public static List<ConditionQuery> flatten(ConditionQuery query) {
-        if (query.isFlattened()) {
+        if (query.isFlattened() && !query.hasDuplicateKeys(SPECIAL_KEYS)) {
             return Arrays.asList(query);
         }
 

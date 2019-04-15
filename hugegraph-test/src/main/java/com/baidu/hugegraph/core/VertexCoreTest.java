@@ -4042,6 +4042,33 @@ public class VertexCoreTest extends BaseCoreTest {
         });
     }
 
+    @Test
+    public void testQueryByJointLabels() {
+        HugeGraph graph = graph();
+        init5Persons();
+        init5Computers();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Vertex> vertices = g.V().hasLabel("person").hasLabel("computer")
+                                 .toList();
+        Assert.assertEquals(0, vertices.size());
+
+        vertices = g.V().hasLabel("person", "computer").hasLabel("person")
+                    .toList();
+        Assert.assertEquals(5, vertices.size());
+        for (Vertex vertex : vertices) {
+            Assert.assertEquals("person", vertex.label());
+        }
+
+        vertices = g.V().hasLabel("person", "computer").hasLabel("computer")
+                    .toList();
+        Assert.assertEquals(5, vertices.size());
+        for (Vertex vertex : vertices) {
+            Assert.assertEquals("computer", vertex.label());
+        }
+    }
+
     private void init10Vertices() {
         HugeGraph graph = graph();
 

@@ -189,6 +189,7 @@ public final class TraversalUtil {
             Condition condition = convHas2Condition(has, resultType, graph);
             query.query(condition);
         }
+//        query.validate();
         return query;
     }
 
