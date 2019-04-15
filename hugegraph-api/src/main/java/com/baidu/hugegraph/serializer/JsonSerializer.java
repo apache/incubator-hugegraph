@@ -50,7 +50,6 @@ import com.google.common.collect.ImmutableMap;
 
 public class JsonSerializer implements Serializer {
 
-    private static final int BUF_SIZE = 128;
     private static final int LBUF_SIZE = 1024;
 
     private static JsonSerializer INSTANCE = new JsonSerializer();
