@@ -470,7 +470,8 @@ public class HugeGraph implements GremlinGraph {
         }
         // Make sure that all transactions are closed in all threads
         E.checkState(this.tx.closed(),
-                     "Ensure tx closed in all threads when closing graph");
+                     "Ensure tx closed in all threads when closing graph '%s'",
+                     this.name);
     }
 
     public void closeTx() {
@@ -590,27 +591,25 @@ public class HugeGraph implements GremlinGraph {
 
     private class TinkerpopTransaction extends AbstractThreadLocalTransaction {
 
-        private AtomicInteger refs;
-
-        private ThreadLocal<Boolean> opened;
-
+        // Times opened from upper layer
+        private final AtomicInteger refs;
+        // Flag opened of each thread
+        private final ThreadLocal<Boolean> opened;
         // Backend transactions
-        private ThreadLocal<GraphTransaction> graphTransaction;
-        private ThreadLocal<SchemaTransaction> schemaTransaction;
+        private final ThreadLocal<Txs> transactions;
 
         public TinkerpopTransaction(Graph graph) {
             super(graph);
 
-            this.refs = new AtomicInteger(0);
-
+            this.refs = new AtomicInteger();
             this.opened = ThreadLocal.withInitial(() -> false);
-            this.graphTransaction = ThreadLocal.withInitial(() -> null);
-            this.schemaTransaction = ThreadLocal.withInitial(() -> null);
+            this.transactions = ThreadLocal.withInitial(() -> null);
         }
 
         public boolean closed() {
-            assert this.refs.get() >= 0 : this.refs.get();
-            return this.refs.get() == 0;
+            int refs = this.refs.get();
+            assert refs >= 0 : refs;
+            return refs == 0;
         }
 
         /**
@@ -653,29 +652,20 @@ public class HugeGraph implements GremlinGraph {
 
         @Override
         protected void doOpen() {
-            this.schemaTransaction();
-            this.graphTransaction();
-
+            this.getOrNewTransaction();
             this.setOpened();
         }
 
         @Override
         protected void doCommit() {
             this.verifyOpened();
-
-            this.schemaTransaction().commit();
-            this.graphTransaction().commit();
+            this.getOrNewTransaction().commit();
         }
 
         @Override
         protected void doRollback() {
             this.verifyOpened();
-
-            try {
-                this.graphTransaction().rollback();
-            } finally {
-                this.schemaTransaction().rollback();
-            }
+            this.getOrNewTransaction().rollback();
         }
 
         @Override
@@ -683,7 +673,7 @@ public class HugeGraph implements GremlinGraph {
             this.verifyOpened();
 
             try {
-                // Calling super will clear listeners
+                // Calling super.doClose() will clear listeners
                 super.doClose();
             } finally {
                 this.resetState();
@@ -692,11 +682,8 @@ public class HugeGraph implements GremlinGraph {
 
         @Override
         public String toString() {
-            return String.format("TinkerpopTransaction{opened=%s, " +
-                                 "graphTx=%s, schemaTx=%s}",
-                                 this.opened.get(),
-                                 this.graphTransaction.get(),
-                                 this.schemaTransaction.get());
+            return String.format("TinkerpopTransaction{opened=%s, txs=%s}",
+                                 this.opened.get(), this.transactions.get());
         }
 
         private void verifyOpened() {
@@ -727,33 +714,27 @@ public class HugeGraph implements GremlinGraph {
         }
 
         private SchemaTransaction schemaTransaction() {
-            /*
-             * NOTE: this method may be called even tx is not opened,
-             * the reason is for reusing backend tx.
-             * so we don't call this.verifyOpened() here.
-             */
-
-            SchemaTransaction schemaTx = this.schemaTransaction.get();
-            if (schemaTx == null) {
-                schemaTx = openSchemaTransaction();
-                this.schemaTransaction.set(schemaTx);
-            }
-            return schemaTx;
+            return this.getOrNewTransaction().schemaTx;
         }
 
         private GraphTransaction graphTransaction() {
+            return this.getOrNewTransaction().graphTx;
+        }
+
+        private Txs getOrNewTransaction() {
             /*
              * NOTE: this method may be called even tx is not opened,
              * the reason is for reusing backend tx.
              * so we don't call this.verifyOpened() here.
              */
 
-            GraphTransaction graphTx = this.graphTransaction.get();
-            if (graphTx == null) {
-                graphTx = openGraphTransaction();
-                this.graphTransaction.set(graphTx);
+            Txs txs = this.transactions.get();
+            if (txs == null) {
+                // TODO: close SchemaTransaction if GraphTransaction is error
+                txs = new Txs(openSchemaTransaction(), openGraphTransaction());
+                this.transactions.set(txs);
             }
-            return graphTx;
+            return txs;
         }
 
         private void destroyTransaction() {
@@ -762,26 +743,57 @@ public class HugeGraph implements GremlinGraph {
                           "Transaction should be closed before destroying");
             }
 
-            GraphTransaction graphTx = this.graphTransaction.get();
-            if (graphTx != null) {
-                try {
-                    graphTx.close();
-                } catch (Exception e) {
-                    LOG.error("Failed to close GraphTransaction", e);
-                }
+            // Do close if needed, then remove the reference
+            Txs txs = this.transactions.get();
+            if (txs != null) {
+                txs.close();
+            }
+            this.transactions.remove();
+        }
+    }
+
+    private static final class Txs {
+
+        public final SchemaTransaction schemaTx;
+        public final GraphTransaction graphTx;
+
+        public Txs(SchemaTransaction schemaTx, GraphTransaction graphTx) {
+            assert schemaTx != null && graphTx != null;
+            this.schemaTx = schemaTx;
+            this.graphTx = graphTx;
+        }
+
+        public void commit() {
+            this.schemaTx.commit();
+            this.graphTx.commit();
+        }
+
+        public void rollback() {
+            try {
+                this.schemaTx.rollback();
+            } finally {
+                this.graphTx.rollback();
+            }
+        }
+
+        public void close() {
+            try {
+                this.graphTx.close();
+            } catch (Exception e) {
+                LOG.error("Failed to close GraphTransaction", e);
             }
 
-            SchemaTransaction schemaTx = this.schemaTransaction.get();
-            if (schemaTx != null) {
-                try {
-                    schemaTx.close();
-                } catch (Exception e) {
-                    LOG.error("Failed to close SchemaTransaction", e);
-                }
+            try {
+                this.schemaTx.close();
+            } catch (Exception e) {
+                LOG.error("Failed to close SchemaTransaction", e);
             }
+        }
 
-            this.graphTransaction.remove();
-            this.schemaTransaction.remove();
+        @Override
+        public String toString() {
+            return String.format("{schemaTx=%s,graphTx=%s}",
+                                 this.schemaTx, this.graphTx);
         }
     }
 }

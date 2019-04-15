@@ -118,7 +118,7 @@ public class StructureBasicSuite extends AbstractGremlinSuite {
             public void evaluate() throws Throwable {
                 statement.evaluate();
                 GraphProvider gp = GraphManager.setGraphProvider(null);
-                ((TestGraphProvider) gp).clearBackends();
+                ((TestGraphProvider) gp).clear();
                 GraphManager.setGraphProvider(gp);
             }
         };

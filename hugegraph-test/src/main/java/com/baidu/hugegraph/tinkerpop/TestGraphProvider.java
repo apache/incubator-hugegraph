@@ -326,10 +326,13 @@ public class TestGraphProvider extends AbstractGraphProvider {
     @Override
     public void clear(Graph graph, Configuration config) throws Exception {
         TestGraph testGraph = (TestGraph) graph;
-        if (testGraph == null || !testGraph.initedBackend()) {
+        if (testGraph == null) {
             return;
         }
         String graphName = config.getString(CoreOptions.STORE.name());
+        if (!testGraph.initedBackend()) {
+            testGraph.close();
+        }
         if (testGraph.closed()) {
             if (this.graphs.get(graphName) == testGraph) {
                 this.graphs.remove(graphName);
@@ -351,10 +354,18 @@ public class TestGraphProvider extends AbstractGraphProvider {
         LOG.debug("Clear graph '{}'", graphName);
     }
 
-    public void clearBackends() {
+    public void clear() {
         for (TestGraph graph : this.graphs.values()) {
             graph.clearBackend();
         }
+        for (TestGraph graph : this.graphs.values()) {
+            try {
+                graph.close();
+            } catch (Exception e) {
+                LOG.error("Error while closing graph '{}'", graph, e);
+            }
+        }
+        this.graphs.clear();
     }
 
     @Watched
