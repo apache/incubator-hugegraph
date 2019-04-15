@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -373,20 +374,9 @@ public abstract class CassandraStore
     }
 
     protected void initKeyspace() {
-        // Replication strategy: SimpleStrategy or NetworkTopologyStrategy
-        String strategy = this.conf.get(CassandraOptions.CASSANDRA_STRATEGY);
-
-        // Replication factor
-        int factor = this.conf.get(CassandraOptions.CASSANDRA_REPLICATION);
-
-        Map<String, Object> replication = new HashMap<>();
-        replication.putIfAbsent("class", strategy);
-        replication.putIfAbsent("replication_factor", factor);
-
         Statement stmt = SchemaBuilder.createKeyspace(this.keyspace)
                                       .ifNotExists().with()
-                                      .replication(replication);
-
+                                      .replication(parseReplica(this.conf));
         // Create keyspace with non-keyspace-session
         LOG.debug("Create keyspace: {}", stmt);
         Session session = this.cluster().connect();
@@ -396,6 +386,51 @@ public abstract class CassandraStore
             if (!session.isClosed()) {
                 session.close();
             }
+        }
+    }
+
+    private static Map<String, Object> parseReplica(HugeConfig conf) {
+        Map<String, Object> replication = new HashMap<>();
+        // Replication strategy: SimpleStrategy or NetworkTopologyStrategy
+        String strategy = conf.get(CassandraOptions.CASSANDRA_STRATEGY);
+        replication.put("class", strategy);
+
+        switch (strategy) {
+            case "SimpleStrategy":
+                List<String> replicas =
+                             conf.get(CassandraOptions.CASSANDRA_REPLICATION);
+                E.checkArgument(replicas.size() == 1,
+                                "Individual factor value should be provided " +
+                                "with SimpleStrategy for Cassandra");
+                int factor = convertFactor(replicas.get(0));
+                replication.put("replication_factor", factor);
+                break;
+            case "NetworkTopologyStrategy":
+                // The replicas format is like 'dc1:2,dc2:1'
+                Map<String, String> replicaMap =
+                            conf.getMap(CassandraOptions.CASSANDRA_REPLICATION);
+                for (Map.Entry<String, String> e : replicaMap.entrySet()) {
+                    E.checkArgument(!e.getKey().isEmpty(),
+                                    "The datacenter can't be empty");
+                    replication.put(e.getKey(), convertFactor(e.getValue()));
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Illegal replication strategy '%s', valid strategy " +
+                          "is 'SimpleStrategy' or 'NetworkTopologyStrategy'",
+                          strategy));
+        }
+        return replication;
+    }
+
+    private static int convertFactor(String factor) {
+        try {
+            return Integer.valueOf(factor);
+        } catch (NumberFormatException e) {
+            throw new HugeException(
+                      "Expect int factor value for SimpleStrategy, " +
+                      "but got '%s'", factor);
         }
     }
 

@@ -155,7 +155,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.sessions = this.open(config, this.tableNames());
 
         // Open tables with optimized disk
-        List<String> disks = config.get(RocksDBOptions.DATA_DISKS);
+        Map<String, String> disks = config.getMap(RocksDBOptions.DATA_DISKS);
         if (!disks.isEmpty()) {
             this.parseTableDiskMapping(disks);
             for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
@@ -446,19 +446,19 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                      this.database, this.provider.type());
     }
 
-    private void parseTableDiskMapping(List<String> disks) {
+    private void parseTableDiskMapping(Map<String, String> disks) {
         this.tableDiskMapping.clear();
-        for (String disk : disks) {
+        for (Map.Entry<String, String> disk : disks.entrySet()) {
             // The format of `disk` like: `graph/vertex: /path/to/disk1`
-            String[] pair = disk.split(":", 2);
-            E.checkState(pair.length == 2,
-                         "Invalid disk format: '%s', expect `NAME:PATH`", disk);
-            String name = pair[0].trim();
-            String path = pair[1].trim();
-            pair = name.split("/", 2);
-            E.checkState(pair.length == 2,
-                         "Invalid disk key format: '%s', expect `STORE/TABLE`",
-                         name);
+            String name = disk.getKey();
+            String path = disk.getValue();
+            E.checkArgument(!name.isEmpty() && !path.isEmpty(),
+                            "Invalid disk format: '%s', expect `NAME:PATH`",
+                            disk);
+            String[] pair = name.split("/", 2);
+            E.checkArgument(pair.length == 2,
+                            "Invalid disk key format: '%s', " +
+                            "expect `STORE/TABLE`", name);
             String store = pair[0].trim();
             HugeType table = HugeType.valueOf(pair[1].trim().toUpperCase());
             if (this.store.equals(store)) {
