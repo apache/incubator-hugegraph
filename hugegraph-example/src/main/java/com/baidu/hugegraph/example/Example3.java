@@ -36,14 +36,15 @@ public class Example3 {
 
         HugeGraph graph = ExampleUtil.loadGraph();
 
-        Example3.load(graph);
+        Example3.loadNeighborRankData(graph);
+//        Example3.loadPersonalRankData(graph);
 
         graph.close();
 
         HugeGraph.shutdown(30L);
     }
 
-    public static void load(final HugeGraph graph) {
+    public static void loadNeighborRankData(final HugeGraph graph) {
         SchemaManager schema = graph.schema();
 
         schema.propertyKey("name").asText().ifNotExist().create();
@@ -118,6 +119,54 @@ public class Example3 {
         F.addEdge("directedBy", L);
 
         G.addEdge("directedBy", M);
+
+        graph.tx().commit();
+    }
+
+    public static void loadPersonalRankData(final HugeGraph graph) {
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("name").asText().ifNotExist().create();
+
+        schema.vertexLabel("person")
+              .properties("name")
+              .useCustomizeStringId()
+              .ifNotExist()
+              .create();
+
+        schema.vertexLabel("movie")
+              .properties("name")
+              .useCustomizeStringId()
+              .ifNotExist()
+              .create();
+
+        schema.edgeLabel("like")
+              .sourceLabel("person")
+              .targetLabel("movie")
+              .ifNotExist()
+              .create();
+
+        graph.tx().open();
+
+        Vertex A = graph.addVertex(T.label, "person", T.id, "A", "name", "A");
+        Vertex B = graph.addVertex(T.label, "person", T.id, "B", "name", "B");
+        Vertex C = graph.addVertex(T.label, "person", T.id, "C", "name", "C");
+
+        Vertex a = graph.addVertex(T.label, "movie", T.id, "a", "name", "a");
+        Vertex b = graph.addVertex(T.label, "movie", T.id, "b", "name", "b");
+        Vertex c = graph.addVertex(T.label, "movie", T.id, "c", "name", "c");
+        Vertex d = graph.addVertex(T.label, "movie", T.id, "d", "name", "d");
+
+        A.addEdge("like", a);
+        A.addEdge("like", c);
+
+        B.addEdge("like", a);
+        B.addEdge("like", b);
+        B.addEdge("like", c);
+        B.addEdge("like", d);
+
+        C.addEdge("like", c);
+        C.addEdge("like", d);
 
         graph.tx().commit();
     }

@@ -61,7 +61,13 @@ public class JsonSerializer implements Serializer {
         return INSTANCE;
     }
 
-    private String writeList(String label, List<?> list) {
+    @Override
+    public String writeMap(Map<?, ?> map) {
+        return JsonUtil.toJson(map);
+    }
+
+    @Override
+    public String writeList(String label, Collection<?> list) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {
             out.write(String.format("{\"%s\": ", label).getBytes(API.CHARSET));
             out.write(JsonUtil.toJson(list).getBytes(API.CHARSET));
@@ -198,15 +204,6 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeIds(String name, Collection<Id> ids) {
-        if (ids instanceof List) {
-            return this.writeList(name, (List<?>) ids);
-        } else {
-            return this.writeList(name, new ArrayList<>(ids));
-        }
-    }
-
-    @Override
     public String writePaths(String name, Collection<HugeTraverser.Path> paths,
                              boolean withCrossPoint,
                              Iterator<Vertex> vertices) {
@@ -242,10 +239,5 @@ public class JsonSerializer implements Serializer {
                                   "paths", pathList,
                                   "vertices", iterator);
         return JsonUtil.toJson(results);
-    }
-
-    @Override
-    public String writeShards(List<Shard> shards) {
-        return this.writeList("shards", shards);
     }
 }

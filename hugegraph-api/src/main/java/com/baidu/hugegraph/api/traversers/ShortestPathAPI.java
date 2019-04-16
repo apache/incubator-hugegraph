@@ -85,6 +85,6 @@ public class ShortestPathAPI extends API {
         List<Id> path = traverser.shortestPath(sourceId, targetId, dir,
                                                edgeLabel, depth, degree,
                                                skipDegree, capacity);
-        return manager.serializer(g).writeIds("path", path);
+        return manager.serializer(g).writeList("path", path);
     }
 }

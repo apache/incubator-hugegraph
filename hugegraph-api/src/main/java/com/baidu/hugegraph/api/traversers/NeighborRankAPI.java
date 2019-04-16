@@ -50,7 +50,6 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -91,7 +90,7 @@ public class NeighborRankAPI extends API {
         traverser = new NeighborRankTraverser(g, request.alpha,
                                               request.capacity);
         List<Map<Id, Double>> ranks = traverser.neighborRank(sourceId, steps);
-        return JsonUtil.toJson(ranks);
+        return manager.serializer(g).writeList("ranks", ranks);
     }
 
     private static List<NeighborRankTraverser.Step> steps(HugeGraph graph,

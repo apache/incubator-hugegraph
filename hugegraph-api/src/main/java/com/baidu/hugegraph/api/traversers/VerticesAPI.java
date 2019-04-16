@@ -93,7 +93,7 @@ public class VerticesAPI extends API {
         HugeGraph g = graph(manager, graph);
         List<Shard> shards = g.graphTransaction()
                               .metadata(HugeType.VERTEX, "splits", splitSize);
-        return manager.serializer(g).writeShards(shards);
+        return manager.serializer(g).writeList("shards", shards);
     }
 
     @GET

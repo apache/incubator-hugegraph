@@ -42,7 +42,6 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.PersonalRankTraverser;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -86,7 +85,7 @@ public class PersonalRankAPI extends API {
         if (request.sorted) {
             ranks = CollectionUtil.sortByValue(ranks, false);
         }
-        return JsonUtil.toJson(ranks);
+        return manager.serializer(g).writeMap(ranks);
     }
 
     private static class RankRequest {
