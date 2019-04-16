@@ -47,12 +47,6 @@ public class Example3 {
         SchemaManager schema = graph.schema();
 
         schema.propertyKey("name").asText().ifNotExist().create();
-        schema.propertyKey("age").asInt().ifNotExist().create();
-        schema.propertyKey("city").asText().ifNotExist().create();
-        schema.propertyKey("weight").asDouble().ifNotExist().create();
-        schema.propertyKey("lang").asText().ifNotExist().create();
-        schema.propertyKey("date").asText().ifNotExist().create();
-        schema.propertyKey("price").asInt().ifNotExist().create();
 
         schema.vertexLabel("person")
               .properties("name")
@@ -78,7 +72,7 @@ public class Example3 {
               .ifNotExist()
               .create();
 
-        schema.edgeLabel("directedby")
+        schema.edgeLabel("directedBy")
               .sourceLabel("movie")
               .targetLabel("person")
               .ifNotExist()
@@ -119,11 +113,11 @@ public class Example3 {
         C.addEdge("like", I);
         C.addEdge("like", J);
 
-        E.addEdge("directedby", K);
-        F.addEdge("directedby", B);
-        F.addEdge("directedby", L);
+        E.addEdge("directedBy", K);
+        F.addEdge("directedBy", B);
+        F.addEdge("directedBy", L);
 
-        G.addEdge("directedby", M);
+        G.addEdge("directedBy", M);
 
         graph.tx().commit();
     }

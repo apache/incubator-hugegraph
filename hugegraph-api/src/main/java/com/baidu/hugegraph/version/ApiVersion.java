@@ -83,7 +83,7 @@ public final class ApiVersion {
      * [0.35] Issue-287: Support pagination when do index query
      * [0.36] Issue-360: Support paging for scan api
      * [0.37] Issue-391: Add skip_super_node for shortest path
-     * [0.38] Issue-274: Add neighborrank API
+     * [0.38] Issue-274: Add personalrank and neighborrank RESTful API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR

@@ -40,7 +40,7 @@ import com.baidu.hugegraph.util.OrderLimitMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class RankTraverser extends HugeTraverser {
+public class NeighborRankTraverser extends HugeTraverser {
 
     public static final int MAX_STEPS = 100;
     public static final int MAX_TOP = 1000;
@@ -49,7 +49,7 @@ public class RankTraverser extends HugeTraverser {
     private final double alpha;
     private final long capacity;
 
-    public RankTraverser(HugeGraph graph, double alpha, long capacity) {
+    public NeighborRankTraverser(HugeGraph graph, double alpha, long capacity) {
         super(graph);
         checkCapacity(capacity);
         this.alpha = alpha;
@@ -111,7 +111,7 @@ public class RankTraverser extends HugeTraverser {
                         Node newNode = new Node(target, n);
                         adjacencies.add(vertex, newNode);
 
-                        checkCapacity(capacity, ++access, "neighbor ranks");
+                        checkCapacity(this.capacity, ++access, "neighbor rank");
                     }
                 }
                 List<Node> adjacenciesV = adjacencies.getOrDefault(vertex,

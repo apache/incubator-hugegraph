@@ -23,8 +23,8 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPA
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.RankTraverser.MAX_STEPS;
-import static com.baidu.hugegraph.traversal.algorithm.RankTraverser.MAX_TOP;
+import static com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser.MAX_STEPS;
+import static com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser.MAX_TOP;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,7 +47,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.traversal.algorithm.RankTraverser;
+import com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -86,16 +86,17 @@ public class NeighborRankAPI extends API {
         Id sourceId = VertexAPI.checkAndParseVertexId(request.source);
         HugeGraph g = graph(manager, graph);
 
-        List<RankTraverser.Step> steps = steps(g, request);
-        RankTraverser traverser = new RankTraverser(g, request.alpha,
-                                                    request.capacity);
+        List<NeighborRankTraverser.Step> steps = steps(g, request);
+        NeighborRankTraverser traverser;
+        traverser = new NeighborRankTraverser(g, request.alpha,
+                                              request.capacity);
         List<Map<Id, Double>> ranks = traverser.neighborRank(sourceId, steps);
         return JsonUtil.toJson(ranks);
     }
 
-    private static List<RankTraverser.Step> steps(HugeGraph graph,
-                                                  RankRequest req) {
-        List<RankTraverser.Step> steps = new ArrayList<>(req.steps.size());
+    private static List<NeighborRankTraverser.Step> steps(HugeGraph graph,
+                                                          RankRequest req) {
+        List<NeighborRankTraverser.Step> steps = new ArrayList<>();
         for (Step step : req.steps) {
             steps.add(step.jsonToStep(graph));
         }
@@ -139,7 +140,7 @@ public class NeighborRankAPI extends API {
                                  this.degree, this.top);
         }
 
-        private RankTraverser.Step jsonToStep(HugeGraph graph) {
+        private NeighborRankTraverser.Step jsonToStep(HugeGraph graph) {
             E.checkArgument(this.degree > 0 || this.degree == NO_LIMIT,
                             "The degree must be > 0, but got: %s",
                             this.degree);
@@ -152,8 +153,8 @@ public class NeighborRankAPI extends API {
                     labelIds.put(el.id(), label);
                 }
             }
-            return new RankTraverser.Step(this.direction, labelIds,
-                                          this.degree, this.top);
+            return new NeighborRankTraverser.Step(this.direction, labelIds,
+                                                  this.degree, this.top);
         }
     }
 }
