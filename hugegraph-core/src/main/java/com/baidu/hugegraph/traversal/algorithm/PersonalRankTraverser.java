@@ -55,11 +55,17 @@ public class PersonalRankTraverser extends HugeTraverser {
     }
 
     public Map<Id, Double> personalRank(Id source, String label) {
+        E.checkArgumentNotNull(source, "The source vertex id can't be null");
+        E.checkArgumentNotNull(label, "The edge label can't be null");
+
+        Map<Id, Double> ranks = new HashMap<>();
+        ranks.put(source, 1.0);
+
         Id labelId = this.graph().edgeLabel(label).id();
         Directions dir = this.getStartDirection(source, label);
         long degree = this.degreeOfVertex(source, dir, labelId);
         if (degree <= 0) {
-            return ImmutableMap.of(source, 1.0);
+            return ranks;
         }
 
         Set<Id> outSeeds = new HashSet<>();
@@ -69,9 +75,6 @@ public class PersonalRankTraverser extends HugeTraverser {
         } else {
             inSeeds.add(source);
         }
-
-        Map<Id, Double> ranks = new HashMap<>();
-        ranks.put(source, 1.0);
 
         for (long i = 0; i < this.maxDepth; i++) {
             Map<Id, Double> incrRanks = this.getIncrRanks(outSeeds, inSeeds,

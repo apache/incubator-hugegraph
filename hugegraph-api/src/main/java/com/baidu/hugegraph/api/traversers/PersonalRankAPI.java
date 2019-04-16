@@ -58,13 +58,10 @@ public class PersonalRankAPI extends API {
     public String personalRank(@Context GraphManager manager,
                                @PathParam("graph") String graph,
                                RankRequest request) {
-        LOG.debug("Graph [{}] get personal rank from '{}' with " +
-                  "edge label '{}', alpha '{}', max depth '{}'",
-                  graph, request.source, request.label,
-                  request.alpha, request.maxDepth);
-
-        E.checkNotNull(request.source, "source vertex id");
-        E.checkNotNull(request.label, "edge label");
+        E.checkArgument(request.source != null,
+                        "The source vertex id of rank request can't be null");
+        E.checkArgument(request.label != null,
+                        "The edge label of rank request can't be null");
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
                         "The alpha of rank request must belong (0, 1], " +
                         "but got '%s'", request.alpha);
@@ -74,6 +71,12 @@ public class PersonalRankAPI extends API {
         E.checkArgument(request.maxDepth >= 1,
                         "The max depth of rank request must >= 1, but got '%s'",
                         request.maxDepth);
+
+        LOG.debug("Graph [{}] get personal rank from '{}' with " +
+                  "edge label '{}', alpha '{}', degree '{}', " +
+                  "max depth '{}', sorted '{}'",
+                  graph, request.source, request.label, request.alpha,
+                  request.degree, request.maxDepth, request.sorted);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(request.source);
         HugeGraph g = graph(manager, graph);

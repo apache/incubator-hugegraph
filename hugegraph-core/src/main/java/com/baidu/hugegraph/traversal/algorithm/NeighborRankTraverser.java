@@ -38,7 +38,6 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.OrderLimitMap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 public class NeighborRankTraverser extends HugeTraverser {
 
@@ -66,8 +65,8 @@ public class NeighborRankTraverser extends HugeTraverser {
         boolean sameLayerTransfer = true;
         long access = 0;
         // Result
-        List<Map<Id, Double>> ranks = new ArrayList<>();
-        ranks.add(ImmutableMap.of(source, 1.0));
+        List<Ranks> ranks = new ArrayList<>();
+        ranks.add(Ranks.of(source, 1.0));
 
         root : for (Step step : steps) {
             Map<Id, Double> lastLayerRanks = ranks.get(ranks.size() - 1);
@@ -132,7 +131,7 @@ public class NeighborRankTraverser extends HugeTraverser {
                 this.contributePrevLayers(ranks, incr, prevLayerNodesV);
             }
 
-            Map<Id, Double> newLayerRanks;
+            Ranks newLayerRanks;
             if (sameLayerTransfer) {
                 // First contribute to last layer, then pass to the new layer
                 this.contributeLastLayer(sameLayerIncrRanks, lastLayerRanks);
@@ -164,13 +163,12 @@ public class NeighborRankTraverser extends HugeTraverser {
         }
     }
 
-    private boolean belongToPrevLayers(List<Map<Id, Double>> ranks, Id target,
+    private boolean belongToPrevLayers(List<Ranks> ranks, Id target,
                                        Map<Integer, Set<Id>> prevLayerNodes) {
         for (int i = ranks.size() - 2; i > 0; i--) {
-            Map<Id, Double> prevLayerRanks = ranks.get(i);
+            Ranks prevLayerRanks = ranks.get(i);
             if (prevLayerRanks.containsKey(target)) {
-                Set<Id> nodes = prevLayerNodes.computeIfAbsent(i,
-                                               k -> new HashSet<>());
+                Set<Id> nodes = prevLayerNodes.computeIfAbsent(i, HashSet::new);
                 nodes.add(target);
                 return true;
             }
@@ -186,7 +184,7 @@ public class NeighborRankTraverser extends HugeTraverser {
         }
     }
 
-    private void contributePrevLayers(List<Map<Id, Double>> ranks, double incr,
+    private void contributePrevLayers(List<Ranks> ranks, double incr,
                                       Map<Integer, Set<Id>> prevLayerNodesV) {
         for (Map.Entry<Integer, Set<Id>> e : prevLayerNodesV.entrySet()) {
             Map<Id, Double> prevLayerRanks = ranks.get(e.getKey());
@@ -206,11 +204,10 @@ public class NeighborRankTraverser extends HugeTraverser {
         }
     }
 
-    private Map<Id, Double> contributeNewLayer(
-                            MultivaluedMap<Id, Node> adjacencies,
-                            Map<Id, Double> lastLayerRanks,
-                            int capacity) {
-        Map<Id, Double> newLayerRanks = new OrderLimitMap<>(capacity);
+    private Ranks contributeNewLayer(MultivaluedMap<Id, Node> adjacencies,
+                                     Map<Id, Double> lastLayerRanks,
+                                     int capacity) {
+        Ranks newLayerRanks = new Ranks(capacity);
         for (Map.Entry<Id, List<Node>> entry : adjacencies.entrySet()) {
             Id parent = entry.getKey();
             long size = entry.getValue().size();
@@ -223,7 +220,7 @@ public class NeighborRankTraverser extends HugeTraverser {
         return newLayerRanks;
     }
 
-    private List<Map<Id, Double>> topRanks(List<Map<Id, Double>> ranks,
+    private List<Map<Id, Double>> topRanks(List<Ranks> ranks,
                                            List<Step> steps) {
         assert ranks.size() > 0;
         List<Map<Id, Double>> results = new ArrayList<>(ranks.size());
@@ -231,8 +228,7 @@ public class NeighborRankTraverser extends HugeTraverser {
         results.add(ranks.get(0));
         for (int i = 1; i < ranks.size(); i++) {
             Step step = steps.get(i - 1);
-            OrderLimitMap<Id, Double> origin = (OrderLimitMap<Id, Double>)
-                                               ranks.get(i);
+            Ranks origin = ranks.get(i);
             if (origin.size() > step.top) {
                 results.add(origin.topN(step.top));
             } else {
@@ -257,6 +253,19 @@ public class NeighborRankTraverser extends HugeTraverser {
             this.degree = degree;
             this.top = top;
             this.capacity = DEFAULT_CAPACITY_PER_LAYER;
+        }
+    }
+
+    private static class Ranks extends OrderLimitMap<Id, Double> {
+
+        public Ranks(int capacity) {
+            super(capacity);
+        }
+
+        public static Ranks of(Id key, Double value) {
+            Ranks ranks = new Ranks(1);
+            ranks.put(key, value);
+            return ranks;
         }
     }
 }

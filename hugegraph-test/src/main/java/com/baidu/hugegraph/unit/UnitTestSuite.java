@@ -47,7 +47,6 @@ import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
     EdgeIdTest.class,
     AnalyzerTest.class,
     JsonUtilTest.class,
-    OrderLimitMapTest.class,
 
     RocksDBSessionsTest.class,
     RocksDBCountersTest.class
