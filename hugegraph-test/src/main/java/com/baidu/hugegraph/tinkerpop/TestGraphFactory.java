@@ -19,10 +19,12 @@
 
 package com.baidu.hugegraph.tinkerpop;
 
-import com.baidu.hugegraph.HugeFactory;
 import org.apache.commons.configuration.Configuration;
 
+import com.baidu.hugegraph.HugeFactory;
+
 public class TestGraphFactory {
+
     public static TestGraph open(Configuration config) {
         return new TestGraph(HugeFactory.open(config));
     }
