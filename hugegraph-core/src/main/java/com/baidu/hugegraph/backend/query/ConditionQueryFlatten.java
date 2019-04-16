@@ -34,10 +34,11 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public final class ConditionQueryFlatten {
 
-    private static final List<HugeKeys> SPECIAL_KEYS = ImmutableList.of(
+    private static final Set<HugeKeys> SPECIAL_KEYS = ImmutableSet.of(
             HugeKeys.LABEL
     );
 

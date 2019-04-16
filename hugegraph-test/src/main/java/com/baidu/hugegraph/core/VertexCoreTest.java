@@ -4047,12 +4047,17 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init5Persons();
         init5Computers();
+        init10Vertices();
 
         GraphTraversalSource g = graph.traversal();
 
         List<Vertex> vertices = g.V().hasLabel("person").hasLabel("computer")
                                  .toList();
         Assert.assertEquals(0, vertices.size());
+
+        vertices = g.V().hasLabel("person").hasLabel("person")
+                    .toList();
+        Assert.assertEquals(5, vertices.size());
 
         vertices = g.V().hasLabel("person", "computer").hasLabel("person")
                     .toList();
@@ -4067,6 +4072,24 @@ public class VertexCoreTest extends BaseCoreTest {
         for (Vertex vertex : vertices) {
             Assert.assertEquals("computer", vertex.label());
         }
+
+        vertices = g.V().hasLabel("person").hasLabel("person", "computer")
+                    .toList();
+        Assert.assertEquals(5, vertices.size());
+        for (Vertex vertex : vertices) {
+            Assert.assertEquals("person", vertex.label());
+        }
+
+        vertices = g.V().hasLabel("person", "computer")
+                    .hasLabel("person", "author").toList();
+        Assert.assertEquals(5, vertices.size());
+        for (Vertex vertex : vertices) {
+            Assert.assertEquals("person", vertex.label());
+        }
+
+        vertices = g.V().hasLabel("person", "computer")
+                    .hasLabel("book", "language").toList();
+        Assert.assertEquals(0, vertices.size());
     }
 
     private void init10Vertices() {

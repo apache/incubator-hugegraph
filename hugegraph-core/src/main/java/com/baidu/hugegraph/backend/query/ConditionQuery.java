@@ -21,10 +21,12 @@ package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -35,7 +37,6 @@ import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.base.Function;
 
@@ -70,48 +71,6 @@ public final class ConditionQuery extends IdQuery {
 
         this.conditions.add(condition);
         return this;
-    }
-
-    public void validate() {
-        // Check conditions of label
-        List<List<Object>> labelsList = new ArrayList<>();
-        for (Condition condition : this.conditions) {
-            if (!condition.isRelation()) {
-                continue;
-            }
-            Relation relation = (Relation) condition;
-            if (relation.key().equals(HugeKeys.LABEL)) {
-                if (relation.relation() == RelationType.IN) {
-                    @SuppressWarnings("unchecked")
-                    List<Object> labels = (List<Object>) relation.value();
-                    labelsList.add(labels);
-                } else {
-                    List<Object> labels = new ArrayList<>();
-                    labels.add(relation.value());
-                    labelsList.add(labels);
-                }
-            }
-        }
-        if (labelsList.size() <= 1) {
-            return;
-        }
-
-        this.unsetCondition(HugeKeys.LABEL);
-        // Intersection
-        List<Object> results = null;
-        for (List<Object> labels : labelsList) {
-            if (results == null) {
-                results = labels;
-            } else {
-                CollectionUtil.intersectWithModify(results, labels);
-            }
-            if (results.isEmpty()) {
-                break;
-            }
-        }
-        if (results != null && !results.isEmpty()) {
-            this.conditions.add(Condition.in(HugeKeys.LABEL, results));
-        }
     }
 
     public ConditionQuery eq(HugeKeys key, Object value) {
@@ -453,22 +412,22 @@ public final class ConditionQuery extends IdQuery {
         return true;
     }
 
-    public boolean hasDuplicateKeys(List<HugeKeys> keys) {
-        for (HugeKeys key : keys) {
-            int keyCount = 0;
-            for (Condition condition : this.conditions()) {
-                if (!condition.isRelation()) {
-                    continue;
-                }
-                Relation relation = (Relation) condition;
-                if (relation.key().equals(key)) {
-                    keyCount++;
-                    if (keyCount > 1) {
-                        return true;
-                    }
-                }
-
+    public boolean hasDuplicateKeys(Set<HugeKeys> keys) {
+        Map<HugeKeys, Integer> keyCounts = new HashMap<>();
+        for (Condition condition : this.conditions()) {
+            if (!condition.isRelation()) {
+                continue;
             }
+            Relation relation = (Relation) condition;
+            if (keys.contains(relation.key())) {
+                int keyCount = keyCounts.getOrDefault(relation.key(), 1);
+                keyCount++;
+                if (keyCount > 1) {
+                    return true;
+                }
+                keyCounts.put((HugeKeys) relation.key(), keyCount);
+            }
+
         }
         return false;
     }
