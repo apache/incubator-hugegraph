@@ -64,12 +64,12 @@ public class NeighborRankTraverser extends HugeTraverser {
 
         boolean sameLayerTransfer = true;
         long access = 0;
-        // Result
+        // Results: ranks of each layer
         List<Ranks> ranks = new ArrayList<>();
         ranks.add(Ranks.of(source, 1.0));
 
         root : for (Step step : steps) {
-            Map<Id, Double> lastLayerRanks = ranks.get(ranks.size() - 1);
+            Ranks lastLayerRanks = ranks.get(ranks.size() - 1);
             Map<Id, Double> sameLayerIncrRanks = new HashMap<>();
             MultivaluedMap<Id, Node> adjacencies = newMultivalueMap();
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
@@ -187,7 +187,7 @@ public class NeighborRankTraverser extends HugeTraverser {
     private void contributePrevLayers(List<Ranks> ranks, double incr,
                                       Map<Integer, Set<Id>> prevLayerNodesV) {
         for (Map.Entry<Integer, Set<Id>> e : prevLayerNodesV.entrySet()) {
-            Map<Id, Double> prevLayerRanks = ranks.get(e.getKey());
+            Ranks prevLayerRanks = ranks.get(e.getKey());
             for (Id node : e.getValue()) {
                 double oldRank = prevLayerRanks.get(node);
                 prevLayerRanks.put(node, oldRank + incr);
@@ -196,7 +196,7 @@ public class NeighborRankTraverser extends HugeTraverser {
     }
 
     private void contributeLastLayer(Map<Id, Double> rankIncrs,
-                                     Map<Id, Double> lastLayerRanks) {
+                                     Ranks lastLayerRanks) {
         for (Map.Entry<Id, Double> entry : rankIncrs.entrySet()) {
             double originRank = lastLayerRanks.get(entry.getKey());
             double incrRank = entry.getValue();
@@ -205,8 +205,7 @@ public class NeighborRankTraverser extends HugeTraverser {
     }
 
     private Ranks contributeNewLayer(MultivaluedMap<Id, Node> adjacencies,
-                                     Map<Id, Double> lastLayerRanks,
-                                     int capacity) {
+                                     Ranks lastLayerRanks, int capacity) {
         Ranks newLayerRanks = new Ranks(capacity);
         for (Map.Entry<Id, List<Node>> entry : adjacencies.entrySet()) {
             Id parent = entry.getKey();
