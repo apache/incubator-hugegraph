@@ -420,14 +420,13 @@ public final class ConditionQuery extends IdQuery {
             }
             Relation relation = (Relation) condition;
             if (keys.contains(relation.key())) {
-                int keyCount = keyCounts.getOrDefault(relation.key(), 1);
+                int keyCount = keyCounts.getOrDefault(relation.key(), 0);
                 keyCount++;
                 if (keyCount > 1) {
                     return true;
                 }
                 keyCounts.put((HugeKeys) relation.key(), keyCount);
             }
-
         }
         return false;
     }
