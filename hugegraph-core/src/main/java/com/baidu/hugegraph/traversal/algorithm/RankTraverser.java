@@ -42,38 +42,38 @@ import com.google.common.collect.ImmutableMap;
 
 public class RankTraverser extends HugeTraverser {
 
-    private final double alpha;
+    public static final int MAX_STEPS = 100;
+    public static final int MAX_TOP = 1000;
+    public static final int DEFAULT_CAPACITY_PER_LAYER = 100000;
 
-    public RankTraverser(HugeGraph graph, double alpha) {
+    private final double alpha;
+    private final long capacity;
+
+    public RankTraverser(HugeGraph graph, double alpha, long capacity) {
         super(graph);
+        checkCapacity(capacity);
         this.alpha = alpha;
+        this.capacity = capacity;
     }
 
-    public List<Map<Id, Double>> neighborRank(Id source, List<Step> steps,
-                                              long capacity, long limit) {
+    public List<Map<Id, Double>> neighborRank(Id source, List<Step> steps) {
+        E.checkArgumentNotNull(source, "The source vertex id can't be null");
         E.checkArgument(!steps.isEmpty(), "The steps can't be empty");
-        checkCapacity(capacity);
-        checkLimit(limit);
 
         MultivaluedMap<Id, Node> sources = newMultivalueMap();
         sources.add(source, new Node(source, null));
 
         boolean sameLayerTransfer = true;
-        int stepNum = steps.size();
-        int pathCount = 0;
         long access = 0;
         // Result
-        List<Map<Id, Double>> ranks = new ArrayList<>(stepNum + 1);
+        List<Map<Id, Double>> ranks = new ArrayList<>();
         ranks.add(ImmutableMap.of(source, 1.0));
 
-        MultivaluedMap<Id, Node> newVertices;
         root : for (Step step : steps) {
-            stepNum--;
-            newVertices = newMultivalueMap();
-
             Map<Id, Double> lastLayerRanks = ranks.get(ranks.size() - 1);
             Map<Id, Double> sameLayerIncrRanks = new HashMap<>();
             MultivaluedMap<Id, Node> adjacencies = newMultivalueMap();
+            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             // Traversal vertices of previous level
             for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
                 Id vertex = entry.getKey();
@@ -82,14 +82,15 @@ public class RankTraverser extends HugeTraverser {
                                                      step.degree);
 
                 long degree = 0L;
-                Set<Id> sameLayerNodes = new HashSet<>();
-                Map<Integer, Set<Id>> prevLayerNodes = new HashMap<>();
+                Set<Id> sameLayerNodesV = new HashSet<>();
+                Map<Integer, Set<Id>> prevLayerNodesV = new HashMap<>();
                 while (edges.hasNext()) {
                     degree++;
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
                     // Determine whether it belongs to the same layer
-                    if (belongToSameLayer(sources, target, sameLayerNodes)) {
+                    if (this.belongToSameLayer(sources.keySet(), target,
+                                               sameLayerNodesV)) {
                         continue;
                     }
                     /*
@@ -97,7 +98,8 @@ public class RankTraverser extends HugeTraverser {
                      * if it belongs to, update the weight, but don't pass
                      * any more
                      */
-                    if (belongToPrevLayers(ranks, target, prevLayerNodes)) {
+                    if (this.belongToPrevLayers(ranks, target,
+                                                prevLayerNodesV)) {
                         continue;
                     }
 
@@ -112,35 +114,22 @@ public class RankTraverser extends HugeTraverser {
                         checkCapacity(capacity, ++access, "neighbor ranks");
                     }
                 }
-                List<Node> adjacency = adjacencies.getOrDefault(vertex,
-                                                   ImmutableList.of());
-                assert degree == sameLayerNodes.size() + prevLayerNodes.size() +
-                                 adjacency.size();
+                List<Node> adjacenciesV = adjacencies.getOrDefault(vertex,
+                                                      ImmutableList.of());
+                assert degree == sameLayerNodesV.size() +
+                                 prevLayerNodesV.size() + adjacenciesV.size();
 
-                // Add current node's adjacent nodes
-                for (Node node : adjacency) {
+                // Add adjacent nodes of current node to sources of next step
+                for (Node node : adjacenciesV) {
                     newVertices.add(node.id(), node);
-                    // Avoid exceeding limit
-                    if (stepNum == 0) {
-                        if (limit != NO_LIMIT && ++pathCount >= limit) {
-                            break root;
-                        }
-                    }
                 }
                 double incr = lastLayerRanks.getOrDefault(vertex, 0.0) *
                               this.alpha / degree;
-                // Save the contribution of the same layer node(increment)
-                for (Id node : sameLayerNodes) {
-                    sameLayerIncrRanks.put(node, incr);
-                }
+                // Merge the increment of the same layer node
+                this.mergeSameLayerIncrRanks(sameLayerNodesV, incr,
+                                             sameLayerIncrRanks);
                 // Adding contributions to the previous layers
-                for (Map.Entry<Integer, Set<Id>> e : prevLayerNodes.entrySet()) {
-                    Map<Id, Double> prevLayerRanks = ranks.get(e.getKey());
-                    for (Id node : e.getValue()) {
-                        double oldRank = prevLayerRanks.get(node);
-                        prevLayerRanks.put(node, oldRank + incr);
-                    }
-                }
+                this.contributePrevLayers(ranks, incr, prevLayerNodesV);
             }
 
             Map<Id, Double> newLayerRanks;
@@ -148,11 +137,13 @@ public class RankTraverser extends HugeTraverser {
                 // First contribute to last layer, then pass to the new layer
                 this.contributeLastLayer(sameLayerIncrRanks, lastLayerRanks);
                 newLayerRanks = this.contributeNewLayer(adjacencies,
-                                                        lastLayerRanks, step);
+                                                        lastLayerRanks,
+                                                        step.capacity);
             } else {
                 // First pass to the new layer, then contribute to last layer
                 newLayerRanks = this.contributeNewLayer(adjacencies,
-                                                        lastLayerRanks, step);
+                                                        lastLayerRanks,
+                                                        step.capacity);
                 this.contributeLastLayer(sameLayerIncrRanks, lastLayerRanks);
             }
             ranks.add(newLayerRanks);
@@ -160,15 +151,12 @@ public class RankTraverser extends HugeTraverser {
             // Re-init sources
             sources = newVertices;
         }
-        if (stepNum != 0) {
-            return ImmutableList.of(ImmutableMap.of());
-        }
         return this.topRanks(ranks, steps);
     }
 
-    private boolean belongToSameLayer(MultivaluedMap<Id, Node> sources,
-                                      Id target, Set<Id> sameLayerNodes) {
-        if (sources.containsKey(target)) {
+    private boolean belongToSameLayer(Set<Id> sources, Id target,
+                                      Set<Id> sameLayerNodes) {
+        if (sources.contains(target)) {
             sameLayerNodes.add(target);
             return true;
         } else {
@@ -190,6 +178,25 @@ public class RankTraverser extends HugeTraverser {
         return false;
     }
 
+    private void mergeSameLayerIncrRanks(Set<Id> sameLayerNodesV, double incr,
+                                         Map<Id, Double> sameLayerIncrRanks) {
+        for (Id node : sameLayerNodesV) {
+            double oldRank = sameLayerIncrRanks.getOrDefault(node, 0.0);
+            sameLayerIncrRanks.put(node, oldRank + incr);
+        }
+    }
+
+    private void contributePrevLayers(List<Map<Id, Double>> ranks, double incr,
+                                      Map<Integer, Set<Id>> prevLayerNodesV) {
+        for (Map.Entry<Integer, Set<Id>> e : prevLayerNodesV.entrySet()) {
+            Map<Id, Double> prevLayerRanks = ranks.get(e.getKey());
+            for (Id node : e.getValue()) {
+                double oldRank = prevLayerRanks.get(node);
+                prevLayerRanks.put(node, oldRank + incr);
+            }
+        }
+    }
+
     private void contributeLastLayer(Map<Id, Double> rankIncrs,
                                      Map<Id, Double> lastLayerRanks) {
         for (Map.Entry<Id, Double> entry : rankIncrs.entrySet()) {
@@ -202,8 +209,8 @@ public class RankTraverser extends HugeTraverser {
     private Map<Id, Double> contributeNewLayer(
                             MultivaluedMap<Id, Node> adjacencies,
                             Map<Id, Double> lastLayerRanks,
-                            Step step) {
-        Map<Id, Double> newLayerRanks = new OrderLimitMap<>(step.capacity);
+                            int capacity) {
+        Map<Id, Double> newLayerRanks = new OrderLimitMap<>(capacity);
         for (Map.Entry<Id, List<Node>> entry : adjacencies.entrySet()) {
             Id parent = entry.getKey();
             long size = entry.getValue().size();
@@ -236,9 +243,6 @@ public class RankTraverser extends HugeTraverser {
     }
 
     public static class Step {
-
-        public static final int MAX_TOP = 1000;
-        public static final int DEFAULT_CAPACITY_PER_LAYER = 100000;
 
         private final Directions direction;
         private final Map<Id, String> labels;

@@ -23,7 +23,8 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPA
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.RankTraverser.Step.MAX_TOP;
+import static com.baidu.hugegraph.traversal.algorithm.RankTraverser.MAX_STEPS;
+import static com.baidu.hugegraph.traversal.algorithm.RankTraverser.MAX_TOP;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,29 +72,29 @@ public class NeighborRankAPI extends API {
                                "The sources of rank request can't be null");
         E.checkArgument(request.steps != null && !request.steps.isEmpty(),
                         "The steps of rank request can't be empty");
+        E.checkArgument(request.steps.size() <= MAX_STEPS,
+                        "The steps length of rank request can't exceed %s",
+                        MAX_STEPS);
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
                         "The alpha of rank request must belong (0, 1], " +
                         "but got '%s'", request.alpha);
 
         LOG.debug("Graph [{}] get neighbor rank from '{}' with steps '{}', " +
-                  "alpha '{}', capacity '{}', limit '{}'",
-                  graph, request.source, request.steps, request.alpha,
-                  request.capacity, request.limit);
+                  "alpha '{}', capacity '{}'", graph, request.source,
+                  request.steps, request.alpha, request.capacity);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(request.source);
         HugeGraph g = graph(manager, graph);
 
-        List<RankTraverser.Step> steps = step(g, request);
-
-        RankTraverser traverser = new RankTraverser(g, request.alpha);
-        List<Map<Id, Double>> ranks = traverser.neighborRank(sourceId, steps,
-                                                             request.capacity,
-                                                             request.limit);
+        List<RankTraverser.Step> steps = steps(g, request);
+        RankTraverser traverser = new RankTraverser(g, request.alpha,
+                                                    request.capacity);
+        List<Map<Id, Double>> ranks = traverser.neighborRank(sourceId, steps);
         return JsonUtil.toJson(ranks);
     }
 
-    private static List<RankTraverser.Step> step(HugeGraph graph,
-                                                 RankRequest req) {
+    private static List<RankTraverser.Step> steps(HugeGraph graph,
+                                                  RankRequest req) {
         List<RankTraverser.Step> steps = new ArrayList<>(req.steps.size());
         for (Step step : req.steps) {
             steps.add(step.jsonToStep(graph));
@@ -111,15 +112,12 @@ public class NeighborRankAPI extends API {
         private double alpha;
         @JsonProperty("capacity")
         public long capacity = Long.valueOf(DEFAULT_CAPACITY);
-        @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
 
         @Override
         public String toString() {
-            return String.format("RankRequest{source=%s,steps=%s," +
-                                 "alpha=%s,capacity=%s,limit=%s}",
-                                 this.source, this.steps, this.alpha,
-                                 this.capacity, this.limit);
+            return String.format("RankRequest{source=%s,steps=%s,alpha=%s," +
+                                 "capacity=%s}", this.source, this.steps,
+                                 this.alpha, this.capacity);
         }
     }
 
@@ -132,12 +130,13 @@ public class NeighborRankAPI extends API {
         @JsonProperty("degree")
         public long degree = Long.valueOf(DEFAULT_DEGREE);
         @JsonProperty("top")
-        public int top = MAX_TOP;
+        public int top = Integer.valueOf(DEFAULT_PATHS_LIMIT);
 
         @Override
         public String toString() {
-            return String.format("Step{direction=%s,labels=%s,degree=%s}",
-                                 this.direction, this.labels, this.degree);
+            return String.format("Step{direction=%s,labels=%s,degree=%s," +
+                                 "top=%s}", this.direction, this.labels,
+                                 this.degree, this.top);
         }
 
         private RankTraverser.Step jsonToStep(HugeGraph graph) {
