@@ -69,7 +69,7 @@ public class NeighborRankAPI extends API {
                                RankRequest request) {
         E.checkArgumentNotNull(request, "The rank request body can't be null");
         E.checkArgumentNotNull(request.source,
-                               "The sources of rank request can't be null");
+                               "The source of rank request can't be null");
         E.checkArgument(request.steps != null && !request.steps.isEmpty(),
                         "The steps of rank request can't be empty");
         E.checkArgument(request.steps.size() <= MAX_STEPS,
@@ -143,12 +143,8 @@ public class NeighborRankAPI extends API {
             E.checkArgument(this.degree > 0 || this.degree == NO_LIMIT,
                             "The degree must be > 0, but got: %s",
                             this.degree);
-            E.checkArgument(this.degree == NO_LIMIT,
-                            "Degree must be greater than or equal to sample, " +
-                            "but got degree %s", degree);
             E.checkArgument(this.top > 0 && this.top <= MAX_TOP,
-                            "The recommended number of each layer cannot " +
-                            "exceed '%s'", MAX_TOP);
+                            "The top of each layer cannot exceed %s", MAX_TOP);
             Map<Id, String> labelIds = new HashMap<>();
             if (this.labels != null) {
                 for (String label : this.labels) {
