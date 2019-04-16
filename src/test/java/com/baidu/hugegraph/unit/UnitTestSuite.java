@@ -38,6 +38,7 @@ import com.baidu.hugegraph.unit.util.HashUtilTest;
 import com.baidu.hugegraph.unit.util.InsertionOrderUtilTest;
 import com.baidu.hugegraph.unit.util.LongEncodingTest;
 import com.baidu.hugegraph.unit.util.NumericUtilTest;
+import com.baidu.hugegraph.unit.util.OrderLimitMapTest;
 import com.baidu.hugegraph.unit.util.ReflectionUtilTest;
 import com.baidu.hugegraph.unit.util.TimeUtilTest;
 import com.baidu.hugegraph.unit.util.VersionUtilTest;
@@ -66,7 +67,8 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     ReflectionUtilTest.class,
     TimeUtilTest.class,
     VersionUtilTest.class,
-    LongEncodingTest.class
+    LongEncodingTest.class,
+    OrderLimitMapTest.class
 })
 public class UnitTestSuite {
 }
