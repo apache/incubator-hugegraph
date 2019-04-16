@@ -34,6 +34,9 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
 
+    // TODO: read ScyllaDB version from conf
+    private static final int VERSION = 20;
+
     private static final BackendFeatures FEATURES = new ScyllaDBFeatures();
 
     @Override
@@ -80,14 +83,25 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                                    String keyspace, String store) {
             super(provider, keyspace, store);
 
-            registerTableManager(HugeType.VERTEX_LABEL,
-                                 new ScyllaDBTables.VertexLabel());
-            registerTableManager(HugeType.EDGE_LABEL,
-                                 new ScyllaDBTables.EdgeLabel());
-            registerTableManager(HugeType.PROPERTY_KEY,
-                                 new ScyllaDBTables.PropertyKey());
-            registerTableManager(HugeType.INDEX_LABEL,
-                                 new ScyllaDBTables.IndexLabel());
+            if (VERSION >= 20) {
+                registerTableManager(HugeType.VERTEX_LABEL,
+                                     new ScyllaDBTablesWithMV.VertexLabel());
+                registerTableManager(HugeType.EDGE_LABEL,
+                                     new ScyllaDBTablesWithMV.EdgeLabel());
+                registerTableManager(HugeType.PROPERTY_KEY,
+                                     new ScyllaDBTablesWithMV.PropertyKey());
+                registerTableManager(HugeType.INDEX_LABEL,
+                                     new ScyllaDBTablesWithMV.IndexLabel());
+            } else {
+                registerTableManager(HugeType.VERTEX_LABEL,
+                                     new ScyllaDBTables.VertexLabel());
+                registerTableManager(HugeType.EDGE_LABEL,
+                                     new ScyllaDBTables.EdgeLabel());
+                registerTableManager(HugeType.PROPERTY_KEY,
+                                     new ScyllaDBTables.PropertyKey());
+                registerTableManager(HugeType.INDEX_LABEL,
+                                     new ScyllaDBTables.IndexLabel());
+            }
         }
 
         @Override
@@ -103,10 +117,7 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                                   String keyspace, String store) {
             super(provider, keyspace, store);
 
-            // TODO: read Scylla version from conf
-            int version = 17;
-
-            if (version >= 20) {
+            if (VERSION >= 20) {
                 registerTableManager(HugeType.VERTEX,
                                      new ScyllaDBTablesWithMV.Vertex(store));
                 registerTableManager(HugeType.EDGE_OUT,

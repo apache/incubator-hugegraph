@@ -121,6 +121,7 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public PropertyKey getPropertyKey(String name) {
         E.checkArgumentNotNull(name, "Property key name can't be null");
+        E.checkArgument(!name.isEmpty(), "Property key name can't be empty");
         return this.getSchema(HugeType.PROPERTY_KEY, name);
     }
 
@@ -170,6 +171,7 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public VertexLabel getVertexLabel(String name) {
         E.checkArgumentNotNull(name, "Vertex label name can't be null");
+        E.checkArgument(!name.isEmpty(), "Vertex label name can't be empty");
         return this.getSchema(HugeType.VERTEX_LABEL, name);
     }
 
@@ -194,6 +196,7 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public EdgeLabel getEdgeLabel(String name) {
         E.checkArgumentNotNull(name, "Edge label name can't be null");
+        E.checkArgument(!name.isEmpty(), "Edge label name can't be empty");
         return this.getSchema(HugeType.EDGE_LABEL, name);
     }
 
@@ -225,6 +228,7 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public IndexLabel getIndexLabel(String name) {
         E.checkArgumentNotNull(name, "Index label name can't be null");
+        E.checkArgument(!name.isEmpty(), "Index label name can't be empty");
         return this.getSchema(HugeType.INDEX_LABEL, name);
     }
 

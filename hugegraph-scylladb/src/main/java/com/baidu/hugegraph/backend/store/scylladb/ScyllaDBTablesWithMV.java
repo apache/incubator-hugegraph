@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -36,24 +35,167 @@ import com.datastax.driver.core.querybuilder.Select;
 
 public class ScyllaDBTablesWithMV {
 
-    protected static boolean isQueryByLabel(Query query) {
+    private static boolean isQueryBySpecifiedKey(Query query, HugeKeys key) {
         Set<Condition> conditions = query.conditions();
         if (query instanceof ConditionQuery && !conditions.isEmpty()) {
             ConditionQuery cq = (ConditionQuery) query;
-            Id label = (Id) cq.condition(HugeKeys.LABEL);
-            if (label != null && cq.allSysprop() &&
-                conditions.size() == 1 &&
-                cq.containsCondition(HugeKeys.LABEL,
-                                     Condition.RelationType.EQ)) {
-                return true;
-            }
+            Object value = cq.condition(key);
+            return value != null && cq.allSysprop() &&
+                   conditions.size() == 1 &&
+                   cq.containsCondition(key, Condition.RelationType.EQ);
         }
         return false;
     }
 
+    private static boolean isQueryByLabel(Query query) {
+        return isQueryBySpecifiedKey(query, HugeKeys.LABEL);
+    }
+
+    private static boolean isQueryByName(Query query) {
+        return isQueryBySpecifiedKey(query, HugeKeys.NAME);
+    }
+
+    private static String mvNameTable(String table) {
+        return "mv_name2" + table;
+    }
+
+    private static String mvLabelTable(String table) {
+        return "mv_label2" + table;
+    }
+
+    private static void createSchemaIndexTable(
+                        CassandraSessionPool.Session session,
+                        String mvName, String table) {
+        final String NAME = CassandraTable.formatKey(HugeKeys.NAME);
+        final String ID = CassandraTable.formatKey(HugeKeys.ID);
+        String cql = String.format(
+                     "CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS " +
+                     "  SELECT * FROM %s " +
+                     "  WHERE %s IS NOT NULL " +
+                     "  PRIMARY KEY(%s, %s)",
+                     mvName, table, NAME,
+                     NAME, ID);
+        session.execute(cql);
+    }
+
+    private static void dropIndexTable(CassandraSessionPool.Session session,
+                                       String mvName) {
+        String cql = String.format("DROP MATERIALIZED VIEW IF EXISTS %s",
+                                   mvName);
+        session.execute(cql);
+    }
+
+    public static class PropertyKey extends CassandraTables.PropertyKey {
+
+        private final String MV_NAME2PK = mvNameTable(this.table());
+
+        @Override
+        protected void createIndex(CassandraSessionPool.Session session,
+                                   String indexLabel,
+                                   HugeKeys column) {
+            createSchemaIndexTable(session, MV_NAME2PK, this.table());
+        }
+
+        @Override
+        protected void dropTable(CassandraSessionPool.Session session) {
+            dropIndexTable(session, MV_NAME2PK);
+            super.dropTable(session);
+        }
+
+        @Override
+        protected List<Select> query2Select(String table, Query query) {
+            if (isQueryByName(query)) {
+                // Query from materialized view
+                return super.query2Select(MV_NAME2PK, query);
+            }
+            return super.query2Select(table, query);
+        }
+    }
+
+    public static class VertexLabel extends CassandraTables.VertexLabel {
+
+        private final String MV_NAME2VL = mvNameTable(this.table());
+
+        @Override
+        protected void createIndex(CassandraSessionPool.Session session,
+                                   String indexLabel,
+                                   HugeKeys column) {
+            createSchemaIndexTable(session, MV_NAME2VL, this.table());
+        }
+
+        @Override
+        protected void dropTable(CassandraSessionPool.Session session) {
+            dropIndexTable(session, MV_NAME2VL);
+            super.dropTable(session);
+        }
+
+        @Override
+        protected List<Select> query2Select(String table, Query query) {
+            if (isQueryByName(query)) {
+                // Query from materialized view
+                return super.query2Select(MV_NAME2VL, query);
+            }
+            return super.query2Select(table, query);
+        }
+    }
+
+    public static class EdgeLabel extends CassandraTables.EdgeLabel {
+
+        private final String MV_NAME2EL = mvNameTable(this.table());
+
+        @Override
+        protected void createIndex(CassandraSessionPool.Session session,
+                                   String indexLabel,
+                                   HugeKeys column) {
+            createSchemaIndexTable(session, MV_NAME2EL, this.table());
+        }
+
+        @Override
+        protected void dropTable(CassandraSessionPool.Session session) {
+            dropIndexTable(session, MV_NAME2EL);
+            super.dropTable(session);
+        }
+
+        @Override
+        protected List<Select> query2Select(String table, Query query) {
+            if (isQueryByName(query)) {
+                // Query from materialized view
+                return super.query2Select(MV_NAME2EL, query);
+            }
+            return super.query2Select(table, query);
+        }
+    }
+
+    public static class IndexLabel extends CassandraTables.IndexLabel {
+
+        private final String MV_NAME2IL = mvNameTable(this.table());
+
+        @Override
+        protected void createIndex(CassandraSessionPool.Session session,
+                                   String indexLabel,
+                                   HugeKeys column) {
+            createSchemaIndexTable(session, MV_NAME2IL, this.table());
+        }
+
+        @Override
+        protected void dropTable(CassandraSessionPool.Session session) {
+            dropIndexTable(session, MV_NAME2IL);
+            super.dropTable(session);
+        }
+
+        @Override
+        protected List<Select> query2Select(String table, Query query) {
+            if (isQueryByName(query)) {
+                // Query from materialized view
+                return super.query2Select(MV_NAME2IL, query);
+            }
+            return super.query2Select(table, query);
+        }
+    }
+
     public static class Vertex extends CassandraTables.Vertex {
 
-        private static final String MV_LABEL2VERTEX = "mv_label2vertex";
+        private final String MV_LABEL2VERTEX = mvLabelTable(this.table());
 
         public Vertex(String store) {
             super(store);
@@ -70,23 +212,16 @@ public class ScyllaDBTablesWithMV {
                          "  SELECT * FROM %s " +
                          "  WHERE %s IS NOT NULL " +
                          "  PRIMARY KEY(%s, %s)",
-                         MV_LABEL2VERTEX, this.table(), LABEL,
-                         LABEL, ID);
+                         MV_LABEL2VERTEX, this.table(), LABEL, LABEL, ID);
             session.execute(cql);
         }
 
         @Override
         protected void dropTable(CassandraSessionPool.Session session) {
-            this.dropIndexTable(session);
+            dropIndexTable(session, MV_LABEL2VERTEX);
             super.dropTable(session);
         }
 
-        private void dropIndexTable(CassandraSessionPool.Session session) {
-            String cql = String.format(
-                         "DROP MATERIALIZED VIEW IF EXISTS %s",
-                         MV_LABEL2VERTEX);
-            session.execute(cql);
-        }
 
         /**
          * Query data from label index table if just want to query by label
@@ -103,7 +238,7 @@ public class ScyllaDBTablesWithMV {
 
     public static class Edge extends CassandraTables.Edge {
 
-        private static final String MV_LABEL2EDGE = "mv_label2edge";
+        private final String MV_LABEL2EDGE = mvLabelTable(this.table());
 
         private final String LABEL = CassandraTable.formatKey(HugeKeys.LABEL);
         private final List<String> KEYS = this.idColumnName().stream()
@@ -136,15 +271,8 @@ public class ScyllaDBTablesWithMV {
 
         @Override
         protected void dropTable(CassandraSessionPool.Session session) {
-            this.dropIndexTable(session);
+            dropIndexTable(session, MV_LABEL2EDGE);
             super.dropTable(session);
-        }
-
-        private void dropIndexTable(CassandraSessionPool.Session session) {
-            String cql = String.format(
-                         "DROP MATERIALIZED VIEW IF EXISTS %s",
-                         MV_LABEL2EDGE);
-            session.execute(cql);
         }
 
         /**
@@ -157,6 +285,11 @@ public class ScyllaDBTablesWithMV {
                 return super.query2Select(MV_LABEL2EDGE, query);
             }
             return super.query2Select(table, query);
+        }
+
+        @Override
+        protected String labelIndexTable() {
+            return MV_LABEL2EDGE;
         }
 
         public static Edge out(String store) {
