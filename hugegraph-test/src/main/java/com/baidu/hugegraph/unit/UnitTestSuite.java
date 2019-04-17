@@ -30,7 +30,6 @@ import com.baidu.hugegraph.unit.core.CassandraTest;
 import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
 import com.baidu.hugegraph.unit.core.EdgeIdTest;
 import com.baidu.hugegraph.unit.core.JsonUtilTest;
-import com.baidu.hugegraph.unit.core.OrderLimitMapTest;
 import com.baidu.hugegraph.unit.core.VersionTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;

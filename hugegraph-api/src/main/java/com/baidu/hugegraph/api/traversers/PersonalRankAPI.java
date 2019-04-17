@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.Map;
@@ -42,6 +43,7 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.PersonalRankTraverser;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -58,6 +60,7 @@ public class PersonalRankAPI extends API {
     public String personalRank(@Context GraphManager manager,
                                @PathParam("graph") String graph,
                                RankRequest request) {
+        E.checkArgumentNotNull(request, "The rank request body can't be null");
         E.checkArgument(request.source != null,
                         "The source vertex id of rank request can't be null");
         E.checkArgument(request.label != null,
@@ -68,13 +71,16 @@ public class PersonalRankAPI extends API {
         E.checkArgument(request.degree > 0 || request.degree == NO_LIMIT,
                         "The degree of rank request must be > 0, but got: %s",
                         request.degree);
+        E.checkArgument(request.limit > 0 || request.limit == NO_LIMIT,
+                        "The limit of rank request must be > 0, but got: %s",
+                        request.limit);
         E.checkArgument(request.maxDepth >= 1,
                         "The max depth of rank request must >= 1, but got '%s'",
                         request.maxDepth);
 
         LOG.debug("Graph [{}] get personal rank from '{}' with " +
                   "edge label '{}', alpha '{}', degree '{}', " +
-                  "max depth '{}', sorted '{}'",
+                  "max depth '{}' and sorted '{}'",
                   graph, request.source, request.label, request.alpha,
                   request.degree, request.maxDepth, request.sorted);
 
@@ -84,11 +90,26 @@ public class PersonalRankAPI extends API {
         PersonalRankTraverser traverser;
         traverser = new PersonalRankTraverser(g, request.alpha, request.degree,
                                               request.maxDepth);
-        Map<Id, Double> ranks = traverser.personalRank(sourceId, request.label);
-        if (request.sorted) {
+        Map<Id, Double> ranks = traverser.personalRank(sourceId, request.label,
+                                                       request.withLabel);
+        ranks = topN(ranks, request.sorted, request.limit);
+        return manager.serializer(g).writeMap(ranks);
+    }
+
+    private static Map<Id, Double> topN(Map<Id, Double> ranks,
+                                        boolean sorted, long limit) {
+        if (sorted) {
             ranks = CollectionUtil.sortByValue(ranks, false);
         }
-        return manager.serializer(g).writeMap(ranks);
+        Map<Id, Double> results = InsertionOrderUtil.newMap();
+        long count = 0;
+        for (Map.Entry<Id, Double> entry : ranks.entrySet()) {
+            results.put(entry.getKey(), entry.getValue());
+            if (++count >= limit) {
+                break;
+            }
+        }
+        return results;
     }
 
     private static class RankRequest {
@@ -100,18 +121,25 @@ public class PersonalRankAPI extends API {
         @JsonProperty("alpha")
         private double alpha;
         @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        private long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonProperty("limit")
+        private long limit = Long.valueOf(DEFAULT_LIMIT);
         @JsonProperty("max_depth")
         private int maxDepth;
+        @JsonProperty("with_label")
+        private PersonalRankTraverser.WithLabel withLabel =
+                PersonalRankTraverser.WithLabel.BOTH_LABEL;
         @JsonProperty("sorted")
         private boolean sorted = true;
 
         @Override
         public String toString() {
             return String.format("RankRequest{source=%s,label=%s," +
-                                 "alpha=%s,degree=%s,maxDepth=%s,sorted=%s}",
+                                 "alpha=%s,degree=%s,limit=%s, maxDepth=%s," +
+                                 "withLabel=%s,sorted=%s}",
                                  this.source, this.label, this.alpha,
-                                 this.degree, this.maxDepth, this.sorted);
+                                 this.degree, this.limit, this.maxDepth,
+                                 this.withLabel, this.sorted);
         }
     }
 }

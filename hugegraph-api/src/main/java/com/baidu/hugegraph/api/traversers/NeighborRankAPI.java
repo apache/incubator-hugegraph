@@ -79,7 +79,7 @@ public class NeighborRankAPI extends API {
                         "but got '%s'", request.alpha);
 
         LOG.debug("Graph [{}] get neighbor rank from '{}' with steps '{}', " +
-                  "alpha '{}', capacity '{}'", graph, request.source,
+                  "alpha '{}' and capacity '{}'", graph, request.source,
                   request.steps, request.alpha, request.capacity);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(request.source);

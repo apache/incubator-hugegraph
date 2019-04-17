@@ -54,7 +54,8 @@ public class PersonalRankTraverser extends HugeTraverser {
         this.maxDepth = maxDepth;
     }
 
-    public Map<Id, Double> personalRank(Id source, String label) {
+    public Map<Id, Double> personalRank(Id source, String label,
+                                        WithLabel withLabel) {
         E.checkArgumentNotNull(source, "The source vertex id can't be null");
         E.checkArgumentNotNull(label, "The edge label can't be null");
 
@@ -76,10 +77,22 @@ public class PersonalRankTraverser extends HugeTraverser {
             inSeeds.add(source);
         }
 
+        Set<Id> firstAdjacencies = new HashSet<>();
         for (long i = 0; i < this.maxDepth; i++) {
             Map<Id, Double> incrRanks = this.getIncrRanks(outSeeds, inSeeds,
                                                           labelId, ranks);
             ranks = this.compensateSource(source, incrRanks);
+            if (i == 0) {
+                firstAdjacencies.addAll(ranks.keySet());
+            }
+        }
+        // Remove directly connected neighbors
+        removeAll(ranks, firstAdjacencies);
+        // Remove unnecessary label
+        if (withLabel == WithLabel.SAME_LABEL) {
+            removeAll(ranks, dir == Directions.OUT ? inSeeds : outSeeds);
+        } else if (withLabel == WithLabel.OTHER_LABEL) {
+            removeAll(ranks, dir == Directions.OUT ? outSeeds : inSeeds);
         }
         return ranks;
     }
@@ -152,5 +165,17 @@ public class PersonalRankTraverser extends HugeTraverser {
     private long degreeOfVertex(Id source, Directions dir, Id label) {
         return IteratorUtils.count(this.edgesOfVertex(source, dir, label,
                                                       this.degree));
+    }
+
+    private static void removeAll(Map<Id, Double> map, Set<Id> keys) {
+        for (Id key : keys) {
+            map.remove(key);
+        }
+    }
+
+    public enum WithLabel {
+        SAME_LABEL,
+        OTHER_LABEL,
+        BOTH_LABEL
     }
 }

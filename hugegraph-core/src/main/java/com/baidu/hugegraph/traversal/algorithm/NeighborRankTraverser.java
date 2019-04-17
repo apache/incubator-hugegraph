@@ -71,7 +71,7 @@ public class NeighborRankTraverser extends HugeTraverser {
         root : for (Step step : steps) {
             Ranks lastLayerRanks = ranks.get(ranks.size() - 1);
             Map<Id, Double> sameLayerIncrRanks = new HashMap<>();
-            MultivaluedMap<Id, Node> adjacencies = newMultivalueMap();
+            Adjacencies adjacencies = new Adjacencies();
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             // Traversal vertices of previous level
             for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
@@ -113,10 +113,10 @@ public class NeighborRankTraverser extends HugeTraverser {
                         checkCapacity(this.capacity, ++access, "neighbor rank");
                     }
                 }
-                List<Node> adjacenciesV = adjacencies.getOrDefault(vertex,
-                                                      ImmutableList.of());
+                List<Node> adjacenciesV = adjacencies.get(vertex);
                 assert degree == sameLayerNodesV.size() +
                                  prevLayerNodesV.size() + adjacenciesV.size();
+                adjacencies.put(vertex, degree);
 
                 // Add adjacent nodes of current node to sources of next step
                 for (Node node : adjacenciesV) {
@@ -168,8 +168,8 @@ public class NeighborRankTraverser extends HugeTraverser {
         for (int i = ranks.size() - 2; i > 0; i--) {
             Ranks prevLayerRanks = ranks.get(i);
             if (prevLayerRanks.containsKey(target)) {
-                Set<Id> nodes = prevLayerNodes.computeIfAbsent(i, HashSet::new);
-                nodes.add(target);
+                Set<Id> get = prevLayerNodes.computeIfAbsent(i, HashSet::new);
+                get.add(target);
                 return true;
             }
         }
@@ -204,15 +204,15 @@ public class NeighborRankTraverser extends HugeTraverser {
         }
     }
 
-    private Ranks contributeNewLayer(MultivaluedMap<Id, Node> adjacencies,
+    private Ranks contributeNewLayer(Adjacencies adjacencies,
                                      Ranks lastLayerRanks, int capacity) {
         Ranks newLayerRanks = new Ranks(capacity);
-        for (Map.Entry<Id, List<Node>> entry : adjacencies.entrySet()) {
+        for (Map.Entry<Id, List<Node>> entry : adjacencies.nodeEntrySet()) {
             Id parent = entry.getKey();
-            long size = entry.getValue().size();
+            long degree = adjacencies.degree(parent);
             for (Node node : entry.getValue()) {
                 double rank = newLayerRanks.getOrDefault(node.id(), 0.0);
-                rank += (lastLayerRanks.get(parent) * this.alpha / size);
+                rank += (lastLayerRanks.get(parent) * this.alpha / degree);
                 newLayerRanks.put(node.id(), rank);
             }
         }
@@ -252,6 +252,37 @@ public class NeighborRankTraverser extends HugeTraverser {
             this.degree = degree;
             this.top = top;
             this.capacity = DEFAULT_CAPACITY_PER_LAYER;
+        }
+    }
+
+    private static class Adjacencies {
+
+        private final MultivaluedMap<Id, Node> adjacencies;
+        private final Map<Id, Long> degrees;
+
+        public Adjacencies() {
+            this.adjacencies = newMultivalueMap();
+            this.degrees = new HashMap<>();
+        }
+
+        public void add(Id id, Node node) {
+            this.adjacencies.add(id, node);
+        }
+
+        public List<Node> get(Id id) {
+            return this.adjacencies.getOrDefault(id, ImmutableList.of());
+        }
+
+        public Iterable<? extends Map.Entry<Id, List<Node>>> nodeEntrySet() {
+            return this.adjacencies.entrySet();
+        }
+
+        public void put(Id id, long degree) {
+            this.degrees.put(id, degree);
+        }
+
+        public long degree(Id id) {
+            return this.degrees.get(id);
         }
     }
 

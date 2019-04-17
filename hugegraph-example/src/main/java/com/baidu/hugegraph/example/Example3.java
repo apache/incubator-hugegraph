@@ -37,7 +37,7 @@ public class Example3 {
         HugeGraph graph = ExampleUtil.loadGraph();
 
         Example3.loadNeighborRankData(graph);
-//        Example3.loadPersonalRankData(graph);
+        Example3.loadPersonalRankData(graph);
 
         graph.close();
 
