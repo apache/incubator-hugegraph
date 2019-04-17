@@ -415,17 +415,17 @@ public final class ConditionQuery extends IdQuery {
     public boolean hasDuplicateKeys(Set<HugeKeys> keys) {
         Map<HugeKeys, Integer> keyCounts = new HashMap<>();
         for (Condition condition : this.conditions()) {
-            if (!condition.isRelation()) {
-                continue;
-            }
+            E.checkState(condition.isRelation(),
+                         "All conditions should be relations");
             Relation relation = (Relation) condition;
             if (keys.contains(relation.key())) {
                 int keyCount = keyCounts.getOrDefault(relation.key(), 0);
-                keyCount++;
-                if (keyCount > 1) {
-                    return true;
-                }
-                keyCounts.put((HugeKeys) relation.key(), keyCount);
+                keyCounts.put((HugeKeys) relation.key(), ++keyCount);
+            }
+        }
+        for (Integer keyCount : keyCounts.values()) {
+            if (keyCount > 1) {
+                return true;
             }
         }
         return false;
