@@ -64,10 +64,6 @@ public class PersonalRankTraverser extends HugeTraverser {
 
         Id labelId = this.graph().edgeLabel(label).id();
         Directions dir = this.getStartDirection(source, label);
-        long degree = this.degreeOfVertex(source, dir, labelId);
-        if (degree <= 0) {
-            return ranks;
-        }
 
         Set<Id> outSeeds = new HashSet<>();
         Set<Id> inSeeds = new HashSet<>();

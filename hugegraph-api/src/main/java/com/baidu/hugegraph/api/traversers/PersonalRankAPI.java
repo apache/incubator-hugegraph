@@ -101,6 +101,9 @@ public class PersonalRankAPI extends API {
         if (sorted) {
             ranks = CollectionUtil.sortByValue(ranks, false);
         }
+        if (limit == NO_LIMIT) {
+            return ranks;
+        }
         Map<Id, Double> results = InsertionOrderUtil.newMap();
         long count = 0;
         for (Map.Entry<Id, Double> entry : ranks.entrySet()) {

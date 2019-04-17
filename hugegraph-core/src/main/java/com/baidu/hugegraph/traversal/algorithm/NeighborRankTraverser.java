@@ -68,10 +68,10 @@ public class NeighborRankTraverser extends HugeTraverser {
         List<Ranks> ranks = new ArrayList<>();
         ranks.add(Ranks.of(source, 1.0));
 
-        root : for (Step step : steps) {
+        for (Step step : steps) {
             Ranks lastLayerRanks = ranks.get(ranks.size() - 1);
             Map<Id, Double> sameLayerIncrRanks = new HashMap<>();
-            Adjacencies adjacencies = new Adjacencies();
+            List<Adjacencies> adjacencies = new ArrayList<>();
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             // Traversal vertices of previous level
             for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
@@ -80,11 +80,10 @@ public class NeighborRankTraverser extends HugeTraverser {
                                                      step.labels, null,
                                                      step.degree);
 
-                long degree = 0L;
+                Adjacencies adjacenciesV = new Adjacencies(vertex);
                 Set<Id> sameLayerNodesV = new HashSet<>();
                 Map<Integer, Set<Id>> prevLayerNodesV = new HashMap<>();
                 while (edges.hasNext()) {
-                    degree++;
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
                     // Determine whether it belongs to the same layer
@@ -108,20 +107,18 @@ public class NeighborRankTraverser extends HugeTraverser {
                             continue;
                         }
                         Node newNode = new Node(target, n);
-                        adjacencies.add(vertex, newNode);
+                        adjacenciesV.add(newNode);
+                        // Add adjacent nodes to sources of next step
+                        newVertices.add(target, newNode);
 
                         checkCapacity(this.capacity, ++access, "neighbor rank");
                     }
                 }
-                List<Node> adjacenciesV = adjacencies.get(vertex);
-                assert degree == sameLayerNodesV.size() +
-                                 prevLayerNodesV.size() + adjacenciesV.size();
-                adjacencies.put(vertex, degree);
+                long degree = sameLayerNodesV.size() + prevLayerNodesV.size() +
+                              adjacenciesV.nodes().size();
+                adjacenciesV.degree(degree);
+                adjacencies.add(adjacenciesV);
 
-                // Add adjacent nodes of current node to sources of next step
-                for (Node node : adjacenciesV) {
-                    newVertices.add(node.id(), node);
-                }
                 double incr = lastLayerRanks.getOrDefault(vertex, 0.0) *
                               this.alpha / degree;
                 // Merge the increment of the same layer node
@@ -204,15 +201,15 @@ public class NeighborRankTraverser extends HugeTraverser {
         }
     }
 
-    private Ranks contributeNewLayer(Adjacencies adjacencies,
+    private Ranks contributeNewLayer(List<Adjacencies> adjacencies,
                                      Ranks lastLayerRanks, int capacity) {
         Ranks newLayerRanks = new Ranks(capacity);
-        for (Map.Entry<Id, List<Node>> entry : adjacencies.nodeEntrySet()) {
-            Id parent = entry.getKey();
-            long degree = adjacencies.degree(parent);
-            for (Node node : entry.getValue()) {
+        for (Adjacencies adjacenciesV : adjacencies) {
+            Id source = adjacenciesV.source();
+            long degree = adjacenciesV.degree();
+            for (Node node : adjacenciesV.nodes()) {
                 double rank = newLayerRanks.getOrDefault(node.id(), 0.0);
-                rank += (lastLayerRanks.get(parent) * this.alpha / degree);
+                rank += (lastLayerRanks.get(source) * this.alpha / degree);
                 newLayerRanks.put(node.id(), rank);
             }
         }
@@ -257,32 +254,34 @@ public class NeighborRankTraverser extends HugeTraverser {
 
     private static class Adjacencies {
 
-        private final MultivaluedMap<Id, Node> adjacencies;
-        private final Map<Id, Long> degrees;
+        private final Id source;
+        private final List<Node> nodes;
+        private long degree;
 
-        public Adjacencies() {
-            this.adjacencies = newMultivalueMap();
-            this.degrees = new HashMap<>();
+        public Adjacencies(Id source) {
+            this.source = source;
+            this.nodes = new ArrayList<>();
+            this.degree = 0L;
         }
 
-        public void add(Id id, Node node) {
-            this.adjacencies.add(id, node);
+        public Id source() {
+            return this.source;
         }
 
-        public List<Node> get(Id id) {
-            return this.adjacencies.getOrDefault(id, ImmutableList.of());
+        public List<Node> nodes() {
+            return this.nodes;
         }
 
-        public Iterable<? extends Map.Entry<Id, List<Node>>> nodeEntrySet() {
-            return this.adjacencies.entrySet();
+        public void add(Node node) {
+            this.nodes.add(node);
         }
 
-        public void put(Id id, long degree) {
-            this.degrees.put(id, degree);
+        public long degree() {
+            return this.degree;
         }
 
-        public long degree(Id id) {
-            return this.degrees.get(id);
+        public void degree(long degree) {
+            this.degree = degree;
         }
     }
 
