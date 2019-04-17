@@ -66,6 +66,7 @@ public class HugeTraverser {
     public static final String DEFAULT_LIMIT = "100";
     public static final String DEFAULT_DEGREE = "10000";
     public static final String DEFAULT_SAMPLE = "100";
+    public static final String DEFAULT_MAX_DEPTH = "50";
     public static final String DEFAULT_WEIGHT = "0";
 
     // Empirical value of scan limit, with which results can be returned in 3s

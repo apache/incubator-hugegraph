@@ -41,7 +41,6 @@ import com.google.common.collect.ImmutableList;
 
 public class NeighborRankTraverser extends HugeTraverser {
 
-    public static final int MAX_STEPS = 100;
     public static final int MAX_TOP = 1000;
     public static final int DEFAULT_CAPACITY_PER_LAYER = 100000;
 
@@ -168,8 +167,8 @@ public class NeighborRankTraverser extends HugeTraverser {
         for (int i = ranks.size() - 2; i > 0; i--) {
             Ranks prevLayerRanks = ranks.get(i);
             if (prevLayerRanks.containsKey(target)) {
-                Set<Id> get = prevLayerNodes.computeIfAbsent(i, HashSet::new);
-                get.add(target);
+                Set<Id> nodes = prevLayerNodes.computeIfAbsent(i, HashSet::new);
+                nodes.add(target);
                 return true;
             }
         }

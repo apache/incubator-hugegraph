@@ -70,17 +70,17 @@ public class PersonalRankTraverser extends HugeTraverser {
             inSeeds.add(source);
         }
 
-        Set<Id> firstAdjacencies = new HashSet<>();
+        Set<Id> rootAdjacencies = new HashSet<>();
         for (long i = 0; i < this.maxDepth; i++) {
-            Map<Id, Double> incrRanks = this.calcIncrRanks(outSeeds, inSeeds,
-                                                           labelId, ranks);
-            ranks = this.compensateRoot(source, incrRanks);
+            Map<Id, Double> newRanks = this.calcNewRanks(outSeeds, inSeeds,
+                                                         labelId, ranks);
+            ranks = this.compensateRoot(source, newRanks);
             if (i == 0) {
-                firstAdjacencies.addAll(ranks.keySet());
+                rootAdjacencies.addAll(ranks.keySet());
             }
         }
         // Remove directly connected neighbors
-        removeAll(ranks, firstAdjacencies);
+        removeAll(ranks, rootAdjacencies);
         // Remove unnecessary label
         if (withLabel == WithLabel.SAME_LABEL) {
             removeAll(ranks, dir == Directions.OUT ? inSeeds : outSeeds);
@@ -90,9 +90,9 @@ public class PersonalRankTraverser extends HugeTraverser {
         return ranks;
     }
 
-    private Map<Id, Double> calcIncrRanks(Set<Id> outSeeds, Set<Id> inSeeds,
-                                          Id label, Map<Id, Double> ranks) {
-        Map<Id, Double> incrRanks = new HashMap<>();
+    private Map<Id, Double> calcNewRanks(Set<Id> outSeeds, Set<Id> inSeeds,
+                                         Id label, Map<Id, Double> ranks) {
+        Map<Id, Double> newRanks = new HashMap<>();
         BiFunction<Set<Id>, Directions, Set<Id>> neighborIncrRanks;
         neighborIncrRanks = (seeds, dir) -> {
             Set<Id> tmpSeeds = new HashSet<>();
@@ -106,18 +106,17 @@ public class PersonalRankTraverser extends HugeTraverser {
 
                 long degree = neighbors.size();
                 if (degree == 0L) {
-                    incrRanks.put(seed, oldRank);
+                    newRanks.put(seed, oldRank);
                     continue;
                 }
-                double spreadRank = oldRank * alpha / degree;
+                double incrRank = oldRank * alpha / degree;
 
                 // Collect all neighbors increment
                 for (Id neighbor : neighbors) {
                     tmpSeeds.add(neighbor);
                     // Assign an initial value when firstly update neighbor rank
-                    double incrRank = incrRanks.getOrDefault(neighbor, 0.0);
-                    incrRank += spreadRank;
-                    incrRanks.put(neighbor, incrRank);
+                    double rank = newRanks.getOrDefault(neighbor, 0.0);
+                    newRanks.put(neighbor, rank + incrRank);
                 }
             }
             return tmpSeeds;
@@ -128,14 +127,14 @@ public class PersonalRankTraverser extends HugeTraverser {
 
         outSeeds.addAll(tmpOutSeeds);
         inSeeds.addAll(tmpInSeeds);
-        return incrRanks;
+        return newRanks;
     }
 
-    private Map<Id, Double> compensateRoot(Id root, Map<Id, Double> incrRanks) {
-        double oldRank = incrRanks.getOrDefault(root, 0.0);
-        oldRank += (1 - this.alpha);
-        incrRanks.put(root, oldRank);
-        return incrRanks;
+    private Map<Id, Double> compensateRoot(Id root, Map<Id, Double> newRanks) {
+        double rank = newRanks.getOrDefault(root, 0.0);
+        rank += (1 - this.alpha);
+        newRanks.put(root, rank);
+        return newRanks;
     }
 
     private Directions getStartDirection(Id source, String label) {

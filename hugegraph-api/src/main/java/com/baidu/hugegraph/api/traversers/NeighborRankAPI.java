@@ -21,9 +21,9 @@ package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser.MAX_STEPS;
 import static com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser.MAX_TOP;
 
 import java.util.ArrayList;
@@ -71,11 +71,11 @@ public class NeighborRankAPI extends API {
                                "The source of rank request can't be null");
         E.checkArgument(request.steps != null && !request.steps.isEmpty(),
                         "The steps of rank request can't be empty");
-        E.checkArgument(request.steps.size() <= MAX_STEPS,
+        E.checkArgument(request.steps.size() <= Long.valueOf(DEFAULT_MAX_DEPTH),
                         "The steps length of rank request can't exceed %s",
-                        MAX_STEPS);
+                        DEFAULT_MAX_DEPTH);
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
-                        "The alpha of rank request must belong (0, 1], " +
+                        "The alpha of rank request must be in range (0, 1], " +
                         "but got '%s'", request.alpha);
 
         LOG.debug("Graph [{}] get neighbor rank from '{}' with steps '{}', " +

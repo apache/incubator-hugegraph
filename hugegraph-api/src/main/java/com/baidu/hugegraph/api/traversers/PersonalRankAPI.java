@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.Map;
@@ -66,7 +67,7 @@ public class PersonalRankAPI extends API {
         E.checkArgument(request.label != null,
                         "The edge label of rank request can't be null");
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
-                        "The alpha of rank request must belong (0, 1], " +
+                        "The alpha of rank request must be in range (0, 1], " +
                         "but got '%s'", request.alpha);
         E.checkArgument(request.degree > 0 || request.degree == NO_LIMIT,
                         "The degree of rank request must be > 0, but got: %s",
@@ -74,9 +75,11 @@ public class PersonalRankAPI extends API {
         E.checkArgument(request.limit > 0 || request.limit == NO_LIMIT,
                         "The limit of rank request must be > 0, but got: %s",
                         request.limit);
-        E.checkArgument(request.maxDepth >= 1,
-                        "The max depth of rank request must >= 1, but got '%s'",
-                        request.maxDepth);
+        E.checkArgument(request.maxDepth > 0 &&
+                        request.maxDepth <= Long.valueOf(DEFAULT_MAX_DEPTH),
+                        "The max depth of rank request must be " +
+                        "in range (0, %s], but got '%s'",
+                        DEFAULT_MAX_DEPTH, request.maxDepth);
 
         LOG.debug("Graph [{}] get personal rank from '{}' with " +
                   "edge label '{}', alpha '{}', degree '{}', " +
@@ -137,8 +140,8 @@ public class PersonalRankAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("RankRequest{source=%s,label=%s," +
-                                 "alpha=%s,degree=%s,limit=%s, maxDepth=%s," +
+            return String.format("RankRequest{source=%s,label=%s,alpha=%s" +
+                                 "degree=%s,limit=%s,maxDepth=%s," +
                                  "withLabel=%s,sorted=%s}",
                                  this.source, this.label, this.alpha,
                                  this.degree, this.limit, this.maxDepth,
