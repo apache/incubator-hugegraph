@@ -22,23 +22,20 @@ package com.baidu.hugegraph.traversal.algorithm;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableMap;
 
 public class PersonalRankTraverser extends HugeTraverser {
 
@@ -75,9 +72,9 @@ public class PersonalRankTraverser extends HugeTraverser {
 
         Set<Id> firstAdjacencies = new HashSet<>();
         for (long i = 0; i < this.maxDepth; i++) {
-            Map<Id, Double> incrRanks = this.getIncrRanks(outSeeds, inSeeds,
-                                                          labelId, ranks);
-            ranks = this.compensateSource(source, incrRanks);
+            Map<Id, Double> incrRanks = this.calcIncrRanks(outSeeds, inSeeds,
+                                                           labelId, ranks);
+            ranks = this.compensateRoot(source, incrRanks);
             if (i == 0) {
                 firstAdjacencies.addAll(ranks.keySet());
             }
@@ -93,24 +90,29 @@ public class PersonalRankTraverser extends HugeTraverser {
         return ranks;
     }
 
-    private Map<Id, Double> getIncrRanks(Set<Id> outSeeds, Set<Id> inSeeds,
-                                         Id label, Map<Id, Double> ranks) {
+    private Map<Id, Double> calcIncrRanks(Set<Id> outSeeds, Set<Id> inSeeds,
+                                          Id label, Map<Id, Double> ranks) {
         Map<Id, Double> incrRanks = new HashMap<>();
         BiFunction<Set<Id>, Directions, Set<Id>> neighborIncrRanks;
         neighborIncrRanks = (seeds, dir) -> {
             Set<Id> tmpSeeds = new HashSet<>();
             for (Id seed : seeds) {
-                long degree = this.degreeOfVertex(seed, dir, label);
-                assert degree > 0;
-                // Must be exist
-                double originRank = ranks.get(seed);
-                double spreadRank = originRank * alpha / degree;
+                Double oldRank = ranks.get(seed);
+                E.checkState(oldRank != null, "Expect rank of seed exists");
 
-                Iterator<Id> neighbors = this.adjacentVertices(seed, dir, label,
-                                                               this.degree);
+                Iterator<Id> iter = this.adjacentVertices(seed, dir, label,
+                                                          this.degree);
+                List<Id> neighbors = IteratorUtils.list(iter);
+
+                long degree = neighbors.size();
+                if (degree == 0L) {
+                    incrRanks.put(seed, oldRank);
+                    continue;
+                }
+                double spreadRank = oldRank * alpha / degree;
+
                 // Collect all neighbors increment
-                while (neighbors.hasNext()) {
-                    Id neighbor = neighbors.next();
+                for (Id neighbor : neighbors) {
                     tmpSeeds.add(neighbor);
                     // Assign an initial value when firstly update neighbor rank
                     double incrRank = incrRanks.getOrDefault(neighbor, 0.0);
@@ -129,10 +131,10 @@ public class PersonalRankTraverser extends HugeTraverser {
         return incrRanks;
     }
 
-    private Map<Id, Double> compensateSource(Id source, Map<Id, Double> incrRanks) {
-        double sourceRank = incrRanks.getOrDefault(source, 0.0);
-        sourceRank += (1 - this.alpha);
-        incrRanks.put(source, sourceRank);
+    private Map<Id, Double> compensateRoot(Id root, Map<Id, Double> incrRanks) {
+        double oldRank = incrRanks.getOrDefault(root, 0.0);
+        oldRank += (1 - this.alpha);
+        incrRanks.put(root, oldRank);
         return incrRanks;
     }
 

@@ -116,6 +116,9 @@ public class NeighborRankTraverser extends HugeTraverser {
                 }
                 long degree = sameLayerNodesV.size() + prevLayerNodesV.size() +
                               adjacenciesV.nodes().size();
+                if (degree == 0L) {
+                    continue;
+                }
                 adjacenciesV.degree(degree);
                 adjacencies.add(adjacenciesV);
 
@@ -261,7 +264,7 @@ public class NeighborRankTraverser extends HugeTraverser {
         public Adjacencies(Id source) {
             this.source = source;
             this.nodes = new ArrayList<>();
-            this.degree = 0L;
+            this.degree = -1L;
         }
 
         public Id source() {
@@ -277,6 +280,8 @@ public class NeighborRankTraverser extends HugeTraverser {
         }
 
         public long degree() {
+            E.checkArgument(degree > 0,
+                            "The degree must be > 0, but got %s", degree);
             return this.degree;
         }
 
