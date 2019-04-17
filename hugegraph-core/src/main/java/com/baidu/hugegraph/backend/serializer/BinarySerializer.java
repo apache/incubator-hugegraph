@@ -661,9 +661,6 @@ public class BinarySerializer extends AbstractSerializer {
         } else {
             newQuery = new IdPrefixQuery(query, prefix);
         }
-        newQuery.page(query.page());
-        newQuery.limit(query.limit());
-        newQuery.offset(query.offset());
         return newQuery;
     }
 
@@ -707,11 +704,7 @@ public class BinarySerializer extends AbstractSerializer {
         HugeType type = query.resultType();
         if (keyEq != null) {
             Id id = formatIndexId(type, index, keyEq);
-            Query newQuery = new IdPrefixQuery(query, id);
-            newQuery.page(query.page());
-            newQuery.limit(query.limit());
-            newQuery.offset(query.offset());
-            return newQuery;
+            return new IdPrefixQuery(query, id);
         }
 
         if (keyMin == null) {
@@ -754,9 +747,6 @@ public class BinarySerializer extends AbstractSerializer {
             }
             newQuery = new IdRangeQuery(query, start, keyMinEq, max, keyMaxEq);
         }
-        newQuery.page(query.page());
-        newQuery.limit(query.limit());
-        newQuery.offset(query.offset());
         return newQuery;
     }
 

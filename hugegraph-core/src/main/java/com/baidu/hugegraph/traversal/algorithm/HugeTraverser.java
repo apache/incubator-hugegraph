@@ -224,6 +224,7 @@ public class HugeTraverser {
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
         for (Id label : labels) {
             E.checkNotNull(label, "edge label");
+            // TODO: limit should be applied to all labels
             results.extend(this.edgesOfVertex(source, dir, label, limit));
         }
         return results;
