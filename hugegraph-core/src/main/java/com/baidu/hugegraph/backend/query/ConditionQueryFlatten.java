@@ -43,7 +43,7 @@ public final class ConditionQueryFlatten {
     );
 
     public static List<ConditionQuery> flatten(ConditionQuery query) {
-        if (query.isFlattened() && !query.hasDuplicateKeys(SPECIAL_KEYS)) {
+        if (query.isFlattened() && !query.mayHasDupKeys(SPECIAL_KEYS)) {
             return Arrays.asList(query);
         }
 
