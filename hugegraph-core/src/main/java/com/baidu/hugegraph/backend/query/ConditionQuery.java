@@ -21,10 +21,12 @@ package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -408,6 +410,25 @@ public final class ConditionQuery extends IdQuery {
             }
         }
         return true;
+    }
+
+    public boolean mayHasDupKeys(Set<HugeKeys> keys) {
+        Map<HugeKeys, Integer> keyCounts = new HashMap<>();
+        for (Condition condition : this.conditions()) {
+            if (!condition.isRelation()) {
+                // Assume may exist duplicate keys when has nested conditions
+                return true;
+            }
+            Relation relation = (Relation) condition;
+            if (keys.contains(relation.key())) {
+                int keyCount = keyCounts.getOrDefault(relation.key(), 0);
+                if (++keyCount > 1) {
+                    return true;
+                }
+                keyCounts.put((HugeKeys) relation.key(), keyCount);
+            }
+        }
+        return false;
     }
 
     public void optimized(int optimizedType) {
