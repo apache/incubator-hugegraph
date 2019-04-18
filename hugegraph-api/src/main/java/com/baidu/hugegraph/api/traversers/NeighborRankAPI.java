@@ -42,11 +42,11 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -82,7 +82,7 @@ public class NeighborRankAPI extends API {
                   "alpha '{}' and capacity '{}'", graph, request.source,
                   request.steps, request.alpha, request.capacity);
 
-        Id sourceId = VertexAPI.checkAndParseVertexId(request.source);
+        Id sourceId = HugeVertex.getIdValue(request.source);
         HugeGraph g = graph(manager, graph);
 
         List<NeighborRankTraverser.Step> steps = steps(g, request);

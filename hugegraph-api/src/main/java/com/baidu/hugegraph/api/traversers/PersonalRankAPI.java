@@ -37,10 +37,10 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.PersonalRankTraverser;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
@@ -87,7 +87,7 @@ public class PersonalRankAPI extends API {
                   graph, request.source, request.label, request.alpha,
                   request.degree, request.maxDepth, request.sorted);
 
-        Id sourceId = VertexAPI.checkAndParseVertexId(request.source);
+        Id sourceId = HugeVertex.getIdValue(request.source);
         HugeGraph g = graph(manager, graph);
 
         PersonalRankTraverser traverser;
@@ -140,7 +140,7 @@ public class PersonalRankAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("RankRequest{source=%s,label=%s,alpha=%s" +
+            return String.format("RankRequest{source=%s,label=%s,alpha=%s," +
                                  "degree=%s,limit=%s,maxDepth=%s," +
                                  "withLabel=%s,sorted=%s}",
                                  this.source, this.label, this.alpha,

@@ -37,7 +37,6 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.OrderLimitMap;
-import com.google.common.collect.ImmutableList;
 
 public class NeighborRankTraverser extends HugeTraverser {
 
