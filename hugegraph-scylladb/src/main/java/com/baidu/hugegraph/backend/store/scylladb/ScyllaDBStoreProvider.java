@@ -32,10 +32,10 @@ import com.baidu.hugegraph.util.Log;
 
 public class ScyllaDBStoreProvider extends CassandraStoreProvider {
 
-    private static final Logger LOG = Log.logger(CassandraStore.class);
-
     // TODO: read ScyllaDB version from conf
-    private static final int VERSION = 20;
+    public static int VERSION = 20;
+
+    private static final Logger LOG = Log.logger(CassandraStore.class);
 
     private static final BackendFeatures FEATURES = new ScyllaDBFeatures();
 
