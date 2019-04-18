@@ -26,8 +26,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -358,7 +360,8 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public Iterator<BackendEntry> query(BackendSession session, Query query) {
+        public Iterator<BackendEntry> query(BackendSession session,
+                                            Query query) {
             Set<Condition> conditions = query.conditions();
             E.checkState(query instanceof ConditionQuery &&
                          conditions.size() == 2,
@@ -387,6 +390,23 @@ public class InMemoryDBTables {
             q.limit(query.limit());
             return super.query(session, q);
         }
+
+        @Override
+        public void delete(BackendSession session, TextBackendEntry entry) {
+            // Delete by index label
+            assert entry.columnsSize() == 1;
+            String indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
+            E.checkState(indexLabel != null, "Expect index label");
+
+            Iterator<Entry<Id, BackendEntry>> iter;
+            for (iter = this.store().entrySet().iterator(); iter.hasNext();) {
+                Entry<Id, BackendEntry> e = iter.next();
+                // Delete if prefix with index label
+                if (e.getKey().asString().startsWith(indexLabel)) {
+                    iter.remove();
+                }
+            }
+        }
     }
 
     public static class SearchIndex extends SecondaryIndex {
@@ -408,7 +428,8 @@ public class InMemoryDBTables {
         }
 
         @Override
-        public Iterator<BackendEntry> query(BackendSession session, Query query) {
+        public Iterator<BackendEntry> query(BackendSession session,
+                                            Query query) {
             Set<Condition> conditions = query.conditions();
             E.checkState(query instanceof ConditionQuery &&
                          (conditions.size() == 3 || conditions.size() == 2),
@@ -558,6 +579,29 @@ public class InMemoryDBTables {
                 entry = rs.higherEntry(entry.getKey());
             }
             return results.values().iterator();
+        }
+
+        @Override
+        public void delete(BackendSession session, TextBackendEntry entry) {
+            // Delete by index label
+            assert entry.columnsSize() == 1;
+            String indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
+            E.checkState(indexLabel != null, "Expect index label");
+
+            Id indexLabelId = IdGenerator.of(indexLabel);
+            Id min = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
+                                             indexLabelId, 0L);
+            indexLabelId = IdGenerator.of(indexLabelId.asLong() + 1L);
+            Id max = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
+                                             indexLabelId, 0L);
+            SortedMap<Id, BackendEntry> subStore;
+            subStore = this.store().subMap(min, max);
+            Iterator<Entry<Id, BackendEntry>> iter;
+            for (iter = subStore.entrySet().iterator(); iter.hasNext();) {
+                iter.next();
+                // Delete if prefix with index label
+                iter.remove();
+            }
         }
     }
 }

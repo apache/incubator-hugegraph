@@ -328,7 +328,7 @@ public class TextSerializer extends AbstractSerializer {
          * meaningful for deletion of index data in secondary/range index.
          */
         if (index.fieldValues() == null && index.elementIds().size() == 0) {
-            entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_ID),
+            entry.column(HugeKeys.INDEX_LABEL_ID,
                          writeId(index.indexLabel()));
         } else {
             // TODO: field-values may be a number (range index)

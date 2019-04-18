@@ -100,7 +100,7 @@ public class RebuildIndexCallable extends SchemaCallable {
             locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
 
             Set<IndexLabel> ils = indexLabelIds.stream()
-                                               .map(schemaTx::getIndexLabel)
+                                               .map(this.graph()::indexLabel)
                                                .collect(Collectors.toSet());
             for (IndexLabel il : ils) {
                 if (il.status() == SchemaStatus.CREATING) {
@@ -147,15 +147,15 @@ public class RebuildIndexCallable extends SchemaCallable {
         GraphTransaction graphTx = this.graph().graphTransaction();
 
         for (Id id : indexLabelIds) {
-            IndexLabel indexLabel = schemaTx.getIndexLabel(id);
-            if (indexLabel == null) {
+            IndexLabel il = schemaTx.getIndexLabel(id);
+            if (il == null || il.status() == SchemaStatus.CREATING) {
                 /*
                  * TODO: How to deal with non-existent index name:
                  * continue or throw exception?
                  */
                 continue;
             }
-            graphTx.removeIndex(indexLabel);
+            graphTx.removeIndex(il);
         }
     }
 

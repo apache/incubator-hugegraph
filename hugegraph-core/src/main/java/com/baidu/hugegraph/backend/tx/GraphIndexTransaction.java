@@ -229,7 +229,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * @return      converted id query
      */
     @Watched(prefix = "index")
-    public List<IdHolder> indexQuery(ConditionQuery query) {
+    public List<IdHolder> queryIndex(ConditionQuery query) {
         // Index query must have been flattened in Graph tx
         query.checkFlattened();
 

@@ -33,9 +33,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageState;
-import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
