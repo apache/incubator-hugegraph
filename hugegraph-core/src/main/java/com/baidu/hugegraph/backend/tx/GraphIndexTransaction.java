@@ -141,6 +141,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     /**
      * Update index(user properties) of vertex or edge
+     * @param ilId      the id of index label
+     * @param element   the properties owner
+     * @param removed   remove or add index
      */
     protected void updateIndex(Id ilId, HugeElement element, boolean removed) {
         SchemaTransaction schema = graph().schemaTransaction();

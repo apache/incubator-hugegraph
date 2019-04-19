@@ -108,6 +108,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     /**
      * Check type of the value valid
      * @param value the property value to be checked data type
+     * @param <V>   the property value original data type
      * @return true if the value is or can convert to the data type,
      *         otherwise false
      */

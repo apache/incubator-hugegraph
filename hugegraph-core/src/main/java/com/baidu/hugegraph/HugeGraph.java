@@ -186,9 +186,6 @@ public class HugeGraph implements GremlinGraph {
         return this.indexEventHub;
     }
 
-    /**
-     * @SuppressWarnings("UnstableApiUsage")
-     */
     public RateLimiter rateLimiter() {
         return this.rateLimiter;
     }
@@ -574,8 +571,7 @@ public class HugeGraph implements GremlinGraph {
 
     /**
      * Stop all the daemon threads
-     * @param timout seconds
-     * @throws InterruptedException when be interrupted
+     * @param timeout seconds
      */
     public static void shutdown(long timeout) {
         try {
