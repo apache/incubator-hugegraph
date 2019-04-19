@@ -33,7 +33,7 @@ public class CoreVersion {
 
     // The second parameter of Version.of() is for IDE running without JAR
     public static final Version VERSION = Version.of(CoreVersion.class,
-                                                     "0.9.2");
+                                                     "0.10.0");
 
     public static final String GREMLIN_VERSION = "3.2.5";
 
