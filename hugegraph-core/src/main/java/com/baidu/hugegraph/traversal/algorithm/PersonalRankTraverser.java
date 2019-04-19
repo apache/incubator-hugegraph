@@ -109,7 +109,7 @@ public class PersonalRankTraverser extends HugeTraverser {
                     newRanks.put(seed, oldRank);
                     continue;
                 }
-                double incrRank = oldRank * alpha / degree;
+                double incrRank = oldRank * this.alpha / degree;
 
                 // Collect all neighbors increment
                 for (Id neighbor : neighbors) {
@@ -157,11 +157,6 @@ public class PersonalRankTraverser extends HugeTraverser {
             assert targetLabel.equals(vertexLabel.id());
             return Directions.IN;
         }
-    }
-
-    private long degreeOfVertex(Id source, Directions dir, Id label) {
-        return IteratorUtils.count(this.edgesOfVertex(source, dir, label,
-                                                      this.degree));
     }
 
     private static void removeAll(Map<Id, Double> map, Set<Id> keys) {

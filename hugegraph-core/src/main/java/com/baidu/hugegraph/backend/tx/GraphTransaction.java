@@ -1042,7 +1042,7 @@ public class GraphTransaction extends IndexableTransaction {
          */
         this.beforeRead();
         try {
-            return this.indexTx.indexQuery(query);
+            return this.indexTx.queryIndex(query);
         } finally {
             this.afterRead();
         }

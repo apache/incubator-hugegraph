@@ -278,8 +278,8 @@ public class NeighborRankTraverser extends HugeTraverser {
         }
 
         public long degree() {
-            E.checkArgument(degree > 0,
-                            "The degree must be > 0, but got %s", degree);
+            E.checkArgument(this.degree > 0,
+                            "The degree must be > 0, but got %s", this.degree);
             return this.degree;
         }
 
@@ -289,6 +289,8 @@ public class NeighborRankTraverser extends HugeTraverser {
     }
 
     private static class Ranks extends OrderLimitMap<Id, Double> {
+
+        private static final long serialVersionUID = 2041529946017356029L;
 
         public Ranks(int capacity) {
             super(capacity);
