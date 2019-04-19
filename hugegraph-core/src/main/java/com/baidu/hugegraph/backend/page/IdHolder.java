@@ -38,6 +38,7 @@ public final class IdHolder {
 
     /**
      * For non-paging situation
+     * @param ids   all ids
      */
     public IdHolder(Set<Id> ids) {
         this.query = null;
@@ -52,6 +53,8 @@ public final class IdHolder {
 
     /**
      * For paging situation
+     * @param query         original query
+     * @param idsFetcher    function to fetch one page ids
      */
     public IdHolder(ConditionQuery query,
                     Function<ConditionQuery, PageIds> idsFetcher) {

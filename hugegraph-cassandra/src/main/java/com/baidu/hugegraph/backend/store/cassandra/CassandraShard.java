@@ -129,13 +129,13 @@ public class CassandraShard {
     /**
      * Get splits of a table in specified range
      * NOTE: maybe we don't need this method
-     * @param start, end: the specified range
+     * @param start: the start of range
+     * @param end: the end of range
      * @param splitPartitions: expected partitions count per split
      * @param splitSize: expected size(bytes) per split,
      *        splitPartitions will be ignored if splitSize is passed
      * @return a list of Shard
      */
-
     public List<Shard> getSplits(String start, String end,
                                  int splitPartitions, int splitSize) {
 

@@ -89,7 +89,7 @@ public abstract class PerfExampleBase {
 
     /**
      * Multi-threaded and multi-commits and batch insertion test
-     * @param graph
+     * @param graph     graph
      * @param threadCount
      *        The count of threads that perform the insert operation at the
      *        same time
@@ -98,7 +98,7 @@ public abstract class PerfExampleBase {
      * @param multiple
      *        The coefficient to multiple number of vertices(100) and edges(100)
      *        for each transaction commit
-     * @throws InterruptedException
+     * @throws Exception    execute may throw Exception
      */
     public void testInsertPerf(GraphManager graph,
                                int threadCount,

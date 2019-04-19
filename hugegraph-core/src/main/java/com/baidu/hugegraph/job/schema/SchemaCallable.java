@@ -66,6 +66,8 @@ public abstract class SchemaCallable extends Job<Object> {
     /**
      * Use reflection to call SchemaTransaction.removeSchema(),
      * which is protected
+     * @param tx        The remove operation actual executer
+     * @param schema    the schema to be removed
      */
     protected static void removeSchema(SchemaTransaction tx,
                                        SchemaElement schema) {
@@ -86,6 +88,8 @@ public abstract class SchemaCallable extends Job<Object> {
     /**
      * Use reflection to call SchemaTransaction.updateSchema(),
      * which is protected
+     * @param tx        The update operation actual executer
+     * @param schema    the schema to be update
      */
     protected static void updateSchema(SchemaTransaction tx,
                                        SchemaElement schema) {
