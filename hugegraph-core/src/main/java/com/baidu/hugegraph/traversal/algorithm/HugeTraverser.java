@@ -44,6 +44,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.HugeType;
@@ -62,8 +63,10 @@ public class HugeTraverser {
     public static final String DEFAULT_CAPACITY = "10000000";
     public static final String DEFAULT_ELEMENTS_LIMIT = "10000000";
     public static final String DEFAULT_PATHS_LIMIT = "10";
+    public static final String DEFAULT_LIMIT = "100";
     public static final String DEFAULT_DEGREE = "10000";
     public static final String DEFAULT_SAMPLE = "100";
+    public static final String DEFAULT_MAX_DEPTH = "50";
     public static final String DEFAULT_WEIGHT = "0";
 
     // Empirical value of scan limit, with which results can be returned in 3s
@@ -191,6 +194,15 @@ public class HugeTraverser {
         return neighbors;
     }
 
+    protected Iterator<Id> adjacentVertices(Id source, Directions dir,
+                                            Id label, long limit) {
+        Iterator<Edge> edges = this.edgesOfVertex(source, dir, label, limit);
+        return new MapperIterator<>(edges, e -> {
+            HugeEdge edge = (HugeEdge) e;
+            return edge.id().otherVertexId();
+        });
+    }
+
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
                                            Id label, long limit) {
         Id[] labels = {};
@@ -213,6 +225,7 @@ public class HugeTraverser {
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
         for (Id label : labels) {
             E.checkNotNull(label, "edge label");
+            // TODO: limit should be applied to all labels
             results.extend(this.edgesOfVertex(source, dir, label, limit));
         }
         return results;

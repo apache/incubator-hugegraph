@@ -85,6 +85,6 @@ public class KoutAPI extends API {
         HugeTraverser traverser = new HugeTraverser(g);
         Set<Id> ids = traverser.kout(sourceId, dir, edgeLabel, depth,
                                      nearest, degree, capacity, limit);
-        return manager.serializer(g).writeIds("vertices", ids);
+        return manager.serializer(g).writeList("vertices", ids);
     }
 }

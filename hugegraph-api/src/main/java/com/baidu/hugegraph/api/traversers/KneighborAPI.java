@@ -80,6 +80,6 @@ public class KneighborAPI extends API {
         HugeTraverser traverser = new HugeTraverser(g);
         Set<Id> ids = traverser.kneighbor(source, dir, edgeLabel, depth,
                                           degree, limit);
-        return manager.serializer(g).writeIds("vertices", ids);
+        return manager.serializer(g).writeList("vertices", ids);
     }
 }
