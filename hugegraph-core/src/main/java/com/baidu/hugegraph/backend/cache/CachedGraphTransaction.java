@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.cache.CachedBackendStore.QueryId;
@@ -34,11 +35,15 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public final class CachedGraphTransaction extends GraphTransaction {
 
@@ -46,6 +51,9 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     private final Cache verticesCache;
     private final Cache edgesCache;
+
+    private EventListener storeEventListener;
+    private EventListener cacheEventListener;
 
     public CachedGraphTransaction(HugeGraph graph, BackendStore store) {
         super(graph, store);
@@ -59,6 +67,17 @@ public final class CachedGraphTransaction extends GraphTransaction {
         capacity = conf.get(CoreOptions.EDGE_CACHE_CAPACITY);
         expire = conf.get(CoreOptions.EDGE_CACHE_EXPIRE);
         this.edgesCache = this.cache("edge", capacity, expire);
+
+        this.listenChanges();
+    }
+
+    @Override
+    public void close() {
+        try {
+            super.close();
+        } finally {
+            this.unlistenChanges();
+        }
     }
 
     private Cache cache(String prefix, int capacity, long expire) {
@@ -66,6 +85,61 @@ public final class CachedGraphTransaction extends GraphTransaction {
         Cache cache = CacheManager.instance().cache(name, capacity);
         cache.expire(expire);
         return cache;
+    }
+
+    private void listenChanges() {
+        // Listen store event: "store.init", "store.clear", ...
+        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INIT,
+                                                  Events.STORE_CLEAR,
+                                                  Events.STORE_TRUNCATE);
+        this.storeEventListener = event -> {
+            if (storeEvents.contains(event.name())) {
+                LOG.debug("Graph {} clear graph cache on event '{}'",
+                          this.graph(), event.name());
+                this.verticesCache.clear();
+                this.edgesCache.clear();
+                return true;
+            }
+            return false;
+        };
+        this.store().provider().listen(this.storeEventListener);
+
+        // Listen cache event: "cache"(invalid cache item)
+        this.cacheEventListener = event -> {
+            LOG.debug("Graph {} received graph cache event: {}",
+                      this.graph(), event);
+            event.checkArgs(String.class, Id.class);
+            Object[] args = event.args();
+            if (args[0].equals("invalid")) {
+                Id id = (Id) args[1];
+                if (this.verticesCache.get(id) != null) {
+                    // Invalidate vertex cache
+                    this.verticesCache.invalidate(id);
+                } else if (this.edgesCache.get(id) != null) {
+                    // Invalidate edge cache
+                    this.edgesCache.invalidate(id);
+                }
+                return true;
+            } else if (args[0].equals("clear")) {
+                this.verticesCache.clear();
+                this.edgesCache.clear();
+                return true;
+            }
+            return false;
+        };
+        EventHub schemaEventHub = this.graph().graphEventHub();
+        if (!schemaEventHub.containsListener(Events.CACHE)) {
+            schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
+        }
+    }
+
+    private void unlistenChanges() {
+        // Unlisten store event
+        this.store().provider().unlisten(this.storeEventListener);
+
+        // Unlisten cache event
+        EventHub graphEventHub = this.graph().graphEventHub();
+        graphEventHub.unlisten(Events.CACHE, this.cacheEventListener);
     }
 
     @Override

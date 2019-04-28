@@ -85,7 +85,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                                                   Events.STORE_TRUNCATE);
         this.storeEventListener = event -> {
             if (storeEvents.contains(event.name())) {
-                LOG.debug("Graph {} clear cache on event '{}'",
+                LOG.debug("Graph {} clear schema cache on event '{}'",
                           this.graph(), event.name());
                 this.idCache.clear();
                 this.nameCache.clear();
@@ -98,7 +98,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         // Listen cache event: "cache"(invalid cache item)
         this.cacheEventListener = event -> {
-            LOG.debug("Graph {} received cache event: {}",
+            LOG.debug("Graph {} received schema cache event: {}",
                       this.graph(), event);
             event.checkArgs(String.class, Id.class);
             Object[] args = event.args();
@@ -115,6 +115,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                                                  schema.name());
                     this.nameCache.invalidate(prefixedName);
                 }
+                return true;
+            } else if (args[0].equals("clear")) {
+                this.idCache.clear();
+                this.nameCache.clear();
+                this.cachedTypes.clear();
                 return true;
             }
             return false;

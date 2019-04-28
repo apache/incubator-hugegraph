@@ -104,6 +104,7 @@ public class HugeGraph implements GremlinGraph {
     private final HugeConfig configuration;
 
     private final EventHub schemaEventHub;
+    private final EventHub graphEventHub;
     private final EventHub indexEventHub;
     private final RateLimiter rateLimiter;
     private final TaskManager taskManager;
@@ -119,6 +120,7 @@ public class HugeGraph implements GremlinGraph {
         this.configuration = configuration;
 
         this.schemaEventHub = new EventHub("schema");
+        this.graphEventHub = new EventHub("graph");
         this.indexEventHub = new EventHub("index");
 
         final int limit = configuration.get(CoreOptions.RATE_LIMIT);
@@ -137,6 +139,7 @@ public class HugeGraph implements GremlinGraph {
         try {
             this.storeProvider = this.loadStoreProvider();
         } catch (BackendException e) {
+            LockUtil.destroy(this.name);
             String message = "Failed to init backend store";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
@@ -180,6 +183,10 @@ public class HugeGraph implements GremlinGraph {
 
     public EventHub schemaEventHub() {
         return this.schemaEventHub;
+    }
+
+    public EventHub graphEventHub() {
+        return this.graphEventHub;
     }
 
     public EventHub indexEventHub() {

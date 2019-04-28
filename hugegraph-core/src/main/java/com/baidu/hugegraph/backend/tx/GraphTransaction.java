@@ -558,7 +558,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdgesByVertex(Id id) {
-        return queryEdges(constructEdgesQuery(id, Directions.BOTH));
+        return this.queryEdges(constructEdgesQuery(id, Directions.BOTH));
     }
 
     public Iterator<Edge> queryEdges(Object... edgeIds) {
