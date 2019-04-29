@@ -173,6 +173,9 @@ public class RamCache implements Cache {
 
     @Watched(prefix = "ramcache")
     private final void remove(Id id) {
+        if (id == null) {
+            return;
+        }
         assert id != null;
 
         final Lock lock = this.keyLock.lock(id);
@@ -193,6 +196,9 @@ public class RamCache implements Cache {
     @Watched(prefix = "ramcache")
     @Override
     public Object get(Id id) {
+        if (id == null) {
+            return null;
+        }
         Object value = null;
         if (this.map.size() <= this.halfCapacity || this.map.containsKey(id)) {
             // Maybe the id removed by other threads and returned null value
@@ -218,6 +224,9 @@ public class RamCache implements Cache {
     @Watched(prefix = "ramcache")
     @Override
     public Object getOrFetch(Id id, Function<Id, Object> fetcher) {
+        if (id == null) {
+            return null;
+        }
         Object value = null;
         if (this.map.size() <= this.halfCapacity || this.map.containsKey(id)) {
             // Maybe the id removed by other threads and returned null value

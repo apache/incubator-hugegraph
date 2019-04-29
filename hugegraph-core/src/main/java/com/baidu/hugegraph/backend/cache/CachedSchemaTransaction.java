@@ -243,7 +243,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         } else {
             List<T> results = super.getAllSchema(type);
             long free = this.idCache.capacity() - this.idCache.size();
-            if (results.size() < free) {
+            if (results.size() <= free) {
                 // Update cache
                 for (T schema : results) {
                     Id prefixedId = generateId(schema.type(), schema.id());

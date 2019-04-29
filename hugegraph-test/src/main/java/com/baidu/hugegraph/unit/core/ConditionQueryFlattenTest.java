@@ -26,6 +26,7 @@ import java.util.Set;
 import org.junit.After;
 import org.junit.Test;
 
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -33,6 +34,7 @@ import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.unit.BaseUnitTest;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class ConditionQueryFlattenTest extends BaseUnitTest {
@@ -216,6 +218,46 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         for (ConditionQuery q : queries) {
             actual.add(q.conditions());
         }
+        Assert.assertEquals(expect, actual);
+    }
+
+
+    @Test
+    public void testFlattenWithIn() {
+        Id key = IdGenerator.of("c1");
+
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.query(Condition.in(key, ImmutableList.of("1", "2", "3")));
+        Assert.assertEquals(1, query.conditions().size());
+        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
+        Assert.assertEquals(3, queries.size());
+
+        Set<Condition> expect = ImmutableSet.of(Condition.eq(key, "1"),
+                                                Condition.eq(key, "2"),
+                                                Condition.eq(key, "3"));
+        Set<Condition> actual = new HashSet<>();
+        for (ConditionQuery q : queries) {
+            Assert.assertEquals(1, q.conditions().size());
+            actual.add(q.conditions().iterator().next());
+        }
+
+        Assert.assertEquals(expect, actual);
+    }
+
+    @Test
+    public void testFlattenWithNotIn() {
+        Id key = IdGenerator.of("c1");
+
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.query(Condition.nin(key, ImmutableList.of("1", "2", "3")));
+        Assert.assertEquals(1, query.conditions().size());
+        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
+        Assert.assertEquals(1, queries.size());
+
+        Set<Condition> expect = ImmutableSet.of(Condition.neq(key, "1"),
+                                                Condition.neq(key, "2"),
+                                                Condition.neq(key, "3"));
+        Set<Condition> actual = queries.iterator().next().conditions();
         Assert.assertEquals(expect, actual);
     }
 }
