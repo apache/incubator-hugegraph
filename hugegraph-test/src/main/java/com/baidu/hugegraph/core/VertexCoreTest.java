@@ -3265,7 +3265,6 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(90, vertexes.size());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testQueryByPageResultsMatched() {
         Assume.assumeTrue("Not support paging",
@@ -3285,6 +3284,7 @@ public class VertexCoreTest extends BaseCoreTest {
         for (int i = 0; i < 100 / size; i++) {
             iter = graph.traversal().V()
                         .has("~page", page).limit(size);
+            @SuppressWarnings("unchecked")
             List<Vertex> vertexes = IteratorUtils.asList(iter);
             Assert.assertEquals(size, vertexes.size());
 

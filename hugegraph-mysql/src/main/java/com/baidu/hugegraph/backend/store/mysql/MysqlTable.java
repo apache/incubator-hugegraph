@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -50,6 +51,8 @@ public abstract class MysqlTable
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
 
+    protected String dropTableTemplate = "DROP TABLE IF EXISTS %s;";
+    protected String truncateTableTemplate = "TRUNCATE TABLE %s;";
     // The template for insert and delete statements
     private String insertTemplate;
     private String deleteTemplate;
@@ -91,14 +94,16 @@ public abstract class MysqlTable
         // Specified primary keys
         sql.append(" PRIMARY KEY (");
         int i = 0;
+        int size = tableDefine.keys().size();
         for (HugeKeys key : tableDefine.keys()) {
-            sql.append(key);
-            if (++i != tableDefine.keys().size()) {
+            sql.append(formatKey(key));
+            if (++i != size) {
                 sql.append(", ");
             }
         }
-
-        sql.append(")) ENGINE=InnoDB;");
+        sql.append("))");
+        sql.append(this.engine());
+        sql.append(";");
 
         LOG.debug("Create table: {}", sql);
         try {
@@ -109,9 +114,13 @@ public abstract class MysqlTable
         }
     }
 
+    protected String engine() {
+        return " ENGINE=InnoDB";
+    }
+
     protected void dropTable(Session session) {
         LOG.debug("Drop table: {}", this.table());
-        String sql = String.format("DROP TABLE IF EXISTS %s;", this.table());
+        String sql = String.format(this.dropTableTemplate, this.table());
         try {
             session.execute(sql);
         } catch (SQLException e) {
@@ -122,7 +131,7 @@ public abstract class MysqlTable
 
     protected void truncateTable(Session session) {
         LOG.debug("Truncate table: {}", this.table());
-        String sql = String.format("TRUNCATE TABLE %s;", this.table());
+        String sql = String.format(this.truncateTableTemplate, this.table());
         try {
             session.execute(sql);
         } catch (SQLException e) {
@@ -202,7 +211,7 @@ public abstract class MysqlTable
             // Create or get insert prepare statement
             insertStmt = session.prepareStatement(template);
             int i = 1;
-            for (Object object : entry.columns().values()) {
+            for (Object object : this.insertTemplateObjects(entry)) {
                 insertStmt.setObject(i++, object);
             }
         } catch (SQLException e) {
@@ -413,7 +422,7 @@ public abstract class MysqlTable
         Object value = relation.serialValue();
 
         // Serialize value (TODO: should move to Serializer)
-        value = serializeValue(value);
+        value = this.serializeValue(value);
 
         StringBuilder sql = new StringBuilder(32);
         sql.append(key);
@@ -503,11 +512,17 @@ public abstract class MysqlTable
             select.append(where.build());
         }
 
+        select.append(this.orderByKeys());
+
         assert query.limit() != Query.NO_LIMIT;
         // Fetch `limit + 1` records for judging whether reached the last page
         select.append(" limit ");
         select.append(query.limit() + 1);
         select.append(";");
+    }
+
+    protected String orderByKeys() {
+        return Strings.EMPTY;
     }
 
     protected void wrapOffset(StringBuilder select, Query query) {
@@ -521,7 +536,7 @@ public abstract class MysqlTable
         select.append(";");
     }
 
-    protected static Object serializeValue(Object value) {
+    protected Object serializeValue(Object value) {
         if (value instanceof Id) {
             value = ((Id) value).asObject();
         }
@@ -543,6 +558,14 @@ public abstract class MysqlTable
 
     protected void appendPartition(StringBuilder delete) {
         // pass
+    }
+
+    protected List<Object> insertTemplateObjects(MysqlBackendEntry.Row entry) {
+        List<Object> objects = new ArrayList<>();
+        for (Object key : entry.columns().keySet()) {
+            objects.add(entry.columns().get(key));
+        }
+        return objects;
     }
 
     public static String formatKey(HugeKeys key) {

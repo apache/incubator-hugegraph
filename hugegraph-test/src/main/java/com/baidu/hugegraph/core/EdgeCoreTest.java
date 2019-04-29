@@ -2578,7 +2578,6 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(90, edges.size());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testQueryEdgeByPageResultsMatched() {
         Assume.assumeTrue("Not support paging",
@@ -2598,6 +2597,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         for (int i = 0; i < 100 / size; i++) {
             iter = graph.traversal().E()
                         .has("~page", page).limit(size);
+            @SuppressWarnings("unchecked")
             List<Edge> edges = IteratorUtils.asList(iter);
             Assert.assertEquals(size, edges.size());
 

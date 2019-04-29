@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -40,20 +41,30 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 
+import jersey.repackaged.com.google.common.collect.ImmutableMap;
+
 public class MysqlTables {
 
-    private static final String INT = "INT";
+    public static final String BOOLEAN = "BOOLEAN";
+    public static final String TINYINT = "TINYINT";
+    public static final String INT = "INT";
+    public static final String DOUBLE = "DOUBLE";
+    public static final String SMALL_TEXT = "SMALL_TEXT";
+    public static final String MID_TEXT = "MID_TEXT";
+    public static final String LARGE_TEXT = "LARGE_TEXT";
 
-    private static final String DATATYPE_PK = "INT";
-    private static final String DATATYPE_SL = "INT"; // VL/EL
-    private static final String DATATYPE_IL = "INT";
+    private static final String DATATYPE_PK = INT;
+    private static final String DATATYPE_SL = INT; // VL/EL
+    private static final String DATATYPE_IL = INT;
 
-    private static final String BOOLEAN = "BOOLEAN";
-    private static final String TINYINT = "TINYINT";
-    private static final String DOUBLE = "DOUBLE";
-    private static final String VARCHAR = "VARCHAR(255)";
-    private static final String SMALL_JSON = "VARCHAR(1024)";
-    private static final String LARGE_JSON = "TEXT";
+    private static final String SMALL_JSON = MID_TEXT;
+    private static final String LARGE_JSON = LARGE_TEXT;
+
+    private static final Map<String, String> TYPES_MAPPING = ImmutableMap.of(
+            SMALL_TEXT, "VARCHAR(255)",
+            MID_TEXT, "VARCHAR(1024)",
+            LARGE_TEXT, "TEXT"
+    );
 
     public static class MysqlTableTemplate extends MysqlTable {
 
@@ -74,10 +85,14 @@ public class MysqlTables {
         public static final String TABLE = "counters";
 
         public Counters() {
+            this(TYPES_MAPPING);
+        }
+
+        public Counters(Map<String, String> typesMapping) {
             super(TABLE);
 
-            this.define = new TableDefine();
-            this.define.column(HugeKeys.SCHEMA_TYPE, VARCHAR);
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.SCHEMA_TYPE, SMALL_TEXT);
             this.define.column(HugeKeys.ID, INT);
             this.define.keys(HugeKeys.SCHEMA_TYPE);
         }
@@ -122,11 +137,15 @@ public class MysqlTables {
         public static final String TABLE = "vertex_labels";
 
         public VertexLabel() {
+            this(TYPES_MAPPING);
+        }
+
+        public VertexLabel(Map<String, String> typesMapping) {
             super(TABLE);
 
-            this.define = new TableDefine();
+            this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.ID, DATATYPE_SL);
-            this.define.column(HugeKeys.NAME, VARCHAR);
+            this.define.column(HugeKeys.NAME, SMALL_TEXT);
             this.define.column(HugeKeys.ID_STRATEGY, TINYINT);
             this.define.column(HugeKeys.PRIMARY_KEYS, SMALL_JSON);
             this.define.column(HugeKeys.PROPERTIES, SMALL_JSON);
@@ -144,11 +163,15 @@ public class MysqlTables {
         public static final String TABLE = "edge_labels";
 
         public EdgeLabel() {
+            this(TYPES_MAPPING);
+        }
+
+        public EdgeLabel(Map<String, String> typesMapping) {
             super(TABLE);
 
-            this.define = new TableDefine();
+            this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.ID, DATATYPE_SL);
-            this.define.column(HugeKeys.NAME, VARCHAR);
+            this.define.column(HugeKeys.NAME, SMALL_TEXT);
             this.define.column(HugeKeys.FREQUENCY, TINYINT);
             this.define.column(HugeKeys.SOURCE_LABEL, DATATYPE_SL);
             this.define.column(HugeKeys.TARGET_LABEL, DATATYPE_SL);
@@ -168,11 +191,15 @@ public class MysqlTables {
         public static final String TABLE = "property_keys";
 
         public PropertyKey() {
+            this(TYPES_MAPPING);
+        }
+
+        public PropertyKey(Map<String, String> typesMapping) {
             super(TABLE);
 
-            this.define = new TableDefine();
+            this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.ID, DATATYPE_PK);
-            this.define.column(HugeKeys.NAME, VARCHAR);
+            this.define.column(HugeKeys.NAME, SMALL_TEXT);
             this.define.column(HugeKeys.DATA_TYPE, TINYINT);
             this.define.column(HugeKeys.CARDINALITY, TINYINT);
             this.define.column(HugeKeys.PROPERTIES, SMALL_JSON);
@@ -187,11 +214,15 @@ public class MysqlTables {
         public static final String TABLE = "index_labels";
 
         public IndexLabel() {
+            this(TYPES_MAPPING);
+        }
+
+        public IndexLabel(Map<String, String> typesMapping) {
             super(TABLE);
 
-            this.define = new TableDefine();
+            this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.ID, DATATYPE_IL);
-            this.define.column(HugeKeys.NAME, VARCHAR);
+            this.define.column(HugeKeys.NAME, SMALL_TEXT);
             this.define.column(HugeKeys.BASE_TYPE, TINYINT);
             this.define.column(HugeKeys.BASE_VALUE, DATATYPE_SL);
             this.define.column(HugeKeys.INDEX_TYPE, TINYINT);
@@ -206,10 +237,14 @@ public class MysqlTables {
         public static final String TABLE = "vertices";
 
         public Vertex(String store) {
+            this(store, TYPES_MAPPING);
+        }
+
+        public Vertex(String store, Map<String, String> typesMapping) {
             super(joinTableName(store, TABLE));
 
-            this.define = new TableDefine();
-            this.define.column(HugeKeys.ID, VARCHAR);
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.ID, SMALL_TEXT);
             this.define.column(HugeKeys.LABEL, DATATYPE_SL);
             this.define.column(HugeKeys.PROPERTIES, LARGE_JSON);
             this.define.keys(HugeKeys.ID);
@@ -223,7 +258,12 @@ public class MysqlTables {
         private final Directions direction;
         private final String delByLabelTemplate;
 
-        protected Edge(String store, Directions direction) {
+        public Edge(String store, Directions direction) {
+            this(store, direction, TYPES_MAPPING);
+        }
+
+        public Edge(String store, Directions direction,
+                    Map<String, String> typesMapping) {
             super(joinTableName(store, table(direction)));
 
             this.direction = direction;
@@ -231,12 +271,12 @@ public class MysqlTables {
                                       "DELETE FROM %s WHERE %s = ?;",
                                       this.table(), formatKey(HugeKeys.LABEL));
 
-            this.define = new TableDefine();
-            this.define.column(HugeKeys.OWNER_VERTEX, VARCHAR);
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.OWNER_VERTEX, SMALL_TEXT);
             this.define.column(HugeKeys.DIRECTION, TINYINT);
             this.define.column(HugeKeys.LABEL, DATATYPE_SL);
-            this.define.column(HugeKeys.SORT_VALUES, VARCHAR);
-            this.define.column(HugeKeys.OTHER_VERTEX, VARCHAR);
+            this.define.column(HugeKeys.SORT_VALUES, SMALL_TEXT);
+            this.define.column(HugeKeys.OTHER_VERTEX, SMALL_TEXT);
             this.define.column(HugeKeys.PROPERTIES, LARGE_JSON);
             this.define.keys(HugeKeys.OWNER_VERTEX, HugeKeys.DIRECTION,
                              HugeKeys.LABEL, HugeKeys.SORT_VALUES,
@@ -244,7 +284,7 @@ public class MysqlTables {
         }
 
         @Override
-        protected List<Object> idColumnValue(Id id) {
+        public List<Object> idColumnValue(Id id) {
             EdgeId edgeId;
             if (!(id instanceof EdgeId)) {
                 String[] idParts = EdgeId.split(id);
@@ -299,7 +339,7 @@ public class MysqlTables {
         }
 
         @Override
-        protected BackendEntry mergeEntries(BackendEntry e1, BackendEntry e2) {
+        public BackendEntry mergeEntries(BackendEntry e1, BackendEntry e2) {
             // Merge edges into vertex
             // TODO: merge rows before calling row2Entry()
 
@@ -366,22 +406,24 @@ public class MysqlTables {
         public static final String TABLE = "secondary_indexes";
 
         public SecondaryIndex(String store) {
-            this(store, TABLE);
+            this(store, TABLE, TYPES_MAPPING);
         }
-        public SecondaryIndex(String store, String table) {
+
+        public SecondaryIndex(String store, String table,
+                              Map<String, String> typesMapping) {
             super(joinTableName(store, table));
 
-            this.define = new TableDefine();
-            this.define.column(HugeKeys.FIELD_VALUES, VARCHAR);
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.FIELD_VALUES, SMALL_TEXT);
             this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
-            this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR);
+            this.define.column(HugeKeys.ELEMENT_IDS, SMALL_TEXT);
             this.define.keys(HugeKeys.FIELD_VALUES,
                              HugeKeys.INDEX_LABEL_ID,
                              HugeKeys.ELEMENT_IDS);
         }
 
         @Override
-        protected final String entryId(MysqlBackendEntry entry) {
+        public final String entryId(MysqlBackendEntry entry) {
             String fieldValues = entry.column(HugeKeys.FIELD_VALUES);
             Integer labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
             return SplicingIdGenerator.concat(fieldValues, labelId.toString());
@@ -393,7 +435,7 @@ public class MysqlTables {
         public static final String TABLE = "search_indexes";
 
         public SearchIndex(String store) {
-            super(store, TABLE);
+            super(store, TABLE, TYPES_MAPPING);
         }
     }
 
@@ -402,19 +444,23 @@ public class MysqlTables {
         public static final String TABLE = "range_indexes";
 
         public RangeIndex(String store) {
+            this(store, TYPES_MAPPING);
+        }
+
+        public RangeIndex(String store, Map<String, String> typesMapping) {
             super(joinTableName(store, TABLE));
 
-            this.define = new TableDefine();
+            this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
             this.define.column(HugeKeys.FIELD_VALUES, DOUBLE);
-            this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR);
+            this.define.column(HugeKeys.ELEMENT_IDS, SMALL_TEXT);
             this.define.keys(HugeKeys.INDEX_LABEL_ID,
                              HugeKeys.FIELD_VALUES,
                              HugeKeys.ELEMENT_IDS);
         }
 
         @Override
-        protected final String entryId(MysqlBackendEntry entry) {
+        public final String entryId(MysqlBackendEntry entry) {
             Double fieldValue = entry.<Double>column(HugeKeys.FIELD_VALUES);
             Integer labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
             return SplicingIdGenerator.concat(labelId.toString(),

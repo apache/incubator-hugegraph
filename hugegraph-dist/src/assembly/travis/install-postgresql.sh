@@ -3,7 +3,7 @@
 set -ev
 
 TRAVIS_DIR=`dirname $0`
-CONF=$TRAVIS_DIR/../../../../hugegraph-test/src/main/resources/hugegraph.properties
+CONF=hugegraph-test/src/main/resources/hugegraph.properties
 
 POSTGRESQL_DRIVER=org.postgresql.Driver
 POSTGRESQL_URL=jdbc:postgresql://localhost:5432/
@@ -14,4 +14,5 @@ sed -i "s/jdbc.driver=.*/jdbc.driver=$POSTGRESQL_DRIVER/" $CONF
 sed -i "s?jdbc.url=.*?jdbc.url=$POSTGRESQL_URL?" $CONF
 sed -i "s/jdbc.username=.*/jdbc.username=$POSTGRESQL_USERNAME/" $CONF
 
-sudo service postgresql restart
+sudo service postgresql stop 9.2
+sudo service postgresql start 9.5

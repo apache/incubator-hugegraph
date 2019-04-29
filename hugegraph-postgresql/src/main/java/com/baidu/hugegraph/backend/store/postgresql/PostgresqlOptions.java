@@ -19,12 +19,12 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
+import com.baidu.hugegraph.backend.store.mysql.MysqlOptions;
 import com.baidu.hugegraph.config.ConfigOption;
-import com.baidu.hugegraph.config.OptionHolder;
 
-import static com.baidu.hugegraph.config.OptionChecker.*;
+import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 
-public class PostgresqlOptions extends OptionHolder {
+public class PostgresqlOptions extends MysqlOptions {
 
     private PostgresqlOptions() {
         super();
@@ -56,27 +56,11 @@ public class PostgresqlOptions extends OptionHolder {
                     "jdbc:postgresql://127.0.0.1:5432"
             );
 
-    public static final ConfigOption<String> SSL_MODE =
-            new ConfigOption<>(
-                    "jdbc.ssl_mode",
-                    "The url of database in JDBC format.",
-                    disallowEmpty(),
-                    "disable"
-            );
-
     public static final ConfigOption<String> JDBC_USERNAME =
             new ConfigOption<>(
                     "jdbc.username",
                     "The username to login database.",
                     disallowEmpty(),
-                    "root"
-            );
-
-    public static final ConfigOption<String> JDBC_PASSWORD =
-            new ConfigOption<>(
-                    "jdbc.password",
-                    "The password corresponding to jdbc.username.",
-                    null,
-                    ""
+                    "postgres"
             );
 }
