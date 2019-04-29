@@ -207,6 +207,7 @@ public final class GraphManager {
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
+            LOG.info("Restoring incomplete tasks for graph '{}'...", graph);
             hugegraph.taskScheduler().restoreTasks();
         }
     }

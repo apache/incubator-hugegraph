@@ -32,12 +32,21 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import org.glassfish.hk2.api.MultiException;
+
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.NotFoundException;
 
 public class ExceptionFilter {
+
+    private static final int BAD_REQUEST_ERROR =
+            Response.Status.BAD_REQUEST.getStatusCode();
+    private static final int NOT_FOUND_ERROR =
+            Response.Status.NOT_FOUND.getStatusCode();
+    private static final int INTERNAL_SERVER_ERROR =
+            Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
 
     public static class TracedExceptionMapper {
 
@@ -59,7 +68,7 @@ public class ExceptionFilter {
 
         @Override
         public Response toResponse(HugeException exception) {
-            return Response.status(400)
+            return Response.status(BAD_REQUEST_ERROR)
                            .type(MediaType.APPLICATION_JSON)
                            .entity(formatException(exception))
                            .build();
@@ -72,7 +81,7 @@ public class ExceptionFilter {
 
         @Override
         public Response toResponse(IllegalArgumentException exception) {
-            return Response.status(400)
+            return Response.status(BAD_REQUEST_ERROR)
                            .type(MediaType.APPLICATION_JSON)
                            .entity(formatException(exception))
                            .build();
@@ -85,7 +94,7 @@ public class ExceptionFilter {
 
         @Override
         public Response toResponse(NotFoundException exception) {
-            return Response.status(404)
+            return Response.status(NOT_FOUND_ERROR)
                            .type(MediaType.APPLICATION_JSON)
                            .entity(formatException(exception))
                            .build();
@@ -98,7 +107,7 @@ public class ExceptionFilter {
 
         @Override
         public Response toResponse(NoSuchElementException exception) {
-            return Response.status(404)
+            return Response.status(NOT_FOUND_ERROR)
                            .type(MediaType.APPLICATION_JSON)
                            .entity(formatException(exception))
                            .build();
@@ -109,9 +118,6 @@ public class ExceptionFilter {
     public static class WebApplicationExceptionMapper
                   extends TracedExceptionMapper
                   implements ExceptionMapper<WebApplicationException> {
-
-        private static final int INTERNAL_SERVER_ERROR =
-                Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
 
         @Override
         public Response toResponse(WebApplicationException exception) {
@@ -136,22 +142,26 @@ public class ExceptionFilter {
 
     @Provider
     public static class UnknownExceptionMapper extends TracedExceptionMapper
-                  implements ExceptionMapper<Exception> {
+                  implements ExceptionMapper<Throwable> {
 
         @Override
-        public Response toResponse(Exception exception) {
-            return Response.status(500)
+        public Response toResponse(Throwable exception) {
+            if (exception instanceof MultiException &&
+                ((MultiException) exception).getErrors().size() == 1) {
+                exception = ((MultiException) exception).getErrors().get(0);
+            }
+            return Response.status(INTERNAL_SERVER_ERROR)
                            .type(MediaType.APPLICATION_JSON)
                            .entity(formatException(exception, this.trace()))
                            .build();
         }
     }
 
-    public static String formatException(Exception exception) {
+    public static String formatException(Throwable exception) {
         return formatException(exception, false);
     }
 
-    public static String formatException(Exception exception, boolean trace) {
+    public static String formatException(Throwable exception, boolean trace) {
         String clazz = exception.getClass().toString();
         String msg = exception.getMessage() != null ?
                      exception.getMessage() : "";

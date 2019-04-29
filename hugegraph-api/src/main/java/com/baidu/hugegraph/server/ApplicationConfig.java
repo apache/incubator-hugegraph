@@ -23,6 +23,7 @@ import javax.ws.rs.ApplicationPath;
 
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.glassfish.hk2.api.Factory;
+import org.glassfish.hk2.api.MultiException;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -32,6 +33,7 @@ import org.glassfish.jersey.server.monitoring.ApplicationEventListener;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.core.WorkLoad;
@@ -121,8 +123,10 @@ public class ApplicationConfig extends ResourceConfig {
 
         @Override
         public GraphManager provide() {
-            E.checkState(this.manager != null,
-                         "Please wait for the server to initialize");
+            if (this.manager == null) {
+                String message = "Please wait for the server to initialize";
+                throw new MultiException(new HugeException(message), false);
+            }
             return this.manager;
         }
 
