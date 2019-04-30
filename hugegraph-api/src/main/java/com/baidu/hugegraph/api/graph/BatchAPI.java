@@ -19,20 +19,26 @@
 
 package com.baidu.hugegraph.api.graph;
 
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.tinkerpop.gremlin.structure.Element;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.Meter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BatchAPI extends API {
 
@@ -69,6 +75,77 @@ public class BatchAPI extends API {
             return result;
         } finally {
             batchWriteThreads.decrementAndGet();
+        }
+    }
+
+    // TODO: Design more flexible for Element?
+    @JsonIgnoreProperties(value = {"type"})
+    protected static abstract class JsonElement implements Checkable {
+
+        @JsonProperty("label")
+        public String label;
+        @JsonProperty("properties")
+        public Map<String, Object> properties;
+        @JsonProperty("type")
+        public String type;
+
+        @Override
+        public abstract void checkCreate(boolean isBatch);
+
+        @Override
+        public abstract void checkUpdate();
+
+        protected abstract Object[] properties();
+    }
+
+    protected void updateExistElement(JsonElement oldElement,
+                                      JsonElement newElement,
+                                      Map<String, UpdateStrategy> strategy) {
+        if (oldElement != null && newElement != null) {
+            for (Map.Entry<String, UpdateStrategy> kv : strategy.entrySet()) {
+                String key = kv.getKey();
+                UpdateStrategy updateStrategy = kv.getValue();
+                if (oldElement.properties.get(key) != null) {
+                    Object value = updateStrategy.checkAndUpdateProperty(
+                                   oldElement.properties.get(key),
+                                   newElement.properties.get(key));
+                    newElement.properties.put(key, value);
+                }
+            }
+        }
+    }
+
+    // TODO: Combine multi update methond into one (Element & JsonElement)
+    protected void updateExistElement(Element oldElement,
+                                      JsonElement newElement,
+                                      Map<String, UpdateStrategy> strategy,
+                                      HugeGraph g) {
+        if (oldElement != null && newElement != null) {
+            for (Map.Entry<String, UpdateStrategy> kv : strategy.entrySet()) {
+                String key = kv.getKey();
+                UpdateStrategy updateStrategy = kv.getValue();
+                if (oldElement.property(key).isPresent()) {
+                    Object value = updateStrategy.checkAndUpdateProperty(
+                                   oldElement.property(key).value(),
+                                   newElement.properties.get(key));
+                    newElement.properties.put(key, g.propertyKey(key).
+                                                   convValue(value,false));
+                }
+            }
+        }
+    }
+
+    protected static void updateProperties(JsonElement jsonElement,
+                                           boolean append,
+                                           HugeElement element) {
+        for (Map.Entry<String, Object> e : jsonElement.properties.entrySet()) {
+            String key = e.getKey();
+            Object value = e.getValue();
+            if (append) {
+                element.property(key, value);
+            } else {
+                element.property(key).remove();
+            }
         }
     }
 }
