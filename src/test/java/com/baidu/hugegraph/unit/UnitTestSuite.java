@@ -22,6 +22,8 @@ package com.baidu.hugegraph.unit;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import com.baidu.hugegraph.testutil.AssertTest;
+import com.baidu.hugegraph.testutil.WhiteboxTest;
 import com.baidu.hugegraph.unit.config.HugeConfigTest;
 import com.baidu.hugegraph.unit.event.EventHubTest;
 import com.baidu.hugegraph.unit.iterator.ExtendableIteratorTest;
@@ -68,7 +70,10 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     TimeUtilTest.class,
     VersionUtilTest.class,
     LongEncodingTest.class,
-    OrderLimitMapTest.class
+    OrderLimitMapTest.class,
+
+    AssertTest.class,
+    WhiteboxTest.class
 })
 public class UnitTestSuite {
 }

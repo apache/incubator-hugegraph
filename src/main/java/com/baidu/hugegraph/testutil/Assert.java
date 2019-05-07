@@ -56,4 +56,32 @@ public class Assert extends org.junit.Assert {
                         throwable));
         }
     }
+
+    public static void assertEquals(byte expected, Object actual) {
+        org.junit.Assert.assertEquals(expected, actual);
+    }
+
+    public static void assertEquals(short expected, Object actual) {
+        org.junit.Assert.assertEquals(expected, actual);
+    }
+
+    public static void assertEquals(char expected, Object actual) {
+        org.junit.Assert.assertEquals(expected, actual);
+    }
+
+    public static void assertEquals(int expected, Object actual) {
+        org.junit.Assert.assertEquals(expected, actual);
+    }
+
+    public static void assertEquals(long expected, Object actual) {
+        org.junit.Assert.assertEquals(expected, actual);
+    }
+
+    public static void assertEquals(float expected, Object actual) {
+        org.junit.Assert.assertEquals(expected, actual);
+    }
+
+    public static void assertEquals(double expected, Object actual) {
+        org.junit.Assert.assertEquals(expected, actual);
+    }
 }

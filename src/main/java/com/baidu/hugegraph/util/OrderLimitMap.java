@@ -32,6 +32,8 @@ import com.google.common.collect.Ordering;
 public class OrderLimitMap<K extends Comparable<K>, V extends Comparable<V>>
        extends TreeMap<K, V> {
 
+    private static final long serialVersionUID = 756490437953358633L;
+
     private final int capacity;
     private final Map<K, V> valueMap;
 

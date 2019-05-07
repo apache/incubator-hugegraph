@@ -75,11 +75,13 @@ public class RestClientTest {
             this(url, timeout, status, ImmutableMultivaluedMap.empty(), "");
         }
 
+        @SuppressWarnings("unused")
         public RestClientImpl(String url, int timeout, int status,
                               MultivaluedMap<String, Object> headers) {
             this(url, timeout, status, headers, "");
         }
 
+        @SuppressWarnings("unused")
         public RestClientImpl(String url, int timeout, int status,
                               String content) {
             this(url, timeout, status, ImmutableMultivaluedMap.empty(), content);

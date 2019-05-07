@@ -20,31 +20,56 @@
 package com.baidu.hugegraph.testutil;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Objects;
+
+import com.baidu.hugegraph.util.E;
 
 public class Whitebox {
 
+    public static final char SEPARATOR = '.';
+
     public static void setInternalState(Object target, String fieldName,
                                         Object value) {
+        assert target != null;
+        assert fieldName != null;
+        int sep = fieldName.lastIndexOf(SEPARATOR);
+        if (sep > 0) {
+            target = getInternalState(target, fieldName.substring(0, sep));
+            fieldName = fieldName.substring(sep + 1);
+        }
         try {
             Field f = getFieldFromHierarchy(target.getClass(), fieldName);
             f.setAccessible(true);
             f.set(target, value);
         } catch (Exception e) {
-            Assert.fail(String.format("Can't change value of '%s' against " +
-                                      "target '%s': %s", fieldName, target, e));
+            throw new RuntimeException(String.format(
+                      "Can't set value of '%s' against object '%s'",
+                      fieldName, target), e);
         }
     }
 
-    public static Object getInternalState(Object target, String field) {
+    public static <T> T getInternalState(Object target, String fieldName) {
+        assert fieldName != null;
+        int sep = fieldName.indexOf(SEPARATOR);
+        if (sep > 0) {
+            String field = fieldName.substring(0, sep);
+            Object value = getInternalState(target, field);
+            field = fieldName.substring(sep + 1);
+            return getInternalState(value, field);
+        }
         Class<?> c = target.getClass();
         try {
-            Field f = getFieldFromHierarchy(c, field);
+            Field f = getFieldFromHierarchy(c, fieldName);
             f.setAccessible(true);
-            return f.get(target);
+            @SuppressWarnings("unchecked")
+            T result = (T) f.get(target);
+            return result;
         } catch (Exception e) {
-            throw new RuntimeException(
-                      "Unable to set internal state on a private field. " +
-                      "Please report to mockito mailing list.", e);
+            throw new RuntimeException(String.format(
+                      "Unable to get internal state on field '%s' of %s",
+                      fieldName, target), e);
         }
     }
 
@@ -56,8 +81,7 @@ public class Whitebox {
         }
         if (f == null) {
             throw new RuntimeException(String.format(
-                      "You want to set value to field '%s' on class '%s' " +
-                      "but this field is not declared in the class!",
+                      "Not declared field '%s' in class '%s'",
                       field, clazz.getSimpleName()));
         }
         return f;
@@ -68,6 +92,60 @@ public class Whitebox {
             return clazz.getDeclaredField(field);
         } catch (NoSuchFieldException e) {
             return null;
+        }
+    }
+
+    public static <T> T invokeStatic(Class<?> clazz, String methodName,
+                                     Object... args) {
+        return invoke(clazz, methodName, (Object) null, args);
+    }
+
+    public static <T> T invokeStatic(Class<?> clazz,  Class<?>[] classes,
+                                     String methodName, Object... args) {
+        return invoke(clazz, classes, methodName, (Object) null, args);
+    }
+
+    public static <T> T invoke(Object owner, String field,
+                               String methodName, Object... args) {
+        Object self = getInternalState(owner, field);
+        Objects.requireNonNull(self);
+        return invoke(self.getClass(), methodName, self, args);
+    }
+
+    public static <T> T invoke(Object owner, String field, Class<?>[] classes,
+                               String methodName, Object... args) {
+        Object self = getInternalState(owner, field);
+        Objects.requireNonNull(self);
+        return invoke(self.getClass(), classes, methodName, self, args);
+    }
+
+    public static <T> T invoke(Class<?> clazz, String methodName,
+                               Object self, Object... args) {
+        Class<?>[] classes = new Class<?>[args.length];
+        int i = 0;
+        for (Object arg : args) {
+            E.checkArgument(arg != null, "The argument can't be null");
+            classes[i++] = arg.getClass();
+        }
+        return invoke(clazz, classes, methodName, self, args);
+    }
+
+    public static <T> T invoke(Class<?> clazz, Class<?>[] classes,
+                               String methodName, Object self, Object... args) {
+        try {
+            Method method = clazz.getDeclaredMethod(methodName, classes);
+            method.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            T result = (T) method.invoke(self, args);
+            return result;
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(String.format(
+                      "Can't find method '%s' of class '%s'",
+                      methodName, clazz), e);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(String.format(
+                      "Can't invoke method '%s' of class '%s'",
+                      methodName, clazz), e);
         }
     }
 }

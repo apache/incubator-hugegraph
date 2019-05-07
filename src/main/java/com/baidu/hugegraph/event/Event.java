@@ -56,6 +56,9 @@ public class Event extends java.util.EventObject {
         int i = 0;
         for (Class<?> c : classes) {
             Object arg = this.args[i++];
+            if (arg == null) {
+                continue;
+            }
             E.checkArgument(c.isAssignableFrom(arg.getClass()),
                             "The arg '%s'(%s) can't match %s",
                             arg, arg.getClass(), c);
