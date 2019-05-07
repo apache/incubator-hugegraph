@@ -48,13 +48,16 @@ public class LoadDetectFilter implements ContainerRequestFilter {
     public void filter(ContainerRequestContext context) throws IOException {
         HugeConfig config = this.configProvider.get();
         long minFreeMemory = config.get(ServerOptions.MIN_FREE_MEMORY);
-        long available = Runtime.getRuntime().freeMemory() / Bytes.MB;
-        if (available < minFreeMemory) {
+        long allocatedMem = Runtime.getRuntime().totalMemory() -
+                            Runtime.getRuntime().freeMemory();
+        long presumableFreeMem = (Runtime.getRuntime().maxMemory() -
+                                  allocatedMem) / Bytes.MB;
+        if (presumableFreeMem < minFreeMemory) {
             throw new ServiceUnavailableException(String.format(
                       "The server available memory %s(MB) is below than " +
                       "threshold %s(MB) and can't process the request, " +
                       "you can config %s to adjust it or try again later",
-                      available, minFreeMemory,
+                      presumableFreeMem, minFreeMemory,
                       ServerOptions.MIN_FREE_MEMORY.name()));
         }
 

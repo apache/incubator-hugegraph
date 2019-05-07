@@ -63,7 +63,7 @@ public class ServerOptions extends OptionHolder {
                     "will be rejected when the available memory of system " +
                     "is lower than this value.",
                     positiveInt(),
-                    128L
+                    512L
             );
 
     public static final ConfigOption<String> GREMLIN_SERVER_URL =
