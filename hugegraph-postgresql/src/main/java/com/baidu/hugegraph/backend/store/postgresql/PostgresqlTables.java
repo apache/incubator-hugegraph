@@ -176,9 +176,7 @@ public class PostgresqlTables {
         }
 
         protected final String entryId(MysqlBackendEntry entry) {
-            MysqlTables.SecondaryIndex table =
-                    (MysqlTables.SecondaryIndex) this.template;
-            return table.entryId(entry);
+            return ((MysqlTables.SecondaryIndex) this.template).entryId(entry);
         }
     }
 
@@ -198,9 +196,7 @@ public class PostgresqlTables {
         }
 
         protected final String entryId(MysqlBackendEntry entry) {
-            MysqlTables.RangeIndex table =
-                    (MysqlTables.RangeIndex) this.template;
-            return table.entryId(entry);
+            return ((MysqlTables.RangeIndex) this.template).entryId(entry);
         }
     }
 }

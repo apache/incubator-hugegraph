@@ -53,6 +53,8 @@ public class TableDefine {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < desc.length; i++) {
             String type = desc[i];
+            // The first element of 'desc' is column data type, which may be
+            // mapped to actual data type supported by backend store
             if (i == 0 && this.typesMapping.containsKey(type)) {
                 type = this.typesMapping.get(type);
             }
