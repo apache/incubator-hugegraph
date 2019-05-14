@@ -60,6 +60,7 @@ import com.baidu.hugegraph.backend.tx.GraphIndexTransaction.OptimizedType;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
+import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
@@ -320,16 +321,26 @@ public class GraphTransaction extends IndexableTransaction {
                                           q -> super.query(q));
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query)) {
-            Query q = this.optimizeQuery(cq);
+            OptimizedQueries oqs = (OptimizedQueries) this.optimizeQuery(cq);
             /*
              * NOTE: There are two possibilities for this query:
              * 1.sysprop-query, which would not be empty.
              * 2.index-query result(ids after optimization), which may be empty.
              */
-            if (q == null) {
+            for (Query q : oqs) {
+                if (!q.empty()) {
+                    queries.add(q);
+                }
+            }
+            if (oqs.isEmpty()) {
                 queries.add(this.indexQuery(cq));
-            } else if (!q.empty()) {
-                queries.add(q);
+            } else if (oqs.semiOptimized()) {
+                // TODO: modify it
+                try {
+                    queries.add(this.indexQuery(cq));
+                } catch (NoIndexException ignored) {
+                    // pass
+                }
             }
         }
 
@@ -863,6 +874,60 @@ public class GraphTransaction extends IndexableTransaction {
         });
     }
 
+    public static Query constructVertexQuery(ConditionQuery query,
+                                             VertexLabel vertexLabel) {
+        Id label = vertexLabel.id();
+        List<Id> keys = vertexLabel.primaryKeys();
+        // Query vertex by label + primary-values
+        query.optimized(OptimizedType.PRIMARY_KEY.ordinal());
+        String primaryValues = query.userpropValuesString(keys);
+        LOG.debug("Query vertices by primaryKeys: {}", query);
+        // Convert {vertex-label + primary-key} to vertex-id
+        Id id = SplicingIdGenerator.splicing(label.asString(),
+                                             primaryValues);
+        /*
+         * Just query by primary-key(id), ignore other userprop(if
+         * exists) that it will be filtered by queryVertices(Query)
+         */
+        return new IdQuery(query, id);
+    }
+
+    public static boolean matchVertexPrimaryKeys(ConditionQuery query,
+                                                 VertexLabel vertexLabel) {
+        return matchVertexPrimaryKeys(query, vertexLabel, false);
+    }
+
+    public static boolean matchVertexPrimaryKeys(ConditionQuery query,
+                                                 VertexLabel vertexLabel,
+                                                 boolean strict) {
+        if (vertexLabel.idStrategy() != IdStrategy.PRIMARY_KEY) {
+            return false;
+        }
+        List<Id> keys = vertexLabel.primaryKeys();
+        E.checkState(!keys.isEmpty(),
+                     "The primary keys can't be empty when using " +
+                     "'%s' id strategy for vertex label '%s'",
+                     IdStrategy.PRIMARY_KEY, vertexLabel.name());
+        return query.matchUserpropKeys(keys, strict);
+    }
+
+    private static class OptimizedQueries extends ArrayList<Query> {
+
+        /*
+         * NOTE: semiOptimized = true means that raw query was optimized,
+         * but still need to go through the index.
+         */
+        private boolean semiOptimized = false;
+
+        public boolean semiOptimized() {
+            return this.semiOptimized;
+        }
+
+        public void semiOptimized(boolean semiOptimized) {
+            this.semiOptimized = semiOptimized;
+        }
+    }
+
     /**
      * Construct one edge condition query based on source vertex, direction and
      * edge labels
@@ -911,7 +976,7 @@ public class GraphTransaction extends IndexableTransaction {
                                             HugeGraph graph) {
         assert query.resultType().isEdge();
 
-        Id label = (Id) query.condition(HugeKeys.LABEL);
+        Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {
             return false;
         }
@@ -946,32 +1011,30 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private Query optimizeQuery(ConditionQuery query) {
-        Id label = (Id) query.condition(HugeKeys.LABEL);
+    private List<Query> optimizeQuery(ConditionQuery query) {
+        OptimizedQueries queries = new OptimizedQueries();
+        Id label = query.condition(HugeKeys.LABEL);
 
         // Optimize vertex query
-        if (label != null && query.resultType().isVertex()) {
-            VertexLabel vertexLabel = this.graph().vertexLabel(label);
-            if (vertexLabel.idStrategy() == IdStrategy.PRIMARY_KEY) {
-                List<Id> keys = vertexLabel.primaryKeys();
-                E.checkState(!keys.isEmpty(),
-                             "The primary keys can't be empty when using " +
-                             "'%s' id strategy for vertex label '%s'",
-                             IdStrategy.PRIMARY_KEY, vertexLabel.name());
-                if (query.matchUserpropKeys(keys)) {
-                    // Query vertex by label + primary-values
-                    query.optimized(OptimizedType.PRIMARY_KEY.ordinal());
-                    String primaryValues = query.userpropValuesString(keys);
-                    LOG.debug("Query vertices by primaryKeys: {}", query);
-                    // Convert {vertex-label + primary-key} to vertex-id
-                    Id id = SplicingIdGenerator.splicing(label.asString(),
-                                                         primaryValues);
-                    /*
-                     * Just query by primary-key(id), ignore other userprop(if
-                     * exists) that it will be filtered by queryVertices(Query)
-                     */
-                    return new IdQuery(query, id);
+        if (query.resultType().isVertex()) {
+            if (label != null) {
+                VertexLabel vertexLabel = this.graph().vertexLabel(label);
+                if (matchVertexPrimaryKeys(query, vertexLabel)) {
+                    queries.add(constructVertexQuery(query, vertexLabel));
                 }
+            } else {
+                List<VertexLabel> vls = this.graph().schema().getVertexLabels();
+                for (VertexLabel vertexLabel : vls) {
+                    if (matchVertexPrimaryKeys(query, vertexLabel)) {
+                        queries.add(constructVertexQuery(query, vertexLabel));
+                    }
+                }
+                if (!queries.isEmpty()) {
+                    queries.semiOptimized(true);
+                }
+            }
+            if (!queries.isEmpty()) {
+                return queries;
             }
         }
 
@@ -1011,7 +1074,8 @@ public class GraphTransaction extends IndexableTransaction {
                 query.resetUserpropConditions();
 
                 LOG.debug("Query edges by sortKeys: {}", query);
-                return query;
+                queries.add(query);
+                return queries;
             }
         }
 
@@ -1027,11 +1091,12 @@ public class GraphTransaction extends IndexableTransaction {
             // Query by label & store supports feature or not query by label
             boolean byLabel = (label != null && query.conditions().size() == 1);
             if (this.store().features().supportsQueryByLabel() || !byLabel) {
-                return query;
+                queries.add(query);
+                return queries;
             }
         }
 
-        return null;
+        return queries;
     }
 
     private List<IdHolder> indexQuery(ConditionQuery query) {

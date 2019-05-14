@@ -639,7 +639,7 @@ public class BinarySerializer extends AbstractSerializer {
                         "INDEX_LABEL_ID and FIELD_VALUES" +
                         "in secondary index query");
 
-        Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
+        Id index = query.condition(HugeKeys.INDEX_LABEL_ID);
         Object key = query.condition(HugeKeys.FIELD_VALUES);
 
         E.checkArgument(index != null, "Please specify the index label");
@@ -665,7 +665,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     private Query writeRangeIndexQuery(ConditionQuery query) {
-        Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
+        Id index = query.condition(HugeKeys.INDEX_LABEL_ID);
         E.checkArgument(index != null,
                         "Please specify the index label");
 

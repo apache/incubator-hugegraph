@@ -1039,7 +1039,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryByPrimaryValues() {
+    public void testQueryByLabelAndPrimaryValues() {
         HugeGraph graph = graph();
         init10Vertices();
 
@@ -1050,6 +1050,32 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices,
                        T.label, "author", "id", 1, "name", "James Gosling",
                        "age", 62, "lived", "Canadian");
+    }
+
+    @Test
+    public void testQueryByPrimaryValuesWithoutLabel() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        init10Vertices();
+
+        schema.vertexLabel("coffee")
+              .useCustomizeStringId()
+              .properties("name")
+              .create();
+        schema.indexLabel("coffeeByName")
+              .onV("coffee")
+              .by("name")
+              .secondary()
+              .create();
+
+        graph.addVertex(T.label, "coffee", T.id, "1", "name", "java");
+
+        // Query vertex by primary-values(without label) and(union) index
+        List<Vertex> vertexes = graph.traversal().V()
+                                     .has("name", "java").toList();
+        Assert.assertEquals(2, vertexes.size());
+        assertContains(vertexes, T.label, "language", "name", "java");
+        assertContains(vertexes, T.label, "coffee", "name", "java");
     }
 
     @Test

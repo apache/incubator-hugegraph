@@ -368,8 +368,21 @@ public final class ConditionQuery extends IdQuery {
     }
 
     public boolean matchUserpropKeys(List<Id> keys) {
+        return this.matchUserpropKeys(keys, false);
+    }
+
+    public boolean matchUserpropKeys(List<Id> keys, boolean strict) {
+        if (keys.size() <= 0) {
+            return false;
+        }
+
         Set<Id> conditionKeys = this.userpropKeys();
-        return keys.size() > 0 && conditionKeys.containsAll(keys);
+        if (strict) {
+            return keys.size() == conditionKeys.size() &&
+                   conditionKeys.containsAll(keys);
+        } else {
+            return conditionKeys.containsAll(keys);
+        }
     }
 
     @Override
