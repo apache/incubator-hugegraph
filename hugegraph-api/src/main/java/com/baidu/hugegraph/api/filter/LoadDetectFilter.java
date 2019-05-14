@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.filter;
 
-import java.io.IOException;
-
 import javax.inject.Singleton;
 import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -45,7 +43,7 @@ public class LoadDetectFilter implements ContainerRequestFilter {
     private javax.inject.Provider<WorkLoad> loadProvider;
 
     @Override
-    public void filter(ContainerRequestContext context) throws IOException {
+    public void filter(ContainerRequestContext context) {
         HugeConfig config = this.configProvider.get();
         long minFreeMemory = config.get(ServerOptions.MIN_FREE_MEMORY);
         long allocatedMem = Runtime.getRuntime().totalMemory() -

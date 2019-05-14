@@ -56,14 +56,14 @@ public class ServerOptions extends OptionHolder {
                     2 * Runtime.getRuntime().availableProcessors()
             );
 
-    public static final ConfigOption<Long> MIN_FREE_MEMORY =
+    public static final ConfigOption<Integer> MIN_FREE_MEMORY =
             new ConfigOption<>(
                     "restserver.min_free_memory",
                     "The minmium free memory(MB) of rest server, requests " +
                     "will be rejected when the available memory of system " +
                     "is lower than this value.",
                     positiveInt(),
-                    512L
+                    256
             );
 
     public static final ConfigOption<String> GREMLIN_SERVER_URL =
