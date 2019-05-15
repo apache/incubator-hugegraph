@@ -50,6 +50,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 
 public class InMemoryDBTables {
@@ -484,70 +485,10 @@ public class InMemoryDBTables {
                 q.offset(query.offset());
                 q.limit(query.limit());
                 return super.query(session, q);
-            } else {
-                if (keyMin == null) {
-                    // Field value < keyMax
-                    assert keyMax != null;
-                    return this.ltQuery(indexLabelId, keyMax, keyMaxEq);
-                } else {
-                    if (keyMax == null) {
-                        // Field value > keyMin
-                        return this.gtQuery(indexLabelId, keyMin, keyMinEq);
-                    } else {
-                        // keyMin <(=) field value <(=) keyMax
-                        return this.betweenQuery(indexLabelId,
-                                                 keyMax, keyMaxEq,
-                                                 keyMin, keyMinEq);
-                    }
-                }
             }
-        }
-
-        private Iterator<BackendEntry> ltQuery(Id indexLabelId,
-                                               Object keyMax,
-                                               boolean keyMaxEq) {
-            NavigableMap<Id, BackendEntry> rs = this.store();
-            Map<Id, BackendEntry> results = new HashMap<>();
-
-            Id min = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
-                                             indexLabelId, 0L);
-            Id max = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
-                                             indexLabelId, keyMax);
-            Map.Entry<Id, BackendEntry> entry = keyMaxEq ?
-                                                rs.floorEntry(max) :
-                                                rs.lowerEntry(max);
-            while (entry != null) {
-                if (entry.getKey().compareTo(min) < 0) {
-                    break;
-                }
-                results.put(entry.getKey(), entry.getValue());
-                entry = rs.lowerEntry(entry.getKey());
-            }
-            return results.values().iterator();
-        }
-
-        private Iterator<BackendEntry> gtQuery(Id indexLabelId,
-                                               Object keyMin,
-                                               boolean keyMinEq) {
-            NavigableMap<Id, BackendEntry> rs = this.store();
-            Map<Id, BackendEntry> results = new HashMap<>();
-
-            Id min = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
-                                             indexLabelId, keyMin);
-            indexLabelId = IdGenerator.of(indexLabelId.asLong() + 1L);
-            Id max = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
-                                             indexLabelId, 0L);
-            Map.Entry<Id, BackendEntry> entry = keyMinEq ?
-                                                rs.ceilingEntry(min) :
-                                                rs.higherEntry(min);
-            while (entry != null) {
-                if (entry.getKey().compareTo(max) >= 0) {
-                    break;
-                }
-                results.put(entry.getKey(), entry.getValue());
-                entry = rs.higherEntry(entry.getKey());
-            }
-            return results.values().iterator();
+            // keyMin <(=) field value <(=) keyMax
+            return this.betweenQuery(indexLabelId, keyMax, keyMaxEq,
+                                     keyMin, keyMinEq);
         }
 
         private Iterator<BackendEntry> betweenQuery(Id indexLabelId,
@@ -557,8 +498,21 @@ public class InMemoryDBTables {
                                                     boolean keyMinEq) {
             NavigableMap<Id, BackendEntry> rs = this.store();
 
+            E.checkArgument(!(keyMin == null && keyMax == null),
+                            "Please specify at least one condition");
+            if (keyMin == null) {
+                // Field value < keyMax
+                keyMin = NumericUtil.minValueOf(keyMax.getClass());
+            }
             Id min = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
                                              indexLabelId, keyMin);
+
+            if (keyMax == null) {
+                // Field value > keyMin
+                keyMaxEq = false;
+                indexLabelId = IdGenerator.of(indexLabelId.asLong() + 1L);
+                keyMax = NumericUtil.minValueOf(keyMin.getClass());
+            }
             Id max = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
                                              indexLabelId, keyMax);
 

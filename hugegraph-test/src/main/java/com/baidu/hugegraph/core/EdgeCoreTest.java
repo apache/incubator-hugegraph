@@ -44,6 +44,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -169,15 +170,6 @@ public class EdgeCoreTest extends BaseCoreTest {
               .nullableKeys("tool", "reason", "hurt")
               .enableLabelIndex(false)
               .ifNotExist().create();
-    }
-
-    protected void initTransferIndex() {
-        SchemaManager schema = graph().schema();
-
-        LOG.debug("===============  transfer index  ================");
-
-        schema.indexLabel("transferByTimestamp").onE("transfer").range()
-              .by("timestamp").create();
     }
 
     protected void initStrikeIndex() {
@@ -1262,19 +1254,19 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = vertex("book", "name", "java-3");
 
         List<Edge> edges = graph.traversal().V(java3.id())
-                           .inE().has("score", 3).toList();
+                                .inE().has("score", 3).toList();
         Assert.assertEquals(3, edges.size());
 
         edges = graph.traversal().V(java3.id())
-                .inE("look").has("score", 3).toList();
+                     .inE("look").has("score", 3).toList();
         Assert.assertEquals(2, edges.size());
 
         edges = graph.traversal().V(java3.id())
-                .inE("look").has("score", 4).toList();
+                     .inE("look").has("score", 4).toList();
         Assert.assertEquals(1, edges.size());
 
         edges = graph.traversal().V(java3.id())
-                .inE("look").has("score", 0).toList();
+                     .inE("look").has("score", 0).toList();
         Assert.assertEquals(1, edges.size());
     }
 
@@ -1286,11 +1278,11 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = vertex("book", "name", "java-3");
 
         List<Edge> edges = graph.traversal().V(java3.id())
-                           .inE("look").toList();
+                                .inE("look").toList();
         Assert.assertEquals(4, edges.size());
 
         edges = graph.traversal().V(java3.id())
-                .inE("look").has("time", "2017-5-27").toList();
+                     .inE("look").has("time", "2017-5-27").toList();
         Assert.assertEquals(3, edges.size());
     }
 
@@ -1302,7 +1294,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = vertex("book", "name", "java-3");
 
         List<Vertex> vertices = graph.traversal().V(java3.id())
-                                .in("look").toList();
+                                     .in("look").toList();
         Assert.assertEquals(4, vertices.size());
     }
 
@@ -1315,15 +1307,15 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         // NOTE: the has() just filter by vertex props
         List<Vertex> vertices = graph.traversal().V(java3.id())
-                                .in("look").has("age", P.gt(22))
-                                .toList();
+                                     .in("look").has("age", P.gt(22))
+                                     .toList();
         Assert.assertEquals(2, vertices.size());
     }
 
     @Test
     public void testQueryByLongPropOfOverrideEdge() {
         HugeGraph graph = graph();
-        initTransferIndex();
+        initStrikeIndex();
 
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
@@ -1345,26 +1337,112 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryByStringPropOfOverrideEdge() {
+    public void testQueryByNegativeLongProperty() {
         HugeGraph graph = graph();
-        initStrikeIndex();
+        SchemaManager schema = graph.schema();
+
+        schema.indexLabel("transferByTimestamp").onE("transfer").range()
+              .by("timestamp").create();
 
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
                                         "city", "Beijing", "age", 21);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
                                       "city", "Beijing", "age", 23);
 
-        long current = System.currentTimeMillis();
-        louise.addEdge("strike", sean, "id", 1, "timestamp", current,
-                       "place", "park", "tool", "shovel", "reason", "jeer",
-                       "arrested", false);
-        louise.addEdge("strike", sean, "id", 1, "timestamp", current,
-                       "place", "street", "tool", "shovel", "reason", "jeer",
-                       "arrested", false);
-        List<Edge> edges = graph.traversal().E().has("place", "park")
-                                .toList();
+        louise.addEdge("transfer", sean, "id", 1,
+                       "amount", 500.00F, "timestamp", 1L,
+                       "message", "Happy birthday!");
+        louise.addEdge("transfer", sean, "id", 2,
+                       "amount", -1234.56F, "timestamp", -100L,
+                       "message", "Happy birthday!");
+
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E()
+                                .has("timestamp", -100L).toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(IdGenerator.of(2), edges.get(0).value("id"));
+
+        edges = graph.traversal().E()
+                     .has("timestamp", P.between(-101L, 0L))
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(IdGenerator.of(2), edges.get(0).value("id"));
+
+        edges = graph.traversal().E().has("timestamp", P.gt(-101L)).toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().E().has("timestamp", P.gte(-100L)).toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().E().has("timestamp", P.gt(-100L)).toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(IdGenerator.of(1), edges.get(0).value("id"));
+
+        edges = graph.traversal().E().has("timestamp", P.gt(-99L)).toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(IdGenerator.of(1), edges.get(0).value("id"));
+
+        edges = graph.traversal().E().has("timestamp", P.lt(-100L)).toList();
         Assert.assertEquals(0, edges.size());
-        edges = graph.traversal().E().has("place", "street").toList();
+        edges = graph.traversal().E().has("timestamp", P.lte(-100L)).toList();
+        Assert.assertEquals(1, edges.size());
+        edges = graph.traversal().E().has("timestamp", P.lt(0L)).toList();
+        Assert.assertEquals(1, edges.size());
+    }
+
+    @Test
+    public void testQueryByNegativeFloatProperty() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.indexLabel("transferByAmount").onE("transfer").range()
+              .by("amount").create();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        louise.addEdge("transfer", sean, "id", 1,
+                       "amount", 500.00F, "timestamp", 1L,
+                       "message", "Happy birthday!");
+        louise.addEdge("transfer", sean, "id", 2,
+                       "amount", -1234.56F, "timestamp", -100L,
+                       "message", "Happy birthday!");
+
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E()
+                                .has("amount", -1234.56F).toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(IdGenerator.of(2), edges.get(0).value("id"));
+
+        edges = graph.traversal().E()
+                     .has("amount", P.between(-1235F, 0L))
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(IdGenerator.of(2), edges.get(0).value("id"));
+
+        edges = graph.traversal().E().has("amount", P.gt(-1235F)).toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().E().has("amount", P.gte(-1234.56F)).toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().E().has("amount", P.gt(-1234.56F)).toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(IdGenerator.of(1), edges.get(0).value("id"));
+
+        edges = graph.traversal().E().has("amount", P.gt(-1234.56F)).toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(IdGenerator.of(1), edges.get(0).value("id"));
+
+        edges = graph.traversal().E().has("amount", P.lt(-1234.56F)).toList();
+        Assert.assertEquals(0, edges.size());
+        edges = graph.traversal().E().has("amount", P.lte(-1234.56F)).toList();
+        Assert.assertEquals(1, edges.size());
+        edges = graph.traversal().E().has("amount", P.lt(0F)).toList();
         Assert.assertEquals(1, edges.size());
     }
 
@@ -2399,6 +2477,30 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryEdgeByStringPropOfOverrideEdge() {
+        HugeGraph graph = graph();
+        initStrikeIndex();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+
+        long current = System.currentTimeMillis();
+        louise.addEdge("strike", sean, "id", 1, "timestamp", current,
+                       "place", "park", "tool", "shovel", "reason", "jeer",
+                       "arrested", false);
+        louise.addEdge("strike", sean, "id", 1, "timestamp", current,
+                       "place", "street", "tool", "shovel", "reason", "jeer",
+                       "arrested", false);
+        List<Edge> edges = graph.traversal().E().has("place", "park")
+                                .toList();
+        Assert.assertEquals(0, edges.size());
+        edges = graph.traversal().E().has("place", "street").toList();
+        Assert.assertEquals(1, edges.size());
+    }
+
+    @Test
     public void testQueryEdgeBeforeAfterUpdateMultiPropertyWithIndex() {
         HugeGraph graph = graph();
         initStrikeIndex();
@@ -2520,7 +2622,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, el.size());
         Assert.assertEquals(1, (int) el.get(0).value("id"));
         el = graph.traversal().E().has("place", "park")
-             .has("tool", "shovel").toList();
+                  .has("tool", "shovel").toList();
         Assert.assertEquals(1, el.size());
         Assert.assertEquals(1, (int) el.get(0).value("id"));
     }
