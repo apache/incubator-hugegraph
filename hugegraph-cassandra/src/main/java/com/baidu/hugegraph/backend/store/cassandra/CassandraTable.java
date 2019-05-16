@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Query;
@@ -168,8 +169,9 @@ public abstract class CassandraTable
                 select.setFetchSize((int) total);
                 // It's the first time if page is empty
                 if (!page.isEmpty()) {
+                    byte[] position = PageState.fromString(page).position();
                     try {
-                        select.setPagingState(PagingState.fromString(page));
+                        select.setPagingState(PagingState.fromBytes(position));
                     } catch (PagingStateException e) {
                         throw new BackendException(e);
                     }

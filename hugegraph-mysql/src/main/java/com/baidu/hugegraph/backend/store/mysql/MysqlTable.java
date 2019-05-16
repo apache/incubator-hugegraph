@@ -32,12 +32,13 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.TableDefine;
-import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PageState;
+import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PagePosition;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
@@ -484,8 +485,10 @@ public abstract class MysqlTable
         String page = query.page();
         // It's the first time if page is empty
         if (!page.isEmpty()) {
-            PageState pageState = PageState.fromString(page);
-            Map<HugeKeys, Object> columns = pageState.columns();
+            byte[] position = PageState.fromString(page).position();
+
+            Map<HugeKeys, Object> columns = PagePosition.fromBytes(position)
+                                                        .columns();
 
             List<HugeKeys> idColumnNames = this.idColumnName();
             List<Object> values = new ArrayList<>(idColumnNames.size());

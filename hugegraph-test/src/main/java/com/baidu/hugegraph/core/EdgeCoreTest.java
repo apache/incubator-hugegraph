@@ -44,7 +44,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
@@ -1761,14 +1761,14 @@ public class EdgeCoreTest extends BaseCoreTest {
         query.scan(String.valueOf(Long.MIN_VALUE),
                    String.valueOf(Long.MAX_VALUE));
         query.limit(1);
-        String page = PageState.PAGE_NONE;
+        String page = PageInfo.PAGE_NONE;
         while (page != null) {
             query.page(page);
             Iterator<Edge> iterator = graph.edges(query);
             while (iterator.hasNext()) {
                 edges.add(iterator.next());
             }
-            page = PageState.page(iterator);
+            page = PageInfo.page(iterator);
         }
         Assert.assertEquals(18, edges.size());
     }
@@ -2590,7 +2590,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         GraphTraversal<Edge, Edge> iter;
 
-        String page = PageState.PAGE_NONE;
+        String page = PageInfo.PAGE_NONE;
         int size = 20;
 
         for (int i = 0; i < 100 / size; i++) {

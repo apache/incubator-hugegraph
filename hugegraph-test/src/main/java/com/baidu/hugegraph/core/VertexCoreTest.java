@@ -46,7 +46,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
-import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -3023,14 +3023,14 @@ public class VertexCoreTest extends BaseCoreTest {
         query.scan(String.valueOf(Long.MIN_VALUE),
                    String.valueOf(Long.MAX_VALUE));
         query.limit(1);
-        String page = PageState.PAGE_NONE;
+        String page = PageInfo.PAGE_NONE;
         while (page != null) {
             query.page(page);
             Iterator<Vertex> iterator = graph.vertices(query);
             while (iterator.hasNext()) {
                 vertexes.add(iterator.next());
             }
-            page = PageState.page(iterator);
+            page = PageInfo.page(iterator);
         }
         Assert.assertEquals(10, vertexes.size());
     }
@@ -3277,7 +3277,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         GraphTraversal<Vertex, Vertex> iter;
 
-        String page = PageState.PAGE_NONE;
+        String page = PageInfo.PAGE_NONE;
         int size = 20;
 
         for (int i = 0; i < 100 / size; i++) {

@@ -19,15 +19,13 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
-import java.util.Base64;
 import java.util.function.BiFunction;
 
-import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
-import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 
 public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
@@ -125,7 +123,7 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         if (position == null) {
             return null;
         }
-        PageState page = new PageState(position, 0, this.count());
+        PageState page = new PageState(position, 0, (int) this.count());
         return page.toString();
     }
 
@@ -138,71 +136,6 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         PageState pagestate = PageState.fromString(page);
         if (pagestate.offset() > 0 && this.fetch()) {
             this.skip(this.current, pagestate.offset());
-        }
-    }
-
-    public static class PageState {
-
-        private final byte[] position;
-        private final int offset;
-        private final long total;
-
-        public PageState(byte[] position, int offset, long total) {
-            E.checkNotNull(position, "position");
-            this.position = position;
-            this.offset = offset;
-            this.total = total;
-        }
-
-        public byte[] position() {
-            return this.position;
-        }
-
-        public int offset() {
-            return this.offset;
-        }
-
-        public long total() {
-            return this.total;
-        }
-
-        @Override
-        public String toString() {
-            return Base64.getEncoder().encodeToString(this.toBytes());
-        }
-
-        public byte[] toBytes() {
-            int length = 2 + this.position.length + BytesBuffer.INT_LEN;
-            BytesBuffer buffer = BytesBuffer.allocate(length);
-            buffer.writeBytes(this.position);
-            buffer.writeInt(this.offset);
-            buffer.writeLong(this.total);
-            return buffer.bytes();
-        }
-
-        public static PageState fromString(String page) {
-            byte[] bytes;
-            try {
-                bytes = Base64.getDecoder().decode(page);
-            } catch (Exception e) {
-                throw new BackendException("Invalid page: '%s'", e, page);
-            }
-            return fromBytes(bytes);
-        }
-
-        public static PageState fromBytes(byte[] bytes) {
-            if (bytes.length == 0) {
-                // The first page
-                return new PageState(new byte[0], 0, 0L);
-            }
-            try {
-                BytesBuffer buffer = BytesBuffer.wrap(bytes);
-                return new PageState(buffer.readBytes(), buffer.readInt(),
-                                     buffer.readLong());
-            } catch (Exception e) {
-                throw new BackendException("Invalid page: '0x%s'",
-                                           e, Bytes.toHex(bytes));
-            }
         }
     }
 }

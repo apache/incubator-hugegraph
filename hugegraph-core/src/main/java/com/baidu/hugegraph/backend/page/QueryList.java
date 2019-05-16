@@ -32,7 +32,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
-import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
@@ -110,9 +109,9 @@ public final class QueryList {
         });
     }
 
-    protected PageIterator fetchNext(PageState pageState, long pageSize) {
+    protected PageIterator fetchNext(PageInfo pageInfo, long pageSize) {
         QueryHolder query = null;
-        int offset = pageState.offset();
+        int offset = pageInfo.offset();
         int current = 0;
         for (QueryHolder q : this.queries) {
             if (current + q.total() > offset) {
@@ -123,7 +122,7 @@ public final class QueryList {
         }
         E.checkNotNull(query, "query");
         assert offset >= current;
-        return query.iterator(offset - current, pageState.page(), pageSize);
+        return query.iterator(offset - current, pageInfo.page(), pageSize);
     }
 
     @SuppressWarnings("unused")
@@ -200,7 +199,7 @@ public final class QueryList {
             // Must iterate all entries before get the next page
             List<BackendEntry> results = IteratorUtils.list(iterator);
             return new PageIterator(results.iterator(),
-                                    PageState.page(iterator));
+                                    PageInfo.page(iterator));
         }
 
         @Override
@@ -261,8 +260,8 @@ public final class QueryList {
     public static class PageIterator {
 
         public static final PageIterator EMPTY = new PageIterator(
-                                                 Collections.emptyIterator(),
-                                                 PageState.PAGE_NONE);
+                Collections.emptyIterator(),
+                PageInfo.PAGE_NONE);
 
         private final Iterator<BackendEntry> iterator;
         private final String page;
@@ -281,7 +280,7 @@ public final class QueryList {
         }
 
         public long total() {
-            return BinaryEntryIterator.PageState.fromString(this.page).total();
+            return PageState.fromString(this.page).total();
         }
     }
 }
