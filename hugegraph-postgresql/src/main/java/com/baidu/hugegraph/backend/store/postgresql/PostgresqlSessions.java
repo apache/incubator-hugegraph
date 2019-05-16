@@ -30,7 +30,6 @@ public class PostgresqlSessions extends MysqlSessions {
 
     @Override
     protected String buildCreateDatabase(String database) {
-        return String.format("CREATE DATABASE %s ENCODING='UTF-8' " +
-                             "TEMPLATE=template0 LC_COLLATE='C' LC_CTYPE='C';", database);
+        return String.format("CREATE DATABASE %s ENCODING='UTF-8'", database);
     }
 }

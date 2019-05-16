@@ -120,7 +120,7 @@ public abstract class MysqlTable
 
     protected void dropTable(Session session) {
         LOG.debug("Drop table: {}", this.table());
-        String sql = String.format(this.dropTableTemplate, this.table());
+        String sql = this.buildDropTemplate();
         try {
             session.execute(sql);
         } catch (SQLException e) {
@@ -131,7 +131,7 @@ public abstract class MysqlTable
 
     protected void truncateTable(Session session) {
         LOG.debug("Truncate table: {}", this.table());
-        String sql = String.format(this.truncateTableTemplate, this.table());
+        String sql = this.buildTruncateTemplate();
         try {
             session.execute(sql);
         } catch (SQLException e) {
@@ -199,6 +199,14 @@ public abstract class MysqlTable
         return this.deleteTemplate;
     }
 
+    protected String buildDropTemplate() {
+        return String.format(this.dropTableTemplate, this.table());
+    }
+
+    protected String buildTruncateTemplate() {
+        return String.format(this.truncateTableTemplate, this.table());
+    }
+
     /**
      * Insert an entire row
      */
@@ -211,7 +219,7 @@ public abstract class MysqlTable
             // Create or get insert prepare statement
             insertStmt = session.prepareStatement(template);
             int i = 1;
-            for (Object object : this.insertTemplateObjects(entry)) {
+            for (Object object : this.buildInsertObjects(entry)) {
                 insertStmt.setObject(i++, object);
             }
         } catch (SQLException e) {
@@ -560,7 +568,7 @@ public abstract class MysqlTable
         // pass
     }
 
-    protected List<Object> insertTemplateObjects(MysqlBackendEntry.Row entry) {
+    protected List<Object> buildInsertObjects(MysqlBackendEntry.Row entry) {
         List<Object> objects = new ArrayList<>();
         for (Object key : entry.columns().keySet()) {
             objects.add(entry.columns().get(key));

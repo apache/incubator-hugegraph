@@ -47,12 +47,11 @@ public abstract class PostgresqlTable extends MysqlTable {
         return Strings.EMPTY;
     }
 
-
     @Override
-    protected List<Object> insertTemplateObjects(MysqlBackendEntry.Row entry) {
+    protected List<Object> buildInsertObjects(MysqlBackendEntry.Row entry) {
         List<Object> objects = new ArrayList<>();
-        objects.addAll(super.insertTemplateObjects(entry));
-        objects.addAll(super.insertTemplateObjects(entry));
+        objects.addAll(super.buildInsertObjects(entry));
+        objects.addAll(super.buildInsertObjects(entry));
         return objects;
     }
 

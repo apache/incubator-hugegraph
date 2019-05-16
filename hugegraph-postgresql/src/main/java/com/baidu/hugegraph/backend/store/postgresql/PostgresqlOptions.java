@@ -53,7 +53,7 @@ public class PostgresqlOptions extends MysqlOptions {
                     "jdbc.url",
                     "The url of database in JDBC format.",
                     disallowEmpty(),
-                    "jdbc:postgresql://127.0.0.1:5432"
+                    "jdbc:postgresql://127.0.0.1:5432/"
             );
 
     public static final ConfigOption<String> JDBC_USERNAME =
