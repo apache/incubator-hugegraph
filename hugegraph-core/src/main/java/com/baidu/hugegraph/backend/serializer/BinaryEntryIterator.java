@@ -125,7 +125,7 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         if (position == null) {
             return null;
         }
-        PageState page = new PageState(position, 0);
+        PageState page = new PageState(position, 0, this.count());
         return page.toString();
     }
 
@@ -145,11 +145,13 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
 
         private final byte[] position;
         private final int offset;
+        private final long total;
 
-        public PageState(byte[] position, int offset) {
+        public PageState(byte[] position, int offset, long total) {
             E.checkNotNull(position, "position");
             this.position = position;
             this.offset = offset;
+            this.total = total;
         }
 
         public byte[] position() {
@@ -158,6 +160,10 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
 
         public int offset() {
             return this.offset;
+        }
+
+        public long total() {
+            return this.total;
         }
 
         @Override
@@ -170,6 +176,7 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             BytesBuffer buffer = BytesBuffer.allocate(length);
             buffer.writeBytes(this.position);
             buffer.writeInt(this.offset);
+            buffer.writeLong(this.total);
             return buffer.bytes();
         }
 
@@ -186,11 +193,12 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         public static PageState fromBytes(byte[] bytes) {
             if (bytes.length == 0) {
                 // The first page
-                return new PageState(new byte[0], 0);
+                return new PageState(new byte[0], 0, 0L);
             }
             try {
                 BytesBuffer buffer = BytesBuffer.wrap(bytes);
-                return new PageState(buffer.readBytes(), buffer.readInt());
+                return new PageState(buffer.readBytes(), buffer.readInt(),
+                                     buffer.readLong());
             } catch (Exception e) {
                 throw new BackendException("Invalid page: '0x%s'",
                                            e, Bytes.toHex(bytes));

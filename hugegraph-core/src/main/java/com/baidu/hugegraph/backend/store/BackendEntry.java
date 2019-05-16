@@ -94,7 +94,6 @@ public interface BackendEntry {
         public void close();
 
         public byte[] position();
-
     }
 
     public interface BackendColumnIterator
@@ -132,10 +131,6 @@ public interface BackendEntry {
            implements BackendColumnIterator {
 
         private final Iterator<BackendColumn> iter;
-
-        public BackendColumnIteratorWrapper(Iterator<BackendColumn> iter) {
-            this.iter = iter;
-        }
 
         public BackendColumnIteratorWrapper(BackendColumn... cols) {
             this.iter = Arrays.asList(cols).iterator();

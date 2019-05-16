@@ -32,6 +32,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
@@ -277,6 +278,10 @@ public final class QueryList {
 
         public String page() {
             return this.page;
+        }
+
+        public long total() {
+            return BinaryEntryIterator.PageState.fromString(this.page).total();
         }
     }
 }

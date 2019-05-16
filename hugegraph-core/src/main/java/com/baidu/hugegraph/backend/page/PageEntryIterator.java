@@ -79,6 +79,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
                 this.pageState.increase();
             } else {
                 this.pageState.page(this.results.page());
+                this.remaining -= this.results.total();
             }
             return true;
         } else {
@@ -92,12 +93,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         if (!this.hasNext()) {
             throw new NoSuchElementException();
         }
-        BackendEntry entry = this.results.iterator().next();
-        if (this.remaining != Query.NO_LIMIT) {
-            // Assume one result in each entry (just for index query)
-            this.remaining--;
-        }
-        return entry;
+        return this.results.iterator().next();
     }
 
     @Override
