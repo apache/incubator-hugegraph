@@ -486,7 +486,6 @@ public abstract class MysqlTable
         // It's the first time if page is empty
         if (!page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
-
             Map<HugeKeys, Object> columns = PagePosition.fromBytes(position)
                                                         .columns();
 

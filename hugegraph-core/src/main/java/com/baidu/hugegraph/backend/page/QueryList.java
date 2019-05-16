@@ -260,8 +260,8 @@ public final class QueryList {
     public static class PageIterator {
 
         public static final PageIterator EMPTY = new PageIterator(
-                Collections.emptyIterator(),
-                PageInfo.PAGE_NONE);
+                                                 Collections.emptyIterator(),
+                                                 PageInfo.PAGE_NONE);
 
         private final Iterator<BackendEntry> iterator;
         private final String page;
