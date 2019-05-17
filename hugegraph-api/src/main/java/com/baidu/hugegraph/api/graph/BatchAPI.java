@@ -35,6 +35,7 @@ import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -116,21 +117,21 @@ public class BatchAPI extends API {
     }
 
     // TODO: Combine multi update methond into one (Element & JsonElement)
-    protected void updateExistElement(Element oldElement,
+    protected void updateExistElement(HugeGraph graph,
+                                      Element oldElement,
                                       JsonElement newElement,
-                                      Map<String, UpdateStrategy> strategy,
-                                      HugeGraph g) {
-        if (oldElement != null && newElement != null) {
-            for (Map.Entry<String, UpdateStrategy> kv : strategy.entrySet()) {
-                String key = kv.getKey();
-                UpdateStrategy updateStrategy = kv.getValue();
-                if (oldElement.property(key).isPresent()) {
-                    Object value = updateStrategy.checkAndUpdateProperty(
-                                   oldElement.property(key).value(),
-                                   newElement.properties.get(key));
-                    newElement.properties.put(key, g.propertyKey(key).
-                                                   convValue(value,false));
-                }
+                                      Map<String, UpdateStrategy> strategy) {
+        E.checkArgument(oldElement != null && newElement != null,
+                        "Both of the elements cannot be null");
+        for (Map.Entry<String, UpdateStrategy> kv : strategy.entrySet()) {
+            String key = kv.getKey();
+            UpdateStrategy updateStrategy = kv.getValue();
+            if (oldElement.property(key).isPresent()) {
+                Object value = updateStrategy.checkAndUpdateProperty(
+                               oldElement.property(key).value(),
+                               newElement.properties.get(key));
+                value = graph.propertyKey(key).convValue(value, false);
+                newElement.properties.put(key, value);
             }
         }
     }

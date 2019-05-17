@@ -137,12 +137,12 @@ public class VertexAPI extends BatchAPI {
 
         HugeGraph g = graph(manager, graph);
         checkBatchSize(config, req.jsonVertices);
-        // Do not support automatic Id strategy now (check once?)
+        // Not support automatic Id strategy now (check once?)
         E.checkArgument(g.vertexLabel(req.jsonVertices.get(0).label).
                         idStrategy() != IdStrategy.AUTOMATIC,
                         "Automatic Id strategy is not supported now");
 
-        Map<String, JsonVertex> maps = new HashMap<>(req.jsonVertices.size());
+        Map<Object, JsonVertex> maps = new HashMap<>(req.jsonVertices.size());
 
         return this.commit(config, g, maps.size(), () -> {
             /*
@@ -151,7 +151,7 @@ public class VertexAPI extends BatchAPI {
             * */
             req.jsonVertices.forEach(newVertex -> {
                 String labelId = g.vertexLabel(newVertex.label).id().asString();
-                String id = newVertex.id != null ? newVertex.id.toString() :
+                Object id = newVertex.id != null ? newVertex.id :
                             this.getVertexId(g, labelId, newVertex);
                 this.updateExistElement(newVertex, maps.get(id),
                                         req.updateStrategies);
@@ -159,13 +159,13 @@ public class VertexAPI extends BatchAPI {
             });
 
             // 2.Get all oldVertices and update with new vertices
-            List<String> ids = new ArrayList<>(maps.size());
+            List<Object> ids = new ArrayList<>(maps.size());
             maps.keySet().forEach(key -> ids.add(key));
             Iterator<Vertex> oldVertices = g.vertices(ids.toArray());
             oldVertices.forEachRemaining(oldVertex -> {
-                updateExistElement(oldVertex,
-                                   maps.get(oldVertex.id().toString()),
-                                   req.updateStrategies, g);
+                updateExistElement(g, oldVertex,
+                                   maps.get(oldVertex.id()),
+                                   req.updateStrategies);
             });
 
             // 3.Add finalVertices and return them
@@ -320,19 +320,20 @@ public class VertexAPI extends BatchAPI {
     }
 
     //TODO: Should support AUTOMATIC Id strategy ?
-    private String getVertexId(HugeGraph g, String labelId, JsonVertex vertex) {
+    private Object getVertexId(HugeGraph g, String labelId, JsonVertex vertex) {
         List<Id> pkIds = g.vertexLabel(vertex.label).primaryKeys();
         List<Object> pkValues = new ArrayList<>(pkIds.size());
         for (Id pkId : pkIds) {
             String propertyKey = g.propertyKey(pkId).name();
             Object propertyValue = vertex.properties.get(propertyKey);
-            E.checkState(propertyValue != null, "The value of primary key " +
-                         "'%s' can't be null", propertyKey);
+            E.checkState(propertyValue != null,
+                         "The value of primary key '%s' can't be null",
+                         propertyKey);
             pkValues.add(propertyValue);
         }
 
         String name = SplicingIdGenerator.concatValues(pkValues);
-        return SplicingIdGenerator.splicing(labelId, name).asString();
+        return SplicingIdGenerator.splicing(labelId, name);
     }
 
     private static class VertexRequest {

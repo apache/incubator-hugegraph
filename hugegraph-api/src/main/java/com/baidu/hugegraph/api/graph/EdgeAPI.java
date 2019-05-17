@@ -200,9 +200,9 @@ public class EdgeAPI extends BatchAPI {
             maps.keySet().forEach(key -> ids.add(key));
             Iterator<Edge> oldEdges = g.edges(ids.toArray());
             oldEdges.forEachRemaining(oldEdge -> {
-                updateExistElement(oldEdge,
+                updateExistElement(g, oldEdge,
                                    maps.get(oldEdge.id().toString()),
-                                   req.updateStrategies, g);
+                                   req.updateStrategies);
             });
 
             // 3.Add all finalEdges
@@ -441,8 +441,9 @@ public class EdgeAPI extends BatchAPI {
 
         @Override
         public String toString() {
-            return String.format("EdgeRequest{jsonEdges=%s,updateStrategies" +
-                                 "=%s,check_vertex=%s,createIfNotExist=%s}",
+            return String.format("EdgeRequest{jsonEdges=%s," +
+                                 "updateStrategies=%s," +
+                                 "checkVertex=%s,createIfNotExist=%s}",
                                  this.jsonEdges, this.updateStrategies,
                                  this.checkVertex, this.createIfNotExist);
         }

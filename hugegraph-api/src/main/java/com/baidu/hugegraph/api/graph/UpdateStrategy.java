@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api.graph;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -37,8 +38,10 @@ public enum UpdateStrategy {
     SUM {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            // TODO: How to accumulae universally (Byte, Long,...Double)
-            return (Double) oldProperty + (Double) newProperty;
+            // TODO: Improve preformance? (like write a method in common modle)
+            BigDecimal oldNumber = new BigDecimal(oldProperty.toString());
+            BigDecimal newNumber = new BigDecimal(newProperty.toString());
+            return oldNumber.add(newNumber);
         }
 
         @Override
@@ -62,8 +65,8 @@ public enum UpdateStrategy {
                           oldProperty instanceof Number) &&
                          (newProperty instanceof Date ||
                           newProperty instanceof Number),
-                         formatError(oldProperty, newProperty, "Date or " +
-                                                               "Number"));
+                         formatError(oldProperty, newProperty,
+                                     "Date or Number"));
         }
     },
 
