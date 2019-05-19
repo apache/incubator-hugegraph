@@ -189,7 +189,7 @@ public class EdgeAPI extends BatchAPI {
             req.jsonEdges.forEach(newEdge -> {
                 Id labelId = g.edgeLabel(newEdge.label).id();
                 String id = newEdge.id != null ? newEdge.id :
-                            this.getEdgeId(g, labelId, newEdge);
+                            this.getEdgeId(g, labelId, newEdge).asString();
                 this.updateExistElement(newEdge, maps.get(id),
                                         req.updateStrategies);
                 maps.put(id, newEdge);
@@ -404,7 +404,7 @@ public class EdgeAPI extends BatchAPI {
         }
     }
 
-    private String getEdgeId(HugeGraph g, Id labelId, JsonEdge newEdge) {
+    private Id getEdgeId(HugeGraph g, Id labelId, JsonEdge newEdge) {
         // Set sortKeys "" or null?
         String sortKeys = "";
         List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
@@ -425,7 +425,7 @@ public class EdgeAPI extends BatchAPI {
                                    Directions.OUT,
                                    g.edgeLabel(newEdge.label).id(), sortKeys,
                                    HugeVertex.getIdValue(newEdge.target));
-        return edgeId.asString();
+        return edgeId;
     }
 
     protected static class EdgeRequest {

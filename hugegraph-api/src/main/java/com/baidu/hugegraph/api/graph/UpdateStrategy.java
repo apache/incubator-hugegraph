@@ -101,7 +101,7 @@ public enum UpdateStrategy {
     UNION {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            return comparedSet(oldProperty, newProperty, UNION);
+            return combineSet(oldProperty, newProperty, UNION);
         }
 
         @Override
@@ -118,7 +118,7 @@ public enum UpdateStrategy {
     INTERSECTION {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            return comparedSet(oldProperty, newProperty, INTERSECTION);
+            return combineSet(oldProperty, newProperty, INTERSECTION);
         }
 
         @Override
@@ -153,8 +153,8 @@ public enum UpdateStrategy {
 
     private static String formatError(Object oldProperty, Object newProperty,
                                       String className) {
-        return String.format("Property must be" + className + "type, but got " +
-                             "%s, %s", oldProperty.getClass().getSimpleName(),
+        return String.format("Property must be %s type, but got %s, %s",
+                             className, oldProperty.getClass().getSimpleName(),
                              newProperty.getClass().getSimpleName());
     }
 
@@ -167,7 +167,7 @@ public enum UpdateStrategy {
                                     (result < 0 ? oldProperty : newProperty);
     }
 
-    private static Set comparedSet(Object oldProperty, Object newProperty,
+    private static Set combineSet(Object oldProperty, Object newProperty,
                                    UpdateStrategy strategy) {
         Set oldSet = oldProperty instanceof Set ?
                      (Set) oldProperty : new HashSet((List) oldProperty);

@@ -175,8 +175,8 @@ public class VertexAPI extends BatchAPI {
             });
 
             // If return ids, the ids.size() maybe different with the origins'
-            return manager.serializer(g).
-                           writeVertices(vertices.iterator(), false);
+            return manager.serializer(g)
+                          .writeVertices(vertices.iterator(), false);
         });
     }
 
@@ -320,7 +320,7 @@ public class VertexAPI extends BatchAPI {
     }
 
     //TODO: Should support AUTOMATIC Id strategy ?
-    private Object getVertexId(HugeGraph g, String labelId, JsonVertex vertex) {
+    private Id getVertexId(HugeGraph g, String labelId, JsonVertex vertex) {
         List<Id> pkIds = g.vertexLabel(vertex.label).primaryKeys();
         List<Object> pkValues = new ArrayList<>(pkIds.size());
         for (Id pkId : pkIds) {
