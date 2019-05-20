@@ -197,7 +197,7 @@ public class MysqlSessions extends BackendSessionPool {
     /**
      * Connect DB without specified database
      */
-    private Connection openWithoutDB(int timeout) {
+    protected Connection openWithoutDB(int timeout) {
         String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
         String url = new URIBuilder().setPath(jdbcUrl)
                                      .setParameter("socketTimeout",

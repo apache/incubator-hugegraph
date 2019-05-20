@@ -38,8 +38,14 @@ public abstract class PostgresqlTable extends MysqlTable {
 
     public PostgresqlTable(String table) {
         super(table);
-        this.dropTableTemplate = "DROP TABLE IF EXISTS %s CASCADE;";
-        this.truncateTableTemplate = "TRUNCATE TABLE %s CASCADE;";
+    }
+
+    protected String buildDropTemplate() {
+        return String.format("DROP TABLE IF EXISTS %s CASCADE;", this.table());
+    }
+
+    protected String buildTruncateTemplate() {
+        return String.format("TRUNCATE TABLE %s CASCADE;", this.table());
     }
 
     @Override

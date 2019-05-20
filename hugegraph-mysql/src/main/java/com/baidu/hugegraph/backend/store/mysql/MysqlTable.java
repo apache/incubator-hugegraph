@@ -51,8 +51,6 @@ public abstract class MysqlTable
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
 
-    protected String dropTableTemplate = "DROP TABLE IF EXISTS %s;";
-    protected String truncateTableTemplate = "TRUNCATE TABLE %s;";
     // The template for insert and delete statements
     private String insertTemplate;
     private String deleteTemplate;
@@ -200,11 +198,11 @@ public abstract class MysqlTable
     }
 
     protected String buildDropTemplate() {
-        return String.format(this.dropTableTemplate, this.table());
+        return String.format("DROP TABLE IF EXISTS %s;", this.table());
     }
 
     protected String buildTruncateTemplate() {
-        return String.format(this.truncateTableTemplate, this.table());
+        return String.format("TRUNCATE TABLE %s;", this.table());
     }
 
     /**
