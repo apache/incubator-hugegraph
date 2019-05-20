@@ -427,9 +427,6 @@ public abstract class MysqlTable
         String key = relation.serialKey().toString();
         Object value = relation.serialValue();
 
-        // Serialize value (TODO: should move to Serializer)
-        value = this.serializeValue(value);
-
         StringBuilder sql = new StringBuilder(32);
         sql.append(key);
         switch (relation.relation()) {
@@ -453,13 +450,8 @@ public abstract class MysqlTable
                 break;
             case IN:
                 sql.append(" IN (");
-                List<?> values = (List<?>) value;
-                for (int i = 0, n = values.size(); i < n; i++) {
-                    sql.append(serializeValue(values.get(i)));
-                    if (i != n - 1) {
-                        sql.append(", ");
-                    }
-                }
+                String values = Strings.join((List<?>) value, ',');
+                sql.append(values);
                 sql.append(")");
                 break;
             case CONTAINS:
@@ -540,16 +532,6 @@ public abstract class MysqlTable
         select.append(" offset ");
         select.append(query.offset());
         select.append(";");
-    }
-
-    protected Object serializeValue(Object value) {
-        if (value instanceof Id) {
-            value = ((Id) value).asObject();
-        }
-        if (value instanceof String) {
-            value = MysqlUtil.escapeString((String) value);
-        }
-        return value;
     }
 
     protected Iterator<BackendEntry> results2Entries(Query query,

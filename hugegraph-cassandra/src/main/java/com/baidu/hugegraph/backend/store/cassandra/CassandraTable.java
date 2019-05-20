@@ -266,9 +266,6 @@ public abstract class CassandraTable
         String key = relation.serialKey().toString();
         Object value = relation.serialValue();
 
-        // Serialize value (TODO: should move to Serializer)
-        value = serializeValue(value);
-
         switch (relation.relation()) {
             case EQ:
                 return QueryBuilder.eq(key, value);
@@ -281,12 +278,7 @@ public abstract class CassandraTable
             case LTE:
                 return QueryBuilder.lte(key, value);
             case IN:
-                List<?> values = (List<?>) value;
-                List<Object> serializedValues = new ArrayList<>(values.size());
-                for (Object v : values) {
-                    serializedValues.add(serializeValue(v));
-                }
-                return QueryBuilder.in(key, serializedValues);
+                return QueryBuilder.in(key, value);
             case CONTAINS:
                 return QueryBuilder.contains(key, value);
             case CONTAINS_KEY:
@@ -329,14 +321,6 @@ public abstract class CassandraTable
     protected static Select cloneSelect(Select select, String table) {
         // NOTE: there is no Select.clone(), just use copy instead
         return CopyUtil.copy(select, QueryBuilder.select().from(table));
-    }
-
-    protected static Object serializeValue(Object value) {
-        // Serialize value (TODO: should move to Serializer)
-        if (value instanceof Id) {
-            value = ((Id) value).asObject();
-        }
-        return value;
     }
 
     protected Iterator<BackendEntry> results2Entries(Query q, ResultSet r) {

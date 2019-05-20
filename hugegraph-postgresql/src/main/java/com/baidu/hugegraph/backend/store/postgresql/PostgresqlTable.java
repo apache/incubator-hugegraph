@@ -19,15 +19,11 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.logging.log4j.util.Strings;
-import org.postgresql.core.Utils;
 
-import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import com.baidu.hugegraph.backend.store.mysql.MysqlTable;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -128,26 +124,5 @@ public abstract class PostgresqlTable extends MysqlTable {
             }
         }
         return select.toString();
-    }
-
-    protected Object serializeValue(Object value) {
-        if (value instanceof Id) {
-            value = ((Id) value).asObject();
-        }
-        if (value instanceof String) {
-            if (value == "\u0000") {
-                return "\'\'";
-            }
-            StringBuilder builder = new StringBuilder(32);
-            builder.append('\'');
-            try {
-                Utils.escapeLiteral(builder, (String) value, false);
-            } catch (SQLException e) {
-                throw new HugeException("Failed to escape '%s'", e, value);
-            }
-            builder.append('\'');
-            value = builder.toString();
-        }
-        return value;
     }
 }
