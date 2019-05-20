@@ -142,7 +142,7 @@ public class VertexAPI extends BatchAPI {
                         idStrategy() != IdStrategy.AUTOMATIC,
                         "Automatic Id strategy is not supported now");
 
-        Map<Object, JsonVertex> maps = new HashMap<>(req.jsonVertices.size());
+        Map<Id, JsonVertex> maps = new HashMap<>(req.jsonVertices.size());
 
         return this.commit(config, g, maps.size(), () -> {
             /*
@@ -151,15 +151,14 @@ public class VertexAPI extends BatchAPI {
             * */
             req.jsonVertices.forEach(newVertex -> {
                 String labelId = g.vertexLabel(newVertex.label).id().asString();
-                Object id = newVertex.id != null ? newVertex.id :
-                            this.getVertexId(g, labelId, newVertex);
+                Id id = this.getVertexId(g, labelId, newVertex);
                 this.updateExistElement(newVertex, maps.get(id),
                                         req.updateStrategies);
                 maps.put(id, newVertex);
             });
 
             // 2.Get all oldVertices and update with new vertices
-            List<Object> ids = new ArrayList<>(maps.size());
+            List<Id> ids = new ArrayList<>(maps.size());
             maps.keySet().forEach(key -> ids.add(key));
             Iterator<Vertex> oldVertices = g.vertices(ids.toArray());
             oldVertices.forEachRemaining(oldVertex -> {
@@ -319,8 +318,9 @@ public class VertexAPI extends BatchAPI {
         }
     }
 
-    //TODO: Should support AUTOMATIC Id strategy ?
     private Id getVertexId(HugeGraph g, String labelId, JsonVertex vertex) {
+        assert g.vertexLabel(labelId).idStrategy() != IdStrategy.AUTOMATIC;
+
         List<Id> pkIds = g.vertexLabel(vertex.label).primaryKeys();
         List<Object> pkValues = new ArrayList<>(pkIds.size());
         for (Id pkId : pkIds) {
@@ -333,7 +333,9 @@ public class VertexAPI extends BatchAPI {
         }
 
         String name = SplicingIdGenerator.concatValues(pkValues);
-        return SplicingIdGenerator.splicing(labelId, name);
+        Object idValue = vertex.id != null ? vertex.id :
+                         SplicingIdGenerator.splicing(labelId, name);
+        return HugeVertex.getIdValue(idValue);
     }
 
     private static class VertexRequest {

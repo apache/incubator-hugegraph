@@ -179,7 +179,7 @@ public class EdgeAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
         checkBatchSize(config, req.jsonEdges);
 
-        Map<String, JsonEdge> maps = new HashMap<>(req.jsonEdges.size());
+        Map<Id, JsonEdge> maps = new HashMap<>(req.jsonEdges.size());
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
@@ -188,15 +188,15 @@ public class EdgeAPI extends BatchAPI {
              // 1.Put all newEdges' properties into map (combine first)
             req.jsonEdges.forEach(newEdge -> {
                 Id labelId = g.edgeLabel(newEdge.label).id();
-                String id = newEdge.id != null ? newEdge.id :
-                            this.getEdgeId(g, labelId, newEdge).asString();
+                Id id = newEdge.id != null ? EdgeId.parse(newEdge.id) :
+                        this.getEdgeId(g, labelId, newEdge);
                 this.updateExistElement(newEdge, maps.get(id),
                                         req.updateStrategies);
                 maps.put(id, newEdge);
             });
 
             // 2.Get all oldEdges and update with new ones
-            List<String> ids = new ArrayList<>(maps.size());
+            List<Id> ids = new ArrayList<>(maps.size());
             maps.keySet().forEach(key -> ids.add(key));
             Iterator<Edge> oldEdges = g.edges(ids.toArray());
             oldEdges.forEachRemaining(oldEdge -> {
@@ -405,7 +405,6 @@ public class EdgeAPI extends BatchAPI {
     }
 
     private Id getEdgeId(HugeGraph g, Id labelId, JsonEdge newEdge) {
-        // Set sortKeys "" or null?
         String sortKeys = "";
         List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
         if (!sortKeyIds.isEmpty()) {
@@ -422,8 +421,7 @@ public class EdgeAPI extends BatchAPI {
 
         // TODO: How to get Direction from JsonEdge easily? or any better way?
         EdgeId edgeId = new EdgeId(HugeVertex.getIdValue(newEdge.source),
-                                   Directions.OUT,
-                                   g.edgeLabel(newEdge.label).id(), sortKeys,
+                                   Directions.OUT, labelId, sortKeys,
                                    HugeVertex.getIdValue(newEdge.target));
         return edgeId;
     }

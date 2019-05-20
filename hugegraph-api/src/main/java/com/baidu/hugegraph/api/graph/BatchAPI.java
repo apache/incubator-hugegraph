@@ -79,7 +79,6 @@ public class BatchAPI extends API {
         }
     }
 
-    // TODO: Design more flexible for Element?
     @JsonIgnoreProperties(value = {"type"})
     protected static abstract class JsonElement implements Checkable {
 
@@ -116,8 +115,7 @@ public class BatchAPI extends API {
         }
     }
 
-    // TODO: Combine multi update methond into one (Element & JsonElement)
-    protected void updateExistElement(HugeGraph graph,
+    protected void updateExistElement(HugeGraph g,
                                       Element oldElement,
                                       JsonElement newElement,
                                       Map<String, UpdateStrategy> strategy) {
@@ -130,7 +128,7 @@ public class BatchAPI extends API {
                 Object value = updateStrategy.checkAndUpdateProperty(
                                oldElement.property(key).value(),
                                newElement.properties.get(key));
-                value = graph.propertyKey(key).convValue(value, false);
+                value = g.propertyKey(key).convValue(value, false);
                 newElement.properties.put(key, value);
             }
         }
