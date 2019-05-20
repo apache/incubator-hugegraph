@@ -164,7 +164,7 @@ public class MysqlSerializer extends TableSerializer {
     }
 
     @Override
-    protected String escapeStrings(String value) {
+    protected String escapeString(String value) {
         return MysqlUtil.escapeString(value);
     }
 }

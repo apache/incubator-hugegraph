@@ -30,7 +30,8 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 
 public abstract class PostgresqlTable extends MysqlTable {
 
-    private String insertTemplate;
+    private String insertTemplate = null;
+    private String orderByKeys = null;
 
     public PostgresqlTable(String table) {
         super(table);
@@ -111,10 +112,12 @@ public abstract class PostgresqlTable extends MysqlTable {
 
     // Set order-by to keep results order consistence for PostgreSQL result
     protected String orderByKeys() {
+        if (this.orderByKeys != null) {
+            return this.orderByKeys;
+        }
         int i = 0;
         int size = this.tableDefine().keys().size();
-        StringBuilder select = new StringBuilder();
-        select.append(" ORDER BY ");
+        StringBuilder select = new StringBuilder(" ORDER BY ");
         for (HugeKeys hugeKey : this.tableDefine().keys()) {
             String key = formatKey(hugeKey);
             select.append(key).append(" ");
@@ -123,6 +126,7 @@ public abstract class PostgresqlTable extends MysqlTable {
                 select.append(", ");
             }
         }
-        return select.toString();
+        this.orderByKeys = select.toString();
+        return this.orderByKeys;
     }
 }

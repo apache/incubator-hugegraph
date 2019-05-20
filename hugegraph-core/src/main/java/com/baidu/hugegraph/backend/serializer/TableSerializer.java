@@ -341,7 +341,8 @@ public abstract class TableSerializer extends AbstractSerializer {
                 if (r.key() == HugeKeys.OWNER_VERTEX ||
                     r.key() == HugeKeys.OTHER_VERTEX) {
                     // Serialize vertex id
-                    r.serialValue(IdUtil.writeString((Id) value));
+                    String id = IdUtil.writeString((Id) value);
+                    r.serialValue(this.escapeString(id));
                 } else {
                     // Serialize label id
                     r.serialValue(((Id) value).asObject());
@@ -359,6 +360,9 @@ public abstract class TableSerializer extends AbstractSerializer {
         // No user-prop when serialize
         assert result.allSysprop();
         for (Condition.Relation r : result.relations()) {
+            if (!(r.value().equals(r.serialValue()))) {
+                continue;
+            }
             if (r.relation() == Condition.RelationType.IN) {
                 List<?> values = (List<?>) r.value();
                 List<Object> serializedValues = new ArrayList<>(values.size());
@@ -595,12 +599,12 @@ public abstract class TableSerializer extends AbstractSerializer {
             value = ((Id) value).asObject();
         }
         if (value instanceof String) {
-            value = escapeStrings((String) value);
+            value = this.escapeString((String) value);
         }
         return value;
     }
 
-    protected String escapeStrings(String value) {
+    protected String escapeString(String value) {
         return value;
     }
 

@@ -427,6 +427,7 @@ public abstract class MysqlTable
         String key = relation.serialKey().toString();
         Object value = relation.serialValue();
 
+
         StringBuilder sql = new StringBuilder(32);
         sql.append(key);
         switch (relation.relation()) {

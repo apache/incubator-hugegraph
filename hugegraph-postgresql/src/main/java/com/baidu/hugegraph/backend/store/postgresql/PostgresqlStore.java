@@ -19,14 +19,11 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
-import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore;
 import com.baidu.hugegraph.config.HugeConfig;
 
 public abstract class PostgresqlStore extends MysqlStore {
-
-    private static final BackendFeatures FEATURES = new PostgresqlFeatures();
 
     public PostgresqlStore(BackendStoreProvider provider,
                            String database, String name) {

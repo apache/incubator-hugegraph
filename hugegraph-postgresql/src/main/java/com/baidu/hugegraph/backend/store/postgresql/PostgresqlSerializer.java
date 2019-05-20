@@ -58,11 +58,11 @@ public class PostgresqlSerializer extends MysqlSerializer {
     }
 
     @Override
-    protected String escapeStrings(String value) {
+    protected String escapeString(String value) {
         if (value.equals("\u0000")) {
             return "\'\'";
         }
-        StringBuilder builder = new StringBuilder(32);
+        StringBuilder builder = new StringBuilder(8 + value.length());
         builder.append('\'');
         try {
             Utils.escapeLiteral(builder, value, false);

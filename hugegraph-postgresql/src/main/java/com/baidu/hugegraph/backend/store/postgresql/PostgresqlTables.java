@@ -50,7 +50,8 @@ public class PostgresqlTables {
     private static final Map<String, String> TYPES_MAPPING =
             ImmutableMap.<String, String>builder()
                     .put(BOOLEAN, "BOOL")
-                    .put(TINYINT, INT)
+                    .put(TINYINT, "INT")
+                    .put(INT, "INT")
                     .put(DOUBLE, "FLOAT")
                     .put(SMALL_TEXT, "VARCHAR(255)")
                     .put(MID_TEXT, "VARCHAR(1024)")
@@ -165,7 +166,7 @@ public class PostgresqlTables {
 
     public static class SecondaryIndex extends PostgresqlTableTemplate {
 
-        public static final String TABLE = "secondary_indexes";
+        public static final String TABLE = MysqlTables.SecondaryIndex.TABLE;
 
         public SecondaryIndex(String store) {
             super(new MysqlTables.SecondaryIndex(store, TABLE, TYPES_MAPPING));
@@ -182,7 +183,7 @@ public class PostgresqlTables {
 
     public static class SearchIndex extends SecondaryIndex {
 
-        public static final String TABLE = "search_indexes";
+        public static final String TABLE = MysqlTables.SearchIndex.TABLE;
 
         public SearchIndex(String store) {
             super(store, TABLE);
