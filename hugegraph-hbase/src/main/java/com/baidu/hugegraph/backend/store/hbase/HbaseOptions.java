@@ -44,7 +44,7 @@ public class HbaseOptions extends OptionHolder {
     public static final ConfigOption<String> HBASE_HOSTS =
             new ConfigOption<>(
                     "hbase.hosts",
-                    "The hostname or ip address of HBase zookeeper.",
+                    "The hostnames or ip addresses of HBase zookeeper, separated with commas.",
                     disallowEmpty(),
                     "localhost"
             );
