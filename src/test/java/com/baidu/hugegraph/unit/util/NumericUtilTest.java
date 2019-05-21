@@ -34,27 +34,41 @@ public class NumericUtilTest extends BaseUnitTest {
     public void testNumberToSortableBytes() {
         // byte
         byte[] bytes = NumericUtil.numberToSortableBytes((byte) 0x33);
-        assertEquals(new byte[]{0x33}, bytes);
+        assertEquals(new byte[]{(byte) 0xb3}, bytes);
+
+        bytes = NumericUtil.numberToSortableBytes(Byte.MIN_VALUE);
+        assertEquals(new byte[]{0x00}, bytes);
+
+        bytes = NumericUtil.numberToSortableBytes(Byte.MAX_VALUE);
+        assertEquals(new byte[]{(byte) 0xff}, bytes);
+
+        bytes = NumericUtil.numberToSortableBytes((byte) -1);
+        assertEquals(new byte[]{(byte) 0x7f}, bytes);
+
+        bytes = NumericUtil.numberToSortableBytes((byte) 0);
+        assertEquals(new byte[]{(byte) 0x80}, bytes);
 
         // short
         bytes = NumericUtil.numberToSortableBytes((short) 0x11223344);
-        assertEquals(new byte[]{0, 0, 0x33, 0x44}, bytes);
+        assertEquals(new byte[]{(byte) 0x80, 0x00, 0x33, 0x44}, bytes);
 
         // int
         bytes = NumericUtil.numberToSortableBytes(0x11223344);
-        assertEquals(new byte[]{0x11, 0x22, 0x33, 0x44}, bytes);
+        assertEquals(new byte[]{(byte) 0x91, 0x22, 0x33, 0x44}, bytes);
 
         // long
         bytes = NumericUtil.numberToSortableBytes(0x1122334455L);
-        assertEquals(new byte[]{0, 0, 0, 0x11, 0x22, 0x33, 0x44, 0x55}, bytes);
+        assertEquals(new byte[]{(byte) 0x80, 0, 0, 0x11,
+                                0x22, 0x33, 0x44, 0x55}, bytes);
 
         // float
         bytes = NumericUtil.numberToSortableBytes(3.14f);
-        assertEquals(new byte[]{0x40, 0x48, (byte) 0xf5, (byte) 0xc3}, bytes);
+        assertEquals(new byte[]{(byte) 0xc0, 0x48, (byte) 0xf5, (byte) 0xc3},
+                     bytes);
 
         // double
         bytes = NumericUtil.numberToSortableBytes(3.1415926d);
-        assertEquals(new byte[]{0x40, 0x09, 0x21, (byte) 0xfb,
+        assertEquals(new byte[]{(byte) 0xc0, 0x09, 0x21, (byte) 0xfb,
                                 0x4d, 0x12, (byte) 0xd8, 0x4a}, bytes);
 
         // BigDecimal
@@ -62,12 +76,29 @@ public class NumericUtilTest extends BaseUnitTest {
             NumericUtil.numberToSortableBytes(new BigDecimal(123));
         });
     }
+
     @Test
     public void testSortableBytesToNumber() {
         // byte
         Number value = NumericUtil.sortableBytesToNumber(new byte[]{0x33},
                                                          Byte.class);
-        Assert.assertEquals(value, (byte) 0x33);
+        Assert.assertEquals(value, (byte) 0xb3);
+
+        value = NumericUtil.sortableBytesToNumber(new byte[]{(byte) 0x00},
+                                                  Byte.class);
+        Assert.assertEquals(value, Byte.MIN_VALUE);
+
+        value = NumericUtil.sortableBytesToNumber(new byte[]{(byte) 0xff},
+                                                  Byte.class);
+        Assert.assertEquals(value, Byte.MAX_VALUE);
+
+        value = NumericUtil.sortableBytesToNumber(new byte[]{(byte) 0x7f},
+                                                  Byte.class);
+        Assert.assertEquals(value, (byte) -1);
+
+        value = NumericUtil.sortableBytesToNumber(new byte[]{(byte) 0x80},
+                                                  Byte.class);
+        Assert.assertEquals(value, (byte) 0);
 
         // short
         value = NumericUtil.sortableBytesToNumber(new byte[]{0, 0, 0x33, 0x44},
@@ -76,22 +107,24 @@ public class NumericUtilTest extends BaseUnitTest {
 
         // int
         value = NumericUtil.sortableBytesToNumber(
-                new byte[]{0x11, 0x22, 0x33, 0x44}, Integer.class);
+                new byte[]{(byte) 0x91, 0x22, 0x33, 0x44}, Integer.class);
         Assert.assertEquals(0x11223344, value);
 
         // long
         value = NumericUtil.sortableBytesToNumber(
-                new byte[]{0, 0, 0, 0x11, 0x22, 0x33, 0x44, 0x55}, Long.class);
+                new byte[]{(byte) 0x80, 0, 0, 0x11, 0x22, 0x33, 0x44, 0x55},
+                Long.class);
         Assert.assertEquals(0x1122334455L, value);
 
         // float
         value = NumericUtil.sortableBytesToNumber(
-                new byte[]{0x40, 0x48, (byte) 0xf5, (byte) 0xc3}, Float.class);
+                new byte[]{(byte) 0xc0, 0x48, (byte) 0xf5, (byte) 0xc3},
+                Float.class);
         Assert.assertEquals(3.14f, value);
 
         // double
         value = NumericUtil.sortableBytesToNumber(
-                new byte[]{0x40, 0x09, 0x21, (byte) 0xfb,
+                new byte[]{(byte) 0xc0, 0x09, 0x21, (byte) 0xfb,
                            0x4d, 0x12, (byte) 0xd8, 0x4a},
                 Double.class);
         Assert.assertEquals(3.1415926d, value);
@@ -99,6 +132,235 @@ public class NumericUtilTest extends BaseUnitTest {
         // BigDecimal
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             NumericUtil.sortableBytesToNumber(new byte[123], BigDecimal.class);
+        });
+    }
+
+    @Test
+    public void testIntToSortableBytesAndCompare() {
+        byte[] bytes1 = NumericUtil.numberToSortableBytes(123456);
+        byte[] bytes2 = NumericUtil.numberToSortableBytes(123456);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(1);
+        bytes2 = NumericUtil.numberToSortableBytes(2);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(666);
+        bytes2 = NumericUtil.numberToSortableBytes(88);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Integer.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(0);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-123456);
+        bytes2 = NumericUtil.numberToSortableBytes(-123456);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-1);
+        bytes2 = NumericUtil.numberToSortableBytes(-2);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-666);
+        bytes2 = NumericUtil.numberToSortableBytes(-88);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Integer.MIN_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(-1);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(0);
+        bytes2 = NumericUtil.numberToSortableBytes(-1);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(0);
+        bytes2 = NumericUtil.numberToSortableBytes(Integer.MIN_VALUE);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(1);
+        bytes2 = NumericUtil.numberToSortableBytes(-1);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Integer.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(-1);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+    }
+
+    @Test
+    public void testLongToSortableBytesAndCompare() {
+        byte[] bytes1 = NumericUtil.numberToSortableBytes(123456L);
+        byte[] bytes2 = NumericUtil.numberToSortableBytes(123456L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(1L);
+        bytes2 = NumericUtil.numberToSortableBytes(2L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(666L);
+        bytes2 = NumericUtil.numberToSortableBytes(88L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Long.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(0L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-123456L);
+        bytes2 = NumericUtil.numberToSortableBytes(-123456L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-1L);
+        bytes2 = NumericUtil.numberToSortableBytes(-2L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-666L);
+        bytes2 = NumericUtil.numberToSortableBytes(-88L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Long.MIN_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(-1L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(0L);
+        bytes2 = NumericUtil.numberToSortableBytes(-1L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(0L);
+        bytes2 = NumericUtil.numberToSortableBytes(Long.MIN_VALUE);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(1L);
+        bytes2 = NumericUtil.numberToSortableBytes(-1L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Long.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(-1L);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+    }
+
+    @Test
+    public void testFloatToSortableBytesAndCompare() {
+        byte[] bytes1 = NumericUtil.numberToSortableBytes(123456F);
+        byte[] bytes2 = NumericUtil.numberToSortableBytes(123456F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(1F);
+        bytes2 = NumericUtil.numberToSortableBytes(2F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(666F);
+        bytes2 = NumericUtil.numberToSortableBytes(88F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Float.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(0F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-123456F);
+        bytes2 = NumericUtil.numberToSortableBytes(-123456F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-1F);
+        bytes2 = NumericUtil.numberToSortableBytes(-2F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-666F);
+        bytes2 = NumericUtil.numberToSortableBytes(-88F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-Float.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(-1F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(0F);
+        bytes2 = NumericUtil.numberToSortableBytes(-1F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(0F);
+        bytes2 = NumericUtil.numberToSortableBytes(-Float.MAX_VALUE);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(1F);
+        bytes2 = NumericUtil.numberToSortableBytes(-1F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Float.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(-1F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+    }
+
+    @Test
+    public void testDoubleToSortableBytesAndCompare() {
+        byte[] bytes1 = NumericUtil.numberToSortableBytes(123456D);
+        byte[] bytes2 = NumericUtil.numberToSortableBytes(123456D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(1D);
+        bytes2 = NumericUtil.numberToSortableBytes(2D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(666D);
+        bytes2 = NumericUtil.numberToSortableBytes(88D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Double.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(0D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-123456D);
+        bytes2 = NumericUtil.numberToSortableBytes(-123456D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-1D);
+        bytes2 = NumericUtil.numberToSortableBytes(-2D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-666D);
+        bytes2 = NumericUtil.numberToSortableBytes(-88D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(-Double.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(-1D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) < 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(0D);
+        bytes2 = NumericUtil.numberToSortableBytes(-1D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(0D);
+        bytes2 = NumericUtil.numberToSortableBytes(-Double.MAX_VALUE);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(1D);
+        bytes2 = NumericUtil.numberToSortableBytes(-1D);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+
+        bytes1 = NumericUtil.numberToSortableBytes(Double.MAX_VALUE);
+        bytes2 = NumericUtil.numberToSortableBytes(-1F);
+        Assert.assertTrue(Bytes.compare(bytes1, bytes2) > 0);
+    }
+
+    @Test
+    public void testMinValueOf() {
+        Assert.assertEquals(Byte.MIN_VALUE,
+                            NumericUtil.minValueOf(Byte.class));
+
+        Assert.assertEquals(Integer.MIN_VALUE,
+                            NumericUtil.minValueOf(Short.class));
+        Assert.assertEquals(Integer.MIN_VALUE,
+                            NumericUtil.minValueOf(Integer.class));
+        Assert.assertEquals(Integer.MIN_VALUE,
+                            NumericUtil.minValueOf(Float.class));
+
+        Assert.assertEquals(Long.MIN_VALUE,
+                            NumericUtil.minValueOf(Long.class));
+        Assert.assertEquals(Long.MIN_VALUE,
+                            NumericUtil.minValueOf(Double.class));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            NumericUtil.minValueOf(null);
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            NumericUtil.minValueOf(Character.class);
         });
     }
 

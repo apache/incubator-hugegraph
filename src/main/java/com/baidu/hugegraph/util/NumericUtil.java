@@ -28,6 +28,10 @@ import java.util.function.Function;
  */
 public final class NumericUtil {
 
+    private static final long FULL_LONG = Long.MIN_VALUE;
+    private static final int FULL_INT = Integer.MIN_VALUE;
+    private static final byte FULL_BYTE = Byte.MIN_VALUE;
+
     private NumericUtil() {
     }
 
@@ -39,22 +43,22 @@ public final class NumericUtil {
      * precision is not reduced, but the value can easily used as a long. The
      * sort order (including {@link Double#NaN}) is defined by
      * {@link Double#compareTo}; {@code NaN} is greater than positive infinity.
-     * @param val input double value
+     * @param value input double value
      * @return output sortable long value
      * @see #sortableLongToDouble
      */
-    public static long doubleToSortableLong(double val) {
-        return sortableDoubleBits(Double.doubleToLongBits(val));
+    public static long doubleToSortableLong(double value) {
+        return sortableDoubleBits(Double.doubleToLongBits(value));
     }
 
     /**
      * Converts a sortable <code>long</code> back to a <code>double</code>.
-     * @param val input double value
+     * @param value input double value
      * @return output sortable long value
      * @see #doubleToSortableLong
      */
-    public static double sortableLongToDouble(long val) {
-        return Double.longBitsToDouble(sortableDoubleBits(val));
+    public static double sortableLongToDouble(long value) {
+        return Double.longBitsToDouble(sortableDoubleBits(value));
     }
 
     /**
@@ -65,22 +69,22 @@ public final class NumericUtil {
      * is not reduced, but the value can easily used as an int. The sort order
      * (including {@link Float#NaN}) is defined by {@link Float#compareTo};
      * {@code NaN} is greater than positive infinity.
-     * @param val input float value
+     * @param value input float value
      * @return output sortable int value
      * @see #sortableIntToFloat
      */
-    public static int floatToSortableInt(float val) {
-        return sortableFloatBits(Float.floatToIntBits(val));
+    public static int floatToSortableInt(float value) {
+        return sortableFloatBits(Float.floatToIntBits(value));
     }
 
     /**
      * Converts a sortable <code>int</code> back to a <code>float</code>.
-     * @param val input int value
+     * @param value input int value
      * @return output sortable float value
      * @see #floatToSortableInt
      */
-    public static float sortableIntToFloat(int val) {
-        return Float.intBitsToFloat(sortableFloatBits(val));
+    public static float sortableIntToFloat(int value) {
+        return Float.intBitsToFloat(sortableFloatBits(value));
     }
 
     /**
@@ -122,10 +126,9 @@ public final class NumericUtil {
             return intNumber ? bd.longValueExact() :
                    doubleToSortableLong(bd.doubleValue());
         }
+
         // TODO: support other number types
-        throw new IllegalArgumentException(String.format(
-                  "Unsupported number type: %s(%s)",
-                  number.getClass().getSimpleName(), number));
+        throw unsupportedNumberType(number);
     }
 
     public static Number sortableLongToNumber(long value, Class<?> clazz) {
@@ -146,49 +149,95 @@ public final class NumericUtil {
         }
 
         // TODO: support other number types
-        throw new IllegalArgumentException(String.format(
-                  "Unsupported number type: %s", clazz.getSimpleName()));
+        throw unsupportedNumberType(clazz);
     }
 
     public static byte[] numberToSortableBytes(Number number) {
         if (number instanceof Long) {
-            return longToBytes(number.longValue());
+            return longToSortableBytes(number.longValue());
         } else if (number instanceof Double) {
-            return longToBytes(doubleToSortableLong(number.doubleValue()));
+            long value = doubleToSortableLong(number.doubleValue());
+            return longToSortableBytes(value);
         } else if (number instanceof Float) {
-            return intToBytes(floatToSortableInt(number.floatValue()));
+            int value = floatToSortableInt(number.floatValue());
+            return intToSortableBytes(value);
         } else if (number instanceof Integer || number instanceof Short) {
-            return intToBytes(number.intValue());
+            return intToSortableBytes(number.intValue());
         } else if (number instanceof Byte) {
-            return new byte[]{number.byteValue()} ;
+            return byteToSortableBytes(number.byteValue());
         }
 
         // TODO: support other number types
-        throw new IllegalArgumentException(String.format(
-                  "Unsupported number type: %s(%s)",
-                  number.getClass().getSimpleName(), number));
+        throw unsupportedNumberType(number);
     }
 
     public static Number sortableBytesToNumber(byte[] bytes, Class<?> clazz) {
         assert NumericUtil.isNumber(clazz);
 
         if (clazz == Long.class) {
-            return bytesToLong(bytes);
+            return sortableBytesToLong(bytes);
         } else if (clazz == Double.class) {
-            return sortableLongToDouble(bytesToLong(bytes));
+            return sortableLongToDouble(sortableBytesToLong(bytes));
         } else if (clazz == Float.class) {
-            return sortableIntToFloat(bytesToInt(bytes));
+            return sortableIntToFloat(sortableBytesToInt(bytes));
         } else if (clazz == Integer.class) {
-            return bytesToInt(bytes);
+            return sortableBytesToInt(bytes);
         } else if (clazz == Short.class) {
-            return (short) bytesToInt(bytes);
+            return (short) sortableBytesToInt(bytes);
         } else if (clazz == Byte.class) {
-            return bytes[0];
+            return sortableBytesToByte(bytes);
         }
 
         // TODO: support other number types
-        throw new IllegalArgumentException(String.format(
-                  "Unsupported number type: %s", clazz.getSimpleName()));
+        throw unsupportedNumberType(clazz);
+    }
+
+    public static Number minValueOf(Class<?> clazz) {
+        E.checkArgumentNotNull(clazz, "The clazz can't be null");
+
+        if (Long.class.isAssignableFrom(clazz) ||
+            Double.class.isAssignableFrom(clazz)) {
+            return Long.MIN_VALUE;
+        }
+        if (Integer.class.isAssignableFrom(clazz) ||
+            Short.class.isAssignableFrom(clazz) ||
+            Float.class.isAssignableFrom(clazz)) {
+            return Integer.MIN_VALUE;
+        }
+        if (Byte.class.isAssignableFrom(clazz)) {
+            return Byte.MIN_VALUE;
+        }
+
+        // TODO: support other number types
+        throw unsupportedNumberType(clazz);
+    }
+
+    public static byte[] longToSortableBytes(long value) {
+        return longToBytes(value + FULL_LONG);
+    }
+
+    public static long sortableBytesToLong(byte[] bytes) {
+        return bytesToLong(bytes) - FULL_LONG;
+    }
+
+    public static byte[] intToSortableBytes(int value) {
+        return intToBytes(value + FULL_INT);
+    }
+
+    public static int sortableBytesToInt(byte[] bytes) {
+        return bytesToInt(bytes) - FULL_INT;
+    }
+
+    public static byte[] byteToSortableBytes(byte value) {
+        value += FULL_BYTE;
+        return new byte[]{value};
+    }
+
+    public static byte sortableBytesToByte(byte[] bytes) {
+        assert bytes.length == 1;
+        byte value = bytes[0];
+        value -= FULL_BYTE;
+        return value;
     }
 
     public static byte[] longToBytes(long value) {
@@ -273,5 +322,16 @@ public final class NumericUtil {
         BigDecimal n2 = toBig.apply(second);
 
         return n1.compareTo(n2);
+    }
+
+    private static IllegalArgumentException unsupportedNumberType(Class<?> c) {
+        return new IllegalArgumentException(String.format(
+                   "Unsupported number type: %s", c.getSimpleName()));
+    }
+
+    private static IllegalArgumentException unsupportedNumberType(Number num) {
+        return new IllegalArgumentException(String.format(
+                   "Unsupported number type: %s(%s)",
+                   num.getClass().getSimpleName(), num));
     }
 }

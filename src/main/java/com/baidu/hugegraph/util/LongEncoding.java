@@ -29,7 +29,7 @@ public final class LongEncoding {
     private static final String LENGTH_SYMBOLS = "0123456789ABCDEF";
     private static final char NEG = LENGTH_SYMBOLS.charAt(0);
 
-    private static final long FULL_LONG = 0x8000000000000000L;
+    private static final long FULL_LONG = Long.MIN_VALUE;
 
     public static String encodeNumber(Object number) {
         Number num = NumericUtil.convertToNumber(number);
