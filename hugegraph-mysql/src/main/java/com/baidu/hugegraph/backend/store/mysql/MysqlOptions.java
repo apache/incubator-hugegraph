@@ -93,7 +93,7 @@ public class MysqlOptions extends OptionHolder {
     public static final ConfigOption<String> SSL_MODE =
             new ConfigOption<>(
                     "jdbc.ssl_mode",
-                    "The url of database in JDBC format.",
+                    "The SSL mode of connections with database.",
                     disallowEmpty(),
                     "disable"
             );
