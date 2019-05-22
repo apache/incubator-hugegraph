@@ -46,7 +46,6 @@ public final class FakeObjects {
     public FakeObjects() {
         this.graph = Mockito.mock(HugeGraph.class);
         Mockito.doReturn(newConfig()).when(this.graph).configuration();
-        ;
     }
 
     public FakeObjects(String name) {
