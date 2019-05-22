@@ -57,7 +57,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     private final Map<HugeType, MysqlTable> tables;
 
-    protected MysqlSessions sessions;
+    private MysqlSessions sessions;
 
     public MysqlStore(final BackendStoreProvider provider,
                       final String database, final String store) {

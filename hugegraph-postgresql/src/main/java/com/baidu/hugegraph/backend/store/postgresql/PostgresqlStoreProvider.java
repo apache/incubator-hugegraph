@@ -84,14 +84,14 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
         @Override
         public void increaseCounter(HugeType type, long increment) {
             this.checkSessionConnected();
-            MysqlSessions.Session session = super.sessions.session();
+            MysqlSessions.Session session = this.session(type);
             this.counters.increaseCounter(session, type, increment);
         }
 
         @Override
         public long getCounter(HugeType type) {
             this.checkSessionConnected();
-            MysqlSessions.Session session = super.sessions.session();
+            MysqlSessions.Session session = this.session(type);
             return this.counters.getCounter(session, type);
         }
     }
