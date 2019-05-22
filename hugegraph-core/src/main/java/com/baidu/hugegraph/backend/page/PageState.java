@@ -59,7 +59,7 @@ public class PageState {
     }
 
     public byte[] toBytes() {
-        int length = 2 + this.position.length + BytesBuffer.INT_LEN;
+        int length = 2 + this.position.length + 2 * BytesBuffer.INT_LEN;
         BytesBuffer buffer = BytesBuffer.allocate(length);
         buffer.writeBytes(this.position);
         buffer.writeInt(this.offset);

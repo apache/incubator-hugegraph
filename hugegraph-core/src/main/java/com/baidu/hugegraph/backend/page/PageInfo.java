@@ -66,9 +66,11 @@ public final class PageInfo {
     }
 
     public byte[] toBytes() {
-        BytesBuffer buffer = BytesBuffer.allocate(256);
+        byte[] pageStateBytes = PageState.fromString(this.page).toBytes();
+        int length = BytesBuffer.INT_LEN + pageStateBytes.length;
+        BytesBuffer buffer = BytesBuffer.allocate(length);
         buffer.writeInt(this.offset);
-        buffer.writeString(this.page);
+        buffer.write(pageStateBytes);
         return buffer.bytes();
     }
 
@@ -90,7 +92,8 @@ public final class PageInfo {
         try {
             BytesBuffer buffer = BytesBuffer.wrap(bytes);
             int offset = buffer.readInt();
-            String page = buffer.readString();
+            byte[] pageBytes = buffer.read(bytes.length - BytesBuffer.INT_LEN);
+            String page = PageState.fromBytes(pageBytes).toString();
             return new PageInfo(offset, page);
         } catch (Exception e) {
             throw new HugeException("Invalid page: '0x%s'",
