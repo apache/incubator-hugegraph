@@ -49,6 +49,11 @@
         </dependency>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-postgresql</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-dist</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -291,6 +296,16 @@
             <properties>
                 <backend>hbase</backend>
                 <serializer>hbase</serializer>
+            </properties>
+        </profile>
+        <profile>
+            <id>postgresql</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <backend>postgresql</backend>
+                <serializer>postgresql</serializer>
             </properties>
         </profile>
     </profiles>

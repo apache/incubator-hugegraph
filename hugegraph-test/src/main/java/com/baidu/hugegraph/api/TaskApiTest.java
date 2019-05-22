@@ -56,7 +56,7 @@ public class TaskApiTest extends BaseApiTest {
     public void testList() {
         int taskId = this.rebuild();
 
-        Response r = client().get(path);
+        Response r = client().get(path, ImmutableMap.of("limit", -1));
         String content = assertResponseStatus(200, r);
         List<Map<?, ?>> tasks = assertJsonContains(content, "tasks");
         assertArrayContains(tasks, "id", taskId);

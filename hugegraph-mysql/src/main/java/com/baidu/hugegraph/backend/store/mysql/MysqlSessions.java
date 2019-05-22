@@ -147,8 +147,11 @@ public class MysqlSessions extends BackendSessionPool {
         try (Connection conn = this.openWithoutDB(0)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
-            throw new BackendException("Failed to create database '%s'",
-                                       this.database);
+            if (!e.getMessage().endsWith("already exists")) {
+                throw new BackendException("Failed to create database '%s'", e,
+                                           this.database);
+            }
+            // Ignore exception if database already exists
         }
     }
 
@@ -194,7 +197,7 @@ public class MysqlSessions extends BackendSessionPool {
     /**
      * Connect DB without specified database
      */
-    private Connection openWithoutDB(int timeout) {
+    protected Connection openWithoutDB(int timeout) {
         String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
         String url = new URIBuilder().setPath(jdbcUrl)
                                      .setParameter("socketTimeout",

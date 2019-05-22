@@ -28,21 +28,37 @@ import java.util.Set;
 
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableMap;
 
 public class TableDefine {
 
     private final Map<HugeKeys, String> columns;
     private final List<HugeKeys> keys;
+    private final Map<String, String> typesMapping;
 
     public TableDefine() {
         this.columns = InsertionOrderUtil.newMap();
         this.keys = InsertionOrderUtil.newList();
+        this.typesMapping = ImmutableMap.of();
+    }
+
+    public TableDefine(Map<String, String> typesMapping) {
+        this.columns = InsertionOrderUtil.newMap();
+        this.keys = InsertionOrderUtil.newList();
+        this.typesMapping = typesMapping;
     }
 
     public TableDefine column(HugeKeys key, String... desc) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < desc.length; i++) {
-            sb.append(desc[i]);
+            String type = desc[i];
+            // The first element of 'desc' is column data type, which may be
+            // mapped to actual data type supported by backend store
+            if (i == 0 && this.typesMapping.containsKey(type)) {
+                type = this.typesMapping.get(type);
+            }
+            assert type != null;
+            sb.append(type);
             if (i != desc.length - 1) {
                 sb.append(" ");
             }

@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -339,7 +341,8 @@ public abstract class TableSerializer extends AbstractSerializer {
                 if (r.key() == HugeKeys.OWNER_VERTEX ||
                     r.key() == HugeKeys.OTHER_VERTEX) {
                     // Serialize vertex id
-                    r.serialValue(IdUtil.writeString((Id) value));
+                    String id = IdUtil.writeString((Id) value);
+                    r.serialValue(this.escapeString(id));
                 } else {
                     // Serialize label id
                     r.serialValue(((Id) value).asObject());
@@ -353,16 +356,30 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     @Override
     protected Query writeQueryCondition(Query query) {
-        if (query.resultType().isGraph()) {
-            ConditionQuery result = (ConditionQuery) query;
-            // No user-prop when serialize
-            assert result.allSysprop();
-            for (Condition.Relation r : result.relations()) {
-                if (r.relation() == Condition.RelationType.CONTAINS) {
-                    r.serialValue(JsonUtil.toJson(r.value()));
+        ConditionQuery result = (ConditionQuery) query;
+        // No user-prop when serialize
+        assert result.allSysprop();
+        for (Condition.Relation r : result.relations()) {
+            if (!(r.value().equals(r.serialValue()))) {
+                continue;
+            }
+            if (r.relation() == Condition.RelationType.IN) {
+                List<?> values = (List<?>) r.value();
+                List<Object> serializedValues = new ArrayList<>(values.size());
+                for (Object v : values) {
+                    serializedValues.add(this.serializeValue(v));
                 }
+                r.serialValue(serializedValues);
+            } else {
+                r.serialValue(this.serializeValue(r.value()));
+            }
+
+            if (query.resultType().isGraph() &&
+                r.relation() == Condition.RelationType.CONTAINS) {
+                r.serialValue(JsonUtil.toJson(r.serialValue()));
             }
         }
+
         return query;
     }
 
@@ -576,6 +593,20 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     protected abstract void parseProperties(HugeElement element,
                                             TableBackendEntry.Row row);
+
+    protected Object serializeValue(Object value) {
+        if (value instanceof Id) {
+            value = ((Id) value).asObject();
+        }
+        if (value instanceof String) {
+            value = this.escapeString((String) value);
+        }
+        return value;
+    }
+
+    protected String escapeString(String value) {
+        return value;
+    }
 
     protected void writeEnableLabelIndex(SchemaLabel schema,
                                          TableBackendEntry entry) {

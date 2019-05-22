@@ -68,6 +68,7 @@ public class MetricsApiTest extends BaseApiTest {
             case "memory":
             case "mysql":
             case "hbase":
+            case "postgresql":
                 String except = (String) assertMapContains(graph, "exception");
                 Assert.assertTrue(except, except.contains(notSupport));
                 break;

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -91,14 +92,16 @@ public abstract class MysqlTable
         // Specified primary keys
         sql.append(" PRIMARY KEY (");
         int i = 0;
+        int size = tableDefine.keys().size();
         for (HugeKeys key : tableDefine.keys()) {
-            sql.append(key);
-            if (++i != tableDefine.keys().size()) {
+            sql.append(formatKey(key));
+            if (++i != size) {
                 sql.append(", ");
             }
         }
-
-        sql.append(")) ENGINE=InnoDB;");
+        sql.append("))");
+        sql.append(this.engine());
+        sql.append(";");
 
         LOG.debug("Create table: {}", sql);
         try {
@@ -109,9 +112,13 @@ public abstract class MysqlTable
         }
     }
 
+    protected String engine() {
+        return " ENGINE=InnoDB";
+    }
+
     protected void dropTable(Session session) {
         LOG.debug("Drop table: {}", this.table());
-        String sql = String.format("DROP TABLE IF EXISTS %s;", this.table());
+        String sql = this.buildDropTemplate();
         try {
             session.execute(sql);
         } catch (SQLException e) {
@@ -122,7 +129,7 @@ public abstract class MysqlTable
 
     protected void truncateTable(Session session) {
         LOG.debug("Truncate table: {}", this.table());
-        String sql = String.format("TRUNCATE TABLE %s;", this.table());
+        String sql = this.buildTruncateTemplate();
         try {
             session.execute(sql);
         } catch (SQLException e) {
@@ -190,6 +197,14 @@ public abstract class MysqlTable
         return this.deleteTemplate;
     }
 
+    protected String buildDropTemplate() {
+        return String.format("DROP TABLE IF EXISTS %s;", this.table());
+    }
+
+    protected String buildTruncateTemplate() {
+        return String.format("TRUNCATE TABLE %s;", this.table());
+    }
+
     /**
      * Insert an entire row
      */
@@ -202,7 +217,7 @@ public abstract class MysqlTable
             // Create or get insert prepare statement
             insertStmt = session.prepareStatement(template);
             int i = 1;
-            for (Object object : entry.columns().values()) {
+            for (Object object : this.buildInsertObjects(entry)) {
                 insertStmt.setObject(i++, object);
             }
         } catch (SQLException e) {
@@ -412,9 +427,6 @@ public abstract class MysqlTable
         String key = relation.serialKey().toString();
         Object value = relation.serialValue();
 
-        // Serialize value (TODO: should move to Serializer)
-        value = serializeValue(value);
-
         StringBuilder sql = new StringBuilder(32);
         sql.append(key);
         switch (relation.relation()) {
@@ -438,13 +450,8 @@ public abstract class MysqlTable
                 break;
             case IN:
                 sql.append(" IN (");
-                List<?> values = (List<?>) value;
-                for (int i = 0, n = values.size(); i < n; i++) {
-                    sql.append(serializeValue(values.get(i)));
-                    if (i != n - 1) {
-                        sql.append(", ");
-                    }
-                }
+                String values = Strings.join((List<?>) value, ',');
+                sql.append(values);
                 sql.append(")");
                 break;
             case CONTAINS:
@@ -503,11 +510,17 @@ public abstract class MysqlTable
             select.append(where.build());
         }
 
+        select.append(this.orderByKeys());
+
         assert query.limit() != Query.NO_LIMIT;
         // Fetch `limit + 1` records for judging whether reached the last page
         select.append(" limit ");
         select.append(query.limit() + 1);
         select.append(";");
+    }
+
+    protected String orderByKeys() {
+        return Strings.EMPTY;
     }
 
     protected void wrapOffset(StringBuilder select, Query query) {
@@ -519,16 +532,6 @@ public abstract class MysqlTable
         select.append(" offset ");
         select.append(query.offset());
         select.append(";");
-    }
-
-    private static Object serializeValue(Object value) {
-        if (value instanceof Id) {
-            value = ((Id) value).asObject();
-        }
-        if (value instanceof String) {
-            value = MysqlUtil.escapeString((String) value);
-        }
-        return value;
     }
 
     protected Iterator<BackendEntry> results2Entries(Query query,
@@ -543,6 +546,14 @@ public abstract class MysqlTable
 
     protected void appendPartition(StringBuilder delete) {
         // pass
+    }
+
+    protected List<Object> buildInsertObjects(MysqlBackendEntry.Row entry) {
+        List<Object> objects = new ArrayList<>();
+        for (Object key : entry.columns().keySet()) {
+            objects.add(entry.columns().get(key));
+        }
+        return objects;
     }
 
     public static String formatKey(HugeKeys key) {

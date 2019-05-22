@@ -52,7 +52,8 @@ public class RegisterUtil {
         String confFile = "/backend.properties";
         InputStream input = RegisterUtil.class.getClass()
                                         .getResourceAsStream(confFile);
-        E.checkState(input != null, "Can't read file '%s' as stream", confFile);
+        E.checkState(input != null,
+                     "Can't read file '%s' as stream", confFile);
 
         PropertiesConfiguration props = new PropertiesConfiguration();
         props.setDelimiterParsingDisabled(true);
@@ -89,8 +90,12 @@ public class RegisterUtil {
             case "palo":
                 registerPalo();
                 break;
+            case "postgresql":
+                registerPostgresql();
+                break;
             default:
-                throw new HugeException("Unsupported backend type '%s'", backend);
+                throw new HugeException("Unsupported backend type '%s'",
+                                        backend);
         }
     }
 
@@ -163,6 +168,18 @@ public class RegisterUtil {
         // Register backend
         BackendProviderFactory.register("palo",
                 "com.baidu.hugegraph.backend.store.palo.PaloStoreProvider");
+    }
+
+    public static void registerPostgresql() {
+        // Register config
+        OptionSpace.register("postgresql",
+                "com.baidu.hugegraph.backend.store.postgresql.PostgresqlOptions");
+        // Register serializer
+        SerializerFactory.register("postgresql",
+                "com.baidu.hugegraph.backend.store.postgresql.PostgresqlSerializer");
+        // Register backend
+        BackendProviderFactory.register("postgresql",
+                "com.baidu.hugegraph.backend.store.postgresql.PostgresqlStoreProvider");
     }
 
     public static void registerServer() {

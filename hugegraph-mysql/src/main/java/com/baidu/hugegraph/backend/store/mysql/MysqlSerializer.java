@@ -162,4 +162,9 @@ public class MysqlSerializer extends TableSerializer {
             schema.userdata(e.getKey(), e.getValue());
         }
     }
+
+    @Override
+    protected String escapeString(String value) {
+        return MysqlUtil.escapeString(value);
+    }
 }
