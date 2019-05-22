@@ -19,16 +19,15 @@
 
 package com.baidu.hugegraph.backend.store.mysql;
 
-import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
@@ -36,6 +35,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class MysqlEntryIterator extends BackendEntryIterator {
 
@@ -96,8 +96,8 @@ public class MysqlEntryIterator extends BackendEntryIterator {
             return null;
         }
         MysqlBackendEntry entry = (MysqlBackendEntry) this.last;
-        PageState pageState = new PageState(entry.columnsMap());
-        return pageState.toString();
+        byte[] position = new PagePosition(entry.columnsMap()).toBytes();
+        return new PageState(position, 0, (int) this.count()).toString();
     }
 
     @Override
@@ -139,12 +139,11 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         this.results.close();
     }
 
-    public static class PageState {
+    public static class PagePosition {
 
-        private static final String CHARSET = "utf-8";
         private final Map<HugeKeys, Object> columns;
 
-        public PageState(Map<HugeKeys, Object> columns) {
+        public PagePosition(Map<HugeKeys, Object> columns) {
             this.columns = columns;
         }
 
@@ -154,35 +153,16 @@ public class MysqlEntryIterator extends BackendEntryIterator {
 
         @Override
         public String toString() {
-            return Base64.getEncoder().encodeToString(this.toBytes());
+            return JsonUtil.toJson(this.columns);
         }
 
         public byte[] toBytes() {
             String json = JsonUtil.toJson(this.columns);
-            try {
-                return json.getBytes(CHARSET);
-            } catch (UnsupportedEncodingException e) {
-                throw new BackendException(e);
-            }
+            return StringEncoding.encode(json);
         }
 
-        public static PageState fromString(String page) {
-            byte[] bytes;
-            try {
-                bytes = Base64.getDecoder().decode(page);
-            } catch (Exception e) {
-                throw new BackendException("Invalid page: '%s'", e, page);
-            }
-            return fromBytes(bytes);
-        }
-
-        private static PageState fromBytes(byte[] bytes) {
-            String json;
-            try {
-                json = new String(bytes, CHARSET);
-            } catch (UnsupportedEncodingException e) {
-                throw new BackendException(e);
-            }
+        public static PagePosition fromBytes(byte[] bytes) {
+            String json = StringEncoding.decode(bytes);
             @SuppressWarnings("unchecked")
             Map<String, Object> columns = JsonUtil.fromJson(json, Map.class);
             Map<HugeKeys, Object> keyColumns = new LinkedHashMap<>();
@@ -190,7 +170,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
                 HugeKeys key = MysqlTable.parseKey(entry.getKey());
                 keyColumns.put(key, entry.getValue());
             }
-            return new PageState(keyColumns);
+            return new PagePosition(keyColumns);
         }
     }
 }

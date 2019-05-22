@@ -46,7 +46,7 @@ import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.IdHolder;
-import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -1431,7 +1431,7 @@ public class GraphTransaction extends IndexableTransaction {
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);
         if (this.store().features().supportsQueryByPage()) {
-            query.page(PageState.PAGE_NONE);
+            query.page(PageInfo.PAGE_NONE);
         }
         if (label.hidden()) {
             query.showHidden(true);
@@ -1461,7 +1461,7 @@ public class GraphTransaction extends IndexableTransaction {
                     }
                 }
                 if (query.paging()) {
-                    page = PageState.page(iter);
+                    page = PageInfo.page(iter);
                 }
             } while (page != null);
         }

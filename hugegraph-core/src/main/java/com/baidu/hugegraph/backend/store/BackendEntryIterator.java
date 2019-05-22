@@ -22,7 +22,7 @@ package com.baidu.hugegraph.backend.store;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -84,7 +84,7 @@ public abstract class BackendEntryIterator
 
     @Override
     public Object metadata(String meta, Object... args) {
-        if (PageState.PAGE.equals(meta)) {
+        if (PageInfo.PAGE.equals(meta)) {
             return this.pageState();
         }
         throw new NotSupportException("Invalid meta '%s'", meta);

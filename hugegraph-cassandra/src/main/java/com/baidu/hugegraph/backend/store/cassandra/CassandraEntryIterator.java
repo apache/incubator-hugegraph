@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.cassandra;
 import java.util.Iterator;
 import java.util.function.BiFunction;
 
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
@@ -115,6 +116,7 @@ public class CassandraEntryIterator extends BackendEntryIterator {
         if (page == null || this.results.isExhausted()) {
             return null;
         }
-        return page.toString();
+        byte[] position = page.toBytes();
+        return new PageState(position, 0, (int) this.count()).toString();
     }
 }

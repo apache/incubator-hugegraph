@@ -33,24 +33,24 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
     private final QueryList queries;
     private final long pageSize;
     private QueryList.PageIterator results;
-    private PageState pageState;
+    private PageInfo pageInfo;
     private long remaining;
 
     public PageEntryIterator(QueryList queries, long pageSize) {
         this.queries = queries;
         this.pageSize = pageSize;
         this.results = QueryList.PageIterator.EMPTY;
-        this.pageState = this.parsePageState();
+        this.pageInfo = this.parsePageState();
         this.remaining = queries.parent().limit();
     }
 
-    private PageState parsePageState() {
+    private PageInfo parsePageState() {
         String page = this.queries.parent().pageWithoutCheck();
-        PageState pageState = PageState.fromString(page);
-        E.checkState(pageState.offset() < this.queries.total(),
+        PageInfo pageInfo = PageInfo.fromString(page);
+        E.checkState(pageInfo.offset() < this.queries.total(),
                      "Invalid page '%s' with an offset '%s' exceeds " +
-                     "the size of IdHolderList", page, pageState.offset());
-        return pageState;
+                     "the size of IdHolderList", page, pageInfo.offset());
+        return pageInfo;
     }
 
     @Override
@@ -63,7 +63,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
 
     private boolean fetch() {
         if ((this.remaining != Query.NO_LIMIT && this.remaining <= 0L) ||
-            this.pageState.offset() >= this.queries.total()) {
+            this.pageInfo.offset() >= this.queries.total()) {
             return false;
         }
 
@@ -71,18 +71,19 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         if (this.remaining != Query.NO_LIMIT && this.remaining < pageSize) {
             pageSize = this.remaining;
         }
-        this.results = this.queries.fetchNext(this.pageState, pageSize);
+        this.results = this.queries.fetchNext(this.pageInfo, pageSize);
         assert this.results != null;
 
         if (this.results.iterator().hasNext()) {
             if (this.results.page() == null) {
-                this.pageState.increase();
+                this.pageInfo.increase();
             } else {
-                this.pageState.page(this.results.page());
+                this.pageInfo.page(this.results.page());
+                this.remaining -= this.results.total();
             }
             return true;
         } else {
-            this.pageState.increase();
+            this.pageInfo.increase();
             return this.fetch();
         }
     }
@@ -92,21 +93,16 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         if (!this.hasNext()) {
             throw new NoSuchElementException();
         }
-        BackendEntry entry = this.results.iterator().next();
-        if (this.remaining != Query.NO_LIMIT) {
-            // Assume one result in each entry (just for index query)
-            this.remaining--;
-        }
-        return entry;
+        return this.results.iterator().next();
     }
 
     @Override
     public Object metadata(String meta, Object... args) {
-        if (PageState.PAGE.equals(meta)) {
-            if (this.pageState.offset() >= this.queries.total()) {
+        if (PageInfo.PAGE.equals(meta)) {
+            if (this.pageInfo.offset() >= this.queries.total()) {
                 return null;
             }
-            return this.pageState.toString();
+            return this.pageInfo.toString();
         }
         throw new NotSupportException("Invalid meta '%s'", meta);
     }
