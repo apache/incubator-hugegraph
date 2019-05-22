@@ -55,7 +55,7 @@ public class PageState {
 
     @Override
     public String toString() {
-        return Base64.getEncoder().encodeToString(this.toBytes());
+        return toString(this.toBytes());
     }
 
     public byte[] toBytes() {
@@ -68,13 +68,7 @@ public class PageState {
     }
 
     public static PageState fromString(String page) {
-        byte[] bytes;
-        try {
-            bytes = Base64.getDecoder().decode(page);
-        } catch (Exception e) {
-            throw new BackendException("Invalid page: '%s'", e, page);
-        }
-        return fromBytes(bytes);
+        return fromBytes(toBytes(page));
     }
 
     public static PageState fromBytes(byte[] bytes) {
@@ -89,6 +83,18 @@ public class PageState {
         } catch (Exception e) {
             throw new BackendException("Invalid page: '0x%s'",
                                        e, Bytes.toHex(bytes));
+        }
+    }
+
+    public static String toString(byte[] bytes) {
+        return Base64.getEncoder().encodeToString(bytes);
+    }
+
+    public static byte[] toBytes(String page) {
+        try {
+            return Base64.getDecoder().decode(page);
+        } catch (Exception e) {
+            throw new BackendException("Invalid page: '%s'", e, page);
         }
     }
 }
