@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.filter;
 
-import java.io.IOException;
-
 import javax.inject.Singleton;
 import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -32,6 +30,7 @@ import javax.ws.rs.ext.Provider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.WorkLoad;
+import com.baidu.hugegraph.util.Bytes;
 
 @Provider
 @Singleton
@@ -44,15 +43,30 @@ public class LoadDetectFilter implements ContainerRequestFilter {
     private javax.inject.Provider<WorkLoad> loadProvider;
 
     @Override
-    public void filter(ContainerRequestContext context) throws IOException {
+    public void filter(ContainerRequestContext context) {
         HugeConfig config = this.configProvider.get();
+        long minFreeMemory = config.get(ServerOptions.MIN_FREE_MEMORY);
+        long allocatedMem = Runtime.getRuntime().totalMemory() -
+                            Runtime.getRuntime().freeMemory();
+        long presumableFreeMem = (Runtime.getRuntime().maxMemory() -
+                                  allocatedMem) / Bytes.MB;
+        if (presumableFreeMem < minFreeMemory) {
+            throw new ServiceUnavailableException(String.format(
+                      "The server available memory %s(MB) is below than " +
+                      "threshold %s(MB) and can't process the request, " +
+                      "you can config %s to adjust it or try again later",
+                      presumableFreeMem, minFreeMemory,
+                      ServerOptions.MIN_FREE_MEMORY.name()));
+        }
+
         int maxWorkerThreads = config.get(ServerOptions.MAX_WORKER_THREADS);
         WorkLoad load = this.loadProvider.get();
         // There will be a thread doesn't work, dedicated to statistics
         if (load.incrementAndGet() >= maxWorkerThreads) {
-            throw new ServiceUnavailableException(
+            throw new ServiceUnavailableException(String.format(
                       "The server is too busy to process the request, " +
-                      "please try again later");
+                      "you can config %s to adjust it or try again later",
+                      ServerOptions.MAX_WORKER_THREADS.name()));
         }
     }
 }

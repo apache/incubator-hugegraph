@@ -51,9 +51,20 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",
-                    "The maximum worker threads of rest server.",
+                    "The maxmium worker threads of rest server.",
                     positiveInt(),
-                    2 * Runtime.getRuntime().availableProcessors());
+                    2 * Runtime.getRuntime().availableProcessors()
+            );
+
+    public static final ConfigOption<Integer> MIN_FREE_MEMORY =
+            new ConfigOption<>(
+                    "restserver.min_free_memory",
+                    "The minmium free memory(MB) of rest server, requests " +
+                    "will be rejected when the available memory of system " +
+                    "is lower than this value.",
+                    positiveInt(),
+                    256
+            );
 
     public static final ConfigOption<String> GREMLIN_SERVER_URL =
             new ConfigOption<>(
