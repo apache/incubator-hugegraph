@@ -175,34 +175,32 @@ public class EdgeAPI extends BatchAPI {
                          EdgeRequest req) {
         LOG.debug("Graph [{}] update edges: {}", graph, req.jsonEdges);
         checkUpdatingBody(req.jsonEdges);
-
-        HugeGraph g = graph(manager, graph);
         checkBatchSize(config, req.jsonEdges);
 
+        HugeGraph g = graph(manager, graph);
         Map<Id, JsonEdge> maps = new HashMap<>(req.jsonEdges.size());
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, maps.size(), () -> {
 
-             // 1.Put all newEdges' properties into map (combine first)
+            // 1.Put all newEdges' properties into map (combine first)
             req.jsonEdges.forEach(newEdge -> {
-                Id labelId = g.edgeLabel(newEdge.label).id();
-                Id id = newEdge.id != null ? EdgeId.parse(newEdge.id) :
-                        this.getEdgeId(g, labelId, newEdge);
-                this.updateExistElement(newEdge, maps.get(id),
+                Id newEdgeId = newEdge.id != null ? EdgeId.parse(newEdge.id) :
+                               getEdgeId(g, newEdge);
+                JsonEdge oldEdge = maps.get(newEdgeId);
+                this.updateExistElement(oldEdge, newEdge,
                                         req.updateStrategies);
-                maps.put(id, newEdge);
+                maps.put(newEdgeId, newEdge);
             });
 
             // 2.Get all oldEdges and update with new ones
-            List<Id> ids = new ArrayList<>(maps.size());
-            maps.keySet().forEach(key -> ids.add(key));
-            Iterator<Edge> oldEdges = g.edges(ids.toArray());
+            Object[] ids = maps.keySet().toArray();
+            Iterator<Edge> oldEdges = g.edges(ids);
             oldEdges.forEachRemaining(oldEdge -> {
-                updateExistElement(g, oldEdge,
-                                   maps.get(oldEdge.id().toString()),
-                                   req.updateStrategies);
+                JsonEdge newEdge = maps.get(oldEdge.id());
+                this.updateExistElement(g, oldEdge, newEdge,
+                                        req.updateStrategies);
             });
 
             // 3.Add all finalEdges
@@ -404,8 +402,9 @@ public class EdgeAPI extends BatchAPI {
         }
     }
 
-    private Id getEdgeId(HugeGraph g, Id labelId, JsonEdge newEdge) {
+    private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
         String sortKeys = "";
+        Id labelId = g.edgeLabel(newEdge.label).id();
         List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
         if (!sortKeyIds.isEmpty()) {
             List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
@@ -428,13 +427,13 @@ public class EdgeAPI extends BatchAPI {
 
     protected static class EdgeRequest {
 
-        @JsonProperty("jsonEdges")
+        @JsonProperty("edges")
         public List<JsonEdge> jsonEdges;
-        @JsonProperty("updateStrategies")
+        @JsonProperty("update_strategies")
         public Map<String, UpdateStrategy> updateStrategies;
         @JsonProperty("check_vertex")
         public boolean checkVertex = true;
-        @JsonProperty("create")
+        @JsonProperty("create_if_not_exist")
         public boolean createIfNotExist = true;
 
         @Override

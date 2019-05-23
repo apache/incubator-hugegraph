@@ -134,37 +134,31 @@ public class VertexAPI extends BatchAPI {
                          VertexRequest req) {
         LOG.debug("Graph [{}] update vertices: {}", graph, req.jsonVertices);
         checkUpdatingBody(req.jsonVertices);
+        checkBatchSize(config, req.jsonVertices);
 
         HugeGraph g = graph(manager, graph);
-        checkBatchSize(config, req.jsonVertices);
-        // Not support automatic Id strategy now (check once?)
-        E.checkArgument(g.vertexLabel(req.jsonVertices.get(0).label).
-                        idStrategy() != IdStrategy.AUTOMATIC,
-                        "Automatic Id strategy is not supported now");
-
         Map<Id, JsonVertex> maps = new HashMap<>(req.jsonVertices.size());
 
         return this.commit(config, g, maps.size(), () -> {
             /*
-            * 1.Put all newVertices' properties into map (combine first)
-            * - Consider primary-key & user-define ID mode first
-            * */
+             * 1.Put all newVertices' properties into map (combine first)
+             * - Consider primary-key & user-define ID mode first
+             * */
             req.jsonVertices.forEach(newVertex -> {
-                String labelId = g.vertexLabel(newVertex.label).id().asString();
-                Id id = this.getVertexId(g, labelId, newVertex);
-                this.updateExistElement(newVertex, maps.get(id),
+                Id newVertexId = getVertexId(g, newVertex);
+                JsonVertex oldVertex = maps.get(newVertexId);
+                this.updateExistElement(oldVertex, newVertex,
                                         req.updateStrategies);
-                maps.put(id, newVertex);
+                maps.put(newVertexId, newVertex);
             });
 
             // 2.Get all oldVertices and update with new vertices
-            List<Id> ids = new ArrayList<>(maps.size());
-            maps.keySet().forEach(key -> ids.add(key));
-            Iterator<Vertex> oldVertices = g.vertices(ids.toArray());
+            Object[] ids = maps.keySet().toArray();
+            Iterator<Vertex> oldVertices = g.vertices(ids);
             oldVertices.forEachRemaining(oldVertex -> {
-                updateExistElement(g, oldVertex,
-                                   maps.get(oldVertex.id()),
-                                   req.updateStrategies);
+                JsonVertex newVertex = maps.get(oldVertex.id());
+                this.updateExistElement(g, oldVertex, newVertex,
+                                        req.updateStrategies);
             });
 
             // 3.Add finalVertices and return them
@@ -318,33 +312,41 @@ public class VertexAPI extends BatchAPI {
         }
     }
 
-    private Id getVertexId(HugeGraph g, String labelId, JsonVertex vertex) {
-        assert g.vertexLabel(labelId).idStrategy() != IdStrategy.AUTOMATIC;
+    private Id getVertexId(HugeGraph g, JsonVertex vertex) {
+        VertexLabel vertexLabel = g.vertexLabel(vertex.label);
+        String labelId = vertexLabel.id().asString();
+        IdStrategy idStrategy = vertexLabel.idStrategy();
+        E.checkArgument(idStrategy != IdStrategy.AUTOMATIC,
+                        "Automatic Id strategy is not supported now");
 
-        List<Id> pkIds = g.vertexLabel(vertex.label).primaryKeys();
-        List<Object> pkValues = new ArrayList<>(pkIds.size());
-        for (Id pkId : pkIds) {
-            String propertyKey = g.propertyKey(pkId).name();
-            Object propertyValue = vertex.properties.get(propertyKey);
-            E.checkState(propertyValue != null,
-                         "The value of primary key '%s' can't be null",
-                         propertyKey);
-            pkValues.add(propertyValue);
+        if (idStrategy == IdStrategy.PRIMARY_KEY) {
+            List<Id> pkIds = vertexLabel.primaryKeys();
+            List<Object> pkValues = new ArrayList<>(pkIds.size());
+            for (Id pkId : pkIds) {
+                String propertyKey = g.propertyKey(pkId).name();
+                Object propertyValue = vertex.properties.get(propertyKey);
+                E.checkState(propertyValue != null,
+                             "The value of primary key '%s' can't be null",
+                             propertyKey);
+                pkValues.add(propertyValue);
+            }
+
+            String value = SplicingIdGenerator.concatValues(pkValues);
+            return SplicingIdGenerator.splicing(labelId, value);
+        } else {
+            assert idStrategy == IdStrategy.CUSTOMIZE_NUMBER ||
+                   idStrategy == IdStrategy.CUSTOMIZE_STRING;
+            return HugeVertex.getIdValue(vertex.id);
         }
-
-        String name = SplicingIdGenerator.concatValues(pkValues);
-        Object idValue = vertex.id != null ? vertex.id :
-                         SplicingIdGenerator.splicing(labelId, name);
-        return HugeVertex.getIdValue(idValue);
     }
 
     private static class VertexRequest {
 
-        @JsonProperty("jsonVertices")
+        @JsonProperty("vertices")
         public List<JsonVertex> jsonVertices;
-        @JsonProperty("updateStrategies")
+        @JsonProperty("update_strategies")
         public Map<String, UpdateStrategy> updateStrategies;
-        @JsonProperty("create")
+        @JsonProperty("create_if_not_exist")
         public boolean createIfNotExist = true;
 
         @Override
