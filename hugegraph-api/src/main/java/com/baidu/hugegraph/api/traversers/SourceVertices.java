@@ -61,7 +61,7 @@ public class SourceVertices {
             }
             iter = g.vertices(sourceIds.toArray());
             E.checkArgument(iter.hasNext(),
-                            "Not exist source vertexes with ids %s",
+                            "Not exist source vertices with ids %s",
                             this.ids);
         } else {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);

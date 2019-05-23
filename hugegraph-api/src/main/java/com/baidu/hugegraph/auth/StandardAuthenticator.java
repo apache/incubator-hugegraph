@@ -90,8 +90,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     /**
      * Verify if a user is legal
-     * @param username
-     * @param password
+     * @param username  the username for authentication
+     * @param password  the password for authentication
      * @return String No permission if return ROLE_NONE else return a role
      */
     public String authenticate(final String username, final String password) {

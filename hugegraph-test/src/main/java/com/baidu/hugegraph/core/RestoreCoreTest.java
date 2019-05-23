@@ -33,6 +33,7 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 public class RestoreCoreTest extends BaseCoreTest {
 
     @After
+    @Override
     public void teardown() throws Exception {
         super.teardown();
         graph().mode(GraphMode.NONE);

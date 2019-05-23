@@ -49,8 +49,8 @@ public class Utils {
         return HugeFactory.open(confPath);
     }
 
-    public static boolean containsId(List<Vertex> vertexes, Id id) {
-        for (Vertex v : vertexes) {
+    public static boolean containsId(List<Vertex> vertices, Id id) {
+        for (Vertex v : vertices) {
             if (v.id().equals(id)) {
                 return true;
             }
@@ -58,9 +58,9 @@ public class Utils {
         return false;
     }
 
-    public static boolean contains(List<Vertex> vertexes,
+    public static boolean contains(List<Vertex> vertices,
                                    FakeVertex fakeVertex) {
-        for (Vertex v : vertexes) {
+        for (Vertex v : vertices) {
             if (fakeVertex.equalsVertex(v)) {
                 return true;
             }

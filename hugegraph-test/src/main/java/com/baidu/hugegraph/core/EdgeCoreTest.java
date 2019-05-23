@@ -2767,11 +2767,11 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     private Vertex vertex(String label, String pkName, Object pkValue) {
-        List<Vertex> vertexes = graph().traversal().V()
+        List<Vertex> vertices = graph().traversal().V()
                                 .hasLabel(label)
                                 .has(pkName, pkValue).toList();
-        Assert.assertEquals(1, vertexes.size());
-        return vertexes.get(0);
+        Assert.assertEquals(1, vertices.size());
+        return vertices.get(0);
     }
 
     private static void assertContains(
