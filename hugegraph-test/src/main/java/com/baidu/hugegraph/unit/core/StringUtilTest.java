@@ -19,39 +19,57 @@
 
 package com.baidu.hugegraph.unit.core;
 
-import com.baidu.hugegraph.util.StringUtil;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Test;
-import java.util.ArrayList;
+
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.util.StringUtil;
+import com.google.common.collect.ImmutableList;
 
 public class StringUtilTest {
 
     @Test
     public void testDesc() {
-        Assert.assertEquals(".\'\'()", StringUtil.desc("\'\'", new ArrayList<>()));
-        Assert.assertEquals(".1\'2\'3()", StringUtil.desc("1\'2\'3", new ArrayList<>()));
-        Assert.assertEquals(".a\'b\'c()", StringUtil.desc("a\'b\'c", new ArrayList<>()));
+        Id id1 = IdGenerator.of(1);
+        Id id2 = IdGenerator.of("2");
+        Assert.assertEquals(".foo(\"1\",\"2\")",
+                            StringUtil.desc("foo", ImmutableList.of(id1, id2)));
+
+        List<Id> empty = ImmutableList.of();
+        Assert.assertEquals(".\'\'()", StringUtil.desc("\'\'", empty));
+        Assert.assertEquals(".\"\"()", StringUtil.desc("\"\"", empty));
+        Assert.assertEquals(".1\'2\'3()", StringUtil.desc("1\'2\'3", empty));
+        Assert.assertEquals(".a\'b\'c()", StringUtil.desc("a\'b\'c", empty));
     }
 
     @Test
     public void testEscape() {
         Assert.assertEquals("a2b2c",
-                StringUtil.escape('2', '\u0000', "a", "b", "c"));
+                            StringUtil.escape('2', '\u0000', "a", "b", "c"));
         Assert.assertEquals("12\u0000223",
-                StringUtil.escape('2', '\u0000', "1", "2", "3"));
+                            StringUtil.escape('2', '\u0000', "1", "2", "3"));
     }
 
     @Test
     public void testUnescape() {
+        Assert.assertArrayEquals(new String[]{"a", "b>c", "d"},
+                                 StringUtil.unescape("a>b/>c>d", ">", "/"));
         Assert.assertEquals(1, StringUtil.unescape("", "", "").length);
         Assert.assertEquals(1, StringUtil.unescape("foo", "bar", "baz").length);
     }
 
     @Test
     public void testValueOf() {
+        Assert.assertTrue(StringUtil.valueOf(Integer.class, "0")
+                          instanceof Integer);
+        Assert.assertTrue(StringUtil.valueOf(Long.class, "0") instanceof Long);
+
         Assert.assertEquals(12, StringUtil.valueOf(Integer.class, "12"));
         Assert.assertEquals(123L, StringUtil.valueOf(Long.class, "123"));
-        Assert.assertEquals(12.34, StringUtil.valueOf(Double.class, "12.34"));
+        Assert.assertEquals(12.34d, StringUtil.valueOf(Double.class, "12.34"));
         Assert.assertEquals(12.34f, StringUtil.valueOf(Float.class, "12.34"));
         Assert.assertEquals((byte) 12, StringUtil.valueOf(Byte.class, "12"));
         Assert.assertEquals((short) 12, StringUtil.valueOf(Short.class, "12"));
