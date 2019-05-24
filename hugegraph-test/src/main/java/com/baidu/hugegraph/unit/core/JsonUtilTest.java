@@ -50,6 +50,7 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.unit.BaseUnitTest;
+import com.baidu.hugegraph.unit.FakeObjects;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
 
@@ -81,7 +82,7 @@ public class JsonUtilTest extends BaseUnitTest {
 
     @Test
     public void testSerializePropertyKey() {
-        FakeObject fakeObject = new FakeObject();
+        FakeObjects fakeObject = new FakeObjects();
         PropertyKey name = fakeObject.newPropertyKey(IdGenerator.of(1), "name");
         String json = JsonUtil.toJson(name);
         Assert.assertEquals("{\"id\":1,\"name\":\"name\"," +
@@ -100,7 +101,7 @@ public class JsonUtilTest extends BaseUnitTest {
 
     @Test
     public void testSerializeVertexLabel() {
-        FakeObject fakeObject = new FakeObject();
+        FakeObjects fakeObject = new FakeObjects();
         PropertyKey name = fakeObject.newPropertyKey(IdGenerator.of(1), "name");
         PropertyKey age = fakeObject.newPropertyKey(IdGenerator.of(2), "age",
                                                      DataType.INT,
@@ -126,7 +127,7 @@ public class JsonUtilTest extends BaseUnitTest {
 
     @Test
     public void testSerializeEdgeLabel() {
-        FakeObject fakeObject = new FakeObject();
+        FakeObjects fakeObject = new FakeObjects();
         PropertyKey name = fakeObject.newPropertyKey(IdGenerator.of(1), "name");
         PropertyKey age = fakeObject.newPropertyKey(IdGenerator.of(2), "age",
                                                     DataType.INT,
@@ -165,7 +166,7 @@ public class JsonUtilTest extends BaseUnitTest {
 
     @Test
     public void testSerializeIndexLabel() {
-        FakeObject fakeObject = new FakeObject();
+        FakeObjects fakeObject = new FakeObjects();
         PropertyKey name = fakeObject.newPropertyKey(IdGenerator.of(1), "name");
         PropertyKey age = fakeObject.newPropertyKey(IdGenerator.of(2), "age",
                                                     DataType.INT,
@@ -208,7 +209,7 @@ public class JsonUtilTest extends BaseUnitTest {
 
     @Test
     public void testSerializeVertexWithNumberId() {
-        FakeObject fakeObject = new FakeObject();
+        FakeObjects fakeObject = new FakeObjects();
         PropertyKey name = fakeObject.newPropertyKey(IdGenerator.of(1), "name");
         PropertyKey age = fakeObject.newPropertyKey(IdGenerator.of(2), "age",
                                                     DataType.INT,
@@ -239,7 +240,7 @@ public class JsonUtilTest extends BaseUnitTest {
 
     @Test
     public void testSerializeEdge() {
-        FakeObject fakeObject = new FakeObject();
+        FakeObjects fakeObject = new FakeObjects();
         PropertyKey name = fakeObject.newPropertyKey(IdGenerator.of(1), "name");
         PropertyKey age = fakeObject.newPropertyKey(IdGenerator.of(2), "age",
                                                     DataType.INT,

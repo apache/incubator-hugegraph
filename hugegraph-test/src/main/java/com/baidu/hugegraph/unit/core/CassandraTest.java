@@ -24,7 +24,6 @@ import java.util.Map;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.After;
-import com.baidu.hugegraph.testutil.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -32,7 +31,8 @@ import org.mockito.Mockito;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraOptions;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStore;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -62,9 +62,9 @@ public class CassandraTest {
                .thenReturn(ImmutableList.of("5"));
         HugeConfig config = new HugeConfig(conf);
 
-        Map<String, Object> result = Utils.invokeStatic(CassandraStore.class,
-                                                        "parseReplica",
-                                                        config);
+        Map<String, Object> result = Whitebox.invokeStatic(CassandraStore.class,
+                                                           "parseReplica",
+                                                           config);
 
         Map<String, Object> expected = ImmutableMap.of(
                                        "class", "SimpleStrategy",
@@ -86,9 +86,9 @@ public class CassandraTest {
                .thenReturn(ImmutableList.of("dc1:2", "dc2:1"));
         HugeConfig config = new HugeConfig(conf);
 
-        Map<String, Object> result = Utils.invokeStatic(CassandraStore.class,
-                                                        "parseReplica",
-                                                        config);
+        Map<String, Object> result = Whitebox.invokeStatic(CassandraStore.class,
+                                                           "parseReplica",
+                                                           config);
 
         Map<String, Object> expected = ImmutableMap.of(
                                        "class", "NetworkTopologyStrategy",
@@ -112,7 +112,7 @@ public class CassandraTest {
         HugeConfig config = new HugeConfig(conf);
 
         Assert.assertThrows(RuntimeException.class, () -> {
-            Utils.invokeStatic(CassandraStore.class, "parseReplica", config);
+            Whitebox.invokeStatic(CassandraStore.class, "parseReplica", config);
         });
     }
 
@@ -131,7 +131,7 @@ public class CassandraTest {
         HugeConfig config = new HugeConfig(conf);
 
         Assert.assertThrows(RuntimeException.class, () -> {
-            Utils.invokeStatic(CassandraStore.class, "parseReplica", config);
+            Whitebox.invokeStatic(CassandraStore.class, "parseReplica", config);
         });
     }
 
@@ -150,7 +150,7 @@ public class CassandraTest {
         HugeConfig config = new HugeConfig(conf);
 
         Assert.assertThrows(RuntimeException.class, () -> {
-            Utils.invokeStatic(CassandraStore.class, "parseReplica", config);
+            Whitebox.invokeStatic(CassandraStore.class, "parseReplica", config);
         });
     }
 
@@ -169,7 +169,7 @@ public class CassandraTest {
         HugeConfig config = new HugeConfig(conf);
 
         Assert.assertThrows(RuntimeException.class, () -> {
-            Utils.invokeStatic(CassandraStore.class, "parseReplica", config);
+            Whitebox.invokeStatic(CassandraStore.class, "parseReplica", config);
         });
     }
 
@@ -188,7 +188,7 @@ public class CassandraTest {
         HugeConfig config = new HugeConfig(conf);
 
         Assert.assertThrows(RuntimeException.class, () -> {
-            Utils.invokeStatic(CassandraStore.class, "parseReplica", config);
+            Whitebox.invokeStatic(CassandraStore.class, "parseReplica", config);
         });
     }
 
@@ -207,7 +207,7 @@ public class CassandraTest {
         HugeConfig config = new HugeConfig(conf);
 
         Assert.assertThrows(RuntimeException.class, () -> {
-            Utils.invokeStatic(CassandraStore.class, "parseReplica", config);
+            Whitebox.invokeStatic(CassandraStore.class, "parseReplica", config);
         });
     }
 
@@ -226,7 +226,7 @@ public class CassandraTest {
         HugeConfig config = new HugeConfig(conf);
 
         Assert.assertThrows(RuntimeException.class, () -> {
-            Utils.invokeStatic(CassandraStore.class, "parseReplica", config);
+            Whitebox.invokeStatic(CassandraStore.class, "parseReplica", config);
         });
     }
 }

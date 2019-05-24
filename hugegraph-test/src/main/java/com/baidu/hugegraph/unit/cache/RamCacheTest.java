@@ -23,14 +23,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.backend.cache.RamCache;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.unit.BaseUnitTest;
+import com.baidu.hugegraph.util.Bytes;
 
 public class RamCacheTest extends BaseUnitTest {
 
@@ -123,8 +125,21 @@ public class RamCacheTest extends BaseUnitTest {
         Id id = IdGenerator.of("1");
         cache.update(id, "value-1");
         Assert.assertEquals("value-1", cache.get(id));
+        Assert.assertEquals(1L, cache.size());
+
+        Object queue = Whitebox.getInternalState(cache, "queue");
+        Assert.assertThrows(RuntimeException.class, () -> {
+            Whitebox.invoke(queue.getClass(), new Class[]{Object.class},
+                            "checkNotInQueue", queue, id);
+        });
+
         cache.invalidate(id);
         Assert.assertEquals(null, cache.get(id));
+        Assert.assertEquals(0L, cache.size());
+
+        Assert.assertTrue(Whitebox.invoke(queue.getClass(),
+                                          new Class[]{Object.class},
+                                          "checkNotInQueue", queue, id));
     }
 
     @Test
@@ -157,6 +172,10 @@ public class RamCacheTest extends BaseUnitTest {
         cache = new RamCache(0);
         Assert.assertEquals(0, cache.capacity());
 
+        int huge = (int) (200 * Bytes.GB);
+        cache = new RamCache(huge);
+        Assert.assertEquals(huge, cache.capacity());
+
         // The min capacity is 0
         cache = new RamCache(-1);
         Assert.assertEquals(0, cache.capacity());
@@ -183,14 +202,44 @@ public class RamCacheTest extends BaseUnitTest {
     }
 
     @Test
+    public void testHitsAndMiss() {
+        RamCache cache = new RamCache();
+        Assert.assertEquals(0L, cache.hits());
+        Assert.assertEquals(0L, cache.miss());
+
+        Id id = IdGenerator.of("1");
+        cache.update(id, "value-1");
+        Assert.assertEquals(0L, cache.hits());
+        Assert.assertEquals(0L, cache.miss());
+
+        cache.get(IdGenerator.of("not-exist"));
+        Assert.assertEquals(0L, cache.hits());
+        Assert.assertEquals(1L, cache.miss());
+
+        cache.get(IdGenerator.of("1"));
+        Assert.assertEquals(1L, cache.hits());
+        Assert.assertEquals(1L, cache.miss());
+
+        cache.get(IdGenerator.of("not-exist"));
+        Assert.assertEquals(1L, cache.hits());
+        Assert.assertEquals(2L, cache.miss());
+
+        cache.get(IdGenerator.of("1"));
+        Assert.assertEquals(2L, cache.hits());
+        Assert.assertEquals(2L, cache.miss());
+    }
+
+    @Test
     public void testExpire() {
         RamCache cache = new RamCache();
         cache.update(IdGenerator.of("1"), "value-1");
         cache.update(IdGenerator.of("2"), "value-2");
 
         Assert.assertEquals(2, cache.size());
+        Assert.assertEquals(0L, cache.expire());
 
         cache.expire(2); // 2 seconds
+        Assert.assertEquals(2000L, cache.expire());
         waitTillNext(2);
         cache.tick();
 
@@ -277,7 +326,7 @@ public class RamCacheTest extends BaseUnitTest {
         RamCache cache = new RamCache();
 
         runWithThreads(THREADS_NUM, () -> {
-            Map<Id, Object> map = new HashMap<>(1000);
+            Map<Id, Object> all = new HashMap<>(1000);
 
             for (int i = 0; i < 1000; i++) {
                 Id id = IdGenerator.of(Thread.currentThread().getName() +
@@ -285,12 +334,19 @@ public class RamCacheTest extends BaseUnitTest {
                 String value = "value-" + i;
                 cache.update(id, value);
 
-                map.put(id, value);
+                all.put(id, value);
             }
 
-            for (Map.Entry<Id, Object> entry : map.entrySet()) {
-                Assert.assertEquals(entry.getValue(),
-                                    cache.get(entry.getKey()));
+            @SuppressWarnings("unchecked")
+            Map<Id, ?> map = (Map<Id, ?>) Whitebox.getInternalState(cache,
+                                                                    "map");
+            Object queue = Whitebox.getInternalState(cache, "queue");
+            for (Map.Entry<Id, Object> entry : all.entrySet()) {
+                Id key = entry.getKey();
+                Assert.assertEquals(entry.getValue(), cache.get(key));
+                Assert.assertTrue(Whitebox.invoke(queue.getClass(),
+                                                  "checkPrevNotInNext",
+                                                  queue, map.get(key)));
             }
         });
         Assert.assertEquals(THREADS_NUM * 1000, cache.size());

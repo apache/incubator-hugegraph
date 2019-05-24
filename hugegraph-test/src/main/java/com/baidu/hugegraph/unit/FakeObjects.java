@@ -17,12 +17,17 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.core;
+package com.baidu.hugegraph.unit;
 
+import java.util.Collections;
+
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.mockito.Mockito;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -34,12 +39,24 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
 
-public final class FakeObject {
+public final class FakeObjects {
 
     private final HugeGraph graph;
 
-    public FakeObject() {
+    public FakeObjects() {
         this.graph = Mockito.mock(HugeGraph.class);
+        Mockito.doReturn(newConfig()).when(this.graph).configuration();
+    }
+
+    public FakeObjects(String name) {
+        this();
+        Mockito.doReturn(name).when(this.graph).name();
+    }
+
+    public static HugeConfig newConfig() {
+        Configuration conf = Mockito.mock(PropertiesConfiguration.class);
+        Mockito.when(conf.getKeys()).thenReturn(Collections.emptyIterator());
+        return new HugeConfig(conf);
     }
 
     public HugeGraph graph() {

@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.testutil;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.List;
 
@@ -33,7 +31,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.util.DateUtil;
-import com.baidu.hugegraph.util.E;
 
 public class Utils {
 
@@ -82,30 +79,5 @@ public class Utils {
 
     public static Date date(String rawDate) {
         return DateUtil.parse(rawDate);
-    }
-
-    public static <T> T invokeStatic(Class<?> clazz, String methodName,
-                                     Object... args) {
-        Class<?>[] classes = new Class<?>[args.length];
-        int i = 0;
-        for (Object arg : args) {
-            E.checkArgument(arg != null, "The argument can't be null");
-            classes[i++] = arg.getClass();
-        }
-        try {
-            Method method = clazz.getDeclaredMethod(methodName, classes);
-            method.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            T result = (T) method.invoke(null, args);
-            return result;
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(String.format(
-                      "Can't find method '%s' of class '%s'",
-                      methodName, clazz), e);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(String.format(
-                      "Can't invoke method '%s' of class '%s'",
-                      methodName, clazz), e);
-        }
     }
 }
