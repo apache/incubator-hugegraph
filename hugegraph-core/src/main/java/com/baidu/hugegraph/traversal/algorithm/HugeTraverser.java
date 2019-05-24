@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.ws.rs.core.MultivaluedHashMap;
@@ -379,7 +380,8 @@ public class HugeTraverser {
                 return false;
             }
             Node other = (Node) object;
-            return this.id.equals(other.id);
+            return this.id.equals(other.id) &&
+                   Objects.equals(this.parent, other.parent);
         }
     }
 

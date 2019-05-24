@@ -64,6 +64,8 @@ public class RingsAPI extends API {
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_depth") int depth,
+                      @QueryParam("source_in_ring")
+                      @DefaultValue("true") boolean sourceInRing,
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_DEGREE) long degree,
                       @QueryParam("capacity")
@@ -72,7 +74,8 @@ public class RingsAPI extends API {
                       @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
         LOG.debug("Graph [{}] get rings paths reachable from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
-                  "max degree '{}' and limit '{}'",
+                  "source in ring '{}', max degree '{}', capacity '{}' " +
+                  "and limit '{}'",
                   graph, sourceV, direction, edgeLabel, depth, degree, limit);
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
@@ -82,8 +85,9 @@ public class RingsAPI extends API {
 
         SubGraphTraverser traverser = new SubGraphTraverser(g);
         List<HugeTraverser.Path> paths = traverser.rings(source, dir, edgeLabel,
-                                                         depth, degree,
-                                                         capacity, limit);
+                                                         depth, sourceInRing,
+                                                         degree, capacity,
+                                                         limit);
         return manager.serializer(g).writePaths("rings", paths, false);
     }
 }
