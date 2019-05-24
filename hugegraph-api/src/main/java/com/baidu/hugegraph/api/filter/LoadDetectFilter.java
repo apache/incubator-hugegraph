@@ -45,6 +45,8 @@ import com.google.common.util.concurrent.RateLimiter;
 public class LoadDetectFilter implements ContainerRequestFilter {
 
     private static final Set<String> WHITE_API_LIST = ImmutableSet.of(
+            "",
+            "apis",
             "metrics",
             "versions"
     );

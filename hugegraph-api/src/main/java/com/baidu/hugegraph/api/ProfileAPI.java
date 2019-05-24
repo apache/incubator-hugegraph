@@ -24,8 +24,10 @@ package com.baidu.hugegraph.api;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
@@ -42,21 +44,60 @@ import org.glassfish.jersey.server.model.Resource;
 import org.glassfish.jersey.server.model.ResourceMethod;
 
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.codahale.metrics.annotation.Timed;
 
 @Path("/")
 @Singleton
-public class APIList {
+public class ProfileAPI {
+
+    private static final String SERVICE = "hugegraph";
+    private static final String DOC = "https://hugegraph.github.io/hugegraph-doc/";
+    private static final String API_DOC = DOC + "clients/hugegraph-api.html";
+
+    private static String SERVER_PROFILES = null;
+    private static String API_PROFILES = null;
 
     @GET
     @Timed
     @Produces(MediaType.APPLICATION_JSON)
-    public String showAll(@Context Application application) {
-        Map<String, Map<String, List<APIProfile>>> apiProfiles = new HashMap<>();
+    public String get(@Context Application application) {
+        if (SERVER_PROFILES != null) {
+            return SERVER_PROFILES;
+        }
 
+        Map<String, Object> profiles = InsertionOrderUtil.newMap();
+        profiles.put("service", SERVICE);
+        profiles.put("doc", DOC);
+        profiles.put("api-doc", API_DOC);
+        Set<String> apis = new HashSet<>();
         for (Class<?> aClass : application.getClasses()) {
-            if (!isAnnotatedResourceClass(aClass)) {
+            if (!isAnnotatedPathClass(aClass)) {
+                continue;
+            }
+            Resource resource = Resource.from(aClass);
+            String fullName = resource.getName();
+            APICategory apiCategory = getCategory(fullName);
+            apis.add(apiCategory.category);
+        }
+        profiles.put("apis", apis);
+        SERVER_PROFILES = JsonUtil.toJson(profiles);
+        return SERVER_PROFILES;
+    }
+
+    @GET
+    @Path("apis")
+    @Timed
+    @Produces(MediaType.APPLICATION_JSON)
+    public String showAll(@Context Application application) {
+        if (API_PROFILES != null) {
+            return API_PROFILES;
+        }
+
+        Map<String, Map<String, List<APIProfile>>> apiProfiles = new HashMap<>();
+        for (Class<?> aClass : application.getClasses()) {
+            if (!isAnnotatedPathClass(aClass)) {
                 continue;
             }
 
@@ -85,10 +126,11 @@ public class APIList {
                 }
             }
         }
-        return JsonUtil.toJson(apiProfiles);
+        API_PROFILES = JsonUtil.toJson(apiProfiles);
+        return API_PROFILES;
     }
 
-    private static boolean isAnnotatedResourceClass(Class rc) {
+    private static boolean isAnnotatedPathClass(Class rc) {
         if (rc.isAnnotationPresent(Path.class)) {
             return true;
         }
