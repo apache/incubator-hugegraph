@@ -50,12 +50,12 @@ public class PostgresqlSessions extends MysqlSessions {
         // Create database with non-database-session
         LOG.debug("Create database: {}", this.database());
 
-        String sql = String.format(POSTGRESQL_DB_CREATE, this.database());
+        String sql = this.buildCreateDatabase(this.database());
         try (Connection conn = this.openWithoutDB(0)) {
             try {
                 conn.createStatement().execute(sql);
             } catch (PSQLException e) {
-                // CockroackDB not support 'template' args of CREATE DATABASE
+                // CockroackDB not support 'template' arg of CREATE DATABASE
                 if (e.getMessage().contains("syntax error at or near " +
                                             "\"template\"")) {
                     sql = String.format(COCKROACH_DB_CREATE, this.database());
