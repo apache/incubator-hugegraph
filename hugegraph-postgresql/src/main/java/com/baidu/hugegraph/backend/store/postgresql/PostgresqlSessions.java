@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.postgresql;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 
@@ -49,12 +50,12 @@ public class PostgresqlSessions extends MysqlSessions {
         // Create database with non-database-session
         LOG.debug("Create database: {}", this.database());
 
-        String sql = String.format(POSTGRESQL_DB_CREATE, this.database());
+        String sql = this.buildCreateDatabase(this.database());
         try (Connection conn = this.openWithoutDB(0)) {
             try {
                 conn.createStatement().execute(sql);
             } catch (PSQLException e) {
-                // CockroackDB not support 'template' args of CREATE DATABASE
+                // CockroackDB not support 'template' arg of CREATE DATABASE
                 if (e.getMessage().contains("syntax error at or near " +
                                             "\"template\"")) {
                     sql = String.format(COCKROACH_DB_CREATE, this.database());
@@ -68,5 +69,16 @@ public class PostgresqlSessions extends MysqlSessions {
             }
             // Ignore exception if database already exists
         }
+    }
+
+    @Override
+    protected String buildCreateDatabase(String database) {
+        return String.format(POSTGRESQL_DB_CREATE, database);
+    }
+
+    @Override
+    protected URIBuilder newConnectionURIBuilder() {
+        // Suppress error log when database does not exist
+        return new URIBuilder().addParameter("loggerLevel", "OFF");
     }
 }

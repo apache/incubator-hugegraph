@@ -94,7 +94,7 @@ public class MysqlSessions extends BackendSessionPool {
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
         int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
 
-        URIBuilder uriBuilder = new URIBuilder();
+        URIBuilder uriBuilder = this.newConnectionURIBuilder();
         uriBuilder.setPath(url)
                   .setParameter("rewriteBatchedStatements", "true")
                   .setParameter("useServerPrepStmts", "false")
@@ -116,6 +116,10 @@ public class MysqlSessions extends BackendSessionPool {
                                        driverName);
         }
         return DriverManager.getConnection(url, username, password);
+    }
+
+    protected URIBuilder newConnectionURIBuilder() {
+        return new URIBuilder();
     }
 
     @Override
