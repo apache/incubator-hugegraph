@@ -41,8 +41,9 @@ public final class StringEncoding {
             int c = attribute.charAt(i);
             assert c <= 127;
             byte b = (byte) c;
-            if (++i == len)
+            if (++i == len) {
                 b |= 0x80; // End marker
+            }
             array[startPos++] = b;
         } while (i < len);
 
@@ -54,8 +55,9 @@ public final class StringEncoding {
         int c = 0;
         do {
             c = 0xFF & array[startPos++];
-            if (c != 0x80)
+            if (c != 0x80) {
                 sb.append((char) (c & 0x7F));
+            }
         } while ((c & 0x80) <= 0);
         return sb.toString();
     }

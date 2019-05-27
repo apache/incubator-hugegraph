@@ -94,8 +94,8 @@ public class GraphTransaction extends IndexableTransaction {
 
     private final GraphIndexTransaction indexTx;
 
-    private Map<Id, HugeVertex> addedVertexes;
-    private Map<Id, HugeVertex> removedVertexes;
+    private Map<Id, HugeVertex> addedVertices;
+    private Map<Id, HugeVertex> removedVertices;
 
     private Map<Id, HugeEdge> addedEdges;
     private Map<Id, HugeEdge> removedEdges;
@@ -104,7 +104,7 @@ public class GraphTransaction extends IndexableTransaction {
      * These are used to rollback state
      * NOTE: props updates will be put into mutation directly(due to difficult)
      */
-    private Map<Id, HugeVertex> updatedVertexes;
+    private Map<Id, HugeVertex> updatedVertices;
     private Map<Id, HugeEdge> updatedEdges;
     private Set<HugeProperty<?>> updatedProps; // Oldest props
 
@@ -112,7 +112,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     private final boolean checkVertexExist;
 
-    private final int vertexesCapacity;
+    private final int verticesCapacity;
     private final int edgesCapacity;
 
     public GraphTransaction(HugeGraph graph, BackendStore store) {
@@ -124,7 +124,7 @@ public class GraphTransaction extends IndexableTransaction {
         final HugeConfig conf = graph.configuration();
         this.checkVertexExist = conf.get(
                                 CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
-        this.vertexesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
+        this.verticesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
         this.locksTable = new LockUtil.LocksTable(graph.name());
     }
@@ -144,9 +144,9 @@ public class GraphTransaction extends IndexableTransaction {
         super.reset();
 
         // Clear mutation
-        this.addedVertexes = InsertionOrderUtil.newMap();
-        this.removedVertexes = InsertionOrderUtil.newMap();
-        this.updatedVertexes = InsertionOrderUtil.newMap();
+        this.addedVertices = InsertionOrderUtil.newMap();
+        this.removedVertices = InsertionOrderUtil.newMap();
+        this.updatedVertices = InsertionOrderUtil.newMap();
 
         this.addedEdges = InsertionOrderUtil.newMap();
         this.removedEdges = InsertionOrderUtil.newMap();
@@ -169,9 +169,9 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     protected final int verticesInTxSize() {
-        return this.addedVertexes.size() +
-               this.removedVertexes.size() +
-               this.updatedVertexes.size();
+        return this.addedVertices.size() +
+               this.removedVertices.size() +
+               this.updatedVertices.size();
     }
 
     protected final int edgesInTxSize() {
@@ -181,19 +181,19 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     protected final Collection<HugeVertex> verticesInTxUpdated() {
-        int size = this.addedVertexes.size() + this.updatedVertexes.size();
+        int size = this.addedVertices.size() + this.updatedVertices.size();
         List<HugeVertex> vertices = new ArrayList<>(size);
-        vertices.addAll(this.addedVertexes.values());
-        vertices.addAll(this.updatedVertexes.values());
+        vertices.addAll(this.addedVertices.values());
+        vertices.addAll(this.updatedVertices.values());
         return vertices;
     }
 
     protected final Collection<HugeVertex> verticesInTxRemoved() {
-        return new ArrayList<>(this.removedVertexes.values());
+        return new ArrayList<>(this.removedVertices.values());
     }
 
     protected final boolean removingEdgeOwner(HugeEdge edge) {
-        for (HugeVertex vertex : this.removedVertexes.values()) {
+        for (HugeVertex vertex : this.removedVertices.values()) {
             if (edge.belongToVertex(vertex)) {
                 return true;
             }
@@ -205,23 +205,23 @@ public class GraphTransaction extends IndexableTransaction {
     @Override
     protected BackendMutation prepareCommit() {
         // Serialize and add updates into super.deletions
-        if (this.removedVertexes.size() > 0 || this.removedEdges.size() > 0) {
-            this.prepareDeletions(this.removedVertexes, this.removedEdges);
+        if (this.removedVertices.size() > 0 || this.removedEdges.size() > 0) {
+            this.prepareDeletions(this.removedVertices, this.removedEdges);
         }
         // Serialize and add updates into super.additions
-        if (this.addedVertexes.size() > 0 || this.addedEdges.size() > 0) {
-            this.prepareAdditions(this.addedVertexes, this.addedEdges);
+        if (this.addedVertices.size() > 0 || this.addedEdges.size() > 0) {
+            this.prepareAdditions(this.addedVertices, this.addedEdges);
         }
         return this.mutation();
     }
 
-    protected void prepareAdditions(Map<Id, HugeVertex> addedVertexes,
+    protected void prepareAdditions(Map<Id, HugeVertex> addedVertices,
                                     Map<Id, HugeEdge> addedEdges) {
         if (this.checkVertexExist) {
-            this.checkVertexExistIfCustomizedId(addedVertexes);
+            this.checkVertexExistIfCustomizedId(addedVertices);
         }
         // Do vertex update
-        for (HugeVertex v : addedVertexes.values()) {
+        for (HugeVertex v : addedVertices.values()) {
             assert !v.removed();
             v.committed();
             // Add vertex entry
@@ -248,10 +248,10 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    protected void prepareDeletions(Map<Id, HugeVertex> removedVertexes,
+    protected void prepareDeletions(Map<Id, HugeVertex> removedVertices,
                                     Map<Id, HugeEdge> removedEdges) {
         // Remove related edges of each vertex
-        for (HugeVertex v : removedVertexes.values()) {
+        for (HugeVertex v : removedVertices.values()) {
             // Query all edges of the vertex and remove them
             Query query = constructEdgesQuery(v.id(), Directions.BOTH);
             Iterator<HugeEdge> vedges = this.queryEdgesFromBackend(query);
@@ -263,8 +263,8 @@ public class GraphTransaction extends IndexableTransaction {
             }
         }
 
-        // Remove vertexes
-        for (HugeVertex v : removedVertexes.values()) {
+        // Remove vertices
+        for (HugeVertex v : removedVertices.values()) {
             /*
              * If the backend stores vertex together with edges, it's edges
              * would be removed after removing vertex. Otherwise, if the
@@ -345,8 +345,8 @@ public class GraphTransaction extends IndexableTransaction {
     public HugeVertex addVertex(HugeVertex vertex) {
         this.checkOwnerThread();
 
-        // Override vertexes in local `removedVertexes`
-        this.removedVertexes.remove(vertex.id());
+        // Override vertices in local `removedVertices`
+        this.removedVertices.remove(vertex.id());
         try {
             this.locksTable.lockReads(LockUtil.VERTEX_LABEL_DELETE,
                                       vertex.schemaLabel().id());
@@ -360,7 +360,7 @@ public class GraphTransaction extends IndexableTransaction {
              * unconcerned with add vertex
              */
             this.beforeWrite();
-            this.addedVertexes.put(vertex.id(), vertex);
+            this.addedVertices.put(vertex.id(), vertex);
             this.afterWrite();
         } catch (Throwable e){
             this.locksTable.unlock();
@@ -408,11 +408,11 @@ public class GraphTransaction extends IndexableTransaction {
 
         this.beforeWrite();
 
-        // Override vertexes in local `addedVertexes`
-        this.addedVertexes.remove(vertex.id());
+        // Override vertices in local `addedVertices`
+        this.addedVertices.remove(vertex.id());
 
         // Collect the removed vertex
-        this.removedVertexes.put(vertex.id(), vertex);
+        this.removedVertices.put(vertex.id(), vertex);
 
         this.afterWrite();
     }
@@ -440,11 +440,11 @@ public class GraphTransaction extends IndexableTransaction {
         for (Object vertexId : vertexIds) {
             HugeVertex vertex;
             Id id = HugeVertex.getIdValue(vertexId);
-            if (id == null || this.removedVertexes.containsKey(id)) {
+            if (id == null || this.removedVertices.containsKey(id)) {
                 // The record has been deleted
                 continue;
-            } else if ((vertex = this.addedVertexes.get(id)) != null ||
-                       (vertex = this.updatedVertexes.get(id)) != null) {
+            } else if ((vertex = this.addedVertices.get(id)) != null ||
+                       (vertex = this.updatedVertices.get(id)) != null) {
                 // Found from local tx
                 vertices.put(vertex.id(), vertex);
             } else {
@@ -645,7 +645,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         @SuppressWarnings("unchecked")
         Iterator<Edge> r = (Iterator<Edge>) joinTxEdges(query, results,
-                                                        this.removedVertexes);
+                                                        this.removedVertices);
         return r;
     }
 
@@ -681,12 +681,12 @@ public class GraphTransaction extends IndexableTransaction {
             return;
         }
         // Check is updating property of added/removed vertex
-        E.checkArgument(!this.addedVertexes.containsKey(vertex.id()) ||
-                        this.updatedVertexes.containsKey(vertex.id()),
+        E.checkArgument(!this.addedVertices.containsKey(vertex.id()) ||
+                        this.updatedVertices.containsKey(vertex.id()),
                         "Can't update property '%s' for adding-state vertex",
                         prop.key());
         E.checkArgument(!vertex.removed() &&
-                        !this.removedVertexes.containsKey(vertex.id()),
+                        !this.removedVertices.containsKey(vertex.id()),
                         "Can't update property '%s' for removing-state vertex",
                         prop.key());
         // Check is updating primary key
@@ -736,11 +736,11 @@ public class GraphTransaction extends IndexableTransaction {
             return;
         }
         // Check is updating property of added/removed vertex
-        E.checkArgument(!this.addedVertexes.containsKey(vertex.id()) ||
-                        this.updatedVertexes.containsKey(vertex.id()),
+        E.checkArgument(!this.addedVertices.containsKey(vertex.id()) ||
+                        this.updatedVertices.containsKey(vertex.id()),
                         "Can't remove property '%s' for adding-state vertex",
                         prop.key());
-        E.checkArgument(!this.removedVertexes.containsKey(vertex.id()),
+        E.checkArgument(!this.removedVertices.containsKey(vertex.id()),
                         "Can't remove property '%s' for removing-state vertex",
                         prop.key());
 
@@ -1232,12 +1232,12 @@ public class GraphTransaction extends IndexableTransaction {
         assert query.resultType().isVertex();
         return this.joinTxRecords(query, vertices,
                                   (q, v) -> q.test(v) ? v : null,
-                                  this.addedVertexes, this.removedVertexes,
-                                  this.updatedVertexes);
+                                  this.addedVertices, this.removedVertices,
+                                  this.updatedVertices);
     }
 
     private Iterator<?> joinTxEdges(Query query, Iterator<HugeEdge> edges,
-                                    Map<Id, HugeVertex> removingVertexes) {
+                                    Map<Id, HugeVertex> removingVertices) {
         assert query.resultType().isEdge();
         final BiFunction<Query, HugeEdge, HugeEdge> matchTxEdges = (q, e) -> {
             assert q.resultType() == HugeType.EDGE;
@@ -1246,12 +1246,12 @@ public class GraphTransaction extends IndexableTransaction {
         edges = this.joinTxRecords(query, edges, matchTxEdges,
                                    this.addedEdges, this.removedEdges,
                                    this.updatedEdges);
-        if (removingVertexes.isEmpty()) {
+        if (removingVertices.isEmpty()) {
             return edges;
         }
         // Filter edges that belong to deleted vertex
         return new FilterIterator<HugeEdge>(edges, edge -> {
-            for (HugeVertex v : removingVertexes.values()) {
+            for (HugeVertex v : removingVertices.values()) {
                 if (edge.belongToVertex(v)) {
                     return false;
                 }
@@ -1308,10 +1308,10 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private void checkTxVerticesCapacity() throws LimitExceedException {
-        if (this.verticesInTxSize() >= this.vertexesCapacity) {
+        if (this.verticesInTxSize() >= this.verticesCapacity) {
             throw new LimitExceedException(
                       "Vertices size has reached tx capacity %d",
-                      this.vertexesCapacity);
+                      this.verticesCapacity);
         }
     }
 
@@ -1324,7 +1324,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private void propertyUpdated(HugeVertex vertex, HugeProperty<?> property) {
-        this.updatedVertexes.put(vertex.id(), vertex);
+        this.updatedVertices.put(vertex.id(), vertex);
         if (property != null) {
             this.updatedProps.add(property);
         }
