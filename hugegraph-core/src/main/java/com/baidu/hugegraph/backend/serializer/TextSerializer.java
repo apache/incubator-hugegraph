@@ -123,7 +123,7 @@ public class TextSerializer extends AbstractSerializer {
         PropertyKey pkey = owner.graph().propertyKey(readId(colParts[1]));
 
         // Parse value
-        Object value = JsonUtil.fromJson(colValue, pkey.clazz());
+        Object value = JsonUtil.fromJson(colValue, pkey.implementClazz());
 
         // Set properties of vertex/edge
         if (pkey.cardinality() == Cardinality.SINGLE) {

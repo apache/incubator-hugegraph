@@ -47,7 +47,9 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public abstract class HugeElement implements Element, GraphType {
 
@@ -213,24 +215,20 @@ public abstract class HugeElement implements Element, GraphType {
             this.setProperty(property);
         }
 
-        Collection<V> values = null;
+        Collection<V> values;
         if (value instanceof Collection) {
             values = (Collection<V>) value;
         } else if (value.getClass().isArray()) {
             values = CollectionUtil.toList(value);
-        }
-
-        if (values != null) {
-            E.checkArgument(pkey.checkDataType(values),
-                            "Invalid type of property values %s for key '%s'",
-                            value, pkey.name());
-            property.value().addAll(values);
         } else {
-            E.checkArgument(pkey.checkDataType(value),
-                            "Invalid type of property value '%s' for key '%s'",
-                            value, pkey.name());
-            property.value().add(value);
+            if (pkey.cardinality() == Cardinality.SET) {
+                values = ImmutableSet.of(value);
+            } else {
+                assert pkey.cardinality() == Cardinality.LIST;
+                values = ImmutableList.of(value);
+            }
         }
+        property.value().addAll(pkey.validValueOrThrow(values));
 
         // Any better ways?
         return (HugeProperty) property;
