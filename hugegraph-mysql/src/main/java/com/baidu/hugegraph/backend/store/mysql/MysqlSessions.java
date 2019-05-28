@@ -169,8 +169,7 @@ public class MysqlSessions extends BackendSessionPool {
     public void dropDatabase() {
         LOG.debug("Drop database: {}", this.database);
 
-        String sql = String.format("DROP DATABASE IF EXISTS %s;",
-                                   this.database);
+        String sql = this.buildDropDatabase(this.database);
         try (Connection conn = this.openWithoutDB(DROP_DB_TIMEOUT)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
@@ -181,6 +180,10 @@ public class MysqlSessions extends BackendSessionPool {
                                            this.database);
             }
         }
+    }
+
+    protected String buildDropDatabase(String database) {
+        return String.format("DROP DATABASE IF EXISTS %s;", database);
     }
 
     public boolean existsDatabase() {
@@ -317,12 +320,9 @@ public class MysqlSessions extends BackendSessionPool {
                 }
                 this.conn.commit();
                 this.clear();
+                this.end();
             } catch (SQLException e) {
                 throw new BackendException("Failed to commit", e);
-            } finally {
-                try {
-                    this.end();
-                } catch (SQLException ignored) {}
             }
             return updated;
         }

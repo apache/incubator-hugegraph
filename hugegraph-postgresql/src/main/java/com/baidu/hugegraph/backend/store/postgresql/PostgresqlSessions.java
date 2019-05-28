@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.postgresql;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.apache.http.client.utils.URIBuilder;
@@ -43,6 +44,20 @@ public class PostgresqlSessions extends MysqlSessions {
 
     public PostgresqlSessions(HugeConfig config, String database, String store) {
         super(config, database, store);
+    }
+
+    @Override
+    public boolean existsDatabase() {
+        String statement = String.format(
+                           "SELECT datname FROM pg_catalog.pg_database " +
+                           "WHERE datname = '%s';", this.database());
+        try (Connection conn = this.openWithoutDB(0)) {
+            ResultSet result = conn.createStatement().executeQuery(statement);
+            return result.next();
+        } catch (Exception e) {
+            throw new BackendException("Failed to obtain MySQL metadata, " +
+                                       "please ensure it is ok", e);
+        }
     }
 
     @Override
@@ -74,6 +89,17 @@ public class PostgresqlSessions extends MysqlSessions {
     @Override
     protected String buildCreateDatabase(String database) {
         return String.format(POSTGRESQL_DB_CREATE, database);
+    }
+
+    @Override
+    protected String buildDropDatabase(String database) {
+        return String.format(
+               "REVOKE CONNECT ON DATABASE %s FROM public;" +
+               "SELECT pg_terminate_backend(pg_stat_activity.pid) " +
+               "  FROM pg_stat_activity " +
+               "  WHERE pg_stat_activity.datname = '%s';" +
+               "DROP DATABASE IF EXISTS %s;",
+               database, database, database);
     }
 
     @Override

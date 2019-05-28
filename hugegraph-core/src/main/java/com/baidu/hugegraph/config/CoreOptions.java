@@ -125,7 +125,7 @@ public class CoreOptions extends OptionHolder {
 
     public static final ConfigOption<Boolean> VERTEX_CHECK_CUSTOMIZED_ID_EXIST =
             new ConfigOption<>(
-                    "vertex.check_customzied_id_exist",
+                    "vertex.check_customized_id_exist",
                     "Whether to check the vertices exist for those using " +
                     "customized id strategy",
                     disallowEmpty(),
