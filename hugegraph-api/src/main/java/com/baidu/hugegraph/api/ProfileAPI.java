@@ -1,23 +1,20 @@
 /*
+ * Copyright 2017 HugeGraph Authors
  *
- *  * Copyright 2017 HugeGraph Authors
- *  *
- *  * Licensed to the Apache Software Foundation (ASF) under one or more
- *  * contributor license agreements. See the NOTICE file distributed with this
- *  * work for additional information regarding copyright ownership. The ASF
- *  * licenses this file to You under the Apache License, Version 2.0 (the
- *  * "License"); you may not use this file except in compliance with the
- * License.
- *  * You may obtain a copy of the License at
- *  *
- *  *     http://www.apache.org/licenses/LICENSE-2.0
- *  *
- *  * Unless required by applicable law or agreed to in writing, software
- *  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- *  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- *  * License for the specific language governing permissions and limitations
- *  * under the License.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  */
 
 package com.baidu.hugegraph.api;
@@ -62,7 +59,7 @@ public class ProfileAPI {
     @GET
     @Timed
     @Produces(MediaType.APPLICATION_JSON)
-    public String get(@Context Application application) {
+    public String getProfile(@Context Application application) {
         if (SERVER_PROFILES != null) {
             return SERVER_PROFILES;
         }
@@ -72,11 +69,11 @@ public class ProfileAPI {
         profiles.put("doc", DOC);
         profiles.put("api-doc", API_DOC);
         Set<String> apis = new HashSet<>();
-        for (Class<?> aClass : application.getClasses()) {
-            if (!isAnnotatedPathClass(aClass)) {
+        for (Class<?> clazz : application.getClasses()) {
+            if (!isAnnotatedPathClass(clazz)) {
                 continue;
             }
-            Resource resource = Resource.from(aClass);
+            Resource resource = Resource.from(clazz);
             String fullName = resource.getName();
             APICategory apiCategory = getCategory(fullName);
             apis.add(apiCategory.category);
@@ -90,18 +87,18 @@ public class ProfileAPI {
     @Path("apis")
     @Timed
     @Produces(MediaType.APPLICATION_JSON)
-    public String showAll(@Context Application application) {
+    public String showAllAPIs(@Context Application application) {
         if (API_PROFILES != null) {
             return API_PROFILES;
         }
 
         Map<String, Map<String, List<APIProfile>>> apiProfiles = new HashMap<>();
-        for (Class<?> aClass : application.getClasses()) {
-            if (!isAnnotatedPathClass(aClass)) {
+        for (Class<?> clazz : application.getClasses()) {
+            if (!isAnnotatedPathClass(clazz)) {
                 continue;
             }
 
-            Resource resource = Resource.from(aClass);
+            Resource resource = Resource.from(clazz);
             String fullName = resource.getName();
             APICategory apiCategory = getCategory(fullName);
 
@@ -134,8 +131,8 @@ public class ProfileAPI {
         if (rc.isAnnotationPresent(Path.class)) {
             return true;
         }
-        for (Class i : rc.getInterfaces()) {
-            if (i.isAnnotationPresent(Path.class)) {
+        for (Class clazz : rc.getInterfaces()) {
+            if (clazz.isAnnotationPresent(Path.class)) {
                 return true;
             }
         }

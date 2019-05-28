@@ -30,6 +30,7 @@ import com.baidu.hugegraph.unit.core.AnalyzerTest;
 import com.baidu.hugegraph.unit.core.BackendMutationTest;
 import com.baidu.hugegraph.unit.core.CassandraTest;
 import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
+import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.EdgeIdTest;
 import com.baidu.hugegraph.unit.core.JsonUtilTest;
@@ -47,6 +48,7 @@ import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
     CacheManagerTest.class,
 
     VersionTest.class,
+    DataTypeTest.class,
     DirectionsTest.class,
     SerialEnumTest.class,
     BackendMutationTest.class,
