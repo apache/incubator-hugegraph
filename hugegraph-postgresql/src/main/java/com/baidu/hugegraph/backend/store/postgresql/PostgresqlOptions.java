@@ -20,9 +20,6 @@
 package com.baidu.hugegraph.backend.store.postgresql;
 
 import com.baidu.hugegraph.backend.store.mysql.MysqlOptions;
-import com.baidu.hugegraph.config.ConfigOption;
-
-import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 
 public class PostgresqlOptions extends MysqlOptions {
 
@@ -39,28 +36,4 @@ public class PostgresqlOptions extends MysqlOptions {
         }
         return instance;
     }
-
-    public static final ConfigOption<String> JDBC_DRIVER =
-            new ConfigOption<>(
-                    "jdbc.driver",
-                    "The JDBC driver class to connect database.",
-                    disallowEmpty(),
-                    "org.postgresql.Driver"
-            );
-
-    public static final ConfigOption<String> JDBC_URL =
-            new ConfigOption<>(
-                    "jdbc.url",
-                    "The url of database in JDBC format.",
-                    disallowEmpty(),
-                    "jdbc:postgresql://127.0.0.1:5432/"
-            );
-
-    public static final ConfigOption<String> JDBC_USERNAME =
-            new ConfigOption<>(
-                    "jdbc.username",
-                    "The username to login database.",
-                    disallowEmpty(),
-                    "postgres"
-            );
 }
