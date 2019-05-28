@@ -54,6 +54,33 @@ public class HugeConfigTest extends BaseUnitTest {
     }
 
     @Test
+    public void testOptionsToString() {
+        Assert.assertEquals("[String]group1.text1=text1-value",
+                            TestOptions.text1.toString());
+        Assert.assertEquals("[Integer]group1.int1=1",
+                            TestOptions.int1.toString());
+        Assert.assertEquals("[Long]group1.long1=100",
+                            TestOptions.long1.toString());
+        Assert.assertEquals("[Float]group1.float1=100.0",
+                            TestOptions.float1.toString());
+        Assert.assertEquals("[Double]group1.double1=100.0",
+                            TestOptions.double1.toString());
+        Assert.assertEquals("[Boolean]group1.bool=true",
+                            TestOptions.bool.toString());
+        Assert.assertEquals("[List]group1.list=[list-value1, list-value2]",
+                            TestOptions.list.toString());
+        Assert.assertEquals("[List]group1.map=[key1:value1, key2:value2]",
+                            TestOptions.map.toString());
+
+        Assert.assertEquals("[String]group1.text1=text1-value",
+                            TestSubOptions.text1.toString());
+        Assert.assertEquals("[String]group1.text2=text2-value-override",
+                            TestSubOptions.text2.toString());
+        Assert.assertEquals("[String]group1.textsub=textsub-value",
+                            TestSubOptions.textsub.toString());
+    }
+
+    @Test
     public void testHugeConfig() throws Exception {
         Configuration conf = new PropertiesConfiguration();
         Whitebox.setInternalState(conf, "delimiterParsingDisabled", true);
@@ -117,7 +144,22 @@ public class HugeConfigTest extends BaseUnitTest {
         Assert.assertEquals("CHOICE-3", config.get(TestOptions.text3));
     }
 
-    public static final class TestOptions extends OptionHolder {
+    @Test
+    public void testHugeConfigWithOverride() throws Exception {
+        Configuration conf = new PropertiesConfiguration();
+        Whitebox.setInternalState(conf, "delimiterParsingDisabled", true);
+
+        HugeConfig config = new HugeConfig(conf);
+
+        Assert.assertEquals("text1-value", config.get(TestSubOptions.text1));
+
+        Assert.assertEquals("text2-value-override",
+                            config.get(TestSubOptions.text2));
+        Assert.assertEquals("textsub-value",
+                            config.get(TestSubOptions.textsub));
+    }
+
+    public static class TestOptions extends OptionHolder {
 
         private static volatile TestOptions instance;
 
@@ -227,6 +269,25 @@ public class HugeConfigTest extends BaseUnitTest {
                         disallowEmpty(),
                         String.class,
                         "key1:value1", "key2:value2"
+                );
+    }
+
+    public static class TestSubOptions extends TestOptions {
+
+        public static final ConfigOption<String> text2 =
+                new ConfigOption<>(
+                        "group1.text2",
+                        "description of group1.text2",
+                        disallowEmpty(),
+                        "text2-value-override"
+                );
+
+        public static final ConfigOption<String> textsub =
+                new ConfigOption<>(
+                        "group1.textsub",
+                        "description of group1.textsub",
+                        disallowEmpty(),
+                        "textsub-value"
                 );
     }
 }

@@ -160,4 +160,10 @@ public class ConfigOption<T> {
                             this.name, value);
         }
     }
+
+    @Override
+    public String toString() {
+        return String.format("[%s]%s=%s", this.dataType.getSimpleName(),
+                             this.name, this.defaultValue);
+    }
 }

@@ -42,7 +42,8 @@ public class OptionHolder {
         for (Field field : this.getClass().getFields()) {
             try {
                 ConfigOption<?> option = (ConfigOption<?>) field.get(this);
-                this.options.put(option.name(), option);
+                // Fields of subclass first, don't overwrite by superclass
+                this.options.putIfAbsent(option.name(), option);
             } catch (Exception e) {
                 LOG.error("Failed to register option: {}", field, e);
                 throw new ConfigException(
