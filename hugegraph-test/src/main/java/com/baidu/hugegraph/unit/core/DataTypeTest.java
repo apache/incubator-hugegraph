@@ -49,11 +49,11 @@ public class DataTypeTest {
     public void testValueToNumber() {
         Assert.assertNull(DataType.BOOLEAN.valueToNumber(1));
         Assert.assertNull(DataType.INT.valueToNumber("not number"));
+        Assert.assertNull(DataType.INT.valueToNumber(1.0F));
 
         Assert.assertEquals((byte) 1, DataType.BYTE.valueToNumber(1));
         Assert.assertEquals(1, DataType.INT.valueToNumber(1));
-        Assert.assertEquals(1, DataType.INT.valueToNumber(1.0F));
-        Assert.assertEquals(1, DataType.INT.valueToNumber("1"));
+        Assert.assertEquals(1, DataType.INT.valueToNumber((byte) 1));
         Assert.assertEquals(1L, DataType.LONG.valueToNumber(1));
         Assert.assertEquals(1.0F, DataType.FLOAT.valueToNumber(1));
         Assert.assertEquals(1.0D, DataType.DOUBLE.valueToNumber(1));
