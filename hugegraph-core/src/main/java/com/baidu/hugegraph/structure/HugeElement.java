@@ -47,9 +47,7 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public abstract class HugeElement implements Element, GraphType {
 
@@ -216,17 +214,11 @@ public abstract class HugeElement implements Element, GraphType {
         }
 
         Collection<V> values;
-        if (value instanceof Collection) {
-            values = (Collection<V>) value;
-        } else if (value.getClass().isArray()) {
-            values = CollectionUtil.toList(value);
+        if (pkey.cardinality() == Cardinality.SET) {
+            values = CollectionUtil.toSet(value);
         } else {
-            if (pkey.cardinality() == Cardinality.SET) {
-                values = ImmutableSet.of(value);
-            } else {
-                assert pkey.cardinality() == Cardinality.LIST;
-                values = ImmutableList.of(value);
-            }
+            assert pkey.cardinality() == Cardinality.LIST;
+            values = CollectionUtil.toList(value);
         }
         property.value().addAll(pkey.validValueOrThrow(values));
 
