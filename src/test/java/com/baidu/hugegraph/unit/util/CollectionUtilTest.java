@@ -38,7 +38,36 @@ import com.google.common.collect.ImmutableSet;
 public class CollectionUtilTest extends BaseUnitTest {
 
     @Test
+    public void testToSet() {
+        Assert.assertThrows(NullPointerException.class, () -> {
+            CollectionUtil.toSet(null);
+        });
+
+        Object array1 = new Integer[]{1, 2, 3};
+        Assert.assertEquals(ImmutableSet.of(1, 2, 3),
+                            CollectionUtil.toSet(array1));
+
+        Object array2 = new String[]{"1", "2", "3"};
+        Assert.assertEquals(ImmutableSet.of("1", "2", "3"),
+                            CollectionUtil.toSet(array2));
+
+        Set<Integer> set = ImmutableSet.of(1, 2, 3);
+        Assert.assertEquals(ImmutableSet.of(1, 2, 3),
+                            CollectionUtil.toSet(set));
+
+        List<Integer> list = ImmutableList.of(1, 2, 3);
+        Assert.assertEquals(ImmutableSet.of(1, 2, 3),
+                            CollectionUtil.toSet(list));
+
+        Assert.assertEquals(ImmutableSet.of(1), CollectionUtil.toSet(1));
+    }
+
+    @Test
     public void testToList() {
+        Assert.assertThrows(NullPointerException.class, () -> {
+            CollectionUtil.toList(null);
+        });
+
         Object array1 = new Integer[]{1, 2, 3};
         Assert.assertEquals(ImmutableList.of(1, 2, 3),
                             CollectionUtil.toList(array1));
@@ -47,13 +76,16 @@ public class CollectionUtilTest extends BaseUnitTest {
         Assert.assertEquals(ImmutableList.of("1", "2", "3"),
                             CollectionUtil.toList(array2));
 
-        Assert.assertThrows(NullPointerException.class, () -> {
-            CollectionUtil.toList(null);
-        });
+        Set<Integer> set = ImmutableSet.of(1, 2, 3);
+        Assert.assertEquals(ImmutableList.of(1, 2, 3),
+                            CollectionUtil.toList(set));
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            CollectionUtil.toList("123");
-        });
+        List<Integer> list = ImmutableList.of(1, 2, 3);
+        Assert.assertEquals(ImmutableList.of(1, 2, 3),
+                            CollectionUtil.toList(list));
+
+        Assert.assertEquals(ImmutableList.of("123"),
+                            CollectionUtil.toList("123"));
     }
 
     @Test

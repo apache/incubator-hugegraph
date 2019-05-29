@@ -33,19 +33,33 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public final class CollectionUtil {
 
-    @SuppressWarnings("unchecked")
-    public static <T> List<T> toList(Object array) {
-        E.checkNotNull(array, "array");
-        E.checkArgument(array.getClass().isArray(),
-                        "The parameter of toList() must be an array: '%s'",
-                        array.getClass().getSimpleName());
+    public static <T> Set<T> toSet(Object object) {
+        E.checkNotNull(object, "object");
+        Set<T> set = InsertionOrderUtil.newSet();
+        fillCollection(set, object);
+        return set;
+    }
 
-        int length = Array.getLength(array);
-        List<T> list = new ArrayList<>(length);
-        for (int i = 0; i < length; i++) {
-            list.add((T) Array.get(array, i));
-        }
+    public static <T> List<T> toList(Object object) {
+        E.checkNotNull(object, "object");
+        List<T> list = new ArrayList<>();
+        fillCollection(list, object);
         return list;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> void fillCollection(Collection<T> collection,
+                                           Object object) {
+        if (object.getClass().isArray()) {
+            int length = Array.getLength(object);
+            for (int i = 0; i < length; i++) {
+                collection.add((T) Array.get(object, i));
+            }
+        } else if (object instanceof Collection) {
+            collection.addAll((Collection<T>) object);
+        } else {
+            collection.add((T) object);
+        }
     }
 
     public static <T> boolean prefixOf(List<T> prefix, List<T> all) {
