@@ -553,9 +553,9 @@ public abstract class MysqlTable
 
     protected List<Object> buildInsertObjects(MysqlBackendEntry.Row entry) {
         List<Object> objects = new ArrayList<>();
-        for (Object key : entry.columns().keySet()) {
-            Object value = entry.columns().get(key);
-            String type = this.tableDefine().columns().get(key);
+        for (Map.Entry<HugeKeys, Object> e : entry.columns().entrySet()) {
+            Object value = e.getValue();
+            String type = this.tableDefine().columns().get(e.getKey());
             if (MysqlTables.DECIMAL.equals(type)) {
                 value = new BigDecimal(value.toString());
             }
