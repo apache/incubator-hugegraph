@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.mysql;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -553,7 +554,12 @@ public abstract class MysqlTable
     protected List<Object> buildInsertObjects(MysqlBackendEntry.Row entry) {
         List<Object> objects = new ArrayList<>();
         for (Object key : entry.columns().keySet()) {
-            objects.add(entry.columns().get(key));
+            Object value = entry.columns().get(key);
+            String type = this.tableDefine().columns().get(key);
+            if (MysqlTables.DECIMAL.equals(type)) {
+                value = new BigDecimal(value.toString());
+            }
+            objects.add(value);
         }
         return objects;
     }

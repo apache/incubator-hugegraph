@@ -49,6 +49,7 @@ public class MysqlTables {
     public static final String TINYINT = "TINYINT";
     public static final String INT = "INT";
     public static final String DOUBLE = "DOUBLE";
+    public static final String DECIMAL = "DECIMAL";
     public static final String SMALL_TEXT = "SMALL_TEXT";
     public static final String MID_TEXT = "MID_TEXT";
     public static final String LARGE_TEXT = "LARGE_TEXT";
