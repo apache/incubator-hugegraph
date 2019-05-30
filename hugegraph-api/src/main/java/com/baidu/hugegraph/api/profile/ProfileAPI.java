@@ -43,7 +43,6 @@ import org.glassfish.jersey.server.model.ResourceMethod;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
-import com.baidu.hugegraph.version.ApiVersion;
 import com.baidu.hugegraph.version.CoreVersion;
 import com.codahale.metrics.annotation.Timed;
 
