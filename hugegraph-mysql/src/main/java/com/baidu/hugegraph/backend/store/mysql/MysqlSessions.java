@@ -96,6 +96,7 @@ public class MysqlSessions extends BackendSessionPool {
 
         URIBuilder uriBuilder = this.newConnectionURIBuilder();
         uriBuilder.setPath(url)
+                  .setParameter("characterEncoding", "utf-8")
                   .setParameter("rewriteBatchedStatements", "true")
                   .setParameter("useServerPrepStmts", "false")
                   .setParameter("autoReconnect", String.valueOf(autoReconnect))
