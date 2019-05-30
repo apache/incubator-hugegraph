@@ -1845,11 +1845,8 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices, T.label, "number", "id", 10, -min15);
     }
 
-//    @Test
+    @Test
     public void testQueryByDoublePropertyWithMaxMinValue() {
-//        Assume.assumeTrue("Not support precision with Double.MAX_VALUE",
-//                          storeFeatures().supportsDoubleMaxMin());
-
         HugeGraph graph = graph();
 
         SchemaManager schema = graph.schema();
