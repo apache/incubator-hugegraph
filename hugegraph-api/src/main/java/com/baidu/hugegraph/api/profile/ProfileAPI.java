@@ -20,11 +20,11 @@
 package com.baidu.hugegraph.api.profile;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
@@ -36,6 +36,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
+import org.glassfish.jersey.server.model.Parameter;
 import org.glassfish.jersey.server.model.Parameter.Source;
 import org.glassfish.jersey.server.model.Resource;
 import org.glassfish.jersey.server.model.ResourceMethod;
@@ -76,8 +77,7 @@ public class ProfileAPI {
                 continue;
             }
             Resource resource = Resource.from(clazz);
-            String fullName = resource.getName();
-            APICategory apiCategory = getCategory(fullName);
+            APICategory apiCategory = getCategory(resource.getName());
             apis.add(apiCategory.category);
         }
         profiles.put("apis", apis);
@@ -94,34 +94,27 @@ public class ProfileAPI {
             return API_PROFILES;
         }
 
-        Map<String, Map<String, List<APIProfile>>> apiProfiles = new HashMap<>();
+        APIProfiles apiProfiles = new APIProfiles();
         for (Class<?> clazz : application.getClasses()) {
             if (!isAnnotatedPathClass(clazz)) {
                 continue;
             }
 
             Resource resource = Resource.from(clazz);
-            String fullName = resource.getName();
-            APICategory apiCategory = getCategory(fullName);
-
-            Map<String, List<APIProfile>> subApiProfiles;
-            subApiProfiles = apiProfiles.computeIfAbsent(apiCategory.category,
-                                                         k -> new HashMap<>());
-            List<APIProfile> profiles = new ArrayList<>();
-            subApiProfiles.put(apiCategory.subCategory, profiles);
+            APICategory apiCategory = getCategory(resource.getName());
 
             String url = resource.getPath();
             // List all methods of this resource
             for (ResourceMethod rm : resource.getResourceMethods()) {
                 APIProfile profile = APIProfile.parse(url, rm);
-                profiles.add(profile);
+                apiProfiles.put(apiCategory, profile);
             }
             // List all methods of this resource's child resources
             for (Resource childResource : resource.getChildResources()) {
                 String childUrl = url + "/" + childResource.getPath();
                 for (ResourceMethod rm : childResource.getResourceMethods()) {
                     APIProfile profile = APIProfile.parse(childUrl, rm);
-                    profiles.add(profile);
+                    apiProfiles.put(apiCategory, profile);
                 }
             }
         }
@@ -144,9 +137,29 @@ public class ProfileAPI {
     private static APICategory getCategory(String fullName) {
         String[] parts = StringUtils.split(fullName, ".");
         E.checkState(parts.length >= 2, "Invalid api name");
-        String category = parts[parts.length - 2];
-        String subCategory = parts[parts.length - 1];
-        return new APICategory(category, subCategory);
+        String dir = parts[parts.length - 2];
+        String category = parts[parts.length - 1];
+        return new APICategory(dir, category);
+    }
+
+    private static class APIProfiles {
+
+        @JsonProperty("apis")
+        private final Map<String, Map<String, List<APIProfile>>> apis;
+
+        public APIProfiles() {
+            this.apis = new TreeMap<>();
+        }
+
+        public void put(APICategory category, APIProfile profile) {
+            Map<String, List<APIProfile>> categories;
+            categories = this.apis.computeIfAbsent(category.dir,
+                                                   k -> new TreeMap<>());
+            List<APIProfile> profiles = categories.computeIfAbsent(
+                                                   category.category,
+                                                   k -> new ArrayList<>());
+            profiles.add(profile);
+        }
     }
 
     private static class APIProfile {
@@ -156,56 +169,61 @@ public class ProfileAPI {
         @JsonProperty("method")
         private final String method;
         @JsonProperty("parameters")
-        private final List<Parameter> parameters;
+        private final List<ParamInfo> parameters;
 
         public APIProfile(String url, String method,
-                          List<Parameter> parameters) {
+                          List<ParamInfo> parameters) {
             this.url = url;
             this.method = method;
             this.parameters = parameters;
         }
 
-        public static APIProfile parse(String url, ResourceMethod rm) {
-            String method = rm.getHttpMethod();
-            List<Parameter> apiParameters = new ArrayList<>();
-            for (org.glassfish.jersey.server.model.Parameter parameter :
-                 rm.getInvocable().getParameters()) {
-                String sourceName = parameter.getSourceName();
-                if (sourceName == null) {
-                    continue;
+        public static APIProfile parse(String url, ResourceMethod resource) {
+            String method = resource.getHttpMethod();
+            List<ParamInfo> params = new ArrayList<>();
+            for (Parameter param : resource.getInvocable().getParameters()) {
+                if (param.getSource() == Source.QUERY) {
+                    String name = param.getSourceName();
+                    String type = param.getType().getTypeName();
+                    String defaultValue = param.getDefaultValue();
+                    params.add(new ParamInfo(name, type, defaultValue));
+                } else if (param.getSource() == Source.ENTITY) {
+                    String type = param.getType().getTypeName();
+                    params.add(new ParamInfo("body", type));
                 }
-                if (parameter.getSource() == Source.PATH) {
-                    continue;
-                }
-                String typeName = parameter.getType().getTypeName();
-                Parameter apiParameter = new Parameter(sourceName, typeName);
-                apiParameters.add(apiParameter);
             }
-            return new APIProfile(url, method, apiParameters);
+            return new APIProfile(url, method, params);
         }
 
-        private static class Parameter {
+        private static class ParamInfo {
 
             @JsonProperty("name")
-            private String name;
+            private final String name;
             @JsonProperty("type")
-            private String type;
+            private final String type;
+            @JsonProperty("default_value")
+            private final String defaultValue;
 
-            public Parameter(String name, String type) {
+            public ParamInfo(String name, String type) {
+                this(name, type, null);
+            }
+
+            public ParamInfo(String name, String type, String defaultValue) {
                 this.name = name;
                 this.type = type;
+                this.defaultValue = defaultValue;
             }
         }
     }
 
     private static class APICategory {
 
-        private String category;
-        private String subCategory;
+        private final String dir;
+        private final String category;
 
-        public APICategory(String category, String subCategory) {
+        public APICategory(String dir, String category) {
+            this.dir = dir;
             this.category = category;
-            this.subCategory = subCategory;
         }
     }
 }
