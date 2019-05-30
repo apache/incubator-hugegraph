@@ -84,10 +84,13 @@ public final class ApiVersion {
      * [0.36] Issue-360: Support paging for scan api
      * [0.37] Issue-391: Add skip_super_node for shortest path
      * [0.38] Issue-274: Add personalrank and neighborrank RESTful API
+     *
+     * version 0.10:
+     * [0.39] Issue-522: Add profile RESTful API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.38");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.39");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

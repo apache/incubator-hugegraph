@@ -43,6 +43,8 @@ import org.glassfish.jersey.server.model.ResourceMethod;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.version.ApiVersion;
+import com.baidu.hugegraph.version.CoreVersion;
 import com.codahale.metrics.annotation.Timed;
 
 @Path("/")
@@ -66,6 +68,7 @@ public class ProfileAPI {
 
         Map<String, Object> profiles = InsertionOrderUtil.newMap();
         profiles.put("service", SERVICE);
+        profiles.put("version", CoreVersion.VERSION.toString());
         profiles.put("doc", DOC);
         profiles.put("api_doc", API_DOC);
         Set<String> apis = new HashSet<>();
