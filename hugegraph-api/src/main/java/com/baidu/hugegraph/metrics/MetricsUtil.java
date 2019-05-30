@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.metric;
+package com.baidu.hugegraph.metrics;
 
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.metric;
+package com.baidu.hugegraph.metrics;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;

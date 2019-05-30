@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api;
+package com.baidu.hugegraph.api.profile;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,7 +67,7 @@ public class ProfileAPI {
         Map<String, Object> profiles = InsertionOrderUtil.newMap();
         profiles.put("service", SERVICE);
         profiles.put("doc", DOC);
-        profiles.put("api-doc", API_DOC);
+        profiles.put("api_doc", API_DOC);
         Set<String> apis = new HashSet<>();
         for (Class<?> clazz : application.getClasses()) {
             if (!isAnnotatedPathClass(clazz)) {

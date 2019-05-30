@@ -35,7 +35,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.metric.MetricsUtil;
+import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
