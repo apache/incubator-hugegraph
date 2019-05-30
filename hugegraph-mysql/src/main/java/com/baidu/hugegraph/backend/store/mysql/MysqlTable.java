@@ -52,7 +52,7 @@ public abstract class MysqlTable
                 extends BackendTable<Session, MysqlBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
-    public static final String DECIMAL = "DECIMAL";
+    private static final String DECIMAL = "DECIMAL";
 
     // The template for insert and delete statements
     private String insertTemplate;
