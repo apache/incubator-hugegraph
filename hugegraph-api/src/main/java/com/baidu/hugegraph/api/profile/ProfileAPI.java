@@ -20,11 +20,11 @@
 package com.baidu.hugegraph.api.profile;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
@@ -62,6 +62,7 @@ public class ProfileAPI {
     @Timed
     @Produces(MediaType.APPLICATION_JSON)
     public String getProfile(@Context Application application) {
+        // May init multi times by multi threads, but no effect on the results
         if (SERVER_PROFILES != null) {
             return SERVER_PROFILES;
         }
@@ -71,14 +72,14 @@ public class ProfileAPI {
         profiles.put("version", CoreVersion.VERSION.toString());
         profiles.put("doc", DOC);
         profiles.put("api_doc", API_DOC);
-        Set<String> apis = new HashSet<>();
+        Set<String> apis = new TreeSet<>();
         for (Class<?> clazz : application.getClasses()) {
             if (!isAnnotatedPathClass(clazz)) {
                 continue;
             }
             Resource resource = Resource.from(clazz);
-            APICategory apiCategory = getCategory(resource.getName());
-            apis.add(apiCategory.category);
+            APICategory apiCategory = APICategory.parse(resource.getName());
+            apis.add(apiCategory.dir);
         }
         profiles.put("apis", apis);
         SERVER_PROFILES = JsonUtil.toJson(profiles);
@@ -101,7 +102,7 @@ public class ProfileAPI {
             }
 
             Resource resource = Resource.from(clazz);
-            APICategory apiCategory = getCategory(resource.getName());
+            APICategory apiCategory = APICategory.parse(resource.getName());
 
             String url = resource.getPath();
             // List all methods of this resource
@@ -122,24 +123,16 @@ public class ProfileAPI {
         return API_PROFILES;
     }
 
-    private static boolean isAnnotatedPathClass(Class rc) {
-        if (rc.isAnnotationPresent(Path.class)) {
+    private static boolean isAnnotatedPathClass(Class<?> clazz) {
+        if (clazz.isAnnotationPresent(Path.class)) {
             return true;
         }
-        for (Class clazz : rc.getInterfaces()) {
-            if (clazz.isAnnotationPresent(Path.class)) {
+        for (Class<?> i : clazz.getInterfaces()) {
+            if (i.isAnnotationPresent(Path.class)) {
                 return true;
             }
         }
         return false;
-    }
-
-    private static APICategory getCategory(String fullName) {
-        String[] parts = StringUtils.split(fullName, ".");
-        E.checkState(parts.length >= 2, "Invalid api name");
-        String dir = parts[parts.length - 2];
-        String category = parts[parts.length - 1];
-        return new APICategory(dir, category);
     }
 
     private static class APIProfiles {
@@ -225,5 +218,14 @@ public class ProfileAPI {
             this.dir = dir;
             this.category = category;
         }
+
+        public static APICategory parse(String fullName) {
+            String[] parts = StringUtils.split(fullName, ".");
+            E.checkState(parts.length >= 2, "Invalid api name");
+            String dir = parts[parts.length - 2];
+            String category = parts[parts.length - 1];
+            return new APICategory(dir, category);
+        }
+
     }
 }
