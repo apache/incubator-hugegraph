@@ -42,16 +42,7 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
 
         this.owner = owner;
         this.pkey = pkey;
-        this.value = pkey.validValue(value);
-
-        if (this.value == null) {
-            E.checkArgument(false,
-                            "Invalid property value '%s' for key '%s', " +
-                            "expect a value of type %s, actual type %s",
-                            value, pkey.name(),
-                            pkey.clazz().getSimpleName(),
-                            value.getClass().getSimpleName());
-        }
+        this.value = pkey.validValueOrThrow(value);
     }
 
     public PropertyKey propertyKey() {

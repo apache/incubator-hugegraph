@@ -168,7 +168,7 @@ public class BinarySerializer extends AbstractSerializer {
         PropertyKey pkey = owner.graph().propertyKey(pkeyId);
 
         // Parse value
-        Object value = KryoUtil.fromKryo(val, pkey.clazz());
+        Object value = KryoUtil.fromKryo(val, pkey.implementClazz());
 
         // Set properties of vertex/edge
         if (pkey.cardinality() == Cardinality.SINGLE) {

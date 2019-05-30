@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,7 +83,24 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         return this;
     }
 
-    public Class<?> clazz() {
+    public String clazz() {
+        String dataType = this.dataType().clazz().getSimpleName();
+        switch (this.cardinality) {
+            case SINGLE:
+                return dataType;
+            // A set of values: Set<DataType>
+            case SET:
+                return String.format("Set<%s>", dataType);
+            // A list of values: List<DataType>
+            case LIST:
+                return String.format("List<%s>", dataType);
+            default:
+                throw new AssertionError(String.format(
+                          "Unsupported cardinality: '%s'", this.cardinality));
+        }
+    }
+
+    public Class<?> implementClazz() {
         Class<?> cls;
         switch (this.cardinality) {
             case SINGLE:
@@ -96,7 +112,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
                 break;
             // A list of values: List<DataType>
             case LIST:
-                cls = LinkedList.class;
+                cls = ArrayList.class;
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -174,6 +190,16 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         if (this.dataType.isNumber() || this.dataType.isDate()) {
             return LongEncoding.encodeNumber(validValue);
         }
+        return validValue;
+    }
+
+    public <V> V validValueOrThrow(V value) {
+        V validValue = this.validValue(value);
+        E.checkArgument(validValue != null,
+                        "Invalid property value '%s' for key '%s', " +
+                        "expect a value of type %s, actual type %s",
+                        value, this.name(), this.clazz(),
+                        value.getClass().getSimpleName());
         return validValue;
     }
 
