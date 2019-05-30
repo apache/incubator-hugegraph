@@ -52,6 +52,7 @@ public abstract class MysqlTable
                 extends BackendTable<Session, MysqlBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
+    public static final String DECIMAL = "DECIMAL";
 
     // The template for insert and delete statements
     private String insertTemplate;
@@ -556,7 +557,7 @@ public abstract class MysqlTable
         for (Map.Entry<HugeKeys, Object> e : entry.columns().entrySet()) {
             Object value = e.getValue();
             String type = this.tableDefine().columns().get(e.getKey());
-            if (MysqlTables.DECIMAL.equals(type)) {
+            if (type.startsWith(DECIMAL)) {
                 value = new BigDecimal(value.toString());
             }
             objects.add(value);
