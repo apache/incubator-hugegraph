@@ -498,7 +498,7 @@ public class InMemoryDBTables {
                                                     boolean keyMinEq) {
             NavigableMap<Id, BackendEntry> rs = this.store();
 
-            E.checkArgument(!(keyMin == null && keyMax == null),
+            E.checkArgument(keyMin != null || keyMax != null,
                             "Please specify at least one condition");
             if (keyMin == null) {
                 // Field value < keyMax
