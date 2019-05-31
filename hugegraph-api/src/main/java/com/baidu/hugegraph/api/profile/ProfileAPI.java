@@ -226,6 +226,5 @@ public class ProfileAPI {
             String category = parts[parts.length - 1];
             return new APICategory(dir, category);
         }
-
     }
 }
