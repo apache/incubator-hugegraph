@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.metric;
+package com.baidu.hugegraph.metrics;
 
 import java.io.IOException;
 import java.util.Arrays;

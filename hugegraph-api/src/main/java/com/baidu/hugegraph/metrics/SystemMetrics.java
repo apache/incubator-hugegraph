@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.metric;
+package com.baidu.hugegraph.metrics;
 
 import java.lang.management.ClassLoadingMXBean;
 import java.lang.management.GarbageCollectorMXBean;

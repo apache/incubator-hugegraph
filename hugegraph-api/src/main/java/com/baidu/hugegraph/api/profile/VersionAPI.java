@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api;
+package com.baidu.hugegraph.api.profile;
 
 import java.util.Map;
 
@@ -27,6 +27,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 
+import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.version.ApiVersion;
 import com.baidu.hugegraph.version.CoreVersion;
 import com.codahale.metrics.annotation.Timed;

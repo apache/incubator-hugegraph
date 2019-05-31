@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api;
+package com.baidu.hugegraph.api.gremlin;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -34,11 +34,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.metric.MetricsUtil;
+import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
 

@@ -123,24 +123,26 @@ public enum DataType implements SerialEnum {
     }
 
     public <V> Date valueToDate(V value) {
+        if (!this.isDate()) {
+            return null;
+        }
         if (value instanceof Date) {
             return (Date) value;
-        }
-        if (this.isDate()) {
-            if (value instanceof Number) {
-                return new Date(((Number) value).longValue());
-            } else if (value instanceof String) {
-                return DateUtil.parse((String) value);
-            }
+        } else if (value instanceof Number) {
+            return new Date(((Number) value).longValue());
+        } else if (value instanceof String) {
+            return DateUtil.parse((String) value);
         }
         return null;
     }
 
     public <V> UUID valueToUUID(V value) {
+        if (!this.isUUID()) {
+            return null;
+        }
         if (value instanceof UUID) {
             return (UUID) value;
-        }
-        if (this.isUUID() && value instanceof String) {
+        } else if (value instanceof String) {
             return java.util.UUID.fromString((String) value);
         }
         return null;

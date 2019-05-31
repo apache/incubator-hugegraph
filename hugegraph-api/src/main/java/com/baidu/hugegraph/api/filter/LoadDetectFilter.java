@@ -19,23 +19,41 @@
 
 package com.baidu.hugegraph.api.filter;
 
+import java.util.List;
+import java.util.Set;
+
 import javax.inject.Singleton;
 import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.ext.Provider;
 
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.WorkLoad;
 import com.baidu.hugegraph.util.Bytes;
+import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.RateLimiter;
 
 @Provider
 @Singleton
 @PreMatching
 public class LoadDetectFilter implements ContainerRequestFilter {
+
+    private static final Set<String> WHITE_API_LIST = ImmutableSet.of(
+            "",
+            "apis",
+            "metrics",
+            "versions"
+    );
+
+    // Call gc every 30+ seconds if memory is low and request frequently
+    private static final RateLimiter GC_RATE_LIMITER =
+                         RateLimiter.create(1.0 / 30);
 
     @Context
     private javax.inject.Provider<HugeConfig> configProvider;
@@ -44,6 +62,10 @@ public class LoadDetectFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) {
+        if (isWhiteAPI(context)) {
+            return;
+        }
+
         HugeConfig config = this.configProvider.get();
         long minFreeMemory = config.get(ServerOptions.MIN_FREE_MEMORY);
         long allocatedMem = Runtime.getRuntime().totalMemory() -
@@ -51,6 +73,7 @@ public class LoadDetectFilter implements ContainerRequestFilter {
         long presumableFreeMem = (Runtime.getRuntime().maxMemory() -
                                   allocatedMem) / Bytes.MB;
         if (presumableFreeMem < minFreeMemory) {
+            gcIfNeeded();
             throw new ServiceUnavailableException(String.format(
                       "The server available memory %s(MB) is below than " +
                       "threshold %s(MB) and can't process the request, " +
@@ -67,6 +90,20 @@ public class LoadDetectFilter implements ContainerRequestFilter {
                       "The server is too busy to process the request, " +
                       "you can config %s to adjust it or try again later",
                       ServerOptions.MAX_WORKER_THREADS.name()));
+        }
+    }
+
+    private static boolean isWhiteAPI(ContainerRequestContext context) {
+        List<PathSegment> segments = context.getUriInfo().getPathSegments();
+        E.checkArgument(segments.size() > 0, "Invalid request uri '%s'",
+                        context.getUriInfo().getPath());
+        String rootPath = segments.get(0).getPath();
+        return WHITE_API_LIST.contains(rootPath);
+    }
+
+    private static void gcIfNeeded() {
+        if (GC_RATE_LIMITER.tryAcquire(1)) {
+            System.gc();
         }
     }
 }
