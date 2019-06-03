@@ -100,9 +100,9 @@ public class BatchAPI extends API {
 
     protected void updateExistElement(JsonElement oldElement,
                                       JsonElement newElement,
-                                      Map<String, UpdateStrategy> strategy) {
+                                      Map<String, UpdateStrategy> strategies) {
         if (oldElement != null && newElement != null) {
-            for (Map.Entry<String, UpdateStrategy> kv : strategy.entrySet()) {
+            for (Map.Entry<String, UpdateStrategy> kv : strategies.entrySet()) {
                 String key = kv.getKey();
                 UpdateStrategy updateStrategy = kv.getValue();
                 if (oldElement.properties.get(key) != null) {
@@ -118,13 +118,14 @@ public class BatchAPI extends API {
     protected void updateExistElement(HugeGraph g,
                                       Element oldElement,
                                       JsonElement newElement,
-                                      Map<String, UpdateStrategy> strategy) {
+                                      Map<String, UpdateStrategy> strategies) {
         E.checkArgument(oldElement != null && newElement != null,
                         "Both of the elements cannot be null");
-        for (Map.Entry<String, UpdateStrategy> kv : strategy.entrySet()) {
+        for (Map.Entry<String, UpdateStrategy> kv : strategies.entrySet()) {
             String key = kv.getKey();
             UpdateStrategy updateStrategy = kv.getValue();
-            if (oldElement.property(key).isPresent()) {
+            if (oldElement.property(key).isPresent() &&
+                newElement.properties.get(key) != null ) {
                 Object value = updateStrategy.checkAndUpdateProperty(
                                oldElement.property(key).value(),
                                newElement.properties.get(key));
@@ -134,9 +135,9 @@ public class BatchAPI extends API {
         }
     }
 
-    protected static void updateProperties(JsonElement jsonElement,
-                                           boolean append,
-                                           HugeElement element) {
+    protected static void updateProperties(HugeElement element,
+                                           JsonElement jsonElement,
+                                           boolean append) {
         for (Map.Entry<String, Object> e : jsonElement.properties.entrySet()) {
             String key = e.getKey();
             Object value = e.getValue();

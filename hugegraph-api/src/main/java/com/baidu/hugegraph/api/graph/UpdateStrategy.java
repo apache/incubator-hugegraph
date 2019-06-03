@@ -26,8 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.validation.constraints.NotNull;
-
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.Sets;
@@ -46,9 +44,9 @@ public enum UpdateStrategy {
 
         @Override
         void checkPropertyType(Object oldProperty, Object newProperty) {
-            E.checkState(oldProperty instanceof Number &&
-                         newProperty instanceof Number,
-                         formatError(oldProperty, newProperty, "Number"));
+            E.checkArgument(oldProperty instanceof Number &&
+                            newProperty instanceof Number,
+                            formatError(oldProperty, newProperty, "Number"));
         }
     },
 
@@ -61,12 +59,12 @@ public enum UpdateStrategy {
 
         @Override
         void checkPropertyType(Object oldProperty, Object newProperty) {
-            E.checkState((oldProperty instanceof Date ||
-                          oldProperty instanceof Number) &&
-                         (newProperty instanceof Date ||
-                          newProperty instanceof Number),
-                         formatError(oldProperty, newProperty,
-                                     "Date or Number"));
+            E.checkArgument((oldProperty instanceof Date ||
+                             oldProperty instanceof Number) &&
+                            (newProperty instanceof Date ||
+                             newProperty instanceof Number),
+                            formatError(oldProperty, newProperty,
+                                        "Date or Number"));
         }
     },
 
@@ -82,21 +80,6 @@ public enum UpdateStrategy {
         }
     },
 
-    // Only List support append, Set should use union
-    APPEND {
-        @Override
-        Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            return ((List) oldProperty).addAll((List) newProperty);
-        }
-
-        @Override
-        void checkPropertyType(Object oldProperty, Object newProperty) {
-            E.checkState(oldProperty instanceof List &&
-                         newProperty instanceof List,
-                         formatError(oldProperty, newProperty, "List"));
-        }
-    },
-
     // Only Set support union & intersection
     UNION {
         @Override
@@ -107,11 +90,12 @@ public enum UpdateStrategy {
         @Override
         void checkPropertyType(Object oldProperty, Object newProperty) {
             // JsonElements are always List-type, so allows two type now.
-            E.checkState((oldProperty instanceof Set ||
-                          oldProperty instanceof List) &&
-                         (newProperty instanceof Set ||
-                          newProperty instanceof List),
-                         formatError(oldProperty, newProperty, "Set or List"));
+            E.checkArgument((oldProperty instanceof Set ||
+                             oldProperty instanceof List) &&
+                            (newProperty instanceof Set ||
+                             newProperty instanceof List),
+                            formatError(oldProperty, newProperty,
+                                        "Set or List"));
         }
     },
 
@@ -119,6 +103,19 @@ public enum UpdateStrategy {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
             return combineSet(oldProperty, newProperty, INTERSECTION);
+        }
+
+        @Override
+        void checkPropertyType(Object oldProperty, Object newProperty) {
+            UNION.checkPropertyType(oldProperty, newProperty);
+        }
+    },
+
+    // Batch update Set should use union because of higher efficiency
+    APPEND {
+        @Override
+        Object updatePropertyValue(Object oldProperty, Object newProperty) {
+            return ((Collection) oldProperty).addAll((Collection) newProperty);
         }
 
         @Override
@@ -145,16 +142,16 @@ public enum UpdateStrategy {
 
     abstract void checkPropertyType(Object oldProperty, Object newProperty);
 
-    public Object checkAndUpdateProperty(@NotNull Object oldProperty,
-                                         @NotNull Object newProperty) {
+    public Object checkAndUpdateProperty(Object oldProperty,
+                                         Object newProperty) {
         checkPropertyType(oldProperty, newProperty);
         return updatePropertyValue(oldProperty, newProperty);
     }
 
     private static String formatError(Object oldProperty, Object newProperty,
                                       String className) {
-        return String.format("Property must be %s type, but got %s, %s",
-                             className, oldProperty.getClass().getSimpleName(),
+        return String.format("Property must be %s, but got %s, %s", className,
+                             oldProperty.getClass().getSimpleName(),
                              newProperty.getClass().getSimpleName());
     }
 

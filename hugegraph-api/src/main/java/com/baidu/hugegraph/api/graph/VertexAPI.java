@@ -117,10 +117,10 @@ public class VertexAPI extends BatchAPI {
 
     /**
      * TODO: Adapter for param("createIfNotExist") or delete it?
-     * batch update steps like:
-     * 1. get all newVertices' ID & combine first
-     * 2. get all oldVertices & update
-     * 3. add the final vertex together
+     * Batch update steps like:
+     * 1. Get all newVertices' ID & combine first
+     * 2. Get all oldVertices & update
+     * 3. Add the final vertex together
      **/
     @PUT
     @Timed
@@ -137,33 +137,33 @@ public class VertexAPI extends BatchAPI {
         checkBatchSize(config, req.jsonVertices);
 
         HugeGraph g = graph(manager, graph);
-        Map<Id, JsonVertex> maps = new HashMap<>(req.jsonVertices.size());
+        Map<Id, JsonVertex> map = new HashMap<>(req.jsonVertices.size());
 
-        return this.commit(config, g, maps.size(), () -> {
+        return this.commit(config, g, map.size(), () -> {
             /*
              * 1.Put all newVertices' properties into map (combine first)
              * - Consider primary-key & user-define ID mode first
              * */
             req.jsonVertices.forEach(newVertex -> {
                 Id newVertexId = getVertexId(g, newVertex);
-                JsonVertex oldVertex = maps.get(newVertexId);
+                JsonVertex oldVertex = map.get(newVertexId);
                 this.updateExistElement(oldVertex, newVertex,
                                         req.updateStrategies);
-                maps.put(newVertexId, newVertex);
+                map.put(newVertexId, newVertex);
             });
 
             // 2.Get all oldVertices and update with new vertices
-            Object[] ids = maps.keySet().toArray();
+            Object[] ids = map.keySet().toArray();
             Iterator<Vertex> oldVertices = g.vertices(ids);
             oldVertices.forEachRemaining(oldVertex -> {
-                JsonVertex newVertex = maps.get(oldVertex.id());
+                JsonVertex newVertex = map.get(oldVertex.id());
                 this.updateExistElement(g, oldVertex, newVertex,
                                         req.updateStrategies);
             });
 
             // 3.Add finalVertices and return them
-            List<Vertex> vertices = new ArrayList<>(maps.size());
-            maps.values().forEach(finalVertex -> {
+            List<Vertex> vertices = new ArrayList<>(map.size());
+            map.values().forEach(finalVertex -> {
                 vertices.add(g.addVertex(finalVertex.properties()));
             });
 
@@ -202,7 +202,7 @@ public class VertexAPI extends BatchAPI {
                             id, key);
         }
 
-        commit(g, () -> updateProperties(jsonVertex, append, vertex));
+        commit(g, () -> updateProperties(vertex, jsonVertex, append));
 
         return manager.serializer(g).writeVertex(vertex);
     }

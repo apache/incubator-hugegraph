@@ -183,11 +183,9 @@ public class EdgeAPI extends BatchAPI {
                     req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, maps.size(), () -> {
-
             // 1.Put all newEdges' properties into map (combine first)
             req.jsonEdges.forEach(newEdge -> {
-                Id newEdgeId = newEdge.id != null ? EdgeId.parse(newEdge.id) :
-                               getEdgeId(g, newEdge);
+                Id newEdgeId = getEdgeId(g, newEdge);
                 JsonEdge oldEdge = maps.get(newEdgeId);
                 this.updateExistElement(oldEdge, newEdge,
                                         req.updateStrategies);
@@ -253,7 +251,7 @@ public class EdgeAPI extends BatchAPI {
                             id, key);
         }
 
-        commit(g, () -> updateProperties(jsonEdge, append, edge));
+        commit(g, () -> updateProperties(edge, jsonEdge, append));
 
         return manager.serializer(g).writeEdge(edge);
     }
@@ -403,6 +401,10 @@ public class EdgeAPI extends BatchAPI {
     }
 
     private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
+        if (newEdge.id != null) {
+            return EdgeId.parse(newEdge.id);
+        }
+
         String sortKeys = "";
         Id labelId = g.edgeLabel(newEdge.label).id();
         List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
