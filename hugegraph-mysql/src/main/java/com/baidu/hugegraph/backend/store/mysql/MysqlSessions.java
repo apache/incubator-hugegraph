@@ -64,6 +64,10 @@ public class MysqlSessions extends BackendSessionPool {
         return this.database;
     }
 
+    public String escapedDatabase() {
+        return MysqlUtil.escapeString(this.database());
+    }
+
     /**
      * Try connect with specified database, will not reconnect if failed
      * @throws SQLException if a database access error occurs
@@ -86,9 +90,9 @@ public class MysqlSessions extends BackendSessionPool {
     private Connection open(boolean autoReconnect) throws SQLException {
         String url = this.config.get(MysqlOptions.JDBC_URL);
         if (url.endsWith("/")) {
-            url = String.format("%s%s", url, this.database);
+            url = String.format("%s%s", url, this.database());
         } else {
-            url = String.format("%s/%s", url, this.database);
+            url = String.format("%s/%s", url, this.database());
         }
 
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
@@ -146,15 +150,15 @@ public class MysqlSessions extends BackendSessionPool {
 
     public void createDatabase() {
         // Create database with non-database-session
-        LOG.debug("Create database: {}", this.database);
+        LOG.debug("Create database: {}", this.database());
 
-        String sql = this.buildCreateDatabase(this.database);
+        String sql = this.buildCreateDatabase(this.escapedDatabase());
         try (Connection conn = this.openWithoutDB(0)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
             if (!e.getMessage().endsWith("already exists")) {
                 throw new BackendException("Failed to create database '%s'", e,
-                                           this.database);
+                                           this.database());
             }
             // Ignore exception if database already exists
         }
@@ -167,17 +171,17 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     public void dropDatabase() {
-        LOG.debug("Drop database: {}", this.database);
+        LOG.debug("Drop database: {}", this.database());
 
-        String sql = this.buildDropDatabase(this.database);
+        String sql = this.buildDropDatabase(this.escapedDatabase());
         try (Connection conn = this.openWithoutDB(DROP_DB_TIMEOUT)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
             if (e.getCause() instanceof SocketTimeoutException) {
-                LOG.warn("Drop database '{}' timeout", this.database);
+                LOG.warn("Drop database '{}' timeout", this.database());
             } else {
                 throw new BackendException("Failed to drop database '%s'",
-                                           this.database);
+                                           this.database());
             }
         }
     }
@@ -191,7 +195,7 @@ public class MysqlSessions extends BackendSessionPool {
              ResultSet result = conn.getMetaData().getCatalogs()) {
             while (result.next()) {
                 String dbName = result.getString(1);
-                if (dbName.equals(this.database)) {
+                if (dbName.equals(this.database())) {
                     return true;
                 }
             }

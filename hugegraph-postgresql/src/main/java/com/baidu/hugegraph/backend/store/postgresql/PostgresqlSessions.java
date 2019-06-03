@@ -50,13 +50,13 @@ public class PostgresqlSessions extends MysqlSessions {
     public boolean existsDatabase() {
         String statement = String.format(
                            "SELECT datname FROM pg_catalog.pg_database " +
-                           "WHERE datname = '%s';", this.database());
+                           "WHERE datname = '%s';", this.escapedDatabase());
         try (Connection conn = this.openWithoutDB(0)) {
             ResultSet result = conn.createStatement().executeQuery(statement);
             return result.next();
         } catch (Exception e) {
-            throw new BackendException("Failed to obtain MySQL metadata, " +
-                                       "please ensure it is ok", e);
+            throw new BackendException("Failed to obtain PostgreSQL metadata," +
+                                       " please ensure it is ok", e);
         }
     }
 
@@ -65,7 +65,7 @@ public class PostgresqlSessions extends MysqlSessions {
         // Create database with non-database-session
         LOG.debug("Create database: {}", this.database());
 
-        String sql = this.buildCreateDatabase(this.database());
+        String sql = this.buildCreateDatabase(this.escapedDatabase());
         try (Connection conn = this.openWithoutDB(0)) {
             try {
                 conn.createStatement().execute(sql);
@@ -73,7 +73,8 @@ public class PostgresqlSessions extends MysqlSessions {
                 // CockroackDB not support 'template' arg of CREATE DATABASE
                 if (e.getMessage().contains("syntax error at or near " +
                                             "\"template\"")) {
-                    sql = String.format(COCKROACH_DB_CREATE, this.database());
+                    sql = String.format(COCKROACH_DB_CREATE,
+                                        this.escapedDatabase());
                     conn.createStatement().execute(sql);
                 }
             }
