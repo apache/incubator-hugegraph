@@ -130,7 +130,8 @@ public class API {
                                      String id) {
         if (!iter.hasNext()) {
             throw new NotFoundException(String.format(
-                      "%s with id '%s' does not exist", type, id));
+                      "%s with id '%s' does not exist",
+                      type.readableName(), id));
         }
     }
 

@@ -85,6 +85,10 @@ public enum HugeType implements SerialEnum {
         return this.name;
     }
 
+    public String readableName() {
+        return this.name().replace('_', ' ').toLowerCase();
+    }
+
     public boolean isSchema() {
         return this == HugeType.VERTEX_LABEL ||
                this == HugeType.EDGE_LABEL ||

@@ -76,16 +76,17 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
 
     @Override
     public PropertyKey create() {
+        HugeType type = HugeType.PROPERTY_KEY;
         SchemaTransaction tx = this.transaction;
         SchemaElement.checkName(this.name, tx.graph().configuration());
         PropertyKey propertyKey = tx.getPropertyKey(this.name);
         if (propertyKey != null) {
             if (this.checkExist) {
-                throw new ExistedException("property key", this.name);
+                throw new ExistedException(type, this.name);
             }
             return propertyKey;
         }
-        tx.checkIdIfRestoringMode(HugeType.PROPERTY_KEY, this.id);
+        tx.checkIdIfRestoringMode(type, this.id);
 
         this.checkUserdata(Action.INSERT);
 
