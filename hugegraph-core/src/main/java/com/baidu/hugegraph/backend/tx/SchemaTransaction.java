@@ -280,7 +280,8 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
-        LOG.debug("SchemaTransaction get {} by id '{}'", type, id);
+        LOG.debug("SchemaTransaction get {} by id '{}'",
+                  type.readableName(), id);
         this.beforeRead();
         BackendEntry entry = this.query(type, id);
         if (entry == null) {
@@ -300,7 +301,8 @@ public class SchemaTransaction extends IndexableTransaction {
      */
     protected <T extends SchemaElement> T getSchema(HugeType type,
                                                     String name) {
-        LOG.debug("SchemaTransaction get {} by name '{}'", type, name);
+        LOG.debug("SchemaTransaction get {} by name '{}'",
+                  type.readableName(), name);
         this.beforeRead();
         ConditionQuery query = new ConditionQuery(type);
         query.eq(HugeKeys.NAME, name);
@@ -436,7 +438,7 @@ public class SchemaTransaction extends IndexableTransaction {
                             "Must provide schema id if in RESTORING mode");
             SchemaElement element = this.getSchema(type, id);
             if (element != null) {
-                throw new ExistedException(type.toString() + " id", id);
+                throw new ExistedException(type.readableName() + " id", id);
             }
         }
     }

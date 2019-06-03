@@ -123,7 +123,8 @@ public abstract class AbstractTransaction implements Transaction {
         BackendEntry entry = this.query(type, id);
         if (entry == null) {
             throw new NotFoundException(
-                      "Not found the %s entry with id '%s'", type, id);
+                      "Not found the %s entry with id '%s'",
+                      type.readableName(), id);
         }
         return entry;
     }

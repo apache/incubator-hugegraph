@@ -92,16 +92,17 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
      */
     @Override
     public IndexLabel.CreatedIndexLabel createWithTask() {
+        HugeType type = HugeType.INDEX_LABEL;
         SchemaTransaction tx = this.transaction;
         SchemaElement.checkName(this.name, tx.graph().configuration());
         IndexLabel indexLabel = tx.getIndexLabel(this.name);
         if (indexLabel != null) {
             if (this.checkExist) {
-                throw new ExistedException("index label", this.name);
+                throw new ExistedException(type, this.name);
             }
             return new IndexLabel.CreatedIndexLabel(indexLabel, null);
         }
-        tx.checkIdIfRestoringMode(HugeType.INDEX_LABEL, this.id);
+        tx.checkIdIfRestoringMode(type, this.id);
 
         SchemaLabel schemaLabel = this.loadElement();
 
@@ -290,7 +291,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         }
 
         E.checkArgumentNotNull(schemaLabel, "Can't find the %s with name '%s'",
-                               this.baseType, this.baseValue);
+                               this.baseType.readableName(), this.baseValue);
         return schemaLabel;
     }
 
@@ -301,9 +302,10 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         for (String field : fields) {
             PropertyKey pkey = this.transaction.getPropertyKey(field);
             // In general this will not happen
-            E.checkArgumentNotNull(pkey, "Can't build index on undefined " +
-                                   "property key '%s' for '%s': '%s'",
-                                   field, this.baseType, this.baseValue);
+            E.checkArgument(pkey != null,
+                            "Can't build index on undefined property key " +
+                            "'%s' for '%s': '%s'", field,
+                            this.baseType.readableName(), this.baseValue);
             E.checkArgument(pkey.cardinality() == Cardinality.SINGLE,
                             "Not allowed to build index on property key " +
                             "'%s' whose cardinality is list or set",

@@ -114,16 +114,17 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
 
     @Override
     public EdgeLabel create() {
+        HugeType type = HugeType.EDGE_LABEL;
         SchemaTransaction tx = this.transaction;
         SchemaElement.checkName(this.name, tx.graph().configuration());
         EdgeLabel edgeLabel = tx.getEdgeLabel(this.name);
         if (edgeLabel != null) {
             if (this.checkExist) {
-                throw new ExistedException("edge label", this.name);
+                throw new ExistedException(type, this.name);
             }
             return edgeLabel;
         }
-        tx.checkIdIfRestoringMode(HugeType.EDGE_LABEL, this.id);
+        tx.checkIdIfRestoringMode(type, this.id);
 
         if (this.frequency == Frequency.DEFAULT) {
             this.frequency = Frequency.SINGLE;

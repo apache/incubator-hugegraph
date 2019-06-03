@@ -20,10 +20,15 @@
 package com.baidu.hugegraph.exception;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.type.HugeType;
 
 public class ExistedException extends HugeException {
 
     private static final long serialVersionUID = 5152465646323494840L;
+
+    public ExistedException(HugeType type, Object arg) {
+        this(type.readableName(), arg);
+    }
 
     public ExistedException(String type, Object arg) {
         super("The %s '%s' has existed", type, arg);

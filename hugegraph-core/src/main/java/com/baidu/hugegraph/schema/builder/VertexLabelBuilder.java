@@ -107,16 +107,17 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
 
     @Override
     public VertexLabel create() {
+        HugeType type = HugeType.VERTEX_LABEL;
         SchemaTransaction tx = this.transaction;
         SchemaElement.checkName(this.name, tx.graph().configuration());
         VertexLabel vertexLabel = tx.getVertexLabel(this.name);
         if (vertexLabel != null) {
             if (this.checkExist) {
-                throw new ExistedException("vertex label", this.name);
+                throw new ExistedException(type, this.name);
             }
             return vertexLabel;
         }
-        tx.checkIdIfRestoringMode(HugeType.VERTEX_LABEL, this.id);
+        tx.checkIdIfRestoringMode(type, this.id);
 
         this.checkProperties(Action.INSERT);
         this.checkIdStrategy();

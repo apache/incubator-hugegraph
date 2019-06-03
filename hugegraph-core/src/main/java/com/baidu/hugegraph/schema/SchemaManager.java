@@ -113,7 +113,7 @@ public class SchemaManager {
     private static void checkExists(HugeType type, Object object, String name) {
         if (object == null) {
             throw new NotFoundException("%s with name '%s' does not exist",
-                                        type, name);
+                                        type.readableName(), name);
         }
     }
 }

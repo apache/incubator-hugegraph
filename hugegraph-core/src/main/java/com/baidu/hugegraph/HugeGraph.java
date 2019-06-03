@@ -411,7 +411,7 @@ public class HugeGraph implements GremlinGraph {
 
     public PropertyKey propertyKey(Id id) {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(id);
-        E.checkArgument(pk != null, "Undefined property key id: '%s'", id);
+        E.checkArgument(pk != null, "Undefined property key with id: '%s'", id);
         return pk;
     }
 
@@ -423,7 +423,7 @@ public class HugeGraph implements GremlinGraph {
 
     public VertexLabel vertexLabel(Id id) {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(id);
-        E.checkArgument(vl != null, "Undefined vertex label id: '%s'", id);
+        E.checkArgument(vl != null, "Undefined vertex label with id: '%s'", id);
         return vl;
     }
 
@@ -435,7 +435,7 @@ public class HugeGraph implements GremlinGraph {
 
     public EdgeLabel edgeLabel(Id id) {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(id);
-        E.checkArgument(el != null, "Undefined edge label id: '%s'", id);
+        E.checkArgument(el != null, "Undefined edge label with id: '%s'", id);
         return el;
     }
 
@@ -447,7 +447,7 @@ public class HugeGraph implements GremlinGraph {
 
     public IndexLabel indexLabel(Id id) {
         IndexLabel il = this.schemaTransaction().getIndexLabel(id);
-        E.checkArgument(il != null, "Undefined index label id: '%s'", id);
+        E.checkArgument(il != null, "Undefined index label with id: '%s'", id);
         return il;
     }
 
