@@ -358,7 +358,7 @@ public class VertexAPI extends BatchAPI {
         }
     }
 
-    private class JsonVertex extends JsonElement {
+    private static class JsonVertex extends JsonElement {
 
         @JsonProperty("id")
         public Object id;
