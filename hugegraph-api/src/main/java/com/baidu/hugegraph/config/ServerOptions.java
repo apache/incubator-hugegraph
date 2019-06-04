@@ -66,6 +66,24 @@ public class ServerOptions extends OptionHolder {
                     256
             );
 
+    public static final ConfigOption<Integer> CONN_IDLE_TIMEOUT =
+            new ConfigOption<>(
+                    "restserver.connection_idle_timeout",
+                    "The time in seconds to keep an inactive connection " +
+                    "alive, -1 means no timeout.",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    30
+            );
+
+    public static final ConfigOption<Integer> CONN_MAX_REQUESTS =
+            new ConfigOption<>(
+                    "restserver.connection_max_requests",
+                    "The max number of HTTP requests allowed to be processed " +
+                    "on one keep-alive connection, -1 means unlimited.",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    256
+            );
+
     public static final ConfigOption<String> GREMLIN_SERVER_URL =
             new ConfigOption<>(
                     "gremlinserver.url",

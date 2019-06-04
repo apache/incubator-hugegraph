@@ -24,16 +24,59 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeGraphServer {
 
     private static final Logger LOG = Log.logger(HugeGraphServer.class);
 
-    static {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            LOG.info("HugeGraphServer stopped");
-        }));
+    private final GremlinServer gremlinServer;
+    private final RestServer restServer;
+
+    public HugeGraphServer(String gremlinServerConf, String restServerConf)
+                           throws Exception {
+        try {
+            // Start GremlinServer
+            this.gremlinServer = HugeGremlinServer.start(gremlinServerConf);
+        } catch (Throwable e) {
+            LOG.error("HugeGremlinServer start error: ", e);
+            HugeGraph.shutdown(30L);
+            throw e;
+        }
+
+        try {
+            // Start HugeRestServer
+            this.restServer = HugeRestServer.start(restServerConf);
+        } catch (Throwable e) {
+            LOG.error("HugeRestServer start error: ", e);
+            this.gremlinServer.stop();
+            HugeGraph.shutdown(30L);
+            throw e;
+        }
+    }
+
+    public void stop() {
+        try {
+            this.restServer.shutdown().get();
+            LOG.info("HugeRestServer stopped");
+        } catch (Throwable e) {
+            LOG.error("HugeRestServer stop error: ", e);
+        }
+
+        try {
+            this.gremlinServer.stop().get();
+            LOG.info("HugeGremlinServer stopped");
+        } catch (Throwable e) {
+            LOG.error("HugeGremlinServer stop error: ", e);
+        }
+
+        try {
+            HugeGraph.shutdown(30L);
+            LOG.info("HugeGraph stopped");
+        } catch (Throwable e) {
+            LOG.error("Failed to stop HugeGraph: ", e);
+        }
     }
 
     public static void main(String[] args) throws Exception {
@@ -44,25 +87,12 @@ public class HugeGraphServer {
         }
 
         HugeRestServer.register();
+        HugeGraphServer server = new HugeGraphServer(args[0], args[1]);
 
-        GremlinServer gremlinServer = null;
-        try {
-            // Start GremlinServer
-            gremlinServer = HugeGremlinServer.start(args[0]);
-        } catch (Exception e) {
-            LOG.error("HugeGremlinServer start error: ", e);
-            HugeGraph.shutdown(30L);
-            throw e;
-        }
-
-        try {
-            // Start HugeRestServer
-            HugeRestServer.start(args[1]);
-        } catch (Exception e) {
-            LOG.error("HugeRestServer start error: ", e);
-            gremlinServer.stop();
-            HugeGraph.shutdown(30L);
-            throw e;
-        }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOG.info("HugeGraphServer stopping");
+            server.stop();
+            LOG.info("HugeGraphServer stopped");
+        }));
     }
 }
