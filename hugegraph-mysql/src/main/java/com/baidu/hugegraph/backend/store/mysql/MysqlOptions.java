@@ -97,4 +97,12 @@ public class MysqlOptions extends OptionHolder {
                     disallowEmpty(),
                     "disable"
             );
+
+    public static final ConfigOption<String> STORAGE_ENGINE =
+            new ConfigOption<>(
+                    "mysql.engine",
+                    "the storage engine to store graph data/schema, innodb or rocksdb.",
+                    disallowEmpty(),
+                    "InnoDB"
+            );
 }

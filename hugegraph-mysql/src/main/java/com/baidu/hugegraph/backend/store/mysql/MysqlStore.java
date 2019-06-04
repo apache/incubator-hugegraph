@@ -269,9 +269,8 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     }
 
     protected void initTables() {
-        Session session = this.sessions.session();
         for (MysqlTable table : this.tables()) {
-            table.init(session);
+            table.init(this.sessions);
         }
     }
 
