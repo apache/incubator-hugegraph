@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.mysql;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -51,6 +52,8 @@ public abstract class MysqlTable
                 extends BackendTable<Session, MysqlBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
+
+    private static final String DECIMAL = "DECIMAL";
 
     // The template for insert and delete statements
     private String insertTemplate;
@@ -206,6 +209,10 @@ public abstract class MysqlTable
         return String.format("TRUNCATE TABLE %s;", this.table());
     }
 
+    protected void appendPartition(StringBuilder sb) {
+        // pass
+    }
+
     /**
      * Insert an entire row
      */
@@ -226,6 +233,19 @@ public abstract class MysqlTable
                                        "for entry: %s", template, entry);
         }
         session.add(insertStmt);
+    }
+
+    protected List<Object> buildInsertObjects(MysqlBackendEntry.Row entry) {
+        List<Object> objects = new ArrayList<>();
+        for (Map.Entry<HugeKeys, Object> e : entry.columns().entrySet()) {
+            Object value = e.getValue();
+            String type = this.tableDefine().columns().get(e.getKey());
+            if (type.startsWith(DECIMAL)) {
+                value = new BigDecimal(value.toString());
+            }
+            objects.add(value);
+        }
+        return objects;
     }
 
     @Override
@@ -544,18 +564,6 @@ public abstract class MysqlTable
     protected BackendEntry mergeEntries(BackendEntry e1, BackendEntry e2) {
         // Return the next entry (not merged)
         return e2;
-    }
-
-    protected void appendPartition(StringBuilder delete) {
-        // pass
-    }
-
-    protected List<Object> buildInsertObjects(MysqlBackendEntry.Row entry) {
-        List<Object> objects = new ArrayList<>();
-        for (Object key : entry.columns().keySet()) {
-            objects.add(entry.columns().get(key));
-        }
-        return objects;
     }
 
     public static String formatKey(HugeKeys key) {

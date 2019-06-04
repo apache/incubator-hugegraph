@@ -106,10 +106,16 @@ public enum DataType implements SerialEnum {
                     number = Long.valueOf(value.toString());
                     break;
                 case FLOAT:
-                    number = Float.valueOf(value.toString());
+                    Float fvalue = Float.valueOf(value.toString());
+                    if (!fvalue.isInfinite() && !fvalue.isNaN()) {
+                        number = fvalue;
+                    }
                     break;
                 case DOUBLE:
-                    number = Double.valueOf(value.toString());
+                    Double dvalue = Double.valueOf(value.toString());
+                    if (!dvalue.isInfinite() && !dvalue.isNaN()) {
+                        number = dvalue;
+                    }
                     break;
                 default:
                     throw new AssertionError(String.format(

@@ -48,7 +48,7 @@ public class MysqlTables {
     public static final String BOOLEAN = "BOOLEAN";
     public static final String TINYINT = "TINYINT";
     public static final String INT = "INT";
-    public static final String DOUBLE = "DOUBLE";
+    public static final String NUMERIC = "DOUBLE";
     public static final String SMALL_TEXT = "SMALL_TEXT";
     public static final String MID_TEXT = "MID_TEXT";
     public static final String LARGE_TEXT = "LARGE_TEXT";
@@ -452,7 +452,7 @@ public class MysqlTables {
 
             this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
-            this.define.column(HugeKeys.FIELD_VALUES, DOUBLE);
+            this.define.column(HugeKeys.FIELD_VALUES, NUMERIC);
             this.define.column(HugeKeys.ELEMENT_IDS, SMALL_TEXT);
             this.define.keys(HugeKeys.INDEX_LABEL_ID,
                              HugeKeys.FIELD_VALUES,

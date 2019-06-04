@@ -66,8 +66,8 @@ import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.KryoUtil;
+import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
-import com.baidu.hugegraph.util.StringUtil;
 
 public class BinarySerializer extends AbstractSerializer {
 
@@ -710,8 +710,8 @@ public class BinarySerializer extends AbstractSerializer {
         if (keyMin == null) {
             E.checkArgument(keyMax != null,
                             "Please specify at least one condition");
-            // Set keyMin to 0
-            keyMin = StringUtil.valueOf(keyMax.getClass(), "0");
+            // Set keyMin to min value
+            keyMin = NumericUtil.minValueOf(keyMax.getClass());
             keyMinEq = true;
         }
 

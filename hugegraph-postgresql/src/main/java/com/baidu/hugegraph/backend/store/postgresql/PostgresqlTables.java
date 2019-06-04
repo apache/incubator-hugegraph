@@ -19,6 +19,14 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.BOOLEAN;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.INT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.LARGE_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.MID_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.NUMERIC;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.SMALL_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.TINYINT;
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -37,14 +45,6 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.BOOLEAN;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.DOUBLE;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.INT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.LARGE_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.MID_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.SMALL_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.TINYINT;
-
 public class PostgresqlTables {
 
     private static final Map<String, String> TYPES_MAPPING =
@@ -52,7 +52,7 @@ public class PostgresqlTables {
                     .put(BOOLEAN, "BOOL")
                     .put(TINYINT, "INT")
                     .put(INT, "INT")
-                    .put(DOUBLE, "FLOAT")
+                    .put(NUMERIC, "DECIMAL")
                     .put(SMALL_TEXT, "VARCHAR(255)")
                     .put(MID_TEXT, "VARCHAR(1024)")
                     .put(LARGE_TEXT, "VARCHAR(65533)")

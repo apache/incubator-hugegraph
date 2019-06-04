@@ -21,7 +21,6 @@ package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
@@ -29,10 +28,6 @@ import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Condition;
-import com.baidu.hugegraph.backend.query.Condition.Relation;
-import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
@@ -43,7 +38,6 @@ import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.RowIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 
@@ -257,62 +251,6 @@ public class HbaseTables {
 
         public RangeIndex(String store) {
             super(joinTableName(store, TABLE));
-        }
-
-        @Override
-        protected RowIterator queryByCond(Session session,
-                                          ConditionQuery query) {
-            assert !query.conditions().isEmpty();
-
-            List<Condition> conds = query.syspropConditions(HugeKeys.ID);
-            E.checkArgument(!conds.isEmpty(),
-                            "Please specify the index conditions");
-
-            Id prefix = null;
-            Id min = null;
-            boolean minEq = false;
-            Id max = null;
-            boolean maxEq = false;
-
-            for (Condition c : conds) {
-                Relation r = (Relation) c;
-                switch (r.relation()) {
-                    case PREFIX:
-                        prefix = (Id) r.value();
-                        break;
-                    case GTE:
-                        minEq = true;
-                    case GT:
-                        min = (Id) r.value();
-                        break;
-                    case LTE:
-                        maxEq = true;
-                    case LT:
-                        max = (Id) r.value();
-                        break;
-                    default:
-                        E.checkArgument(false, "Unsupported relation '%s'",
-                                        r.relation());
-                }
-            }
-
-            E.checkArgumentNotNull(min, "Range index begin key is missing");
-            byte[] begin = min.asBytes();
-            if (max == null) {
-                E.checkArgumentNotNull(prefix, "Range index prefix is missing");
-                byte[] prefixFilter = prefix.asBytes();
-                return session.scan(this.table(), begin, minEq, prefixFilter);
-            } else {
-                byte[] end = max.asBytes();
-                if (maxEq) {
-                    // The parameter stoprow-inclusive doesn't work before v2.0
-                    // https://issues.apache.org/jira/browse/HBASE-20675
-                    maxEq = false;
-                    // Add a trailing 0 byte to stopRow
-                    end = Arrays.copyOfRange(end, 0, end.length + 1);
-                }
-                return session.scan(this.table(), begin, minEq, end, maxEq);
-            }
         }
     }
 }
