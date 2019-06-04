@@ -58,14 +58,21 @@ public abstract class MysqlTable
     // The template for insert and delete statements
     private String insertTemplate;
     private String deleteTemplate;
+    private MysqlSessions sessions;
 
     public MysqlTable(String table) {
         super(table);
         this.insertTemplate = null;
         this.deleteTemplate = null;
+        this.sessions = null;
     }
 
     public abstract TableDefine tableDefine();
+
+    public void init(MysqlSessions sessions) {
+        this.sessions = sessions;
+        this.init(sessions.session());
+    }
 
     @Override
     public void init(Session session) {
@@ -117,7 +124,11 @@ public abstract class MysqlTable
     }
 
     protected String engine() {
-        return " ENGINE=InnoDB";
+        StringBuilder sql = new StringBuilder();
+        sql.append(" ENGINE=");
+        sql.append(this.sessions.config().get(MysqlOptions.STORAGE_ENGINE));
+        LOG.debug("MySQL storage engine innodb/rocksdb: {}", sql.toString());
+        return sql.toString();
     }
 
     protected void dropTable(Session session) {
