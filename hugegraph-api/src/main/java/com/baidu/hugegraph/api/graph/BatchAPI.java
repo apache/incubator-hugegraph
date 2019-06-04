@@ -125,7 +125,7 @@ public class BatchAPI extends API {
             String key = kv.getKey();
             UpdateStrategy updateStrategy = kv.getValue();
             if (oldElement.property(key).isPresent() &&
-                newElement.properties.get(key) != null ) {
+                newElement.properties.containsKey(key)) {
                 Object value = updateStrategy.checkAndUpdateProperty(
                                oldElement.property(key).value(),
                                newElement.properties.get(key));

@@ -36,7 +36,7 @@ public enum UpdateStrategy {
     SUM {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            // TODO: Improve preformance? (like write a method in common modle)
+            // TODO: Improve preformance? (like write a method in common module)
             BigDecimal oldNumber = new BigDecimal(oldProperty.toString());
             BigDecimal newNumber = new BigDecimal(newProperty.toString());
             return oldNumber.add(newNumber);
@@ -115,7 +115,8 @@ public enum UpdateStrategy {
     APPEND {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            return ((Collection) oldProperty).addAll((Collection) newProperty);
+            ((Collection) oldProperty).addAll((Collection) newProperty);
+            return oldProperty;
         }
 
         @Override
@@ -124,12 +125,11 @@ public enum UpdateStrategy {
         }
     },
 
-    // TODO: Unify "action" in Vertex/EdgeAPI later
     ELIMINATE {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            return ((Collection) oldProperty).removeAll
-                   ((Collection) newProperty);
+            ((Collection) oldProperty).removeAll((Collection) newProperty);
+            return oldProperty;
         }
 
         @Override
@@ -164,8 +164,8 @@ public enum UpdateStrategy {
                                     (result < 0 ? oldProperty : newProperty);
     }
 
-    private static Set combineSet(Object oldProperty, Object newProperty,
-                                   UpdateStrategy strategy) {
+    private static Set<?> combineSet(Object oldProperty, Object newProperty,
+                                     UpdateStrategy strategy) {
         Set oldSet = oldProperty instanceof Set ?
                      (Set) oldProperty : new HashSet((List) oldProperty);
         Set newSet = newProperty instanceof Set ?

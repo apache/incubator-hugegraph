@@ -178,32 +178,32 @@ public class EdgeAPI extends BatchAPI {
         checkBatchSize(config, req.jsonEdges);
 
         HugeGraph g = graph(manager, graph);
-        Map<Id, JsonEdge> maps = new HashMap<>(req.jsonEdges.size());
+        Map<Id, JsonEdge> map = new HashMap<>(req.jsonEdges.size());
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
-        return this.commit(config, g, maps.size(), () -> {
+        return this.commit(config, g, map.size(), () -> {
             // 1.Put all newEdges' properties into map (combine first)
             req.jsonEdges.forEach(newEdge -> {
                 Id newEdgeId = getEdgeId(g, newEdge);
-                JsonEdge oldEdge = maps.get(newEdgeId);
+                JsonEdge oldEdge = map.get(newEdgeId);
                 this.updateExistElement(oldEdge, newEdge,
                                         req.updateStrategies);
-                maps.put(newEdgeId, newEdge);
+                map.put(newEdgeId, newEdge);
             });
 
             // 2.Get all oldEdges and update with new ones
-            Object[] ids = maps.keySet().toArray();
+            Object[] ids = map.keySet().toArray();
             Iterator<Edge> oldEdges = g.edges(ids);
             oldEdges.forEachRemaining(oldEdge -> {
-                JsonEdge newEdge = maps.get(oldEdge.id());
+                JsonEdge newEdge = map.get(oldEdge.id());
                 this.updateExistElement(g, oldEdge, newEdge,
                                         req.updateStrategies);
             });
 
             // 3.Add all finalEdges
-            List<Edge> edges = new ArrayList<>(maps.size());
-            maps.values().forEach(finalEdge -> {
+            List<Edge> edges = new ArrayList<>(map.size());
+            map.values().forEach(finalEdge -> {
                 Vertex srcVertex = getVertex.apply(g, finalEdge.source,
                                                    finalEdge.sourceLabel);
                 Vertex tgtVertex = getVertex.apply(g, finalEdge.target,
