@@ -82,11 +82,11 @@ public class SubGraphTraverser extends HugeTraverser {
         return paths;
     }
 
-    private static boolean containsMultiEdges(List<Edge> edges, Id target) {
+    private static boolean hasMultiEdges(List<Edge> edges, Id target) {
         int count = 0;
         for (Edge edge : edges) {
             if (((HugeEdge) edge).id().otherVertexId().equals(target)) {
-                if (++count >= 2) {
+                if (++count > 1) {
                     return true;
                 }
             }
@@ -199,8 +199,7 @@ public class SubGraphTraverser extends HugeTraverser {
                                     ringsFound = true;
                                 } else if (direction != Directions.BOTH) {
                                     ringsFound = true;
-                                } else if (containsMultiEdges(edgeList,
-                                                              target)) {
+                                } else if (hasMultiEdges(edgeList, target)) {
                                     ringsFound = true;
                                 }
                             }
