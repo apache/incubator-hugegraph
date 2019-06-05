@@ -104,7 +104,7 @@ public abstract class MysqlTable
             }
         }
         sql.append("))");
-        sql.append(this.engine());
+        sql.append(this.engine(session));
         sql.append(";");
 
         LOG.debug("Create table: {}", sql);
@@ -116,8 +116,9 @@ public abstract class MysqlTable
         }
     }
 
-    protected String engine() {
-        return " ENGINE=InnoDB";
+    protected String engine(Session session) {
+        String engine = session.config().get(MysqlOptions.STORAGE_ENGINE);
+        return " ENGINE=" + engine;
     }
 
     protected void dropTable(Session session) {

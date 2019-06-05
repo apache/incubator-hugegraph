@@ -235,6 +235,10 @@ public class MysqlSessions extends BackendSessionPool {
             }
         }
 
+        public HugeConfig config() {
+            return MysqlSessions.this.config();
+        }
+
         public void open() throws SQLException {
             if (this.conn != null && !this.conn.isClosed()) {
                 return;
