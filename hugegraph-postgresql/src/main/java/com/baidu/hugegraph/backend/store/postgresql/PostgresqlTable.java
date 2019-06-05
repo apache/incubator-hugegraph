@@ -26,6 +26,7 @@ import org.apache.logging.log4j.util.Strings;
 
 import com.baidu.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import com.baidu.hugegraph.backend.store.mysql.MysqlTable;
+import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public abstract class PostgresqlTable extends MysqlTable {
@@ -47,6 +48,11 @@ public abstract class PostgresqlTable extends MysqlTable {
 
     @Override
     protected String engine() {
+        return Strings.EMPTY;
+    }
+
+    @Override
+    protected String engine(Session session) {
         return Strings.EMPTY;
     }
 

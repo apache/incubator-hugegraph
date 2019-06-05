@@ -135,7 +135,7 @@ public class MysqlSessions extends BackendSessionPool {
 
     @Override
     protected Session newSession() {
-        return new Session(this.config);
+        return new Session();
     }
 
     public void checkSessionConnected() {
@@ -229,20 +229,7 @@ public class MysqlSessions extends BackendSessionPool {
             this.statements = new HashMap<>();
             this.opened = false;
             this.count = 0;
-            this.config = null;
-            try {
-                this.open();
-            } catch (SQLException ignored) {
-                // Ignore
-            }
-        }
-
-        public Session(HugeConfig config) {
-            this.conn = null;
-            this.statements = new HashMap<>();
-            this.opened = false;
-            this.count = 0;
-            this.config = config;
+            this.config = MysqlSessions.this.config();
             try {
                 this.open();
             } catch (SQLException ignored) {
