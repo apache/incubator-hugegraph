@@ -73,7 +73,8 @@ public class RaysAPI extends API {
         LOG.debug("Graph [{}] get rays paths from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",
-                  graph, sourceV, direction, edgeLabel, depth, degree, limit);
+                  graph, sourceV, direction, edgeLabel, depth, degree,
+                  capacity, limit);
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));

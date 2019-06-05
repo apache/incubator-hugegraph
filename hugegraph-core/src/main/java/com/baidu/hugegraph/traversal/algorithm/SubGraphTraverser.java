@@ -82,7 +82,7 @@ public class SubGraphTraverser extends HugeTraverser {
         return paths;
     }
 
-    private static boolean multiEdges(List<Edge> edges, Id target) {
+    private static boolean containsMultiEdges(List<Edge> edges, Id target) {
         int count = 0;
         for (Edge edge : edges) {
             if (((HugeEdge) edge).id().otherVertexId().equals(target)) {
@@ -175,11 +175,13 @@ public class SubGraphTraverser extends HugeTraverser {
                             continue;
                         }
 
-                        // Rays found if fake ring like:
+                        // Rays found if it's fake ring like:
                         // path is pattern: A->B<-A && A is only neighbor of B
-                        if (!this.rings && target.equals(node.parent().id()) &&
-                            neighborCount == 1 && !edges.hasNext() &&
-                            direction == Directions.BOTH) {
+                        boolean uniqueEdge = neighborCount == 1 &&
+                                             !edges.hasNext();
+                        boolean bothBack = target.equals(node.parent().id()) &&
+                                           direction == Directions.BOTH;
+                        if (!this.rings && bothBack && uniqueEdge) {
                             paths.add(new Path(null, node.path()));
                             this.pathCount++;
                             if (reachLimit()) {
@@ -197,7 +199,8 @@ public class SubGraphTraverser extends HugeTraverser {
                                     ringsFound = true;
                                 } else if (direction != Directions.BOTH) {
                                     ringsFound = true;
-                                } else if (multiEdges(edgeList, target)) {
+                                } else if (containsMultiEdges(edgeList,
+                                                              target)) {
                                     ringsFound = true;
                                 }
                             }

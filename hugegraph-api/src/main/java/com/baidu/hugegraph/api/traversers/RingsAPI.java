@@ -76,7 +76,8 @@ public class RingsAPI extends API {
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "source in ring '{}', max degree '{}', capacity '{}' " +
                   "and limit '{}'",
-                  graph, sourceV, direction, edgeLabel, depth, degree, limit);
+                  graph, sourceV, direction, edgeLabel, depth, sourceInRing,
+                  degree, capacity, limit);
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));

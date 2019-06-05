@@ -380,7 +380,7 @@ public class HugeTraverser {
                 return false;
             }
             Node other = (Node) object;
-            return this.id.equals(other.id) &&
+            return Objects.equals(this.id, other.id) &&
                    Objects.equals(this.parent, other.parent);
         }
     }

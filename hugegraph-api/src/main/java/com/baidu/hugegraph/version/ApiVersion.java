@@ -87,7 +87,7 @@ public final class ApiVersion {
      *
      * version 0.10:
      * [0.39] Issue-522: Add profile RESTful API
-     * [0.40] Issue-523: Add sourceInRing args for rings RESTful API
+     * [0.40] Issue-523: Add source_in_ring args for rings RESTful API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
