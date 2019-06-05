@@ -104,7 +104,7 @@ public abstract class MysqlTable
             }
         }
         sql.append("))");
-        sql.append(this.engine());
+        sql.append(this.engine(session));
         sql.append(";");
 
         LOG.debug("Create table: {}", sql);
@@ -114,6 +114,11 @@ public abstract class MysqlTable
             throw new BackendException("Failed to create table with '%s'",
                                        e, sql);
         }
+    }
+
+    protected String engine(Session session) {
+        String engine = session.config().get(MysqlOptions.STORAGE_ENGINE);
+        return " ENGINE=" + engine;
     }
 
     protected String engine() {

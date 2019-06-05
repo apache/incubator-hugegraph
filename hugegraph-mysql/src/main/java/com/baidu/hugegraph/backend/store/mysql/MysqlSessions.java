@@ -135,7 +135,7 @@ public class MysqlSessions extends BackendSessionPool {
 
     @Override
     protected Session newSession() {
-        return new Session();
+        return new Session(this.config);
     }
 
     public void checkSessionConnected() {
@@ -222,17 +222,36 @@ public class MysqlSessions extends BackendSessionPool {
         private Map<String, PreparedStatement> statements;
         private boolean opened;
         private int count;
+        private HugeConfig config;
 
         public Session() {
             this.conn = null;
             this.statements = new HashMap<>();
             this.opened = false;
             this.count = 0;
+            this.config = null;
             try {
                 this.open();
             } catch (SQLException ignored) {
                 // Ignore
             }
+        }
+
+        public Session(HugeConfig config) {
+            this.conn = null;
+            this.statements = new HashMap<>();
+            this.opened = false;
+            this.count = 0;
+            this.config = config;
+            try {
+                this.open();
+            } catch (SQLException ignored) {
+                // Ignore
+            }
+        }
+
+        public HugeConfig config() {
+            return this.config;
         }
 
         public void open() throws SQLException {
