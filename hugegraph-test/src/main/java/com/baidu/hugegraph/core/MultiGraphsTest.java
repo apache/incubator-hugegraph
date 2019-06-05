@@ -70,8 +70,12 @@ public class MultiGraphsTest {
 
     @Test
     public void testCreateGraphsWithSameName() {
-        HugeGraph g1 = openGraphs("graph").get(0);
-        HugeGraph g2 = openGraphs("graph").get(0);
+        List<HugeGraph> graphs = openGraphs("graph", "graph");
+        HugeGraph g1 = graphs.get(0);
+        HugeGraph g2 = graphs.get(1);
+
+        g1.initBackend();
+        g2.initBackend();
 
         Assert.assertThrows(IllegalArgumentException.class,
                             () -> g2.vertexLabel("node"));
@@ -90,7 +94,14 @@ public class MultiGraphsTest {
     }
 
     @Test
-    public void testCreateGraphWithDifferentBackends() {
+    public void testCreateGraphWithSameNameDifferentBackends() {
+        openGraphWithBackend("graph", "memory");
+        Assert.assertThrows(RuntimeException.class,
+                            () -> openGraphWithBackend("graph", "rocksdb"));
+    }
+
+    @Test
+    public void testCreateGraphsWithDifferentNameDifferentBackends() {
         HugeGraph g1 = openGraphWithBackend("g1", "memory");
         HugeGraph g2 = openGraphWithBackend("g2", "rocksdb");
         HugeGraph graph = openGraphs("graph").get(0);
