@@ -22,25 +22,79 @@ package com.baidu.hugegraph.core;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Utils;
 
+import jersey.repackaged.com.google.common.collect.ImmutableList;
+import jersey.repackaged.com.google.common.collect.ImmutableMap;
+
 public class MultiGraphsTest {
 
-    @BeforeClass
-    public static void initEnv() {
-        RegisterUtil.registerBackends();
+    private static final Map<String, String> BACKENDS =
+            ImmutableMap.<String, String>builder()
+            .put("memory", "text")
+            .put("rocksdb", "binary")
+            .put("cassandra", "cassandra")
+            .put("hbase", "hbase")
+            .put("mysql", "mysql")
+            .put("postgresql", "postgresql")
+            .build();
+
+    @Test
+    public void testCreateMultiGraphs() {
+        List<HugeGraph> graphs = openGraphs("g1", "g2", "g3", "123",
+                                            " g", "g 1", " .", ". .",
+                                            "@$%^&*()_+`-={}|[]\"<?;'~,./\\",
+                                            "azAZ0123456789", " ~", "g~", "g'");
+        destoryGraphs(graphs);
+    }
+
+    @Test
+    public void testCreateGraphsWithInvalidNames() {
+        Assert.assertThrows(RuntimeException.class,
+                            () -> openGraphs(""));
+    }
+
+    @Test
+    public void testCreateGraphsWithSameName() {
+        HugeGraph g1 = openGraphs("graph").get(0);
+        HugeGraph g2 = openGraphs("graph").get(0);
+
+        Assert.assertThrows(IllegalArgumentException.class,
+                            () -> g2.vertexLabel("node"));
+        g1.schema().vertexLabel("node").useCustomizeNumberId()
+          .ifNotExist().create();
+        g2.vertexLabel("node");
+
+        g1.addVertex(T.label, "node", T.id, 1);
+        Iterator<Vertex> vertices = g2.vertices(1);
+        Assert.assertTrue(vertices.hasNext());
+        Vertex vertex = vertices.next();
+        Assert.assertFalse(vertices.hasNext());
+        Assert.assertEquals(IdGenerator.of(1), vertex.id());
+
+        destoryGraphs(ImmutableList.of(g1));
+    }
+
+    @Test
+    public void testCreateGraphWithDifferentBackends() {
+        HugeGraph g1 = openGraphWithBackend("g1", "memory");
+        HugeGraph g2 = openGraphWithBackend("g2", "rocksdb");
+        HugeGraph graph = openGraphs("graph").get(0);
+        destoryGraphs(ImmutableList.of(g1, g2, graph));
     }
 
     public static List<HugeGraph> openGraphs(String... graphNames) {
@@ -65,18 +119,18 @@ public class MultiGraphsTest {
         }
     }
 
-    @Test
-    public void testCreateMultiGraphs() {
-        List<HugeGraph> graphs = openGraphs("g1", "g2", "g3", "123",
-                                            " g", "g 1", " .", ". .",
-                                            "@$%^&*()_+`-={}|[]\"<?;'~,./\\",
-                                            "azAZ0123456789", " ~", "g~", "g'");
-        destoryGraphs(graphs);
-    }
-
-    @Test
-    public void testCreateGraphsWithInvalidNames() {
-        Assert.assertThrows(RuntimeException.class,
-                            () -> openGraphs(""));
+    public static HugeGraph openGraphWithBackend(String graph, String backend) {
+        PropertiesConfiguration conf = Utils.getConf();
+        Configuration config = new BaseConfiguration();
+        for (Iterator<String> keys = conf.getKeys(); keys.hasNext();) {
+            String key = keys.next();
+            config.setProperty(key, conf.getProperty(key));
+        }
+        ((BaseConfiguration) config).setDelimiterParsingDisabled(true);
+        config.setProperty(CoreOptions.STORE.name(), graph);
+        config.setProperty(CoreOptions.BACKEND.name(), backend);
+        config.setProperty(CoreOptions.SERIALIZER.name(),
+                           BACKENDS.get(backend));
+        return ((HugeGraph) GraphFactory.open(config));
     }
 }

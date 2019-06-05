@@ -324,10 +324,12 @@ public class MysqlSessions extends BackendSessionPool {
                 }
                 this.conn.commit();
                 this.clear();
-                this.end();
             } catch (SQLException e) {
                 throw new BackendException("Failed to commit", e);
             }
+            try {
+                this.end();
+            } catch (SQLException ignored) {}
             return updated;
         }
 

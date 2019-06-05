@@ -50,7 +50,7 @@ public class PostgresqlSessions extends MysqlSessions {
     public boolean existsDatabase() {
         String statement = String.format(
                            "SELECT datname FROM pg_catalog.pg_database " +
-                           "WHERE datname = '%s';", this.escapedDatabase());
+                           "WHERE datname = %s;", this.escapedDatabase());
         try (Connection conn = this.openWithoutDB(0)) {
             ResultSet result = conn.createStatement().executeQuery(statement);
             return result.next();
