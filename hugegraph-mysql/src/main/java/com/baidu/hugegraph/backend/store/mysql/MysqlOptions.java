@@ -97,4 +97,12 @@ public class MysqlOptions extends OptionHolder {
                     disallowEmpty(),
                     "disable"
             );
+
+    public static final ConfigOption<String> STORAGE_ENGINE =
+            new ConfigOption<>(
+                   "jdbc.storage_engine",
+                   "The storage engine of backend store database, like InnoDB/MyISAM/RocksDB for MySQL.",
+                    disallowEmpty(),
+                    "InnoDB"
+            );
 }
