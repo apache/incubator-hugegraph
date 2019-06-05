@@ -47,11 +47,6 @@ public abstract class PostgresqlTable extends MysqlTable {
     }
 
     @Override
-    protected String engine() {
-        return Strings.EMPTY;
-    }
-
-    @Override
     protected String engine(Session session) {
         return Strings.EMPTY;
     }

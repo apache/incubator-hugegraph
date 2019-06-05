@@ -222,14 +222,12 @@ public class MysqlSessions extends BackendSessionPool {
         private Map<String, PreparedStatement> statements;
         private boolean opened;
         private int count;
-        private HugeConfig config;
 
         public Session() {
             this.conn = null;
             this.statements = new HashMap<>();
             this.opened = false;
             this.count = 0;
-            this.config = MysqlSessions.this.config();
             try {
                 this.open();
             } catch (SQLException ignored) {
@@ -238,7 +236,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         public HugeConfig config() {
-            return this.config;
+            return MysqlSessions.this.config();
         }
 
         public void open() throws SQLException {

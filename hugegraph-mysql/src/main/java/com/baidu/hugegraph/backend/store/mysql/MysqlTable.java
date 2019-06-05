@@ -121,10 +121,6 @@ public abstract class MysqlTable
         return " ENGINE=" + engine;
     }
 
-    protected String engine() {
-        return " ENGINE=InnoDB";
-    }
-
     protected void dropTable(Session session) {
         LOG.debug("Drop table: {}", this.table());
         String sql = this.buildDropTemplate();
