@@ -46,6 +46,7 @@ public class HugeFactory {
                         "32 alpha-numeric characters and underscores " +
                         "and only letters are supported as first letter. " +
                         "Note: letter is case insensitive");
+        name = name.toLowerCase();
         HugeGraph graph = graphs.get(name);
         if (graph == null || graph.closed()) {
             graph = new HugeGraph(conf);
