@@ -360,9 +360,6 @@ public class VertexAPI extends BatchAPI {
 
     private static class JsonVertex extends JsonElement {
 
-        @JsonProperty("id")
-        public Object id;
-
         @Override
         public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.label,

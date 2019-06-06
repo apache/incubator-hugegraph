@@ -402,7 +402,7 @@ public class EdgeAPI extends BatchAPI {
 
     private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
         if (newEdge.id != null) {
-            return EdgeId.parse(newEdge.id);
+            return EdgeId.parse(newEdge.id.asString());
         }
 
         String sortKeys = "";
@@ -450,8 +450,6 @@ public class EdgeAPI extends BatchAPI {
 
     private static class JsonEdge extends JsonElement {
 
-        @JsonProperty("id")
-        public String id;
         @JsonProperty("outV")
         public Object source;
         @JsonProperty("outVLabel")

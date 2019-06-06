@@ -87,10 +87,12 @@ public final class ApiVersion {
      *
      * version 0.10:
      * [0.39] Issue-522: Add profile RESTful API
+     * [0.40] Issue-493: Support batch updating elements' property by multiple
+     *        strategy
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.39");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.40");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

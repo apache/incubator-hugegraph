@@ -30,6 +30,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.schema.Checkable;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.metrics.MetricsUtil;
@@ -82,6 +83,8 @@ public class BatchAPI extends API {
     @JsonIgnoreProperties(value = {"type"})
     protected static abstract class JsonElement implements Checkable {
 
+        @JsonProperty("id")
+        public Id id;
         @JsonProperty("label")
         public String label;
         @JsonProperty("properties")
