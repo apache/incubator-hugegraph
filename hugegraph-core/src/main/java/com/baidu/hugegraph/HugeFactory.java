@@ -34,11 +34,18 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeFactory {
 
+    private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,31}$";
+
     private static final Map<String, HugeGraph> graphs = new HashMap<>();
 
     public static synchronized HugeGraph open(Configuration config) {
         HugeConfig conf = new HugeConfig(config);
         String name = conf.get(CoreOptions.STORE);
+        E.checkArgument(name.matches(NAME_REGEX),
+                        "Invalid graph name '%s', valid graph name is up to " +
+                        "32 alpha-numeric characters and underscores " +
+                        "and only letters are supported as first letter. " +
+                        "Note: letter is case insensitive");
         HugeGraph graph = graphs.get(name);
         if (graph == null || graph.closed()) {
             graph = new HugeGraph(conf);

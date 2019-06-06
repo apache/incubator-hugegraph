@@ -22,7 +22,6 @@ package com.baidu.hugegraph.core;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
@@ -39,26 +38,16 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Utils;
 
 import jersey.repackaged.com.google.common.collect.ImmutableList;
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
 public class MultiGraphsTest {
 
-    private static final Map<String, String> BACKENDS =
-            ImmutableMap.<String, String>builder()
-            .put("memory", "text")
-            .put("rocksdb", "binary")
-            .put("cassandra", "cassandra")
-            .put("hbase", "hbase")
-            .put("mysql", "mysql")
-            .put("postgresql", "postgresql")
-            .build();
-
     @Test
     public void testCreateMultiGraphs() {
-        List<HugeGraph> graphs = openGraphs("g1", "g2", "g3", "123",
-                                            " g", "g 1", " .", ". .",
-                                            "@$%^&*()_+`-={}|[]\"<?;'~,./\\",
-                                            "azAZ0123456789", " ~", "g~", "g'");
+        List<HugeGraph> graphs = openGraphs("g1", "g_2", "azAZ0123456789");
+        for (HugeGraph graph : graphs) {
+            graph.initBackend();
+            graph.clearBackend();
+        }
         destoryGraphs(graphs);
     }
 
@@ -66,45 +55,78 @@ public class MultiGraphsTest {
     public void testCreateGraphsWithInvalidNames() {
         Assert.assertThrows(RuntimeException.class,
                             () -> openGraphs(""));
+        List<String> invalidNames = ImmutableList.of(
+                                    "123", " g", "g 1", " .", ". .",
+                                    "@$%^&*()_+`-={}|[]\"<?;'~,./\\",
+                                    " ~", "g~", "g'", "_1", "_a",
+                                    "1a", "g12345678901234567890123456789012");
+        for (String name : invalidNames) {
+            Assert.assertThrows(RuntimeException.class, () -> openGraphs(name));
+        }
     }
 
     @Test
     public void testCreateGraphsWithSameName() {
-        List<HugeGraph> graphs = openGraphs("graph", "graph");
+        List<HugeGraph> graphs = openGraphs("g", "g", "G");
         HugeGraph g1 = graphs.get(0);
         HugeGraph g2 = graphs.get(1);
+        HugeGraph g3 = graphs.get(2);
 
         g1.initBackend();
         g2.initBackend();
+        g3.initBackend();
 
         Assert.assertThrows(IllegalArgumentException.class,
                             () -> g2.vertexLabel("node"));
+        Assert.assertThrows(IllegalArgumentException.class,
+                            () -> g3.vertexLabel("node"));
         g1.schema().vertexLabel("node").useCustomizeNumberId()
           .ifNotExist().create();
         g2.vertexLabel("node");
+        g3.vertexLabel("node");
 
         g1.addVertex(T.label, "node", T.id, 1);
+        g1.tx().commit();
         Iterator<Vertex> vertices = g2.vertices(1);
         Assert.assertTrue(vertices.hasNext());
         Vertex vertex = vertices.next();
         Assert.assertFalse(vertices.hasNext());
         Assert.assertEquals(IdGenerator.of(1), vertex.id());
 
-        destoryGraphs(ImmutableList.of(g1));
+        vertices = g3.vertices(1);
+        Assert.assertTrue(vertices.hasNext());
+        vertex = vertices.next();
+        Assert.assertFalse(vertices.hasNext());
+        Assert.assertEquals(IdGenerator.of(1), vertex.id());
+
+        g1.clearBackend();
+        g2.clearBackend();
+        g3.clearBackend();
+        destoryGraphs(ImmutableList.of(g1, g3));
     }
 
     @Test
     public void testCreateGraphWithSameNameDifferentBackends() {
-        openGraphWithBackend("graph", "memory");
+        HugeGraph g1 = openGraphWithBackend("graph", "memory", "text");
+        g1.initBackend();
         Assert.assertThrows(RuntimeException.class,
-                            () -> openGraphWithBackend("graph", "rocksdb"));
+                            () -> openGraphWithBackend("graph", "rocksdb",
+                                                       "binary"));
+        g1.clearBackend();
+        g1.close();
     }
 
     @Test
     public void testCreateGraphsWithDifferentNameDifferentBackends() {
-        HugeGraph g1 = openGraphWithBackend("g1", "memory");
-        HugeGraph g2 = openGraphWithBackend("g2", "rocksdb");
+        HugeGraph g1 = openGraphWithBackend("g1", "memory", "text");
+        HugeGraph g2 = openGraphWithBackend("g2", "rocksdb", "binary");
         HugeGraph graph = openGraphs("graph").get(0);
+        g1.initBackend();
+        g2.initBackend();
+        graph.initBackend();
+        g1.clearBackend();
+        g2.clearBackend();
+        graph.clearBackend();
         destoryGraphs(ImmutableList.of(g1, g2, graph));
     }
 
@@ -130,7 +152,8 @@ public class MultiGraphsTest {
         }
     }
 
-    public static HugeGraph openGraphWithBackend(String graph, String backend) {
+    public static HugeGraph openGraphWithBackend(String graph, String backend,
+                                                 String serializer) {
         PropertiesConfiguration conf = Utils.getConf();
         Configuration config = new BaseConfiguration();
         for (Iterator<String> keys = conf.getKeys(); keys.hasNext();) {
@@ -140,8 +163,7 @@ public class MultiGraphsTest {
         ((BaseConfiguration) config).setDelimiterParsingDisabled(true);
         config.setProperty(CoreOptions.STORE.name(), graph);
         config.setProperty(CoreOptions.BACKEND.name(), backend);
-        config.setProperty(CoreOptions.SERIALIZER.name(),
-                           BACKENDS.get(backend));
+        config.setProperty(CoreOptions.SERIALIZER.name(), serializer);
         return ((HugeGraph) GraphFactory.open(config));
     }
 }
