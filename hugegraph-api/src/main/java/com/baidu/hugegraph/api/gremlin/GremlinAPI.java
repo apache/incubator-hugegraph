@@ -45,6 +45,7 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.metrics.MetricsUtil;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableSet;
@@ -119,7 +120,7 @@ public class GremlinAPI extends API {
         String location = conf.get(ServerOptions.GREMLIN_SERVER_URL);
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         Response response = doPostRequest(location, auth, request);
-        return transformResponseIfNeed(response);
+        return transformResponseIfNeeded(response);
     }
 
     @GET
@@ -133,10 +134,10 @@ public class GremlinAPI extends API {
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         String query = uriInfo.getRequestUri().getRawQuery();
         Response response = doGetRequest(location, auth, query);
-        return transformResponseIfNeed(response);
+        return transformResponseIfNeeded(response);
     }
 
-    private static Response transformResponseIfNeed(Response response) {
+    private static Response transformResponseIfNeeded(Response response) {
         // No need to transform
         if (response.getStatus() != Response.Status.INTERNAL_SERVER_ERROR
                                                    .getStatusCode()) {
@@ -154,19 +155,17 @@ public class GremlinAPI extends API {
                       "Invalid response for inner exception, should contains " +
                       "Exception-Class, but got %s", map));
         }
-        if (BAD_REQUEST_EXCEPTIONS.contains(exClassName)) {
-            String cause = !exceptions.isEmpty() ? exceptions.get(0) : "";
-            String json = Json.createObjectBuilder()
-                              .add("exception", exClassName)
-                              .add("message", message)
-                              .add("cause", cause)
-                              .build().toString();
-            return Response.status(Response.Status.BAD_REQUEST)
-                           .type(MediaType.APPLICATION_JSON)
-                           .entity(json)
-                           .build();
-        } else {
+        if (!BAD_REQUEST_EXCEPTIONS.contains(exClassName)) {
             return response;
         }
+        String json = Json.createObjectBuilder()
+                          .add("exception", exClassName)
+                          .add("message", message)
+                          .add("trace", JsonUtil.toJson(exceptions))
+                          .build().toString();
+        return Response.status(Response.Status.FORBIDDEN)
+                       .type(MediaType.APPLICATION_JSON)
+                       .entity(json)
+                       .build();
     }
 }

@@ -24,8 +24,10 @@ import java.security.Permission;
 
 public class HugeSecurityManager extends SecurityManager {
 
+    private static final String GREMLIN_SERVER_WORKER = "gremlin-server-exec";
+    private static final String TASK_WORKER = "task-worker";
     private static final String GREMLIN_EXECUTOR_CLASS =
-            "org.apache.tinkerpop.gremlin.groovy.engine.ScriptEngines";
+            "org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine";
 
     @Override
     public void checkPermission(Permission permission) {
@@ -77,28 +79,23 @@ public class HugeSecurityManager extends SecurityManager {
         }
     }
 
-    /**
-     * TODO: Open these will lead server can't start, because it need read
-     * conf files.
-     * Need to achieve no check at startup, open check after startup is complete
-     */
-//    @Override
-//    public void checkRead(String file) {
-//        if (this.callFromGremlin()) {
-//            throw new SecurityException("Not allowed to read file via Gremlin");
-//        } else {
-//            super.checkRead(file);
-//        }
-//    }
-//
-//    @Override
-//    public void checkRead(String file, Object context) {
-//        if (this.callFromGremlin()) {
-//            throw new SecurityException("Not allowed to read file via Gremlin");
-//        } else {
-//            super.checkRead(file, context);
-//        }
-//    }
+    @Override
+    public void checkRead(String file) {
+        if (this.callFromGremlin()) {
+            throw new SecurityException("Not allowed to read file via Gremlin");
+        } else {
+            super.checkRead(file);
+        }
+    }
+
+    @Override
+    public void checkRead(String file, Object context) {
+        if (this.callFromGremlin()) {
+            throw new SecurityException("Not allowed to read file via Gremlin");
+        } else {
+            super.checkRead(file, context);
+        }
+    }
 
     @Override
     public void checkWrite(FileDescriptor fd) {
@@ -161,7 +158,12 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private boolean callFromGremlin() {
-        StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+        Thread curThread = Thread.currentThread();
+        if (!curThread.getName().startsWith(GREMLIN_SERVER_WORKER) &&
+            !curThread.getName().startsWith(TASK_WORKER)) {
+            return false;
+        }
+        StackTraceElement[] elements = curThread.getStackTrace();
         for (StackTraceElement element : elements) {
             String className = element.getClassName();
             if (GREMLIN_EXECUTOR_CLASS.equals(className)) {
