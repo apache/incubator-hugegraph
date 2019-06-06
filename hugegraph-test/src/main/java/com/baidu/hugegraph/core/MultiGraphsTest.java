@@ -41,9 +41,11 @@ import jersey.repackaged.com.google.common.collect.ImmutableList;
 
 public class MultiGraphsTest {
 
+    private static final String NAME48 =
+            "g12345678901234567890123456789012345678901234567";
     @Test
     public void testCreateMultiGraphs() {
-        List<HugeGraph> graphs = openGraphs("g1", "g_2", "azAZ0123456789");
+        List<HugeGraph> graphs = openGraphs("g1", "g_2", NAME48);
         for (HugeGraph graph : graphs) {
             graph.initBackend();
             graph.clearBackend();
@@ -59,7 +61,7 @@ public class MultiGraphsTest {
                                     "123", " g", "g 1", " .", ". .",
                                     "@$%^&*()_+`-={}|[]\"<?;'~,./\\",
                                     " ~", "g~", "g'", "_1", "_a",
-                                    "1a", "g12345678901234567890123456789012");
+                                    "1a", NAME48 + "8");
         for (String name : invalidNames) {
             Assert.assertThrows(RuntimeException.class, () -> openGraphs(name));
         }
