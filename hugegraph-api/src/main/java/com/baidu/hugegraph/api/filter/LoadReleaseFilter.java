@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.filter;
 
-import java.io.IOException;
-
 import javax.inject.Singleton;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
@@ -39,8 +37,11 @@ public class LoadReleaseFilter implements ContainerResponseFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext,
-                       ContainerResponseContext responseContext)
-                       throws IOException {
+                       ContainerResponseContext responseContext) {
+        if (LoadDetectFilter.isWhiteAPI(requestContext)) {
+            return;
+        }
+
         WorkLoad load = this.loadProvider.get();
         load.decrementAndGet();
     }

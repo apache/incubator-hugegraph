@@ -64,20 +64,17 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     private final Map<String, ColumnFamilyHandle> cfs = new HashMap<>();
 
-    private final HugeConfig conf;
     private final RocksDB rocksdb;
     private final SstFileManager sstFileManager;
 
     public RocksDBStdSessions(HugeConfig config, String dataPath,
                               String walPath, String database, String store)
                               throws RocksDBException {
-        super(database, store);
-
-        this.conf = config;
+        super(config, database, store);
 
         // Init options
         Options options = new Options();
-        RocksDBStdSessions.initOptions(this.conf, options, options, options);
+        RocksDBStdSessions.initOptions(config, options, options, options);
         options.setWalDir(walPath);
 
         this.sstFileManager = new SstFileManager(Env.getDefault());
@@ -93,8 +90,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     public RocksDBStdSessions(HugeConfig config, String dataPath,
                               String walPath, String database, String store,
                               List<String> cfNames) throws RocksDBException {
-        super(database, store);
-        this.conf = config;
+        super(config, database, store);
 
         // Old CFs should always be opened
         Set<String> mergedCFs = this.mergeOldCFs(dataPath, cfNames);
@@ -105,13 +101,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         for (String cf : cfs) {
             ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
             ColumnFamilyOptions options = cfd.getOptions();
-            RocksDBStdSessions.initOptions(this.conf, null, options, options);
+            RocksDBStdSessions.initOptions(config, null, options, options);
             cfds.add(cfd);
         }
 
         // Init DB options
         DBOptions options = new DBOptions();
-        RocksDBStdSessions.initOptions(this.conf, options, null, null);
+        RocksDBStdSessions.initOptions(config, options, null, null);
         options.setWalDir(walPath);
 
         this.sstFileManager = new SstFileManager(Env.getDefault());
@@ -132,7 +128,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public void open(HugeConfig config) throws Exception {
+    public void open() throws Exception {
         // pass
     }
 
@@ -157,7 +153,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         // Should we use options.setCreateMissingColumnFamilies() to create CF
         ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(table));
         ColumnFamilyOptions options = cfd.getOptions();
-        initOptions(this.conf, null, options, options);
+        initOptions(this.config(), null, options, options);
         this.cfs.put(table, this.rocksdb.createColumnFamily(cfd));
 
         ingestExternalFile();
@@ -194,7 +190,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     protected final Session newSession() {
         E.checkState(this.rocksdb.isOwningHandle(),
                      "RocksDB has not been initialized");
-        return new StdSession(this.conf);
+        return new StdSession(this.config());
     }
 
     @Override
@@ -235,7 +231,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     private void ingestExternalFile() throws RocksDBException {
-        String directory = this.conf.get(RocksDBOptions.SST_PATH);
+        String directory = this.config().get(RocksDBOptions.SST_PATH);
         if (directory == null || directory.isEmpty()) {
             return;
         }

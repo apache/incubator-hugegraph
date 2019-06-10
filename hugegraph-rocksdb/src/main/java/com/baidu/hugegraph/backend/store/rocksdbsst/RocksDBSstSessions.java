@@ -46,15 +46,13 @@ import com.baidu.hugegraph.util.E;
 
 public class RocksDBSstSessions extends RocksDBSessions {
 
-    private final HugeConfig conf;
     private final String dataPath;
     private final Map<String, SstFileWriter> tables;
 
-    public RocksDBSstSessions(HugeConfig conf, String dataPath,
+    public RocksDBSstSessions(HugeConfig config, String dataPath,
                               String database, String store) {
-        super(database, store);
+        super(config, database, store);
 
-        this.conf = conf;
         this.dataPath = dataPath;
         this.tables = new ConcurrentHashMap<>();
 
@@ -74,7 +72,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public void open(HugeConfig config) throws Exception {
+    public void open() throws Exception {
         // pass
     }
 
@@ -92,7 +90,8 @@ public class RocksDBSstSessions extends RocksDBSessions {
     public void createTable(String table) throws RocksDBException {
         EnvOptions env = new EnvOptions();
         Options options = new Options();
-        RocksDBStdSessions.initOptions(this.conf, options, options, options);
+        RocksDBStdSessions.initOptions(this.config(), options,
+                                       options, options);
         // NOTE: unset merge op due to SIGSEGV when cf.setMergeOperatorName()
         options.setMergeOperatorName("not-exist-merge-op");
         SstFileWriter sst = new SstFileWriter(env, options);

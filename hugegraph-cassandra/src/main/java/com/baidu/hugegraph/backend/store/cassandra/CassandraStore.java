@@ -61,11 +61,10 @@ public abstract class CassandraStore
     private final String keyspace;
 
     private final BackendStoreProvider provider;
-
-    private final CassandraSessionPool sessions;
     // TODO: move to parent class
     private final Map<HugeType, CassandraTable> tables;
 
+    private volatile CassandraSessionPool sessions;
     private HugeConfig conf;
 
     public CassandraStore(final BackendStoreProvider provider,
@@ -77,10 +76,9 @@ public abstract class CassandraStore
 
         this.keyspace = keyspace;
         this.store = store;
-
-        this.sessions = new CassandraSessionPool(keyspace, store);
         this.tables = new ConcurrentHashMap<>();
 
+        this.sessions = null;
         this.conf = null;
 
         this.registerMetaHandlers();
@@ -116,8 +114,17 @@ public abstract class CassandraStore
     @Override
     public void open(HugeConfig config) {
         LOG.debug("Store open: {}", this.store);
-
         E.checkNotNull(config, "config");
+
+        if (this.sessions == null) {
+            synchronized(this) {
+                if (this.sessions == null) {
+                    this.sessions = new CassandraSessionPool(config,
+                                                             this.keyspace,
+                                                             this.store);
+                }
+            }
+        }
 
         if (this.sessions.opened()) {
             // TODO: maybe we should throw an exception here instead of ignore
@@ -128,7 +135,7 @@ public abstract class CassandraStore
         this.conf = config;
 
         // Init cluster
-        this.sessions.open(config);
+        this.sessions.open();
 
         // Init a session for current thread
         try {

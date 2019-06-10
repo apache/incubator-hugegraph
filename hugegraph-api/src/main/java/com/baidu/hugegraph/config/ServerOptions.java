@@ -52,7 +52,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "restserver.max_worker_threads",
                     "The maxmium worker threads of rest server.",
-                    positiveInt(),
+                    rangeInt(2, Integer.MAX_VALUE),
                     2 * Runtime.getRuntime().availableProcessors()
             );
 

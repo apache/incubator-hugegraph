@@ -79,8 +79,8 @@ public class HbaseSessions extends BackendSessionPool {
     private final String namespace;
     private Connection hbase;
 
-    public HbaseSessions(String namespace, String store) {
-        super(namespace + "/" + store);
+    public HbaseSessions(HugeConfig config, String namespace, String store) {
+        super(config, namespace + "/" + store);
         this.namespace = namespace;
     }
 
@@ -91,20 +91,21 @@ public class HbaseSessions extends BackendSessionPool {
     }
 
     @Override
-    public synchronized void open(HugeConfig conf) throws IOException {
-        String hosts = conf.get(HbaseOptions.HBASE_HOSTS);
-        int port = conf.get(HbaseOptions.HBASE_PORT);
-        String znodeParent = conf.get(HbaseOptions.HBASE_ZNODE_PARENT);
+    public synchronized void open() throws IOException {
+        HugeConfig config = this.config();
+        String hosts = config.get(HbaseOptions.HBASE_HOSTS);
+        int port = config.get(HbaseOptions.HBASE_PORT);
+        String znodeParent = config.get(HbaseOptions.HBASE_ZNODE_PARENT);
 
-        Configuration config = HBaseConfiguration.create();
-        config.set(HConstants.ZOOKEEPER_QUORUM, hosts);
-        config.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
-        config.set(HConstants.ZOOKEEPER_ZNODE_PARENT, znodeParent);
+        Configuration hConfig = HBaseConfiguration.create();
+        hConfig.set(HConstants.ZOOKEEPER_QUORUM, hosts);
+        hConfig.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
+        hConfig.set(HConstants.ZOOKEEPER_ZNODE_PARENT, znodeParent);
         // Set hbase.hconnection.threads.max 64 to avoid OOM(default value: 256)
-        config.setInt("hbase.hconnection.threads.max",
-                      conf.get(HbaseOptions.HBASE_THREADS_MAX));
+        hConfig.setInt("hbase.hconnection.threads.max",
+                       config.get(HbaseOptions.HBASE_THREADS_MAX));
 
-        this.hbase = ConnectionFactory.createConnection(config);
+        this.hbase = ConnectionFactory.createConnection(hConfig);
     }
 
     @Override
