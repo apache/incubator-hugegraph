@@ -116,7 +116,6 @@ public class VertexAPI extends BatchAPI {
     }
 
     /**
-     * TODO: Adapter for param("createIfNotExist") or delete it?
      * Batch update steps like:
      * 1. Get all newVertices' ID & combine first
      * 2. Get all oldVertices & update
@@ -131,7 +130,7 @@ public class VertexAPI extends BatchAPI {
     public String update(@Context HugeConfig config,
                          @Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         VertexRequest req) {
+                         BatchVertexRequest req) {
         LOG.debug("Graph [{}] update vertices: {}", graph, req.jsonVertices);
         checkUpdatingBody(req.jsonVertices);
         checkBatchSize(config, req.jsonVertices);
@@ -340,7 +339,7 @@ public class VertexAPI extends BatchAPI {
         }
     }
 
-    private static class VertexRequest {
+    private static class BatchVertexRequest {
 
         @JsonProperty("vertices")
         public List<JsonVertex> jsonVertices;
@@ -351,7 +350,7 @@ public class VertexAPI extends BatchAPI {
 
         @Override
         public String toString() {
-            return String.format("VertexRequest{jsonVertices=%s," +
+            return String.format("BatchVertexRequest{jsonVertices=%s," +
                                  "updateStrategies=%s,createIfNotExist=%s}",
                                  this.jsonVertices, this.updateStrategies,
                                  this.createIfNotExist);

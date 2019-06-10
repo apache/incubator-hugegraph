@@ -160,7 +160,6 @@ public class EdgeAPI extends BatchAPI {
     }
 
     /**
-     * TODO: Adapter for createIfNotExist or del it.
      * Batch update steps are same like vertices
      **/
     @PUT
@@ -172,7 +171,7 @@ public class EdgeAPI extends BatchAPI {
     public String update(@Context HugeConfig config,
                          @Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         EdgeRequest req) {
+                         BatchEdgeRequest req) {
         LOG.debug("Graph [{}] update edges: {}", graph, req.jsonEdges);
         checkUpdatingBody(req.jsonEdges);
         checkBatchSize(config, req.jsonEdges);
@@ -427,7 +426,7 @@ public class EdgeAPI extends BatchAPI {
         return edgeId;
     }
 
-    protected static class EdgeRequest {
+    protected static class BatchEdgeRequest {
 
         @JsonProperty("edges")
         public List<JsonEdge> jsonEdges;
@@ -440,7 +439,7 @@ public class EdgeAPI extends BatchAPI {
 
         @Override
         public String toString() {
-            return String.format("EdgeRequest{jsonEdges=%s," +
+            return String.format("BatchEdgeRequest{jsonEdges=%s," +
                                  "updateStrategies=%s," +
                                  "checkVertex=%s,createIfNotExist=%s}",
                                  this.jsonEdges, this.updateStrategies,

@@ -104,16 +104,19 @@ public class BatchAPI extends API {
     protected void updateExistElement(JsonElement oldElement,
                                       JsonElement newElement,
                                       Map<String, UpdateStrategy> strategies) {
-        if (oldElement != null && newElement != null) {
-            for (Map.Entry<String, UpdateStrategy> kv : strategies.entrySet()) {
-                String key = kv.getKey();
-                UpdateStrategy updateStrategy = kv.getValue();
-                if (oldElement.properties.get(key) != null) {
-                    Object value = updateStrategy.checkAndUpdateProperty(
-                                   oldElement.properties.get(key),
-                                   newElement.properties.get(key));
-                    newElement.properties.put(key, value);
-                }
+        if (oldElement == null) {
+            return;
+        }
+        E.checkArgument(newElement != null, "The json element cannot be null");
+
+        for (Map.Entry<String, UpdateStrategy> kv : strategies.entrySet()) {
+            String key = kv.getKey();
+            UpdateStrategy updateStrategy = kv.getValue();
+            if (oldElement.properties.get(key) != null) {
+                Object value = updateStrategy.checkAndUpdateProperty(
+                               oldElement.properties.get(key),
+                               newElement.properties.get(key));
+                newElement.properties.put(key, value);
             }
         }
     }
@@ -122,8 +125,11 @@ public class BatchAPI extends API {
                                       Element oldElement,
                                       JsonElement newElement,
                                       Map<String, UpdateStrategy> strategies) {
-        E.checkArgument(oldElement != null && newElement != null,
-                        "Both of the elements cannot be null");
+        if (oldElement == null) {
+            return;
+        }
+        E.checkArgument(newElement != null, "The json element cannot be null");
+
         for (Map.Entry<String, UpdateStrategy> kv : strategies.entrySet()) {
             String key = kv.getKey();
             UpdateStrategy updateStrategy = kv.getValue();
