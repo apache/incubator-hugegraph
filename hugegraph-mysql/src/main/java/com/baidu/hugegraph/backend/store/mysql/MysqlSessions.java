@@ -315,6 +315,14 @@ public class MysqlSessions extends BackendSessionPool {
             this.conn.setAutoCommit(true);
         }
 
+        public void endAndLog() {
+            try {
+                this.conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                LOG.warn("Failed to set connection to auto-commit status", e);
+            }
+        }
+
         @Override
         public Integer commit() {
             int updated = 0;
@@ -327,9 +335,7 @@ public class MysqlSessions extends BackendSessionPool {
             } catch (SQLException e) {
                 throw new BackendException("Failed to commit", e);
             }
-            try {
-                this.end();
-            } catch (SQLException ignored) {}
+            this.endAndLog();
             return updated;
         }
 
@@ -341,9 +347,7 @@ public class MysqlSessions extends BackendSessionPool {
             } catch (SQLException e) {
                 throw new BackendException("Failed to rollback", e);
             } finally {
-                try {
-                    this.end();
-                } catch (SQLException ignored) {}
+                this.endAndLog();
             }
         }
 
@@ -358,6 +362,13 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         public boolean execute(String sql) throws SQLException {
+            /*
+             * commit() or rollback() failed to set connection to auto-commit
+             * status in prior transaction. Manually set to auto-commit here.
+             */
+            if (this.conn.getAutoCommit()) {
+                this.end();
+            }
             return this.conn.createStatement().execute(sql);
         }
 
