@@ -43,6 +43,7 @@ public class MultiGraphsTest {
 
     private static final String NAME48 =
             "g12345678901234567890123456789012345678901234567";
+
     @Test
     public void testCreateMultiGraphs() {
         List<HugeGraph> graphs = openGraphs("g1", "g_2", NAME48);
@@ -123,12 +124,15 @@ public class MultiGraphsTest {
         HugeGraph g1 = openGraphWithBackend("g1", "memory", "text");
         HugeGraph g2 = openGraphWithBackend("g2", "rocksdb", "binary");
         HugeGraph graph = openGraphs("graph").get(0);
+
         g1.initBackend();
         g2.initBackend();
         graph.initBackend();
+
         g1.clearBackend();
         g2.clearBackend();
         graph.clearBackend();
+
         destoryGraphs(ImmutableList.of(g1, g2, graph));
     }
 

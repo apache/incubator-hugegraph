@@ -62,6 +62,10 @@ public class PostgresqlSerializer extends MysqlSerializer {
         if (value.equals("\u0000")) {
             return "\'\'";
         }
+        return escapeStringForPg(value);
+    }
+
+    public static String escapeStringForPg(String value) {
         StringBuilder builder = new StringBuilder(8 + value.length());
         builder.append('\'');
         try {

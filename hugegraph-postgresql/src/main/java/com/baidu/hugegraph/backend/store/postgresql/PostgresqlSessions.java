@@ -94,12 +94,12 @@ public class PostgresqlSessions extends MysqlSessions {
     @Override
     protected String buildDropDatabase(String database) {
         return String.format(
-               "REVOKE CONNECT ON DATABASE %s FROM public;" +
+                "REVOKE CONNECT ON DATABASE %s FROM public;" +
                "SELECT pg_terminate_backend(pg_stat_activity.pid) " +
                "  FROM pg_stat_activity " +
-               "  WHERE pg_stat_activity.datname = '%s';" +
-               "DROP DATABASE IF EXISTS %s;",
-               database, database, database);
+               "  WHERE pg_stat_activity.datname = %s;" +
+               "DROP DATABASE IF EXISTS %s;", database,
+               PostgresqlSerializer.escapeStringForPg(database), database);
     }
 
     @Override
