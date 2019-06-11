@@ -39,8 +39,11 @@ public class Whitebox {
             target = getInternalState(target, fieldName.substring(0, sep));
             fieldName = fieldName.substring(sep + 1);
         }
+
+        Class<?> c = target instanceof Class<?> ?
+                     (Class<?>) target : target.getClass();
         try {
-            Field f = getFieldFromHierarchy(target.getClass(), fieldName);
+            Field f = getFieldFromHierarchy(c, fieldName);
             f.setAccessible(true);
             f.set(target, value);
         } catch (Exception e) {
@@ -59,7 +62,9 @@ public class Whitebox {
             field = fieldName.substring(sep + 1);
             return getInternalState(value, field);
         }
-        Class<?> c = target.getClass();
+
+        Class<?> c = target instanceof Class<?> ?
+                     (Class<?>) target : target.getClass();
         try {
             Field f = getFieldFromHierarchy(c, fieldName);
             f.setAccessible(true);

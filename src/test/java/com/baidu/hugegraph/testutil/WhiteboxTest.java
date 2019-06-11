@@ -24,6 +24,34 @@ import org.junit.Test;
 public class WhiteboxTest {
 
     @Test
+    public void testGetStaticInternalState() {
+        Assert.assertEquals(1, Whitebox.getInternalState(Test1.class,
+                                                         "staticValue"));
+        Test1 test1 = newTest();
+        Assert.assertEquals(1, Whitebox.getInternalState(test1, "staticValue"));
+        Assert.assertEquals(2, Whitebox.getInternalState(test1,
+                                                         "test2.staticValue"));
+    }
+
+    @Test
+    public void testSetStaticInternalState() {
+        try {
+            Whitebox.setInternalState(Test1.class, "staticValue", 11);
+            Assert.assertEquals(11, Test1.staticValue);
+
+            Test1 test1 = newTest();
+            Whitebox.setInternalState(test1, "staticValue", 111);
+            Assert.assertEquals(111, Test1.staticValue);
+
+            Whitebox.setInternalState(test1, "test2.staticValue", 22);
+            Assert.assertEquals(22, Test2.staticValue);
+        } finally {
+            Whitebox.setInternalState(Test1.class, "staticValue", 1);
+            Whitebox.setInternalState(Test2.class, "staticValue", 2);
+        }
+    }
+
+    @Test
     public void testGetInternalState() {
         Test1 test1 = newTest();
         Assert.assertEquals(1, Whitebox.getInternalState(test1, "ivalue"));
@@ -113,6 +141,7 @@ public class WhiteboxTest {
     @SuppressWarnings("unused")
     private static class Test1 {
 
+        private static int staticValue = 1;
         private int ivalue = 1;
         private Test2 test2;
 
@@ -136,6 +165,7 @@ public class WhiteboxTest {
     @SuppressWarnings("unused")
     private static class Test2 {
 
+        private static int staticValue = 2;
         private final float fvalue = 2;
         private Test3 test3;
 
