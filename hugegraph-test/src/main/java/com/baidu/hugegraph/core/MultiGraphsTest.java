@@ -56,13 +56,16 @@ public class MultiGraphsTest {
 
     @Test
     public void testCreateGraphsWithInvalidNames() {
-        Assert.assertThrows(RuntimeException.class,
-                            () -> openGraphs(""));
         List<String> invalidNames = ImmutableList.of(
-                                    "123", " g", "g 1", " .", ". .",
-                                    "@$%^&*()_+`-={}|[]\"<?;'~,./\\",
-                                    " ~", "g~", "g'", "_1", "_a",
-                                    "1a", NAME48 + "8");
+                                    "", " ", " g", "g 1", " .", ". .",
+                                    "@", "$", "%", "^", "&", "*", "(", ")",
+                                    "_", "+", "`", "-", "=", "{", "}", "|",
+                                    "[", "]", "\"", "<", "?", ";", "'", "~",
+                                    ",", ".", "/", "\\",
+                                    "~g", "g~", "g'",
+                                    "_1", "_a",
+                                    "1a", "123",
+                                    NAME48 + "8");
         for (String name : invalidNames) {
             Assert.assertThrows(RuntimeException.class, () -> openGraphs(name));
         }
