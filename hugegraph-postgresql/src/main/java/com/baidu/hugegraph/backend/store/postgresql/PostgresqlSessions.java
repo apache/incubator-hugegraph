@@ -24,9 +24,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.postgresql.core.Utils;
 import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore;
@@ -94,17 +96,29 @@ public class PostgresqlSessions extends MysqlSessions {
     @Override
     protected String buildDropDatabase(String database) {
         return String.format(
-                "REVOKE CONNECT ON DATABASE %s FROM public;" +
+               "REVOKE CONNECT ON DATABASE %s FROM public;" +
                "SELECT pg_terminate_backend(pg_stat_activity.pid) " +
                "  FROM pg_stat_activity " +
                "  WHERE pg_stat_activity.datname = %s;" +
-               "DROP DATABASE IF EXISTS %s;", database,
-               PostgresqlSerializer.escapeStringForPg(database), database);
+               "DROP DATABASE IF EXISTS %s;",
+               database, escapeString(database), database);
     }
 
     @Override
     protected URIBuilder newConnectionURIBuilder() {
         // Suppress error log when database does not exist
         return new URIBuilder().addParameter("loggerLevel", "OFF");
+    }
+
+    public static String escapeString(String value) {
+        StringBuilder builder = new StringBuilder(8 + value.length());
+        builder.append('\'');
+        try {
+            Utils.escapeLiteral(builder, value, false);
+        } catch (SQLException e) {
+            throw new HugeException("Failed to escape '%s'", e, value);
+        }
+        builder.append('\'');
+        return builder.toString();
     }
 }

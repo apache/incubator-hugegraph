@@ -46,7 +46,7 @@ public class MultiGraphsTest {
 
     @Test
     public void testCreateMultiGraphs() {
-        List<HugeGraph> graphs = openGraphs("g1", "g_2", NAME48);
+        List<HugeGraph> graphs = openGraphs("g_1", NAME48);
         for (HugeGraph graph : graphs) {
             graph.initBackend();
             graph.clearBackend();
@@ -124,7 +124,6 @@ public class MultiGraphsTest {
         HugeGraph g1 = openGraphWithBackend("g1", "memory", "text");
         HugeGraph g2 = openGraphWithBackend("g2", "rocksdb", "binary");
         HugeGraph graph = openGraphs("graph").get(0);
-
         g1.initBackend();
         g2.initBackend();
         graph.initBackend();
