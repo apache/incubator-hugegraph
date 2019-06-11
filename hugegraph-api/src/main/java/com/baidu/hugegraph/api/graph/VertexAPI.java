@@ -134,6 +134,9 @@ public class VertexAPI extends BatchAPI {
         LOG.debug("Graph [{}] update vertices: {}", graph, req.jsonVertices);
         checkUpdatingBody(req.jsonVertices);
         checkBatchSize(config, req.jsonVertices);
+        // Not support createIfNotExist equals false now
+        E.checkArgument(req.createIfNotExist == false,
+                        "Param 'create_if_not_exist' is not supported now");
 
         HugeGraph g = graph(manager, graph);
         Map<Id, JsonVertex> map = new HashMap<>(req.jsonVertices.size());
