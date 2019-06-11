@@ -175,6 +175,9 @@ public class EdgeAPI extends BatchAPI {
         LOG.debug("Graph [{}] update edges: {}", graph, req.jsonEdges);
         checkUpdatingBody(req.jsonEdges);
         checkBatchSize(config, req.jsonEdges);
+        // Not support createIfNotExist equals false now
+        E.checkArgument(req.createIfNotExist == false,
+                        "Param 'create_if_not_exist' is not supported now");
 
         HugeGraph g = graph(manager, graph);
         Map<Id, JsonEdge> map = new HashMap<>(req.jsonEdges.size());
