@@ -58,7 +58,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     private final BackendStoreProvider provider;
     private final Map<HugeType, HbaseTable> tables;
 
-    private volatile HbaseSessions sessions;
+    private HbaseSessions sessions;
 
     public HbaseStore(final BackendStoreProvider provider,
                       final String namespace, final String store) {
@@ -120,17 +120,11 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void open(HugeConfig config) {
+    public synchronized void open(HugeConfig config) {
         E.checkNotNull(config, "config");
 
         if (this.sessions == null) {
-            synchronized(this) {
-                if (this.sessions == null) {
-                    this.sessions = new HbaseSessions(config,
-                                                      this.namespace,
-                                                      this.store);
-                }
-            }
+            this.sessions = new HbaseSessions(config, this.namespace, this.store);
         }
 
         if (this.sessions.opened()) {

@@ -118,8 +118,10 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Long> CONNECTION_DETECT_INTERVAL =
             new ConfigOption<>(
                     "store.connection_detect_interval",
-                    "The interval for detecting connection, if connection's " +
-                    "idle time exceed this interval, detect it before using.",
+                    "The interval in seconds for detecting connections, " +
+                    "if the idle time of a connection exceeds this value, " +
+                    "detect it and reconnect if needed before using, " +
+                    "value 0 means detecting every time.",
                     rangeInt(0L, Long.MAX_VALUE),
                     600L
             );
