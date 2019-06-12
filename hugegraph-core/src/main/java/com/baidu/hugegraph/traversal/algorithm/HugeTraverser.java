@@ -87,7 +87,7 @@ public class HugeTraverser {
                         long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
-        checkPositive(depth, "k-out depth");
+        checkPositive(depth, "k-out max_depth");
         checkDegree(degree);
         checkCapacity(capacity);
         checkLimit(limit);
@@ -143,7 +143,7 @@ public class HugeTraverser {
                              long degree, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
-        checkPositive(depth, "k-neighbor depth");
+        checkPositive(depth, "k-neighbor max_depth");
         checkDegree(degree);
         checkLimit(limit);
 
