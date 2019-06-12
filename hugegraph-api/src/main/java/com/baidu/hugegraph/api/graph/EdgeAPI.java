@@ -132,9 +132,9 @@ public class EdgeAPI extends BatchAPI {
                                List<JsonEdge> jsonEdges) {
         LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
         checkCreatingBody(jsonEdges);
+        checkBatchSize(config, jsonEdges);
 
         HugeGraph g = graph(manager, graph);
-        checkBatchSize(config, jsonEdges);
 
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
@@ -172,12 +172,10 @@ public class EdgeAPI extends BatchAPI {
                          @Context GraphManager manager,
                          @PathParam("graph") String graph,
                          BatchEdgeRequest req) {
+        BatchEdgeRequest.checkUpdate(req);
         LOG.debug("Graph [{}] update edges: {}", graph, req.jsonEdges);
         checkUpdatingBody(req.jsonEdges);
         checkBatchSize(config, req.jsonEdges);
-        // Not support createIfNotExist equals false now
-        E.checkArgument(req.createIfNotExist == false,
-                        "Param 'create_if_not_exist' is not supported now");
 
         HugeGraph g = graph(manager, graph);
         Map<Id, JsonEdge> map = new HashMap<>(req.jsonEdges.size());
@@ -436,9 +434,22 @@ public class EdgeAPI extends BatchAPI {
         @JsonProperty("update_strategies")
         public Map<String, UpdateStrategy> updateStrategies;
         @JsonProperty("check_vertex")
-        public boolean checkVertex = true;
+        public boolean checkVertex = false;
         @JsonProperty("create_if_not_exist")
         public boolean createIfNotExist = true;
+
+        private static void checkUpdate(BatchEdgeRequest req) {
+            E.checkArgumentNotNull(req, "BatchEdgeRequest cannot be null");
+            E.checkArgumentNotNull(req.jsonEdges,
+                                   "Parameter 'edges' cannot be null");
+            E.checkArgument(req.updateStrategies != null &&
+                            !req.updateStrategies.isEmpty(),
+                            "Parameter 'update_strategies' cannot be empty");
+
+            // Not support createIfNotExist equals false now
+            E.checkArgument(req.createIfNotExist == false, "Parameter " +
+                            "'create_if_not_exist' is not supported now");
+        }
 
         @Override
         public String toString() {

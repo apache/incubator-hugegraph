@@ -102,9 +102,9 @@ public class VertexAPI extends BatchAPI {
                                List<JsonVertex> jsonVertices) {
         LOG.debug("Graph [{}] create vertices: {}", graph, jsonVertices);
         checkCreatingBody(jsonVertices);
+        checkBatchSize(config, jsonVertices);
 
         HugeGraph g = graph(manager, graph);
-        checkBatchSize(config, jsonVertices);
 
         return this.commit(config, g, jsonVertices.size(), () -> {
             List<String> ids = new ArrayList<>(jsonVertices.size());
@@ -131,12 +131,10 @@ public class VertexAPI extends BatchAPI {
                          @Context GraphManager manager,
                          @PathParam("graph") String graph,
                          BatchVertexRequest req) {
+        BatchVertexRequest.checkUpdate(req);
         LOG.debug("Graph [{}] update vertices: {}", graph, req.jsonVertices);
         checkUpdatingBody(req.jsonVertices);
         checkBatchSize(config, req.jsonVertices);
-        // Not support createIfNotExist equals false now
-        E.checkArgument(req.createIfNotExist == false,
-                        "Param 'create_if_not_exist' is not supported now");
 
         HugeGraph g = graph(manager, graph);
         Map<Id, JsonVertex> map = new HashMap<>(req.jsonVertices.size());
@@ -350,6 +348,19 @@ public class VertexAPI extends BatchAPI {
         public Map<String, UpdateStrategy> updateStrategies;
         @JsonProperty("create_if_not_exist")
         public boolean createIfNotExist = true;
+
+        private static void checkUpdate(BatchVertexRequest req) {
+            E.checkArgumentNotNull(req, "BatchVertexRequest cannot be null");
+            E.checkArgumentNotNull(req.jsonVertices,
+                                   "Parameter 'vertices' cannot be null");
+            E.checkArgument(req.updateStrategies != null &&
+                            !req.updateStrategies.isEmpty(),
+                            "Parameter 'update_strategies' cannot be empty");
+
+            // Not support createIfNotExist equals false now
+            E.checkArgument(req.createIfNotExist == false, "Parameter " +
+                            "'create_if_not_exist' is not supported now");
+        }
 
         @Override
         public String toString() {
