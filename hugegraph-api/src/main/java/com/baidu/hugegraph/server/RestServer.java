@@ -79,8 +79,8 @@ public class RestServer {
         // Option keep_alive
         int idleTimeout = this.conf.get(ServerOptions.CONN_IDLE_TIMEOUT);
         int maxRequests = this.conf.get(ServerOptions.CONN_MAX_REQUESTS);
-        listener.getKeepAlive().setMaxRequestsCount(maxRequests);
         listener.getKeepAlive().setIdleTimeoutInSeconds(idleTimeout);
+        listener.getKeepAlive().setMaxRequestsCount(maxRequests);
         return server;
     }
 
