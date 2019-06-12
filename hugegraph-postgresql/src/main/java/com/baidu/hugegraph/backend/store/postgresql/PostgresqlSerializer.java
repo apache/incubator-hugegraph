@@ -19,12 +19,8 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
-import java.sql.SQLException;
-
 import org.apache.logging.log4j.util.Strings;
-import org.postgresql.core.Utils;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.serializer.TableBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -62,14 +58,6 @@ public class PostgresqlSerializer extends MysqlSerializer {
         if (value.equals("\u0000")) {
             return "\'\'";
         }
-        StringBuilder builder = new StringBuilder(8 + value.length());
-        builder.append('\'');
-        try {
-            Utils.escapeLiteral(builder, value, false);
-        } catch (SQLException e) {
-            throw new HugeException("Failed to escape '%s'", e, value);
-        }
-        builder.append('\'');
-        return builder.toString();
+        return PostgresqlSessions.escapeString(value);
     }
 }

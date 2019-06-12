@@ -57,6 +57,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
+import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -119,7 +120,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
     }
 
     private void initBlackList() throws IOException {
-        String filter = getConf().getString(FILTER);
+        String filter = Utils.getConf().getString(FILTER);
         if (filter == null || filter.isEmpty()) {
             filter = DEFAULT_FILTER;
         }
@@ -157,25 +158,6 @@ public class TestGraphProvider extends AbstractGraphProvider {
         }
     }
 
-    private static PropertiesConfiguration getConf() {
-        String confFile = TestGraphProvider.class.getClassLoader()
-                                           .getResource(CONF_PATH).getPath();
-        File file = new File(confFile);
-        E.checkArgument(
-                file.exists() && file.isFile() && file.canRead(),
-                "Need to specify a readable config file rather than: %s",
-                file.toString());
-
-        PropertiesConfiguration config;
-        try {
-            config = new PropertiesConfiguration(file);
-        } catch (ConfigurationException e) {
-            throw new HugeException("Unable to load config file: %s",
-                                    e, confFile);
-        }
-        return config;
-    }
-
     @Override
     public Map<String, Object> getBaseConfiguration(
                                String graphName,
@@ -195,7 +177,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         LOG.debug("Full name of test is: {}", testFullName);
         LOG.debug("Prefix of test is: {}", testFullName.substring(0, index));
         HashMap<String, Object> confMap = new HashMap<>();
-        PropertiesConfiguration config = getConf();
+        PropertiesConfiguration config = Utils.getConf();
         Iterator<String> keys = config.getKeys();
         while (keys.hasNext()) {
             String key = keys.next();
