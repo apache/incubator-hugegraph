@@ -92,6 +92,7 @@ public class HugeGraph implements GremlinGraph {
                                                            strategies);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOG.info("HugeGraph is shutting down");
             HugeGraph.shutdown(30L);
         }));
     }
