@@ -21,9 +21,15 @@ package com.baidu.hugegraph.backend.store.rocksdb;
 
 import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.inValues;
 import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
+import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
+
+import com.baidu.hugegraph.config.ConfigConvOption;
+import com.baidu.hugegraph.config.ConfigListConvOption;
 import com.baidu.hugegraph.config.ConfigListOption;
 import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.OptionHolder;
@@ -100,11 +106,12 @@ public class RocksDBOptions extends OptionHolder {
                     7
             );
 
-    public static final ConfigOption<String> COMPACTION_STYLE =
-            new ConfigOption<>(
+    public static final ConfigConvOption<CompactionStyle> COMPACTION_STYLE =
+            new ConfigConvOption<>(
                     "rocksdb.compaction_style",
                     "Set compaction style for RocksDB: LEVEL/UNIVERSAL/FIFO.",
                     allowValues("LEVEL", "UNIVERSAL", "FIFO"),
+                    CompactionStyle::valueOf,
                     "LEVEL"
             );
 
@@ -124,12 +131,25 @@ public class RocksDBOptions extends OptionHolder {
                     false
             );
 
-    public static final ConfigOption<String> COMPRESSION_TYPE =
-            new ConfigOption<>(
-                    "rocksdb.compression_type",
-                    "The compression algorithm of RocksDB: snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
-                    allowValues("snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
-                    "snappy"
+    public static final ConfigListConvOption<String, CompressionType> COMPRESSION_TYPES =
+            new ConfigListConvOption<>(
+                    "rocksdb.compression_types",
+                    "The compression algorithms for different levels of RocksDB, " +
+                    "allowed compressions are snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
+                    inValues("", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
+                    CompressionType::getCompressionType,
+                    String.class,
+                    "", "", "snappy", "snappy", "snappy", "snappy", "snappy"
+            );
+
+    public static final ConfigConvOption<CompressionType> BOTTOMMOST_COMPACTION_TYPE =
+            new ConfigConvOption<>(
+                    "rocksdb.bottommost_level_compression_type",
+                    "The compression algorithm for the bottommost level of RocksDB, " +
+                    "allowed compressions are snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
+                    allowValues("", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
+                    CompressionType::getCompressionType,
+                    ""
             );
 
     public static final ConfigOption<Integer> MAX_BG_COMPACTIONS =
@@ -205,6 +225,17 @@ public class RocksDBOptions extends OptionHolder {
                     0
             );
 
+
+    public static final ConfigConvOption<CompressionType> MEMTABLE_COMPRESSION_TYPE =
+            new ConfigConvOption<>(
+                    "rocksdb.memtable_compression_type",
+                    "The compression algorithm for write buffers of RocksDB, " +
+                    "allowed compressions are snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
+                    allowValues("", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
+                    CompressionType::getCompressionType,
+                    "snappy"
+            );
+
     public static final ConfigOption<Long> MAX_LEVEL1_BYTES =
             new ConfigOption<>(
                     "rocksdb.max_bytes_for_level_base",
@@ -265,7 +296,67 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> USE_DIRECT_READS_WRITES_FC =
             new ConfigOption<>(
                     "rocksdb.use_direct_io_for_flush_and_compaction",
-                    "Enable the OS to use direct reads and writes in flush and compaction.",
+                    "Enable the OS to use direct read/writes in flush and compaction.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Long> BLOCK_CACHE_CAPACITY =
+            new ConfigOption<>(
+                    "rocksdb.block_cache_capacity",
+                    "The amount of block cache in bytes that will be used by RocksDB, " +
+                    "0 means no block cache.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    8L * Bytes.MB
+            );
+
+    public static final ConfigOption<Boolean> PIN_L0_FILTER_AND_INDEX_IN_CACHE =
+            new ConfigOption<>(
+                    "rocksdb.pin_l0_filter_and_index_blocks_in_cache",
+                    "Indicating if we'd put index/filter blocks to the block cache.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> PUT_FILTER_AND_INDEX_IN_CACHE =
+            new ConfigOption<>(
+                    "rocksdb.cache_index_and_filter_blocks",
+                    "Indicating if we'd put index/filter blocks to the block cache.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Integer> BLOOM_FILTER_BITS_PER_KEY =
+            new ConfigOption<>(
+                    "rocksdb.bloom_filter_bits_per_key",
+                    "The bits per key in bloom filter, a good value is 10, " +
+                    "which yields a filter with ~ 1% false positive rate, " +
+                    "-1 means no bloom filter.",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    -1
+            );
+
+    public static final ConfigOption<Boolean> BLOOM_FILTER_MODE =
+            new ConfigOption<>(
+                    "rocksdb.bloom_filter_block_based_mode",
+                    "Use block based filter rather than full filter.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> BLOOM_FILTER_WHOLE_KEY =
+            new ConfigOption<>(
+                    "rocksdb.bloom_filter_whole_key_filtering",
+                    "True if place whole keys in the bloom filter, " +
+                    "else place the prefix of keys.",
+                    disallowEmpty(),
+                    true
+            );
+
+    public static final ConfigOption<Boolean> BLOOM_FILTERS_SKIP_LAST_LEVEL =
+            new ConfigOption<>(
+                    "rocksdb.optimize_filters_for_hits",
+                    "This flag allows us to not store filters for the last level.",
                     disallowEmpty(),
                     false
             );
