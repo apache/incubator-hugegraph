@@ -247,11 +247,13 @@ public final class LockUtil {
                 }
             }
             this.locks.lockReads(group, newLocks);
+            locked.addAll(newLocks);
         }
 
         // NOTE: when used in multi-threads, should add `synchronized`
         public void unlock() {
             this.locks.unlock();
+            this.table.clear();
         }
 
         private Set<Id> locksOfGroup(String group) {

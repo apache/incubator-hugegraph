@@ -34,6 +34,7 @@ import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.EdgeIdTest;
 import com.baidu.hugegraph.unit.core.JsonUtilTest;
+import com.baidu.hugegraph.unit.core.LocksTableTest;
 import com.baidu.hugegraph.unit.core.SerialEnumTest;
 import com.baidu.hugegraph.unit.core.StringUtilTest;
 import com.baidu.hugegraph.unit.core.VersionTest;
@@ -58,6 +59,7 @@ import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
     AnalyzerTest.class,
     JsonUtilTest.class,
     StringUtilTest.class,
+    LocksTableTest.class,
 
     RocksDBSessionsTest.class,
     RocksDBCountersTest.class
