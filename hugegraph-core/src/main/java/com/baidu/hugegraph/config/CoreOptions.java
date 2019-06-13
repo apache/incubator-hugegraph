@@ -19,11 +19,11 @@
 
 package com.baidu.hugegraph.config;
 
-import com.baidu.hugegraph.backend.query.Query;
-
 import static com.baidu.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
+
+import com.baidu.hugegraph.backend.query.Query;
 
 public class CoreOptions extends OptionHolder {
 
@@ -113,6 +113,17 @@ public class CoreOptions extends OptionHolder {
                     "such as when truncating or clearing the backend.",
                     rangeInt(0L, Long.MAX_VALUE),
                     10L
+            );
+
+    public static final ConfigOption<Long> CONNECTION_DETECT_INTERVAL =
+            new ConfigOption<>(
+                    "store.connection_detect_interval",
+                    "The interval in seconds for detecting connections, " +
+                    "if the idle time of a connection exceeds this value, " +
+                    "detect it and reconnect if needed before using, " +
+                    "value 0 means detecting every time.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    600L
             );
 
     public static final ConfigOption<String> VERTEX_DEFAULT_LABEL =

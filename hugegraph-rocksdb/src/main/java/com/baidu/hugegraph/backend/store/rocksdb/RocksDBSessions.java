@@ -26,11 +26,12 @@ import org.rocksdb.RocksDBException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
+import com.baidu.hugegraph.config.HugeConfig;
 
 public abstract class RocksDBSessions extends BackendSessionPool {
 
-    public RocksDBSessions(String database, String store) {
-        super(database + "/" + store);
+    public RocksDBSessions(HugeConfig config, String database, String store) {
+        super(config, database + "/" + store);
     }
 
     public abstract Set<String> openedTables();

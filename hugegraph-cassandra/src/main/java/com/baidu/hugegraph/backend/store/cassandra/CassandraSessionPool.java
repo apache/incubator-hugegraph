@@ -46,19 +46,21 @@ public class CassandraSessionPool extends BackendSessionPool {
     private Cluster cluster;
     private String keyspace;
 
-    public CassandraSessionPool(String keyspace, String store) {
-        super(keyspace + "/" + store);
+    public CassandraSessionPool(HugeConfig config, String keyspace,
+                                String store) {
+        super(config, keyspace + "/" + store);
         this.cluster = null;
         this.keyspace = keyspace;
     }
 
     @Override
-    public synchronized void open(HugeConfig config) {
+    public synchronized void open() {
         if (this.opened()) {
             throw new BackendException("Please close the old SessionPool " +
                                        "before opening a new one");
         }
 
+        HugeConfig config = this.config();
         // Contact options
         String hosts = config.get(CassandraOptions.CASSANDRA_HOST);
         int port = config.get(CassandraOptions.CASSANDRA_PORT);
