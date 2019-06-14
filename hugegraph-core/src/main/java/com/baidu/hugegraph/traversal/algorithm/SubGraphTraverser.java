@@ -136,6 +136,7 @@ public class SubGraphTraverser extends HugeTraverser {
             // Traversal vertices of previous level
             for (Map.Entry<Id, List<Node>> entry : this.sources.entrySet()) {
                 Id vid = entry.getKey();
+                // Record edgeList to determine if multiple edges exist
                 List<Edge> edgeList = IteratorUtils.list(edgesOfVertex(
                                       vid, direction, this.label, this.degree));
                 edges = edgeList.iterator();
@@ -161,7 +162,7 @@ public class SubGraphTraverser extends HugeTraverser {
                     neighborCount++;
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
-                    // Avoid dedup path
+                    // Avoid deduplicate path
                     if (currentNeighbors.contains(target)) {
                         continue;
                     }
