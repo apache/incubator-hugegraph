@@ -45,8 +45,8 @@ public class LocksTableTest extends BaseUnitTest {
 
     @BeforeClass
     public static void setup() {
-        LockManager.instance().create(GRAPH + "_" + "group");
-        LockManager.instance().create(GRAPH + "_" + "group1");
+        genLockGroup(GRAPH, "group");
+        genLockGroup(GRAPH, "group1");
     }
 
     @Before
@@ -56,8 +56,8 @@ public class LocksTableTest extends BaseUnitTest {
 
     @AfterClass
     public static void teardown() {
-        LockManager.instance().destroy(GRAPH + "_" + "group");
-        LockManager.instance().destroy(GRAPH + "_" + "group1");
+        destoryLockGroup(GRAPH, "group");
+        destoryLockGroup(GRAPH, "group1");
     }
 
     @Test
@@ -206,6 +206,8 @@ public class LocksTableTest extends BaseUnitTest {
             Assert.assertEquals(10000, lockList.size());
 
             locksTable.unlock();
+            Assert.assertEquals(0, table.size());
+            Assert.assertEquals(0, lockList.size());
         });
     }
 
@@ -232,6 +234,20 @@ public class LocksTableTest extends BaseUnitTest {
             List<Lock> lockList = Whitebox.getInternalState(locks, "lockList");
             Assert.assertEquals(1, lockList.size());
             locksTable.unlock();
+            Assert.assertEquals(0, table.size());
+            Assert.assertEquals(0, lockList.size());
         });
+    }
+
+    private static void genLockGroup(String graph, String group) {
+        LockManager.instance().create(groupName(graph, group));
+    }
+
+    private static void destoryLockGroup(String graph, String group) {
+        LockManager.instance().destroy(groupName(graph, group));
+    }
+
+    private static String groupName(String graph, String group) {
+        return String.join("_", graph, group);
     }
 }
