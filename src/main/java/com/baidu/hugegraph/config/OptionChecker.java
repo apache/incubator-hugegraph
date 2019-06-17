@@ -21,6 +21,7 @@ package com.baidu.hugegraph.config;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -58,6 +59,16 @@ public final class OptionChecker {
             @Override
             public boolean apply(@Nullable O o) {
                 return o != null && Arrays.asList(values).contains(o);
+            }
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <O> Predicate<List<O>> inValues(O... values) {
+        return new Predicate<List<O>>() {
+            @Override
+            public boolean apply(@Nullable List<O> o) {
+                return o != null && Arrays.asList(values).containsAll(o);
             }
         };
     }

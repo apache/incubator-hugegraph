@@ -32,7 +32,7 @@ public class OptionHolder {
 
     private static final Logger LOG = Log.logger(HugeConfig.class);
 
-    protected Map<String, ConfigOption<?>> options;
+    protected Map<String, TypedOption<?, ?>> options;
 
     public OptionHolder() {
         this.options = new HashMap<>();
@@ -41,7 +41,7 @@ public class OptionHolder {
     protected void registerOptions() {
         for (Field field : this.getClass().getFields()) {
             try {
-                ConfigOption<?> option = (ConfigOption<?>) field.get(this);
+                TypedOption<?, ?> option = (TypedOption<?, ?>) field.get(this);
                 // Fields of subclass first, don't overwrite by superclass
                 this.options.putIfAbsent(option.name(), option);
             } catch (Exception e) {
@@ -52,7 +52,7 @@ public class OptionHolder {
         }
     }
 
-    public Map<String, ConfigOption<?>> options() {
+    public Map<String, TypedOption<?, ?>> options() {
         return Collections.unmodifiableMap(this.options);
     }
 }

@@ -34,7 +34,7 @@ public final class OptionSpace {
     private static final Logger LOG = Log.logger(OptionSpace.class);
 
     private static final Map<String, Class<? extends OptionHolder>> holders;
-    private static final Map<String, ConfigOption<?>> options;
+    private static final Map<String, TypedOption<?, ?>> options;
     private static final String INSTANCE_METHOD = "instance";
 
     static {
@@ -105,7 +105,7 @@ public final class OptionSpace {
         return options.containsKey(key);
     }
 
-    public static ConfigOption<?> get(String key) {
+    public static TypedOption<?, ?> get(String key) {
         return options.get(key);
     }
 }

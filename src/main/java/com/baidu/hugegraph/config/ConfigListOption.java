@@ -22,6 +22,7 @@ package com.baidu.hugegraph.config;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import com.baidu.hugegraph.util.E;
 import com.google.common.base.Predicate;
@@ -32,30 +33,37 @@ public class ConfigListOption<T> extends ConfigOption<List<T>> {
 
     @SuppressWarnings("unchecked")
     public ConfigListOption(String name, String desc,
-                            Predicate<List<T>> func, T value) {
-        this(name, false, desc, func, (Class<T>) value.getClass(), value);
+                            Predicate<List<T>> pred, T value) {
+        this(name, desc, pred, (Class<T>) value.getClass(), value);
     }
 
     @SuppressWarnings("unchecked")
-    public ConfigListOption(String name, boolean required, String desc,
-                            Predicate<List<T>> func, Class<T> clazz,
+    public ConfigListOption(String name, String desc,
+                            Predicate<List<T>> pred, Class<T> clazz,
                             T... values) {
-        this(name, required, desc, func, clazz, Arrays.asList(values));
+        this(name, false, desc, pred, clazz, Arrays.asList(values));
     }
 
     @SuppressWarnings("unchecked")
     public ConfigListOption(String name, boolean required, String desc,
-                            Predicate<List<T>> func, Class<T> clazz,
+                            Predicate<List<T>> pred, Class<T> clazz,
                             List<T> values) {
-        super(name, required, desc, func,
+        super(name, required, desc, pred,
               (Class<List<T>>) values.getClass(), values);
         E.checkArgumentNotNull(clazz, "Element class can't be null");
         this.elemClass = clazz;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public List<T> convert(Object value) {
+        return convert(value, part -> super.convert(part, this.elemClass));
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> convert(Object value, Function<String, ?> conv) {
+        if (value instanceof List) {
+            return (List<T>) value;
+        }
         // If target data type is List, parse it as a list
         String str = (String) value;
         if (str.startsWith("[") && str.endsWith("]")) {
@@ -69,7 +77,7 @@ public class ConfigListOption<T> extends ConfigOption<List<T>> {
         String[] parts = str.split(",");
         List<T> results = new ArrayList<>(parts.length);
         for (String part : parts) {
-            results.add((T) super.convert(part.trim(), this.elemClass));
+            results.add((T) conv.apply(part.trim()));
         }
         return results;
     }

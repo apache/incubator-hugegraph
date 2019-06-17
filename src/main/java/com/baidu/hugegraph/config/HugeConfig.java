@@ -110,9 +110,9 @@ public class HugeConfig extends PropertiesConfiguration {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T get(ConfigOption<T> option) {
+    public <T, R> R get(TypedOption<T, R> option) {
         Object value = this.getProperty(option.name());
-        return value != null ? (T) value : option.defaultValue();
+        return value != null ? (R) value : option.defaultValue();
     }
 
     public Map<String, String> getMap(ConfigListOption<String> option) {
@@ -144,7 +144,7 @@ public class HugeConfig extends PropertiesConfiguration {
         E.checkArgument(value instanceof String,
                         "Invalid value for key '%s': %s", key, value);
 
-        ConfigOption<?> option = OptionSpace.get(key);
+        TypedOption<?, ?> option = OptionSpace.get(key);
         Class<?> dataType = option.dataType();
 
         if (List.class.isAssignableFrom(dataType)) {

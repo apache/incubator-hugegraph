@@ -21,6 +21,7 @@ package com.baidu.hugegraph.unit.config;
 
 import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.inValues;
 import static com.baidu.hugegraph.config.OptionChecker.nonNegativeInt;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
@@ -33,6 +34,8 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.baidu.hugegraph.config.ConfigConvOption;
+import com.baidu.hugegraph.config.ConfigListConvOption;
 import com.baidu.hugegraph.config.ConfigListOption;
 import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -101,6 +104,10 @@ public class HugeConfigTest extends BaseUnitTest {
         Assert.assertEquals(100.0f, config.get(TestOptions.double1), 0d);
 
         Assert.assertEquals(true, config.get(TestOptions.bool));
+
+        Assert.assertEquals(WeekDay.WEDNESDAY, config.get(TestOptions.weekday));
+        Assert.assertEquals(Arrays.asList(WeekDay.SATURDAY, WeekDay.SUNDAY),
+                            config.get(TestOptions.weekdays));
 
         Assert.assertEquals(Arrays.asList("list-value1", "list-value2"),
                             config.get(TestOptions.list));
@@ -251,10 +258,30 @@ public class HugeConfigTest extends BaseUnitTest {
                         true
                 );
 
+        public static final ConfigConvOption<WeekDay> weekday =
+                new ConfigConvOption<>(
+                        "group1.weekday",
+                        "description of group1.weekday",
+                        allowValues("SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY",
+                                    "THURSDAY", "FRIDAY", "SATURDAY"),
+                        WeekDay::valueOf,
+                        "WEDNESDAY"
+                );
+
+        public static final ConfigListConvOption<String, WeekDay> weekdays =
+                new ConfigListConvOption<>(
+                        "group1.weekdays",
+                        "description of group1.weekdays",
+                        inValues("SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY",
+                                 "THURSDAY", "FRIDAY", "SATURDAY"),
+                        WeekDay::valueOf,
+                        String.class,
+                        "SATURDAY", "SUNDAY"
+                );
+
         public static final ConfigListOption<String> list =
                 new ConfigListOption<>(
                         "group1.list",
-                        false,
                         "description of group1.list",
                         disallowEmpty(),
                         String.class,
@@ -264,7 +291,6 @@ public class HugeConfigTest extends BaseUnitTest {
         public static final ConfigListOption<String> map =
                 new ConfigListOption<>(
                         "group1.map",
-                        false,
                         "description of group1.map",
                         disallowEmpty(),
                         String.class,
@@ -289,5 +315,10 @@ public class HugeConfigTest extends BaseUnitTest {
                         disallowEmpty(),
                         "textsub-value"
                 );
+    }
+
+    public enum WeekDay {
+
+        SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY;
     }
 }
