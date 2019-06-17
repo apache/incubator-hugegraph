@@ -568,6 +568,54 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddShardIndexLabelWithIllegalFields() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city", "weight")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("personByCityAndAge").onV("person").shard()
+              .by("city", "age").create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByCity").onV("person").shard()
+                  .by("city").create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByCityAndName").onV("person").shard()
+                  .by("city", "name").create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByWeightAndAge").onV("person").shard()
+                  .by("weight", "age").create();
+        });
+    }
+
+    @Test
+    public void testAddShardIndexLabelOnExistSecondaryIndex() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+        schema.indexLabel("personByCity").onV("person").secondary()
+              .by("city").create();
+
+        schema.getIndexLabel("personByCity");
+
+        schema.indexLabel("personByCityAndAge").onV("person").shard()
+              .by("city", "age").create();
+
+        Assert.assertThrows(NotFoundException.class, () -> {
+            schema.getIndexLabel("personByCity");
+        });
+    }
+
+    @Test
     public void testRemoveIndexLabelOfVertex() {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());

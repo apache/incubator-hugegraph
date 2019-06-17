@@ -392,4 +392,30 @@ public class PaloTables {
                                               fieldValue.toString());
         }
     }
+
+    public static class ShardIndex extends Index {
+
+        public static final String TABLE = "range_indexes";
+
+        public ShardIndex(String store) {
+            super(joinTableName(store, TABLE));
+
+            this.define = new TableDefine();
+            this.define.column(HugeKeys.INDEX_LABEL_ID, INT, NOT_NULL);
+            this.define.column(HugeKeys.FIELD_VALUES, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR, NOT_NULL);
+            // Unique keys/hash keys
+            this.define.keys(HugeKeys.INDEX_LABEL_ID,
+                             HugeKeys.FIELD_VALUES,
+                             HugeKeys.ELEMENT_IDS);
+        }
+
+        @Override
+        protected final String entryId(MysqlBackendEntry entry) {
+            Double fieldValue = entry.<Double>column(HugeKeys.FIELD_VALUES);
+            Integer labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
+            return SplicingIdGenerator.concat(labelId.toString(),
+                                              fieldValue.toString());
+        }
+    }
 }

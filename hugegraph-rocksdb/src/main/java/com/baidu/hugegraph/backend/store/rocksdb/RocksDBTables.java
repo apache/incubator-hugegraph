@@ -198,7 +198,11 @@ public class RocksDBTables {
         public static final String TABLE = "ri";
 
         public RangeIndex(String database) {
-            super(database, TABLE);
+            this(database, TABLE);
+        }
+
+        public RangeIndex(String database, String table) {
+            super(database, table);
         }
 
         @Override
@@ -254,5 +258,15 @@ public class RocksDBTables {
                 return session.scan(this.table(), begin, end, type);
             }
         }
+    }
+
+    public static class ShardIndex extends RangeIndex {
+
+        public static final String TABLE = "pi";
+
+        public ShardIndex(String database) {
+            super(database, TABLE);
+        }
+
     }
 }

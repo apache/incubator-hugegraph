@@ -53,7 +53,8 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
          * [1.1] HugeGraph-1322: add support for full-text search
          * [1.2] #296: support range sortKey feature
          * [1.3] #287: support pagination when doing index query
+         * [1.4] #270 & #398: support shard-index and vertex + sortkey prefix
          */
-        return "1.3";
+        return "1.4";
     }
 }

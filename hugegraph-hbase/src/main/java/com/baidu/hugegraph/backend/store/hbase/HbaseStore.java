@@ -383,6 +383,8 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                                  new HbaseTables.RangeIndex(store));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new HbaseTables.SearchIndex(store));
+            registerTableManager(HugeType.SHARD_INDEX,
+                                 new HbaseTables.ShardIndex(store));
         }
 
         @Override

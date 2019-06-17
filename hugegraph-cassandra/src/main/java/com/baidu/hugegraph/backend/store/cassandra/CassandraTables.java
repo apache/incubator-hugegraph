@@ -500,7 +500,7 @@ public class CassandraTables {
         public static final String TABLE = "secondary_indexes";
 
         public SecondaryIndex(String store) {
-            super(joinTableName(store, TABLE));
+            this(store, TABLE);
         }
 
         protected SecondaryIndex(String store, String table) {
@@ -544,8 +544,8 @@ public class CassandraTables {
 
             Long indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
             if (indexLabel == null) {
-                throw new BackendException("SecondaryIndex deletion " +
-                          "needs INDEX_LABEL_ID, but not provided.");
+                throw new BackendException("SecondaryIndex deletion needs " +
+                                           "INDEX_LABEL_ID, but not provided.");
             }
 
             Select select = QueryBuilder.select().from(this.table());
@@ -606,6 +606,13 @@ public class CassandraTables {
         public SearchIndex(String store) {
             super(store, TABLE);
         }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            throw new BackendException(
+                      "SearchIndex insertion is not supported.");
+        }
     }
 
     public static class RangeIndex extends CassandraTable {
@@ -613,7 +620,11 @@ public class CassandraTables {
         public static final String TABLE = "range_indexes";
 
         public RangeIndex(String store) {
-            super(joinTableName(store, TABLE));
+            this(store, TABLE);
+        }
+
+        protected RangeIndex(String store, String table) {
+            super(joinTableName(store, table));
         }
 
         @Override
@@ -645,7 +656,7 @@ public class CassandraTables {
         @Override
         public void delete(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            Number fieldValues = entry.column(HugeKeys.FIELD_VALUES);
+            Object fieldValues = entry.column(HugeKeys.FIELD_VALUES);
             if (fieldValues != null) {
                 super.delete(session, entry);
                 return;
@@ -681,6 +692,36 @@ public class CassandraTables {
                               CassandraBackendEntry.Row entry) {
             assert entry.columns().size() == 3;
             this.delete(session, entry);
+        }
+    }
+
+    public static class ShardIndex extends RangeIndex {
+
+        public static final String TABLE = "shard_indexes";
+
+        public ShardIndex(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.text(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            throw new BackendException(
+                      "ShardIndex insertion is not supported.");
         }
     }
 }

@@ -467,4 +467,33 @@ public class MysqlTables {
                                               fieldValue.toString());
         }
     }
+
+    public static class ShardIndex extends Index {
+
+        public static final String TABLE = "shard_indexes";
+
+        public ShardIndex(String store) {
+            this(store, TYPES_MAPPING);
+        }
+
+        public ShardIndex(String store, Map<String, String> typesMapping) {
+            super(joinTableName(store, TABLE));
+
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
+            this.define.column(HugeKeys.FIELD_VALUES, SMALL_TEXT);
+            this.define.column(HugeKeys.ELEMENT_IDS, SMALL_TEXT);
+            this.define.keys(HugeKeys.INDEX_LABEL_ID,
+                             HugeKeys.FIELD_VALUES,
+                             HugeKeys.ELEMENT_IDS);
+        }
+
+        @Override
+        public final String entryId(MysqlBackendEntry entry) {
+            Double fieldValue = entry.<Double>column(HugeKeys.FIELD_VALUES);
+            Integer labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
+            return SplicingIdGenerator.concat(labelId.toString(),
+                                              fieldValue.toString());
+        }
+    }
 }

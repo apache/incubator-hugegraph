@@ -253,4 +253,13 @@ public class HbaseTables {
             super(joinTableName(store, TABLE));
         }
     }
+
+    public static class ShardIndex extends IndexTable {
+
+        public static final String TABLE = "pi";
+
+        public ShardIndex(String store) {
+            super(joinTableName(store, TABLE));
+        }
+    }
 }

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.id;
 
+import java.util.Arrays;
 import java.util.List;
 
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -102,6 +103,15 @@ public class SplicingIdGenerator extends IdGenerator {
             parts[i] = values.get(i).toString();
         }
         return StringUtil.escape(NAME_SPLITOR, ESCAPE, parts);
+    }
+
+    /**
+     * Concat property values with NAME_SPLITOR
+     * @param values the property values to be concatted
+     * @return       concatted string value
+     */
+    public static String concatValues(Object... values) {
+        return concatValues(Arrays.asList(values));
     }
 
     /**

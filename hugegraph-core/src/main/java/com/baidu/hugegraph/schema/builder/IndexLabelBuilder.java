@@ -240,6 +240,12 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     @Override
+    public IndexLabelBuilder shard() {
+        this.indexType = IndexType.SHARD;
+        return this;
+    }
+
+    @Override
     public IndexLabelBuilder on(HugeType baseType, String baseValue) {
         E.checkArgument(baseType == HugeType.VERTEX_LABEL ||
                         baseType == HugeType.EDGE_LABEL,
@@ -345,6 +351,35 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                             "Search index can only build on text property, " +
                             "but got %s(%s)", dataType, field);
         }
+
+        /*
+         * Shard index must build on N string columns(N >= 1) with
+         * single numeric column suffix
+         */
+        if (this.indexType == IndexType.SHARD) {
+            E.checkArgument(fields.size() > 1,
+                            "Shard index must have more than one columns, " +
+                            "but got only one column %s",
+                            fields.iterator().next());
+
+            int size = fields.size();
+            List<String> prefixFields = fields.subList(0, size - 1);
+            for (String prefix : prefixFields) {
+                DataType dataType = this.transaction.getPropertyKey(prefix)
+                                                    .dataType();
+                E.checkArgument(dataType.isText(),
+                                "Shard index prefixes properties must be " +
+                                "text, but got %s(%s)", dataType, prefix);
+            }
+
+            String field = fields.get(size - 1);
+            DataType dataType = this.transaction.getPropertyKey(field)
+                                                .dataType();
+            E.checkArgument(dataType.isNumber() || dataType.isDate(),
+                            "Shard index's last property can only be " +
+                            "numeric or date property, but got %s(%s)",
+                            dataType, field);
+        }
     }
 
     private void checkRepeatIndex(SchemaLabel schemaLabel) {
@@ -360,6 +395,11 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                                 this.indexFields, pkFields, vl.name());
             }
         }
+
+        if (this.indexType == IndexType.SHARD) {
+            return;
+        }
+
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
             if (this.indexType != old.indexType()) {
@@ -380,9 +420,10 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         Set<Id> overrideIndexLabelIds = InsertionOrderUtil.newSet();
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
-            if (this.indexType != old.indexType()) {
+            if (noSubIndex(old)) {
                 continue;
             }
+
             /*
              * If existed label is prefix of new created label,
              * remove the existed label.
@@ -402,5 +443,11 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             tasks.add(task);
         }
         return tasks;
+    }
+
+    private boolean noSubIndex(IndexLabel indexLabel) {
+        return !(this.indexType == indexLabel.indexType() ||
+                 (this.indexType == IndexType.SHARD &&
+                  indexLabel.indexType() == IndexType.SECONDARY));
     }
 }

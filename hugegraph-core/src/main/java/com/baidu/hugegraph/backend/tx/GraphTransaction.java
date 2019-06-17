@@ -85,6 +85,7 @@ import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
+import com.baidu.hugegraph.util.LongEncoding;
 import com.google.common.collect.ImmutableList;
 
 public class GraphTransaction extends IndexableTransaction {
@@ -978,9 +979,10 @@ public class GraphTransaction extends IndexableTransaction {
         // Optimize edge query
         if (label != null && query.resultType().isEdge()) {
             List<Id> keys = this.graph().edgeLabel(label).sortKeys();
+            int matchedNum = matchIndexFields(query.userpropKeys(), keys);
             if (query.condition(HugeKeys.OWNER_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&
-                !keys.isEmpty() && query.matchUserpropKeys(keys)) {
+                !keys.isEmpty() && matchedNum != 0) {
                 // Query edge by sourceVertex + direction + label + sort-values
                 query.optimized(OptimizedType.SORT_KEYS.ordinal());
                 query = query.copy();
@@ -992,15 +994,26 @@ public class GraphTransaction extends IndexableTransaction {
                     PropertyKey pk = this.graph().propertyKey((Id) r.key());
                     r.serialValue(pk.serialValue(r.value()));
                 }
-                // Convert to sysprop condition {SORT_VALUES=value}
-                if (query.hasRangeCondition()) {
+                PropertyKey lastProp = this.graph().propertyKey(
+                                       keys.get(matchedNum - 1));
+                boolean hasRange = lastProp.dataType().isNumber() ||
+                                   lastProp.dataType().isDate();
+                List<Id> joinedKeys = keys.subList(0, matchedNum);
+                if (hasRange) {
+                    String prefix = query.userpropValuesString(
+                                    joinedKeys.subList(0, matchedNum - 1));
+                    Id rangeProp = joinedKeys.get(matchedNum - 1);
                     for (Condition condition : query.userpropConditions()) {
                         assert condition instanceof Condition.Relation;
                         Condition.Relation r = (Condition.Relation) condition;
+                        if (!r.key().equals(rangeProp)) {
+                            continue;
+                        }
+                        String value = SplicingIdGenerator.concatValues(
+                                       prefix, r.serialValue());
                         Condition.Relation sys = new Condition.SyspropRelation(
                                                      HugeKeys.SORT_VALUES,
-                                                     r.relation(),
-                                                     r.serialValue());
+                                                     r.relation(), value);
                         condition = condition.replace(r, sys);
                         query.query(condition);
                     }
@@ -1466,5 +1479,15 @@ public class GraphTransaction extends IndexableTransaction {
                 }
             } while (page != null);
         }
+    }
+
+    private static int matchIndexFields(Set<Id> queryKeys, List<Id> sortkeys) {
+        for (int i = sortkeys.size(); i > 0; i--) {
+            List<Id> subFields = sortkeys.subList(0, i);
+            if (queryKeys.containsAll(subFields)) {
+                return subFields.size();
+            }
+        }
+        return 0;
     }
 }

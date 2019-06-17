@@ -572,6 +572,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                                  new RocksDBTables.RangeIndex(database));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new RocksDBTables.SearchIndex(database));
+            registerTableManager(HugeType.SHARD_INDEX,
+                                 new RocksDBTables.ShardIndex(database));
         }
 
         @Override

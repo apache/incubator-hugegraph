@@ -67,12 +67,14 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
+import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -190,6 +192,28 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Secondary index maybe include multi prefix index
                 for (int i = 0, n = propValues.size(); i < n; i++) {
                     List<Object> prefixValues = propValues.subList(0, i + 1);
+                    value = SplicingIdGenerator.concatValues(prefixValues);
+
+                    // Use `\u0000` as escape for empty String and treat it as
+                    // illegal value for text property
+                    E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
+                                    "Illegal value of index property: '%s'",
+                                    INDEX_EMPTY_SYM);
+                    if (((String) value).isEmpty()) {
+                        value = INDEX_EMPTY_SYM;
+                    }
+
+                    this.updateIndex(indexLabel, value, element.id(), removed);
+                }
+                break;
+            case SHARD:
+                // Shard index maybe include multi prefix index
+                for (int i = 0, n = propValues.size(); i < n; i++) {
+                    List<Object> prefixValues = propValues.subList(0, i + 1);
+                    if (i == n - 1) {
+                        Object last = propValues.get(i);
+                        prefixValues.set(i, LongEncoding.encodeNumber(last));
+                    }
                     value = SplicingIdGenerator.concatValues(prefixValues);
 
                     // Use `\u0000` as escape for empty String and treat it as
@@ -327,7 +351,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Do search-index query
                 holders.addAll(this.doSearchIndex(query, index));
             } else {
-                // Do secondary-index or range-index query
+                // Do secondary-index, range-index or shard-index query
                 IndexQueries queries = index.constructIndexQueries(query);
                 assert !paging || queries.size() <= 1;
                 IdHolder holder = this.doIndexQueries(queries);
@@ -595,7 +619,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 (!reqiureSearch && indexType == IndexType.SEARCH)) {
                 continue;
             }
-            if (reqiureRange && indexType != IndexType.RANGE) {
+            if (reqiureRange &&
+                indexType != IndexType.RANGE && indexType != IndexType.SHARD) {
                 continue;
             }
             return ImmutableSet.of(indexLabel);
@@ -689,8 +714,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return matchedIndexLabels;
     }
 
-    private static IndexQueries buildJointIndexesQueries(ConditionQuery query,
-                                                         MatchedIndex index) {
+    private IndexQueries buildJointIndexesQueries(ConditionQuery query,
+                                                  MatchedIndex index) {
         IndexQueries queries = new IndexQueries();
         List<IndexLabel> allILs = new ArrayList<>(index.indexLabels());
 
@@ -708,7 +733,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
 
             // Construct queries by matched index-labels
-            queries.putAll(constructQueries(query, matchedILs, queryPropKeys));
+            queries.putAll(this.constructQueries(query, matchedILs,
+                                                 queryPropKeys));
 
             // Remove matched queryPropKeys
             query = query.copy();
@@ -726,7 +752,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         for (int i = 1, size = allILs.size(); i <= size; i++) {
             boolean found = cmn(allILs, size, i, 0, null, r -> {
                 // All n indexLabels are selected, test current combination
-                IndexQueries qs = constructJointSecondaryQueries(q, r);
+                IndexQueries qs = this.constructJointSecondaryQueries(q, r);
                 if (qs.isEmpty()) {
                     return false;
                 }
@@ -789,9 +815,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return false;
     }
 
-    private static IndexQueries constructJointSecondaryQueries(
-                                ConditionQuery query,
-                                List<IndexLabel> ils) {
+    private IndexQueries constructJointSecondaryQueries(ConditionQuery query,
+                                                        List<IndexLabel> ils) {
         Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
         indexLabels.addAll(ils);
         indexLabels = matchJointIndexes(query, indexLabels);
@@ -799,12 +824,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return IndexQueries.EMPTY;
         }
 
-        return constructQueries(query, indexLabels, query.userpropKeys());
+        return this.constructQueries(query, indexLabels, query.userpropKeys());
     }
 
-    private static IndexQueries constructQueries(ConditionQuery query,
-                                                 Set<IndexLabel> ils,
-                                                 Set<Id> propKeys) {
+    private IndexQueries constructQueries(ConditionQuery query,
+                                          Set<IndexLabel> ils,
+                                          Set<Id> propKeys) {
         IndexQueries queries = new IndexQueries();
 
         for (IndexLabel il : ils) {
@@ -819,20 +844,21 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     newQuery.query(c);
                 }
             }
-            ConditionQuery q = matchIndexLabel(newQuery, il);
+            ConditionQuery q = this.matchIndexLabel(newQuery, il);
             assert q != null;
             queries.put(il, q);
         }
         return queries;
     }
 
-    private static ConditionQuery matchIndexLabel(ConditionQuery query,
-                                                  IndexLabel indexLabel) {
+    private ConditionQuery matchIndexLabel(ConditionQuery query,
+                                           IndexLabel indexLabel) {
         IndexType indexType = indexLabel.indexType();
         boolean requireRange = query.hasRangeCondition();
-        boolean isRange = indexType == IndexType.RANGE;
-        if (requireRange && !isRange) {
-            LOG.debug("There is range query condition in '{}'," +
+        boolean supportRange = indexType == IndexType.RANGE ||
+                               indexType == IndexType.SHARD;
+        if (requireRange && !supportRange) {
+            LOG.debug("There is range query condition in '{}', " +
                       "but the index label '{}' is unable to match",
                       query, indexLabel.name());
             return null;
@@ -892,11 +918,94 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     indexQuery.query(condition);
                 }
                 break;
+            case SHARD:
+                indexQuery = new ConditionQuery(indexType.type(), query);
+                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+
+                boolean hasRange = queryKeys.size() == indexFields.size();
+                joinedKeys = indexFields.subList(0, queryKeys.size());
+                int size = joinedKeys.size();
+                List<Id> prefixes = hasRange ?
+                                    joinedKeys.subList(0, size - 1) :
+                                    joinedKeys;
+                joinedValues = query.userpropValuesString(prefixes);
+
+                if (hasRange) {
+                    // Shard index range query
+                    Object keyEq = null;
+                    Object keyMin = null;
+                    Object keyMax = null;
+                    Id rangeProp = indexFields.get(indexFields.size() - 1);
+                    DataType dataType = GraphIndexTransaction.this
+                                        .graph().propertyKey(rangeProp)
+                                        .dataType();
+                    for (Condition condition : query.userpropConditions()) {
+                        assert condition instanceof Condition.Relation;
+                        Condition.Relation r = (Condition.Relation) condition;
+                        if (!r.key().equals(rangeProp)) {
+                            continue;
+                        }
+                        switch (r.relation()) {
+                            case EQ:
+                                keyEq = r.value();
+                                break;
+                            case GTE:
+                            case GT:
+                                keyMin = r.value();
+                                break;
+                            case LTE:
+                            case LT:
+                                keyMax = r.value();
+                                break;
+                            default:
+                                E.checkArgument(false,
+                                                "Unsupported relation '%s'",
+                                                r.relation());
+                        }
+
+                        Condition.Relation sys = shardFieldValuesCondition(
+                                                 joinedValues,
+                                                 (Number) r.value(),
+                                                 r.relation());
+                        condition = condition.replace(r, sys);
+                        indexQuery.query(condition);
+                    }
+                    if (keyEq != null) {
+                        break;
+                    }
+                    if (keyMin == null) {
+                        Number num = NumericUtil.minValueOf(dataType.clazz());
+                        Condition.Relation r = shardFieldValuesCondition(
+                                               joinedValues, num,
+                                               Condition.RelationType.GTE);
+                        indexQuery.query(r);
+                    }
+                    if (keyMax == null) {
+                        Number num = NumericUtil.maxValueOf(dataType.clazz());
+                        Condition.Relation r = shardFieldValuesCondition(
+                                               joinedValues, num,
+                                               Condition.RelationType.LTE);
+                        indexQuery.query(r);
+                    }
+                } else {
+                    // Shard index prefix query without range
+                    indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
+                }
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Unknown index type '%s'", indexType));
         }
         return indexQuery;
+    }
+
+    private static Relation shardFieldValuesCondition(
+                            String prefix, Number number,
+                            Condition.RelationType type) {
+        String num = LongEncoding.encodeNumber(number);
+        String value = SplicingIdGenerator.concatValues(prefix, num);
+        return new Condition.SyspropRelation(HugeKeys.FIELD_VALUES,
+                                             type, value);
     }
 
     private static boolean matchIndexFields(Set<Id> queryKeys,
@@ -973,7 +1082,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         this.doRemove(this.serializer.writeIndex(index));
     }
 
-    private static class MatchedIndex {
+    private class MatchedIndex {
 
         private SchemaLabel schemaLabel;
         private Set<IndexLabel> indexLabels;
@@ -998,7 +1107,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Single index or composite index
 
                 IndexLabel il = this.indexLabels().iterator().next();
-                ConditionQuery indexQuery = matchIndexLabel(query, il);
+                ConditionQuery indexQuery = GraphIndexTransaction.this
+                                            .matchIndexLabel(query, il);
                 assert indexQuery != null;
 
                 /*
@@ -1013,7 +1123,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 return IndexQueries.of(il, indexQuery);
             } else {
                 // Joint indexes
-                IndexQueries queries = buildJointIndexesQueries(query, this);
+                IndexQueries queries = GraphIndexTransaction.this
+                                       .buildJointIndexesQueries(query, this);
                 assert !queries.isEmpty();
                 return queries;
             }

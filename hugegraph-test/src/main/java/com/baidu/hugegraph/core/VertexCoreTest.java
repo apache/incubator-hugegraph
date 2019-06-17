@@ -2724,6 +2724,73 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByShardIndex() {
+        SchemaManager schema = graph().schema();
+
+        schema.indexLabel("personByCityAndAge").onV("person").shard()
+              .by("city", "age").create();
+
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "person", "name", "p1",
+                        "city", "Hongkong", "age", 15);
+        graph.addVertex(T.label, "person", "name", "p2",
+                        "city", "Hongkong", "age", 18);
+        graph.addVertex(T.label, "person", "name", "p3",
+                        "city", "Beijing", "age", 21);
+        graph.addVertex(T.label, "person", "name", "p4",
+                        "city", "Beijing", "age", 23);
+        graph.addVertex(T.label, "person", "name", "p5",
+                        "city", "Beijing", "age", 29);
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Hongkong")
+                                       .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Hongkong")
+                          .has("age", 15).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Hongkong")
+                          .has("age", P.between(10, 20)).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.between(20, 30)).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.lt(29)).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.lte(29)).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.gt(21)).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.gte(21)).toList();
+        Assert.assertEquals(3, vertices.size());
+    }
+
+    @Test
     public void testRemoveVertex() {
         HugeGraph graph = graph();
         init10Vertices();

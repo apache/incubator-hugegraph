@@ -200,4 +200,15 @@ public class PostgresqlTables {
             return ((MysqlTables.RangeIndex) this.template).entryId(entry);
         }
     }
+
+    public static class ShardIndex extends PostgresqlTableTemplate {
+
+        public ShardIndex(String store) {
+            super(new MysqlTables.ShardIndex(store, TYPES_MAPPING));
+        }
+
+        protected final String entryId(MysqlBackendEntry entry) {
+            return ((MysqlTables.ShardIndex) this.template).entryId(entry);
+        }
+    }
 }

@@ -389,6 +389,8 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                                  new MysqlTables.RangeIndex(store));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new MysqlTables.SearchIndex(store));
+            registerTableManager(HugeType.SHARD_INDEX,
+                                 new MysqlTables.ShardIndex(store));
         }
 
         @Override

@@ -30,7 +30,10 @@ public enum IndexType implements SerialEnum {
     RANGE(2, "range"),
 
     // For full-text query (not supported now)
-    SEARCH(3, "search");
+    SEARCH(3, "search"),
+
+    // For prefix + range query
+    SHARD(4, "shard");
 
     private byte code = 0;
     private String name = null;
@@ -62,6 +65,8 @@ public enum IndexType implements SerialEnum {
                 return HugeType.RANGE_INDEX;
             case SEARCH:
                 return HugeType.SEARCH_INDEX;
+            case SHARD:
+                return HugeType.SHARD_INDEX;
             default:
                 throw new AssertionError(String.format(
                           "Unknown index type '%s'", this));

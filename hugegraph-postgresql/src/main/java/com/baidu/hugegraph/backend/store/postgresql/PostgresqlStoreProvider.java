@@ -51,7 +51,12 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
 
     @Override
     public String version() {
-        return "1.0";
+        /*
+         * Versions history:
+         * [1.0] #441: supports PostgreSQL and Cockroach backend
+         * [1.1] #270 & #398: support shard-index and vertex + sortkey prefix
+         */
+        return "1.1";
     }
 
     public static class PostgresqlSchemaStore extends PostgresqlStore {
@@ -116,6 +121,8 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
                                  new PostgresqlTables.RangeIndex(store));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new PostgresqlTables.SearchIndex(store));
+            registerTableManager(HugeType.SHARD_INDEX,
+                                 new PostgresqlTables.ShardIndex(store));
         }
 
         @Override

@@ -210,6 +210,8 @@ public class IndexLabel extends SchemaElement {
 
         Builder search();
 
+        Builder shard();
+
         Builder on(HugeType baseType, String baseValue);
 
         Builder indexType(IndexType indexType);

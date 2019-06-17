@@ -288,6 +288,8 @@ public abstract class InMemoryDBStore
                                  new InMemoryDBTables.RangeIndex());
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new InMemoryDBTables.SearchIndex());
+            registerTableManager(HugeType.SHARD_INDEX,
+                                 new InMemoryDBTables.ShardIndex());
         }
 
         @Override

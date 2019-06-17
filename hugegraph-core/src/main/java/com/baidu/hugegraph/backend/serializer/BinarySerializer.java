@@ -619,12 +619,12 @@ public class BinarySerializer extends AbstractSerializer {
         ConditionQuery cq = (ConditionQuery) query;
 
         // Convert secondary-index or search-index query to id query
-        if (type.isStringIndex()) {
+        if (type.isStringIndex() && !type.isShardIndex()) {
             return this.writeStringIndexQuery(cq);
         }
 
         // Convert range-index query to id range query
-        if (type.isRangeIndex()) {
+        if (type.isRangeIndex() || type.isShardIndex()) {
             return this.writeRangeIndexQuery(cq);
         }
 
@@ -781,6 +781,7 @@ public class BinarySerializer extends AbstractSerializer {
                 }
                 break;
             case RANGE_INDEX:
+            case SHARD_INDEX:
                 int il = (int) id.asLong();
                 for (int i = 0; i < 4; i++) {
                     /*
