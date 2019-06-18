@@ -95,7 +95,7 @@ public class MysqlOptions extends OptionHolder {
                     "jdbc.ssl_mode",
                     "The SSL mode of connections with database.",
                     disallowEmpty(),
-                    "disable"
+                    "false"
             );
 
     public static final ConfigOption<String> STORAGE_ENGINE =
