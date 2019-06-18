@@ -320,13 +320,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
             }
 
             int numLevels = conf.get(RocksDBOptions.NUM_LEVELS);
-            List<CompressionType> compressions =
-                                  conf.get(RocksDBOptions.COMPRESSION_TYPES);
+            List<CompressionType> compressions = conf.get(
+                                  RocksDBOptions.LEVELS_COMPRESSIONS);
             E.checkArgument(compressions.isEmpty() ||
                             compressions.size() == numLevels,
-                            "Elements number of '%s' must be the same as '%s'" +
-                            ", bug got %s != %s",
-                            RocksDBOptions.COMPRESSION_TYPES.name(),
+                            "Elements number of '%s' must be 0 or " +
+                            "be the same as '%s', bug got %s != %s",
+                            RocksDBOptions.LEVELS_COMPRESSIONS.name(),
                             RocksDBOptions.NUM_LEVELS.name(),
                             compressions.size(), numLevels);
 
@@ -334,7 +334,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             cf.setCompactionStyle(conf.get(RocksDBOptions.COMPACTION_STYLE));
 
             cf.setBottommostCompressionType(
-                    conf.get(RocksDBOptions.BOTTOMMOST_COMPACTION_TYPE));
+                    conf.get(RocksDBOptions.BOTTOMMOST_COMPRESSION));
             if (!compressions.isEmpty()) {
                 cf.setCompressionPerLevel(compressions);
             }
@@ -376,13 +376,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         if (mcf != null) {
-            mcf.setCompressionType(
-                    conf.get(RocksDBOptions.MEMTABLE_COMPRESSION_TYPE));
+            mcf.setCompressionType(conf.get(RocksDBOptions.COMPRESSION));
 
-            mcf.setWriteBufferSize(
-                    conf.get(RocksDBOptions.MEMTABLE_SIZE));
-            mcf.setMaxWriteBufferNumber(
-                    conf.get(RocksDBOptions.MAX_MEMTABLES));
+            mcf.setWriteBufferSize(conf.get(RocksDBOptions.MEMTABLE_SIZE));
+            mcf.setMaxWriteBufferNumber(conf.get(RocksDBOptions.MAX_MEMTABLES));
 
             mcf.setMaxBytesForLevelBase(
                     conf.get(RocksDBOptions.MAX_LEVEL1_BYTES));

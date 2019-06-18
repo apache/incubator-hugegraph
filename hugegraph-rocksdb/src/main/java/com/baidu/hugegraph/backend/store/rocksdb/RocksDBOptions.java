@@ -131,25 +131,35 @@ public class RocksDBOptions extends OptionHolder {
                     false
             );
 
-    public static final ConfigListConvOption<String, CompressionType> COMPRESSION_TYPES =
+    public static final ConfigListConvOption<String, CompressionType> LEVELS_COMPRESSIONS =
             new ConfigListConvOption<>(
-                    "rocksdb.compression_types",
+                    "rocksdb.compression_per_level",
                     "The compression algorithms for different levels of RocksDB, " +
-                    "allowed compressions are snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
-                    inValues("", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
+                    "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
+                    inValues("none", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
                     CompressionType::getCompressionType,
                     String.class,
-                    "", "", "snappy", "snappy", "snappy", "snappy", "snappy"
+                    "none", "none", "snappy", "snappy", "snappy", "snappy", "snappy"
             );
 
-    public static final ConfigConvOption<CompressionType> BOTTOMMOST_COMPACTION_TYPE =
+    public static final ConfigConvOption<CompressionType> BOTTOMMOST_COMPRESSION =
             new ConfigConvOption<>(
-                    "rocksdb.bottommost_level_compression_type",
+                    "rocksdb.bottommost_compression",
                     "The compression algorithm for the bottommost level of RocksDB, " +
-                    "allowed compressions are snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
-                    allowValues("", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
+                    "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
+                    allowValues("none", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
                     CompressionType::getCompressionType,
-                    ""
+                    "none"
+            );
+
+    public static final ConfigConvOption<CompressionType> COMPRESSION =
+            new ConfigConvOption<>(
+                    "rocksdb.compression",
+                    "The compression algorithm for compressing blocks of RocksDB, " +
+                    "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
+                    allowValues("none", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
+                    CompressionType::getCompressionType,
+                    "snappy"
             );
 
     public static final ConfigOption<Integer> MAX_BG_COMPACTIONS =
@@ -223,17 +233,6 @@ public class RocksDBOptions extends OptionHolder {
                     "The total maximum number of write buffers to maintain in memory.",
                     rangeInt(0, Integer.MAX_VALUE),
                     0
-            );
-
-
-    public static final ConfigConvOption<CompressionType> MEMTABLE_COMPRESSION_TYPE =
-            new ConfigConvOption<>(
-                    "rocksdb.memtable_compression_type",
-                    "The compression algorithm for write buffers of RocksDB, " +
-                    "allowed compressions are snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
-                    allowValues("", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
-                    CompressionType::getCompressionType,
-                    "snappy"
             );
 
     public static final ConfigOption<Long> MAX_LEVEL1_BYTES =
