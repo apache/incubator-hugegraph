@@ -321,27 +321,12 @@ public class GraphTransaction extends IndexableTransaction {
                                           q -> super.query(q));
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query)) {
-            OptimizedQueries oqs = (OptimizedQueries) this.optimizeQuery(cq);
             /*
              * NOTE: There are two possibilities for this query:
              * 1.sysprop-query, which would not be empty.
              * 2.index-query result(ids after optimization), which may be empty.
              */
-            for (Query q : oqs) {
-                if (!q.empty()) {
-                    queries.add(q);
-                }
-            }
-            if (oqs.isEmpty()) {
-                queries.add(this.indexQuery(cq));
-            } else if (oqs.semiOptimized()) {
-                // TODO: modify it
-                try {
-                    queries.add(this.indexQuery(cq));
-                } catch (NoIndexException ignored) {
-                    // pass
-                }
-            }
+            this.optimizeQuery(cq, queries);
         }
 
         return !queries.empty() ? queries.fetch() : Collections.emptyIterator();
@@ -1011,16 +996,18 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private List<Query> optimizeQuery(ConditionQuery query) {
-        OptimizedQueries queries = new OptimizedQueries();
+    private void optimizeQuery(ConditionQuery query, QueryList queries) {
         Id label = query.condition(HugeKeys.LABEL);
 
+        boolean needIndex = true;
+        boolean ignoreNoIndexEx = false;
         // Optimize vertex query
         if (query.resultType().isVertex()) {
             if (label != null) {
                 VertexLabel vertexLabel = this.graph().vertexLabel(label);
                 if (matchVertexPrimaryKeys(query, vertexLabel)) {
                     queries.add(constructVertexQuery(query, vertexLabel));
+                    needIndex = false;
                 }
             } else {
                 List<VertexLabel> vls = this.graph().schema().getVertexLabels();
@@ -1029,12 +1016,9 @@ public class GraphTransaction extends IndexableTransaction {
                         queries.add(constructVertexQuery(query, vertexLabel));
                     }
                 }
-                if (!queries.isEmpty()) {
-                    queries.semiOptimized(true);
+                if (!queries.empty() && queries.total() != vls.size()) {
+                    ignoreNoIndexEx = true;
                 }
-            }
-            if (!queries.isEmpty()) {
-                return queries;
             }
         }
 
@@ -1075,7 +1059,7 @@ public class GraphTransaction extends IndexableTransaction {
 
                 LOG.debug("Query edges by sortKeys: {}", query);
                 queries.add(query);
-                return queries;
+                needIndex = false;
             }
         }
 
@@ -1092,11 +1076,19 @@ public class GraphTransaction extends IndexableTransaction {
             boolean byLabel = (label != null && query.conditions().size() == 1);
             if (this.store().features().supportsQueryByLabel() || !byLabel) {
                 queries.add(query);
-                return queries;
+                needIndex = false;
             }
         }
 
-        return queries;
+        if (needIndex) {
+            try {
+                queries.add(this.indexQuery(query));
+            } catch (NoIndexException e) {
+                if (!ignoreNoIndexEx) {
+                    throw e;
+                }
+            }
+        }
     }
 
     private List<IdHolder> indexQuery(ConditionQuery query) {
