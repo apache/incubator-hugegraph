@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.tinkerpop;
 
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -32,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.FeatureRequirement;
@@ -48,7 +46,6 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -76,7 +73,6 @@ public class TestGraphProvider extends AbstractGraphProvider {
             HugeVertex.class,
             HugeVertexProperty.class);
 
-    private static final String CONF_PATH = "hugegraph.properties";
     private static final String FILTER = "test.tinkerpop.filter";
     private static final String DEFAULT_FILTER = "methods.filter";
 
@@ -93,7 +89,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
     private static final String AKEY_CLASS_PREFIX =
             "org.apache.tinkerpop.gremlin.structure." +
-            "PropertyTest.PropertyFeatureSupportTest";
+                    "PropertyTest.PropertyFeatureSupportTest";
     private static final String IO_CLASS_PREFIX =
             "org.apache.tinkerpop.gremlin.structure.io.IoGraphTest";
     private static final String IO_TEST_PREFIX =
@@ -126,10 +122,10 @@ public class TestGraphProvider extends AbstractGraphProvider {
         }
 
         URL blackList = TestGraphProvider.class.getClassLoader()
-                                               .getResource(filter);
+                .getResource(filter);
         E.checkArgument(blackList != null,
-                        "Can't find tests filter '%s' in resource directory",
-                        filter);
+                "Can't find tests filter '%s' in resource directory",
+                filter);
         File file = new File(blackList.getPath());
         E.checkArgument(
                 file.exists() && file.isFile() && file.canRead(),
@@ -145,8 +141,8 @@ public class TestGraphProvider extends AbstractGraphProvider {
                 }
                 String[] parts = line.split(":");
                 Assert.assertEquals("methods.filter proper format is: " +
-                                    "'testMethodName: ignore reason'",
-                                    2, parts.length);
+                                "'testMethodName: ignore reason'",
+                        2, parts.length);
                 Assert.assertTrue(
                         "Test method name in methods.filter can't be empty",
                         parts[0] != null && !parts[0].trim().isEmpty());
@@ -160,19 +156,19 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
     @Override
     public Map<String, Object> getBaseConfiguration(
-                               String graphName,
-                               Class<?> testClass, String testMethod,
-                               LoadGraphWith.GraphData graphData) {
+            String graphName,
+            Class<?> testClass, String testMethod,
+            LoadGraphWith.GraphData graphData) {
         // Check if test in blackList
         String testFullName = testClass.getCanonicalName() + "." + testMethod;
         int index = testFullName.indexOf('@') == -1 ?
-                    testFullName.length() : testFullName.indexOf('@');
+                testFullName.length() : testFullName.indexOf('@');
 
         testFullName = testFullName.substring(0, index);
         Assume.assumeFalse(
-               String.format("Test %s will be ignored with reason: %s",
-                             testFullName, this.blackMethods.get(testFullName)),
-               this.blackMethods.containsKey(testFullName));
+                String.format("Test %s will be ignored with reason: %s",
+                        testFullName, this.blackMethods.get(testFullName)),
+                this.blackMethods.containsKey(testFullName));
 
         LOG.debug("Full name of test is: {}", testFullName);
         LOG.debug("Prefix of test is: {}", testFullName.substring(0, index));
@@ -185,7 +181,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         }
         String storePrefix = config.getString(CoreOptions.STORE.name());
         confMap.put(CoreOptions.STORE.name(),
-                    storePrefix + "_" + this.suite + "_" + graphName);
+                storePrefix + "_" + this.suite + "_" + graphName);
         confMap.put(GREMLIN_GRAPH_KEY, GREMLIN_GRAPH_VALUE);
         confMap.put(TEST_CLASS, testClass);
         confMap.put(TEST_METHOD, testMethod);
@@ -203,13 +199,13 @@ public class TestGraphProvider extends AbstractGraphProvider {
             return false;
         }
         FeatureRequirements features =
-                            method.getAnnotation(FeatureRequirements.class);
+                method.getAnnotation(FeatureRequirements.class);
         if (features == null) {
             return false;
         }
         for (FeatureRequirement feature : features.value()) {
             if (feature.featureClass() == Graph.Features.VertexFeatures.class &&
-                ID_TYPES.contains(feature.feature())) {
+                    ID_TYPES.contains(feature.feature())) {
                 // Expect CUSTOMIZED_ID if want to pass id to create vertex
                 return true;
             }
@@ -220,7 +216,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
     private static String getAKeyType(Class<?> clazz, String method) {
         if (clazz.getCanonicalName().startsWith(AKEY_CLASS_PREFIX)) {
             return method.substring(method.indexOf('[') + 9,
-                                    method.indexOf('(') - 6);
+                    method.indexOf('(') - 6);
         }
         return null;
     }
@@ -228,7 +224,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
     private static String getIoType(Class<?> clazz, String method) {
         if (clazz.getCanonicalName().startsWith(IO_CLASS_PREFIX)) {
             return method.substring(method.indexOf('[') + 1,
-                                    method.indexOf(']'));
+                    method.indexOf(']'));
         }
         return null;
     }
@@ -244,7 +240,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         // Set id strategy
         IdStrategy idStrategy = IdStrategy.AUTOMATIC;
         if (config.getBoolean(EXPECT_CUSTOMIZED_ID) || isIoTest(testClass) ||
-            CUSTOMIZED_ID_METHODS.contains(testMethod)) {
+                CUSTOMIZED_ID_METHODS.contains(testMethod)) {
             /*
              * Use CUSTOMIZED_ID if the following case are met:
              *  1.Expect CUSTOMIZED_ID for some specific features
@@ -381,8 +377,8 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
         boolean standard = testGraph.hugegraph().name().endsWith(STANDARD);
         IdStrategy idStrategy = standard && !testGraph.ioTest() ?
-                                IdStrategy.AUTOMATIC :
-                                IdStrategy.CUSTOMIZE_STRING;
+                IdStrategy.AUTOMATIC :
+                IdStrategy.CUSTOMIZE_STRING;
 
         switch (loadGraphWith) {
             case GRATEFUL:
@@ -398,9 +394,9 @@ public class TestGraphProvider extends AbstractGraphProvider {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Only support GRATEFUL, MODERN and CLASSIC " +
-                          "for @LoadGraphWith(), but '%s' is used ",
-                          loadGraphWith));
+                        "Only support GRATEFUL, MODERN and CLASSIC " +
+                                "for @LoadGraphWith(), but '%s' is used ",
+                        loadGraphWith));
         }
         testGraph.tx().commit();
     }
@@ -416,7 +412,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
     public GraphTraversalSource traversal(Graph graph) {
         HugeGraph hugegraph = ((TestGraph) graph).hugegraph();
         return hugegraph.traversal()
-                        .withoutStrategies(LazyBarrierStrategy.class);
+                .withoutStrategies(LazyBarrierStrategy.class);
     }
 
     @Override
