@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.tinkerpop;
 
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -32,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.FeatureRequirement;
@@ -48,7 +46,6 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -76,7 +73,6 @@ public class TestGraphProvider extends AbstractGraphProvider {
             HugeVertex.class,
             HugeVertexProperty.class);
 
-    private static final String CONF_PATH = "hugegraph.properties";
     private static final String FILTER = "test.tinkerpop.filter";
     private static final String DEFAULT_FILTER = "methods.filter";
 
