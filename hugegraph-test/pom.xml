@@ -85,7 +85,7 @@
                     <execution>
                         <id>core-test</id>
                         <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
+                            <testSourceDirectory>${basedir}/src/test/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
                             </testClassesDirectory>
@@ -97,7 +97,7 @@
                     <execution>
                         <id>unit-test</id>
                         <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
+                            <testSourceDirectory>${basedir}/src/test/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
                             </testClassesDirectory>
@@ -109,7 +109,7 @@
                     <execution>
                         <id>api-test</id>
                         <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
+                            <testSourceDirectory>${basedir}/src/test/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
                             </testClassesDirectory>
@@ -121,7 +121,7 @@
                     <execution>
                         <id>tinkerpop-structure-test</id>
                         <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
+                            <testSourceDirectory>${basedir}/src/test/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
                             </testClassesDirectory>
@@ -133,7 +133,7 @@
                     <execution>
                         <id>tinkerpop-process-test</id>
                         <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
+                            <testSourceDirectory>${basedir}/src/test/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
                             </testClassesDirectory>
@@ -145,7 +145,7 @@
                     <execution>
                         <id>tinkerpop-structure-perf-test</id>
                         <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
+                            <testSourceDirectory>${basedir}/src/test/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
                             </testClassesDirectory>
@@ -157,7 +157,7 @@
                     <execution>
                         <id>tinkerpop-process-perf-test</id>
                         <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
+                            <testSourceDirectory>${basedir}/src/test/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
                             </testClassesDirectory>
@@ -221,7 +221,7 @@
 
         <resources>
             <resource>
-                <directory>src/main/resources/</directory>
+                <directory>src/test/resources/</directory>
                 <filtering>true</filtering>
             </resource>
         </resources>
