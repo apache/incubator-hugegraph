@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.core;
+package com.baidu.hugegraph.unit.util;
 
 import java.util.List;
 
