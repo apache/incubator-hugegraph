@@ -97,9 +97,11 @@ public class MysqlSessions extends BackendSessionPool {
 
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
         int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
+        String sslMode = this.config.get(MysqlOptions.JDBC_SSL_MODE);
 
         URIBuilder uriBuilder = this.newConnectionURIBuilder();
         uriBuilder.setPath(url)
+                  .setParameter("useSSL", sslMode)
                   .setParameter("characterEncoding", "utf-8")
                   .setParameter("rewriteBatchedStatements", "true")
                   .setParameter("useServerPrepStmts", "false")
