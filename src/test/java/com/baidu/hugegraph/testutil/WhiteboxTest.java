@@ -101,12 +101,21 @@ public class WhiteboxTest {
     public void testInvokeStatic() {
         Assert.assertEquals(1, Whitebox.invokeStatic(Test1.class, "svalue"));
         Assert.assertEquals(2, Whitebox.invokeStatic(Test1.class, "svalue", 2));
-        Assert.assertEquals(2, Whitebox.invokeStatic(Test1.class, "svalue", 2));
+        Assert.assertEquals(2, Whitebox.invokeStatic(Test1.class, "svalue",
+                                                     new Integer(2)));
         Assert.assertEquals(2d, Whitebox.invokeStatic(Test1.class,
                                                       new Class[]{Object.class},
                                                       "svalue", 2d));
+
         Assert.assertThrows(RuntimeException.class, () -> {
             Whitebox.invokeStatic(Test1.class, "svalue2");
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Whitebox.invokeStatic(Test1.class, "throwfunc1");
+        });
+        Assert.assertThrows(RuntimeException.class, () -> {
+            Whitebox.invokeStatic(Test1.class, "throwfunc2");
         });
     }
 
@@ -115,6 +124,8 @@ public class WhiteboxTest {
         Test1 test1 = newTest();
         Assert.assertEquals(1, Whitebox.invoke(test1.getClass(),
                                                "value", test1));
+        Assert.assertEquals(3, Whitebox.invoke(test1.getClass(),
+                                               "addValue", test1, 2));
         Assert.assertEquals(2f, Whitebox.invoke(test1, "test2", "value"));
         Assert.assertEquals(2, Whitebox.invoke(test1, "test2",
                                                new Class[]{Object.class},
@@ -128,6 +139,9 @@ public class WhiteboxTest {
         });
         Assert.assertThrows(RuntimeException.class, () -> {
             Whitebox.invoke(test1, "test2", "value", 2);
+        });
+        Assert.assertThrows(RuntimeException.class, () -> {
+            Whitebox.invoke(test1.getClass(), "addValue", test1, 2.0);
         });
     }
 
@@ -149,16 +163,28 @@ public class WhiteboxTest {
             return this.ivalue;
         }
 
+        private int addValue(int i) {
+            return this.ivalue + i;
+        }
+
         private static int svalue() {
             return 1;
         }
 
-        private static int svalue(Integer i) {
+        private static int svalue(int i) {
             return i;
         }
 
         private static <T> T svalue(T o) {
             return o;
+        }
+
+        private static int throwfunc1() {
+            throw new IllegalArgumentException("fake runtime exception");
+        }
+
+        private static int throwfunc2() throws Exception {
+            throw new Exception("fake exception");
         }
     }
 

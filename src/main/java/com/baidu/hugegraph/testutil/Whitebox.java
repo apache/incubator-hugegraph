@@ -22,9 +22,11 @@ package com.baidu.hugegraph.testutil;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Objects;
 
 import com.baidu.hugegraph.util.E;
+import com.google.common.primitives.Primitives;
 
 public class Whitebox {
 
@@ -130,7 +132,7 @@ public class Whitebox {
         int i = 0;
         for (Object arg : args) {
             E.checkArgument(arg != null, "The argument can't be null");
-            classes[i++] = arg.getClass();
+            classes[i++] = Primitives.unwrap(arg.getClass());
         }
         return invoke(clazz, classes, methodName, self, args);
     }
@@ -145,12 +147,20 @@ public class Whitebox {
             return result;
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(String.format(
-                      "Can't find method '%s' of class '%s'",
-                      methodName, clazz), e);
-        } catch (IllegalAccessException | InvocationTargetException e) {
+                      "Can't find method '%s' with args %s of class '%s'",
+                      methodName, Arrays.asList(classes), clazz), e);
+        } catch (IllegalAccessException e) {
             throw new RuntimeException(String.format(
-                      "Can't invoke method '%s' of class '%s'",
-                      methodName, clazz), e);
+                      "Can't invoke method '%s' of class '%s': %s",
+                      methodName, clazz, e.getMessage()), e);
+        } catch (InvocationTargetException e) {
+            Throwable target = e.getTargetException();
+            if (target instanceof RuntimeException) {
+                throw (RuntimeException) target;
+            }
+            throw new RuntimeException(String.format(
+                      "Can't invoke method '%s' of class '%s': %s",
+                      methodName, clazz, target.getMessage()), target);
         }
     }
 }
