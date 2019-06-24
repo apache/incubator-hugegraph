@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.backend.query;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -32,6 +31,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
@@ -62,7 +62,7 @@ public class Query implements Cloneable {
         this.resultType = resultType;
         this.originQuery = originQuery;
 
-        this.orders = new LinkedHashMap<>();
+        this.orders = null;
 
         this.offset = 0L;
         this.limit = NO_LIMIT;
@@ -100,15 +100,23 @@ public class Query implements Cloneable {
     }
 
     public Map<HugeKeys, Order> orders() {
-        return Collections.unmodifiableMap(this.orders);
+        return Collections.unmodifiableMap(this.getOrNewOrders());
     }
 
     public void orders(Map<HugeKeys, Order> orders) {
-        this.orders = new LinkedHashMap<>(orders);
+        this.orders = InsertionOrderUtil.newMap(orders);
     }
 
     public void order(HugeKeys key, Order order) {
-        this.orders.put(key, order);
+        this.getOrNewOrders().put(key, order);
+    }
+
+    private Map<HugeKeys, Order> getOrNewOrders() {
+        if (this.orders != null) {
+            return this.orders;
+        }
+        this.orders = InsertionOrderUtil.newMap();
+        return this.orders;
     }
 
     public long offset() {
@@ -266,7 +274,7 @@ public class Query implements Cloneable {
         }
         Query other = (Query) object;
         return this.resultType.equals(other.resultType) &&
-               this.orders.equals(other.orders) &&
+               this.orders().equals(other.orders()) &&
                this.offset == other.offset &&
                this.limit == other.limit &&
                Objects.equals(this.page, other.page) &&
@@ -277,7 +285,7 @@ public class Query implements Cloneable {
     @Override
     public int hashCode() {
         return this.resultType.hashCode() ^
-               this.orders.hashCode() ^
+               this.orders().hashCode() ^
                Long.hashCode(this.offset) ^
                Long.hashCode(this.limit) ^
                Objects.hashCode(this.page) ^
@@ -287,12 +295,31 @@ public class Query implements Cloneable {
 
     @Override
     public String toString() {
-        return String.format("Query for %s page=%s, offset=%d, limit=%d, order by %s",
-                             this.resultType,
-                             this.page,
-                             this.offset,
-                             this.limit,
-                             this.orders.toString());
+        Map<String, Object> pairs = InsertionOrderUtil.newMap();
+        if (this.page != null) {
+            pairs.put("page", this.page);
+        }
+        if (this.offset != 0) {
+            pairs.put("offset", this.offset);
+        }
+        if (this.limit != NO_LIMIT) {
+            pairs.put("limit", this.limit);
+        }
+        if (!this.orders().isEmpty()) {
+            pairs.put("order by", this.orders());
+        }
+
+        StringBuilder sb = new StringBuilder(64);
+        sb.append("Query for ").append(this.resultType);
+        for (Map.Entry<String, Object> entry : pairs.entrySet()) {
+            sb.append(' ').append(entry.getKey())
+              .append(' ').append(entry.getValue()).append(',');
+        }
+        if (!pairs.isEmpty()) {
+            // Delete last comma
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
     }
 
     public static long defaultCapacity(long capacity) {
