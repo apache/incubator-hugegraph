@@ -77,7 +77,7 @@ public class RestResult {
             JavaType type = mapper.getTypeFactory()
                                   .constructParametrizedType(ArrayList.class,
                                                              List.class, clazz);
-            return mapper.readValue(element.toString(), type);
+            return mapper.convertValue(element, type);
         } catch (IOException e) {
             throw new SerializeException(
                       "Failed to deserialize %s", e, this.content);

@@ -24,7 +24,6 @@ import static org.glassfish.jersey.apache.connector.ApacheClientProperties.CONNE
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -50,6 +49,7 @@ import org.glassfish.jersey.internal.util.collection.Refs;
 import org.glassfish.jersey.message.GZipEncoder;
 import org.glassfish.jersey.uri.UriComponent;
 
+import com.baidu.hugegraph.util.ExecutorUtil;
 import com.google.common.collect.ImmutableMap;
 
 public abstract class RestClient {
@@ -98,7 +98,8 @@ public abstract class RestClient {
         this.pool = (PoolingHttpClientConnectionManager)
                     config.getProperty(CONNECTION_MANAGER);
         if (this.pool != null) {
-            this.cleanExecutor = Executors.newScheduledThreadPool(1);
+            this.cleanExecutor = ExecutorUtil.newScheduledThreadPool(
+                                              "conn-clean-worker-%d");
             this.cleanExecutor.scheduleWithFixedDelay(() -> {
                 PoolStats stats = this.pool.getTotalStats();
                 int using = stats.getLeased() + stats.getPending();
