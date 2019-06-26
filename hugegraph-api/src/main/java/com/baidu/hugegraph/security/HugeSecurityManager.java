@@ -159,15 +159,14 @@ public class HugeSecurityManager extends SecurityManager {
 
     private boolean callFromGremlin() {
         Thread curThread = Thread.currentThread();
-        if (!curThread.getName().startsWith(GREMLIN_SERVER_WORKER) &&
-            !curThread.getName().startsWith(TASK_WORKER)) {
-            return false;
-        }
-        StackTraceElement[] elements = curThread.getStackTrace();
-        for (StackTraceElement element : elements) {
-            String className = element.getClassName();
-            if (GREMLIN_EXECUTOR_CLASS.equals(className)) {
-                return true;
+        if (curThread.getName().startsWith(GREMLIN_SERVER_WORKER) ||
+            curThread.getName().startsWith(TASK_WORKER)) {
+            StackTraceElement[] elements = curThread.getStackTrace();
+            for (StackTraceElement element : elements) {
+                String className = element.getClassName();
+                if (GREMLIN_EXECUTOR_CLASS.equals(className)) {
+                    return true;
+                }
             }
         }
         return false;
