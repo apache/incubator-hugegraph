@@ -212,6 +212,26 @@ public final class NumericUtil {
         throw unsupportedNumberType(clazz);
     }
 
+    public static Number maxValueOf(Class<?> clazz) {
+        E.checkArgumentNotNull(clazz, "The clazz can't be null");
+
+        if (Long.class.isAssignableFrom(clazz) ||
+            Double.class.isAssignableFrom(clazz) ) {
+            return Long.MAX_VALUE;
+        }
+        if (Integer.class.isAssignableFrom(clazz) ||
+            Float.class.isAssignableFrom(clazz) ||
+            Short.class.isAssignableFrom(clazz)) {
+            return Integer.MAX_VALUE;
+        }
+        if (Byte.class.isAssignableFrom(clazz)) {
+            return Byte.MAX_VALUE;
+        }
+
+        // TODO: support other number types
+        throw unsupportedNumberType(clazz);
+    }
+
     public static byte[] longToSortableBytes(long value) {
         return longToBytes(value + FULL_LONG);
     }

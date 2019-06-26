@@ -364,6 +364,31 @@ public class NumericUtilTest extends BaseUnitTest {
         });
     }
 
+    @Test
+    public void testMaxValueOf() {
+        Assert.assertEquals(Byte.MAX_VALUE,
+                            NumericUtil.maxValueOf(Byte.class));
+
+        Assert.assertEquals(Integer.MAX_VALUE,
+                            NumericUtil.maxValueOf(Short.class));
+        Assert.assertEquals(Integer.MAX_VALUE,
+                            NumericUtil.maxValueOf(Integer.class));
+        Assert.assertEquals(Integer.MAX_VALUE,
+                            NumericUtil.maxValueOf(Float.class));
+
+        Assert.assertEquals(Long.MAX_VALUE,
+                            NumericUtil.maxValueOf(Long.class));
+        Assert.assertEquals(Long.MAX_VALUE,
+                            NumericUtil.maxValueOf(Double.class));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            NumericUtil.minValueOf(null);
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            NumericUtil.minValueOf(Character.class);
+        });
+    }
+
     private static void assertEquals(byte[] bytes1, byte[] bytes2) {
         Assert.assertTrue(Bytes.toHex(bytes1) + " != " + Bytes.toHex(bytes2),
                           Bytes.equals(bytes1, bytes2));
