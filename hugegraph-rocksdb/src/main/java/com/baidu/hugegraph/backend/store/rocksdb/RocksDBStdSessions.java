@@ -30,11 +30,12 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.BloomFilter;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.ColumnFamilyOptionsInterface;
-import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
@@ -314,27 +315,67 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 cf.optimizeUniversalStyleCompaction();
             }
 
-            cf.setNumLevels(conf.get(RocksDBOptions.NUM_LEVELS));
-            cf.setCompactionStyle(CompactionStyle.valueOf(
-                    conf.get(RocksDBOptions.COMPACTION_STYLE)));
+            int numLevels = conf.get(RocksDBOptions.NUM_LEVELS);
+            List<CompressionType> compressions = conf.get(
+                                  RocksDBOptions.LEVELS_COMPRESSIONS);
+            E.checkArgument(compressions.isEmpty() ||
+                            compressions.size() == numLevels,
+                            "Elements number of '%s' must be 0 or " +
+                            "be the same as '%s', bug got %s != %s",
+                            RocksDBOptions.LEVELS_COMPRESSIONS.name(),
+                            RocksDBOptions.NUM_LEVELS.name(),
+                            compressions.size(), numLevels);
+
+            cf.setNumLevels(numLevels);
+            cf.setCompactionStyle(conf.get(RocksDBOptions.COMPACTION_STYLE));
+
+            cf.setBottommostCompressionType(
+                    conf.get(RocksDBOptions.BOTTOMMOST_COMPRESSION));
+            if (!compressions.isEmpty()) {
+                cf.setCompressionPerLevel(compressions);
+            }
 
             cf.setMinWriteBufferNumberToMerge(
                     conf.get(RocksDBOptions.MIN_MEMTABLES_TO_MERGE));
             cf.setMaxWriteBufferNumberToMaintain(
                     conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
 
+            // https://github.com/facebook/rocksdb/wiki/Block-Cache
+            BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
+            long cacheCapacity = conf.get(RocksDBOptions.BLOCK_CACHE_CAPACITY);
+            if (cacheCapacity <= 0L) {
+                // Bypassing bug https://github.com/facebook/rocksdb/pull/5465
+                tableConfig.setNoBlockCache(true);
+            } else {
+                tableConfig.setBlockCacheSize(cacheCapacity);
+            }
+            tableConfig.setPinL0FilterAndIndexBlocksInCache(
+                    conf.get(RocksDBOptions.PIN_L0_FILTER_AND_INDEX_IN_CACHE));
+            tableConfig.setCacheIndexAndFilterBlocks(
+                    conf.get(RocksDBOptions.PUT_FILTER_AND_INDEX_IN_CACHE));
+
+            // https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter
+            int bitsPerKey = conf.get(RocksDBOptions.BLOOM_FILTER_BITS_PER_KEY);
+            if (bitsPerKey >= 0) {
+                boolean blockBased = conf.get(RocksDBOptions.BLOOM_FILTER_MODE);
+                tableConfig.setFilter(new BloomFilter(bitsPerKey, blockBased));
+            }
+            tableConfig.setWholeKeyFiltering(
+                    conf.get(RocksDBOptions.BLOOM_FILTER_WHOLE_KEY));
+            cf.setTableFormatConfig(tableConfig);
+
+            cf.setOptimizeFiltersForHits(
+                    conf.get(RocksDBOptions.BLOOM_FILTERS_SKIP_LAST_LEVEL));
+
             // https://github.com/facebook/rocksdb/tree/master/utilities/merge_operators
             cf.setMergeOperatorName("uint64add"); // uint64add/stringappend
         }
 
         if (mcf != null) {
-            mcf.setCompressionType(CompressionType.getCompressionType(
-                    conf.get(RocksDBOptions.COMPRESSION_TYPE)));
+            mcf.setCompressionType(conf.get(RocksDBOptions.COMPRESSION));
 
-            mcf.setWriteBufferSize(
-                    conf.get(RocksDBOptions.MEMTABLE_SIZE));
-            mcf.setMaxWriteBufferNumber(
-                    conf.get(RocksDBOptions.MAX_MEMTABLES));
+            mcf.setWriteBufferSize(conf.get(RocksDBOptions.MEMTABLE_SIZE));
+            mcf.setMaxWriteBufferNumber(conf.get(RocksDBOptions.MAX_MEMTABLES));
 
             mcf.setMaxBytesForLevelBase(
                     conf.get(RocksDBOptions.MAX_LEVEL1_BYTES));
