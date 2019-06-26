@@ -1362,19 +1362,23 @@ public class EdgeCoreTest extends BaseCoreTest {
                             edges.get(0).value("calltime"));
 
         edges = graph.traversal().V(v1).outE("call").has("callType", "work")
-                     .has("calltime", P.gte("2017-5-3"))
+                     .has("calltime", P.gte("2017-5-2"))
                      .toList();
-        Assert.assertEquals(2, edges.size());
-        Assert.assertEquals(Utils.date("2017-5-3 12:08:02"),
+        Assert.assertEquals(4, edges.size());
+        Assert.assertEquals(Utils.date("2017-5-2 12:00:01"),
                             edges.get(0).value("calltime"));
-        Assert.assertEquals(Utils.date("2017-5-3 14:56:06"),
+        Assert.assertEquals(Utils.date("2017-5-2 15:30:05"),
                             edges.get(1).value("calltime"));
+        Assert.assertEquals(Utils.date("2017-5-3 12:08:02"),
+                            edges.get(2).value("calltime"));
+        Assert.assertEquals(Utils.date("2017-5-3 14:56:06"),
+                            edges.get(3).value("calltime"));
 
         edges = graph.traversal().V(v1).outE("call").has("callType", "work")
-                     .has("calltime", P.gte("2017-5-3"))
+                     .has("calltime", P.gte("2017-5-2"))
                      .where(__.otherV().hasId(v2.id()))
                      .toList();
-        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(2, edges.size());
 
         edges = graph.traversal().V(v1).outE("call").has("callType", "work")
                      .has("calltime", P.between("2017-5-2","2017-5-4"))

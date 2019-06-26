@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.commons.lang.NotImplementedException;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -69,6 +70,8 @@ import com.baidu.hugegraph.util.KryoUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
+import static com.baidu.hugegraph.backend.serializer.BytesBuffer.ID_MAX_LEN;
+
 public class BinarySerializer extends AbstractSerializer {
 
     public static final byte[] EMPTY_BYTES = new byte[0];
@@ -93,7 +96,12 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
-        BinaryId bid = new BinaryId(buffer.writeId(id).bytes(), id);
+        BinaryId bid;
+        if (type.isIndex()) {
+            bid = new BinaryId(buffer.writeIndexId(id).bytes(), id);
+        } else {
+            bid = new BinaryId(buffer.writeId(id).bytes(), id);
+        }
         return new BinaryBackendEntry(type, bid);
     }
 
@@ -328,6 +336,8 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer buffer;
         if (!this.indexWithIdPrefix) {
             buffer = BytesBuffer.allocate(idLen);
+            // Write element-id
+            buffer.writeId(elemId, true);
         } else {
             Id indexId = index.id();
             if (indexIdLengthExceedLimit(indexId)) {
@@ -336,11 +346,20 @@ public class BinarySerializer extends AbstractSerializer {
             // Write index-id
             idLen += 1 + indexId.length();
             buffer = BytesBuffer.allocate(idLen);
-            buffer.writeId(indexId);
+            byte[] bytes = indexId.asBytes();
+            // Write index id
+            buffer.write(bytes);
+            // Write element-id
+            buffer.writeId(elemId, true);
+            int len = bytes.length;
+            E.checkArgument(len > 0, "Can't write empty id");
+            E.checkArgument(len <= ID_MAX_LEN,
+                            "Id max length is %s, but got %s {%s}",
+                            ID_MAX_LEN, len, indexId);
+            len -= 1; // mapping [1, 128] to [0, 127]
+            // Write index id length
+            buffer.writeUInt8(len | 0x80);
         }
-
-        // Write element-id
-        buffer.writeId(elemId, true);
 
         return buffer.bytes();
     }
@@ -354,7 +373,9 @@ public class BinarySerializer extends AbstractSerializer {
             }
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
             if (this.indexWithIdPrefix) {
-                buffer.readId();
+                int b = buffer.peekLast();
+                int len = b & 0x7f;
+                buffer.read(len + 1);
             }
             index.elementIds(buffer.readId(true));
         }
@@ -445,6 +466,14 @@ public class BinarySerializer extends AbstractSerializer {
         } else {
             Id id = index.id();
             byte[] value = null;
+
+            // Shard index with number can't exceeds length limit
+//            if (index.type().isShardIndex() && index.hasNumber() &&
+//                indexIdLengthExceedLimit(id)) {
+//                throw new HugeException("Shard index with number " +
+//                                        "exceeds length limit: '%s'", index);
+//            }
+
             if (!index.type().isRangeIndex() && indexIdLengthExceedLimit(id)) {
                 id = index.hashId();
                 // Save field-values as column value if the key is a hash string
@@ -467,7 +496,7 @@ public class BinarySerializer extends AbstractSerializer {
 
         BinaryBackendEntry entry = this.convertEntry(bytesEntry);
         // NOTE: index id without length prefix
-        byte[] bytes = entry.id().asBytes(1);
+        byte[] bytes = entry.id().asBytes();
         HugeIndex index = HugeIndex.parseIndexId(graph, entry.type(), bytes);
 
         Object fieldValues = null;
@@ -623,7 +652,7 @@ public class BinarySerializer extends AbstractSerializer {
             return this.writeStringIndexQuery(cq);
         }
 
-        // Convert range-index query to id range query
+        // Convert range-index/shard-index query to id range query
         if (type.isRangeIndex() || type.isShardIndex()) {
             return this.writeRangeIndexQuery(cq);
         }
@@ -766,40 +795,20 @@ public class BinarySerializer extends AbstractSerializer {
         switch (index.type()) {
             case SECONDARY_INDEX:
             case SEARCH_INDEX:
-                String idString = id.asString();
-                int idLength = idString.length();
-                // TODO: to improve, use BytesBuffer to generate a mask
-                for (int i = idLength - 1; i < 128; i++) {
-                    BytesBuffer buffer = BytesBuffer.allocate(idLength + 1);
-                    /*
-                     * Index id type is always non-number, that it will prefix
-                     * with '0b1xxx xxxx'
-                     */
-                    buffer.writeUInt8(i | 0x80);
-                    buffer.write(IdGenerator.of(idString).asBytes());
-                    entry.column(buffer.bytes(), null);
-                }
+                BytesBuffer buffer = BytesBuffer.allocate(id.length());
+                buffer.write(IdGenerator.of(id.asString()).asBytes());
+                entry.column(buffer.bytes(), null);
                 break;
             case RANGE_INDEX:
             case SHARD_INDEX:
-                int il = (int) id.asLong();
-                for (int i = 0; i < 4; i++) {
-                    /*
-                     * Field value(Number type) length is 1, 2, 4, 8.
-                     * Index label id length is 4
-                     */
-                    int length = (int) Math.pow(2, i) + 4;
-                    length -= 1;
-                    BytesBuffer buffer = BytesBuffer.allocate(1 + 4);
-                    buffer.writeUInt8(length | 0x80);
-                    buffer.writeInt(il);
-                    entry.column(buffer.bytes(), null);
-                }
+                buffer = BytesBuffer.allocate(4);
+                buffer.writeInt((int) id.asLong());
+                entry.column(buffer.bytes(), null);
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Index type must be Secondary or Range, " +
-                          "but got '%s'", index.type()));
+                          "Index type must be Secondary, Search, Range or " +
+                          "Shard, but got '%s'", index.type()));
         }
         return entry;
     }
@@ -827,7 +836,7 @@ public class BinarySerializer extends AbstractSerializer {
             id = HugeIndex.formatIndexHashId(type, indexLabel, fieldValues);
         }
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
-        return new BinaryId(buffer.writeId(id).bytes(), id);
+        return new BinaryId(buffer.writeIndexId(id).bytes(), id);
     }
 
     protected static boolean indexIdLengthExceedLimit(Id id) {

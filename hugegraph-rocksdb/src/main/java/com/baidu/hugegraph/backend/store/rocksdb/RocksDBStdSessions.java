@@ -764,12 +764,23 @@ public class RocksDBStdSessions extends RocksDBSessions {
             }
 
             this.matched = this.iter.isValid();
-            if (this.matched) {
+            while (this.matched) {
                 // Update position for paging
                 this.position = this.iter.key();
                 // Do filter if not SCAN_ANY
                 if (!this.match(Session.SCAN_ANY)) {
-                    this.matched = this.filter(this.position);
+                    int status = this.filter(this.position);
+                    if (status == 1) {
+                        this.matched = true;
+                        break;
+                    } else if (status == -1) {
+                        this.matched = false;
+                        break;
+                    }
+                    this.iter.next();
+                    this.matched = this.iter.isValid();
+                } else {
+                    break;
                 }
             }
             if (!this.matched) {
@@ -804,13 +815,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
             }
         }
 
-        private boolean filter(byte[] key) {
+        private int filter(byte[] key) {
             if (this.match(Session.SCAN_PREFIX_BEGIN)) {
                 /*
                  * Prefix with `keyBegin`?
                  * TODO: use custom prefix_extractor instead
                  */
-                return Bytes.prefixWith(key, this.keyBegin);
+                return Bytes.prefixWith(key, this.keyBegin) ? 1 : -1;
             } else if (this.match(Session.SCAN_PREFIX_END)) {
                 /*
                  * Prefix with `keyEnd`?
@@ -818,7 +829,15 @@ public class RocksDBStdSessions extends RocksDBSessions {
                  *  key > 'age:20' and prefix with 'age'
                  */
                 assert this.keyEnd != null;
-                return Bytes.prefixWith(key, this.keyEnd);
+                if (this.isStringIndex()) {
+                    // String index should verify length except prefix
+                    int length = (key[key.length - 1] & 0x7f) + 1;
+                    if (Bytes.prefixWith(key, this.keyEnd)) {
+                        return length == this.keyEnd.length ? 1 : 0;
+                    }
+                    return -1;
+                }
+                return Bytes.prefixWith(key, this.keyEnd) ? 1 : -1;
             } else if (this.match(Session.SCAN_LT_END)) {
                 /*
                  * Less (equal) than `keyEnd`?
@@ -828,16 +847,16 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 if (this.match(Session.SCAN_LTE_END)) {
                     // Just compare the prefix, maybe there are excess tail
                     key = Arrays.copyOfRange(key, 0, this.keyEnd.length);
-                    return Bytes.compare(key, this.keyEnd) <= 0;
+                    return Bytes.compare(key, this.keyEnd) <= 0 ? 1 : -1;
                 } else {
-                    return Bytes.compare(key, this.keyEnd) < 0;
+                    return Bytes.compare(key, this.keyEnd) < 0 ? 1 : -1;
                 }
             } else {
                 assert this.match(Session.SCAN_ANY) ||
                        this.match(Session.SCAN_GT_BEGIN) ||
                        this.match(Session.SCAN_GTE_BEGIN) :
                        "Unknow scan type";
-                return true;
+                return 1;
             }
         }
 
@@ -867,6 +886,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
             if (this.iter.isOwningHandle()) {
                 this.iter.close();
             }
+        }
+
+        private boolean isStringIndex() {
+            return this.table.endsWith("si") ||
+                   this.table.endsWith("fi") ||
+                   this.table.endsWith("pi");
         }
     }
 }

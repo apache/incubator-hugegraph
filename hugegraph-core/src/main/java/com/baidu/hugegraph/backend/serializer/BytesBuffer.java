@@ -204,6 +204,10 @@ public final class BytesBuffer {
         return this.buffer.get(this.buffer.position());
     }
 
+    public byte peekLast() {
+        return this.buffer.get(this.buffer.capacity() - 1);
+    }
+
     public byte read() {
         return this.buffer.get();
     }
@@ -366,6 +370,24 @@ public final class BytesBuffer {
             byte[] id = this.read(len);
             return IdGenerator.of(id, type);
         }
+    }
+
+    public BytesBuffer writeIndexId(Id id) {
+        byte[] bytes = id.asBytes();
+        int len = bytes.length;
+        E.checkArgument(len > 0, "Can't write empty id");
+        E.checkArgument(len <= ID_MAX_LEN,
+                        "Id max length is %s, but got %s {%s}",
+                        ID_MAX_LEN, len, id);
+        this.write(bytes);
+        return this;
+    }
+
+    public BinaryId readIndexId() {
+        int b = this.peekLast();
+        int len = b & 0x7f;
+        byte[] id = this.read(len + 1);
+        return new BinaryId(id, IdGenerator.of(id, false));
     }
 
     public BinaryId asId() {
