@@ -889,9 +889,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         private boolean isStringIndex() {
-            return this.table.endsWith("si") ||
-                   this.table.endsWith("fi") ||
-                   this.table.endsWith("pi");
+            return this.table.endsWith(RocksDBTables.SecondaryIndex.TABLE) ||
+                   this.table.endsWith(RocksDBTables.SearchIndex.TABLE) ||
+                   this.table.endsWith(RocksDBTables.ShardIndex.TABLE);
         }
     }
 }

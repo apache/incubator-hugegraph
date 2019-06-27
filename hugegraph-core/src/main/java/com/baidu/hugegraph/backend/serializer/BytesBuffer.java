@@ -47,14 +47,15 @@ public final class BytesBuffer {
     public static final long UINT32_MAX = (-1) & 0xffffffffL;
 
     // NOTE: +1 to let code 0 represent length 1
-    public static final int ID_MAX_LEN = UINT8_MAX & 0x7e + 1; // 127
-    public static final int BIG_ID_MAX_LEN = UINT16_MAX & 0x7eff + 1; // 32512
+    public static final int ID_LEN_MASK = 0x7f;
+    public static final int ID_LEN_MAX = UINT8_MAX & 0x7e + 1; // 127
+    public static final int BIG_ID_LEN_MAX = UINT16_MAX & 0x7eff + 1; // 32512
 
     public static final long ID_MIN = Long.MIN_VALUE >> 3;
     public static final long ID_MAX = Long.MAX_VALUE >> 3;
     public static final long ID_MASK = 0x0fffffffffffffffL;
 
-    // The value must be in range [8, 127(ID_MAX_LEN)]
+    // The value must be in range [8, 127(ID_LEN_MAX)]
     public static final int INDEX_ID_MAX_LENGTH = 32;
 
     public static final int DEFAULT_CAPACITY = 64;
@@ -319,15 +320,15 @@ public final class BytesBuffer {
             int len = bytes.length;
             E.checkArgument(len > 0, "Can't write empty id");
             if (!big) {
-                E.checkArgument(len <= ID_MAX_LEN,
+                E.checkArgument(len <= ID_LEN_MAX,
                                 "Id max length is %s, but got %s {%s}",
-                                ID_MAX_LEN, len, id);
+                                ID_LEN_MAX, len, id);
                 len -= 1; // mapping [1, 127] to [0, 126]
                 this.writeUInt8(len | 0x80);
             } else {
-                E.checkArgument(len <= BIG_ID_MAX_LEN,
+                E.checkArgument(len <= BIG_ID_LEN_MAX,
                                 "Big id max length is %s, but got %s",
-                                BIG_ID_MAX_LEN, len);
+                                BIG_ID_LEN_MAX, len);
                 len -= 1;
                 int high = len >> 8;
                 int low = len & 0xff;
@@ -352,7 +353,7 @@ public final class BytesBuffer {
             return IdGenerator.of(this.readNumber(b));
         } else {
             this.readUInt8();
-            int len = b & 0x7f;
+            int len = b & ID_LEN_MASK;
             IdType type = IdType.STRING;
             if (len == 0x7f) {
                 // UUID Id
@@ -376,16 +377,16 @@ public final class BytesBuffer {
         byte[] bytes = id.asBytes();
         int len = bytes.length;
         E.checkArgument(len > 0, "Can't write empty id");
-        E.checkArgument(len <= ID_MAX_LEN,
+        E.checkArgument(len <= ID_LEN_MAX,
                         "Id max length is %s, but got %s {%s}",
-                        ID_MAX_LEN, len, id);
+                        ID_LEN_MAX, len, id);
         this.write(bytes);
         return this;
     }
 
     public BinaryId readIndexId() {
         int b = this.peekLast();
-        int len = b & 0x7f;
+        int len = b & ID_LEN_MASK;
         byte[] id = this.read(len + 1);
         return new BinaryId(id, IdGenerator.of(id, false));
     }

@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.apache.commons.lang.NotImplementedException;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -70,7 +69,7 @@ import com.baidu.hugegraph.util.KryoUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
-import static com.baidu.hugegraph.backend.serializer.BytesBuffer.ID_MAX_LEN;
+import static com.baidu.hugegraph.backend.serializer.BytesBuffer.ID_LEN_MASK;
 
 public class BinarySerializer extends AbstractSerializer {
 
@@ -96,12 +95,9 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
-        BinaryId bid;
-        if (type.isIndex()) {
-            bid = new BinaryId(buffer.writeIndexId(id).bytes(), id);
-        } else {
-            bid = new BinaryId(buffer.writeId(id).bytes(), id);
-        }
+        BinaryId bid = type.isIndex() ?
+                       new BinaryId(buffer.writeIndexId(id).bytes(), id) :
+                       new BinaryId(buffer.writeId(id).bytes(), id);
         return new BinaryBackendEntry(type, bid);
     }
 
@@ -343,22 +339,16 @@ public class BinarySerializer extends AbstractSerializer {
             if (indexIdLengthExceedLimit(indexId)) {
                 indexId = index.hashId();
             }
-            // Write index-id
             idLen += 1 + indexId.length();
             buffer = BytesBuffer.allocate(idLen);
-            byte[] bytes = indexId.asBytes();
-            // Write index id
-            buffer.write(bytes);
+            // Write index-id
+            buffer.writeIndexId(indexId);
             // Write element-id
             buffer.writeId(elemId, true);
-            int len = bytes.length;
-            E.checkArgument(len > 0, "Can't write empty id");
-            E.checkArgument(len <= ID_MAX_LEN,
-                            "Id max length is %s, but got %s {%s}",
-                            ID_MAX_LEN, len, indexId);
+            int len = indexId.asBytes().length;
             len -= 1; // mapping [1, 128] to [0, 127]
             // Write index id length
-            buffer.writeUInt8(len | 0x80);
+            buffer.writeUInt8(len & ID_LEN_MASK);
         }
 
         return buffer.bytes();
@@ -374,7 +364,7 @@ public class BinarySerializer extends AbstractSerializer {
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
             if (this.indexWithIdPrefix) {
                 int b = buffer.peekLast();
-                int len = b & 0x7f;
+                int len = b & ID_LEN_MASK;
                 buffer.read(len + 1);
             }
             index.elementIds(buffer.readId(true));

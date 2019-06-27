@@ -446,7 +446,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            final int LEN = BytesBuffer.BIG_ID_MAX_LEN;
+            final int LEN = BytesBuffer.BIG_ID_LEN_MAX;
             String largeTime = new String(new byte[LEN]) + "{large-time}";
             james.addEdge("write", book, "time", largeTime);
             graph.tx().commit();

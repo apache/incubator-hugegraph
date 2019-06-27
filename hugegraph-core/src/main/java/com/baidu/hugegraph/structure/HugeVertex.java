@@ -178,9 +178,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     protected void checkIdLength() {
         assert this.id != null;
         int len = this.id.asBytes().length;
-        E.checkArgument(len <= BytesBuffer.ID_MAX_LEN,
+        E.checkArgument(len <= BytesBuffer.ID_LEN_MAX,
                         "The max length of vertex id is %s, but got %s {%s}",
-                        BytesBuffer.ID_MAX_LEN, len, this.id);
+                        BytesBuffer.ID_LEN_MAX, len, this.id);
     }
 
     @Override
