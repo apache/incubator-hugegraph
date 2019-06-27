@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import org.slf4j.Logger;
 
@@ -170,8 +171,11 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         int type = query.inclusiveStart() ?
                    Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;
         type |= Session.SCAN_PREFIX_END;
-        return session.scan(this.table(), query.start().asBytes(),
-                            query.prefix().asBytes(), type);
+        BackendColumnIterator iter = session.scan(this.table(),
+                                                  query.start().asBytes(),
+                                                  query.prefix().asBytes(),
+                                                  type);
+        return new PrefixItemIterator(iter, query);
     }
 
     protected BackendColumnIterator queryByRange(Session session,
@@ -224,6 +228,71 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             entry.columns(col);
             return entry;
         });
+    }
+
+    protected static class PrefixItemIterator implements BackendColumnIterator {
+
+        private BackendColumnIterator iterator;
+        private byte[] prefix;
+        private HugeType type;
+        private BackendColumn next;
+
+        public PrefixItemIterator(BackendColumnIterator origin,
+                                  IdPrefixQuery query) {
+            E.checkNotNull(origin, "iterator");
+            E.checkNotNull(query, "query");
+            this.iterator = origin;
+            this.prefix = query.prefix().asBytes();
+            this.type = query.resultType();
+        }
+
+        @Override
+        public void close() {
+            this.iterator.close();
+        }
+
+        @Override
+        public byte[] position() {
+            return this.iterator.position();
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (this.next != null) {
+                return true;
+            }
+            if (this.type.isStringIndex()) {
+                while (this.iterator.hasNext()) {
+                    BackendColumn backendColumn = this.iterator.next();
+                    byte[] name = backendColumn.name;
+                    // String index should verify length except prefix
+                    int length = (name[name.length - 1] & 0x7f) + 1;
+                    if (Bytes.prefixWith(name, this.prefix) &&
+                        length == this.prefix.length) {
+                        this.next = backendColumn;
+                        return true;
+                    }
+                }
+                return false;
+            } else {
+                boolean hasNext = this.iterator.hasNext();
+                if (hasNext) {
+                    this.next = this.iterator.next();
+                }
+                return hasNext;
+            }
+        }
+
+        @Override
+        public BackendColumn next() {
+            if (!this.hasNext()) {
+                throw new NoSuchElementException();
+            }
+            assert this.next != null;
+            BackendColumn result = this.next;
+            this.next = null;
+            return result;
+        }
     }
 
     private static class RocksDBShardSpliter extends ShardSpliter<Session> {

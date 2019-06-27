@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.hbase;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.hadoop.hbase.Cell;
@@ -186,8 +187,10 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected RowIterator queryByPrefix(Session session, IdPrefixQuery query) {
-        return session.scan(this.table(), query.start().asBytes(),
-                            query.inclusiveStart(), query.prefix().asBytes());
+        RowIterator iter = session.scan(this.table(), query.start().asBytes(),
+                                        query.inclusiveStart(),
+                                        query.prefix().asBytes());
+        return new PrefixItemIterator(iter, query);
     }
 
     protected RowIterator queryByRange(Session session, IdRangeQuery query) {
@@ -247,6 +250,71 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
             Cell cell = cellScanner.current();
             entry.columns(BackendColumn.of(CellUtil.cloneQualifier(cell),
                                            CellUtil.cloneValue(cell)));
+        }
+    }
+
+    protected static class PrefixItemIterator extends RowIterator {
+
+        private RowIterator iterator;
+        private byte[] prefix;
+        private HugeType type;
+        private Result next;
+
+        public PrefixItemIterator(RowIterator origin,
+                                  IdPrefixQuery query) {
+            E.checkNotNull(origin, "iterator");
+            E.checkNotNull(query, "query");
+            this.iterator = origin;
+            this.prefix = query.prefix().asBytes();
+            this.type = query.resultType();
+        }
+
+        @Override
+        public void close() {
+            this.iterator.close();
+        }
+
+        @Override
+        public byte[] position() {
+            return this.iterator.position();
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (this.next != null) {
+                return true;
+            }
+            if (this.type.isStringIndex()) {
+                while (this.iterator.hasNext()) {
+                    Result result = this.iterator.next();
+                    byte[] name = result.getRow();
+                    // String index should verify length except prefix
+                    int length = (name[name.length - 1] & 0x7f) + 1;
+                    if (Bytes.prefixWith(name, this.prefix) &&
+                            length == this.prefix.length) {
+                        this.next = result;
+                        return true;
+                    }
+                }
+                return false;
+            } else {
+                boolean hasNext = this.iterator.hasNext();
+                if (hasNext) {
+                    this.next = this.iterator.next();
+                }
+                return hasNext;
+            }
+        }
+
+        @Override
+        public Result next() {
+            if (!this.hasNext()) {
+                throw new NoSuchElementException();
+            }
+            assert this.next != null;
+            Result result = this.next;
+            this.next = null;
+            return result;
         }
     }
 
