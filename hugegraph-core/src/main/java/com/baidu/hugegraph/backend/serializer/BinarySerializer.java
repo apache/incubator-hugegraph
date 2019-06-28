@@ -363,9 +363,7 @@ public class BinarySerializer extends AbstractSerializer {
             }
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
             if (this.indexWithIdPrefix) {
-                int b = buffer.peekLast();
-                int len = b & ID_LEN_MASK;
-                buffer.read(len + 1);
+                buffer.readIndexId();
             }
             index.elementIds(buffer.readId(true));
         }
@@ -456,14 +454,6 @@ public class BinarySerializer extends AbstractSerializer {
         } else {
             Id id = index.id();
             byte[] value = null;
-
-            // Shard index with number can't exceeds length limit
-//            if (index.type().isShardIndex() && index.hasNumber() &&
-//                indexIdLengthExceedLimit(id)) {
-//                throw new HugeException("Shard index with number " +
-//                                        "exceeds length limit: '%s'", index);
-//            }
-
             if (!index.type().isRangeIndex() && indexIdLengthExceedLimit(id)) {
                 id = index.hashId();
                 // Save field-values as column value if the key is a hash string
@@ -762,21 +752,16 @@ public class BinarySerializer extends AbstractSerializer {
                             "Invalid page out of lower bound");
         }
 
-        Query newQuery;
         if (keyMax == null) {
-            Id prefix = formatIndexId(type, index, null);
-            // Reset the first byte to make same length-prefix
-            prefix.asBytes()[0] = min.asBytes()[0];
-            newQuery = new IdPrefixQuery(query, start, keyMinEq, prefix);
-        } else {
-            Id max = formatIndexId(type, index, keyMax);
-            if (keyMaxEq) {
-                keyMaxEq = false;
-                increaseOne(max.asBytes());
-            }
-            newQuery = new IdRangeQuery(query, start, keyMinEq, max, keyMaxEq);
+            keyMax = NumericUtil.maxValueOf(keyMin.getClass());
+            keyMaxEq = true;
         }
-        return newQuery;
+        Id max = formatIndexId(type, index, keyMax);
+        if (keyMaxEq) {
+            keyMaxEq = false;
+            increaseOne(max.asBytes());
+        }
+        return new IdRangeQuery(query, start, keyMinEq, max, keyMaxEq);
     }
 
     private BinaryBackendEntry formatILDeletion(HugeIndex index) {
