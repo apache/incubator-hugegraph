@@ -17,15 +17,24 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.util;
 
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import java.nio.CharBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
-public class CommonVersion {
+public final class StringUtil {
 
-    public static final String NAME = "hugegraph-common";
-
-    // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(CommonVersion.class,
-                                                     "1.6.8");
+    public static List<CharSequence> split(String line, String delimiter) {
+        E.checkArgument(delimiter.length() > 0,
+                        "The delimiter can't be empty");
+        List<CharSequence> results = new ArrayList<>();
+        int from = 0;
+        for (int to; (to = line.indexOf(delimiter, from)) >= 0;
+             from = to + delimiter.length()) {
+            results.add(CharBuffer.wrap(line, from, to));
+        }
+        results.add(CharBuffer.wrap(line, from, line.length()));
+        return results;
+    }
 }

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.util;
 
+import java.time.Duration;
 import java.util.Date;
 
 public final class TimeUtil {
@@ -44,5 +45,17 @@ public final class TimeUtil {
             timestamp = timeGen();
         }
         return timestamp;
+    }
+
+    public static String readableTime(long time) {
+        if (time > 60 * 1000) {
+            // Remove the milliseconds part
+            time = time / 1000 * 1000;
+        }
+        Duration duration = Duration.ofMillis(time);
+        return duration.toString()
+                       .substring(2)
+                       .replaceAll("(\\d[HMS])(?!$)", "$1 ")
+                       .toLowerCase();
     }
 }
