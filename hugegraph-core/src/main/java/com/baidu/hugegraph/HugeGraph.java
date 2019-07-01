@@ -465,6 +465,7 @@ public class HugeGraph implements GremlinGraph {
 
     @Override
     public void close() throws HugeException {
+        LOG.info("Close graph {}", this);
         this.taskManager.closeScheduler(this);
         try {
             this.closeTx();

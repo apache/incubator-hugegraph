@@ -92,7 +92,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
             List<RocksDBSessions> dbs = new ArrayList<>();
-            dbs.add(sessions);
+            dbs.add(this.sessions);
             dbs.addAll(tableDBMapping().values());
 
             RocksDBMetrics metrics = new RocksDBMetrics(dbs, session);
@@ -181,10 +181,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             sessions = this.openSessionPool(config, dataPath,
                                             walPath, tableNames);
         } catch (RocksDBException e) {
-            if (dbs.containsKey(dataPath)) {
+            RocksDBSessions origin = dbs.get(dataPath);
+            if (origin != null) {
                 if (e.getMessage().contains("No locks available")) {
                     // Open twice, but we should support keyspace
-                    sessions = dbs.get(dataPath);
+                    sessions = origin.copy(config, this.database, this.store);
                 }
             }
 
@@ -222,6 +223,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         if (sessions != null) {
+            // May override the original session pool
             dbs.put(dataPath, sessions);
             sessions.session();
             LOG.debug("Store opened: {}", dataPath);
@@ -235,12 +237,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                                               List<String> tableNames)
                                               throws RocksDBException {
         if (tableNames == null) {
-            return new RocksDBStdSessions(config, dataPath, walPath,
-                                          this.database, this.store);
+            return new RocksDBStdSessions(config, this.database, this.store,
+                                          dataPath, walPath);
         } else {
-            return new RocksDBStdSessions(config, dataPath, walPath,
-                                          this.database, this.store,
-                                          tableNames);
+            return new RocksDBStdSessions(config, this.database, this.store,
+                                          dataPath, walPath, tableNames);
         }
     }
 

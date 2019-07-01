@@ -697,6 +697,8 @@ public class VertexCoreTest extends BaseCoreTest {
               .create();
         graph.addVertex(T.label, "programmer", T.id, 123456, "name", "marko",
                         "age", 18, "city", "Beijing");
+        graph.addVertex(T.label, "programmer", T.id, 61695499031416832L,
+                        "name", "marko", "age", 18, "city", "Beijing");
         graph.tx().commit();
 
         List<Vertex> vertices = graph.traversal().V(123456).toList();
@@ -704,6 +706,16 @@ public class VertexCoreTest extends BaseCoreTest {
         Object id = vertices.get(0).id();
         Assert.assertEquals(IdGenerator.LongId.class, id.getClass());
         Assert.assertEquals(123456, ((IdGenerator.LongId) id).asLong());
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 18, "city", "Beijing");
+
+        vertices = graph.traversal().V(61695499031416832L).toList();
+        Assert.assertEquals(1, vertices.size());
+        id = vertices.get(0).id();
+        Assert.assertEquals(IdGenerator.LongId.class, id.getClass());
+        Assert.assertEquals(61695499031416832L,
+                            ((IdGenerator.LongId) id).asLong());
         assertContains(vertices,
                        T.label, "programmer", "name", "marko",
                        "age", 18, "city", "Beijing");
