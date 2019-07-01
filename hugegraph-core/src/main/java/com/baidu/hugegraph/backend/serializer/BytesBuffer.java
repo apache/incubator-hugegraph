@@ -57,11 +57,10 @@ public final class BytesBuffer {
 
     // The value must be in range [8, 127(ID_LEN_MAX)]
     public static final int INDEX_ID_MAX_LENGTH = 32;
+    public static final byte INDEX_ID_SUFFIX_BYTE = (byte) 0xff;
 
     public static final int DEFAULT_CAPACITY = 64;
     public static final int MAX_BUFFER_CAPACITY = 128 * 1024 * 1024; // 128M
-
-    public static final byte INDEX_ID_SUFFIX_BYTE = (byte) -1;
 
     private ByteBuffer buffer;
 
@@ -375,13 +374,21 @@ public final class BytesBuffer {
         }
     }
 
-    public BytesBuffer writeIndexId(Id id) {
+    public BytesBuffer writeIndexId(Id id, boolean stringIndexId) {
         byte[] bytes = id.asBytes();
         int len = bytes.length;
         E.checkArgument(len > 0, "Can't write empty id");
         E.checkArgument(len <= ID_LEN_MAX,
                         "Id max length is %s, but got %s {%s}",
                         ID_LEN_MAX, len, id);
+        if (stringIndexId) {
+            for (byte aByte : bytes) {
+                E.checkArgument(aByte != INDEX_ID_SUFFIX_BYTE,
+                                "The string type index id can't contains " +
+                                "byte '%s', but got: %s",
+                                INDEX_ID_SUFFIX_BYTE, id);
+            }
+        }
         this.write(bytes);
         this.write(INDEX_ID_SUFFIX_BYTE);
         return this;
@@ -392,7 +399,8 @@ public final class BytesBuffer {
         int len = b & ID_LEN_MASK;
         byte[] id = this.read(len + 1);
         E.checkState(this.read() == INDEX_ID_SUFFIX_BYTE,
-                     "There must be '0xff' suffix behind index id");
+                     "There must be '%s' suffix behind index id",
+                     INDEX_ID_SUFFIX_BYTE);
         return new BinaryId(id, IdGenerator.of(id, false));
     }
 

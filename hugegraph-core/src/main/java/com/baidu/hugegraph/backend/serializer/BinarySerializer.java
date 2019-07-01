@@ -96,8 +96,9 @@ public class BinarySerializer extends AbstractSerializer {
     public BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
         BinaryId bid = type.isIndex() ?
-                       new BinaryId(buffer.writeIndexId(id).bytes(), id) :
-                       new BinaryId(buffer.writeId(id).bytes(), id);
+                 new BinaryId(buffer.writeIndexId(id, type.isStringIndex())
+                                    .bytes(), id) :
+                 new BinaryId(buffer.writeId(id).bytes(), id);
         return new BinaryBackendEntry(type, bid);
     }
 
@@ -342,7 +343,7 @@ public class BinarySerializer extends AbstractSerializer {
             idLen += 1 + indexId.length();
             buffer = BytesBuffer.allocate(idLen);
             // Write index-id
-            buffer.writeIndexId(indexId);
+            buffer.writeIndexId(indexId, index.type().isStringIndex());
             // Write element-id
             buffer.writeId(elemId, true);
             int len = indexId.asBytes().length;
@@ -811,7 +812,8 @@ public class BinarySerializer extends AbstractSerializer {
             id = HugeIndex.formatIndexHashId(type, indexLabel, fieldValues);
         }
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
-        return new BinaryId(buffer.writeIndexId(id).bytes(), id);
+        byte[] idBytes = buffer.writeIndexId(id, type.isStringIndex()).bytes();
+        return new BinaryId(idBytes, id);
     }
 
     protected static boolean indexIdLengthExceedLimit(Id id) {
