@@ -71,7 +71,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private final AtomicInteger refCount;
 
     public RocksDBStdSessions(HugeConfig config, String database, String store,
-                              String dataPath,String walPath)
+                              String dataPath, String walPath)
                               throws RocksDBException {
         super(config, database, store);
 
