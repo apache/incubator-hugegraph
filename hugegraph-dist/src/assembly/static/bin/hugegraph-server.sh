@@ -10,6 +10,16 @@ abs_path() {
     echo "$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 }
 
+if [[ $# != 3 ]] ; then
+    echo "USAGE: $0 GREMLIN_SERVER_CONF REST_SERVER_CONF OPEN_SECURITY_CHECK"
+    echo " e.g.: $0 conf/gremlin-server.yaml conf/rest-server.properties true"
+    exit 1;
+fi
+
+GREMLIN_SERVER_CONF="$1"
+REST_SERVER_CONF="$2"
+OPEN_SECURITY_CHECK="$3"
+
 BIN=`abs_path`
 TOP="$(cd $BIN/../ && pwd)"
 CONF="$TOP/conf"
@@ -77,12 +87,12 @@ if [ "$JAVA_OPTIONS" = "" ] ; then
     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -javaagent:$LIB/jamm-0.3.0.jar"
 fi
 
-# Execute the application and return its exit code
-ARGS="conf/gremlin-server.yaml conf/rest-server.properties"
+JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml"
+if [[ ${OPEN_SECURITY_CHECK} == "true" ]] ; then
+    JVM_OPTIONS="${JVM_OPTIONS} -Djava.security.manager=com.baidu.hugegraph.security.HugeSecurityManager"
+fi
 
 # Turn on security check
-exec ${JAVA} -Dname="HugeGraphServer" \
--Djava.security.manager="com.baidu.hugegraph.security.HugeSecurityManager" \
--Dlog4j.configurationFile="${CONF}/log4j2.xml" \
-${JAVA_OPTIONS} -cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${ARGS} \
+exec ${JAVA} -Dname="HugeGraphServer" ${JVM_OPTIONS} \
+${JAVA_OPTIONS} -cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} \
 >> ${OUTPUT} 2>&1
