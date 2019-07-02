@@ -476,10 +476,10 @@ public class SchemaTransaction extends IndexableTransaction {
                     throw (RuntimeException) cause;
                 }
                 throw new HugeException("Async task failed with error: %s",
-                                        cause.getMessage(), cause);
+                                        cause, cause.getMessage());
             } catch (Exception e) {
                 throw new HugeException("Async task failed with error: %s",
-                                        e.getMessage(), e);
+                                        e, e.getMessage());
             }
         }
         return task.id();
