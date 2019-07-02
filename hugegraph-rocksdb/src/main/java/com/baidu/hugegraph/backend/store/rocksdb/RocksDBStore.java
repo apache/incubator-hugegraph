@@ -157,7 +157,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         // Open tables with optimized disk
         Map<String, String> disks = config.getMap(RocksDBOptions.DATA_DISKS);
         if (!disks.isEmpty()) {
-            this.parseTableDiskMapping(disks);
+            String dataPath = config.get(RocksDBOptions.DATA_PATH);
+            this.parseTableDiskMapping(disks, dataPath);
             for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
                 String table = this.table(e.getKey()).table();
                 String disk = e.getValue();
@@ -364,7 +365,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     private void dropTable(RocksDBSessions db, String table) {
         try {
-            this.sessions.dropTable(table);
+            db.dropTable(table);
         } catch (BackendException e) {
             if (e.getMessage().contains("is not opened")) {
                 return;
@@ -447,12 +448,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                      this.database, this.provider.type());
     }
 
-    private void parseTableDiskMapping(Map<String, String> disks) {
+    private void parseTableDiskMapping(Map<String, String> disks,
+                                       String dataPath) {
         this.tableDiskMapping.clear();
         for (Map.Entry<String, String> disk : disks.entrySet()) {
             // The format of `disk` like: `graph/vertex: /path/to/disk1`
             String name = disk.getKey();
             String path = disk.getValue();
+            E.checkArgument(!dataPath.equals(path), "Invalid disk path" +
+                            "(can't be the same as data_path): '%s'", path);
             E.checkArgument(!name.isEmpty() && !path.isEmpty(),
                             "Invalid disk format: '%s', expect `NAME:PATH`",
                             disk);
