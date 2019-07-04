@@ -232,7 +232,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         if (!exist && !throwIfNotExist) {
             return false;
         }
-        E.checkState(edges.hasNext(), "Edge '%s' does not exist", this.id);
+        E.checkState(exist, "Edge '%s' does not exist", this.id);
         this.copyProperties((HugeEdge) edges.next());
         assert exist;
         return true;
