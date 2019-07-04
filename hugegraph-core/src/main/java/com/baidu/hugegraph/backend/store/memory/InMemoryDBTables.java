@@ -492,7 +492,7 @@ public class InMemoryDBTables {
             }
             // keyMin <(=) field value <(=) keyMax
             return this.betweenQuery(indexLabelId, keyMax, keyMaxEq,
-                                     keyMin, keyMinEq, query);
+                                     keyMin, keyMinEq, query.resultType());
         }
 
         private Iterator<BackendEntry> betweenQuery(Id indexLabelId,
@@ -500,7 +500,7 @@ public class InMemoryDBTables {
                                                     boolean keyMaxEq,
                                                     Object keyMin,
                                                     boolean keyMinEq,
-                                                    Query query) {
+                                                    HugeType type) {
             NavigableMap<Id, BackendEntry> rs = this.store();
 
             E.checkArgument(keyMin != null || keyMax != null,
@@ -509,8 +509,7 @@ public class InMemoryDBTables {
                 // Field value < keyMax
                 keyMin = NumericUtil.minValueOf(keyMax.getClass());
             }
-            Id min = HugeIndex.formatIndexId(query.resultType(),
-                                             indexLabelId, keyMin);
+            Id min = HugeIndex.formatIndexId(type, indexLabelId, keyMin);
 
             if (keyMax == null) {
                 // Field value > keyMin
@@ -518,8 +517,7 @@ public class InMemoryDBTables {
                 indexLabelId = IdGenerator.of(indexLabelId.asLong() + 1L);
                 keyMax = NumericUtil.minValueOf(keyMin.getClass());
             }
-            Id max = HugeIndex.formatIndexId(query.resultType(),
-                                             indexLabelId, keyMax);
+            Id max = HugeIndex.formatIndexId(type, indexLabelId, keyMax);
 
             max = keyMaxEq ? rs.floorKey(max) : rs.lowerKey(max);
             if (max == null) {

@@ -69,8 +69,6 @@ import com.baidu.hugegraph.util.KryoUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
-import static com.baidu.hugegraph.backend.serializer.BytesBuffer.ID_LEN_MASK;
-
 public class BinarySerializer extends AbstractSerializer {
 
     public static final byte[] EMPTY_BYTES = new byte[0];
@@ -95,11 +93,10 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
-        BinaryId bid = type.isIndex() ?
-                 new BinaryId(buffer.writeIndexId(id, type.isStringIndex())
-                                    .bytes(), id) :
-                 new BinaryId(buffer.writeId(id).bytes(), id);
-        return new BinaryBackendEntry(type, bid);
+        byte[] idBytes = type.isIndex() ?
+                         buffer.writeIndexId(id, type).bytes() :
+                         buffer.writeId(id).bytes();
+        return new BinaryBackendEntry(type, new BinaryId(idBytes, id));
     }
 
     protected final BinaryBackendEntry newBackendEntry(HugeVertex vertex) {
@@ -343,13 +340,13 @@ public class BinarySerializer extends AbstractSerializer {
             idLen += 1 + indexId.length();
             buffer = BytesBuffer.allocate(idLen);
             // Write index-id
-            buffer.writeIndexId(indexId, index.type().isStringIndex());
+            buffer.writeIndexId(indexId, index.type());
             // Write element-id
             buffer.writeId(elemId, true);
             int len = indexId.asBytes().length;
             len -= 1; // mapping [1, 128] to [0, 127]
             // Write index id length
-            buffer.writeUInt8(len & ID_LEN_MASK);
+            buffer.writeUInt8(len & BytesBuffer.ID_LEN_MASK);
         }
 
         return buffer.bytes();
@@ -812,7 +809,7 @@ public class BinarySerializer extends AbstractSerializer {
             id = HugeIndex.formatIndexHashId(type, indexLabel, fieldValues);
         }
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
-        byte[] idBytes = buffer.writeIndexId(id, type.isStringIndex()).bytes();
+        byte[] idBytes = buffer.writeIndexId(id, type).bytes();
         return new BinaryId(idBytes, id);
     }
 

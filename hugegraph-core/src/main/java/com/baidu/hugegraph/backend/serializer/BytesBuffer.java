@@ -26,6 +26,8 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.Id.IdType;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -374,19 +376,20 @@ public final class BytesBuffer {
         }
     }
 
-    public BytesBuffer writeIndexId(Id id, boolean stringIndexId) {
+    public BytesBuffer writeIndexId(Id id, HugeType type) {
         byte[] bytes = id.asBytes();
         int len = bytes.length;
         E.checkArgument(len > 0, "Can't write empty id");
         E.checkArgument(len <= ID_LEN_MAX,
                         "Id max length is %s, but got %s {%s}",
                         ID_LEN_MAX, len, id);
-        if (stringIndexId) {
-            for (byte aByte : bytes) {
-                E.checkArgument(aByte != INDEX_ID_SUFFIX_BYTE,
+        if (type.isStringIndex()) {
+            for (byte b : bytes) {
+                E.checkArgument(b != INDEX_ID_SUFFIX_BYTE,
                                 "The string type index id can't contains " +
                                 "byte '%s', but got: %s",
-                                INDEX_ID_SUFFIX_BYTE, id);
+                                Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}),
+                                id);
             }
         }
         this.write(bytes);
@@ -400,7 +403,7 @@ public final class BytesBuffer {
         byte[] id = this.read(len + 1);
         E.checkState(this.read() == INDEX_ID_SUFFIX_BYTE,
                      "There must be '%s' suffix behind index id",
-                     INDEX_ID_SUFFIX_BYTE);
+                     Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}));
         return new BinaryId(id, IdGenerator.of(id, false));
     }
 

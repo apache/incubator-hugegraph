@@ -67,7 +67,6 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -210,7 +209,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Shard index maybe include multi prefix index
                 for (int i = 0, n = propValues.size(); i < n; i++) {
                     List<Object> prefixValues = propValues.subList(0, i + 1);
-                    if (i == n - 1) {
+                    if (i == indexLabel.indexFields().size() - 1) {
                         Object last = propValues.get(i);
                         prefixValues.set(i, LongEncoding.encodeNumber(last));
                     }
@@ -714,8 +713,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return matchedIndexLabels;
     }
 
-    private IndexQueries buildJointIndexesQueries(ConditionQuery query,
-                                                  MatchedIndex index) {
+    private static IndexQueries buildJointIndexesQueries(ConditionQuery query,
+                                                         MatchedIndex index) {
         IndexQueries queries = new IndexQueries();
         List<IndexLabel> allILs = new ArrayList<>(index.indexLabels());
 
@@ -733,8 +732,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
 
             // Construct queries by matched index-labels
-            queries.putAll(this.constructQueries(query, matchedILs,
-                                                 queryPropKeys));
+            queries.putAll(constructQueries(query, matchedILs, queryPropKeys));
 
             // Remove matched queryPropKeys
             query = query.copy();
@@ -752,7 +750,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         for (int i = 1, size = allILs.size(); i <= size; i++) {
             boolean found = cmn(allILs, size, i, 0, null, r -> {
                 // All n indexLabels are selected, test current combination
-                IndexQueries qs = this.constructJointSecondaryQueries(q, r);
+                IndexQueries qs = constructJointSecondaryQueries(q, r);
                 if (qs.isEmpty()) {
                     return false;
                 }
@@ -815,8 +813,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return false;
     }
 
-    private IndexQueries constructJointSecondaryQueries(ConditionQuery query,
-                                                        List<IndexLabel> ils) {
+    private static IndexQueries constructJointSecondaryQueries(
+                                ConditionQuery query,
+                                List<IndexLabel> ils) {
         Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
         indexLabels.addAll(ils);
         indexLabels = matchJointIndexes(query, indexLabels);
@@ -824,12 +823,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return IndexQueries.EMPTY;
         }
 
-        return this.constructQueries(query, indexLabels, query.userpropKeys());
+        return constructQueries(query, indexLabels, query.userpropKeys());
     }
 
-    private IndexQueries constructQueries(ConditionQuery query,
-                                          Set<IndexLabel> ils,
-                                          Set<Id> propKeys) {
+    private static IndexQueries constructQueries(ConditionQuery query,
+                                                 Set<IndexLabel> ils,
+                                                 Set<Id> propKeys) {
         IndexQueries queries = new IndexQueries();
 
         for (IndexLabel il : ils) {
@@ -844,15 +843,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     newQuery.query(c);
                 }
             }
-            ConditionQuery q = this.matchIndexLabel(newQuery, il);
+            ConditionQuery q = matchIndexLabel(newQuery, il);
             assert q != null;
             queries.put(il, q);
         }
         return queries;
     }
 
-    private ConditionQuery matchIndexLabel(ConditionQuery query,
-                                           IndexLabel indexLabel) {
+    private static ConditionQuery matchIndexLabel(ConditionQuery query,
+                                                  IndexLabel indexLabel) {
         IndexType indexType = indexLabel.indexType();
         boolean requireRange = query.hasRangeCondition();
         boolean supportRange = indexType == IndexType.RANGE ||
@@ -936,9 +935,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     Object keyMin = null;
                     Object keyMax = null;
                     Id rangeProp = indexFields.get(indexFields.size() - 1);
-                    DataType dataType = GraphIndexTransaction.this
-                                        .graph().propertyKey(rangeProp)
-                                        .dataType();
                     for (Condition condition : query.userpropConditions()) {
                         assert condition instanceof Condition.Relation;
                         Condition.Relation r = (Condition.Relation) condition;
@@ -974,14 +970,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         break;
                     }
                     if (keyMin == null) {
-                        Number num = NumericUtil.minValueOf(dataType.clazz());
+                        assert keyMax != null;
+                        Number num = NumericUtil.minValueOf(keyMax.getClass());
                         Condition.Relation r = shardFieldValuesCondition(
                                                joinedValues, num,
                                                Condition.RelationType.GTE);
                         indexQuery.query(r);
                     }
                     if (keyMax == null) {
-                        Number num = NumericUtil.maxValueOf(dataType.clazz());
+                        Number num = NumericUtil.maxValueOf(keyMin.getClass());
                         Condition.Relation r = shardFieldValuesCondition(
                                                joinedValues, num,
                                                Condition.RelationType.LTE);
@@ -1082,7 +1079,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         this.doRemove(this.serializer.writeIndex(index));
     }
 
-    private class MatchedIndex {
+    private static class MatchedIndex {
 
         private SchemaLabel schemaLabel;
         private Set<IndexLabel> indexLabels;
@@ -1107,8 +1104,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Single index or composite index
 
                 IndexLabel il = this.indexLabels().iterator().next();
-                ConditionQuery indexQuery = GraphIndexTransaction.this
-                                            .matchIndexLabel(query, il);
+                ConditionQuery indexQuery = matchIndexLabel(query, il);
                 assert indexQuery != null;
 
                 /*
@@ -1123,8 +1119,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 return IndexQueries.of(il, indexQuery);
             } else {
                 // Joint indexes
-                IndexQueries queries = GraphIndexTransaction.this
-                                       .buildJointIndexesQueries(query, this);
+                IndexQueries queries = buildJointIndexesQueries(query, this);
                 assert !queries.isEmpty();
                 return queries;
             }

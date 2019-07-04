@@ -351,12 +351,15 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                             "Search index can only build on text property, " +
                             "but got %s(%s)", dataType, field);
         }
-
         /*
-         * Shard index must build on N string columns(N >= 1) with
-         * single numeric column suffix
+         * TODO: support any combination of fields and support prefix
+         * query of number range query and text equation query
          */
         if (this.indexType == IndexType.SHARD) {
+            /*
+             * Current Shard index must build on N string columns(N >= 1) with
+             * single numeric column suffix
+             */
             E.checkArgument(fields.size() > 1,
                             "Shard index must have more than one columns, " +
                             "but got only one column %s",
@@ -420,7 +423,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         Set<Id> overrideIndexLabelIds = InsertionOrderUtil.newSet();
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
-            if (noSubIndex(old)) {
+            if (this.noSubIndex(old)) {
                 continue;
             }
 
