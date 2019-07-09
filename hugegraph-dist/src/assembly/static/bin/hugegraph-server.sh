@@ -93,6 +93,6 @@ if [[ ${OPEN_SECURITY_CHECK} == "true" ]] ; then
 fi
 
 # Turn on security check
-exec ${JAVA} -Dname="HugeGraphServer" ${JVM_OPTIONS} \
-${JAVA_OPTIONS} -cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} \
+exec ${JAVA} -Dname="HugeGraphServer" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+-cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} \
 >> ${OUTPUT} 2>&1
