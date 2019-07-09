@@ -356,9 +356,8 @@ public class VertexAPI extends BatchAPI {
             E.checkArgument(req.updateStrategies != null &&
                             !req.updateStrategies.isEmpty(),
                             "Parameter 'update_strategies' cannot be empty");
-
             // Not support createIfNotExist equals false now
-            E.checkArgument(req.createIfNotExist == false, "Parameter " +
+            E.checkArgument(req.createIfNotExist == true, "Parameter " +
                             "'create_if_not_exist' is not supported now");
         }
 
