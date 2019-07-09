@@ -221,21 +221,28 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     @Watched(prefix = "edge")
-    protected void ensureEdgeProperties() {
+    @Override
+    protected boolean ensureFilledProperties(boolean throwIfNotExist) {
         if (this.propLoaded) {
-            return;
+            return true;
         }
 
         Iterator<Edge> edges = tx().queryEdges(this.id());
-        E.checkState(edges.hasNext(), "Edge '%s' does not exist", this.id);
+        boolean exist = edges.hasNext();
+        if (!exist && !throwIfNotExist) {
+            return false;
+        }
+        E.checkState(exist, "Edge '%s' does not exist", this.id);
         this.copyProperties((HugeEdge) edges.next());
+        assert exist;
+        return true;
     }
 
     @Watched(prefix = "edge")
-    @Override
     @SuppressWarnings("unchecked") // (Property<V>) prop
+    @Override
     public <V> Iterator<Property<V>> properties(String... keys) {
-        this.ensureEdgeProperties();
+        this.ensureFilledProperties(true);
 
         // Capacity should be about the following size
         int propsCapacity = keys.length == 0 ?
