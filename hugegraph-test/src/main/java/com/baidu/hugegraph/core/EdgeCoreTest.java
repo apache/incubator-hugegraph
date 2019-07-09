@@ -2190,6 +2190,9 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertTrue(e.getMessage().contains(
                               "Edges size has reached tx capacity"));
         });
+
+        // Clear all
+        graph.truncateBackend();
     }
 
     @Test

@@ -108,7 +108,8 @@ public class MultiGraphsTest {
         g1.clearBackend();
         g2.clearBackend();
         g3.clearBackend();
-        destoryGraphs(ImmutableList.of(g1));
+
+        destoryGraphs(ImmutableList.of(g1, g2, g3));
     }
 
     @Test

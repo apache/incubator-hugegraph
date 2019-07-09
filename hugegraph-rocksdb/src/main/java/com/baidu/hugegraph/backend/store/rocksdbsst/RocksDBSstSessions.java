@@ -49,8 +49,8 @@ public class RocksDBSstSessions extends RocksDBSessions {
     private final String dataPath;
     private final Map<String, SstFileWriter> tables;
 
-    public RocksDBSstSessions(HugeConfig config, String dataPath,
-                              String database, String store) {
+    public RocksDBSstSessions(HugeConfig config, String database, String store,
+                              String dataPath) {
         super(config, database, store);
 
         this.dataPath = dataPath;
@@ -69,6 +69,14 @@ public class RocksDBSstSessions extends RocksDBSessions {
         for (String table : tableNames) {
             this.createTable(table);
         }
+    }
+
+    private RocksDBSstSessions(HugeConfig config, String database, String store,
+                               RocksDBSstSessions origin) {
+        super(config, database, store);
+
+        this.dataPath = origin.dataPath;
+        this.tables = origin.tables;
     }
 
     @Override
@@ -109,6 +117,13 @@ public class RocksDBSstSessions extends RocksDBSessions {
     public String property(String property) {
         throw new NotSupportException("RocksDBSstStore property()");
     }
+
+    @Override
+    public RocksDBSessions copy(HugeConfig config,
+                                String database, String store) {
+        return new RocksDBSstSessions(config, database, store, this);
+    }
+
 
     private SstFileWriter table(String table) {
         SstFileWriter sst = this.tables.get(table);

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
@@ -63,13 +64,14 @@ import com.google.common.collect.ImmutableList;
 
 public class RocksDBStdSessions extends RocksDBSessions {
 
-    private final Map<String, ColumnFamilyHandle> cfs = new HashMap<>();
-
     private final RocksDB rocksdb;
     private final SstFileManager sstFileManager;
 
-    public RocksDBStdSessions(HugeConfig config, String dataPath,
-                              String walPath, String database, String store)
+    private final Map<String, ColumnFamilyHandle> cfs;
+    private final AtomicInteger refCount;
+
+    public RocksDBStdSessions(HugeConfig config, String database, String store,
+                              String dataPath, String walPath)
                               throws RocksDBException {
         super(config, database, store);
 
@@ -86,10 +88,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Don't merge old CFs, we expect a clear DB when using this one
          */
         this.rocksdb = RocksDB.open(options, dataPath);
+
+        this.cfs = new HashMap<>();
+        this.refCount = new AtomicInteger(1);
     }
 
-    public RocksDBStdSessions(HugeConfig config, String dataPath,
-                              String walPath, String database, String store,
+    public RocksDBStdSessions(HugeConfig config, String database, String store,
+                              String dataPath, String walPath,
                               List<String> cfNames) throws RocksDBException {
         super(config, database, store);
 
@@ -121,11 +126,26 @@ public class RocksDBStdSessions extends RocksDBSessions {
                      "Expect same size of cf-handles and cf-names");
 
         // Collect CF Handles
+        this.cfs = new HashMap<>();
         for (int i = 0; i < cfs.size(); i++) {
             this.cfs.put(cfs.get(i), cfhs.get(i));
         }
 
+        this.refCount = new AtomicInteger(1);
+
         ingestExternalFile();
+    }
+
+    private RocksDBStdSessions(HugeConfig config, String database, String store,
+                               RocksDBStdSessions origin) {
+        super(config, database, store);
+
+        this.rocksdb = origin.rocksdb;
+        this.sstFileManager = origin.sstFileManager;
+        this.cfs = origin.cfs;
+        this.refCount = origin.refCount;
+
+        this.refCount.incrementAndGet();
     }
 
     @Override
@@ -183,6 +203,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
+    public RocksDBSessions copy(HugeConfig config,
+                                String database, String store) {
+        return new RocksDBStdSessions(config, database, store, this);
+    }
+
+    @Override
     public final Session session() {
         return (Session) super.getOrNewSession();
     }
@@ -197,6 +223,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
     @Override
     protected synchronized void doClose() {
         this.checkValid();
+
+        if (this.refCount.decrementAndGet() > 0) {
+            return;
+        }
+        assert this.refCount.get() == 0;
 
         for (ColumnFamilyHandle cf : this.cfs.values()) {
             cf.close();

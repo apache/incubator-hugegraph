@@ -41,6 +41,9 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract String property(String property);
 
+    public abstract RocksDBSessions copy(HugeConfig config,
+                                         String database, String store);
+
     @Override
     public abstract Session session();
 
