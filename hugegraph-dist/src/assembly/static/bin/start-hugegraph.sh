@@ -1,14 +1,14 @@
 #!/bin/bash
 
 OPEN_MONITOR="false"
-OPEN_SECURITY_CHECK="false"
+OPEN_SECURITY_CHECK="true"
 VERBOSE=""
 SERVER_STARTUP_TIMEOUT_S=30
 
 while getopts "m:s:v" arg; do
     case ${arg} in
         m) OPEN_MONITOR="$OPTARG" ;;
-        s) OPEN_SECURITY_CHECK="true" ;;
+        s) OPEN_SECURITY_CHECK="$OPTARG" ;;
         v) VERBOSE="verbose" ;;
         ?) echo "USAGE: $0 [-m true|false] [-s true|false] [-v]" && exit 1 ;;
     esac

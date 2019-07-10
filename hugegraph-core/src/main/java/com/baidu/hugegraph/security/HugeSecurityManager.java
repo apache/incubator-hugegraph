@@ -72,8 +72,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkRead(FileDescriptor fd) {
         if (this.callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to read file via Gremlin");
+            throw new SecurityException("Not allowed to read file via Gremlin");
         } else {
             super.checkRead(fd);
         }
