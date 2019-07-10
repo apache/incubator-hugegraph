@@ -65,7 +65,8 @@ public class GremlinAPI extends API {
             "java.lang.IllegalArgumentException",
             "java.util.concurrent.TimeoutException",
             "groovy.lang.",
-            "org.codehaus."
+            "org.codehaus.",
+            "com.baidu.hugegraph."
     );
 
     private Client client = ClientBuilder.newClient();
