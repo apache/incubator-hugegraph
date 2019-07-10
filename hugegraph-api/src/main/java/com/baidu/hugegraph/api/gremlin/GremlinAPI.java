@@ -25,6 +25,7 @@ import java.util.Set;
 
 import javax.inject.Singleton;
 import javax.json.Json;
+import javax.json.JsonArrayBuilder;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -45,7 +46,6 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.metrics.MetricsUtil;
-import com.baidu.hugegraph.util.JsonUtil;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableSet;
@@ -59,8 +59,13 @@ public class GremlinAPI extends API {
     private static final Histogram gremlinOutputHistogram =
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-output");
 
+    private static final Set<String> FORBIDDEN_REQUEST_EXCEPTIONS =
+            ImmutableSet.of("java.lang.SecurityException");
     private static final Set<String> BAD_REQUEST_EXCEPTIONS = ImmutableSet.of(
-            "java.lang.SecurityException"
+            "java.lang.IllegalArgumentException",
+            "java.util.concurrent.TimeoutException",
+            "groovy.lang.",
+            "org.codehaus."
     );
 
     private Client client = ClientBuilder.newClient();
@@ -138,9 +143,8 @@ public class GremlinAPI extends API {
     }
 
     private static Response transformResponseIfNeeded(Response response) {
-        // No need to transform
-        if (response.getStatus() != Response.Status.INTERNAL_SERVER_ERROR
-                                                   .getStatusCode()) {
+        if (response.getStatus() < 400) {
+            // No need to transform if normal response without error
             return response;
         }
 
@@ -150,22 +154,34 @@ public class GremlinAPI extends API {
         String exClassName = (String) map.get("Exception-Class");
         @SuppressWarnings("unchecked")
         List<String> exceptions = (List<String>) map.get("exceptions");
-        if (message == null || exClassName == null || exceptions == null) {
-            throw new IllegalStateException(String.format(
-                      "Invalid response for inner exception, should contains " +
-                      "Exception-Class, but got %s", map));
-        }
-        if (!BAD_REQUEST_EXCEPTIONS.contains(exClassName)) {
-            return response;
-        }
+
+        JsonArrayBuilder traceBuilder = Json.createArrayBuilder();
+        exceptions.forEach(traceBuilder::add);
+
         String json = Json.createObjectBuilder()
                           .add("exception", exClassName)
                           .add("message", message)
-                          .add("trace", JsonUtil.toJson(exceptions))
+                          .add("trace", traceBuilder)
                           .build().toString();
-        return Response.status(Response.Status.FORBIDDEN)
+
+        Response.Status status = Response.Status.fromStatusCode(
+                                 response.getStatus());
+        if (FORBIDDEN_REQUEST_EXCEPTIONS.contains(exClassName)) {
+            status = Response.Status.FORBIDDEN;
+        } else if (matchBadRequestException(exClassName)) {
+            status = Response.Status.BAD_REQUEST;
+        }
+
+        return Response.status(status)
                        .type(MediaType.APPLICATION_JSON)
                        .entity(json)
                        .build();
+    }
+
+    private static boolean matchBadRequestException(String exClass) {
+        if (BAD_REQUEST_EXCEPTIONS.contains(exClass)) {
+            return true;
+        }
+        return BAD_REQUEST_EXCEPTIONS.stream().anyMatch(exClass::startsWith);
     }
 }

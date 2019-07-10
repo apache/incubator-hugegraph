@@ -89,10 +89,11 @@ public final class ApiVersion {
      * [0.39] Issue-522: Add profile RESTful API
      * [0.40] Issue-523: Add source_in_ring args for rings RESTful API
      * [0.41] Issue-493: Support batch updating properties by multiple strategy
+     * [0.42] Issue-176: Let gremlin error response consistent with RESTful's
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.40");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.42");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
