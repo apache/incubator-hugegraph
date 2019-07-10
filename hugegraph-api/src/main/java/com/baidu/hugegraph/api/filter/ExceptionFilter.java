@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.filter;
 
+import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import javax.json.Json;
@@ -32,11 +34,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.MultiException;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.exception.HugeGremlinException;
 import com.baidu.hugegraph.exception.NotFoundException;
 
 public class ExceptionFilter {
@@ -141,6 +145,21 @@ public class ExceptionFilter {
     }
 
     @Provider
+    public static class HugeGremlinExceptionMapper
+                  extends TracedExceptionMapper
+                  implements ExceptionMapper<HugeGremlinException> {
+
+        @Override
+        public Response toResponse(HugeGremlinException exception) {
+            return Response.status(exception.statusCode())
+                           .type(MediaType.APPLICATION_JSON)
+                           .entity(formatGremlinException(exception,
+                                                          this.trace()))
+                           .build();
+        }
+    }
+
+    @Provider
     public static class UnknownExceptionMapper extends TracedExceptionMapper
                   implements ExceptionMapper<Throwable> {
 
@@ -163,20 +182,45 @@ public class ExceptionFilter {
 
     public static String formatException(Throwable exception, boolean trace) {
         String clazz = exception.getClass().toString();
-        String msg = exception.getMessage() != null ?
-                     exception.getMessage() : "";
+        String message = exception.getMessage() != null ?
+                         exception.getMessage() : "";
         String cause = exception.getCause() != null ?
                        exception.getCause().toString() : "";
 
         JsonObjectBuilder json = Json.createObjectBuilder()
                                      .add("exception", clazz)
-                                     .add("message", msg)
+                                     .add("message", message)
                                      .add("cause", cause);
 
         if (trace) {
             JsonArrayBuilder traces = Json.createArrayBuilder();
             for (StackTraceElement i : exception.getStackTrace()) {
                 traces.add(i.toString());
+            }
+            json.add("trace", traces);
+        }
+
+        return json.build().toString();
+    }
+
+    public static String formatGremlinException(HugeGremlinException exception,
+                                                boolean trace) {
+        Map<String, Object> map = exception.response();
+        String message = (String) map.get("message");
+        String exClassName = (String) map.get("Exception-Class");
+        @SuppressWarnings("unchecked")
+        List<String> exceptions = (List<String>) map.get("exceptions");
+        String stackTrace = (String) map.get("stackTrace");
+
+        JsonObjectBuilder json = Json.createObjectBuilder()
+                                     .add("exception", exClassName)
+                                     .add("message", message)
+                                     .add("cause", exceptions.toString());
+
+        if (trace) {
+            JsonArrayBuilder traces = Json.createArrayBuilder();
+            for (String part : StringUtils.split(stackTrace, '\n')) {
+                traces.add(part);
             }
             json.add("trace", traces);
         }

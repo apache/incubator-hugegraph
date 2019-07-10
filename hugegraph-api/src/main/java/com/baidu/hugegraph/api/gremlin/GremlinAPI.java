@@ -43,8 +43,10 @@ import javax.ws.rs.core.UriInfo;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
+import com.baidu.hugegraph.api.filter.ExceptionFilter;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.exception.HugeGremlinException;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
@@ -151,19 +153,7 @@ public class GremlinAPI extends API {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> map = response.readEntity(Map.class);
-        String message = (String) map.get("message");
         String exClassName = (String) map.get("Exception-Class");
-        @SuppressWarnings("unchecked")
-        List<String> exceptions = (List<String>) map.get("exceptions");
-
-        JsonArrayBuilder traceBuilder = Json.createArrayBuilder();
-        exceptions.forEach(traceBuilder::add);
-
-        String json = Json.createObjectBuilder()
-                          .add("exception", exClassName)
-                          .add("message", message)
-                          .add("trace", traceBuilder)
-                          .build().toString();
 
         Response.Status status = Response.Status.fromStatusCode(
                                  response.getStatus());
@@ -173,10 +163,7 @@ public class GremlinAPI extends API {
             status = Response.Status.BAD_REQUEST;
         }
 
-        return Response.status(status)
-                       .type(MediaType.APPLICATION_JSON)
-                       .entity(json)
-                       .build();
+        throw new HugeGremlinException(status.getStatusCode(), map);
     }
 
     private static boolean matchBadRequestException(String exClass) {
