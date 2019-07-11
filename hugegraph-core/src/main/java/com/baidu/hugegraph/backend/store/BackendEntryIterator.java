@@ -48,7 +48,7 @@ public abstract class BackendEntryIterator
 
     @Override
     public boolean hasNext() {
-        if (this.exceedLimit()) {
+        if (this.reachLimit()) {
             return false;
         }
 
@@ -65,7 +65,7 @@ public abstract class BackendEntryIterator
         this.checkCapacity();
 
         // Stop if reach limit
-        if (this.exceedLimit()) {
+        if (this.reachLimit()) {
             throw new NoSuchElementException();
         }
 
@@ -91,22 +91,12 @@ public abstract class BackendEntryIterator
         throw new NotSupportException("Invalid meta '%s'", meta);
     }
 
-    protected final void checkInterrupted() {
-        if (Thread.interrupted()) {
-            throw new BackendException("Interrupted, maybe it is timed out");
-        }
-    }
-
     protected final void checkCapacity() throws LimitExceedException {
-        this.checkCapacity(this.count());
-    }
-
-    protected final void checkCapacity(long count) throws LimitExceedException {
         // Stop if reach capacity
-        this.query.checkCapacity(count);
+        this.query.checkCapacity(this.count());
     }
 
-    protected final boolean exceedLimit() {
+    protected final boolean reachLimit() {
         /*
          * TODO: if the query is separated with multi sub-queries(like query
          * id in [id1, id2, ...]), then each BackendEntryIterator is only
@@ -114,7 +104,18 @@ public abstract class BackendEntryIterator
          */
 
         // Stop if it has reached limit after the previous next()
-        return this.query.reachLimit(this.count);
+        return this.reachLimit(this.count);
+    }
+
+    protected final boolean reachLimit(long count) {
+        this.checkInterrupted();
+        return this.query.reachLimit(count);
+    }
+
+    protected final void checkInterrupted() {
+        if (Thread.interrupted()) {
+            throw new BackendException("Interrupted, maybe it is timed out");
+        }
     }
 
     protected final long count() {

@@ -67,8 +67,6 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         }
 
         while (this.results.hasNext()) {
-            this.checkInterrupted();
-
             Elem elem = this.results.next();
             BackendEntry merged = this.merger.apply(this.current, elem);
             E.checkState(merged != null, "Error when merging entry");
@@ -78,7 +76,6 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             } else if (merged == this.current) {
                 // The next entry belongs to the current entry
                 assert this.current != null;
-                this.checkCapacity(this.fetched());
             } else {
                 // New entry
                 assert this.next == null;
@@ -87,7 +84,7 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             }
 
             // When limit exceed, stop fetching
-            if (this.query.reachLimit(this.fetched() - 1)) {
+            if (this.reachLimit(this.fetched() - 1)) {
                 // Need remove last one because fetched limit + 1 records
                 this.removeLastRecord();
                 this.results.close();

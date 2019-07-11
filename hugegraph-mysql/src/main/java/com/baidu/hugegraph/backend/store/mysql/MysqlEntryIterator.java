@@ -64,8 +64,6 @@ public class MysqlEntryIterator extends BackendEntryIterator {
 
         try {
             while (!this.results.isClosed() && this.results.next()) {
-                this.checkInterrupted();
-
                 MysqlBackendEntry entry = this.row2Entry(this.results);
                 this.lastest = entry;
                 BackendEntry merged = this.merger.apply(this.current, entry);
@@ -75,7 +73,6 @@ public class MysqlEntryIterator extends BackendEntryIterator {
                 } else if (merged == this.current) {
                     // Does the next entry belongs to the current entry
                     assert merged != null;
-                    this.checkCapacity(this.fetched());
                 } else {
                     // New entry
                     assert this.next == null;
