@@ -50,7 +50,7 @@ public class MysqlSessions extends BackendSessionPool {
     private volatile boolean opened;
 
     public MysqlSessions(HugeConfig config, String database, String store) {
-        super(database + "/" + store);
+        super(config, database + "/" + store);
         this.config = config;
         this.database = database;
         this.opened = false;
@@ -64,12 +64,16 @@ public class MysqlSessions extends BackendSessionPool {
         return this.database;
     }
 
+    public String escapedDatabase() {
+        return MysqlUtil.escapeString(this.database());
+    }
+
     /**
      * Try connect with specified database, will not reconnect if failed
      * @throws SQLException if a database access error occurs
      */
     @Override
-    public synchronized void open(HugeConfig config) throws Exception {
+    public synchronized void open() throws Exception {
         try (Connection conn = this.open(false)) {
             this.opened = true;
         }
@@ -86,16 +90,18 @@ public class MysqlSessions extends BackendSessionPool {
     private Connection open(boolean autoReconnect) throws SQLException {
         String url = this.config.get(MysqlOptions.JDBC_URL);
         if (url.endsWith("/")) {
-            url = String.format("%s%s", url, this.database);
+            url = String.format("%s%s", url, this.database());
         } else {
-            url = String.format("%s/%s", url, this.database);
+            url = String.format("%s/%s", url, this.database());
         }
 
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
         int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
+        String sslMode = this.config.get(MysqlOptions.JDBC_SSL_MODE);
 
         URIBuilder uriBuilder = this.newConnectionURIBuilder();
         uriBuilder.setPath(url)
+                  .setParameter("useSSL", sslMode)
                   .setParameter("characterEncoding", "utf-8")
                   .setParameter("rewriteBatchedStatements", "true")
                   .setParameter("useServerPrepStmts", "false")
@@ -146,15 +152,15 @@ public class MysqlSessions extends BackendSessionPool {
 
     public void createDatabase() {
         // Create database with non-database-session
-        LOG.debug("Create database: {}", this.database);
+        LOG.debug("Create database: {}", this.database());
 
-        String sql = this.buildCreateDatabase(this.database);
+        String sql = this.buildCreateDatabase(this.database());
         try (Connection conn = this.openWithoutDB(0)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
             if (!e.getMessage().endsWith("already exists")) {
                 throw new BackendException("Failed to create database '%s'", e,
-                                           this.database);
+                                           this.database());
             }
             // Ignore exception if database already exists
         }
@@ -167,20 +173,23 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     public void dropDatabase() {
-        LOG.debug("Drop database: {}", this.database);
+        LOG.debug("Drop database: {}", this.database());
 
-        String sql = String.format("DROP DATABASE IF EXISTS %s;",
-                                   this.database);
+        String sql = this.buildDropDatabase(this.database());
         try (Connection conn = this.openWithoutDB(DROP_DB_TIMEOUT)) {
             conn.createStatement().execute(sql);
         } catch (SQLException e) {
             if (e.getCause() instanceof SocketTimeoutException) {
-                LOG.warn("Drop database '{}' timeout", this.database);
+                LOG.warn("Drop database '{}' timeout", this.database());
             } else {
                 throw new BackendException("Failed to drop database '%s'",
-                                           this.database);
+                                           this.database());
             }
         }
+    }
+
+    protected String buildDropDatabase(String database) {
+        return String.format("DROP DATABASE IF EXISTS %s;", database);
     }
 
     public boolean existsDatabase() {
@@ -188,7 +197,7 @@ public class MysqlSessions extends BackendSessionPool {
              ResultSet result = conn.getMetaData().getCatalogs()) {
             while (result.next()) {
                 String dbName = result.getString(1);
-                if (dbName.equals(this.database)) {
+                if (dbName.equals(this.database())) {
                     return true;
                 }
             }
@@ -308,6 +317,14 @@ public class MysqlSessions extends BackendSessionPool {
             this.conn.setAutoCommit(true);
         }
 
+        public void endAndLog() {
+            try {
+                this.conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                LOG.warn("Failed to set connection to auto-commit status", e);
+            }
+        }
+
         @Override
         public Integer commit() {
             int updated = 0;
@@ -319,11 +336,8 @@ public class MysqlSessions extends BackendSessionPool {
                 this.clear();
             } catch (SQLException e) {
                 throw new BackendException("Failed to commit", e);
-            } finally {
-                try {
-                    this.end();
-                } catch (SQLException ignored) {}
             }
+            this.endAndLog();
             return updated;
         }
 
@@ -335,9 +349,7 @@ public class MysqlSessions extends BackendSessionPool {
             } catch (SQLException e) {
                 throw new BackendException("Failed to rollback", e);
             } finally {
-                try {
-                    this.end();
-                } catch (SQLException ignored) {}
+                this.endAndLog();
             }
         }
 
@@ -346,12 +358,28 @@ public class MysqlSessions extends BackendSessionPool {
             return this.count > 0;
         }
 
+        @Override
+        protected void reconnectIfNeeded() {
+            try {
+                this.execute("SELECT 1;");
+            } catch (SQLException ignored) {
+                // pass
+            }
+        }
+
         public ResultSet select(String sql) throws SQLException {
             assert this.conn.getAutoCommit();
             return this.conn.createStatement().executeQuery(sql);
         }
 
         public boolean execute(String sql) throws SQLException {
+            /*
+             * commit() or rollback() failed to set connection to auto-commit
+             * status in prior transaction. Manually set to auto-commit here.
+             */
+            if (this.conn.getAutoCommit()) {
+                this.end();
+            }
             return this.conn.createStatement().execute(sql);
         }
 

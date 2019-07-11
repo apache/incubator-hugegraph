@@ -58,7 +58,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     private final BackendStoreProvider provider;
     private final Map<HugeType, HbaseTable> tables;
 
-    private final HbaseSessions sessions;
+    private HbaseSessions sessions;
 
     public HbaseStore(final BackendStoreProvider provider,
                       final String namespace, final String store) {
@@ -67,7 +67,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         this.provider = provider;
         this.namespace = namespace;
         this.store = store;
-        this.sessions =  new HbaseSessions(namespace, store);
+        this.sessions = null;
     }
 
     protected void registerTableManager(HugeType type, HbaseTable table) {
@@ -120,8 +120,12 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void open(HugeConfig config) {
+    public synchronized void open(HugeConfig config) {
         E.checkNotNull(config, "config");
+
+        if (this.sessions == null) {
+            this.sessions = new HbaseSessions(config, this.namespace, this.store);
+        }
 
         if (this.sessions.opened()) {
             LOG.debug("Store {} has been opened before", this.store);
@@ -130,7 +134,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         }
 
         try {
-            this.sessions.open(config);
+            this.sessions.open();
         } catch (IOException e) {
             if (!e.getMessage().contains("Column family not found")) {
                 LOG.error("Failed to open HBase '{}'", this.store, e);

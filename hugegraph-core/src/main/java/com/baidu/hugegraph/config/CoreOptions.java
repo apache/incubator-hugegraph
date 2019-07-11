@@ -19,11 +19,11 @@
 
 package com.baidu.hugegraph.config;
 
-import com.baidu.hugegraph.backend.query.Query;
-
 import static com.baidu.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
+
+import com.baidu.hugegraph.backend.query.Query;
 
 public class CoreOptions extends OptionHolder {
 
@@ -115,6 +115,17 @@ public class CoreOptions extends OptionHolder {
                     10L
             );
 
+    public static final ConfigOption<Long> CONNECTION_DETECT_INTERVAL =
+            new ConfigOption<>(
+                    "store.connection_detect_interval",
+                    "The interval in seconds for detecting connections, " +
+                    "if the idle time of a connection exceeds this value, " +
+                    "detect it and reconnect if needed before using, " +
+                    "value 0 means detecting every time.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    600L
+            );
+
     public static final ConfigOption<String> VERTEX_DEFAULT_LABEL =
             new ConfigOption<>(
                     "vertex.default_label",
@@ -125,7 +136,7 @@ public class CoreOptions extends OptionHolder {
 
     public static final ConfigOption<Boolean> VERTEX_CHECK_CUSTOMIZED_ID_EXIST =
             new ConfigOption<>(
-                    "vertex.check_customzied_id_exist",
+                    "vertex.check_customized_id_exist",
                     "Whether to check the vertices exist for those using " +
                     "customized id strategy",
                     disallowEmpty(),

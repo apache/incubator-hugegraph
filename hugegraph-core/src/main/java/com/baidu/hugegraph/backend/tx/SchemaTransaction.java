@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
@@ -469,8 +470,16 @@ public class SchemaTransaction extends IndexableTransaction {
             try {
                 task.get();
                 assert task.completed();
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof RuntimeException) {
+                    throw (RuntimeException) cause;
+                }
+                throw new HugeException("Async task failed with error: %s",
+                                        cause, cause.getMessage());
             } catch (Exception e) {
-                throw new HugeException("Async task failed", e);
+                throw new HugeException("Async task failed with error: %s",
+                                        e, e.getMessage());
             }
         }
         return task.id();

@@ -19,11 +19,13 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Log;
 
@@ -31,14 +33,20 @@ public abstract class BackendSessionPool {
 
     private static final Logger LOG = Log.logger(BackendSessionPool.class);
 
+    private final HugeConfig config;
     private final String name;
     private final ThreadLocal<BackendSession> threadLocalSession;
     private final AtomicInteger sessionCount;
 
-    public BackendSessionPool(String name) {
+    public BackendSessionPool(HugeConfig config, String name) {
+        this.config = config;
         this.name = name;
         this.threadLocalSession = new ThreadLocal<>();
         this.sessionCount = new AtomicInteger(0);
+    }
+
+    public HugeConfig config() {
+        return this.config;
     }
 
     public final BackendSession getOrNewSession() {
@@ -50,6 +58,8 @@ public abstract class BackendSessionPool {
             this.sessionCount.incrementAndGet();
             LOG.debug("Now(after connect({})) session count is: {}",
                       this, this.sessionCount.get());
+        } else {
+            this.detectSession(session);
         }
         return session;
     }
@@ -58,10 +68,21 @@ public abstract class BackendSessionPool {
         BackendSession session = this.threadLocalSession.get();
         if (session != null) {
             session.attach();
+            this.detectSession(session);
         } else {
             session = this.getOrNewSession();
         }
         return session;
+    }
+
+    private void detectSession(BackendSession session) {
+        // Reconnect if the session idle time exceed specified value
+        long interval = this.config.get(CoreOptions.CONNECTION_DETECT_INTERVAL);
+        long now = System.currentTimeMillis();
+        if (now - session.updated() > TimeUnit.SECONDS.toMillis(interval)) {
+            session.reconnectIfNeeded();
+        }
+        session.update();
     }
 
     public Pair<Integer, Integer> closeSession() {
@@ -112,7 +133,7 @@ public abstract class BackendSessionPool {
                              this.getClass().getSimpleName(), this.hashCode());
     }
 
-    public abstract void open(HugeConfig config) throws Exception;
+    public abstract void open() throws Exception;
 
     protected abstract boolean opened();
 

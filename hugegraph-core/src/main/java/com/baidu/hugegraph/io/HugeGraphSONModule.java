@@ -367,8 +367,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             generator.writeStringField("label", vertex.label());
             generator.writeStringField("type", "vertex");
 
-            this.writePropertiesField(vertex.getProperties(), generator,
-                                      provider);
+            this.writePropertiesField(vertex.getFilledProperties(),
+                                      generator, provider);
 
             generator.writeEndObject();
         }
@@ -399,7 +399,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             this.writeIdField("inV", inVertex.id(), generator);
             generator.writeStringField("inVLabel", inVertex.label());
 
-            this.writePropertiesField(edge.getProperties(), generator, provider);
+            this.writePropertiesField(edge.getFilledProperties(),
+                                      generator, provider);
 
             generator.writeEndObject();
         }

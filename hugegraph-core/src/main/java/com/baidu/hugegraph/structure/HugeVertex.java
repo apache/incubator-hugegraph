@@ -425,7 +425,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Watched(prefix = "vertex")
-    protected boolean ensureVertexProperties(boolean throwIfNotExist) {
+    @Override
+    protected boolean ensureFilledProperties(boolean throwIfNotExist) {
         if (this.propLoaded) {
             return true;
         }
@@ -442,12 +443,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Watched(prefix = "vertex")
-    @Override
     @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
+    @Override
     public <V> Iterator<VertexProperty<V>> properties(String... keys) {
         // TODO: Compatible with TinkerPop properties() (HugeGraph-742)
 
-        this.ensureVertexProperties(true);
+        this.ensureFilledProperties(true);
 
         // Capacity should be about the following size
         int propsCapacity = keys.length == 0 ?
@@ -498,7 +499,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public boolean valid() {
         try {
-            return this.ensureVertexProperties(false);
+            return this.ensureFilledProperties(false);
         } catch (Throwable e) {
             // Generally the program can't get here
             return false;

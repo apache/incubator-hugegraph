@@ -17,7 +17,7 @@ branches:
     - /^test-.*$/
     - /^v[0-9]\..*$/
 
-install: mvn compile -Dmaven.javadoc.skip=true
+install: mvn compile -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloaded"
 
 before_script:
   - $TRAVIS_DIR/install-backend.sh
