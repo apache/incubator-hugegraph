@@ -112,6 +112,7 @@ public enum UpdateStrategy {
     },
 
     // Batch update Set should use union because of higher efficiency
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     APPEND {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
@@ -125,6 +126,7 @@ public enum UpdateStrategy {
         }
     },
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     ELIMINATE {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
@@ -166,10 +168,12 @@ public enum UpdateStrategy {
 
     private static Set<?> combineSet(Object oldProperty, Object newProperty,
                                      UpdateStrategy strategy) {
-        Set oldSet = oldProperty instanceof Set ?
-                     (Set) oldProperty : new HashSet((List) oldProperty);
-        Set newSet = newProperty instanceof Set ?
-                     (Set) newProperty : new HashSet((List) newProperty);
+        Set<?> oldSet = oldProperty instanceof Set ?
+                        (Set<?>) oldProperty :
+                        new HashSet<>((List<?>) oldProperty);
+        Set<?> newSet = newProperty instanceof Set ?
+                        (Set<?>) newProperty :
+                        new HashSet<>((List<?>) newProperty);
         return strategy == UNION ? Sets.union(oldSet, newSet) :
                                    Sets.intersection(oldSet, newSet);
     }

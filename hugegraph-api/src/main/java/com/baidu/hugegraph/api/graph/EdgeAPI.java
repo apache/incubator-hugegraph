@@ -402,7 +402,7 @@ public class EdgeAPI extends BatchAPI {
 
     private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
         if (newEdge.id != null) {
-            return EdgeId.parse(newEdge.id.asString());
+            return EdgeId.parse(newEdge.id.toString());
         }
 
         String sortKeys = "";
