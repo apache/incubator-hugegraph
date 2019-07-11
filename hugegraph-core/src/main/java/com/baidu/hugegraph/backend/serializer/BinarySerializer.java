@@ -213,8 +213,9 @@ public class BinarySerializer extends AbstractSerializer {
         buffer.writeId(edge.ownerVertex().id());
         buffer.write(edge.type().code());
         buffer.writeId(edge.schemaLabel().id());
-        buffer.writeString(edge.name()); // TODO: write if need
+        buffer.writeStringWithoutLength(edge.name());
         buffer.writeId(edge.otherVertex().id());
+        buffer.writeShort((short) StringEncoding.encode(edge.name()).length);
 
         return buffer.bytes();
     }
@@ -253,7 +254,11 @@ public class BinarySerializer extends AbstractSerializer {
         }
         byte type = buffer.read();
         Id labelId = buffer.readId();
-        String sk = buffer.readString();
+
+        int length = buffer.peekLastShort();
+        String sk = StringEncoding.decode(buffer.read(length));
+
+//        String sk = buffer.readString();
         Id otherVertexId = buffer.readId();
 
         boolean isOutEdge = (type == HugeType.EDGE_OUT.code());
@@ -361,7 +366,7 @@ public class BinarySerializer extends AbstractSerializer {
             }
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
             if (this.indexWithIdPrefix) {
-                buffer.readIndexId();
+                buffer.readIndexId(index.type());
             }
             index.elementIds(buffer.readId(true));
         }
@@ -544,19 +549,19 @@ public class BinarySerializer extends AbstractSerializer {
             switch (r.relation()) {
                 case GTE:
                     minEq = 1;
-                    start.writeString((String) r.value());
+                    start.writeStringWithoutLength((String) r.value());
                     break;
                 case GT:
                     minEq = 0;
-                    start.writeString((String) r.value());
+                    start.writeStringWithoutLength((String) r.value());
                     break;
                 case LTE:
                     maxEq = 1;
-                    end.writeString((String) r.value());
+                    end.writeStringWithoutLength((String) r.value());
                     break;
                 case LT:
                     maxEq = 0;
-                    end.writeString((String) r.value());
+                    end.writeStringWithoutLength((String) r.value());
                     break;
                 default:
                     E.checkArgument(false, "Unsupported relation '%s'",
@@ -602,7 +607,7 @@ public class BinarySerializer extends AbstractSerializer {
                 buffer.writeId((Id) value);
             } else if (key == HugeKeys.SORT_VALUES) {
                 assert value instanceof String;
-                buffer.writeString((String) value);
+                buffer.writeStringWithoutLength((String) value);
             } else {
                 assert false : key;
             }
@@ -793,12 +798,15 @@ public class BinarySerializer extends AbstractSerializer {
         } else {
             edgeId = EdgeId.parse(id.asString());
         }
+        String sk = edgeId.sortValues();
         BytesBuffer buffer = BytesBuffer.allocate(256);
         buffer.writeId(edgeId.ownerVertexId());
         buffer.write(edgeId.direction().type().code());
         buffer.writeId(edgeId.edgeLabelId());
-        buffer.writeString(edgeId.sortValues());
+        buffer.writeStringWithoutLength(sk);
         buffer.writeId(edgeId.otherVertexId());
+        buffer.writeShort((short) StringEncoding.encode(sk).length);
+
         return new BinaryId(buffer.bytes(), id);
     }
 

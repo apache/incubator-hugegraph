@@ -19,9 +19,11 @@
 
 package com.baidu.hugegraph.backend.tx;
 
+import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -206,26 +208,21 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
                 break;
             case SHARD:
-                // Shard index maybe include multi prefix index
-                for (int i = 0, n = propValues.size(); i < n; i++) {
-                    List<Object> prefixValues = propValues.subList(0, i + 1);
-                    if (i == indexLabel.indexFields().size() - 1) {
-                        Object last = propValues.get(i);
-                        prefixValues.set(i, LongEncoding.encodeNumber(last));
-                    }
-                    value = SplicingIdGenerator.concatValues(prefixValues);
-
-                    // Use `\u0000` as escape for empty String and treat it as
-                    // illegal value for text property
-                    E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
-                                    "Illegal value of index property: '%s'",
-                                    INDEX_EMPTY_SYM);
-                    if (((String) value).isEmpty()) {
-                        value = INDEX_EMPTY_SYM;
-                    }
-
-                    this.updateIndex(indexLabel, value, element.id(), removed);
+                List<Object> values = new ArrayList<>(propValues.size());
+                for (Object v : propValues) {
+                    values.add(NumericUtil.isNumber(v) || v instanceof Date ?
+                               LongEncoding.encodeNumber(v) : v);
                 }
+                value = SplicingIdGenerator.concatValues(values);
+                // Use `\u0000` as escape for empty String and treat it as
+                // illegal value for text property
+                E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
+                                "Illegal value of index property: '%s'",
+                                INDEX_EMPTY_SYM);
+                if (((String) value).isEmpty()) {
+                    value = INDEX_EMPTY_SYM;
+                }
+                this.updateIndex(indexLabel, value, element.id(), removed);
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -843,15 +840,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     newQuery.query(c);
                 }
             }
-            ConditionQuery q = matchIndexLabel(newQuery, il);
+            ConditionQuery q = constructQuery(newQuery, il);
             assert q != null;
             queries.put(il, q);
         }
         return queries;
     }
 
-    private static ConditionQuery matchIndexLabel(ConditionQuery query,
-                                                  IndexLabel indexLabel) {
+    private static ConditionQuery constructQuery(ConditionQuery query,
+                                                 IndexLabel indexLabel) {
         IndexType indexType = indexLabel.indexType();
         boolean requireRange = query.hasRangeCondition();
         boolean supportRange = indexType == IndexType.RANGE ||
@@ -918,75 +915,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
                 break;
             case SHARD:
-                indexQuery = new ConditionQuery(indexType.type(), query);
+                HugeType type = indexLabel.indexType().type();
+                indexQuery = new ConditionQuery(type, query);
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
-
-                boolean hasRange = queryKeys.size() == indexFields.size();
-                joinedKeys = indexFields.subList(0, queryKeys.size());
-                int size = joinedKeys.size();
-                List<Id> prefixes = hasRange ?
-                                    joinedKeys.subList(0, size - 1) :
-                                    joinedKeys;
-                joinedValues = query.userpropValuesString(prefixes);
-
-                if (hasRange) {
-                    // Shard index range query
-                    Object keyEq = null;
-                    Object keyMin = null;
-                    Object keyMax = null;
-                    Id rangeProp = indexFields.get(indexFields.size() - 1);
-                    for (Condition condition : query.userpropConditions()) {
-                        assert condition instanceof Condition.Relation;
-                        Condition.Relation r = (Condition.Relation) condition;
-                        if (!r.key().equals(rangeProp)) {
-                            continue;
-                        }
-                        switch (r.relation()) {
-                            case EQ:
-                                keyEq = r.value();
-                                break;
-                            case GTE:
-                            case GT:
-                                keyMin = r.value();
-                                break;
-                            case LTE:
-                            case LT:
-                                keyMax = r.value();
-                                break;
-                            default:
-                                E.checkArgument(false,
-                                                "Unsupported relation '%s'",
-                                                r.relation());
-                        }
-
-                        Condition.Relation sys = shardFieldValuesCondition(
-                                                 joinedValues,
-                                                 (Number) r.value(),
-                                                 r.relation());
-                        condition = condition.replace(r, sys);
-                        indexQuery.query(condition);
-                    }
-                    if (keyEq != null) {
-                        break;
-                    }
-                    if (keyMin == null) {
-                        assert keyMax != null;
-                        Number num = NumericUtil.minValueOf(keyMax.getClass());
-                        Condition.Relation r = shardFieldValuesCondition(
-                                               joinedValues, num,
-                                               Condition.RelationType.GTE);
-                        indexQuery.query(r);
-                    }
-                    if (keyMax == null) {
-                        Number num = NumericUtil.maxValueOf(keyMin.getClass());
-                        Condition.Relation r = shardFieldValuesCondition(
-                                               joinedValues, num,
-                                               Condition.RelationType.LTE);
-                        indexQuery.query(r);
-                    }
-                } else {
-                    // Shard index prefix query without range
-                    indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
+                List<Condition> conditions = constructShardConditions(
+                                             query, indexLabel.indexFields(),
+                                             HugeKeys.FIELD_VALUES);
+                for (Condition c : conditions) {
+                    indexQuery.query(c);
                 }
                 break;
             default:
@@ -996,13 +932,129 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return indexQuery;
     }
 
+    public static List<Condition> constructShardConditions(ConditionQuery query,
+                                                           List<Id> indexFields,
+                                                           HugeKeys key) {
+        List<Condition> conditions = new ArrayList<>(2);
+        String joinedValues;
+        boolean hasRange = false;
+        int count = 0;
+        List<Object> values = new ArrayList<>();
+        for (Id field : indexFields) {
+            List<Condition> conds = query.userpropConditions(field);
+            if (conds.isEmpty()) {
+                break;
+            }
+            count += conds.size();
+            if (conds.size() == 1) {
+                Relation r = (Relation) conds.get(0);
+                if (r.relation() == Condition.RelationType.EQ) {
+                    Object value = r.value();
+                    if (NumericUtil.isNumber(value) || value instanceof Date) {
+                        value = LongEncoding.encodeNumber(value);
+                    }
+                    values.add(value);
+                    continue;
+                }
+            }
+            hasRange = true;
+            boolean hasLte = false;
+            Object keyEq = null;
+            Object keyMin = null;
+            Object keyMax = null;
+            for (Condition condition : conds) {
+                assert condition instanceof Relation;
+                Relation r = (Relation) condition;
+                switch (r.relation()) {
+                    case EQ:
+                        keyEq = r.value();
+                        break;
+                    case GTE:
+                    case GT:
+                        keyMin = r.value();
+                        break;
+                    case LTE:
+                        hasLte = true;
+                    case LT:
+                        keyMax = r.value();
+                        break;
+                    default:
+                        E.checkArgument(false,
+                                        "Unsupported relation '%s'",
+                                        r.relation());
+                }
+
+                Relation sys = shardFieldValuesCondition(key, values, r.value(),
+                                                         r.relation(), hasLte);
+                condition = condition.replace(r, sys);
+                conditions.add(condition);
+            }
+            if (keyEq != null) {
+                break;
+            }
+            if (keyMin == null) {
+                assert keyMax != null;
+                Number num = NumericUtil.minValueOf(
+                             NumericUtil.isNumber(keyMax) ?
+                             keyMax.getClass() : Long.class);
+                Relation r = shardFieldValuesCondition(
+                             key, values, num,
+                             Condition.RelationType.GTE, false);
+                conditions.add(r);
+            }
+            if (keyMax == null) {
+                Number num = NumericUtil.maxValueOf(
+                             NumericUtil.isNumber(keyMin) ?
+                             keyMin.getClass() : Long.class);
+                Relation r = shardFieldValuesCondition(
+                             key, values, num,
+                             Condition.RelationType.LTE, false);
+                conditions.add(r);
+            }
+
+            if (key == HugeKeys.FIELD_VALUES &&
+                count < query.userpropKeys().size()) {
+                // Can't have conditions after range condition
+                throw new HugeException("Invalid shard index query: %s", query);
+            }
+        }
+        if (!hasRange) {
+            // Shard index prefix query without range
+            joinedValues = SplicingIdGenerator.concatValues(values);
+            Condition min = new Condition.SyspropRelation(
+                                key, Condition.RelationType.GTE, joinedValues);
+            conditions.add(min);
+
+            // Increase one on min to get max
+            String highValue = increaseOne(joinedValues);
+            Condition max = new Condition.SyspropRelation(
+                                key, Condition.RelationType.LT, highValue);
+            conditions.add(max);
+        }
+        return conditions;
+    }
+
     private static Relation shardFieldValuesCondition(
-                            String prefix, Number number,
-                            Condition.RelationType type) {
+                            HugeKeys key, List<Object> prefixes, Object number,
+                            Condition.RelationType type, boolean increase) {
         String num = LongEncoding.encodeNumber(number);
-        String value = SplicingIdGenerator.concatValues(prefix, num);
-        return new Condition.SyspropRelation(HugeKeys.FIELD_VALUES,
-                                             type, value);
+        if (increase) {
+            assert type == Condition.RelationType.LTE;
+            type = Condition.RelationType.LT;
+            num = increaseOne(num);
+        }
+        List<Object> values = new ArrayList<>(prefixes);
+        values.add(num);
+        String value = SplicingIdGenerator.concatValues(values);
+        return new Condition.SyspropRelation(key, type, value);
+    }
+
+    private static String increaseOne(String value) {
+        int length = value.length();
+        CharBuffer cbuf = CharBuffer.wrap(value.toCharArray());
+        char last = cbuf.charAt(length - 1);
+        cbuf.put(length - 1, (char) (last + 1));
+        return cbuf.toString();
     }
 
     private static boolean matchIndexFields(Set<Id> queryKeys,
@@ -1104,7 +1156,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Single index or composite index
 
                 IndexLabel il = this.indexLabels().iterator().next();
-                ConditionQuery indexQuery = matchIndexLabel(query, il);
+                ConditionQuery indexQuery = constructQuery(query, il);
                 assert indexQuery != null;
 
                 /*

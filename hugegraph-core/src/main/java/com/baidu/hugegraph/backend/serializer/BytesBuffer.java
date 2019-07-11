@@ -204,12 +204,22 @@ public final class BytesBuffer {
         return this;
     }
 
+    public BytesBuffer writeStringWithoutLength(String val) {
+        byte[] bytes = StringEncoding.encode(val);
+        this.write(bytes);
+        return this;
+    }
+
     public byte peek() {
         return this.buffer.get(this.buffer.position());
     }
 
     public byte peekLast() {
         return this.buffer.get(this.buffer.capacity() - 1);
+    }
+
+    public short peekLastShort() {
+        return this.buffer.getShort(this.buffer.capacity() - 2);
     }
 
     public byte read() {
@@ -383,7 +393,8 @@ public final class BytesBuffer {
         E.checkArgument(len <= ID_LEN_MAX,
                         "Id max length is %s, but got %s {%s}",
                         ID_LEN_MAX, len, id);
-        if (type.isStringIndex()) {
+        // Not allow '0xff' exist in index id except for delete index by label
+        if (type.isStringIndex() && id instanceof IdGenerator.StringId) {
             for (byte b : bytes) {
                 E.checkArgument(b != INDEX_ID_SUFFIX_BYTE,
                                 "The string type index id can't contains " +
@@ -393,17 +404,21 @@ public final class BytesBuffer {
             }
         }
         this.write(bytes);
-        this.write(INDEX_ID_SUFFIX_BYTE);
+        if (type != HugeType.SHARD_INDEX) {
+            this.write(INDEX_ID_SUFFIX_BYTE);
+        }
         return this;
     }
 
-    public BinaryId readIndexId() {
+    public BinaryId readIndexId(HugeType type) {
         int b = this.peekLast();
         int len = b & ID_LEN_MASK;
         byte[] id = this.read(len + 1);
-        E.checkState(this.read() == INDEX_ID_SUFFIX_BYTE,
-                     "There must be '%s' suffix behind index id",
-                     Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}));
+        if (type != HugeType.SHARD_INDEX) {
+            E.checkState(this.read() == INDEX_ID_SUFFIX_BYTE,
+                         "There must be '%s' suffix behind index id",
+                         Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}));
+        }
         return new BinaryId(id, IdGenerator.of(id, false));
     }
 

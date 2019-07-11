@@ -406,26 +406,6 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
                             "properties '%s' for edge label '%s'",
                             key, this.name, this.properties);
         }
-
-        /*
-         *  Sortkeys must consist with:
-         *  1. all string columns
-         *  or
-         *  2. N string columns(N >= 0) and single numeric column suffix
-         */
-        int size = this.sortKeys.size();
-        if (size == 1) {
-            return;
-        }
-        List<String> prefixFields = this.sortKeys.subList(0, size - 1);
-        for (String prefix : prefixFields) {
-            DataType dataType = this.transaction.getPropertyKey(prefix)
-                                                .dataType();
-            E.checkArgument(dataType.isText(),
-                            "Sortkeys can not have numeric column except " +
-                            "for last column, but got %s(%s)",
-                            dataType, prefix);
-        }
     }
 
     private void checkRelation() {

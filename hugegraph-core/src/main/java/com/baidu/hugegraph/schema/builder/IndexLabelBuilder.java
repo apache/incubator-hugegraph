@@ -46,6 +46,7 @@ import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableSet;
 
 public class IndexLabelBuilder implements IndexLabel.Builder {
 
@@ -351,71 +352,26 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                             "Search index can only build on text property, " +
                             "but got %s(%s)", dataType, field);
         }
-        /*
-         * TODO: support any combination of fields and support prefix
-         * query of number range query and text equation query
-         */
-        if (this.indexType == IndexType.SHARD) {
-            /*
-             * Current Shard index must build on N string columns(N >= 1) with
-             * single numeric column suffix
-             */
-            E.checkArgument(fields.size() > 1,
-                            "Shard index must have more than one columns, " +
-                            "but got only one column %s",
-                            fields.iterator().next());
-
-            int size = fields.size();
-            List<String> prefixFields = fields.subList(0, size - 1);
-            for (String prefix : prefixFields) {
-                DataType dataType = this.transaction.getPropertyKey(prefix)
-                                                    .dataType();
-                E.checkArgument(dataType.isText(),
-                                "Shard index prefixes properties must be " +
-                                "text, but got %s(%s)", dataType, prefix);
-            }
-
-            String field = fields.get(size - 1);
-            DataType dataType = this.transaction.getPropertyKey(field)
-                                                .dataType();
-            E.checkArgument(dataType.isNumber() || dataType.isDate(),
-                            "Shard index's last property can only be " +
-                            "numeric or date property, but got %s(%s)",
-                            dataType, field);
-        }
     }
 
     private void checkRepeatIndex(SchemaLabel schemaLabel) {
-        if (schemaLabel instanceof VertexLabel) {
-            VertexLabel vl = (VertexLabel) schemaLabel;
-            if (vl.idStrategy().isPrimaryKey()) {
-                List<String> pkFields = this.transaction.graph()
-                                            .mapPkId2Name(vl.primaryKeys());
-                E.checkArgument(!this.indexFields.containsAll(pkFields),
-                                "No need to build index on properties %s, " +
-                                "because they contains all primary keys %s " +
-                                "for vertex label '%s'",
-                                this.indexFields, pkFields, vl.name());
-            }
-        }
-
-        if (this.indexType == IndexType.SHARD) {
-            return;
-        }
-
-        for (Id id : schemaLabel.indexLabels()) {
-            IndexLabel old = this.transaction.getIndexLabel(id);
-            if (this.indexType != old.indexType()) {
-                continue;
-            }
-            List<String> newFields = this.indexFields;
-            List<String> oldFields = this.transaction.graph()
-                                         .mapPkId2Name(old.indexFields());
-            // New created label can't be prefix of existed label
-            E.checkArgument(!CollectionUtil.prefixOf(newFields, oldFields),
-                            "Fields %s of new index label '%s' is prefix of " +
-                            "fields %s of existed index label '%s'",
-                            newFields, this.name, oldFields, old.name());
+        this.checkPrimaryKeyIndex(schemaLabel);
+        switch (this.indexType) {
+            case RANGE:
+                this.checkRepeatRangeIndex(schemaLabel);
+                break;
+            case SEARCH:
+                this.checkRepeatSearchIndex(schemaLabel);
+                break;
+            case SECONDARY:
+                this.checkRepeatSecondaryIndex(schemaLabel);
+                break;
+            case SHARD:
+                this.checkRepeatShardIndex(schemaLabel);
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unsupported index type: %s", this.indexType));
         }
     }
 
@@ -448,9 +404,103 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         return tasks;
     }
 
+    private void checkPrimaryKeyIndex(SchemaLabel schemaLabel) {
+        if (schemaLabel instanceof VertexLabel) {
+            VertexLabel vl = (VertexLabel) schemaLabel;
+            if (vl.idStrategy().isPrimaryKey()) {
+                if (this.indexType == IndexType.SECONDARY ||
+                    this.indexType == IndexType.SHARD &&
+                    this.allStringIndex(this.indexFields)) {
+                    List<String> pks = this.transaction.graph()
+                                           .mapPkId2Name(vl.primaryKeys());
+                    E.checkArgument(!this.indexFields.containsAll(pks),
+                                    "No need to build index on properties " +
+                                    "%s, because they contains all primary " +
+                                    "keys %s for vertex label '%s'",
+                                    this.indexFields, pks, vl.name());
+                }
+            }
+        }
+    }
+
+    private void checkRepeatRangeIndex(SchemaLabel schemaLabel) {
+        this.checkRepeatIndex(schemaLabel, ImmutableSet.of(IndexType.RANGE));
+    }
+
+    private void checkRepeatSearchIndex(SchemaLabel schemaLabel) {
+        this.checkRepeatIndex(schemaLabel, ImmutableSet.of(IndexType.SEARCH));
+    }
+
+    private void checkRepeatSecondaryIndex(SchemaLabel schemaLabel) {
+        this.checkRepeatIndex(schemaLabel, ImmutableSet.of(IndexType.RANGE,
+                                                           IndexType.SECONDARY,
+                                                           IndexType.SHARD));
+    }
+
+    private void checkRepeatShardIndex(SchemaLabel schemaLabel) {
+        if (this.oneNumericField()) {
+            checkRepeatIndex(schemaLabel, ImmutableSet.of(IndexType.RANGE));
+        } else if (this.allStringIndex(this.indexFields)) {
+            this.checkRepeatIndex(schemaLabel,
+                                  ImmutableSet.of(IndexType.SECONDARY,
+                                                  IndexType.SHARD));
+        } else {
+            this.checkRepeatIndex(schemaLabel,
+                                  ImmutableSet.of(IndexType.SHARD));
+        }
+    }
+
+    private void checkRepeatIndex(SchemaLabel schemaLabel,
+                                  Set<IndexType> checkedTypes) {
+        for (Id id : schemaLabel.indexLabels()) {
+            IndexLabel old = this.transaction.getIndexLabel(id);
+            if (!checkedTypes.contains(old.indexType()) &&
+                this.indexType != old.indexType()) {
+                continue;
+            }
+            List<String> newFields = this.indexFields;
+            List<String> oldFields = this.transaction.graph()
+                                         .mapPkId2Name(old.indexFields());
+            // New created label can't be prefix of existed label
+            E.checkArgument(!CollectionUtil.prefixOf(newFields, oldFields),
+                            "Fields %s of new index label '%s' is prefix of " +
+                            "fields %s of existed index label '%s'",
+                            newFields, this.name, oldFields, old.name());
+        }
+    }
+
     private boolean noSubIndex(IndexLabel indexLabel) {
         return !(this.indexType == indexLabel.indexType() ||
                  (this.indexType == IndexType.SHARD &&
-                  indexLabel.indexType() == IndexType.SECONDARY));
+                  indexLabel.indexType() == IndexType.SECONDARY) ||
+                 (this.indexType == IndexType.SECONDARY &&
+                  indexLabel.indexType() == IndexType.SHARD &&
+                  this.allStringIndex(indexLabel.indexFields())) ||
+                 (this.indexType == IndexType.RANGE &&
+                  indexLabel.indexType() == IndexType.SECONDARY ||
+                  indexLabel.indexType() == IndexType.SHARD));
+    }
+
+    private boolean allStringIndex(List<?> fields) {
+        for (Object field : fields) {
+            PropertyKey pk = field instanceof Id ?
+                             this.transaction.getPropertyKey((Id) field) :
+                             this.transaction.getPropertyKey((String) field);
+            DataType dataType = pk.dataType();
+            if (dataType.isNumber() || dataType.isDate()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean oneNumericField() {
+        if (this.indexFields.size() != 1) {
+            return false;
+        }
+        String field = this.indexFields.get(0);
+        PropertyKey propertyKey = this.transaction.getPropertyKey(field);
+        DataType dataType = propertyKey.dataType();
+        return dataType.isNumber() || dataType.isDate();
     }
 }

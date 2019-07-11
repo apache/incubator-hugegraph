@@ -82,10 +82,10 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.SchemaStatus;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
-import com.baidu.hugegraph.util.LongEncoding;
 import com.google.common.collect.ImmutableList;
 
 public class GraphTransaction extends IndexableTransaction {
@@ -916,8 +916,16 @@ public class GraphTransaction extends IndexableTransaction {
         if (label == null) {
             return false;
         }
-        List<Id> keys = graph.edgeLabel(label).sortKeys();
-        return !keys.isEmpty() && query.matchUserpropKeys(keys);
+        List<Id> sortKeys = graph.edgeLabel(label).sortKeys();
+        if (sortKeys.isEmpty()) {
+            return false;
+        }
+        Set<Id> queryKeys = query.userpropKeys();
+        if (queryKeys.size() > sortKeys.size()) {
+            return false;
+        }
+        List<Id> prefix = sortKeys.subList(0, queryKeys.size());
+        return queryKeys.containsAll(prefix);
     }
 
     public static void verifyEdgesConditionQuery(ConditionQuery query) {
@@ -987,39 +995,11 @@ public class GraphTransaction extends IndexableTransaction {
                 query.optimized(OptimizedType.SORT_KEYS.ordinal());
                 query = query.copy();
                 // Serialize sort-values
-                for (Condition.Relation r : query.userpropRelations()) {
-                    if (!keys.contains(r.key())) {
-                        continue;
-                    }
-                    PropertyKey pk = this.graph().propertyKey((Id) r.key());
-                    r.serialValue(pk.serialValue(r.value()));
-                }
-                PropertyKey lastProp = this.graph().propertyKey(
-                                       keys.get(matchedNum - 1));
-                boolean hasRange = lastProp.dataType().isNumber() ||
-                                   lastProp.dataType().isDate();
-                List<Id> joinedKeys = keys.subList(0, matchedNum);
-                if (hasRange) {
-                    String prefix = query.userpropValuesString(
-                                    joinedKeys.subList(0, matchedNum - 1));
-                    Id rangeProp = joinedKeys.get(matchedNum - 1);
-                    for (Condition condition : query.userpropConditions()) {
-                        assert condition instanceof Condition.Relation;
-                        Condition.Relation r = (Condition.Relation) condition;
-                        if (!r.key().equals(rangeProp)) {
-                            continue;
-                        }
-                        String value = SplicingIdGenerator.concatValues(
-                                       prefix, r.serialValue());
-                        Condition.Relation sys = new Condition.SyspropRelation(
-                                                     HugeKeys.SORT_VALUES,
-                                                     r.relation(), value);
-                        condition = condition.replace(r, sys);
-                        query.query(condition);
-                    }
-                } else {
-                    query.eq(HugeKeys.SORT_VALUES,
-                             query.userpropValuesString(keys));
+                List<Condition> conditions =
+                                GraphIndexTransaction.constructShardConditions(
+                                query, keys, HugeKeys.SORT_VALUES);
+                for (Condition c : conditions) {
+                    query.query(c);
                 }
                 query.resetUserpropConditions();
 

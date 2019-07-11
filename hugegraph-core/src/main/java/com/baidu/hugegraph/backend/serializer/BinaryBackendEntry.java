@@ -43,7 +43,7 @@ public class BinaryBackendEntry implements BackendEntry {
 
     public BinaryBackendEntry(HugeType type, byte[] bytes) {
         this.id = type.isIndex() ?
-                  BytesBuffer.wrap(bytes).readIndexId() :
+                  BytesBuffer.wrap(bytes).readIndexId(type) :
                   BytesBuffer.wrap(bytes).parseId();
         this.type = type;
         this.subId = null;
