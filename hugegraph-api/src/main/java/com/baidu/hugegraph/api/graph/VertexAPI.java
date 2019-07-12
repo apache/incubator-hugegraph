@@ -143,7 +143,7 @@ public class VertexAPI extends BatchAPI {
             /*
              * 1.Put all newVertices' properties into map (combine first)
              * - Consider primary-key & user-define ID mode first
-             * */
+             */
             req.jsonVertices.forEach(newVertex -> {
                 Id newVertexId = getVertexId(g, newVertex);
                 JsonVertex oldVertex = map.get(newVertexId);

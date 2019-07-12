@@ -112,9 +112,9 @@ public enum UpdateStrategy {
     },
 
     // Batch update Set should use union because of higher efficiency
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     APPEND {
         @Override
+        @SuppressWarnings({ "rawtypes", "unchecked" })
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
             ((Collection) oldProperty).addAll((Collection) newProperty);
             return oldProperty;
@@ -126,9 +126,9 @@ public enum UpdateStrategy {
         }
     },
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     ELIMINATE {
         @Override
+        @SuppressWarnings({ "rawtypes", "unchecked" })
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
             ((Collection) oldProperty).removeAll((Collection) newProperty);
             return oldProperty;
