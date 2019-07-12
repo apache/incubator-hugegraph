@@ -627,6 +627,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init18Edges();
 
+        // Query all with limit
         List<Edge> edges = graph.traversal().E().limit(10).toList();
         Assert.assertEquals(10, edges.size());
 
@@ -635,6 +636,28 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         edges = graph.traversal().E().limit(10).limit(12).toList();
         Assert.assertEquals(10, edges.size());
+    }
+
+    public void testQueryAllWithLimitAfterDelete() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        // Query all with limit after delete
+        graph.traversal().E().limit(14).drop().iterate();
+        Assert.assertEquals(4L, graph.traversal().V().count().next());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query with limit
+            graph.traversal().V().limit(3).toList();
+        });
+        graph.tx().commit();
+        List<Edge> edges = graph.traversal().E().limit(3).toList();
+        Assert.assertEquals(3, edges.size());
+
+        // Query all with limit after delete twice
+        graph.traversal().E().limit(3).drop().iterate();
+        graph.tx().commit();
+        edges = graph.traversal().E().limit(3).toList();
+        Assert.assertEquals(1, edges.size());
     }
 
     @Test
@@ -835,26 +858,26 @@ public class EdgeCoreTest extends BaseCoreTest {
         init18Edges();
 
         List<Edge> edges = graph.traversal().V()
-                           .hasLabel("person").has("name", "Louise")
-                           .outE("look").order().by("time")
-                           .limit(2).toList();
+                                .hasLabel("person").has("name", "Louise")
+                                .outE("look").order().by("time")
+                                .limit(2).toList();
         Assert.assertEquals(2, edges.size());
         Assert.assertEquals("2017-5-1", edges.get(0).value("time"));
         Assert.assertEquals("2017-5-1", edges.get(1).value("time"));
 
         edges = graph.traversal().V()
-                .hasLabel("person").has("name", "Louise")
-                .outE("look").order().by("time", Order.decr)
-                .limit(2).toList();
+                     .hasLabel("person").has("name", "Louise")
+                     .outE("look").order().by("time", Order.decr)
+                     .limit(2).toList();
         Assert.assertEquals(2, edges.size());
         Assert.assertEquals("2017-5-27", edges.get(0).value("time"));
         Assert.assertEquals("2017-5-27", edges.get(1).value("time"));
 
         edges = graph.traversal().V()
-                .hasLabel("person").has("name", "Louise")
-                .outE("look").limit(2)
-                .order().by("time", Order.decr)
-                .toList();
+                     .hasLabel("person").has("name", "Louise")
+                     .outE("look").limit(2)
+                     .order().by("time", Order.decr)
+                     .toList();
         Assert.assertEquals(2, edges.size());
         Assert.assertEquals("2017-5-1", edges.get(0).value("time"));
         Assert.assertEquals("2017-5-1", edges.get(1).value("time"));
@@ -960,6 +983,24 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         edges = graph.traversal().E().hasLabel("created", "authored").toList();
         Assert.assertEquals(5, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesByLabelWithLimit() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        // Query by vertex label with limit
+        List<Edge> edges = graph.traversal().E().hasLabel("look")
+                                .limit(5).toList();
+        Assert.assertEquals(5, edges.size());
+
+        // Query by vertex label with limit
+        graph.traversal().E().hasLabel("look").limit(5).drop().iterate();
+        graph.tx().commit();
+
+        edges = graph.traversal().E().hasLabel("look").limit(3).toList();
+        Assert.assertEquals(2, edges.size());
     }
 
     @Test
