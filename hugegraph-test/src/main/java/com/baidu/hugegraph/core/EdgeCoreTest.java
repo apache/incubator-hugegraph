@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.core;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -55,12 +56,16 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -972,21 +977,88 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryBothEdgesOfVertex() {
+    public void testQueryEdgesOfVertex() {
         HugeGraph graph = graph();
         init18Edges();
 
-        // Query edges of a vertex
         Vertex james = vertex("author", "id", 1);
+
+        // Query BOTH edges of a vertex
         List<Edge> edges = graph.traversal().V(james.id()).bothE().toList();
         Assert.assertEquals(6, edges.size());
 
         edges = ImmutableList.copyOf(james.edges(Direction.BOTH));
         Assert.assertEquals(6, edges.size());
+
+        // Query OUT edges of a vertex
+        edges = graph.traversal().V(james.id()).outE().toList();
+        Assert.assertEquals(4, edges.size());
+
+        edges = ImmutableList.copyOf(james.edges(Direction.OUT));
+        Assert.assertEquals(4, edges.size());
+
+        // Query IN edges of a vertex
+        edges = graph.traversal().V(james.id()).inE().toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = ImmutableList.copyOf(james.edges(Direction.IN));
+        Assert.assertEquals(2, edges.size());
     }
 
     @Test
-    public void testQueryBothEdgesOfVertexWithGraphAPI() {
+    public void testQueryEdgesOfVertexWithoutCommit() {
+        HugeGraph graph = graph();
+        init18Edges(false);
+
+        HugeVertex james = (HugeVertex) vertex("author", "id", 1);
+
+        List<Vertex> vertices = ImmutableList.copyOf(
+                                james.getVertices(Directions.BOTH));
+        Assert.assertEquals(6, vertices.size());
+
+        vertices = ImmutableList.copyOf(james.getVertices(Directions.OUT));
+        Assert.assertEquals(4, vertices.size());
+
+        vertices = ImmutableList.copyOf(james.getVertices(Directions.IN));
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = ImmutableList.copyOf(james.getVertices(Directions.OUT,
+                                                          "authored"));
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = ImmutableList.copyOf(james.getVertices(Directions.OUT,
+                                                          "authored",
+                                                          "created"));
+        Assert.assertEquals(4, vertices.size());
+
+        vertices = ImmutableList.copyOf(james.getVertices(Directions.IN,
+                                                          "know"));
+        Assert.assertEquals(1, vertices.size());
+
+        // Query BOTH edges of a vertex
+        List<Edge> edges = graph.traversal().V(james.id()).bothE().toList();
+        Assert.assertEquals(6, edges.size());
+
+        edges = ImmutableList.copyOf(james.edges(Direction.BOTH));
+        Assert.assertEquals(6, edges.size());
+
+        // Query OUT edges of a vertex
+        edges = graph.traversal().V(james.id()).outE().toList();
+        Assert.assertEquals(4, edges.size());
+
+        edges = ImmutableList.copyOf(james.edges(Direction.OUT));
+        Assert.assertEquals(4, edges.size());
+
+        // Query IN edges of a vertex
+        edges = graph.traversal().V(james.id()).inE().toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = ImmutableList.copyOf(james.edges(Direction.IN));
+        Assert.assertEquals(2, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesOfVertexWithGraphAPI() {
         HugeGraph graph = graph();
         init18Edges();
 
@@ -996,24 +1068,82 @@ public class EdgeCoreTest extends BaseCoreTest {
                            graph.adjacentEdges((Id) james.id()));
         Assert.assertEquals(6, edges.size());
 
-        edges = ImmutableList.copyOf(james.edges(Direction.BOTH));
-        Assert.assertEquals(6, edges.size());
+        List<Edge> edges2 = ImmutableList.copyOf(james.edges(Direction.BOTH));
+        Assert.assertEquals(6, edges2.size());
+
+        Assert.assertEquals(edges2, edges);
     }
 
     @Test
-    public void testQueryBothVerticesOfVertex() {
+    public void testQueryVerticesOfVertex() {
         HugeGraph graph = graph();
         init18Edges();
 
         Vertex jeff = vertex("person", "name", "Jeff");
 
+        // BOTH
         List<Vertex> vertices = graph.traversal().V(jeff.id())
-                                .both("friend").toList();
+                                     .both("friend").toList();
         Assert.assertEquals(2, vertices.size());
 
         vertices = ImmutableList.copyOf(
                    jeff.vertices(Direction.BOTH, "friend"));
         Assert.assertEquals(2, vertices.size());
+
+        // OUT
+        vertices = graph.traversal().V(jeff.id()).out("look").toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = ImmutableList.copyOf(jeff.vertices(Direction.OUT, "look"));
+        Assert.assertEquals(1, vertices.size());
+
+        // IN
+        vertices = graph.traversal().V(jeff.id()).in("follow").toList();
+        Assert.assertEquals(0, vertices.size());
+
+        vertices = ImmutableList.copyOf(jeff.vertices(Direction.IN, "follow"));
+        Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
+    public void testQueryVerticesOfEdges() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Vertex jeff = vertex("person", "name", "Jeff");
+        Vertex java3 = vertex("book", "name", "java-3");
+
+        // BOTH
+        List<Vertex> vertices = graph.traversal().V(jeff.id())
+                                     .bothE("friend").as("e").otherV()
+                                     .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        // OUT
+        List<Edge> edges = graph.traversal().V(jeff.id())
+                                .outE("look").toList();
+        Assert.assertEquals(1, edges.size());
+
+        HugeEdge edge = (HugeEdge) edges.get(0);
+        Assert.assertEquals(jeff, edge.ownerVertex());
+        Assert.assertEquals(jeff, edge.sourceVertex());
+        Assert.assertEquals(java3, edge.otherVertex());
+        Assert.assertEquals(java3, edge.targetVertex());
+        Assert.assertEquals(jeff, edge.vertices(Direction.OUT).next());
+        Assert.assertEquals(java3, edge.vertices(Direction.IN).next());
+
+        // Fill edge properties
+        Assert.assertEquals(2, edge.getProperties().size());
+        Whitebox.setInternalState(edge, "propLoaded", false);
+        Whitebox.setInternalState(edge, "properties", new HashMap<>());
+        Assert.assertEquals(0, edge.getProperties().size());
+        Assert.assertEquals(2, edge.getFilledProperties().size());
+        Assert.assertEquals(2, edge.getProperties().size());
+
+        // Fill vertex properties
+        Assert.assertTrue(edge.otherVertex().getProperties().isEmpty());
+        Assert.assertEquals(1, edge.otherVertex().getFilledProperties().size());
+        Assert.assertEquals(1, edge.otherVertex().getProperties().size());
     }
 
     @Test
@@ -2060,6 +2190,9 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertTrue(e.getMessage().contains(
                               "Edges size has reached tx capacity"));
         });
+
+        // Clear all
+        graph.truncateBackend();
     }
 
     @Test
@@ -2778,6 +2911,10 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     private void init18Edges() {
+        this.init18Edges(true);
+    }
+
+    private void init18Edges(boolean commit) {
         HugeGraph graph = graph();
 
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
@@ -2827,7 +2964,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         jeff.addEdge("friend", sean);
         jeff.addEdge("follow", james);
 
-        graph.tx().commit();
+        if (commit) {
+            graph.tx().commit();
+        }
     }
 
     private void init100LookEdges() {

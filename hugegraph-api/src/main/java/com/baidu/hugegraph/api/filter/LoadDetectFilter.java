@@ -62,7 +62,7 @@ public class LoadDetectFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) {
-        if (isWhiteAPI(context)) {
+        if (LoadDetectFilter.isWhiteAPI(context)) {
             return;
         }
 
@@ -93,7 +93,7 @@ public class LoadDetectFilter implements ContainerRequestFilter {
         }
     }
 
-    private static boolean isWhiteAPI(ContainerRequestContext context) {
+    public static boolean isWhiteAPI(ContainerRequestContext context) {
         List<PathSegment> segments = context.getUriInfo().getPathSegments();
         E.checkArgument(segments.size() > 0, "Invalid request uri '%s'",
                         context.getUriInfo().getPath());

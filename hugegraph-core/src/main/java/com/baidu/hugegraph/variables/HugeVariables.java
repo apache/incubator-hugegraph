@@ -60,20 +60,20 @@ public class HugeVariables implements Graph.Variables {
     private static final String VARIABLES = "variables";
 
     // Variables properties
-    private static final String VARIABLE_KEY = "variableKey";
-    private static final String VARIABLE_TYPE = "variableType";
+    private static final String VARIABLE_KEY = "varKey";
+    private static final String VARIABLE_TYPE = "varType";
 
-    private static final String BYTE_VALUE = "byteValue";
-    private static final String BOOLEAN_VALUE = "booleanValue";
-    private static final String INTEGER_VALUE = "integerValue";
-    private static final String LONG_VALUE = "longValue";
-    private static final String FLOAT_VALUE = "floatValue";
-    private static final String DOUBLE_VALUE = "doubleValue";
-    private static final String STRING_VALUE = "stringValue";
+    private static final String BYTE_VALUE = "B";
+    private static final String BOOLEAN_VALUE = "Z";
+    private static final String INTEGER_VALUE = "I";
+    private static final String LONG_VALUE = "L";
+    private static final String FLOAT_VALUE = "F";
+    private static final String DOUBLE_VALUE = "D";
+    private static final String STRING_VALUE = "S";
 
     // Variables properties suffix
-    private static final String UNIFORM_LIST = "UniformList";
-    private static final String SET = "Set";
+    private static final String LIST = "L";
+    private static final String SET = "S";
 
     private static final String[] TYPES = {
             Hidden.hide(BYTE_VALUE),
@@ -83,13 +83,13 @@ public class HugeVariables implements Graph.Variables {
             Hidden.hide(FLOAT_VALUE),
             Hidden.hide(DOUBLE_VALUE),
             Hidden.hide(STRING_VALUE),
-            Hidden.hide(BYTE_VALUE + UNIFORM_LIST),
-            Hidden.hide(BOOLEAN_VALUE + UNIFORM_LIST),
-            Hidden.hide(INTEGER_VALUE + UNIFORM_LIST),
-            Hidden.hide(LONG_VALUE + UNIFORM_LIST),
-            Hidden.hide(FLOAT_VALUE + UNIFORM_LIST),
-            Hidden.hide(DOUBLE_VALUE + UNIFORM_LIST),
-            Hidden.hide(STRING_VALUE + UNIFORM_LIST),
+            Hidden.hide(BYTE_VALUE + LIST),
+            Hidden.hide(BOOLEAN_VALUE + LIST),
+            Hidden.hide(INTEGER_VALUE + LIST),
+            Hidden.hide(LONG_VALUE + LIST),
+            Hidden.hide(FLOAT_VALUE + LIST),
+            Hidden.hide(DOUBLE_VALUE + LIST),
+            Hidden.hide(STRING_VALUE + LIST),
             Hidden.hide(BYTE_VALUE + SET),
             Hidden.hide(BOOLEAN_VALUE + SET),
             Hidden.hide(INTEGER_VALUE + SET),
@@ -134,19 +134,19 @@ public class HugeVariables implements Graph.Variables {
                           Cardinality.SINGLE);
         createPropertyKey(Hidden.hide(STRING_VALUE), DataType.TEXT,
                           Cardinality.SINGLE);
-        createPropertyKey(Hidden.hide(BYTE_VALUE + UNIFORM_LIST),
+        createPropertyKey(Hidden.hide(BYTE_VALUE + LIST),
                           DataType.BYTE, Cardinality.LIST);
-        createPropertyKey(Hidden.hide(BOOLEAN_VALUE + UNIFORM_LIST),
+        createPropertyKey(Hidden.hide(BOOLEAN_VALUE + LIST),
                           DataType.BOOLEAN, Cardinality.LIST);
-        createPropertyKey(Hidden.hide(INTEGER_VALUE + UNIFORM_LIST),
+        createPropertyKey(Hidden.hide(INTEGER_VALUE + LIST),
                           DataType.INT, Cardinality.LIST);
-        createPropertyKey(Hidden.hide(LONG_VALUE + UNIFORM_LIST),
+        createPropertyKey(Hidden.hide(LONG_VALUE + LIST),
                           DataType.LONG, Cardinality.LIST);
-        createPropertyKey(Hidden.hide(FLOAT_VALUE + UNIFORM_LIST),
+        createPropertyKey(Hidden.hide(FLOAT_VALUE + LIST),
                           DataType.FLOAT, Cardinality.LIST);
-        createPropertyKey(Hidden.hide(DOUBLE_VALUE + UNIFORM_LIST),
+        createPropertyKey(Hidden.hide(DOUBLE_VALUE + LIST),
                           DataType.DOUBLE, Cardinality.LIST);
-        createPropertyKey(Hidden.hide(STRING_VALUE + UNIFORM_LIST),
+        createPropertyKey(Hidden.hide(STRING_VALUE + LIST),
                           DataType.TEXT, Cardinality.LIST);
         createPropertyKey(Hidden.hide(BYTE_VALUE + SET),
                           DataType.BYTE, Cardinality.SET);
@@ -276,7 +276,7 @@ public class HugeVariables implements Graph.Variables {
     private void setProperty(HugeVertex vertex, String key, Object value) {
         String suffix;
         if (value instanceof List) {
-            suffix = UNIFORM_LIST;
+            suffix = LIST;
         } else if (value instanceof Set) {
             suffix = SET;
         } else {
@@ -331,7 +331,7 @@ public class HugeVariables implements Graph.Variables {
             throw Graph.Variables.Exceptions
                        .dataTypeOfVariableValueNotSupported(value);
         }
-        // AUTOMATIC id
+        // PrimaryKey id
         vertex.assignId(null);
 
         tx.addVertex(vertex);

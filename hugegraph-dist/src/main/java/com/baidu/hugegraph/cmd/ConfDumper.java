@@ -26,9 +26,9 @@ import java.util.TreeSet;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.io.FileUtils;
 
-import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
+import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.util.E;
 
@@ -52,12 +52,12 @@ public class ConfDumper {
         HugeConfig config = new HugeConfig(input);
 
         for (String name : new TreeSet<>(OptionSpace.keys())) {
-            ConfigOption<?> option = OptionSpace.get(name);
+            TypedOption<?, ?> option = OptionSpace.get(name);
             writeOption(output, option, config.get(option));
         }
     }
 
-    private static void writeOption(File output, ConfigOption<?> option,
+    private static void writeOption(File output, TypedOption<?, ?> option,
                                     Object value) throws IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("# ").append(option.desc()).append(EOL);

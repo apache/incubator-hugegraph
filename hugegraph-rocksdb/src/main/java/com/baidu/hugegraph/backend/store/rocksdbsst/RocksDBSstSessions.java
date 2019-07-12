@@ -46,15 +46,13 @@ import com.baidu.hugegraph.util.E;
 
 public class RocksDBSstSessions extends RocksDBSessions {
 
-    private final HugeConfig conf;
     private final String dataPath;
     private final Map<String, SstFileWriter> tables;
 
-    public RocksDBSstSessions(HugeConfig conf, String dataPath,
-                              String database, String store) {
-        super(database, store);
+    public RocksDBSstSessions(HugeConfig config, String database, String store,
+                              String dataPath) {
+        super(config, database, store);
 
-        this.conf = conf;
         this.dataPath = dataPath;
         this.tables = new ConcurrentHashMap<>();
 
@@ -73,8 +71,16 @@ public class RocksDBSstSessions extends RocksDBSessions {
         }
     }
 
+    private RocksDBSstSessions(HugeConfig config, String database, String store,
+                               RocksDBSstSessions origin) {
+        super(config, database, store);
+
+        this.dataPath = origin.dataPath;
+        this.tables = origin.tables;
+    }
+
     @Override
-    public void open(HugeConfig config) throws Exception {
+    public void open() throws Exception {
         // pass
     }
 
@@ -92,7 +98,8 @@ public class RocksDBSstSessions extends RocksDBSessions {
     public void createTable(String table) throws RocksDBException {
         EnvOptions env = new EnvOptions();
         Options options = new Options();
-        RocksDBStdSessions.initOptions(this.conf, options, options, options);
+        RocksDBStdSessions.initOptions(this.config(), options,
+                                       options, options);
         // NOTE: unset merge op due to SIGSEGV when cf.setMergeOperatorName()
         options.setMergeOperatorName("not-exist-merge-op");
         SstFileWriter sst = new SstFileWriter(env, options);
@@ -110,6 +117,13 @@ public class RocksDBSstSessions extends RocksDBSessions {
     public String property(String property) {
         throw new NotSupportException("RocksDBSstStore property()");
     }
+
+    @Override
+    public RocksDBSessions copy(HugeConfig config,
+                                String database, String store) {
+        return new RocksDBSstSessions(config, database, store, this);
+    }
+
 
     private SstFileWriter table(String table) {
         SstFileWriter sst = this.tables.get(table);

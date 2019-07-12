@@ -80,6 +80,8 @@ public abstract class HugeElement implements Element, GraphType {
     protected abstract <V> void onUpdateProperty(Cardinality cardinality,
                                                  HugeProperty<V> prop);
 
+    protected abstract boolean ensureFilledProperties(boolean throwIfNotExist);
+
     @Override
     public Id id() {
         return this.id;
@@ -111,6 +113,11 @@ public abstract class HugeElement implements Element, GraphType {
     }
 
     public Map<Id, HugeProperty<?>> getProperties() {
+        return Collections.unmodifiableMap(this.properties);
+    }
+
+    public Map<Id, HugeProperty<?>> getFilledProperties() {
+        this.ensureFilledProperties(true);
         return Collections.unmodifiableMap(this.properties);
     }
 

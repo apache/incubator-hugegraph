@@ -29,12 +29,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.BloomFilter;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.ColumnFamilyOptionsInterface;
-import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
@@ -62,22 +64,20 @@ import com.google.common.collect.ImmutableList;
 
 public class RocksDBStdSessions extends RocksDBSessions {
 
-    private final Map<String, ColumnFamilyHandle> cfs = new HashMap<>();
-
-    private final HugeConfig conf;
     private final RocksDB rocksdb;
     private final SstFileManager sstFileManager;
 
-    public RocksDBStdSessions(HugeConfig config, String dataPath,
-                              String walPath, String database, String store)
-                              throws RocksDBException {
-        super(database, store);
+    private final Map<String, ColumnFamilyHandle> cfs;
+    private final AtomicInteger refCount;
 
-        this.conf = config;
+    public RocksDBStdSessions(HugeConfig config, String database, String store,
+                              String dataPath, String walPath)
+                              throws RocksDBException {
+        super(config, database, store);
 
         // Init options
         Options options = new Options();
-        RocksDBStdSessions.initOptions(this.conf, options, options, options);
+        RocksDBStdSessions.initOptions(config, options, options, options);
         options.setWalDir(walPath);
 
         this.sstFileManager = new SstFileManager(Env.getDefault());
@@ -88,13 +88,15 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Don't merge old CFs, we expect a clear DB when using this one
          */
         this.rocksdb = RocksDB.open(options, dataPath);
+
+        this.cfs = new HashMap<>();
+        this.refCount = new AtomicInteger(1);
     }
 
-    public RocksDBStdSessions(HugeConfig config, String dataPath,
-                              String walPath, String database, String store,
+    public RocksDBStdSessions(HugeConfig config, String database, String store,
+                              String dataPath, String walPath,
                               List<String> cfNames) throws RocksDBException {
-        super(database, store);
-        this.conf = config;
+        super(config, database, store);
 
         // Old CFs should always be opened
         Set<String> mergedCFs = this.mergeOldCFs(dataPath, cfNames);
@@ -105,13 +107,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         for (String cf : cfs) {
             ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
             ColumnFamilyOptions options = cfd.getOptions();
-            RocksDBStdSessions.initOptions(this.conf, null, options, options);
+            RocksDBStdSessions.initOptions(config, null, options, options);
             cfds.add(cfd);
         }
 
         // Init DB options
         DBOptions options = new DBOptions();
-        RocksDBStdSessions.initOptions(this.conf, options, null, null);
+        RocksDBStdSessions.initOptions(config, options, null, null);
         options.setWalDir(walPath);
 
         this.sstFileManager = new SstFileManager(Env.getDefault());
@@ -124,15 +126,30 @@ public class RocksDBStdSessions extends RocksDBSessions {
                      "Expect same size of cf-handles and cf-names");
 
         // Collect CF Handles
+        this.cfs = new HashMap<>();
         for (int i = 0; i < cfs.size(); i++) {
             this.cfs.put(cfs.get(i), cfhs.get(i));
         }
 
+        this.refCount = new AtomicInteger(1);
+
         ingestExternalFile();
     }
 
+    private RocksDBStdSessions(HugeConfig config, String database, String store,
+                               RocksDBStdSessions origin) {
+        super(config, database, store);
+
+        this.rocksdb = origin.rocksdb;
+        this.sstFileManager = origin.sstFileManager;
+        this.cfs = origin.cfs;
+        this.refCount = origin.refCount;
+
+        this.refCount.incrementAndGet();
+    }
+
     @Override
-    public void open(HugeConfig config) throws Exception {
+    public void open() throws Exception {
         // pass
     }
 
@@ -157,7 +174,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         // Should we use options.setCreateMissingColumnFamilies() to create CF
         ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(table));
         ColumnFamilyOptions options = cfd.getOptions();
-        initOptions(this.conf, null, options, options);
+        initOptions(this.config(), null, options, options);
         this.cfs.put(table, this.rocksdb.createColumnFamily(cfd));
 
         ingestExternalFile();
@@ -186,6 +203,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
+    public RocksDBSessions copy(HugeConfig config,
+                                String database, String store) {
+        return new RocksDBStdSessions(config, database, store, this);
+    }
+
+    @Override
     public final Session session() {
         return (Session) super.getOrNewSession();
     }
@@ -194,12 +217,17 @@ public class RocksDBStdSessions extends RocksDBSessions {
     protected final Session newSession() {
         E.checkState(this.rocksdb.isOwningHandle(),
                      "RocksDB has not been initialized");
-        return new StdSession(this.conf);
+        return new StdSession(this.config());
     }
 
     @Override
     protected synchronized void doClose() {
         this.checkValid();
+
+        if (this.refCount.decrementAndGet() > 0) {
+            return;
+        }
+        assert this.refCount.get() == 0;
 
         for (ColumnFamilyHandle cf : this.cfs.values()) {
             cf.close();
@@ -235,7 +263,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     private void ingestExternalFile() throws RocksDBException {
-        String directory = this.conf.get(RocksDBOptions.SST_PATH);
+        String directory = this.config().get(RocksDBOptions.SST_PATH);
         if (directory == null || directory.isEmpty()) {
             return;
         }
@@ -318,27 +346,67 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 cf.optimizeUniversalStyleCompaction();
             }
 
-            cf.setNumLevels(conf.get(RocksDBOptions.NUM_LEVELS));
-            cf.setCompactionStyle(CompactionStyle.valueOf(
-                    conf.get(RocksDBOptions.COMPACTION_STYLE)));
+            int numLevels = conf.get(RocksDBOptions.NUM_LEVELS);
+            List<CompressionType> compressions = conf.get(
+                                  RocksDBOptions.LEVELS_COMPRESSIONS);
+            E.checkArgument(compressions.isEmpty() ||
+                            compressions.size() == numLevels,
+                            "Elements number of '%s' must be 0 or " +
+                            "be the same as '%s', bug got %s != %s",
+                            RocksDBOptions.LEVELS_COMPRESSIONS.name(),
+                            RocksDBOptions.NUM_LEVELS.name(),
+                            compressions.size(), numLevels);
+
+            cf.setNumLevels(numLevels);
+            cf.setCompactionStyle(conf.get(RocksDBOptions.COMPACTION_STYLE));
+
+            cf.setBottommostCompressionType(
+                    conf.get(RocksDBOptions.BOTTOMMOST_COMPRESSION));
+            if (!compressions.isEmpty()) {
+                cf.setCompressionPerLevel(compressions);
+            }
 
             cf.setMinWriteBufferNumberToMerge(
                     conf.get(RocksDBOptions.MIN_MEMTABLES_TO_MERGE));
             cf.setMaxWriteBufferNumberToMaintain(
                     conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
 
+            // https://github.com/facebook/rocksdb/wiki/Block-Cache
+            BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
+            long cacheCapacity = conf.get(RocksDBOptions.BLOCK_CACHE_CAPACITY);
+            if (cacheCapacity <= 0L) {
+                // Bypassing bug https://github.com/facebook/rocksdb/pull/5465
+                tableConfig.setNoBlockCache(true);
+            } else {
+                tableConfig.setBlockCacheSize(cacheCapacity);
+            }
+            tableConfig.setPinL0FilterAndIndexBlocksInCache(
+                    conf.get(RocksDBOptions.PIN_L0_FILTER_AND_INDEX_IN_CACHE));
+            tableConfig.setCacheIndexAndFilterBlocks(
+                    conf.get(RocksDBOptions.PUT_FILTER_AND_INDEX_IN_CACHE));
+
+            // https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter
+            int bitsPerKey = conf.get(RocksDBOptions.BLOOM_FILTER_BITS_PER_KEY);
+            if (bitsPerKey >= 0) {
+                boolean blockBased = conf.get(RocksDBOptions.BLOOM_FILTER_MODE);
+                tableConfig.setFilter(new BloomFilter(bitsPerKey, blockBased));
+            }
+            tableConfig.setWholeKeyFiltering(
+                    conf.get(RocksDBOptions.BLOOM_FILTER_WHOLE_KEY));
+            cf.setTableFormatConfig(tableConfig);
+
+            cf.setOptimizeFiltersForHits(
+                    conf.get(RocksDBOptions.BLOOM_FILTERS_SKIP_LAST_LEVEL));
+
             // https://github.com/facebook/rocksdb/tree/master/utilities/merge_operators
             cf.setMergeOperatorName("uint64add"); // uint64add/stringappend
         }
 
         if (mcf != null) {
-            mcf.setCompressionType(CompressionType.getCompressionType(
-                    conf.get(RocksDBOptions.COMPRESSION_TYPE)));
+            mcf.setCompressionType(conf.get(RocksDBOptions.COMPRESSION));
 
-            mcf.setWriteBufferSize(
-                    conf.get(RocksDBOptions.MEMTABLE_SIZE));
-            mcf.setMaxWriteBufferNumber(
-                    conf.get(RocksDBOptions.MAX_MEMTABLES));
+            mcf.setWriteBufferSize(conf.get(RocksDBOptions.MEMTABLE_SIZE));
+            mcf.setMaxWriteBufferNumber(conf.get(RocksDBOptions.MAX_MEMTABLES));
 
             mcf.setMaxBytesForLevelBase(
                     conf.get(RocksDBOptions.MAX_LEVEL1_BYTES));

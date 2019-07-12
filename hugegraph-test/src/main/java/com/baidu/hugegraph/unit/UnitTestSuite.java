@@ -33,34 +33,47 @@ import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
 import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.EdgeIdTest;
-import com.baidu.hugegraph.unit.core.JsonUtilTest;
+import com.baidu.hugegraph.unit.core.LocksTableTest;
+import com.baidu.hugegraph.unit.core.QueryTest;
 import com.baidu.hugegraph.unit.core.SerialEnumTest;
-import com.baidu.hugegraph.unit.core.StringUtilTest;
-import com.baidu.hugegraph.unit.core.VersionTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
+import com.baidu.hugegraph.unit.util.JsonUtilTest;
+import com.baidu.hugegraph.unit.util.StringUtilTest;
+import com.baidu.hugegraph.unit.util.VersionTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    /* cache */
     RamCacheTest.class,
     CachedSchemaTransactionTest.class,
     CachedGraphTransactionTest.class,
     CacheManagerTest.class,
 
-    VersionTest.class,
+    /* types */
     DataTypeTest.class,
     DirectionsTest.class,
     SerialEnumTest.class,
-    BackendMutationTest.class,
-    CassandraTest.class,
-    ConditionQueryFlattenTest.class,
-    EdgeIdTest.class,
-    AnalyzerTest.class,
-    JsonUtilTest.class,
-    StringUtilTest.class,
 
+    /* core */
+    LocksTableTest.class,
+    AnalyzerTest.class,
+    EdgeIdTest.class,
+    BackendMutationTest.class,
+    ConditionQueryFlattenTest.class,
+    QueryTest.class,
+
+    /* cassandra */
+    CassandraTest.class,
+
+    /* rocksdb */
     RocksDBSessionsTest.class,
-    RocksDBCountersTest.class
+    RocksDBCountersTest.class,
+
+    /* utils */
+    VersionTest.class,
+    JsonUtilTest.class,
+    StringUtilTest.class
 })
 public class UnitTestSuite {
 }

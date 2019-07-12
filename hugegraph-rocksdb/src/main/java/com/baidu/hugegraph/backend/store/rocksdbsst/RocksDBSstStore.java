@@ -44,11 +44,11 @@ public abstract class RocksDBSstStore extends RocksDBStore {
                                               List<String> tableNames)
                                               throws RocksDBException {
         if (tableNames == null) {
-            return new RocksDBSstSessions(config, dataPath, this.database(),
-                                          this.store());
+            return new RocksDBSstSessions(config, this.database(),
+                                          this.store(), dataPath);
         } else {
-            return new RocksDBSstSessions(config, dataPath, this.database(),
-                                          this.store(), tableNames);
+            return new RocksDBSstSessions(config, this.database(), this.store(),
+                                          dataPath, tableNames);
         }
     }
 

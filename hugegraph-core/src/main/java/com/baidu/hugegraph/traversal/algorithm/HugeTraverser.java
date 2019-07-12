@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.ws.rs.core.MultivaluedHashMap;
@@ -87,7 +88,7 @@ public class HugeTraverser {
                         long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
-        checkPositive(depth, "k-out depth");
+        checkPositive(depth, "k-out max_depth");
         checkDegree(degree);
         checkCapacity(capacity);
         checkLimit(limit);
@@ -143,7 +144,7 @@ public class HugeTraverser {
                              long degree, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
-        checkPositive(depth, "k-neighbor depth");
+        checkPositive(depth, "k-neighbor max_depth");
         checkDegree(degree);
         checkLimit(limit);
 
@@ -379,7 +380,8 @@ public class HugeTraverser {
                 return false;
             }
             Node other = (Node) object;
-            return this.id.equals(other.id);
+            return Objects.equals(this.id, other.id) &&
+                   Objects.equals(this.parent, other.parent);
         }
     }
 

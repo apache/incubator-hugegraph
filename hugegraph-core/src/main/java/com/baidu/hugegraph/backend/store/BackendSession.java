@@ -28,10 +28,26 @@ public abstract class BackendSession {
 
     private int refs;
     private TxState txState;
+    private final long created;
+    private long updated;
 
     public BackendSession() {
         this.refs = 1;
         this.txState = TxState.CLEAN;
+        this.created = System.currentTimeMillis();
+        this.updated = this.created;
+    }
+
+    public long created() {
+        return this.created;
+    }
+
+    public long updated() {
+        return this.updated;
+    }
+
+    public void update() {
+        this.updated = System.currentTimeMillis();
     }
 
     public abstract void close();
@@ -43,6 +59,10 @@ public abstract class BackendSession {
     public abstract void rollback();
 
     public abstract boolean hasChanges();
+
+    protected void reconnectIfNeeded() {
+        // pass
+    }
 
     protected int attach() {
         return ++this.refs;

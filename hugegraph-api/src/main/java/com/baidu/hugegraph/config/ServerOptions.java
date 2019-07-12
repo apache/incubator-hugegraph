@@ -52,7 +52,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "restserver.max_worker_threads",
                     "The maxmium worker threads of rest server.",
-                    positiveInt(),
+                    rangeInt(2, Integer.MAX_VALUE),
                     2 * Runtime.getRuntime().availableProcessors()
             );
 
@@ -63,6 +63,24 @@ public class ServerOptions extends OptionHolder {
                     "will be rejected when the available memory of system " +
                     "is lower than this value.",
                     positiveInt(),
+                    256
+            );
+
+    public static final ConfigOption<Integer> CONN_IDLE_TIMEOUT =
+            new ConfigOption<>(
+                    "restserver.connection_idle_timeout",
+                    "The time in seconds to keep an inactive connection " +
+                    "alive, -1 means no timeout.",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    30
+            );
+
+    public static final ConfigOption<Integer> CONN_MAX_REQUESTS =
+            new ConfigOption<>(
+                    "restserver.connection_max_requests",
+                    "The max number of HTTP requests allowed to be processed " +
+                    "on one keep-alive connection, -1 means unlimited.",
+                    rangeInt(-1, Integer.MAX_VALUE),
                     256
             );
 
