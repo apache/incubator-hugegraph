@@ -161,7 +161,7 @@ public class EdgeAPI extends BatchAPI {
 
     /**
      * Batch update steps are same like vertices
-     **/
+     */
     @PUT
     @Timed
     @Decompress
@@ -413,8 +413,9 @@ public class EdgeAPI extends BatchAPI {
             sortKeyIds.forEach(skId -> {
                 String sortKey = g.propertyKey(skId).name();
                 Object sortKeyValue = newEdge.properties.get(sortKey);
-                E.checkState(sortKeyValue != null,
-                             "The value of sort key '%s' can't be null", skId);
+                E.checkArgument(sortKeyValue != null,
+                                "The value of sort key '%s' can't be null",
+                                skId);
                 sortKeyValues.add(sortKeyValue);
             });
             sortKeys = SplicingIdGenerator.concatValues(sortKeyValues);

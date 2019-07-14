@@ -120,7 +120,7 @@ public class VertexAPI extends BatchAPI {
      * 1. Get all newVertices' ID & combine first
      * 2. Get all oldVertices & update
      * 3. Add the final vertex together
-     **/
+     */
     @PUT
     @Timed
     @Decompress
@@ -325,9 +325,9 @@ public class VertexAPI extends BatchAPI {
             for (Id pkId : pkIds) {
                 String propertyKey = g.propertyKey(pkId).name();
                 Object propertyValue = vertex.properties.get(propertyKey);
-                E.checkState(propertyValue != null,
-                             "The value of primary key '%s' can't be null",
-                             propertyKey);
+                E.checkArgument(propertyValue != null,
+                                "The value of primary key '%s' can't be null",
+                                propertyKey);
                 pkValues.add(propertyValue);
             }
 
