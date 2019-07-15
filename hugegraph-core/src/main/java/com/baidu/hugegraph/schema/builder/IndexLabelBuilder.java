@@ -379,7 +379,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         Set<Id> overrideIndexLabelIds = InsertionOrderUtil.newSet();
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
-            if (this.noSubIndex(old)) {
+            if (this.hasNoSubIndex(old)) {
                 continue;
             }
 
@@ -469,7 +469,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         }
     }
 
-    private boolean noSubIndex(IndexLabel indexLabel) {
+    private boolean hasNoSubIndex(IndexLabel indexLabel) {
         return !(this.indexType == indexLabel.indexType() ||
                  (this.indexType == IndexType.SHARD &&
                   indexLabel.indexType() == IndexType.SECONDARY) ||

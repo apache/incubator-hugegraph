@@ -82,7 +82,6 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.SchemaStatus;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
@@ -987,7 +986,7 @@ public class GraphTransaction extends IndexableTransaction {
         // Optimize edge query
         if (label != null && query.resultType().isEdge()) {
             List<Id> keys = this.graph().edgeLabel(label).sortKeys();
-            int matchedNum = matchIndexFields(query.userpropKeys(), keys);
+            int matchedNum = matchSortKeysFields(query.userpropKeys(), keys);
             if (query.condition(HugeKeys.OWNER_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&
                 !keys.isEmpty() && matchedNum != 0) {
@@ -1461,7 +1460,8 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private static int matchIndexFields(Set<Id> queryKeys, List<Id> sortkeys) {
+    private static int matchSortKeysFields(Set<Id> queryKeys,
+                                           List<Id> sortkeys) {
         for (int i = sortkeys.size(); i > 0; i--) {
             List<Id> subFields = sortkeys.subList(0, i);
             if (queryKeys.containsAll(subFields)) {

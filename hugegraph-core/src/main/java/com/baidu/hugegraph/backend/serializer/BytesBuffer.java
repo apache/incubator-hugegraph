@@ -60,6 +60,7 @@ public final class BytesBuffer {
     // The value must be in range [8, 127(ID_LEN_MAX)]
     public static final int INDEX_ID_MAX_LENGTH = 32;
     public static final byte INDEX_ID_SUFFIX_BYTE = (byte) 0xff;
+    public static final byte SORT_KEYS_SUFFIX_BYTE = INDEX_ID_SUFFIX_BYTE;
 
     public static final int DEFAULT_CAPACITY = 64;
     public static final int MAX_BUFFER_CAPACITY = 128 * 1024 * 1024; // 128M
@@ -210,16 +211,19 @@ public final class BytesBuffer {
         return this;
     }
 
+    public BytesBuffer writeStringWithSuffix(String val) {
+        byte[] bytes = StringEncoding.encode(val);
+        this.write(bytes);
+        this.write(SORT_KEYS_SUFFIX_BYTE);
+        return this;
+    }
+
     public byte peek() {
         return this.buffer.get(this.buffer.position());
     }
 
     public byte peekLast() {
         return this.buffer.get(this.buffer.capacity() - 1);
-    }
-
-    public short peekLastShort() {
-        return this.buffer.getShort(this.buffer.capacity() - 2);
     }
 
     public byte read() {
@@ -268,6 +272,10 @@ public final class BytesBuffer {
 
     public String readString() {
         return StringEncoding.decode(this.readBytes());
+    }
+
+    public String readStringWithSuffix() {
+        return StringEncoding.decode(this.readBytesWithSuffix());
     }
 
     public BytesBuffer writeUInt8(int val) {
@@ -400,11 +408,11 @@ public final class BytesBuffer {
                                 "The string type index id can't contains " +
                                 "byte '%s', but got: %s",
                                 Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}),
-                                id);
+                                Bytes.toHex(bytes));
             }
         }
         this.write(bytes);
-        if (type != HugeType.SHARD_INDEX) {
+        if (type == HugeType.SECONDARY_INDEX || type == HugeType.SEARCH_INDEX) {
             this.write(INDEX_ID_SUFFIX_BYTE);
         }
         return this;
@@ -414,7 +422,7 @@ public final class BytesBuffer {
         int b = this.peekLast();
         int len = b & ID_LEN_MASK;
         byte[] id = this.read(len + 1);
-        if (type != HugeType.SHARD_INDEX) {
+        if (type == HugeType.SECONDARY_INDEX || type == HugeType.SEARCH_INDEX) {
             E.checkState(this.read() == INDEX_ID_SUFFIX_BYTE,
                          "There must be '%s' suffix behind index id",
                          Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}));
@@ -483,5 +491,25 @@ public final class BytesBuffer {
             default:
                 throw new AssertionError("Invalid length of number: " + length);
         }
+    }
+
+    private byte[] readBytesWithSuffix() {
+        int start = this.buffer.position();
+        boolean foundSuffix =false;
+        byte current;
+        while (this.remaining() > 0) {
+            current = this.read();
+            if (current == INDEX_ID_SUFFIX_BYTE) {
+                foundSuffix = true;
+                break;
+            }
+        }
+        E.checkArgument(foundSuffix, "Not found suffix '%s'",
+                        Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}));
+        int end = this.buffer.position() - 1;
+        int len = end - start;
+        byte[] bytes = new byte[len];
+        System.arraycopy(this.array(), start, bytes, 0, len);
+        return bytes;
     }
 }

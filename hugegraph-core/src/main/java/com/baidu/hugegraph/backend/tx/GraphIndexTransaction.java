@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -933,22 +934,24 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     public static List<Condition> constructShardConditions(ConditionQuery query,
-                                                           List<Id> indexFields,
+                                                           List<Id> fields,
                                                            HugeKeys key) {
         List<Condition> conditions = new ArrayList<>(2);
         String joinedValues;
         boolean hasRange = false;
-        int count = 0;
+        int usedCondCount = 0;
+        int equalCondCount = 0;
         List<Object> values = new ArrayList<>();
-        for (Id field : indexFields) {
+        for (Id field : fields) {
             List<Condition> conds = query.userpropConditions(field);
             if (conds.isEmpty()) {
                 break;
             }
-            count += conds.size();
+            usedCondCount += conds.size();
             if (conds.size() == 1) {
                 Relation r = (Relation) conds.get(0);
                 if (r.relation() == Condition.RelationType.EQ) {
+                    equalCondCount++;
                     Object value = r.value();
                     if (NumericUtil.isNumber(value) || value instanceof Date) {
                         value = LongEncoding.encodeNumber(value);
@@ -1013,13 +1016,18 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
 
             if (key == HugeKeys.FIELD_VALUES &&
-                count < query.userpropKeys().size()) {
+                usedCondCount < query.userpropKeys().size()) {
                 // Can't have conditions after range condition
                 throw new HugeException("Invalid shard index query: %s", query);
             }
         }
         if (!hasRange) {
-            // Shard index prefix query without range
+            // Shard query without range
+            if (equalCondCount != fields.size()) {
+                // Append "" to 'values' to ensure FIELD_VALUES suffix
+                // with IdGenerator.NAME_SPLITOR
+                values.add(Strings.EMPTY);
+            }
             joinedValues = SplicingIdGenerator.concatValues(values);
             Condition min = new Condition.SyspropRelation(
                                 key, Condition.RelationType.GTE, joinedValues);
@@ -1049,6 +1057,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return new Condition.SyspropRelation(key, type, value);
     }
 
+    // TODO: char increase might be illegal, to be improved
     private static String increaseOne(String value) {
         int length = value.length();
         CharBuffer cbuf = CharBuffer.wrap(value.toCharArray());
