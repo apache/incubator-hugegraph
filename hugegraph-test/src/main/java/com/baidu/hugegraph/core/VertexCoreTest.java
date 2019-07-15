@@ -2015,6 +2015,30 @@ public class VertexCoreTest extends BaseCoreTest {
                         .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(dates[3], vertices.get(0).value("birth"));
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.between(dates[1], dates[4]))
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        // limit
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.between(dates[1], dates[4]))
+                        .limit(2).toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertEquals(dates[1], vertices.get(0).value("birth"));
+        Assert.assertEquals(dates[2], vertices.get(1).value("birth"));
+
+        // limit after delete
+        graph.traversal().V().hasLabel("person")
+             .has("birth", P.between(dates[1], dates[4]))
+             .limit(2).drop().iterate();
+        graph.tx().commit();
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.between(dates[1], dates[4]))
+                        .limit(2).toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(dates[3], vertices.get(0).value("birth"));
     }
 
     @Test

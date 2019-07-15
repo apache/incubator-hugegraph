@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.store.memory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -521,7 +520,7 @@ public class InMemoryDBTables {
                 return Collections.emptyIterator();
             }
 
-            Map<Id, BackendEntry> results = new HashMap<>();
+            Map<Id, BackendEntry> results = InsertionOrderUtil.newMap();
             Map.Entry<Id, BackendEntry> entry = keyMinEq ?
                                                 rs.ceilingEntry(min) :
                                                 rs.higherEntry(min);
