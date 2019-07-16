@@ -29,6 +29,8 @@ import com.google.common.collect.ImmutableMap;
 
 public final class DateUtil {
 
+    public static final Date DATE_ZERO = new Date(0L);
+
     private static final Map<String, String> VALID_DFS = ImmutableMap.of(
             "^\\d{4}-\\d{1,2}-\\d{1,2}",
             "yyyy-MM-dd",

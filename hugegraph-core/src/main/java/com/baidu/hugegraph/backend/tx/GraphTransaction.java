@@ -474,6 +474,11 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query query) {
+        E.checkArgument(this.removedVertexes.isEmpty() ||
+                        query.limit() == Query.NO_LIMIT,
+                        "It's not allowed to query with limit when " +
+                        "there are uncommitted delete records.");
+
         Iterator<HugeVertex> results = this.queryVerticesFromBackend(query);
 
         // Filter unused or incorrect records
@@ -604,6 +609,11 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Query query) {
+        E.checkArgument(this.removedEdges.isEmpty() ||
+                        query.limit() == Query.NO_LIMIT,
+                        "It's not allowed to query with limit when " +
+                        "there are uncommitted delete records.");
+
         Iterator<HugeEdge> results = this.queryEdgesFromBackend(query);
 
         // TODO: any unconsidered case, maybe the query with OR condition?
@@ -1300,8 +1310,10 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Filter backend record if it's updated in memory
         Iterator<V> backendResults = new FilterIterator<>(records, elem -> {
-            return (!txResults.contains(elem) &&
-                    !removedTxRecords.containsKey(elem.id()));
+            Id id = elem.id();
+            return !addedTxRecords.containsKey(id) &&
+                   !updatedTxRecords.containsKey(id) &&
+                   !removedTxRecords.containsKey(id);
         });
 
         return new ExtendableIterator<V>(txResults.iterator(), backendResults);

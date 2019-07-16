@@ -35,6 +35,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Bytes;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
@@ -58,18 +59,25 @@ public abstract class Condition {
         LTE("<=", (v1, v2) -> { return compare(v1, v2) <= 0; }),
         NEQ("!=", (v1, v2) -> { return compare(v1, v2) != 0; }),
         IN("in", (v1, v2) -> {
+            assert v2 != null;
             return ((Collection<?>) v2).contains(v1);
         }),
         NOT_IN("notin", (v1, v2) -> {
+            assert v2 != null;
             return !((Collection<?>) v2).contains(v1);
         }),
         PREFIX("prefix", (v1, v2) -> {
+            assert v2 != null;
             return Bytes.prefixWith(((Id) v2).asBytes(), ((Id) v1).asBytes());
         }),
         TEXT_CONTAINS("textcontains", (v1, v2) -> {
-            return ((String) v1).contains((String) v2);
+            return v1 != null && ((String) v1).contains((String) v2);
         }),
         TEXT_CONTAINS_ANY("textcontainsany", (v1, v2) -> {
+            assert v2 != null;
+            if (v1 == null) {
+                return false;
+            }
             @SuppressWarnings("unchecked")
             Collection<String> words = (Collection<String>) v2;
             for (String word : words) {
@@ -80,10 +88,12 @@ public abstract class Condition {
             return false;
         }),
         CONTAINS("contains", (v1, v2) -> {
-            return ((Map<?, ?>) v1).containsValue(v2);
+            assert v2 != null;
+            return v1 != null && ((Map<?, ?>) v1).containsValue(v2);
         }),
         CONTAINS_KEY("containskey", (v1, v2) -> {
-            return ((Map<?, ?>) v1).containsKey(v2);
+            assert v2 != null;
+            return v1 != null && ((Map<?, ?>) v1).containsKey(v2);
         }),
         SCAN("scan", (v1, v2) -> true);
 
@@ -108,6 +118,7 @@ public abstract class Condition {
          */
         protected static boolean equals(final Object first,
                                         final Object second) {
+            assert second != null;
             if (first == null) {
                 return second == null;
             } else if (first instanceof Id) {
@@ -134,8 +145,10 @@ public abstract class Condition {
          *         numerically greater than second.
          */
         protected static int compare(final Object first, final Object second) {
+            assert second != null;
             if (second instanceof Number) {
-                return NumericUtil.compareNumber(first, (Number) second);
+                return NumericUtil.compareNumber(first == null ? 0 : first,
+                                                 (Number) second);
             } else if (second instanceof Date) {
                 return compareDate(first, (Date) second);
             } else {
@@ -145,6 +158,9 @@ public abstract class Condition {
         }
 
         protected static int compareDate(Object first, Date second) {
+            if (first == null) {
+                first = DateUtil.DATE_ZERO;
+            }
             if (first instanceof Date) {
                 return ((Date) first).compareTo(second);
             } else {
@@ -595,6 +611,14 @@ public abstract class Condition {
         public boolean test(HugeElement element) {
             HugeProperty<?> prop = element.getProperty(this.key());
             Object value = prop != null ? prop.value() : null;
+            if (value == null) {
+                /*
+                 * Fix #611
+                 * TODO: It is possible some scenes cannot be returned false
+                 * directly, such as NEQ, null != 123 should be true.
+                 */
+                return false;
+            }
             return this.relation.test(value, this.value);
         }
 
