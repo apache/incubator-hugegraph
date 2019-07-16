@@ -961,7 +961,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
             }
             hasRange = true;
-            boolean hasLte = false;
             Object keyEq = null;
             Object keyMin = null;
             Object keyMax = null;
@@ -977,7 +976,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         keyMin = r.value();
                         break;
                     case LTE:
-                        hasLte = true;
                     case LT:
                         keyMax = r.value();
                         break;
@@ -988,7 +986,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
 
                 Relation sys = shardFieldValuesCondition(key, values, r.value(),
-                                                         r.relation(), hasLte);
+                                                         r.relation());
                 condition = condition.replace(r, sys);
                 conditions.add(condition);
             }
@@ -1001,8 +999,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              NumericUtil.isNumber(keyMax) ?
                              keyMax.getClass() : Long.class);
                 Relation r = shardFieldValuesCondition(
-                             key, values, num,
-                             Condition.RelationType.GTE, false);
+                             key, values, num, Condition.RelationType.GTE);
                 conditions.add(r);
             }
             if (keyMax == null) {
@@ -1010,8 +1007,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              NumericUtil.isNumber(keyMin) ?
                              keyMin.getClass() : Long.class);
                 Relation r = shardFieldValuesCondition(
-                             key, values, num,
-                             Condition.RelationType.LTE, false);
+                             key, values, num, Condition.RelationType.LTE);
                 conditions.add(r);
             }
 
@@ -1044,11 +1040,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static Relation shardFieldValuesCondition(
                             HugeKeys key, List<Object> prefixes, Object number,
-                            Condition.RelationType type, boolean increase) {
+                            Condition.RelationType type) {
         String num = LongEncoding.encodeNumber(number);
-        if (increase) {
-            assert type == Condition.RelationType.LTE;
+        if (type == Condition.RelationType.LTE) {
             type = Condition.RelationType.LT;
+            num = increaseOne(num);
+        } else if (type == Condition.RelationType.GT) {
+            type = Condition.RelationType.GTE;
             num = increaseOne(num);
         }
         List<Object> values = new ArrayList<>(prefixes);
