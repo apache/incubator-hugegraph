@@ -1300,8 +1300,10 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Filter backend record if it's updated in memory
         Iterator<V> backendResults = new FilterIterator<>(records, elem -> {
-            return (!txResults.contains(elem) &&
-                    !removedTxRecords.containsKey(elem.id()));
+            Id id = elem.id();
+            return !addedTxRecords.containsKey(id) &&
+                   !updatedTxRecords.containsKey(id) &&
+                   !removedTxRecords.containsKey(id);
         });
 
         return new ExtendableIterator<V>(txResults.iterator(), backendResults);

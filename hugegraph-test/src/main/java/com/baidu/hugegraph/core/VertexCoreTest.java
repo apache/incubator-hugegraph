@@ -1681,6 +1681,37 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByIntPropUsingBetweenAfterPropOverride() {
+        Assume.assumeTrue("Not support range condition query",
+                          storeFeatures().supportsQueryWithRangeCondition());
+        HugeGraph graph = graph();
+        initPersonIndex(false);
+        init5Persons();
+
+        // 19 <= age && age < 21
+        List<Vertex> vertices = graph.traversal().V().hasLabel("person")
+                                     .has("age", P.between(3, 21)).toList();
+        Assert.assertEquals(4, vertices.size());
+
+        // override vertex without age and make left index
+        graph.addVertex(T.label, "person", "name", "Baby","city", "Hongkong")
+             .remove(); // avoid merge property mode
+        graph.tx().commit();
+        graph.addVertex(T.label, "person", "name", "Baby","city", "Hongkong");
+
+        // 3 <= age && age < 21
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("age", P.between(3, 21)).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        // qeury again after commit
+        graph.tx().commit();
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("age", P.between(3, 21)).toList();
+        Assert.assertEquals(3, vertices.size());
+    }
+
+    @Test
     public void testQueryByIntPropUsingBetweenWithNonResult() {
         Assume.assumeTrue("Not support range condition query",
                           storeFeatures().supportsQueryWithRangeCondition());
