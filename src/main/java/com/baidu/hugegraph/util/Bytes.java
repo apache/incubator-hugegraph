@@ -63,6 +63,24 @@ public final class Bytes {
         return true;
     }
 
+    public static boolean contains(byte[] bytes, byte value) {
+        for (byte b : bytes) {
+            if (b == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static int indexOf(byte[] bytes, byte value) {
+        for (int i = 0; i < bytes.length; i++) {
+            if (bytes[i] == value) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public static boolean equals(byte[] bytes1, byte[] bytes2) {
         return Arrays.equals(bytes1, bytes2);
     }

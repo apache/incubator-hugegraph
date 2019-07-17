@@ -118,6 +118,26 @@ public class BytesTest extends BaseUnitTest {
     }
 
     @Test
+    public void testBytesContains() {
+        Assert.assertTrue(Bytes.contains(b("1234"), (byte) '1'));
+        Assert.assertTrue(Bytes.contains(b("1234"), (byte) '3'));
+        Assert.assertTrue(Bytes.contains(b("1234"), (byte) '4'));
+
+        Assert.assertFalse(Bytes.contains(b("1234"), (byte) '0'));
+        Assert.assertFalse(Bytes.contains(b(""), (byte) '0'));
+    }
+
+    @Test
+    public void testBytesIndexOf() {
+        Assert.assertEquals(0, Bytes.indexOf(b("1234"), (byte) '1'));
+        Assert.assertEquals(2, Bytes.indexOf(b("1234"), (byte) '3'));
+        Assert.assertEquals(3, Bytes.indexOf(b("1234"), (byte) '4'));
+
+        Assert.assertEquals(-1, Bytes.indexOf(b("1234"), (byte) '0'));
+        Assert.assertEquals(-1, Bytes.indexOf(b(""), (byte) '0'));
+    }
+
+    @Test
     public void testBytesToHex() {
         int value = 0x0103807f;
         byte[] bytes = NumericUtil.intToBytes(value);
