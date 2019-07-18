@@ -37,7 +37,7 @@ ensure_path_writable $PLUGINS
 
 # The maximum and minium heap memory that service can use
 MAX_MEM=$[32*1024]
-MIN_MEM=512
+MIN_MEM=$[1*512]
 EXPECT_JDK_VERSION=1.8
 
 # Add the slf4j-log4j12 binding
@@ -85,6 +85,14 @@ if [ "$JAVA_OPTIONS" = "" ] ; then
         exit 1
     fi
     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -javaagent:$LIB/jamm-0.3.0.jar"
+    
+    # Using G1GC as the default garbage collector (Recommended for large memory machines)
+    #JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
+    #              -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
+
+    # Rolling out detailed GC logs
+    #JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseGCLogFileRotation -XX:GCLogFileSize=10M -XX:NumberOfGCLogFiles=3 \
+    #              -Xloggc:./logs/gc.log -XX:+PrintHeapAtGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
 fi
 
 JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml"
