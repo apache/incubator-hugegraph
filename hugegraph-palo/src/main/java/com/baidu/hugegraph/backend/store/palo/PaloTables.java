@@ -367,12 +367,10 @@ public class PaloTables {
         }
     }
 
-    public static class RangeIndex extends Index {
+    public abstract static class RangeIndex extends Index {
 
-        public static final String TABLE = "range_indexes";
-
-        public RangeIndex(String store) {
-            super(joinTableName(store, TABLE));
+        public RangeIndex(String store, String table) {
+            super(joinTableName(store, table));
 
             this.define = new TableDefine();
             this.define.column(HugeKeys.INDEX_LABEL_ID, INT, NOT_NULL);
@@ -393,9 +391,28 @@ public class PaloTables {
         }
     }
 
+    public static class Range4Index extends RangeIndex {
+
+        public static final String TABLE = "range4_indexes";
+
+        public Range4Index(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class Range8Index extends RangeIndex {
+
+        public static final String TABLE = "range8_indexes";
+
+        public Range8Index(String store) {
+            super(store, TABLE);
+        }
+    }
+
+
     public static class ShardIndex extends Index {
 
-        public static final String TABLE = "range_indexes";
+        public static final String TABLE = "shard_indexes";
 
         public ShardIndex(String store) {
             super(joinTableName(store, TABLE));

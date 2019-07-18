@@ -46,7 +46,6 @@ import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
-import com.google.common.collect.ImmutableSet;
 
 public class IndexLabelBuilder implements IndexLabel.Builder {
 
@@ -337,6 +336,12 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             E.checkArgument(dataType.isNumber() || dataType.isDate(),
                             "Range index can only build on numeric or " +
                             "date property, but got %s(%s)", dataType, field);
+            if (dataType.isNumber4()) {
+                this.indexType = IndexType.RANGE4;
+            } else {
+                assert dataType.isNumber8() || dataType.isDate();
+                this.indexType = IndexType.RANGE8;
+            }
         }
 
         // Search index must build on single text column
@@ -357,7 +362,8 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     private void checkRepeatIndex(SchemaLabel schemaLabel) {
         this.checkPrimaryKeyIndex(schemaLabel);
         switch (this.indexType) {
-            case RANGE:
+            case RANGE4:
+            case RANGE8:
                 this.checkRepeatRangeIndex(schemaLabel);
                 break;
             case SEARCH:
@@ -379,7 +385,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         Set<Id> overrideIndexLabelIds = InsertionOrderUtil.newSet();
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
-            if (this.hasNoSubIndex(old)) {
+            if (!this.hasSubIndex(old)) {
                 continue;
             }
 
@@ -424,37 +430,34 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     private void checkRepeatRangeIndex(SchemaLabel schemaLabel) {
-        this.checkRepeatIndex(schemaLabel, ImmutableSet.of(IndexType.RANGE));
+        this.checkRepeatIndex(schemaLabel, IndexType.RANGE4, IndexType.RANGE8);
     }
 
     private void checkRepeatSearchIndex(SchemaLabel schemaLabel) {
-        this.checkRepeatIndex(schemaLabel, ImmutableSet.of(IndexType.SEARCH));
+        this.checkRepeatIndex(schemaLabel, IndexType.SEARCH);
     }
 
     private void checkRepeatSecondaryIndex(SchemaLabel schemaLabel) {
-        this.checkRepeatIndex(schemaLabel, ImmutableSet.of(IndexType.RANGE,
-                                                           IndexType.SECONDARY,
-                                                           IndexType.SHARD));
+        this.checkRepeatIndex(schemaLabel, IndexType.RANGE4, IndexType.RANGE8,
+                              IndexType.SECONDARY, IndexType.SHARD);
     }
 
     private void checkRepeatShardIndex(SchemaLabel schemaLabel) {
         if (this.oneNumericField()) {
-            checkRepeatIndex(schemaLabel, ImmutableSet.of(IndexType.RANGE));
+            checkRepeatIndex(schemaLabel, IndexType.RANGE4, IndexType.RANGE8);
         } else if (this.allStringIndex(this.indexFields)) {
-            this.checkRepeatIndex(schemaLabel,
-                                  ImmutableSet.of(IndexType.SECONDARY,
-                                                  IndexType.SHARD));
+            this.checkRepeatIndex(schemaLabel, IndexType.SECONDARY,
+                                  IndexType.SHARD);
         } else {
-            this.checkRepeatIndex(schemaLabel,
-                                  ImmutableSet.of(IndexType.SHARD));
+            this.checkRepeatIndex(schemaLabel, IndexType.SHARD);
         }
     }
 
     private void checkRepeatIndex(SchemaLabel schemaLabel,
-                                  Set<IndexType> checkedTypes) {
+                                  IndexType... checkedTypes) {
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
-            if (!checkedTypes.contains(old.indexType()) &&
+            if (!Arrays.asList(checkedTypes).contains(old.indexType()) &&
                 this.indexType != old.indexType()) {
                 continue;
             }
@@ -469,16 +472,16 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         }
     }
 
-    private boolean hasNoSubIndex(IndexLabel indexLabel) {
-        return !(this.indexType == indexLabel.indexType() ||
-                 (this.indexType == IndexType.SHARD &&
-                  indexLabel.indexType() == IndexType.SECONDARY) ||
-                 (this.indexType == IndexType.SECONDARY &&
-                  indexLabel.indexType() == IndexType.SHARD &&
-                  this.allStringIndex(indexLabel.indexFields())) ||
-                 (this.indexType == IndexType.RANGE &&
-                  indexLabel.indexType() == IndexType.SECONDARY ||
-                  indexLabel.indexType() == IndexType.SHARD));
+    private boolean hasSubIndex(IndexLabel indexLabel) {
+        return (this.indexType == indexLabel.indexType()) ||
+               (this.indexType == IndexType.SHARD &&
+                indexLabel.indexType() == IndexType.SECONDARY) ||
+               (this.indexType == IndexType.SECONDARY &&
+                indexLabel.indexType() == IndexType.SHARD &&
+                this.allStringIndex(indexLabel.indexFields())) ||
+               (this.indexType.isRange() &&
+                indexLabel.indexType() == IndexType.SECONDARY ||
+                indexLabel.indexType() == IndexType.SHARD);
     }
 
     private boolean allStringIndex(List<?> fields) {

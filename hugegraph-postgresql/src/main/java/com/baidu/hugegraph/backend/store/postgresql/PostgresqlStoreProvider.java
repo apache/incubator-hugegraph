@@ -117,8 +117,10 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
                                                            Directions.IN));
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new PostgresqlTables.SecondaryIndex(store));
-            registerTableManager(HugeType.RANGE_INDEX,
-                                 new PostgresqlTables.RangeIndex(store));
+            registerTableManager(HugeType.RANGE4_INDEX,
+                                 new PostgresqlTables.Range4Index(store));
+            registerTableManager(HugeType.RANGE8_INDEX,
+                                 new PostgresqlTables.Range8Index(store));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new PostgresqlTables.SearchIndex(store));
             registerTableManager(HugeType.SHARD_INDEX,

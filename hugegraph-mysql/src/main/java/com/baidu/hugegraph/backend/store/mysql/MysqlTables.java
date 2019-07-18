@@ -48,6 +48,8 @@ public class MysqlTables {
     public static final String BOOLEAN = "BOOLEAN";
     public static final String TINYINT = "TINYINT";
     public static final String INT = "INT";
+    public static final String FLOAT = "FLOAT";
+    public static final String DOUBLE = "DOUBLE";
     public static final String NUMERIC = "DOUBLE";
     public static final String SMALL_TEXT = "SMALL_TEXT";
     public static final String MID_TEXT = "MID_TEXT";
@@ -465,6 +467,24 @@ public class MysqlTables {
             Integer labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
             return SplicingIdGenerator.concat(labelId.toString(),
                                               fieldValue.toString());
+        }
+    }
+
+    public static class Range4Index extends RangeIndex {
+
+        public static final String TABLE = "range4_indexes";
+
+        public Range4Index(String store) {
+            super(store, TYPES_MAPPING);
+        }
+    }
+
+    public static class Range8Index extends RangeIndex {
+
+        public static final String TABLE = "range8_indexes";
+
+        public Range8Index(String store) {
+            super(store, TYPES_MAPPING);
         }
     }
 

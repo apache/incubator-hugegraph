@@ -28,6 +28,8 @@ public enum IndexType implements SerialEnum {
 
     // For range query
     RANGE(2, "range"),
+    RANGE4(21, "range4"),
+    RANGE8(22, "range8"),
 
     // For full-text query (not supported now)
     SEARCH(3, "search"),
@@ -61,8 +63,10 @@ public enum IndexType implements SerialEnum {
         switch (this) {
             case SECONDARY:
                 return HugeType.SECONDARY_INDEX;
-            case RANGE:
-                return HugeType.RANGE_INDEX;
+            case RANGE4:
+                return HugeType.RANGE4_INDEX;
+            case RANGE8:
+                return HugeType.RANGE8_INDEX;
             case SEARCH:
                 return HugeType.SEARCH_INDEX;
             case SHARD:
@@ -71,5 +75,9 @@ public enum IndexType implements SerialEnum {
                 throw new AssertionError(String.format(
                           "Unknown index type '%s'", this));
         }
+    }
+
+    public boolean isRange() {
+        return this == RANGE4 || this == RANGE8;
     }
 }

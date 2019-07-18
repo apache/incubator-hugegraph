@@ -247,10 +247,16 @@ public class HbaseTables {
 
     public static class RangeIndex extends IndexTable {
 
-        public static final String TABLE = "ri";
+        public RangeIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
 
-        public RangeIndex(String store) {
-            super(joinTableName(store, TABLE));
+        public static RangeIndex range4(String store) {
+            return new RangeIndex(store, "r4i");
+        }
+
+        public static RangeIndex range8(String store) {
+            return new RangeIndex(store, "r8i");
         }
     }
 

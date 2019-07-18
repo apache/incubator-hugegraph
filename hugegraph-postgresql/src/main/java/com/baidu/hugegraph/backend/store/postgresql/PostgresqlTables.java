@@ -190,9 +190,20 @@ public class PostgresqlTables {
         }
     }
 
-    public static class RangeIndex extends PostgresqlTableTemplate {
+    public static class Range4Index extends PostgresqlTableTemplate {
 
-        public RangeIndex(String store) {
+        public Range4Index(String store) {
+            super(new MysqlTables.RangeIndex(store, TYPES_MAPPING));
+        }
+
+        protected final String entryId(MysqlBackendEntry entry) {
+            return ((MysqlTables.RangeIndex) this.template).entryId(entry);
+        }
+    }
+
+    public static class Range8Index extends PostgresqlTableTemplate {
+
+        public Range8Index(String store) {
             super(new MysqlTables.RangeIndex(store, TYPES_MAPPING));
         }
 

@@ -419,10 +419,6 @@ public class InMemoryDBTables {
 
     public static class RangeIndex extends InMemoryDBTable {
 
-        public RangeIndex() {
-            this(HugeType.RANGE_INDEX);
-        }
-
         protected RangeIndex(HugeType type) {
             super(type, new ConcurrentSkipListMap<>());
         }
@@ -557,6 +553,14 @@ public class InMemoryDBTables {
                 // Delete if prefix with index label
                 iter.remove();
             }
+        }
+
+        public static RangeIndex range4() {
+            return new RangeIndex(HugeType.RANGE4_INDEX);
+        }
+
+        public static RangeIndex range8() {
+            return new RangeIndex(HugeType.RANGE8_INDEX);
         }
     }
 

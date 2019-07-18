@@ -615,13 +615,7 @@ public class CassandraTables {
         }
     }
 
-    public static class RangeIndex extends CassandraTable {
-
-        public static final String TABLE = "range_indexes";
-
-        public RangeIndex(String store) {
-            this(store, TABLE);
-        }
+    public abstract static class RangeIndex extends CassandraTable {
 
         protected RangeIndex(String store, String table) {
             super(joinTableName(store, table));
@@ -692,6 +686,52 @@ public class CassandraTables {
                               CassandraBackendEntry.Row entry) {
             assert entry.columns().size() == 3;
             this.delete(session, entry);
+        }
+    }
+
+    public static class Range4Index extends RangeIndex {
+
+        public static final String TABLE = "range4_indexes";
+
+        public Range4Index(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.cfloat(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+    }
+
+    public static class Range8Index extends RangeIndex {
+
+        public static final String TABLE = "range8_indexes";
+
+        public Range8Index(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.cdouble(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
         }
     }
 

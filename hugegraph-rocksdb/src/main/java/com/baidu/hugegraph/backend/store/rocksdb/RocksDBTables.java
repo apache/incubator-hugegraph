@@ -195,10 +195,10 @@ public class RocksDBTables {
 
     public static class RangeIndex extends IndexTable {
 
-        public static final String TABLE = "ri";
+        public static final String TABLE = "r4i";
 
         public RangeIndex(String database) {
-            this(database, TABLE);
+            super(database, TABLE);
         }
 
         public RangeIndex(String database, String table) {
@@ -257,6 +257,24 @@ public class RocksDBTables {
                 int type = maxEq ? Session.SCAN_LTE_END : Session.SCAN_LT_END;
                 return session.scan(this.table(), begin, end, type);
             }
+        }
+    }
+
+    public static class Range4Index extends RangeIndex {
+
+        public static final String TABLE = "r4i";
+
+        public Range4Index(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class Range8Index extends RangeIndex{
+
+        public static final String TABLE = "r8i";
+
+        public Range8Index(String store) {
+            super(store, TABLE);
         }
     }
 

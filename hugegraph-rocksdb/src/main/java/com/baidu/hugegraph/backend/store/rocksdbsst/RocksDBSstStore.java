@@ -70,8 +70,10 @@ public abstract class RocksDBSstStore extends RocksDBStore {
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new RocksDBTables.SecondaryIndex(database));
-            registerTableManager(HugeType.RANGE_INDEX,
-                                 new RocksDBTables.RangeIndex(database));
+            registerTableManager(HugeType.RANGE4_INDEX,
+                                 new RocksDBTables.Range4Index(database));
+            registerTableManager(HugeType.RANGE8_INDEX,
+                                 new RocksDBTables.Range8Index(database));
         }
 
         @Override

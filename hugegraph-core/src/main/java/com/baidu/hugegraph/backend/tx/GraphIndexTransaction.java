@@ -175,7 +175,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Update index for each index type
         switch (indexLabel.indexType()) {
-            case RANGE:
+            case RANGE4:
+            case RANGE8:
                 E.checkState(propValues.size() == 1,
                              "Expect only one property in range index");
                 Object value = NumericUtil.convertToNumber(propValues.get(0));
@@ -607,7 +608,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
              * For range-index or search-index there must be only one condition.
              * The following terms are legal:
              *   1.hasSearchCondition and IndexType.SEARCH
-             *   2.hasRangeCondition and IndexType.RANGE
+             *   2.hasRangeCondition and IndexType.RANGE4 or IndexType.RANGE8
              *   3.not hasRangeCondition but has range-index equal-condition
              *   4.secondary (composite) index
              */
@@ -617,7 +618,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 continue;
             }
             if (reqiureRange &&
-                indexType != IndexType.RANGE && indexType != IndexType.SHARD) {
+                !indexLabel.indexType().isRange() &&
+                indexLabel.indexType() != IndexType.SHARD) {
                 continue;
             }
             return ImmutableSet.of(indexLabel);
@@ -695,7 +697,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             Id key = (Id) relation.key();
             boolean matched = false;
             for (IndexLabel indexLabel : indexLabels) {
-                if (indexLabel.indexType() == IndexType.RANGE ||
+                if (indexLabel.indexType().isRange() ||
                     indexLabel.indexType() == IndexType.SEARCH) {
                     if (indexLabel.indexField().equals(key)) {
                         matched = true;
@@ -852,7 +854,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                                  IndexLabel indexLabel) {
         IndexType indexType = indexLabel.indexType();
         boolean requireRange = query.hasRangeCondition();
-        boolean supportRange = indexType == IndexType.RANGE ||
+        boolean supportRange = indexType.isRange() ||
                                indexType == IndexType.SHARD;
         if (requireRange && !supportRange) {
             LOG.debug("There is range query condition in '{}', " +
@@ -895,7 +897,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
                 indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
                 break;
-            case RANGE:
+            case RANGE4:
+            case RANGE8:
                 if (query.userpropConditions().size() > 2) {
                     throw new BackendException(
                               "Range query has two conditions at most, " +
@@ -1019,20 +1022,27 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
         if (!hasRange) {
             // Shard query without range
-            if (equalCondCount != fields.size()) {
-                // Append "" to 'values' to ensure FIELD_VALUES suffix
-                // with IdGenerator.NAME_SPLITOR
-                values.add(Strings.EMPTY);
+            if (equalCondCount == fields.size()) {
+
+                joinedValues = SplicingIdGenerator.concatValues(values);
+                Condition eq = new Condition.SyspropRelation(
+                                   key, Condition.RelationType.EQ,
+                                   joinedValues);
+                conditions.add(eq);
+                return conditions;
             }
+            // Append "" to 'values' to ensure FIELD_VALUES suffix
+            // with IdGenerator.NAME_SPLITOR
+            values.add(Strings.EMPTY);
             joinedValues = SplicingIdGenerator.concatValues(values);
             Condition min = new Condition.SyspropRelation(
                                 key, Condition.RelationType.GTE, joinedValues);
             conditions.add(min);
 
             // Increase one on min to get max
-            String highValue = increaseOne(joinedValues);
+            String next = increaseString(joinedValues);
             Condition max = new Condition.SyspropRelation(
-                                key, Condition.RelationType.LT, highValue);
+                                key, Condition.RelationType.LT, next);
             conditions.add(max);
         }
         return conditions;
@@ -1044,10 +1054,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
         String num = LongEncoding.encodeNumber(number);
         if (type == Condition.RelationType.LTE) {
             type = Condition.RelationType.LT;
-            num = increaseOne(num);
+            num = increaseString(num);
         } else if (type == Condition.RelationType.GT) {
             type = Condition.RelationType.GTE;
-            num = increaseOne(num);
+            num = increaseString(num);
         }
         List<Object> values = new ArrayList<>(prefixes);
         values.add(num);
@@ -1055,12 +1065,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return new Condition.SyspropRelation(key, type, value);
     }
 
-    // TODO: char increase might be illegal, to be improved
-    private static String increaseOne(String value) {
+    private static String increaseString(String value) {
         int length = value.length();
         CharBuffer cbuf = CharBuffer.wrap(value.toCharArray());
         char last = cbuf.charAt(length - 1);
-        cbuf.put(length - 1, (char) (last + 1));
+        E.checkArgument(last == '!' || LongEncoding.validChar(last),
+                        "Invalid character '%s'", last);
+        cbuf.put(length - 1,  (char) (last + 1));
         return cbuf.toString();
     }
 

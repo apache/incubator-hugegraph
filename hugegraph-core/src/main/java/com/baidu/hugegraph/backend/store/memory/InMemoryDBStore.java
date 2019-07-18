@@ -284,8 +284,10 @@ public abstract class InMemoryDBStore
                                  new InMemoryDBTables.Edge(HugeType.EDGE_IN));
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new InMemoryDBTables.SecondaryIndex());
-            registerTableManager(HugeType.RANGE_INDEX,
-                                 new InMemoryDBTables.RangeIndex());
+            registerTableManager(HugeType.RANGE4_INDEX,
+                                 InMemoryDBTables.RangeIndex.range4());
+            registerTableManager(HugeType.RANGE8_INDEX,
+                                 InMemoryDBTables.RangeIndex.range8());
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new InMemoryDBTables.SearchIndex());
             registerTableManager(HugeType.SHARD_INDEX,

@@ -496,7 +496,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 cf.endsWith(RocksDBTables.IndexLabel.TABLE) ||
                 cf.endsWith(RocksDBTables.SecondaryIndex.TABLE) ||
                 cf.endsWith(RocksDBTables.SearchIndex.TABLE) ||
-                cf.endsWith(RocksDBTables.RangeIndex.TABLE)) {
+                cf.endsWith(RocksDBTables.Range4Index.TABLE) ||
+                cf.endsWith(RocksDBTables.Range8Index.TABLE)) {
                 if (++matched >= 3) {
                     return true;
                 }
@@ -525,7 +526,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                                  new RocksDBTables.PropertyKey(database));
             registerTableManager(HugeType.INDEX_LABEL,
                                  new RocksDBTables.IndexLabel(database));
-
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new RocksDBTables.SecondaryIndex(database));
         }
@@ -568,8 +568,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new RocksDBTables.SecondaryIndex(database));
-            registerTableManager(HugeType.RANGE_INDEX,
-                                 new RocksDBTables.RangeIndex(database));
+            registerTableManager(HugeType.RANGE4_INDEX,
+                                 new RocksDBTables.Range4Index(database));
+            registerTableManager(HugeType.RANGE8_INDEX,
+                                 new RocksDBTables.Range8Index(database));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new RocksDBTables.SearchIndex(database));
             registerTableManager(HugeType.SHARD_INDEX,

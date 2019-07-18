@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -600,6 +601,9 @@ public abstract class TableSerializer extends AbstractSerializer {
         }
         if (value instanceof String) {
             value = this.escapeString((String) value);
+        }
+        if (value instanceof byte[]) {
+            value = ByteBuffer.wrap((byte[]) value);
         }
         return value;
     }

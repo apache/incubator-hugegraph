@@ -57,10 +57,17 @@ public final class BytesBuffer {
     public static final long ID_MAX = Long.MAX_VALUE >> 3;
     public static final long ID_MASK = 0x0fffffffffffffffL;
 
+<<<<<<< HEAD
     // The value must be in range [8, 127(ID_LEN_MAX)]
     public static final int INDEX_ID_MAX_LENGTH = 32;
     public static final byte INDEX_ID_SUFFIX_BYTE = (byte) 0xff;
     public static final byte SORT_KEYS_SUFFIX_BYTE = INDEX_ID_SUFFIX_BYTE;
+=======
+    public static final byte STRING_ENDING_BYTE = (byte) 0xff;
+
+    // The value must be in range [8, 128(ID_LEN_MAX)]
+    public static final int INDEX_HASH_ID_THRESHOLD = 32;
+>>>>>>> spilt range table to  range4&range8 tables
 
     public static final int DEFAULT_CAPACITY = 64;
     public static final int MAX_BUFFER_CAPACITY = 128 * 1024 * 1024; // 128M
@@ -205,16 +212,15 @@ public final class BytesBuffer {
         return this;
     }
 
-    public BytesBuffer writeStringWithoutLength(String val) {
-        byte[] bytes = StringEncoding.encode(val);
-        this.write(bytes);
+    public BytesBuffer writeSortkeys(String val) {
+        this.write(StringEncoding.encode(val));
         return this;
     }
 
-    public BytesBuffer writeStringWithSuffix(String val) {
+    public BytesBuffer writeStringWithEnding(String val) {
         byte[] bytes = StringEncoding.encode(val);
         this.write(bytes);
-        this.write(SORT_KEYS_SUFFIX_BYTE);
+        this.write(STRING_ENDING_BYTE);
         return this;
     }
 
@@ -275,7 +281,7 @@ public final class BytesBuffer {
     }
 
     public String readStringWithSuffix() {
-        return StringEncoding.decode(this.readBytesWithSuffix());
+        return StringEncoding.decode(this.readBytesWithEnding());
     }
 
     public BytesBuffer writeUInt8(int val) {
@@ -395,39 +401,52 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer writeIndexId(Id id, HugeType type) {
+        return this.writeIndexId(id, type, true);
+    }
+
+    public BytesBuffer writeIndexId(Id id, HugeType type, boolean withEnding) {
         byte[] bytes = id.asBytes();
         int len = bytes.length;
         E.checkArgument(len > 0, "Can't write empty id");
-        E.checkArgument(len <= ID_LEN_MAX,
-                        "Id max length is %s, but got %s {%s}",
-                        ID_LEN_MAX, len, id);
-        // Not allow '0xff' exist in index id except for delete index by label
-        if (type.isStringIndex() && id instanceof IdGenerator.StringId) {
+
+        this.write(bytes);
+        if (type.isStringIndex()) {
+            // TODO: use Bytes.contains() instead
+            // Not allow '0xff' exist in string index id
             for (byte b : bytes) {
-                E.checkArgument(b != INDEX_ID_SUFFIX_BYTE,
-                                "The string type index id can't contains " +
-                                "byte '%s', but got: %s",
-                                Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}),
+                E.checkArgument(b != STRING_ENDING_BYTE,
+                                "The %s type index id can't contains " +
+                                "byte '%s', but got: %s", type,
+                                Bytes.toHex(new byte[]{STRING_ENDING_BYTE}),
                                 Bytes.toHex(bytes));
             }
-        }
-        this.write(bytes);
-        if (type == HugeType.SECONDARY_INDEX || type == HugeType.SEARCH_INDEX) {
-            this.write(INDEX_ID_SUFFIX_BYTE);
+            if (withEnding) {
+                this.write(STRING_ENDING_BYTE);
+            }
         }
         return this;
     }
 
     public BinaryId readIndexId(HugeType type) {
-        int b = this.peekLast();
-        int len = b & ID_LEN_MASK;
-        byte[] id = this.read(len + 1);
-        if (type == HugeType.SECONDARY_INDEX || type == HugeType.SEARCH_INDEX) {
-            E.checkState(this.read() == INDEX_ID_SUFFIX_BYTE,
-                         "There must be '%s' suffix behind index id",
-                         Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}));
+        byte[] id;
+        switch (type) {
+            case RANGE4_INDEX:
+                // IndexLabel 4 bytes + fieldValue 4 bytes
+                id = this.read(8);
+                break;
+            case RANGE8_INDEX:
+                // IndexLabel 4 bytes + fieldValue 8 bytes
+                id = this.read(12);
+                break;
+            case SECONDARY_INDEX:
+            case SEARCH_INDEX:
+            case SHARD_INDEX:
+                id = this.readBytesWithEnding();
+                break;
+            default:
+                throw new AssertionError("Invalid index type " + type);
         }
-        return new BinaryId(id, IdGenerator.of(id, false));
+        return new BinaryId(id, IdGenerator.of(id, IdType.STRING));
     }
 
     public BinaryId asId() {
@@ -493,19 +512,19 @@ public final class BytesBuffer {
         }
     }
 
-    private byte[] readBytesWithSuffix() {
+    private byte[] readBytesWithEnding() {
         int start = this.buffer.position();
         boolean foundSuffix =false;
         byte current;
         while (this.remaining() > 0) {
             current = this.read();
-            if (current == INDEX_ID_SUFFIX_BYTE) {
+            if (current == STRING_ENDING_BYTE) {
                 foundSuffix = true;
                 break;
             }
         }
         E.checkArgument(foundSuffix, "Not found suffix '%s'",
-                        Bytes.toHex(new byte[]{INDEX_ID_SUFFIX_BYTE}));
+                        Bytes.toHex(new byte[]{STRING_ENDING_BYTE}));
         int end = this.buffer.position() - 1;
         int len = end - start;
         byte[] bytes = new byte[len];
