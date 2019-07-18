@@ -65,6 +65,7 @@ import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -4294,6 +4295,63 @@ public class VertexCoreTest extends BaseCoreTest {
             g.V().has("lang", "java").has("price", 200)
              .has("~page", "").limit(10).toList();
         });
+    }
+
+    @Test
+    public void testQueryByRangeIndexInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        // There are 4 vertices matched
+        GraphTraversal<Vertex, Vertex> iter = g.V().hasLabel("software")
+                                               .has("price", P.eq(100))
+                                               .has("~page", "")
+                                               .limit(3);
+
+        List<Vertex> vertices1 = IteratorUtils.list(iter);
+        String page = TraversalUtil.page(iter);
+        Assert.assertEquals(3, vertices1.size());
+        List<Vertex> vertices2 = g.V().hasLabel("software")
+                                  .has("price", P.eq(100))
+                                  .has("~page", page).limit(3)
+                                  .toList();
+        Assert.assertEquals(1, vertices2.size());
+        Assert.assertTrue(CollectionUtil.intersect(vertices1, vertices2)
+                                        .isEmpty());
+
+        // There are 8 vertices matched
+        iter = g.V().hasLabel("software")
+                .has("price", P.gt(200))
+                .has("~page", "")
+                .limit(5);
+
+        vertices1 = IteratorUtils.list(iter);
+        Assert.assertEquals(5, vertices1.size());
+        page = TraversalUtil.page(iter);
+        vertices2 = g.V().hasLabel("software").has("price", P.gt(200))
+                     .has("~page", page).limit(5).toList();
+        Assert.assertEquals(3, vertices2.size());
+        Assert.assertTrue(CollectionUtil.intersect(vertices1, vertices2)
+                                        .isEmpty());
+
+        // There are 8 vertices matched
+        iter = g.V().hasLabel("software")
+                .has("price", P.lt(300))
+                .has("~page", "")
+                .limit(5);
+
+        vertices1 = IteratorUtils.list(iter);
+        Assert.assertEquals(5, vertices1.size());
+        page = TraversalUtil.page(iter);
+        vertices2 = g.V().hasLabel("software").has("price", P.lt(300))
+                     .has("~page", page).limit(5).toList();
+        Assert.assertEquals(3, vertices2.size());
+        Assert.assertTrue(CollectionUtil.intersect(vertices1, vertices2)
+                                        .isEmpty());
     }
 
     @Test
