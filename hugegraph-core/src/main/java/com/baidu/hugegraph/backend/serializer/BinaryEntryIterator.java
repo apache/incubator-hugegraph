@@ -84,7 +84,7 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             }
 
             // When limit exceed, stop fetching
-            if (this.query.reachLimit(this.fetched() - 1)) {
+            if (this.reachLimit(this.fetched() - 1)) {
                 // Need remove last one because fetched limit + 1 records
                 this.removeLastRecord();
                 this.results.close();

@@ -43,7 +43,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
     private final BiFunction<BackendEntry, BackendEntry, BackendEntry> merger;
 
     private BackendEntry next;
-    private BackendEntry last;
+    private BackendEntry lastest;
 
     public MysqlEntryIterator(ResultSet rs, Query query,
            BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
@@ -51,7 +51,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         this.results = rs;
         this.merger = merger;
         this.next = null;
-        this.last = null;
+        this.lastest = null;
     }
 
     @Override
@@ -64,9 +64,9 @@ public class MysqlEntryIterator extends BackendEntryIterator {
 
         try {
             while (!this.results.isClosed() && this.results.next()) {
-                MysqlBackendEntry e = this.row2Entry(this.results);
-                this.last = e;
-                BackendEntry merged = this.merger.apply(this.current, e);
+                MysqlBackendEntry entry = this.row2Entry(this.results);
+                this.lastest = entry;
+                BackendEntry merged = this.merger.apply(this.current, entry);
                 if (this.current == null) {
                     // The first time to read
                     this.current = merged;
@@ -77,7 +77,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
                     // New entry
                     assert this.next == null;
                     this.next = merged;
-                    return true;
+                    break;
                 }
             }
         } catch (SQLException e) {
@@ -88,14 +88,14 @@ public class MysqlEntryIterator extends BackendEntryIterator {
 
     @Override
     protected String pageState() {
-        if (this.last == null) {
+        if (this.lastest == null) {
             return null;
         }
         if (this.fetched() <= this.query.limit() && this.next == null) {
             // There is no next page
             return null;
         }
-        MysqlBackendEntry entry = (MysqlBackendEntry) this.last;
+        MysqlBackendEntry entry = (MysqlBackendEntry) this.lastest;
         byte[] position = new PagePosition(entry.columnsMap()).toBytes();
         return new PageState(position, 0, (int) this.count()).toString();
     }
@@ -122,6 +122,11 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         return e.subRows().size();
     }
 
+    @Override
+    public void close() throws Exception {
+        this.results.close();
+    }
+
     private MysqlBackendEntry row2Entry(ResultSet result) throws SQLException {
         HugeType type = this.query.resultType();
         MysqlBackendEntry entry = new MysqlBackendEntry(type);
@@ -132,11 +137,6 @@ public class MysqlEntryIterator extends BackendEntryIterator {
             entry.column(MysqlTable.parseKey(name), value);
         }
         return entry;
-    }
-
-    @Override
-    public void close() throws Exception {
-        this.results.close();
     }
 
     public static class PagePosition {

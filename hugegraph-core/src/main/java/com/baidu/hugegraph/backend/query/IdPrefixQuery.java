@@ -55,7 +55,9 @@ public final class IdPrefixQuery extends Query {
         this.start = start;
         this.inclusiveStart = inclusive;
         this.prefix = prefix;
-        this.copyBasic(originQuery);
+        if (originQuery != null) {
+            this.copyBasic(originQuery);
+        }
     }
 
     public Id start() {
