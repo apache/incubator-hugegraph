@@ -47,7 +47,7 @@ public final class BytesBuffer {
     public static final long UINT32_MAX = (-1) & 0xffffffffL;
 
     public static final int ID_MAX_LEN = UINT8_MAX & 0x7f; // 127
-    public static final int BIG_ID_MAX_LEN = UINT16_MAX & 0x3fff; // 16383
+    public static final int BIG_ID_MAX_LEN = UINT16_MAX & 0x7fff; // 32767
 
     public static final long ID_MIN = Long.MIN_VALUE >> 3;
     public static final long ID_MAX = Long.MAX_VALUE >> 3;
@@ -299,15 +299,17 @@ public final class BytesBuffer {
 
     public BytesBuffer writeId(Id id, boolean big) {
         if (id.number()) {
+            // Number Id
             long value = id.asLong();
             this.writeNumber(value);
         } else if (id.uuid()) {
+            // UUID Id
             byte[] bytes = id.asBytes();
             assert bytes.length == Id.UUID_LENGTH;
-            // 0b10000000 means uuid
-            this.writeUInt8(0x80);
+            this.writeUInt8(0xff); // 0b11111111 means UUID
             this.write(bytes);
         } else {
+            // String Id
             byte[] bytes = id.asBytes();
             int len = bytes.length;
             E.checkArgument(len > 0, "Can't write empty id");
@@ -315,15 +317,17 @@ public final class BytesBuffer {
                 E.checkArgument(len <= ID_MAX_LEN,
                                 "Id max length is %s, but got %s {%s}",
                                 ID_MAX_LEN, len, id);
+                len -= 1; // mapping [1, 127] to [0, 126]
                 this.writeUInt8(len | 0x80);
             } else {
                 E.checkArgument(len <= BIG_ID_MAX_LEN,
                                 "Big id max length is %s, but got %s",
                                 BIG_ID_MAX_LEN, len);
+                len -= 1;
                 int high = len >> 8;
                 int low = len & 0xff;
-                // The leading 2 bits reserved for type & non-uuid
-                this.writeUInt8(high | 0xc0);
+                assert high != 0x7f; // The tail 7 bits 1 reserved for UUID
+                this.writeUInt8(high | 0x80);
                 this.writeUInt8(low);
             }
             this.write(bytes);
@@ -339,21 +343,24 @@ public final class BytesBuffer {
         int b = this.peek();
         boolean number = (b & 0x80) == 0;
         if (number) {
-            // number id
+            // Number Id
             return IdGenerator.of(this.readNumber(b));
         } else {
             this.readUInt8();
             int len = b & 0x7f;
             IdType type = IdType.STRING;
-            if (len == 0) {
-                // uuid
+            if (len == 0x7f) {
+                // UUID Id
                 type = IdType.UUID;
                 len = Id.UUID_LENGTH;
-            } else if (big) {
-                // string id
-                int high = (len & 0x3f) << 8;
-                int low = this.readUInt8();
-                len = high + low;
+            } else {
+                // String Id
+                if (big) {
+                    int high = len << 8;
+                    int low = this.readUInt8();
+                    len = high + low;
+                }
+                len += 1; // mapping [0, 126] to [1, 127]
             }
             byte[] id = this.read(len);
             return IdGenerator.of(id, type);
