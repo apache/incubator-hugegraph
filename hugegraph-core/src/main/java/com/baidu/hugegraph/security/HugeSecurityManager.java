@@ -33,20 +33,39 @@ public class HugeSecurityManager extends SecurityManager {
     private static final Set<String> GREMLIN_EXECUTOR_CLASS = ImmutableSet.of(
             "org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine"
     );
+
+    private static final Set<String> DENIED_PERMISSIONS = ImmutableSet.of(
+            "setSecurityManager"
+    );
+
     private static final Set<String> ACCEPT_CLASS_LOADERS = ImmutableSet.of(
             "groovy.lang.GroovyClassLoader",
+            "sun.reflect.DelegatingClassLoader",
             "org.codehaus.groovy.reflection.SunClassLoader",
             "org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"
     );
 
+    private static final Set<String> WHITE_SYSTEM_PROPERTYS = ImmutableSet.of(
+            "line.separator",
+            "file.separator"
+    );
+
     @Override
     public void checkPermission(Permission permission) {
-        // allow anything.
+        if (DENIED_PERMISSIONS.contains(permission.getName()) &&
+            callFromGremlin()) {
+            throw new SecurityException(
+                      "Not allowed to access denied permission via Gremlin");
+        }
     }
 
     @Override
     public void checkPermission(Permission permission, Object context) {
-        // allow anything.
+        if (DENIED_PERMISSIONS.contains(permission.getName()) &&
+            callFromGremlin()) {
+            throw new SecurityException(
+                      "Not allowed to access denied permission via Gremlin");
+        }
     }
 
     @Override
@@ -226,7 +245,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkPropertyAccess(String key) {
-        if (!callFromAcceptClassLoaders() && callFromGremlin()) {
+        if (!callFromAcceptClassLoaders() && callFromGremlin() &&
+            !WHITE_SYSTEM_PROPERTYS.contains(key)) {
             throw new SecurityException(String.format(
                       "Not allowed to access system property(%s) via Gremlin",
                       key));
