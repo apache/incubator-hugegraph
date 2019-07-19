@@ -23,6 +23,8 @@ import java.util.function.BiPredicate;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 
 public class Text extends P<Object> {
@@ -35,5 +37,9 @@ public class Text extends P<Object> {
 
     public static Text contains(String value) {
         return new Text(RelationType.TEXT_CONTAINS, value);
+    }
+
+    public static Id uuid(String id) {
+        return IdGenerator.of(id, true);
     }
 }

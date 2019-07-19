@@ -161,8 +161,8 @@ public class EdgeId implements Id {
     }
 
     @Override
-    public boolean number() {
-        return false;
+    public IdType type() {
+        return IdType.STRING;
     }
 
     @Override

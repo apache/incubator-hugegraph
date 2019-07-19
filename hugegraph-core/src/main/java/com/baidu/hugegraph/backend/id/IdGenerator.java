@@ -19,8 +19,15 @@
 
 package com.baidu.hugegraph.backend.id;
 
+import java.util.Base64;
+import java.util.UUID;
+
+import com.baidu.hugegraph.backend.id.Id.IdType;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -32,12 +39,52 @@ public abstract class IdGenerator {
         return new StringId(id);
     }
 
+    public final static Id of(String id, boolean uuid) {
+        return uuid ? new Uuid(id) : new StringId(id);
+    }
+
     public final static Id of(long id) {
         return new LongId(id);
     }
 
-    public final static Id of(byte[] bytes, boolean number) {
-        return number ? new LongId(bytes) : new StringId(bytes);
+    public final static Id of(byte[] bytes, IdType type) {
+        switch (type) {
+            case LONG:
+                return new LongId(bytes);
+            case UUID:
+                return new Uuid(bytes);
+            case STRING:
+                return new StringId(bytes);
+            default:
+                throw new AssertionError("Invalid id type " + type);
+        }
+    }
+
+    public final static Id ofStoredString(String id, IdType type) {
+        switch (type) {
+            case LONG:
+                return of(LongEncoding.decode(id));
+            case UUID:
+                byte[] bytes = Base64.getDecoder().decode(id);
+                return of(bytes, type);
+            case STRING:
+                return of(id);
+            default:
+                throw new AssertionError("Invalid id type " + type);
+        }
+    }
+
+    public final static String asStoredString(Id id) {
+        switch (id.type()) {
+            case LONG:
+                return LongEncoding.encode(id.asLong());
+            case UUID:
+                return Base64.getEncoder().encodeToString(id.asBytes());
+            case STRING:
+                return id.asString();
+            default:
+                throw new AssertionError("Invalid id type " + id.type());
+        }
     }
 
     /**
@@ -74,8 +121,8 @@ public abstract class IdGenerator {
         }
 
         @Override
-        public boolean number() {
-            return false;
+        public IdType type() {
+            return IdType.STRING;
         }
 
         @Override
@@ -142,8 +189,8 @@ public abstract class IdGenerator {
         }
 
         @Override
-        public boolean number() {
-            return true;
+        public IdType type() {
+            return IdType.LONG;
         }
 
         @Override
@@ -213,6 +260,104 @@ public abstract class IdGenerator {
         @Override
         public double doubleValue() {
             return this.id;
+        }
+    }
+
+    public static final class Uuid implements Id {
+
+        private final UUID uuid;
+
+        public Uuid(String string) {
+            this(fromString(string));
+        }
+
+        public Uuid(byte[] bytes) {
+            this(fromBytes(bytes));
+        }
+
+        public Uuid(UUID uuid) {
+            E.checkArgument(uuid != null, "The uuid can't be null");
+            this.uuid = uuid;
+        }
+
+        @Override
+        public IdType type() {
+            return IdType.UUID;
+        }
+
+        @Override
+        public Object asObject() {
+            return this.uuid;
+        }
+
+        @Override
+        public String asString() {
+            return this.uuid.toString();
+        }
+
+        @Override
+        public long asLong() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public byte[] asBytes() {
+            BytesBuffer buffer = BytesBuffer.allocate(16);
+            buffer.writeLong(this.uuid.getMostSignificantBits());
+            buffer.writeLong(this.uuid.getLeastSignificantBits());
+            return buffer.bytes();
+        }
+
+        private static UUID fromBytes(byte[] bytes) {
+            BytesBuffer buffer = BytesBuffer.wrap(bytes);
+            long high = buffer.readLong();
+            long low = buffer.readLong();
+            return new UUID(high, low);
+        }
+
+        private static UUID fromString(String string) {
+            if (string.contains("-")) {
+                return UUID.fromString(string);
+            }
+            // UUID represented by hex string
+            E.checkArgument(string.length() == 32,
+                            "Invalid UUID string: %s", string);
+            String high = string.substring(0, 16);
+            String low = string.substring(16);
+            return new UUID(Long.parseUnsignedLong(high, 16),
+                            Long.parseUnsignedLong(low, 16));
+        }
+
+        @Override
+        public int length() {
+            return UUID_LENGTH;
+        }
+
+        @Override
+        public int compareTo(Id other) {
+            E.checkNotNull(other, "compare id");
+            if (other instanceof Uuid) {
+                return this.uuid.compareTo(((Uuid) other).uuid);
+            }
+            return Bytes.compare(this.asBytes(), other.asBytes());
+        }
+
+        @Override
+        public int hashCode() {
+            return this.uuid.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof Uuid)) {
+                return false;
+            }
+            return this.uuid.equals(((Uuid) other).uuid);
+        }
+
+        @Override
+        public String toString() {
+            return this.uuid.toString();
         }
     }
 }

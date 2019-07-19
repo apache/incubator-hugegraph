@@ -40,6 +40,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
@@ -77,7 +78,11 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this.tx = null;
         this.name = null;
         if (this.id != null) {
-            this.checkIdLength();
+            if (label.idStrategy() == IdStrategy.CUSTOMIZE_UUID) {
+                this.assignId(id);
+            } else {
+                this.checkIdLength();
+            }
         }
     }
 
@@ -146,6 +151,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             case CUSTOMIZE_NUMBER:
                 assert id.number();
                 this.id = id;
+                break;
+            case CUSTOMIZE_UUID:
+                this.id = id.uuid() ? id : IdGenerator.of(id.asString(), true);
                 break;
             case PRIMARY_KEY:
                 this.id = SplicingIdGenerator.instance().generate(this);

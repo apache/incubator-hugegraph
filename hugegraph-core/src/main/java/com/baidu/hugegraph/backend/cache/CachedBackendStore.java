@@ -166,6 +166,11 @@ public class CachedBackendStore implements BackendStore {
         }
 
         @Override
+        public IdType type() {
+            return IdType.UNKONW;
+        }
+
+        @Override
         public int hashCode() {
             return this.hashCode;
         }
@@ -216,12 +221,6 @@ public class CachedBackendStore implements BackendStore {
         public int length() {
             // TODO: improve
             return 32;
-        }
-
-        @Override
-        public boolean number() {
-            // TODO: improve
-            return false;
         }
     }
 }

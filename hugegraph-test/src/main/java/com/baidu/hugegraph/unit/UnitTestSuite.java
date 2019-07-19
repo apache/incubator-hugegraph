@@ -34,6 +34,7 @@ import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.EdgeIdTest;
 import com.baidu.hugegraph.unit.core.ExceptionTest;
+import com.baidu.hugegraph.unit.core.IdTest;
 import com.baidu.hugegraph.unit.core.LocksTableTest;
 import com.baidu.hugegraph.unit.core.QueryTest;
 import com.baidu.hugegraph.unit.core.SecurityManagerTest;
@@ -60,6 +61,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     /* core */
     LocksTableTest.class,
     AnalyzerTest.class,
+    IdTest.class,
     EdgeIdTest.class,
     BackendMutationTest.class,
     ConditionQueryFlattenTest.class,

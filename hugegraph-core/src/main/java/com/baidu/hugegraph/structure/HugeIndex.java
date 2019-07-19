@@ -27,6 +27,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.Id.IdType;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
@@ -162,7 +163,7 @@ public class HugeIndex implements GraphType {
         IndexLabel indexLabel;
 
         if (type.isStringIndex()) {
-            Id idObject = IdGenerator.of(id, false);
+            Id idObject = IdGenerator.of(id, IdType.STRING);
             String[] parts = SplicingIdGenerator.parse(idObject);
             E.checkState(parts.length == 2, "Invalid secondary index id");
             Id label = SchemaElement.schemaId(parts[0]);
