@@ -3851,12 +3851,11 @@ public class VertexCoreTest extends BaseCoreTest {
 
         long capacity = 10;
         long old = Query.defaultCapacity(capacity);
-
-        GraphTraversal<Vertex, Vertex> iter;
-        iter = g.V().has("~page", "").limit(capacity);
-        Assert.assertEquals(10, IteratorUtils.count(iter));
-
         try {
+            GraphTraversal<Vertex, Vertex> iter;
+            iter = g.V().has("~page", "").limit(capacity);
+            Assert.assertEquals(10, IteratorUtils.count(iter));
+
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 /*
                  * When query vertices/edge in page, the limit will be regard
@@ -3888,8 +3887,14 @@ public class VertexCoreTest extends BaseCoreTest {
             iter = g.V().has("~page", "").limit(-1);
             Assert.assertEquals(34, IteratorUtils.count(iter));
 
+            iter = g.V().has("~page", "").limit(20);
+            Assert.assertEquals(20, IteratorUtils.count(iter));
+
             iter = g.V().has("age", 30).has("~page", "").limit(-1);
             Assert.assertEquals(18, IteratorUtils.count(iter));
+
+            iter = g.V().has("age", 30).has("~page", "").limit(10);
+            Assert.assertEquals(10, IteratorUtils.count(iter));
         } finally {
             Query.defaultCapacity(old);
         }

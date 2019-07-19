@@ -35,16 +35,16 @@ import com.baidu.hugegraph.util.Log;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-//    PropertyKeyCoreTest.class,
-//    VertexLabelCoreTest.class,
-//    EdgeLabelCoreTest.class,
-//    IndexLabelCoreTest.class,
+    PropertyKeyCoreTest.class,
+    VertexLabelCoreTest.class,
+    EdgeLabelCoreTest.class,
+    IndexLabelCoreTest.class,
     VertexCoreTest.class,
-//    EdgeCoreTest.class,
-//    VertexPropertyCoreTest.class,
-//    EdgePropertyCoreTest.class,
-//    RestoreCoreTest.class,
-//    MultiGraphsTest.class
+    EdgeCoreTest.class,
+    VertexPropertyCoreTest.class,
+    EdgePropertyCoreTest.class,
+    RestoreCoreTest.class,
+    MultiGraphsTest.class
 })
 public class CoreTestSuite {
 
