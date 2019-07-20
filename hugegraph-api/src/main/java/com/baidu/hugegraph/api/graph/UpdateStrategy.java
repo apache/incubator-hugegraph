@@ -146,8 +146,8 @@ public enum UpdateStrategy {
 
     public Object checkAndUpdateProperty(Object oldProperty,
                                          Object newProperty) {
-        checkPropertyType(oldProperty, newProperty);
-        return updatePropertyValue(oldProperty, newProperty);
+        this.checkPropertyType(oldProperty, newProperty);
+        return this.updatePropertyValue(oldProperty, newProperty);
     }
 
     private static String formatError(Object oldProperty, Object newProperty,

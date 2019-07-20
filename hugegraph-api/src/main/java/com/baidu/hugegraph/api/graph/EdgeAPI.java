@@ -173,7 +173,7 @@ public class EdgeAPI extends BatchAPI {
                          @PathParam("graph") String graph,
                          BatchEdgeRequest req) {
         BatchEdgeRequest.checkUpdate(req);
-        LOG.debug("Graph [{}] update edges: {}", graph, req.jsonEdges);
+        LOG.debug("Graph [{}] update edges: {}", graph, req);
         checkUpdatingBody(req.jsonEdges);
         checkBatchSize(config, req.jsonEdges);
 
@@ -362,8 +362,12 @@ public class EdgeAPI extends BatchAPI {
         int max = config.get(ServerOptions.MAX_EDGES_PER_BATCH);
         if (edges.size() > max) {
             throw new IllegalArgumentException(String.format(
-                      "Too many counts of edges for one time post, " +
+                      "Too many edges for one time post, " +
                       "the maximum number is '%s'", max));
+        }
+        if (edges.size() == 0) {
+            throw new IllegalArgumentException(String.format(
+                      "The number of edges can't be 0"));
         }
     }
 
@@ -440,15 +444,15 @@ public class EdgeAPI extends BatchAPI {
         public boolean createIfNotExist = true;
 
         private static void checkUpdate(BatchEdgeRequest req) {
-            E.checkArgumentNotNull(req, "BatchEdgeRequest cannot be null");
+            E.checkArgumentNotNull(req, "BatchEdgeRequest can't be null");
             E.checkArgumentNotNull(req.jsonEdges,
-                                   "Parameter 'edges' cannot be null");
+                                   "Parameter 'edges' can't be null");
             E.checkArgument(req.updateStrategies != null &&
                             !req.updateStrategies.isEmpty(),
-                            "Parameter 'update_strategies' cannot be empty");
+                            "Parameter 'update_strategies' can't be empty");
             E.checkArgument(req.createIfNotExist == true,
                             "Parameter 'create_if_not_exist' " +
-                            "dose not supported false now");
+                            "dose not support false now");
         }
 
         @Override

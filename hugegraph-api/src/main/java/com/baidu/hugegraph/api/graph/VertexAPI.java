@@ -132,7 +132,7 @@ public class VertexAPI extends BatchAPI {
                          @PathParam("graph") String graph,
                          BatchVertexRequest req) {
         BatchVertexRequest.checkUpdate(req);
-        LOG.debug("Graph [{}] update vertices: {}", graph, req.jsonVertices);
+        LOG.debug("Graph [{}] update vertices: {}", graph, req);
         checkUpdatingBody(req.jsonVertices);
         checkBatchSize(config, req.jsonVertices);
 
@@ -310,6 +310,10 @@ public class VertexAPI extends BatchAPI {
                       "Too many vertices for one time post, " +
                       "the maximum number is '%s'", max));
         }
+        if (vertices.size() == 0) {
+            throw new IllegalArgumentException(String.format(
+                      "The number of vertices can't be 0"));
+        }
     }
 
     private Id getVertexId(HugeGraph g, JsonVertex vertex) {
@@ -350,15 +354,15 @@ public class VertexAPI extends BatchAPI {
         public boolean createIfNotExist = true;
 
         private static void checkUpdate(BatchVertexRequest req) {
-            E.checkArgumentNotNull(req, "BatchVertexRequest cannot be null");
+            E.checkArgumentNotNull(req, "BatchVertexRequest can't be null");
             E.checkArgumentNotNull(req.jsonVertices,
-                                   "Parameter 'vertices' cannot be null");
+                                   "Parameter 'vertices' can't be null");
             E.checkArgument(req.updateStrategies != null &&
                             !req.updateStrategies.isEmpty(),
-                            "Parameter 'update_strategies' cannot be empty");
+                            "Parameter 'update_strategies' can't be empty");
             E.checkArgument(req.createIfNotExist == true,
                             "Parameter 'create_if_not_exist' " +
-                            "dose not supported false now");
+                            "dose not support false now");
         }
 
         @Override

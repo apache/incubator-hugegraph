@@ -106,7 +106,7 @@ public class BatchAPI extends API {
         if (oldElement == null) {
             return;
         }
-        E.checkArgument(newElement != null, "The json element cannot be null");
+        E.checkArgument(newElement != null, "The json element can't be null");
 
         for (Map.Entry<String, UpdateStrategy> kv : strategies.entrySet()) {
             String key = kv.getKey();
@@ -127,7 +127,7 @@ public class BatchAPI extends API {
         if (oldElement == null) {
             return;
         }
-        E.checkArgument(newElement != null, "The json element cannot be null");
+        E.checkArgument(newElement != null, "The json element can't be null");
 
         for (Map.Entry<String, UpdateStrategy> kv : strategies.entrySet()) {
             String key = kv.getKey();
