@@ -42,7 +42,6 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
-import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;

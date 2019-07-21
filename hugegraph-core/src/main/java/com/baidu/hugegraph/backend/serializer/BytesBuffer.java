@@ -416,8 +416,8 @@ public final class BytesBuffer {
             for (byte b : bytes) {
                 E.checkArgument(b != STRING_ENDING_BYTE,
                                 "The %s type index id can't contains " +
-                                "byte '%s', but got: %s", type,
-                                Bytes.toHex(new byte[]{STRING_ENDING_BYTE}),
+                                "byte '0x%s', but got: 0x%s", type,
+                                Integer.toHexString(STRING_ENDING_BYTE),
                                 Bytes.toHex(bytes));
             }
             if (withEnding) {
@@ -523,8 +523,8 @@ public final class BytesBuffer {
                 break;
             }
         }
-        E.checkArgument(foundSuffix, "Not found suffix '%s'",
-                        Bytes.toHex(new byte[]{STRING_ENDING_BYTE}));
+        E.checkArgument(foundSuffix, "Not found suffix '0x%s'",
+                        Integer.toHexString(STRING_ENDING_BYTE));
         int end = this.buffer.position() - 1;
         int len = end - start;
         byte[] bytes = new byte[len];
