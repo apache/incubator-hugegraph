@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.util.StringUtil;
 
 public class SplicingIdGenerator extends IdGenerator {
 
@@ -78,7 +77,7 @@ public class SplicingIdGenerator extends IdGenerator {
      */
     public static String concat(String... ids) {
         // NOTE: must support string id when using this method
-        return StringUtil.escape(IDS_SPLITOR, ESCAPE, ids);
+        return IdUtil.escape(IDS_SPLITOR, ESCAPE, ids);
     }
 
     /**
@@ -87,7 +86,7 @@ public class SplicingIdGenerator extends IdGenerator {
      * @return    splitted string values
      */
     public static String[] split(String ids) {
-        return StringUtil.unescape(ids, IDS_SPLITOR_STR, ESCAPE_STR);
+        return IdUtil.unescape(ids, IDS_SPLITOR_STR, ESCAPE_STR);
     }
 
     /**
@@ -102,7 +101,7 @@ public class SplicingIdGenerator extends IdGenerator {
         for (int i = 0; i < valuesSize; i++) {
             parts[i] = values.get(i).toString();
         }
-        return StringUtil.escape(NAME_SPLITOR, ESCAPE, parts);
+        return IdUtil.escape(NAME_SPLITOR, ESCAPE, parts);
     }
 
     /**
@@ -120,7 +119,7 @@ public class SplicingIdGenerator extends IdGenerator {
      * @return      spliced id object
      */
     public static Id splicing(String... parts) {
-        String escaped = StringUtil.escape(ID_SPLITOR, ESCAPE, parts);
+        String escaped = IdUtil.escape(ID_SPLITOR, ESCAPE, parts);
         return IdGenerator.of(escaped);
     }
 
@@ -130,6 +129,6 @@ public class SplicingIdGenerator extends IdGenerator {
      * @return   parsed string id parts
      */
     public static String[] parse(Id id) {
-        return StringUtil.unescape(id.asString(), ID_SPLITOR_STR, ESCAPE_STR);
+        return IdUtil.unescape(id.asString(), ID_SPLITOR_STR, ESCAPE_STR);
     }
 }

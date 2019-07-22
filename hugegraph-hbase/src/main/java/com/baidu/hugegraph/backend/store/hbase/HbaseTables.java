@@ -252,11 +252,11 @@ public class HbaseTables {
         }
 
         public static RangeIndex range4(String store) {
-            return new RangeIndex(store, "r4i");
+            return new RangeIndex(store, "4i");
         }
 
         public static RangeIndex range8(String store) {
-            return new RangeIndex(store, "r8i");
+            return new RangeIndex(store, "8i");
         }
     }
 

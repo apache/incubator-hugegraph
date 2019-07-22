@@ -54,7 +54,8 @@ public class PaloStoreProvider extends MysqlStoreProvider {
          * [1.0] HugeGraph-1328: supports backend table version checking
          * [1.1] HugeGraph-1322: add support for full-text search
          * [1.2] #296: support range sortKey feature
-         * [1.3] #270 & #398: support shard-index and vertex + sortkey prefix
+         * [1.3] #270 & #398: support shard-index and vertex + sortkey prefix,
+         *                    also split range table to range4 and range8
          */
         return "1.3";
     }

@@ -54,7 +54,8 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
         /*
          * Versions history:
          * [1.0] #441: supports PostgreSQL and Cockroach backend
-         * [1.1] #270 & #398: support shard-index and vertex + sortkey prefix
+         * [1.1] #270 & #398: support shard-index and vertex + sortkey prefix,
+         *                    also split range table to range4 and range8
          */
         return "1.1";
     }

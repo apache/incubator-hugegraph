@@ -195,7 +195,7 @@ public class RocksDBTables {
 
     public static class RangeIndex extends IndexTable {
 
-        public static final String TABLE = "r4i";
+        public static final String TABLE = "ri";
 
         public RangeIndex(String database) {
             super(database, TABLE);
@@ -262,7 +262,7 @@ public class RocksDBTables {
 
     public static class Range4Index extends RangeIndex {
 
-        public static final String TABLE = "r4i";
+        public static final String TABLE = "4i";
 
         public Range4Index(String store) {
             super(store, TABLE);
@@ -271,7 +271,7 @@ public class RocksDBTables {
 
     public static class Range8Index extends RangeIndex{
 
-        public static final String TABLE = "r8i";
+        public static final String TABLE = "8i";
 
         public Range8Index(String store) {
             super(store, TABLE);

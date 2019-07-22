@@ -53,7 +53,8 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
          * [1.1] HugeGraph-1322: add support for full-text search
          * [1.2] #296: support range sortKey feature
          * [1.3] #455: fix scylladb backend doesn't support label query in page
-         * [1.4] #270 & #398: support shard-index and vertex + sortkey prefix
+         * [1.4] #270 & #398: support shard-index and vertex + sortkey prefix,
+         *                    also split range table to range4 and range8
          */
         return "1.4";
     }
