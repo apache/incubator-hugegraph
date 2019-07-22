@@ -623,23 +623,14 @@ public class BinarySerializer extends AbstractSerializer {
 
         ConditionQuery cq = (ConditionQuery) query;
 
-        // Convert secondary-index or search-index query to id query
-        if (!type.isNumericIndex()) {
+        if (type.isNumericIndex()) {
+            // Convert range-index/shard-index query to id range query
+            return this.writeRangeIndexQuery(cq);
+        } else {
+            assert type.isSearchIndex() || type.isSecondaryIndex();
+            // Convert secondary-index or search-index query to id query
             return this.writeStringIndexQuery(cq);
         }
-
-        // Convert range-index query to id range query
-        if (type.isRangeIndex()) {
-            return this.writeRangeIndexQuery(cq);
-        }
-
-        // Convert shard-index query to id range query
-        if (type.isShardIndex()) {
-            return this.writeShardIndexQuery(cq);
-        }
-
-        E.checkState(false, "Unsupported index query: %s", type);
-        return null;
     }
 
     private Query writeStringIndexQuery(ConditionQuery query) {
@@ -655,7 +646,7 @@ public class BinarySerializer extends AbstractSerializer {
         E.checkArgument(index != null, "Please specify the index label");
         E.checkArgument(key != null, "Please specify the index key");
 
-        Id prefix = formatIndexId(query.resultType(), index, key);
+        Id prefix = formatIndexId(query.resultType(), index, key, true);
 
         /*
          * If used paging and the page number is not empty, deserialize
@@ -718,7 +709,7 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         if (keyEq != null) {
-            Id id = formatIndexId(type, index, keyEq);
+            Id id = formatIndexId(type, index, keyEq, true);
             if (start == null) {
                 return new IdPrefixQuery(query, id);
             }
@@ -735,7 +726,7 @@ public class BinarySerializer extends AbstractSerializer {
             keyMinEq = true;
         }
 
-        Id min = formatIndexId(type, index, keyMin);
+        Id min = formatIndexId(type, index, keyMin, false);
         if (!keyMinEq) {
             /*
              * Increase 1 to keyMin, index GT query is a scan with GT prefix,
@@ -756,66 +747,12 @@ public class BinarySerializer extends AbstractSerializer {
             keyMax = NumericUtil.maxValueOf(keyMin.getClass());
             keyMaxEq = true;
         }
-        Id max = formatIndexId(type, index, keyMax);
+        Id max = formatIndexId(type, index, keyMax, false);
         if (keyMaxEq) {
             keyMaxEq = false;
             increaseOne(max.asBytes());
         }
         return new IdRangeQuery(query, start, keyMinEq, max, keyMaxEq);
-    }
-
-    private Query writeShardIndexQuery(ConditionQuery query) {
-        Id index = query.condition(HugeKeys.INDEX_LABEL_ID);
-        E.checkArgument(index != null, "Please specify the index label");
-
-        List<Condition> fields = query.syspropConditions(HugeKeys.FIELD_VALUES);
-        E.checkArgument(fields.size() == 1 || fields.size() == 2,
-                        "Shard index query should have 1 or 2 field values");
-
-        Id start = null;
-        if (query.paging() && !query.page().isEmpty()) {
-            byte[] position = PageState.fromString(query.page()).position();
-            start = new BinaryId(position, null);
-        }
-
-        if (fields.size() == 1) {
-            Relation r = (Relation) fields.get(0);
-            E.checkArgument(r.relation() == Condition.RelationType.EQ,
-                            "Relation must be EQ when only have one relation" +
-                            " in shard index query, but got: %s", r);
-
-            Id id = formatIndexId(query.resultType(), index, r.value());
-            if (start == null) {
-                return new IdPrefixQuery(query, id);
-            }
-            E.checkArgument(Bytes.compare(start.asBytes(), id.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
-            return new IdPrefixQuery(query, start, id);
-        }
-
-        Object keyMin = null;
-        Object keyMax = null;
-        for (Condition c : fields) {
-            Relation r = (Relation) c;
-            E.checkArgument(r.relation() == Condition.RelationType.GTE ||
-                            r.relation() == Condition.RelationType.LT,
-                            "Shard index query must be [key1, key2)");
-            if (r.relation() == Condition.RelationType.GTE) {
-                keyMin = r.value();
-            } else {
-                keyMax = r.value();
-            }
-        }
-        HugeType type = query.resultType();
-        Id min = formatIndexId(type, index, keyMin, false);
-        if (start == null) {
-            start = min;
-        } else {
-            E.checkArgument(Bytes.compare(start.asBytes(), min.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
-        }
-        Id max = formatIndexId(type, index, keyMax, false);
-        return new IdRangeQuery(query, start, true, max, false);
     }
 
     private BinaryBackendEntry formatILDeletion(HugeIndex index) {
@@ -862,13 +799,9 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected static BinaryId formatIndexId(HugeType type, Id indexLabel,
-                                            Object fieldValues) {
-        return formatIndexId(type, indexLabel, fieldValues, true);
-    }
-
-    protected static BinaryId formatIndexId(HugeType type, Id indexLabel,
                                             Object fieldValues,
-                                            boolean withEnding) {
+                                            boolean equal) {
+        boolean withEnding = type.isRangeIndex() || equal;
         Id id = HugeIndex.formatIndexId(type, indexLabel, fieldValues);
         if (!type.isNumericIndex() && indexIdLengthExceedLimit(id)) {
             id = HugeIndex.formatIndexHashId(type, indexLabel, fieldValues);

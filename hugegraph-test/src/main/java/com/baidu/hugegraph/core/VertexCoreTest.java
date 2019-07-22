@@ -1652,8 +1652,14 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "number", "id", 2, "int", 12345678);
         graph().addVertex(T.label, "number", "id", 3, "int", 1000000001L);
         graph().addVertex(T.label, "number", "id", 4, "int", -1);
-        graph().addVertex(T.label, "number", "id", 5, "int", Integer.MAX_VALUE);
-        graph().addVertex(T.label, "number", "id", 6, "int", Integer.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 5,
+                          "int", Integer.MAX_VALUE);
+        graph().addVertex(T.label, "number", "id", 6,
+                          "int", Integer.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 7,
+                          "int", Integer.MAX_VALUE - 1);
+        graph().addVertex(T.label, "number", "id", 8,
+                          "int", Integer.MIN_VALUE + 1);
 
         graph().tx().commit();
 
@@ -1688,6 +1694,18 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices, T.label, "number", "id", 6,
                        "int", Integer.MIN_VALUE);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("int", Integer.MAX_VALUE - 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 7,
+                       "int", Integer.MAX_VALUE - 1);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("int", Integer.MIN_VALUE + 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 8,
+                       "int", Integer.MIN_VALUE + 1);
     }
 
     @Test
@@ -1711,6 +1729,10 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "number", "id", 6, "long", -largeLong);
         graph().addVertex(T.label, "number", "id", 7, "long", Long.MAX_VALUE);
         graph().addVertex(T.label, "number", "id", 8, "long", Long.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 9,
+                          "long", Long.MAX_VALUE - 1);
+        graph().addVertex(T.label, "number", "id", 10,
+                          "long", Long.MIN_VALUE + 1);
 
         graph().tx().commit();
 
@@ -1758,6 +1780,18 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices, T.label, "number", "id", 8,
                        "long", Long.MIN_VALUE);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("long", Long.MAX_VALUE - 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 9,
+                       "long", Long.MAX_VALUE - 1);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("long", Long.MIN_VALUE + 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 10,
+                       "long", Long.MIN_VALUE + 1);
     }
 
     @Test

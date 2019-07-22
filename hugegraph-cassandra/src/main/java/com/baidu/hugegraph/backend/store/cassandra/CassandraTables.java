@@ -696,20 +696,6 @@ public class CassandraTables {
         public Range4Index(String store) {
             super(store, TABLE);
         }
-
-        @Override
-        public void init(CassandraSessionPool.Session session) {
-            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
-            );
-            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.FIELD_VALUES, DataType.cfloat(),
-                    HugeKeys.ELEMENT_IDS, DataType.text()
-            );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
-
-            this.createTable(session, pkeys, ckeys, columns);
-        }
     }
 
     public static class Range8Index extends RangeIndex {
@@ -718,20 +704,6 @@ public class CassandraTables {
 
         public Range8Index(String store) {
             super(store, TABLE);
-        }
-
-        @Override
-        public void init(CassandraSessionPool.Session session) {
-            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
-            );
-            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.FIELD_VALUES, DataType.cdouble(),
-                    HugeKeys.ELEMENT_IDS, DataType.text()
-            );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
-
-            this.createTable(session, pkeys, ckeys, columns);
         }
     }
 
