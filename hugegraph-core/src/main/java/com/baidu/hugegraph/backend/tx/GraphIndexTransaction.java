@@ -944,7 +944,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         boolean hasRange = false;
         int usedCondCount = 0;
         int equalCondCount = 0;
-        List<Object> values = new ArrayList<>();
+        List<Object> prefixes = new ArrayList<>();
         for (Id field : fields) {
             List<Condition> conds = query.userpropConditions(field);
             if (conds.isEmpty()) {
@@ -959,7 +959,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     if (NumericUtil.isNumber(value) || value instanceof Date) {
                         value = LongEncoding.encodeNumber(value);
                     }
-                    values.add(value);
+                    prefixes.add(value);
                     continue;
                 }
             }
@@ -988,7 +988,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                         r.relation());
                 }
 
-                Relation sys = shardFieldValuesCondition(key, values, r.value(),
+                Relation sys = shardFieldValuesCondition(key, prefixes,
+                                                         r.value(),
                                                          r.relation());
                 condition = condition.replace(r, sys);
                 conditions.add(condition);
@@ -1002,7 +1003,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              NumericUtil.isNumber(keyMax) ?
                              keyMax.getClass() : Long.class);
                 Relation r = shardFieldValuesCondition(
-                             key, values, num, Condition.RelationType.GTE);
+                             key, prefixes, num, Condition.RelationType.GTE);
                 conditions.add(r);
             }
             if (keyMax == null) {
@@ -1010,7 +1011,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              NumericUtil.isNumber(keyMin) ?
                              keyMin.getClass() : Long.class);
                 Relation r = shardFieldValuesCondition(
-                             key, values, num, Condition.RelationType.LTE);
+                             key, prefixes, num, Condition.RelationType.LTE);
                 conditions.add(r);
             }
 
@@ -1024,7 +1025,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             // Shard query without range
             if (equalCondCount == fields.size()) {
 
-                joinedValues = SplicingIdGenerator.concatValues(values);
+                joinedValues = SplicingIdGenerator.concatValues(prefixes);
                 Condition eq = new Condition.SyspropRelation(
                                    key, Condition.RelationType.EQ,
                                    joinedValues);
@@ -1033,8 +1034,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
             // Append "" to 'values' to ensure FIELD_VALUES suffix
             // with IdGenerator.NAME_SPLITOR
-            values.add(Strings.EMPTY);
-            joinedValues = SplicingIdGenerator.concatValues(values);
+            prefixes.add(Strings.EMPTY);
+            joinedValues = SplicingIdGenerator.concatValues(prefixes);
             Condition min = new Condition.SyspropRelation(
                                 key, Condition.RelationType.GTE, joinedValues);
             conditions.add(min);
@@ -1069,8 +1070,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         int length = value.length();
         CharBuffer cbuf = CharBuffer.wrap(value.toCharArray());
         char last = cbuf.charAt(length - 1);
-        E.checkArgument(last == '!' || LongEncoding.validChar(last),
-                        "Invalid character '%s'", last);
+        E.checkArgument(last == '!' || LongEncoding.validSortableChar(last),
+                        "Invalid character '%s' for String index", last);
         cbuf.put(length - 1,  (char) (last + 1));
         return cbuf.toString();
     }

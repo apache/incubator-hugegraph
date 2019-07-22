@@ -167,9 +167,9 @@ public class HugeIndex implements GraphType {
         Object values;
         IndexLabel indexLabel;
         switch (type) {
-            case SHARD_INDEX:
             case SEARCH_INDEX:
             case SECONDARY_INDEX:
+            case SHARD_INDEX:
                 Id idObject = IdGenerator.of(id, IdType.STRING);
                 String[] parts = SplicingIdGenerator.parse(idObject);
                 E.checkState(parts.length == 2, "Invalid secondary index id");
@@ -204,6 +204,7 @@ public class HugeIndex implements GraphType {
 
     public static byte[] number2bytes(Number number) {
         if (number instanceof Byte) {
+            // Handle byte as integer to store as 4 bytes in RANGE4_INDEX
             number = number.intValue();
         }
         return NumericUtil.numberToSortableBytes(number);

@@ -997,9 +997,7 @@ public class GraphTransaction extends IndexableTransaction {
                 List<Condition> conditions =
                                 GraphIndexTransaction.constructShardConditions(
                                 query, keys, HugeKeys.SORT_VALUES);
-                for (Condition c : conditions) {
-                    query.query(c);
-                }
+                query.query(conditions);
                 query.resetUserpropConditions();
 
                 LOG.debug("Query edges by sortKeys: {}", query);

@@ -212,7 +212,7 @@ public final class BytesBuffer {
         return this;
     }
 
-    public BytesBuffer writeSortkeys(String val) {
+    public BytesBuffer writeStringRaw(String val) {
         this.write(StringEncoding.encode(val));
         return this;
     }
@@ -220,6 +220,11 @@ public final class BytesBuffer {
     public BytesBuffer writeStringWithEnding(String val) {
         byte[] bytes = StringEncoding.encode(val);
         this.write(bytes);
+        /*
+         * A reasonable ending symbol should be 0x00(to ensure order), but
+         * considering that some backends like PG do not support 0x00 string,
+         * so choose 0xFF currently.
+         */
         this.write(STRING_ENDING_BYTE);
         return this;
     }
@@ -280,7 +285,7 @@ public final class BytesBuffer {
         return StringEncoding.decode(this.readBytes());
     }
 
-    public String readStringWithSuffix() {
+    public String readStringWithEnding() {
         return StringEncoding.decode(this.readBytesWithEnding());
     }
 
@@ -514,16 +519,16 @@ public final class BytesBuffer {
 
     private byte[] readBytesWithEnding() {
         int start = this.buffer.position();
-        boolean foundSuffix =false;
+        boolean foundEnding =false;
         byte current;
         while (this.remaining() > 0) {
             current = this.read();
             if (current == STRING_ENDING_BYTE) {
-                foundSuffix = true;
+                foundEnding = true;
                 break;
             }
         }
-        E.checkArgument(foundSuffix, "Not found suffix '0x%s'",
+        E.checkArgument(foundEnding, "Not found ending '0x%s'",
                         Integer.toHexString(STRING_ENDING_BYTE));
         int end = this.buffer.position() - 1;
         int len = end - start;

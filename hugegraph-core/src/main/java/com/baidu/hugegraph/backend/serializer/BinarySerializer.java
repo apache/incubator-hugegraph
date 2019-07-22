@@ -253,7 +253,7 @@ public class BinarySerializer extends AbstractSerializer {
         }
         byte type = buffer.read();
         Id labelId = buffer.readId();
-        String sk = buffer.readStringWithSuffix();
+        String sk = buffer.readStringWithEnding();
         Id otherVertexId = buffer.readId();
 
         boolean isOutEdge = (type == HugeType.EDGE_OUT.code());
@@ -542,19 +542,19 @@ public class BinarySerializer extends AbstractSerializer {
             switch (r.relation()) {
                 case GTE:
                     minEq = 1;
-                    start.writeSortkeys((String) r.value());
+                    start.writeStringRaw((String) r.value());
                     break;
                 case GT:
                     minEq = 0;
-                    start.writeSortkeys((String) r.value());
+                    start.writeStringRaw((String) r.value());
                     break;
                 case LTE:
                     maxEq = 1;
-                    end.writeSortkeys((String) r.value());
+                    end.writeStringRaw((String) r.value());
                     break;
                 case LT:
                     maxEq = 0;
-                    end.writeSortkeys((String) r.value());
+                    end.writeStringRaw((String) r.value());
                     break;
                 default:
                     E.checkArgument(false, "Unsupported relation '%s'",
@@ -600,7 +600,7 @@ public class BinarySerializer extends AbstractSerializer {
                 buffer.writeId((Id) value);
             } else if (key == HugeKeys.SORT_VALUES) {
                 assert value instanceof String;
-                buffer.writeSortkeys((String) value);
+                buffer.writeStringRaw((String) value);
             } else {
                 assert false : key;
             }
@@ -772,14 +772,27 @@ public class BinarySerializer extends AbstractSerializer {
         E.checkArgument(fields.size() == 1 || fields.size() == 2,
                         "Shard index query should have 1 or 2 field values");
 
+        Id start = null;
+        if (query.paging() && !query.page().isEmpty()) {
+            byte[] position = PageState.fromString(query.page()).position();
+            start = new BinaryId(position, null);
+        }
+
         if (fields.size() == 1) {
             Relation r = (Relation) fields.get(0);
             E.checkArgument(r.relation() == Condition.RelationType.EQ,
                             "Relation must be EQ when only have one relation" +
                             " in shard index query, but got: %s", r);
-            Id prefix = formatIndexId(query.resultType(), index, r.value());
-            return new IdPrefixQuery(query, prefix);
+
+            Id id = formatIndexId(query.resultType(), index, r.value());
+            if (start == null) {
+                return new IdPrefixQuery(query, id);
+            }
+            E.checkArgument(Bytes.compare(start.asBytes(), id.asBytes()) >= 0,
+                            "Invalid page out of lower bound");
+            return new IdPrefixQuery(query, start, id);
         }
+
         Object keyMin = null;
         Object keyMax = null;
         for (Condition c : fields) {
@@ -795,14 +808,14 @@ public class BinarySerializer extends AbstractSerializer {
         }
         HugeType type = query.resultType();
         Id min = formatIndexId(type, index, keyMin, false);
-        if (query.paging() && !query.page().isEmpty()) {
-            byte[] position = PageState.fromString(query.page()).position();
-            E.checkArgument(Bytes.compare(position, min.asBytes()) >= 0,
+        if (start == null) {
+            start = min;
+        } else {
+            E.checkArgument(Bytes.compare(start.asBytes(), min.asBytes()) >= 0,
                             "Invalid page out of lower bound");
-            min = new BinaryId(position, null);
         }
         Id max = formatIndexId(type, index, keyMax, false);
-        return new IdRangeQuery(query, min, true, max, false);
+        return new IdRangeQuery(query, start, true, max, false);
     }
 
     private BinaryBackendEntry formatILDeletion(HugeIndex index) {

@@ -73,6 +73,13 @@ public final class ConditionQuery extends IdQuery {
         return this;
     }
 
+    public ConditionQuery query(List<Condition> conditions) {
+        for (Condition condition : conditions) {
+            this.query(condition);
+        }
+        return this;
+    }
+
     public ConditionQuery eq(HugeKeys key, Object value) {
         // Filter value by key
         return this.query(Condition.eq(key, value));

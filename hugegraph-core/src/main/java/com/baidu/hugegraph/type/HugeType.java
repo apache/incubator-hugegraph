@@ -48,8 +48,8 @@ public enum HugeType implements SerialEnum {
     EDGE_IN(140, "I"),
 
     SECONDARY_INDEX(150, "SI"),
-    RANGE4_INDEX(160, "R4I"),
-    RANGE8_INDEX(161, "R8I"),
+    RANGE4_INDEX(160, "4I"),
+    RANGE8_INDEX(161, "8I"),
     SEARCH_INDEX(170, "FI"),
     SHARD_INDEX(175, "PI"),
 
