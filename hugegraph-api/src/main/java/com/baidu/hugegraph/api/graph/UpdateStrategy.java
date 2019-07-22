@@ -44,9 +44,11 @@ public enum UpdateStrategy {
 
         @Override
         void checkPropertyType(Object oldProperty, Object newProperty) {
+            this.formatError(oldProperty, newProperty, this, "Number");
             E.checkArgument(oldProperty instanceof Number &&
                             newProperty instanceof Number,
-                            formatError(oldProperty, newProperty, "Number"));
+                            this.formatError(oldProperty, newProperty,
+                                             this, "Number"));
         }
     },
 
@@ -54,7 +56,7 @@ public enum UpdateStrategy {
     BIGGER {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            return compareNumber(oldProperty, newProperty, BIGGER);
+            return this.compareNumber(oldProperty, newProperty, BIGGER);
         }
 
         @Override
@@ -63,15 +65,15 @@ public enum UpdateStrategy {
                              oldProperty instanceof Number) &&
                             (newProperty instanceof Date ||
                              newProperty instanceof Number),
-                            formatError(oldProperty, newProperty,
-                                        "Date or Number"));
+                            this.formatError(oldProperty, newProperty,
+                                             this, "Date or Number"));
         }
     },
 
     SMALLER {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            return compareNumber(oldProperty, newProperty, SMALLER);
+            return this.compareNumber(oldProperty, newProperty, SMALLER);
         }
 
         @Override
@@ -84,7 +86,7 @@ public enum UpdateStrategy {
     UNION {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            return combineSet(oldProperty, newProperty, UNION);
+            return this.combineSet(oldProperty, newProperty, UNION);
         }
 
         @Override
@@ -94,15 +96,15 @@ public enum UpdateStrategy {
                              oldProperty instanceof List) &&
                             (newProperty instanceof Set ||
                              newProperty instanceof List),
-                            formatError(oldProperty, newProperty,
-                                        "Set or List"));
+                            this.formatError(oldProperty, newProperty,
+                                             this, "Set or List"));
         }
     },
 
     INTERSECTION {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            return combineSet(oldProperty, newProperty, INTERSECTION);
+            return this.combineSet(oldProperty, newProperty, INTERSECTION);
         }
 
         @Override
@@ -150,15 +152,16 @@ public enum UpdateStrategy {
         return this.updatePropertyValue(oldProperty, newProperty);
     }
 
-    private static String formatError(Object oldProperty, Object newProperty,
-                                      String className) {
-        return String.format("Property must be %s, but got %s, %s", className,
+    String formatError(Object oldProperty, Object newProperty,
+                       UpdateStrategy strategy, String className) {
+        return String.format("Property type must be %s for strategy %s, " +
+                             "but got type %s, %s", className, strategy,
                              oldProperty.getClass().getSimpleName(),
                              newProperty.getClass().getSimpleName());
     }
 
-    private static Object compareNumber(Object oldProperty, Object newProperty,
-                                        UpdateStrategy strategy) {
+    Object compareNumber(Object oldProperty, Object newProperty,
+                         UpdateStrategy strategy) {
         Number oldNum = NumericUtil.convertToNumber(oldProperty);
         Number newNum = NumericUtil.convertToNumber(newProperty);
         int result = NumericUtil.compareNumber(oldNum, newNum);
@@ -166,8 +169,8 @@ public enum UpdateStrategy {
                                     (result < 0 ? oldProperty : newProperty);
     }
 
-    private static Set<?> combineSet(Object oldProperty, Object newProperty,
-                                     UpdateStrategy strategy) {
+    Set<?> combineSet(Object oldProperty, Object newProperty,
+                      UpdateStrategy strategy) {
         Set<?> oldSet = oldProperty instanceof Set ?
                         (Set<?>) oldProperty :
                         new HashSet<>((List<?>) oldProperty);

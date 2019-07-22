@@ -419,7 +419,7 @@ public class EdgeAPI extends BatchAPI {
                 Object sortKeyValue = newEdge.properties.get(sortKey);
                 E.checkArgument(sortKeyValue != null,
                                 "The value of sort key '%s' can't be null",
-                                skId);
+                                sortKey);
                 sortKeyValues.add(sortKeyValue);
             });
             sortKeys = SplicingIdGenerator.concatValues(sortKeyValues);
