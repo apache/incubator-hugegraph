@@ -639,7 +639,7 @@ public class BinarySerializer extends AbstractSerializer {
                         "INDEX_LABEL_ID and FIELD_VALUES" +
                         "in secondary index query");
 
-        Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
+        Id index = query.condition(HugeKeys.INDEX_LABEL_ID);
         Object key = query.condition(HugeKeys.FIELD_VALUES);
 
         E.checkArgument(index != null, "Please specify the index label");
@@ -665,7 +665,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     private Query writeRangeIndexQuery(ConditionQuery query) {
-        Id index = (Id) query.condition(HugeKeys.INDEX_LABEL_ID);
+        Id index = query.condition(HugeKeys.INDEX_LABEL_ID);
         E.checkArgument(index != null,
                         "Please specify the index label");
 
@@ -702,9 +702,20 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         HugeType type = query.resultType();
+        Id start = null;
+        if (query.paging() && !query.page().isEmpty()) {
+            byte[] position = PageState.fromString(query.page()).position();
+            start = new BinaryId(position, null);
+        }
+
         if (keyEq != null) {
             Id id = formatIndexId(type, index, keyEq);
-            return new IdPrefixQuery(query, id);
+            if (start == null) {
+                return new IdPrefixQuery(query, id);
+            }
+            E.checkArgument(Bytes.compare(start.asBytes(), id.asBytes()) >= 0,
+                            "Invalid page out of lower bound");
+            return new IdPrefixQuery(query, start, id);
         }
 
         if (keyMin == null) {
@@ -725,12 +736,11 @@ public class BinarySerializer extends AbstractSerializer {
             keyMinEq = true;
         }
 
-        Id start = min;
-        if (query.paging() && !query.page().isEmpty()) {
-            byte[] position = PageState.fromString(query.page()).position();
-            E.checkArgument(Bytes.compare(position, start.asBytes()) >= 0,
+        if (start == null) {
+            start = min;
+        } else {
+            E.checkArgument(Bytes.compare(start.asBytes(), min.asBytes()) >= 0,
                             "Invalid page out of lower bound");
-            start = new BinaryId(position, null);
         }
 
         Query newQuery;

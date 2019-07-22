@@ -2875,23 +2875,15 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         HugeGraph graph = graph();
         init100LookEdges();
+        GraphTraversalSource g = graph.traversal();
+        long bigLimit = Query.defaultCapacity() + 1L;
 
         Assert.assertThrows(IllegalStateException.class, () -> {
-            graph.traversal().E()
-                 .has("~page", "").limit(0)
-                 .toList();
+            g.E().has("~page", "").limit(0).toList();
         });
 
-        Assert.assertThrows(IllegalStateException.class, () -> {
-            graph.traversal().E()
-                 .has("~page", "").limit(-1)
-                 .toList();
-        });
-
-        Assert.assertThrows(IllegalStateException.class, () -> {
-            graph.traversal().E()
-                 .has("~page", "")
-                 .toList();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.E().has("~page", "").limit(bigLimit).toList();
         });
     }
 

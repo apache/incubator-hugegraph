@@ -53,6 +53,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -65,6 +66,7 @@ import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -3821,25 +3823,81 @@ public class VertexCoreTest extends BaseCoreTest {
                           storeFeatures().supportsQueryByPage());
 
         HugeGraph graph = graph();
-        init100Books();
+        initPageTestData();
+        GraphTraversalSource g = graph.traversal();
+        long limit = Query.defaultCapacity() + 1;
 
         Assert.assertThrows(IllegalStateException.class, () -> {
-            graph.traversal().V()
-                 .has("~page", "").limit(0)
-                 .toList();
+            g.V().has("~page", "").limit(0).toList();
         });
 
-        Assert.assertThrows(IllegalStateException.class, () -> {
-            graph.traversal().V()
-                 .has("~page", "").limit(-1)
-                 .toList();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.V().has("~page", "").limit(limit).toList();
         });
 
-        Assert.assertThrows(IllegalStateException.class, () -> {
-            graph.traversal().V()
-                 .has("~page", "")
-                 .toList();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            g.V().has("name", "marko").has("~page", "").limit(limit).toList();
         });
+    }
+
+    @Test
+    public void testQueryByPageWithCapacityAndNoLimit() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        initPageTestData();
+        GraphTraversalSource g = graph.traversal();
+
+        long capacity = 10;
+        long old = Query.defaultCapacity(capacity);
+        try {
+            GraphTraversal<Vertex, Vertex> iter;
+            iter = g.V().has("~page", "").limit(capacity);
+            Assert.assertEquals(10, IteratorUtils.count(iter));
+
+            Assert.assertThrows(IllegalArgumentException.class, () -> {
+                /*
+                 * When query vertices/edge in page, the limit will be regard
+                 * as page size, it shoudn't exceed capacity
+                 */
+                g.V().has("~page", "").limit(capacity + 1).toList();
+            });
+
+            Assert.assertThrows(LimitExceedException.class, () -> {
+                g.V().has("~page", "").limit(-1).toList();
+            });
+        } finally {
+            Query.defaultCapacity(old);
+        }
+    }
+
+    @Test
+    public void testQueryInPageWithoutCapacity() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        long old = Query.defaultCapacity(Query.NO_CAPACITY);
+        try {
+            GraphTraversal<Vertex, Vertex> iter;
+            iter = g.V().has("~page", "").limit(-1);
+            Assert.assertEquals(34, IteratorUtils.count(iter));
+
+            iter = g.V().has("~page", "").limit(20);
+            Assert.assertEquals(20, IteratorUtils.count(iter));
+
+            iter = g.V().has("age", 30).has("~page", "").limit(-1);
+            Assert.assertEquals(18, IteratorUtils.count(iter));
+
+            iter = g.V().has("age", 30).has("~page", "").limit(10);
+            Assert.assertEquals(10, IteratorUtils.count(iter));
+        } finally {
+            Query.defaultCapacity(old);
+        }
     }
 
     @Test
@@ -4297,6 +4355,63 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByRangeIndexInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        initPageTestData();
+
+        // There are 4 vertices matched
+        GraphTraversal<Vertex, Vertex> iter = g.V().hasLabel("software")
+                                               .has("price", P.eq(100))
+                                               .has("~page", "")
+                                               .limit(3);
+
+        List<Vertex> vertices1 = IteratorUtils.list(iter);
+        String page = TraversalUtil.page(iter);
+        Assert.assertEquals(3, vertices1.size());
+        List<Vertex> vertices2 = g.V().hasLabel("software")
+                                  .has("price", P.eq(100))
+                                  .has("~page", page).limit(3)
+                                  .toList();
+        Assert.assertEquals(1, vertices2.size());
+        Assert.assertTrue(CollectionUtil.intersect(vertices1, vertices2)
+                                        .isEmpty());
+
+        // There are 8 vertices matched
+        iter = g.V().hasLabel("software")
+                .has("price", P.gt(200))
+                .has("~page", "")
+                .limit(5);
+
+        vertices1 = IteratorUtils.list(iter);
+        Assert.assertEquals(5, vertices1.size());
+        page = TraversalUtil.page(iter);
+        vertices2 = g.V().hasLabel("software").has("price", P.gt(200))
+                     .has("~page", page).limit(5).toList();
+        Assert.assertEquals(3, vertices2.size());
+        Assert.assertTrue(CollectionUtil.intersect(vertices1, vertices2)
+                                        .isEmpty());
+
+        // There are 8 vertices matched
+        iter = g.V().hasLabel("software")
+                .has("price", P.lt(300))
+                .has("~page", "")
+                .limit(5);
+
+        vertices1 = IteratorUtils.list(iter);
+        Assert.assertEquals(5, vertices1.size());
+        page = TraversalUtil.page(iter);
+        vertices2 = g.V().hasLabel("software").has("price", P.lt(300))
+                     .has("~page", page).limit(5).toList();
+        Assert.assertEquals(3, vertices2.size());
+        Assert.assertTrue(CollectionUtil.intersect(vertices1, vertices2)
+                                        .isEmpty());
+    }
+
+    @Test
     public void testQueryByUnionIndexInPageWithSomeIndexNoData() {
         Assume.assumeTrue("Not support paging",
                           storeFeatures().supportsQueryByPage());
@@ -4692,6 +4807,13 @@ public class VertexCoreTest extends BaseCoreTest {
               .onV("programmer")
               .by("name", "age")
               .secondary()
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("programmerByAge")
+              .onV("programmer")
+              .range()
+              .by("age")
               .ifNotExist()
               .create();
 

@@ -141,6 +141,11 @@ public class Query implements Cloneable {
     }
 
     public long limit() {
+        if (this.capacity != NO_CAPACITY) {
+            E.checkArgument(this.limit == Query.NO_LIMIT ||
+                            this.limit <= this.capacity,
+                            "Invalid limit %s, must be <= capacity", this.limit);
+        }
         return this.limit;
     }
 
@@ -150,10 +155,11 @@ public class Query implements Cloneable {
     }
 
     public boolean reachLimit(long count) {
-        if (this.limit == NO_LIMIT) {
+        long limit = this.limit();
+        if (limit == NO_LIMIT) {
             return false;
         }
-        return count >= (this.offset + this.limit);
+        return count >= (limit + this.offset());
     }
 
     /**
@@ -186,13 +192,11 @@ public class Query implements Cloneable {
 
     public String page() {
         if (this.page != null) {
-            E.checkState(this.limit != Query.NO_LIMIT,
-                         "Must set limit when using paging");
-            E.checkState(this.limit != 0L,
+            E.checkState(this.limit() != 0L,
                          "Can't set limit=0 when using paging");
-            E.checkState(this.offset == 0L,
+            E.checkState(this.offset() == 0L,
                          "Can't set offset when using paging, but got '%s'",
-                         this.offset);
+                         this.offset());
         }
         return this.page;
     }

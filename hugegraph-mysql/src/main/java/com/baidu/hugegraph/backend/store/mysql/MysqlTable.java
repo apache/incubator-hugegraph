@@ -535,10 +535,11 @@ public abstract class MysqlTable
 
         select.append(this.orderByKeys());
 
-        assert query.limit() != Query.NO_LIMIT;
-        // Fetch `limit + 1` records for judging whether reached the last page
-        select.append(" limit ");
-        select.append(query.limit() + 1);
+        if (query.limit() != Query.NO_LIMIT) {
+            // Fetch `limit + 1` rows for judging whether reached the last page
+            select.append(" limit ");
+            select.append(query.limit() + 1);
+        }
         select.append(";");
     }
 
