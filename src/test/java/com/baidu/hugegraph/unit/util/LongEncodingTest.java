@@ -279,6 +279,29 @@ public class LongEncodingTest extends BaseUnitTest {
     }
 
     @Test
+    public void testDecodeIllegalSortable() {
+        // Length is 1, actual length is 0
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            LongEncoding.decodeSortable("1");
+        });
+
+        // Length is 1, actual length is 2
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            LongEncoding.decodeSortable("123");
+        });
+
+        // Length is 1, actual length is 0
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            LongEncoding.decodeSortable("01");
+        });
+
+        // Length is 1, actual length is 2
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            LongEncoding.decodeSortable("0123");
+        });
+    }
+
+    @Test
     public void testEncodeNumber() throws ParseException {
         String l1234 = LongEncoding.encodeNumber(1234);
         Assert.assertEquals("2JI", l1234);
