@@ -52,7 +52,9 @@ public class API {
 
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
     public static final String APPLICATION_JSON_WITH_CHARSET =
-                               APPLICATION_JSON + ";charset=" + CHARSET;;
+                               APPLICATION_JSON + ";charset=" + CHARSET;
+    public static final String JSON = MediaType.APPLICATION_JSON_TYPE
+                                               .getSubtype();
 
     public static final String ACTION_APPEND = "append";
     public static final String ACTION_ELIMINATE = "eliminate";

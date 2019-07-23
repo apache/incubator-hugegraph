@@ -19,13 +19,10 @@
 
 package com.baidu.hugegraph.api.gremlin;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Singleton;
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -43,13 +40,13 @@ import javax.ws.rs.core.UriInfo;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
-import com.baidu.hugegraph.api.filter.ExceptionFilter;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.HugeGremlinException;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 @Path("gremlin")
@@ -146,27 +143,34 @@ public class GremlinAPI extends API {
     }
 
     private static Response transformResponseIfNeeded(Response response) {
-        if (response.getStatus() < 400) {
+        Response.StatusType status = response.getStatusInfo();
+        if (status.getStatusCode() < 400) {
             // No need to transform if normal response without error
             return response;
+        }
+
+        MediaType mediaType = response.getMediaType();
+        if (mediaType == null || !JSON.equals(mediaType.getSubtype())) {
+            String message = response.readEntity(String.class);
+            throw new HugeGremlinException(status.getStatusCode(),
+                                           ImmutableMap.of("message", message));
         }
 
         @SuppressWarnings("unchecked")
         Map<String, Object> map = response.readEntity(Map.class);
         String exClassName = (String) map.get("Exception-Class");
-
-        Response.Status status = Response.Status.fromStatusCode(
-                                 response.getStatus());
         if (FORBIDDEN_REQUEST_EXCEPTIONS.contains(exClassName)) {
             status = Response.Status.FORBIDDEN;
         } else if (matchBadRequestException(exClassName)) {
             status = Response.Status.BAD_REQUEST;
         }
-
         throw new HugeGremlinException(status.getStatusCode(), map);
     }
 
     private static boolean matchBadRequestException(String exClass) {
+        if (exClass == null) {
+            return false;
+        }
         if (BAD_REQUEST_EXCEPTIONS.contains(exClass)) {
             return true;
         }

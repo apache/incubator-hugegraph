@@ -21,6 +21,8 @@ package com.baidu.hugegraph.exception;
 
 import java.util.Map;
 
+import com.baidu.hugegraph.util.E;
+
 public class HugeGremlinException extends RuntimeException {
 
     private static final long serialVersionUID = -8712375282196157058L;
@@ -29,6 +31,7 @@ public class HugeGremlinException extends RuntimeException {
     private final Map<String, Object> response;
 
     public HugeGremlinException(int statusCode, Map<String, Object> response) {
+        E.checkNotNull(response, "response");
         this.statusCode = statusCode;
         this.response = response;
     }

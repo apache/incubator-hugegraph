@@ -212,12 +212,16 @@ public class ExceptionFilter {
         List<String> exceptions = (List<String>) map.get("exceptions");
         String stackTrace = (String) map.get("stackTrace");
 
+        message = message != null ? message : "";
+        exClassName = exClassName != null ? exClassName : "";
+        String cause = exceptions != null ? exceptions.toString() : "";
+
         JsonObjectBuilder json = Json.createObjectBuilder()
                                      .add("exception", exClassName)
                                      .add("message", message)
-                                     .add("cause", exceptions.toString());
+                                     .add("cause", cause);
 
-        if (trace) {
+        if (trace && stackTrace != null) {
             JsonArrayBuilder traces = Json.createArrayBuilder();
             for (String part : StringUtils.split(stackTrace, '\n')) {
                 traces.add(part);
