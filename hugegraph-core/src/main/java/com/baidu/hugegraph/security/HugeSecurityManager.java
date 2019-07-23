@@ -88,7 +88,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkAccess(Thread thread) {
-        if (callFromGremlin()) {
+        if (callFromGremlin() && !callFromCaffeine()) {
             throw new SecurityException(
                       "Not allowed to access thread via Gremlin");
         }
@@ -97,7 +97,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkAccess(ThreadGroup threadGroup) {
-        if (callFromGremlin()) {
+        if (callFromGremlin() && !callFromCaffeine()) {
             throw new SecurityException(
                       "Not allowed to access thread group via Gremlin");
         }
@@ -313,6 +313,12 @@ public class HugeSecurityManager extends SecurityManager {
         return callFromWorkerWithClass(ACCEPT_CLASS_LOADERS);
     }
 
+    private static boolean callFromCaffeine() {
+        String clazz = "com.github.benmanes.caffeine.cache.BoundedLocalCache";
+        String method = "scheduleDrainBuffers";
+        return callFromMethod(clazz, method);
+    }
+
     private static boolean callFromWorkerWithClass(Set<String> classes) {
         Thread curThread = Thread.currentThread();
         if (curThread.getName().startsWith(GREMLIN_SERVER_WORKER) ||
@@ -323,6 +329,18 @@ public class HugeSecurityManager extends SecurityManager {
                 if (classes.contains(className)) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    private static boolean callFromMethod(String clazz, String method) {
+        Thread curThread = Thread.currentThread();
+        StackTraceElement[] elements = curThread.getStackTrace();
+        for (StackTraceElement element : elements) {
+            if (clazz.equals(element.getClassName()) &&
+                method.equals(element.getMethodName())) {
+                return true;
             }
         }
         return false;

@@ -279,15 +279,10 @@ public class SecurityManagerTest {
     }
 
     private static String runGremlinJob(String gremlin) {
-        return runGremlinJob(gremlin, ImmutableMap.of());
-    }
-
-    private static String runGremlinJob(String gremlin,
-                                        Map<String, Object> bindings) {
         JobBuilder<Object> builder = JobBuilder.of(graph);
         Map<String, Object> input = new HashMap<>();
         input.put("gremlin", gremlin);
-        input.put("bindings", bindings);
+        input.put("bindings", ImmutableMap.of());
         input.put("language", "gremlin-groovy");
         input.put("aliases", ImmutableMap.of());
         builder.name("test-gremlin-job")

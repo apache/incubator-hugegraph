@@ -37,6 +37,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.glassfish.jersey.client.ClientConfig;
+
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
@@ -68,16 +70,32 @@ public class GremlinAPI extends API {
             "com.baidu.hugegraph."
     );
 
-    private Client client = ClientBuilder.newClient();
+    @Context
+    private javax.inject.Provider<HugeConfig> configProvider;
+
+    private Client client;
+
+    public Client client() {
+        if (this.client != null) {
+            return this.client;
+        }
+        HugeConfig config = this.configProvider.get();
+        int timeout = config.get(ServerOptions.GREMLIN_SERVER_TIMEOUT) * 1000;
+        ClientConfig clientConfig = new ClientConfig();
+        clientConfig.property("jersey.config.client.connectTimeout", timeout);
+        clientConfig.property("jersey.config.client.readTimeout", timeout);
+        this.client = ClientBuilder.newClient(clientConfig);
+        return this.client;
+    }
 
     private Response doGetRequest(String location, String auth, String query) {
         String url = String.format("%s?%s", location, query);
-        Response r = this.client.target(url)
-                                .request()
-                                .header(HttpHeaders.AUTHORIZATION, auth)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .acceptEncoding(CompressInterceptor.GZIP)
-                                .get();
+        Response r = this.client().target(url)
+                                  .request()
+                                  .header(HttpHeaders.AUTHORIZATION, auth)
+                                  .accept(MediaType.APPLICATION_JSON)
+                                  .acceptEncoding(CompressInterceptor.GZIP)
+                                  .get();
         if (r.getMediaType() != null) {
             // Append charset
             assert MediaType.APPLICATION_JSON_TYPE.equals(r.getMediaType());
@@ -91,12 +109,12 @@ public class GremlinAPI extends API {
 
     private Response doPostRequest(String location, String auth, String req) {
         Entity<?> body = Entity.entity(req, MediaType.APPLICATION_JSON);
-        Response r = this.client.target(location)
-                                .request()
-                                .header(HttpHeaders.AUTHORIZATION, auth)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .acceptEncoding(CompressInterceptor.GZIP)
-                                .post(body);
+        Response r = this.client().target(location)
+                                  .request()
+                                  .header(HttpHeaders.AUTHORIZATION, auth)
+                                  .accept(MediaType.APPLICATION_JSON)
+                                  .acceptEncoding(CompressInterceptor.GZIP)
+                                  .post(body);
         if (r.getMediaType() != null) {
             // Append charset
             assert MediaType.APPLICATION_JSON_TYPE.equals(r.getMediaType());

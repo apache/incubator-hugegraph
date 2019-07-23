@@ -92,6 +92,14 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:8182"
             );
 
+    public static final ConfigOption<Integer> GREMLIN_SERVER_TIMEOUT =
+            new ConfigOption<>(
+                    "gremlinserver.timeout",
+                    "The timeout in seconds of waiting for gremlin server.",
+                    positiveInt(),
+                    30
+            );
+
     public static final ConfigListOption<String> GRAPHS =
             new ConfigListOption<>(
                     "graphs",
