@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.graph;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +51,9 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
-import com.baidu.hugegraph.api.schema.Checkable;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -64,10 +66,10 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/graph/edges")
@@ -130,9 +132,9 @@ public class EdgeAPI extends BatchAPI {
                                List<JsonEdge> jsonEdges) {
         LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
         checkCreatingBody(jsonEdges);
+        checkBatchSize(config, jsonEdges);
 
         HugeGraph g = graph(manager, graph);
-        checkBatchSize(config, jsonEdges);
 
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
@@ -154,6 +156,64 @@ public class EdgeAPI extends BatchAPI {
                 ids.add(edge.id().toString());
             }
             return ids;
+        });
+    }
+
+    /**
+     * Batch update steps are same like vertices
+     */
+    @PUT
+    @Timed
+    @Decompress
+    @Path("batch")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public String update(@Context HugeConfig config,
+                         @Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         BatchEdgeRequest req) {
+        BatchEdgeRequest.checkUpdate(req);
+        LOG.debug("Graph [{}] update edges: {}", graph, req);
+        checkUpdatingBody(req.jsonEdges);
+        checkBatchSize(config, req.jsonEdges);
+
+        HugeGraph g = graph(manager, graph);
+        Map<Id, JsonEdge> map = new HashMap<>(req.jsonEdges.size());
+        TriFunction<HugeGraph, Object, String, Vertex> getVertex =
+                    req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
+
+        return this.commit(config, g, map.size(), () -> {
+            // 1.Put all newEdges' properties into map (combine first)
+            req.jsonEdges.forEach(newEdge -> {
+                Id newEdgeId = getEdgeId(g, newEdge);
+                JsonEdge oldEdge = map.get(newEdgeId);
+                this.updateExistElement(oldEdge, newEdge,
+                                        req.updateStrategies);
+                map.put(newEdgeId, newEdge);
+            });
+
+            // 2.Get all oldEdges and update with new ones
+            Object[] ids = map.keySet().toArray();
+            Iterator<Edge> oldEdges = g.edges(ids);
+            oldEdges.forEachRemaining(oldEdge -> {
+                JsonEdge newEdge = map.get(oldEdge.id());
+                this.updateExistElement(g, oldEdge, newEdge,
+                                        req.updateStrategies);
+            });
+
+            // 3.Add all finalEdges
+            List<Edge> edges = new ArrayList<>(map.size());
+            map.values().forEach(finalEdge -> {
+                Vertex srcVertex = getVertex.apply(g, finalEdge.source,
+                                                   finalEdge.sourceLabel);
+                Vertex tgtVertex = getVertex.apply(g, finalEdge.target,
+                                                   finalEdge.targetLabel);
+                edges.add(srcVertex.addEdge(finalEdge.label, tgtVertex,
+                                            finalEdge.properties()));
+            });
+
+            // If return ids, the ids.size() maybe different with the origins'
+            return manager.serializer(g).writeEdges(edges.iterator(), false);
         });
     }
 
@@ -191,17 +251,7 @@ public class EdgeAPI extends BatchAPI {
                             id, key);
         }
 
-        commit(g, () -> {
-            for (Map.Entry<String, Object> e : jsonEdge.properties.entrySet()) {
-                String key = e.getKey();
-                Object value = e.getValue();
-                if (append) {
-                    edge.property(key, value);
-                } else {
-                    edge.property(key).remove();
-                }
-            }
-        });
+        commit(g, () -> updateProperties(edge, jsonEdge, append));
 
         return manager.serializer(g).writeEdge(edge);
     }
@@ -312,8 +362,12 @@ public class EdgeAPI extends BatchAPI {
         int max = config.get(ServerOptions.MAX_EDGES_PER_BATCH);
         if (edges.size() > max) {
             throw new IllegalArgumentException(String.format(
-                      "Too many counts of edges for one time post, " +
+                      "Too many edges for one time post, " +
                       "the maximum number is '%s'", max));
+        }
+        if (edges.size() == 0) {
+            throw new IllegalArgumentException(String.format(
+                      "The number of edges can't be 0"));
         }
     }
 
@@ -350,25 +404,77 @@ public class EdgeAPI extends BatchAPI {
         }
     }
 
-    @JsonIgnoreProperties(value = {"type"})
-    private static class JsonEdge implements Checkable {
+    private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
+        if (newEdge.id != null) {
+            return EdgeId.parse(newEdge.id.toString());
+        }
 
-        @JsonProperty("id")
-        public String id;
+        String sortKeys = "";
+        Id labelId = g.edgeLabel(newEdge.label).id();
+        List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
+        if (!sortKeyIds.isEmpty()) {
+            List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
+            sortKeyIds.forEach(skId -> {
+                String sortKey = g.propertyKey(skId).name();
+                Object sortKeyValue = newEdge.properties.get(sortKey);
+                E.checkArgument(sortKeyValue != null,
+                                "The value of sort key '%s' can't be null",
+                                sortKey);
+                sortKeyValues.add(sortKeyValue);
+            });
+            sortKeys = SplicingIdGenerator.concatValues(sortKeyValues);
+        }
+
+        // TODO: How to get Direction from JsonEdge easily? or any better way?
+        EdgeId edgeId = new EdgeId(HugeVertex.getIdValue(newEdge.source),
+                                   Directions.OUT, labelId, sortKeys,
+                                   HugeVertex.getIdValue(newEdge.target));
+        return edgeId;
+    }
+
+    protected static class BatchEdgeRequest {
+
+        @JsonProperty("edges")
+        public List<JsonEdge> jsonEdges;
+        @JsonProperty("update_strategies")
+        public Map<String, UpdateStrategy> updateStrategies;
+        @JsonProperty("check_vertex")
+        public boolean checkVertex = false;
+        @JsonProperty("create_if_not_exist")
+        public boolean createIfNotExist = true;
+
+        private static void checkUpdate(BatchEdgeRequest req) {
+            E.checkArgumentNotNull(req, "BatchEdgeRequest can't be null");
+            E.checkArgumentNotNull(req.jsonEdges,
+                                   "Parameter 'edges' can't be null");
+            E.checkArgument(req.updateStrategies != null &&
+                            !req.updateStrategies.isEmpty(),
+                            "Parameter 'update_strategies' can't be empty");
+            E.checkArgument(req.createIfNotExist == true,
+                            "Parameter 'create_if_not_exist' " +
+                            "dose not support false now");
+        }
+
+        @Override
+        public String toString() {
+            return String.format("BatchEdgeRequest{jsonEdges=%s," +
+                                 "updateStrategies=%s," +
+                                 "checkVertex=%s,createIfNotExist=%s}",
+                                 this.jsonEdges, this.updateStrategies,
+                                 this.checkVertex, this.createIfNotExist);
+        }
+    }
+
+    private static class JsonEdge extends JsonElement {
+
         @JsonProperty("outV")
         public Object source;
         @JsonProperty("outVLabel")
         public String sourceLabel;
-        @JsonProperty("label")
-        public String label;
         @JsonProperty("inV")
         public Object target;
         @JsonProperty("inVLabel")
         public String targetLabel;
-        @JsonProperty("properties")
-        public Map<String, Object> properties;
-        @JsonProperty("type")
-        public String type;
 
         @Override
         public void checkCreate(boolean isBatch) {
@@ -405,6 +511,7 @@ public class EdgeAPI extends BatchAPI {
             }
         }
 
+        @Override
         public Object[] properties() {
             return API.properties(this.properties);
         }

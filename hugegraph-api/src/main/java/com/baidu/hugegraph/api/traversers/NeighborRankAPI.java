@@ -144,7 +144,7 @@ public class NeighborRankAPI extends API {
                             "The degree must be > 0, but got: %s",
                             this.degree);
             E.checkArgument(this.top > 0 && this.top <= MAX_TOP,
-                            "The top of each layer cannot exceed %s", MAX_TOP);
+                            "The top of each layer can't exceed %s", MAX_TOP);
             Map<Id, String> labelIds = new HashMap<>();
             if (this.labels != null) {
                 for (String label : this.labels) {

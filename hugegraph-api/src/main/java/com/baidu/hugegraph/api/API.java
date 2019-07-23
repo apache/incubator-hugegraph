@@ -149,9 +149,19 @@ public class API {
                           Collection<? extends Checkable> bodys) {
         E.checkArgumentNotNull(bodys, "The request body can't be empty");
         for (Checkable body : bodys) {
+            E.checkArgument(body != null,
+                            "The batch body can't contain null record");
+            body.checkCreate(true);
+        }
+    }
+
+    protected static void checkUpdatingBody(
+                          Collection<? extends Checkable> bodys) {
+        E.checkArgumentNotNull(bodys, "The request body can't be empty");
+        for (Checkable body : bodys) {
             E.checkArgumentNotNull(body,
                                    "The batch body can't contain null record");
-            body.checkCreate(true);
+            body.checkUpdate();
         }
     }
 

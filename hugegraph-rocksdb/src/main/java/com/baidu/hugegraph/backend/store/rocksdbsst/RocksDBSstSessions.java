@@ -145,7 +145,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
 
     @Override
     protected synchronized void doClose() {
-        final String NO_ENTRIES = "Cannot create sst file with no entries";
+        final String NO_ENTRIES = "Can't create sst file with no entries";
 
         for (SstFileWriter sst : this.tables.values()) {
             E.checkState(sst.isOwningHandle(), "SstFileWriter closed");
