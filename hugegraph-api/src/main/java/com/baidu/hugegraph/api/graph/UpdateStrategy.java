@@ -77,7 +77,12 @@ public enum UpdateStrategy {
 
         @Override
         void checkPropertyType(Object oldProperty, Object newProperty) {
-            BIGGER.checkPropertyType(oldProperty, newProperty);
+            E.checkArgument((oldProperty instanceof Date ||
+                             oldProperty instanceof Number) &&
+                            (newProperty instanceof Date ||
+                             newProperty instanceof Number),
+                            this.formatError(oldProperty, newProperty,
+                                             "Date or Number"));
         }
     },
 
@@ -91,12 +96,7 @@ public enum UpdateStrategy {
         @Override
         void checkPropertyType(Object oldProperty, Object newProperty) {
             // JsonElements are always List-type, so allows two type now.
-            E.checkArgument((oldProperty instanceof Set ||
-                             oldProperty instanceof List) &&
-                            (newProperty instanceof Set ||
-                             newProperty instanceof List),
-                            this.formatError(oldProperty, newProperty,
-                                             "Set or List"));
+            this.checkCollectionType(oldProperty, newProperty);
         }
     },
 
@@ -108,7 +108,7 @@ public enum UpdateStrategy {
 
         @Override
         void checkPropertyType(Object oldProperty, Object newProperty) {
-            UNION.checkPropertyType(oldProperty, newProperty);
+            this.checkCollectionType(oldProperty, newProperty);
         }
     },
 
@@ -123,7 +123,7 @@ public enum UpdateStrategy {
 
         @Override
         void checkPropertyType(Object oldProperty, Object newProperty) {
-            UNION.checkPropertyType(oldProperty, newProperty);
+            this.checkCollectionType(oldProperty, newProperty);
         }
     },
 
@@ -137,7 +137,7 @@ public enum UpdateStrategy {
 
         @Override
         void checkPropertyType(Object oldProperty, Object newProperty) {
-            UNION.checkPropertyType(oldProperty, newProperty);
+            this.checkCollectionType(oldProperty, newProperty);
         }
     };
 
@@ -157,6 +157,16 @@ public enum UpdateStrategy {
                              "but got type %s, %s", className, this,
                              oldProperty.getClass().getSimpleName(),
                              newProperty.getClass().getSimpleName());
+    }
+
+    protected void checkCollectionType(Object oldProperty,
+                                       Object newProperty) {
+        E.checkArgument((oldProperty instanceof Set ||
+                         oldProperty instanceof List) &&
+                        (newProperty instanceof Set ||
+                         newProperty instanceof List),
+                        this.formatError(oldProperty, newProperty,
+                                         "Set or List"));
     }
 
     protected static Object compareNumber(Object oldProperty,
