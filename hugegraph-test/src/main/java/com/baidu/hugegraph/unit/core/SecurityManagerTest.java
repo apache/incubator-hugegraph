@@ -115,8 +115,7 @@ public class SecurityManagerTest {
     public void testFile() {
         // read file
         try (FileInputStream fis = new FileInputStream(new File(""))) {
-        } catch (IOException ignored) {
-        }
+        } catch (IOException ignored) {}
         String result = runGremlinJob("new FileInputStream(new File(\"\"))");
         assertError(result, "Not allowed to read file via Gremlin");
 
@@ -132,8 +131,7 @@ public class SecurityManagerTest {
 
         // write file
         try (FileOutputStream fos = new FileOutputStream(new File(""))) {
-        } catch (IOException ignored) {
-        }
+        } catch (IOException ignored) {}
         result = runGremlinJob("new FileOutputStream(new File(\"\"))");
         assertError(result, "Not allowed to write file via Gremlin");
 
@@ -170,8 +168,7 @@ public class SecurityManagerTest {
         try (Socket socket = new Socket()) {
             SocketAddress address = new InetSocketAddress("localhost", 8200);
             socket.connect(address);
-        } catch (ConnectException ignored) {
-        }
+        } catch (ConnectException ignored) {}
         result = runGremlinJob("new Socket().connect(" +
                                "new InetSocketAddress(\"localhost\", 8200))");
         assertError(result, "Not allowed to connect socket via Gremlin");
@@ -190,7 +187,7 @@ public class SecurityManagerTest {
 
         sm.checkMulticast(InetAddress.getByAddress(new byte[]{0, 0, 0, 0}),
                                                    (byte) 1);
-        result = runGremlinJob("bs = [0, 0, 0, 0] as byte[];ttl = (byte) 1;" +
+        result = runGremlinJob("bs = [0, 0, 0, 0] as byte[]; ttl = (byte) 1;" +
                                "System.getSecurityManager()" +
                                ".checkMulticast(InetAddress.getByAddress(" +
                                                 "bs), ttl)");
@@ -214,8 +211,7 @@ public class SecurityManagerTest {
     public void testLink() {
         try {
             System.loadLibrary("hugegraph.jar");
-        } catch (UnsatisfiedLinkError ignored) {
-        }
+        } catch (UnsatisfiedLinkError ignored) {}
 
         String result = runGremlinJob("Runtime.getRuntime().loadLibrary" +
                                       "(\"test.jar\")");
