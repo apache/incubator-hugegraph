@@ -79,16 +79,28 @@ public class SecurityManagerTest {
     }
 
     @Test
+    public void testPermission() {
+        String result = runGremlinJob("System.setSecurityManager(null)");
+        assertError(result,
+                    "Not allowed to access denied permission via Gremlin");
+    }
+
+    @Test
+    public void testClassLoader() {
+        String result = runGremlinJob("System.getSecurityManager()" +
+                                      ".checkCreateClassLoader()");
+        assertError(result, "Not allowed to create class loader via Gremlin");
+    }
+
+    @Test
     public void testThread() {
         // access thread group
         new Thread();
-
         String result = runGremlinJob("new Thread()");
         assertError(result, "Not allowed to access thread group via Gremlin");
 
         // access thread
         Thread.currentThread().checkAccess();
-
         result = runGremlinJob("Thread.currentThread().stop()");
         assertError(result, "Not allowed to access thread via Gremlin");
     }
