@@ -391,24 +391,41 @@ public class PaloTables {
         }
     }
 
-    public static class Range4Index extends RangeIndex {
+    public static class RangeIntIndex extends RangeIndex {
 
-        public static final String TABLE = "range4_indexes";
+        public static final String TABLE = "range_int_indexes";
 
-        public Range4Index(String store) {
+        public RangeIntIndex(String store) {
             super(store, TABLE);
         }
     }
 
-    public static class Range8Index extends RangeIndex {
+    public static class RangeFloatIndex extends RangeIndex {
 
-        public static final String TABLE = "range8_indexes";
+        public static final String TABLE = "range_float_indexes";
 
-        public Range8Index(String store) {
+        public RangeFloatIndex(String store) {
             super(store, TABLE);
         }
     }
 
+    public static class RangeLongIndex extends RangeIndex {
+
+        public static final String TABLE = "range_long_indexes";
+
+        public RangeLongIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class RangeDoubleIndex extends RangeIndex {
+
+        public static final String TABLE = "range_double_indexes";
+
+        public RangeDoubleIndex(String store) {
+            super(store, TABLE);
+        }
+    }
 
     public static class ShardIndex extends Index {
 

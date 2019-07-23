@@ -48,8 +48,10 @@ public enum HugeType implements SerialEnum {
     EDGE_IN(140, "I"),
 
     SECONDARY_INDEX(150, "SI"),
-    RANGE4_INDEX(160, "4I"),
-    RANGE8_INDEX(161, "8I"),
+    RANGE_INT_INDEX(160, "I4I"),
+    RANGE_FLOAT_INDEX(161, "F4I"),
+    RANGE_LONG_INDEX(162, "L8I"),
+    RANGE_DOUBLE_INDEX(163, "D8I"),
     SEARCH_INDEX(170, "FI"),
     SHARD_INDEX(175, "PI"),
 
@@ -113,8 +115,10 @@ public enum HugeType implements SerialEnum {
     public boolean isIndex() {
         return this == HugeType.SECONDARY_INDEX ||
                this == HugeType.SEARCH_INDEX ||
-               this == HugeType.RANGE4_INDEX ||
-               this == HugeType.RANGE8_INDEX ||
+               this == HugeType.RANGE_INT_INDEX ||
+               this == HugeType.RANGE_FLOAT_INDEX ||
+               this == HugeType.RANGE_LONG_INDEX ||
+               this == HugeType.RANGE_DOUBLE_INDEX ||
                this == HugeType.SHARD_INDEX;
     }
 
@@ -125,8 +129,10 @@ public enum HugeType implements SerialEnum {
     }
 
     public boolean isNumericIndex() {
-        return this == HugeType.RANGE4_INDEX ||
-               this == HugeType.RANGE8_INDEX ||
+        return this == HugeType.RANGE_INT_INDEX ||
+               this == HugeType.RANGE_FLOAT_INDEX ||
+               this == HugeType.RANGE_LONG_INDEX ||
+               this == HugeType.RANGE_DOUBLE_INDEX ||
                this == HugeType.SHARD_INDEX;
     }
 
@@ -139,8 +145,10 @@ public enum HugeType implements SerialEnum {
     }
 
     public boolean isRangeIndex() {
-        return this == HugeType.RANGE4_INDEX ||
-               this == HugeType.RANGE8_INDEX;
+        return this == HugeType.RANGE_INT_INDEX ||
+               this == HugeType.RANGE_FLOAT_INDEX ||
+               this == HugeType.RANGE_LONG_INDEX ||
+               this == HugeType.RANGE_DOUBLE_INDEX;
     }
 
     public boolean isShardIndex() {

@@ -260,20 +260,38 @@ public class RocksDBTables {
         }
     }
 
-    public static class Range4Index extends RangeIndex {
+    public static class RangeIntIndex extends RangeIndex {
 
-        public static final String TABLE = "4i";
+        public static final String TABLE = "i4i";
 
-        public Range4Index(String store) {
+        public RangeIntIndex(String store) {
             super(store, TABLE);
         }
     }
 
-    public static class Range8Index extends RangeIndex{
+    public static class RangeFloatIndex extends RangeIndex{
 
-        public static final String TABLE = "8i";
+        public static final String TABLE = "f4i";
 
-        public Range8Index(String store) {
+        public RangeFloatIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class RangeLongIndex extends RangeIndex {
+
+        public static final String TABLE = "l8i";
+
+        public RangeLongIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class RangeDoubleIndex extends RangeIndex{
+
+        public static final String TABLE = "d8i";
+
+        public RangeDoubleIndex(String store) {
             super(store, TABLE);
         }
     }

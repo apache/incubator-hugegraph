@@ -251,12 +251,20 @@ public class HbaseTables {
             super(joinTableName(store, table));
         }
 
-        public static RangeIndex range4(String store) {
-            return new RangeIndex(store, "4i");
+        public static RangeIndex rangeInt(String store) {
+            return new RangeIndex(store, "i4i");
         }
 
-        public static RangeIndex range8(String store) {
-            return new RangeIndex(store, "8i");
+        public static RangeIndex rangeFloat(String store) {
+            return new RangeIndex(store, "f4i");
+        }
+
+        public static RangeIndex rangeLong(String store) {
+            return new RangeIndex(store, "l8i");
+        }
+
+        public static RangeIndex rangeDouble(String store) {
+            return new RangeIndex(store, "d8i");
         }
     }
 

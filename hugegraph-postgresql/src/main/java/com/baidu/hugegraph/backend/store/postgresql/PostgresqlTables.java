@@ -19,14 +19,6 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.BOOLEAN;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.INT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.LARGE_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.MID_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.NUMERIC;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.SMALL_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.TINYINT;
-
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +36,14 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
+
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.BOOLEAN;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.INT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.LARGE_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.MID_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.NUMERIC;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.SMALL_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.TINYINT;
 
 public class PostgresqlTables {
 
@@ -190,25 +190,57 @@ public class PostgresqlTables {
         }
     }
 
-    public static class Range4Index extends PostgresqlTableTemplate {
+    public static class RangeIntIndex extends PostgresqlTableTemplate {
 
-        public Range4Index(String store) {
-            super(new MysqlTables.RangeIndex(store, TYPES_MAPPING));
+        public static final String TABLE = "range_int_indexes";
+
+        public RangeIntIndex(String store) {
+            super(new MysqlTables.RangeIntIndex(store, TABLE, TYPES_MAPPING));
         }
 
         protected final String entryId(MysqlBackendEntry entry) {
-            return ((MysqlTables.RangeIndex) this.template).entryId(entry);
+            return ((MysqlTables.RangeIntIndex) this.template).entryId(entry);
         }
     }
 
-    public static class Range8Index extends PostgresqlTableTemplate {
+    public static class RangeFloatIndex extends PostgresqlTableTemplate {
 
-        public Range8Index(String store) {
-            super(new MysqlTables.RangeIndex(store, TYPES_MAPPING));
+        public static final String TABLE = "range_float_indexes";
+
+        public RangeFloatIndex(String store) {
+            super(new MysqlTables.RangeFloatIndex(store, TABLE, TYPES_MAPPING));
         }
 
         protected final String entryId(MysqlBackendEntry entry) {
-            return ((MysqlTables.RangeIndex) this.template).entryId(entry);
+            return ((MysqlTables.RangeFloatIndex) this.template).entryId(entry);
+        }
+    }
+
+    public static class RangeLongIndex extends PostgresqlTableTemplate {
+
+        public static final String TABLE = "range_long_indexes";
+
+        public RangeLongIndex(String store) {
+            super(new MysqlTables.RangeLongIndex(store, TABLE, TYPES_MAPPING));
+        }
+
+        protected final String entryId(MysqlBackendEntry entry) {
+            return ((MysqlTables.RangeLongIndex) this.template).entryId(entry);
+        }
+    }
+
+    public static class RangeDoubleIndex extends PostgresqlTableTemplate {
+
+        public static final String TABLE = "range_double_indexes";
+
+        public RangeDoubleIndex(String store) {
+            super(new MysqlTables.RangeDoubleIndex(store, TABLE,
+                                                   TYPES_MAPPING));
+        }
+
+        protected final String entryId(MysqlBackendEntry entry) {
+            return ((MysqlTables.RangeDoubleIndex) this.template)
+                   .entryId(entry);
         }
     }
 

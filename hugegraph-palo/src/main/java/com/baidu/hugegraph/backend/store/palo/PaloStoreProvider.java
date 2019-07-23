@@ -116,10 +116,14 @@ public class PaloStoreProvider extends MysqlStoreProvider {
                                  new PaloTables.Edge(store, Directions.IN));
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new PaloTables.SecondaryIndex(store));
-            registerTableManager(HugeType.RANGE4_INDEX,
-                                 new PaloTables.Range4Index(store));
-            registerTableManager(HugeType.RANGE8_INDEX,
-                                 new PaloTables.Range8Index(store));
+            registerTableManager(HugeType.RANGE_INT_INDEX,
+                                 new PaloTables.RangeIntIndex(store));
+            registerTableManager(HugeType.RANGE_FLOAT_INDEX,
+                                 new PaloTables.RangeFloatIndex(store));
+            registerTableManager(HugeType.RANGE_LONG_INDEX,
+                                 new PaloTables.RangeLongIndex(store));
+            registerTableManager(HugeType.RANGE_DOUBLE_INDEX,
+                                 new PaloTables.RangeDoubleIndex(store));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new PaloTables.SearchIndex(store));
             registerTableManager(HugeType.SHARD_INDEX,

@@ -336,11 +336,23 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             E.checkArgument(dataType.isNumber() || dataType.isDate(),
                             "Range index can only build on numeric or " +
                             "date property, but got %s(%s)", dataType, field);
-            if (dataType.isNumber4()) {
-                this.indexType = IndexType.RANGE4;
-            } else {
-                assert dataType.isNumber8() || dataType.isDate();
-                this.indexType = IndexType.RANGE8;
+            switch (dataType) {
+                case BYTE:
+                case INT:
+                    this.indexType = IndexType.RANGE_INT;
+                    break;
+                case FLOAT:
+                    this.indexType = IndexType.RANGE_FLOAT;
+                    break;
+                case LONG:
+                case DATE:
+                    this.indexType = IndexType.RANGE_LONG;
+                    break;
+                case DOUBLE:
+                    this.indexType = IndexType.RANGE_DOUBLE;
+                    break;
+                default:
+                    throw new AssertionError("Invalid datatype: " + dataType);
             }
         }
 
@@ -362,8 +374,10 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     private void checkRepeatIndex(SchemaLabel schemaLabel) {
         this.checkPrimaryKeyIndex(schemaLabel);
         switch (this.indexType) {
-            case RANGE4:
-            case RANGE8:
+            case RANGE_INT:
+            case RANGE_FLOAT:
+            case RANGE_LONG:
+            case RANGE_DOUBLE:
                 this.checkRepeatRangeIndex(schemaLabel);
                 break;
             case SEARCH:
@@ -430,7 +444,10 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     private void checkRepeatRangeIndex(SchemaLabel schemaLabel) {
-        this.checkRepeatIndex(schemaLabel, IndexType.RANGE4, IndexType.RANGE8);
+        this.checkRepeatIndex(schemaLabel, IndexType.RANGE_INT,
+                              IndexType.RANGE_FLOAT,
+                              IndexType.RANGE_LONG,
+                              IndexType.RANGE_DOUBLE);
     }
 
     private void checkRepeatSearchIndex(SchemaLabel schemaLabel) {
@@ -438,13 +455,17 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     private void checkRepeatSecondaryIndex(SchemaLabel schemaLabel) {
-        this.checkRepeatIndex(schemaLabel, IndexType.RANGE4, IndexType.RANGE8,
-                              IndexType.SECONDARY, IndexType.SHARD);
+        this.checkRepeatIndex(schemaLabel, IndexType.RANGE_INT,
+                              IndexType.RANGE_FLOAT, IndexType.RANGE_LONG,
+                              IndexType.RANGE_DOUBLE, IndexType.SECONDARY,
+                              IndexType.SHARD);
     }
 
     private void checkRepeatShardIndex(SchemaLabel schemaLabel) {
         if (this.oneNumericField()) {
-            checkRepeatIndex(schemaLabel, IndexType.RANGE4, IndexType.RANGE8);
+            checkRepeatIndex(schemaLabel, IndexType.RANGE_INT,
+                             IndexType.RANGE_FLOAT, IndexType.RANGE_LONG,
+                             IndexType.RANGE_DOUBLE);
         } else if (this.allStringIndex(this.indexFields)) {
             this.checkRepeatIndex(schemaLabel, IndexType.SECONDARY,
                                   IndexType.SHARD);

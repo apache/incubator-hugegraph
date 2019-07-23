@@ -28,8 +28,10 @@ public enum IndexType implements SerialEnum {
 
     // For range query
     RANGE(2, "range"),
-    RANGE4(21, "range4"),
-    RANGE8(22, "range8"),
+    RANGE_INT(21, "range_int"),
+    RANGE_FLOAT(22, "range_float"),
+    RANGE_LONG(23, "range_long"),
+    RANGE_DOUBLE(24, "range_double"),
 
     // For full-text query (not supported now)
     SEARCH(3, "search"),
@@ -63,10 +65,14 @@ public enum IndexType implements SerialEnum {
         switch (this) {
             case SECONDARY:
                 return HugeType.SECONDARY_INDEX;
-            case RANGE4:
-                return HugeType.RANGE4_INDEX;
-            case RANGE8:
-                return HugeType.RANGE8_INDEX;
+            case RANGE_INT:
+                return HugeType.RANGE_INT_INDEX;
+            case RANGE_FLOAT:
+                return HugeType.RANGE_FLOAT_INDEX;
+            case RANGE_LONG:
+                return HugeType.RANGE_LONG_INDEX;
+            case RANGE_DOUBLE:
+                return HugeType.RANGE_DOUBLE_INDEX;
             case SEARCH:
                 return HugeType.SEARCH_INDEX;
             case SHARD:
@@ -78,6 +84,7 @@ public enum IndexType implements SerialEnum {
     }
 
     public boolean isRange() {
-        return this == RANGE4 || this == RANGE8;
+        return this == RANGE_INT || this == RANGE_FLOAT ||
+               this == RANGE_LONG || this == RANGE_DOUBLE;
     }
 }

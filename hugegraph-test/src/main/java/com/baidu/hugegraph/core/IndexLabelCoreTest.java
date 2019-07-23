@@ -77,7 +77,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertEquals(IndexType.SECONDARY, personByName.indexType());
         Assert.assertEquals(IndexType.SEARCH, personByCity.indexType());
-        Assert.assertEquals(IndexType.RANGE4, personByAge.indexType());
+        Assert.assertEquals(IndexType.RANGE_INT, personByAge.indexType());
     }
 
     @Test

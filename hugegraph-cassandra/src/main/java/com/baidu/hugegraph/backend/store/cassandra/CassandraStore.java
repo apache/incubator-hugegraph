@@ -582,10 +582,14 @@ public abstract class CassandraStore
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new CassandraTables.SecondaryIndex(store));
-            registerTableManager(HugeType.RANGE4_INDEX,
-                                 new CassandraTables.Range4Index(store));
-            registerTableManager(HugeType.RANGE8_INDEX,
-                                 new CassandraTables.Range8Index(store));
+            registerTableManager(HugeType.RANGE_INT_INDEX,
+                                 new CassandraTables.RangeIntIndex(store));
+            registerTableManager(HugeType.RANGE_FLOAT_INDEX,
+                                 new CassandraTables.RangeFloatIndex(store));
+            registerTableManager(HugeType.RANGE_LONG_INDEX,
+                                 new CassandraTables.RangeLongIndex(store));
+            registerTableManager(HugeType.RANGE_DOUBLE_INDEX,
+                                 new CassandraTables.RangeDoubleIndex(store));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new CassandraTables.SearchIndex(store));
             registerTableManager(HugeType.SHARD_INDEX,

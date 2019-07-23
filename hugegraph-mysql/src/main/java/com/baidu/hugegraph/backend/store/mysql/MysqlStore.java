@@ -385,10 +385,14 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new MysqlTables.SecondaryIndex(store));
-            registerTableManager(HugeType.RANGE4_INDEX,
-                                 new MysqlTables.Range4Index(store));
-            registerTableManager(HugeType.RANGE8_INDEX,
-                                 new MysqlTables.Range8Index(store));
+            registerTableManager(HugeType.RANGE_INT_INDEX,
+                                 new MysqlTables.RangeIntIndex(store));
+            registerTableManager(HugeType.RANGE_FLOAT_INDEX,
+                                 new MysqlTables.RangeFloatIndex(store));
+            registerTableManager(HugeType.RANGE_LONG_INDEX,
+                                 new MysqlTables.RangeLongIndex(store));
+            registerTableManager(HugeType.RANGE_DOUBLE_INDEX,
+                                 new MysqlTables.RangeDoubleIndex(store));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new MysqlTables.SearchIndex(store));
             registerTableManager(HugeType.SHARD_INDEX,

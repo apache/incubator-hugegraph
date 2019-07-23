@@ -767,8 +767,10 @@ public class BinarySerializer extends AbstractSerializer {
                 buffer.write(IdGenerator.of(id.asString()).asBytes());
                 entry.column(buffer.bytes(), null);
                 break;
-            case RANGE4_INDEX:
-            case RANGE8_INDEX:
+            case RANGE_INT_INDEX:
+            case RANGE_FLOAT_INDEX:
+            case RANGE_LONG_INDEX:
+            case RANGE_DOUBLE_INDEX:
                 buffer = BytesBuffer.allocate(4);
                 buffer.writeInt((int) id.asLong());
                 entry.column(buffer.bytes(), null);

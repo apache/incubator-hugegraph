@@ -145,8 +145,10 @@ public class HugeIndex implements GraphType {
                  * index label in front(hugegraph-1317)
                  */
                 return SplicingIdGenerator.splicing(indexLabel.asString(), v);
-            case RANGE4_INDEX:
-            case RANGE8_INDEX:
+            case RANGE_INT_INDEX:
+            case RANGE_FLOAT_INDEX:
+            case RANGE_LONG_INDEX:
+            case RANGE_DOUBLE_INDEX:
                 BytesBuffer buffer = BytesBuffer.allocate(16);
                 buffer.writeInt((int) indexLabel.asLong());
                 if (fieldValues != null) {
@@ -177,8 +179,10 @@ public class HugeIndex implements GraphType {
                 indexLabel = IndexLabel.label(graph, label);
                 values = parts[1];
                 break;
-            case RANGE4_INDEX:
-            case RANGE8_INDEX:
+            case RANGE_INT_INDEX:
+            case RANGE_FLOAT_INDEX:
+            case RANGE_LONG_INDEX:
+            case RANGE_DOUBLE_INDEX:
                 final int labelLength = 4;
                 E.checkState(id.length > labelLength, "Invalid range index id");
                 BytesBuffer buffer = BytesBuffer.wrap(id);

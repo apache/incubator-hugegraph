@@ -48,8 +48,7 @@ public class MysqlTables {
     public static final String BOOLEAN = "BOOLEAN";
     public static final String TINYINT = "TINYINT";
     public static final String INT = "INT";
-    public static final String FLOAT = "FLOAT";
-    public static final String DOUBLE = "DOUBLE";
+    public static final String BIGINT = "BIGINT";
     public static final String NUMERIC = "DOUBLE";
     public static final String SMALL_TEXT = "SMALL_TEXT";
     public static final String MID_TEXT = "MID_TEXT";
@@ -445,12 +444,13 @@ public class MysqlTables {
 
         public static final String TABLE = "range_indexes";
 
-        public RangeIndex(String store) {
-            this(store, TYPES_MAPPING);
+        public RangeIndex(String store, String table) {
+            this(store, table, TYPES_MAPPING);
         }
 
-        public RangeIndex(String store, Map<String, String> typesMapping) {
-            super(joinTableName(store, TABLE));
+        public RangeIndex(String store, String table,
+                          Map<String, String> typesMapping) {
+            super(joinTableName(store, table));
 
             this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
@@ -470,21 +470,91 @@ public class MysqlTables {
         }
     }
 
-    public static class Range4Index extends RangeIndex {
+    public static class RangeIntIndex extends RangeIndex {
 
-        public static final String TABLE = "range4_indexes";
+        public static final String TABLE = "range_int_indexes";
 
-        public Range4Index(String store) {
-            super(store, TYPES_MAPPING);
+        public RangeIntIndex(String store) {
+            this(store, TABLE, TYPES_MAPPING);
+        }
+
+        public RangeIntIndex(String store, String table,
+                             Map<String, String> typesMapping) {
+            super(store, table);
+
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
+            this.define.column(HugeKeys.FIELD_VALUES, INT);
+            this.define.column(HugeKeys.ELEMENT_IDS, SMALL_TEXT);
+            this.define.keys(HugeKeys.INDEX_LABEL_ID,
+                             HugeKeys.FIELD_VALUES,
+                             HugeKeys.ELEMENT_IDS);
         }
     }
 
-    public static class Range8Index extends RangeIndex {
+    public static class RangeFloatIndex extends RangeIndex {
 
-        public static final String TABLE = "range8_indexes";
+        public static final String TABLE = "range_float_indexes";
 
-        public Range8Index(String store) {
-            super(store, TYPES_MAPPING);
+        public RangeFloatIndex(String store) {
+            this(store, TABLE, TYPES_MAPPING);
+        }
+
+        public RangeFloatIndex(String store, String table,
+                               Map<String, String> typesMapping) {
+            super(store, table);
+
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
+            this.define.column(HugeKeys.FIELD_VALUES, NUMERIC);
+            this.define.column(HugeKeys.ELEMENT_IDS, SMALL_TEXT);
+            this.define.keys(HugeKeys.INDEX_LABEL_ID,
+                             HugeKeys.FIELD_VALUES,
+                             HugeKeys.ELEMENT_IDS);
+        }
+    }
+
+    public static class RangeLongIndex extends RangeIndex {
+
+        public static final String TABLE = "range_long_indexes";
+
+        public RangeLongIndex(String store) {
+            this(store, TABLE, TYPES_MAPPING);
+        }
+
+        public RangeLongIndex(String store, String table,
+                              Map<String, String> typesMapping) {
+            super(store, table);
+
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
+            this.define.column(HugeKeys.FIELD_VALUES, BIGINT);
+            this.define.column(HugeKeys.ELEMENT_IDS, SMALL_TEXT);
+            this.define.keys(HugeKeys.INDEX_LABEL_ID,
+                             HugeKeys.FIELD_VALUES,
+                             HugeKeys.ELEMENT_IDS);
+        }
+    }
+
+    public static class RangeDoubleIndex extends RangeIndex {
+
+        public static final String TABLE = "range_double_indexes";
+
+        public RangeDoubleIndex(String store) {
+            this(store, TABLE, TYPES_MAPPING);
+        }
+
+        public RangeDoubleIndex(String store, String table,
+                                Map<String, String> typesMapping) {
+            super(store, table);
+
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.INDEX_LABEL_ID, DATATYPE_IL);
+            this.define.column(HugeKeys.FIELD_VALUES, NUMERIC);
+            this.define.column(HugeKeys.ELEMENT_IDS, SMALL_TEXT);
+            this.define.keys(HugeKeys.INDEX_LABEL_ID,
+                             HugeKeys.FIELD_VALUES,
+                             HugeKeys.ELEMENT_IDS);
         }
     }
 

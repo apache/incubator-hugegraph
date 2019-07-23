@@ -175,8 +175,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Update index for each index type
         switch (indexLabel.indexType()) {
-            case RANGE4:
-            case RANGE8:
+            case RANGE_INT:
+            case RANGE_FLOAT:
+            case RANGE_LONG:
+            case RANGE_DOUBLE:
                 E.checkState(propValues.size() == 1,
                              "Expect only one property in range index");
                 Object value = NumericUtil.convertToNumber(propValues.get(0));
@@ -897,8 +899,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
                 indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
                 break;
-            case RANGE4:
-            case RANGE8:
+            case RANGE_INT:
+            case RANGE_FLOAT:
+            case RANGE_LONG:
+            case RANGE_DOUBLE:
                 if (query.userpropConditions().size() > 2) {
                     throw new BackendException(
                               "Range query has two conditions at most, " +

@@ -689,21 +689,95 @@ public class CassandraTables {
         }
     }
 
-    public static class Range4Index extends RangeIndex {
+    public static class RangeIntIndex extends RangeIndex {
 
-        public static final String TABLE = "range4_indexes";
+        public static final String TABLE = "range_int_indexes";
 
-        public Range4Index(String store) {
+        public RangeIntIndex(String store) {
             super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.cint(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
         }
     }
 
-    public static class Range8Index extends RangeIndex {
+    public static class RangeFloatIndex extends RangeIndex {
 
-        public static final String TABLE = "range8_indexes";
+        public static final String TABLE = "range_float_indexes";
 
-        public Range8Index(String store) {
+        public RangeFloatIndex(String store) {
             super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.cfloat(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+    }
+
+    public static class RangeLongIndex extends RangeIndex {
+
+        public static final String TABLE = "range_long_indexes";
+
+        public RangeLongIndex(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.bigint(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+    }
+
+    public static class RangeDoubleIndex extends RangeIndex {
+
+        public static final String TABLE = "range_double_indexes";
+
+        public RangeDoubleIndex(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.cdouble(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
         }
     }
 

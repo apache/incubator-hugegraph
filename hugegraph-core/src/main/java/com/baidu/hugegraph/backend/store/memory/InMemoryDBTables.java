@@ -555,12 +555,20 @@ public class InMemoryDBTables {
             }
         }
 
-        public static RangeIndex range4() {
-            return new RangeIndex(HugeType.RANGE4_INDEX);
+        public static RangeIndex rangeInt() {
+            return new RangeIndex(HugeType.RANGE_INT_INDEX);
         }
 
-        public static RangeIndex range8() {
-            return new RangeIndex(HugeType.RANGE8_INDEX);
+        public static RangeIndex rangeFloat() {
+            return new RangeIndex(HugeType.RANGE_FLOAT_INDEX);
+        }
+
+        public static RangeIndex rangeLong() {
+            return new RangeIndex(HugeType.RANGE_LONG_INDEX);
+        }
+
+        public static RangeIndex rangeDouble() {
+            return new RangeIndex(HugeType.RANGE_DOUBLE_INDEX);
         }
     }
 

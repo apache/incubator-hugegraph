@@ -435,11 +435,13 @@ public final class BytesBuffer {
     public BinaryId readIndexId(HugeType type) {
         byte[] id;
         switch (type) {
-            case RANGE4_INDEX:
+            case RANGE_INT_INDEX:
+            case RANGE_FLOAT_INDEX:
                 // IndexLabel 4 bytes + fieldValue 4 bytes
                 id = this.read(8);
                 break;
-            case RANGE8_INDEX:
+            case RANGE_LONG_INDEX:
+            case RANGE_DOUBLE_INDEX:
                 // IndexLabel 4 bytes + fieldValue 8 bytes
                 id = this.read(12);
                 break;
