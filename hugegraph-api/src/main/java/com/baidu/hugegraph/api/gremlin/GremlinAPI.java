@@ -28,19 +28,14 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.glassfish.jersey.client.ClientConfig;
-
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.api.filter.CompressInterceptor;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -73,57 +68,18 @@ public class GremlinAPI extends API {
     @Context
     private javax.inject.Provider<HugeConfig> configProvider;
 
-    private Client client;
+    private GremlinClient client;
 
-    public Client client() {
+    public GremlinClient client() {
         if (this.client != null) {
             return this.client;
         }
         HugeConfig config = this.configProvider.get();
+        String url = config.get(ServerOptions.GREMLIN_SERVER_URL);
         int timeout = config.get(ServerOptions.GREMLIN_SERVER_TIMEOUT) * 1000;
-        ClientConfig clientConfig = new ClientConfig();
-        clientConfig.property("jersey.config.client.connectTimeout", timeout);
-        clientConfig.property("jersey.config.client.readTimeout", timeout);
-        this.client = ClientBuilder.newClient(clientConfig);
+        int maxRoutes = config.get(ServerOptions.GREMLIN_SERVER_MAX_ROUTE);
+        this.client = new GremlinClient(url, timeout, maxRoutes, maxRoutes);
         return this.client;
-    }
-
-    private Response doGetRequest(String location, String auth, String query) {
-        String url = String.format("%s?%s", location, query);
-        Response r = this.client().target(url)
-                                  .request()
-                                  .header(HttpHeaders.AUTHORIZATION, auth)
-                                  .accept(MediaType.APPLICATION_JSON)
-                                  .acceptEncoding(CompressInterceptor.GZIP)
-                                  .get();
-        if (r.getMediaType() != null) {
-            // Append charset
-            assert MediaType.APPLICATION_JSON_TYPE.equals(r.getMediaType());
-            r.getHeaders().putSingle(HttpHeaders.CONTENT_TYPE,
-                                     r.getMediaType().withCharset(CHARSET));
-        }
-        gremlinInputHistogram.update(query.length());
-        gremlinOutputHistogram.update(r.getLength());
-        return r;
-    }
-
-    private Response doPostRequest(String location, String auth, String req) {
-        Entity<?> body = Entity.entity(req, MediaType.APPLICATION_JSON);
-        Response r = this.client().target(location)
-                                  .request()
-                                  .header(HttpHeaders.AUTHORIZATION, auth)
-                                  .accept(MediaType.APPLICATION_JSON)
-                                  .acceptEncoding(CompressInterceptor.GZIP)
-                                  .post(body);
-        if (r.getMediaType() != null) {
-            // Append charset
-            assert MediaType.APPLICATION_JSON_TYPE.equals(r.getMediaType());
-            r.getHeaders().putSingle(HttpHeaders.CONTENT_TYPE,
-                                     r.getMediaType().withCharset(CHARSET));
-        }
-        gremlinInputHistogram.update(req.length());
-        gremlinOutputHistogram.update(r.getLength());
-        return r;
     }
 
     @POST
@@ -140,9 +96,10 @@ public class GremlinAPI extends API {
         // .build();
         // Response.temporaryRedirect(UriBuilder.fromUri(location).build())
         // .build();
-        String location = conf.get(ServerOptions.GREMLIN_SERVER_URL);
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
-        Response response = doPostRequest(location, auth, request);
+        Response response = this.client().doPostRequest(auth, request);
+        gremlinInputHistogram.update(request.length());
+        gremlinOutputHistogram.update(response.getLength());
         return transformResponseIfNeeded(response);
     }
 
@@ -153,21 +110,30 @@ public class GremlinAPI extends API {
     public Response get(@Context HugeConfig conf,
                         @Context HttpHeaders headers,
                         @Context UriInfo uriInfo) {
-        String location = conf.get(ServerOptions.GREMLIN_SERVER_URL);
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         String query = uriInfo.getRequestUri().getRawQuery();
-        Response response = doGetRequest(location, auth, query);
+        MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
+        Response response = this.client().doGetRequest(auth, params);
+        gremlinInputHistogram.update(query.length());
+        gremlinOutputHistogram.update(response.getLength());
         return transformResponseIfNeeded(response);
     }
 
     private static Response transformResponseIfNeeded(Response response) {
+        MediaType mediaType = response.getMediaType();
+        if (mediaType != null) {
+            // Append charset
+            assert MediaType.APPLICATION_JSON_TYPE.equals(mediaType);
+            response.getHeaders().putSingle(HttpHeaders.CONTENT_TYPE,
+                                            mediaType.withCharset(CHARSET));
+        }
+
         Response.StatusType status = response.getStatusInfo();
         if (status.getStatusCode() < 400) {
             // No need to transform if normal response without error
             return response;
         }
 
-        MediaType mediaType = response.getMediaType();
         if (mediaType == null || !JSON.equals(mediaType.getSubtype())) {
             String message = response.readEntity(String.class);
             throw new HugeGremlinException(status.getStatusCode(),

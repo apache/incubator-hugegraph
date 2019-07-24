@@ -100,6 +100,14 @@ public class ServerOptions extends OptionHolder {
                     30
             );
 
+    public static final ConfigOption<Integer> GREMLIN_SERVER_MAX_ROUTE =
+            new ConfigOption<>(
+                    "gremlinserver.max_route",
+                    "The max route number for gremlin server.",
+                    positiveInt(),
+                    2 * Runtime.getRuntime().availableProcessors()
+            );
+
     public static final ConfigListOption<String> GRAPHS =
             new ConfigListOption<>(
                     "graphs",
