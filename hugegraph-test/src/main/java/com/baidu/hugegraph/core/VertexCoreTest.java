@@ -2217,7 +2217,6 @@ public class VertexCoreTest extends BaseCoreTest {
                         "lived", "San Francisco Bay Area");
         graph.tx().commit();
 
-
         // By authorByLivedSearch index
         List<Vertex> vertices = graph.traversal().V()
                                      .hasLabel("author")

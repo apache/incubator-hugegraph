@@ -966,7 +966,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         prefixEqualFieldsCount++;
                         Object value = r.value();
                         if (NumericUtil.isNumber(value) ||
-                                value instanceof Date) {
+                            value instanceof Date) {
                             value = LongEncoding.encodeNumber(value);
                         }
                         prefixes.add(value);
@@ -990,8 +990,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     // Prefix equal condition processed, continue to next field
                     continue root;
                 }
-                conditions.add(shardFieldValuesCondition(
-                        key, prefixes, r.value(), r.relation()));
+                conditions.add(shardFieldValuesCondition(key, prefixes,
+                                                         r.value(),
+                                                         r.relation()));
             }
             break;
         }
