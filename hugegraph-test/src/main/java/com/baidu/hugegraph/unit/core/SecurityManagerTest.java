@@ -199,11 +199,12 @@ public class SecurityManagerTest {
     }
 
     @Test
-    public void testExec() throws IOException {
-        Runtime.getRuntime().exec("ls");
+    public void testExec() throws IOException, InterruptedException {
+        Process process = Runtime.getRuntime().exec("ls");
+        process.waitFor();
 
         String result = runGremlinJob("process=Runtime.getRuntime().exec(" +
-                                      "'cat /etc/passwd'); process.waitFor()");
+                                      "'ls'); process.waitFor()");
         assertError(result, "Not allowed to execute command via Gremlin");
     }
 
@@ -246,7 +247,7 @@ public class SecurityManagerTest {
         String result = runGremlinJob("System.getSecurityManager()" +
                                       ".checkSystemClipboardAccess()");
         assertError(result,
-                    "Not allowed to access sysytem clipboard via Gremlin");
+                    "Not allowed to access system clipboard via Gremlin");
     }
 
     @Test

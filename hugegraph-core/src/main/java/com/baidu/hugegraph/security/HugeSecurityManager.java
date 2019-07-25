@@ -267,7 +267,7 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkSystemClipboardAccess() {
         if (callFromGremlin()) {
             throw new SecurityException(
-                      "Not allowed to access sysytem clipboard via Gremlin");
+                      "Not allowed to access system clipboard via Gremlin");
         }
         super.checkSystemClipboardAccess();
     }
