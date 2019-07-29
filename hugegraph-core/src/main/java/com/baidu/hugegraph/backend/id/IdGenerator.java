@@ -40,7 +40,7 @@ public abstract class IdGenerator {
     }
 
     public final static Id of(String id, boolean uuid) {
-        return uuid ? new Uuid(id) : new StringId(id);
+        return uuid ? new UuidId(id) : new StringId(id);
     }
 
     public final static Id of(long id) {
@@ -52,7 +52,7 @@ public abstract class IdGenerator {
             case LONG:
                 return new LongId(bytes);
             case UUID:
-                return new Uuid(bytes);
+                return new UuidId(bytes);
             case STRING:
                 return new StringId(bytes);
             default:
@@ -263,19 +263,19 @@ public abstract class IdGenerator {
         }
     }
 
-    public static final class Uuid implements Id {
+    public static final class UuidId implements Id {
 
         private final UUID uuid;
 
-        public Uuid(String string) {
+        public UuidId(String string) {
             this(fromString(string));
         }
 
-        public Uuid(byte[] bytes) {
+        public UuidId(byte[] bytes) {
             this(fromBytes(bytes));
         }
 
-        public Uuid(UUID uuid) {
+        public UuidId(UUID uuid) {
             E.checkArgument(uuid != null, "The uuid can't be null");
             this.uuid = uuid;
         }
@@ -336,8 +336,8 @@ public abstract class IdGenerator {
         @Override
         public int compareTo(Id other) {
             E.checkNotNull(other, "compare id");
-            if (other instanceof Uuid) {
-                return this.uuid.compareTo(((Uuid) other).uuid);
+            if (other instanceof UuidId) {
+                return this.uuid.compareTo(((UuidId) other).uuid);
             }
             return Bytes.compare(this.asBytes(), other.asBytes());
         }
@@ -349,10 +349,10 @@ public abstract class IdGenerator {
 
         @Override
         public boolean equals(Object other) {
-            if (!(other instanceof Uuid)) {
+            if (!(other instanceof UuidId)) {
                 return false;
             }
-            return this.uuid.equals(((Uuid) other).uuid);
+            return this.uuid.equals(((UuidId) other).uuid);
         }
 
         @Override
