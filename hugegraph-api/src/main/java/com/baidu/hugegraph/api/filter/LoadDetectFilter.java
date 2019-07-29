@@ -67,6 +67,17 @@ public class LoadDetectFilter implements ContainerRequestFilter {
         }
 
         HugeConfig config = this.configProvider.get();
+
+        int maxWorkerThreads = config.get(ServerOptions.MAX_WORKER_THREADS);
+        WorkLoad load = this.loadProvider.get();
+        // There will be a thread doesn't work, dedicated to statistics
+        if (load.incrementAndGet() >= maxWorkerThreads) {
+            throw new ServiceUnavailableException(String.format(
+                      "The server is too busy to process the request, " +
+                      "you can config %s to adjust it or try again later",
+                      ServerOptions.MAX_WORKER_THREADS.name()));
+        }
+
         long minFreeMemory = config.get(ServerOptions.MIN_FREE_MEMORY);
         long allocatedMem = Runtime.getRuntime().totalMemory() -
                             Runtime.getRuntime().freeMemory();
@@ -80,16 +91,6 @@ public class LoadDetectFilter implements ContainerRequestFilter {
                       "you can config %s to adjust it or try again later",
                       presumableFreeMem, minFreeMemory,
                       ServerOptions.MIN_FREE_MEMORY.name()));
-        }
-
-        int maxWorkerThreads = config.get(ServerOptions.MAX_WORKER_THREADS);
-        WorkLoad load = this.loadProvider.get();
-        // There will be a thread doesn't work, dedicated to statistics
-        if (load.incrementAndGet() >= maxWorkerThreads) {
-            throw new ServiceUnavailableException(String.format(
-                      "The server is too busy to process the request, " +
-                      "you can config %s to adjust it or try again later",
-                      ServerOptions.MAX_WORKER_THREADS.name()));
         }
     }
 

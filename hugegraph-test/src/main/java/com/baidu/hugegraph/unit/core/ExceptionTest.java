@@ -17,36 +17,29 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api;
+package com.baidu.hugegraph.unit.core;
 
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
 import org.junit.Test;
 
+import com.baidu.hugegraph.exception.HugeGremlinException;
 import com.baidu.hugegraph.testutil.Assert;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class GremlinApiTest extends BaseApiTest {
-
-    private static String path = "/gremlin";
+public class ExceptionTest {
 
     @Test
-    public void testPost() {
-        String body = "{"
-                + "\"gremlin\":\"g.V()\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
-        Assert.assertEquals(200, client().post(path, body).getStatus());
-    }
-
-    @Test
-    public void testGet() {
-        Map<String, Object> params = ImmutableMap.of("gremlin",
-                                     "hugegraph.traversal().V()");
-        Response r = client().get(path, params);
-        Assert.assertEquals(r.readEntity(String.class), 200, r.getStatus());
+    public void testHugeGremlinException() {
+        Map<String, Object> response = ImmutableMap.of(
+                "message", "Not allowed to call System.exit() via Gremlin",
+                "Exception-Class", "java.lang.SecurityException",
+                "exceptions", ImmutableList.of("java.lang.SecurityException"),
+                "stackTrace", ""
+        );
+        HugeGremlinException e = new HugeGremlinException(200, response);
+        Assert.assertEquals(200, e.statusCode());
+        Assert.assertEquals(response, e.response());
     }
 }

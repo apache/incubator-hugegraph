@@ -33,8 +33,10 @@ import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
 import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.EdgeIdTest;
+import com.baidu.hugegraph.unit.core.ExceptionTest;
 import com.baidu.hugegraph.unit.core.LocksTableTest;
 import com.baidu.hugegraph.unit.core.QueryTest;
+import com.baidu.hugegraph.unit.core.SecurityManagerTest;
 import com.baidu.hugegraph.unit.core.SerialEnumTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
@@ -62,6 +64,8 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     BackendMutationTest.class,
     ConditionQueryFlattenTest.class,
     QueryTest.class,
+    SecurityManagerTest.class,
+    ExceptionTest.class,
 
     /* cassandra */
     CassandraTest.class,

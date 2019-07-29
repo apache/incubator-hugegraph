@@ -171,7 +171,7 @@ public class GremlinAPI extends API {
         @JsonProperty
         private Map<String, Object> bindings = new HashMap<>();
         @JsonProperty
-        private String language;
+        private String language = "gremlin-groovy";
         @JsonProperty
         private Map<String, String> aliases = new HashMap<>();
 
