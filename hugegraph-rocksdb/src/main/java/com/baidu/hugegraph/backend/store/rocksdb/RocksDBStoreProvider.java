@@ -53,7 +53,8 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
          * [1.1] HugeGraph-1322: add support for full-text search
          * [1.2] #296: support range sortKey feature
          * [1.3] #270 & #398: support shard-index and vertex + sortkey prefix,
-         *                    also split range table to range4 and range8
+         *                    also split range table to rangeInt, rangeFloat,
+         *                    rangeLong and rangeDouble
          */
         return "1.3";
     }

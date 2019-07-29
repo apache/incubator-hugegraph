@@ -57,17 +57,10 @@ public final class BytesBuffer {
     public static final long ID_MAX = Long.MAX_VALUE >> 3;
     public static final long ID_MASK = 0x0fffffffffffffffL;
 
-<<<<<<< HEAD
-    // The value must be in range [8, 127(ID_LEN_MAX)]
-    public static final int INDEX_ID_MAX_LENGTH = 32;
-    public static final byte INDEX_ID_SUFFIX_BYTE = (byte) 0xff;
-    public static final byte SORT_KEYS_SUFFIX_BYTE = INDEX_ID_SUFFIX_BYTE;
-=======
     public static final byte STRING_ENDING_BYTE = (byte) 0xff;
 
-    // The value must be in range [8, 128(ID_LEN_MAX)]
+    // The value must be in range [8, 127(ID_LEN_MAX)]
     public static final int INDEX_HASH_ID_THRESHOLD = 32;
->>>>>>> spilt range table to  range4&range8 tables
 
     public static final int DEFAULT_CAPACITY = 64;
     public static final int MAX_BUFFER_CAPACITY = 128 * 1024 * 1024; // 128M
