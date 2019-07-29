@@ -746,7 +746,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithCustomizeUuidStrategy() {
+    public void testAddVertexWithCustomizeUuidIdStrategy() {
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
@@ -786,7 +786,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithCustomizeUuidStrategyWithoutValidId() {
+    public void testAddVertexWithCustomizeUuidIdStrategyWithoutValidId() {
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 

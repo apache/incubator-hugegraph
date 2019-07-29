@@ -46,14 +46,15 @@ public final class BytesBuffer {
     public static final int UINT16_MAX = ((short) -1) & 0xffff;
     public static final long UINT32_MAX = (-1) & 0xffffffffL;
 
-    public static final int ID_MAX_LEN = UINT8_MAX & 0x7f; // 127
-    public static final int BIG_ID_MAX_LEN = UINT16_MAX & 0x7fff; // 32767
+    // NOTE: +1 to let code 0 represent length 1
+    public static final int ID_MAX_LEN = UINT8_MAX & 0x7e + 1; // 127
+    public static final int BIG_ID_MAX_LEN = UINT16_MAX & 0x7eff + 1; // 32512
 
     public static final long ID_MIN = Long.MIN_VALUE >> 3;
     public static final long ID_MAX = Long.MAX_VALUE >> 3;
     public static final long ID_MASK = 0x0fffffffffffffffL;
 
-    // The value must be in range [8, 128(ID_MAX_LEN)]
+    // The value must be in range [8, 127(ID_MAX_LEN)]
     public static final int INDEX_ID_MAX_LENGTH = 32;
 
     public static final int DEFAULT_CAPACITY = 64;
