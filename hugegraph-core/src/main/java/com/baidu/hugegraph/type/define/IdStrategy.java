@@ -29,7 +29,9 @@ public enum IdStrategy implements SerialEnum {
 
     CUSTOMIZE_STRING(3, "customize_string"),
 
-    CUSTOMIZE_NUMBER(4, "customize_number");
+    CUSTOMIZE_NUMBER(4, "customize_number"),
+
+    CUSTOMIZE_UUID(5, "customize_uuid");
 
     private byte code = 0;
     private String name = null;
@@ -62,6 +64,8 @@ public enum IdStrategy implements SerialEnum {
     }
 
     public boolean isCustomized() {
-        return this == CUSTOMIZE_STRING || this == CUSTOMIZE_NUMBER;
+        return this == CUSTOMIZE_STRING ||
+               this == CUSTOMIZE_NUMBER ||
+               this == CUSTOMIZE_UUID;
     }
 }

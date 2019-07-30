@@ -95,40 +95,46 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .properties("name", "age", "city")
-                             .create();
+                                   .properties("name", "age", "city")
+                                   .create();
         Assert.assertEquals(IdStrategy.AUTOMATIC, person.idStrategy());
 
         VertexLabel person1 = schema.vertexLabel("person1")
-                              .useAutomaticId()
-                              .properties("name", "age", "city")
-                              .create();
+                                    .useAutomaticId()
+                                    .properties("name", "age", "city")
+                                    .create();
         Assert.assertEquals(IdStrategy.AUTOMATIC, person1.idStrategy());
 
         VertexLabel person2 = schema.vertexLabel("person2")
-                              .useCustomizeStringId()
-                              .properties("name", "age", "city")
-                              .create();
+                                    .useCustomizeStringId()
+                                    .properties("name", "age", "city")
+                                    .create();
         Assert.assertEquals(IdStrategy.CUSTOMIZE_STRING, person2.idStrategy());
 
         VertexLabel person3 = schema.vertexLabel("person3")
-                              .useCustomizeNumberId()
-                              .properties("name", "age", "city")
-                              .create();
+                                    .useCustomizeNumberId()
+                                    .properties("name", "age", "city")
+                                    .create();
         Assert.assertEquals(IdStrategy.CUSTOMIZE_NUMBER, person3.idStrategy());
 
         VertexLabel person4 = schema.vertexLabel("person4")
-                              .properties("name", "age", "city")
-                              .primaryKeys("name")
-                              .create();
-        Assert.assertEquals(IdStrategy.PRIMARY_KEY, person4.idStrategy());
+                                    .useCustomizeUUid()
+                                    .properties("name", "age", "city")
+                                    .create();
+        Assert.assertEquals(IdStrategy.CUSTOMIZE_UUID, person4.idStrategy());
 
         VertexLabel person5 = schema.vertexLabel("person5")
-                              .usePrimaryKeyId()
-                              .properties("name", "age", "city")
-                              .primaryKeys("name")
-                              .create();
+                                    .properties("name", "age", "city")
+                                    .primaryKeys("name")
+                                    .create();
         Assert.assertEquals(IdStrategy.PRIMARY_KEY, person5.idStrategy());
+
+        VertexLabel person6 = schema.vertexLabel("person6")
+                                    .usePrimaryKeyId()
+                                    .properties("name", "age", "city")
+                                    .primaryKeys("name")
+                                    .create();
+        Assert.assertEquals(IdStrategy.PRIMARY_KEY, person6.idStrategy());
     }
 
     @Test
@@ -137,20 +143,20 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph.schema();
 
         VertexLabel person1 = schema.vertexLabel("person1")
-                              .useAutomaticId()
-                              .create();
+                                    .useAutomaticId()
+                                    .create();
         Assert.assertEquals(IdStrategy.AUTOMATIC, person1.idStrategy());
         Assert.assertTrue(person1.properties().isEmpty());
 
         VertexLabel person2 = schema.vertexLabel("person2")
-                              .useCustomizeStringId()
-                              .create();
+                                    .useCustomizeStringId()
+                                    .create();
         Assert.assertEquals(IdStrategy.CUSTOMIZE_STRING, person2.idStrategy());
         Assert.assertTrue(person2.properties().isEmpty());
 
         VertexLabel person3 = schema.vertexLabel("person3")
-                              .useCustomizeNumberId()
-                              .create();
+                                    .useCustomizeNumberId()
+                                    .create();
         Assert.assertEquals(IdStrategy.CUSTOMIZE_NUMBER, person3.idStrategy());
         Assert.assertTrue(person3.properties().isEmpty());
     }
@@ -230,9 +236,9 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph.schema();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .properties("name", "age")
-                             .primaryKeys("name")
-                             .create();
+                                   .properties("name", "age")
+                                   .primaryKeys("name")
+                                   .create();
         Assert.assertEquals(IdStrategy.PRIMARY_KEY, person.idStrategy());
     }
 
@@ -243,8 +249,8 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph.schema();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .properties("name", "age")
-                             .create();
+                                   .properties("name", "age")
+                                   .create();
         Assert.assertEquals(IdStrategy.AUTOMATIC, person.idStrategy());
     }
 
@@ -269,9 +275,9 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph.schema();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .useAutomaticId()
-                             .properties("name", "age")
-                             .create();
+                                   .useAutomaticId()
+                                   .properties("name", "age")
+                                   .create();
         Assert.assertEquals(IdStrategy.AUTOMATIC, person.idStrategy());
     }
 
@@ -282,15 +288,15 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph.schema();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .useCustomizeStringId()
-                             .properties("name", "age")
-                             .create();
+                                   .useCustomizeStringId()
+                                   .properties("name", "age")
+                                   .create();
         Assert.assertEquals(IdStrategy.CUSTOMIZE_STRING, person.idStrategy());
 
         VertexLabel player = schema.vertexLabel("player")
-                             .useCustomizeNumberId()
-                             .properties("name", "age")
-                             .create();
+                                   .useCustomizeNumberId()
+                                   .properties("name", "age")
+                                   .create();
         Assert.assertEquals(IdStrategy.CUSTOMIZE_NUMBER, player.idStrategy());
     }
 
@@ -301,10 +307,10 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph.schema();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .usePrimaryKeyId()
-                             .properties("name", "age")
-                             .primaryKeys("name")
-                             .create();
+                                   .usePrimaryKeyId()
+                                   .properties("name", "age")
+                                   .primaryKeys("name")
+                                   .create();
         Assert.assertEquals(IdStrategy.PRIMARY_KEY, person.idStrategy());
     }
 
@@ -327,9 +333,9 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .properties("name", "age", "city")
-                             .primaryKeys("name", "age")
-                             .create();
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name", "age")
+                                   .create();
 
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());

@@ -44,7 +44,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.Id.IdType;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
@@ -649,9 +649,9 @@ public class VertexCoreTest extends BaseCoreTest {
 
         List<Vertex> vertices = graph.traversal().V("123456").toList();
         Assert.assertEquals(1, vertices.size());
-        Object id = vertices.get(0).id();
-        Assert.assertEquals(IdGenerator.StringId.class, id.getClass());
-        Assert.assertEquals("123456", ((IdGenerator.StringId) id).asString());
+        Id id = (Id) vertices.get(0).id();
+        Assert.assertEquals(IdType.STRING, id.type());
+        Assert.assertEquals("123456", id.asString());
         assertContains(vertices,
                        T.label, "programmer", "name", "marko",
                        "age", 18, "city", "Beijing");
@@ -700,27 +700,26 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "programmer", T.id, 123456, "name", "marko",
                         "age", 18, "city", "Beijing");
         graph.addVertex(T.label, "programmer", T.id, 61695499031416832L,
-                        "name", "marko", "age", 18, "city", "Beijing");
+                        "name", "marko", "age", 19, "city", "Beijing");
         graph.tx().commit();
 
         List<Vertex> vertices = graph.traversal().V(123456).toList();
         Assert.assertEquals(1, vertices.size());
-        Object id = vertices.get(0).id();
-        Assert.assertEquals(IdGenerator.LongId.class, id.getClass());
-        Assert.assertEquals(123456, ((IdGenerator.LongId) id).asLong());
+        Id id = (Id) vertices.get(0).id();
+        Assert.assertEquals(IdType.LONG, id.type());
+        Assert.assertEquals(123456, id.asLong());
         assertContains(vertices,
                        T.label, "programmer", "name", "marko",
                        "age", 18, "city", "Beijing");
 
         vertices = graph.traversal().V(61695499031416832L).toList();
         Assert.assertEquals(1, vertices.size());
-        id = vertices.get(0).id();
-        Assert.assertEquals(IdGenerator.LongId.class, id.getClass());
-        Assert.assertEquals(61695499031416832L,
-                            ((IdGenerator.LongId) id).asLong());
+        id = (Id) vertices.get(0).id();
+        Assert.assertEquals(IdType.LONG, id.type());
+        Assert.assertEquals(61695499031416832L, id.asLong());
         assertContains(vertices,
                        T.label, "programmer", "name", "marko",
-                       "age", 18, "city", "Beijing");
+                       "age", 19, "city", "Beijing");
     }
 
     @Test
@@ -740,6 +739,75 @@ public class VertexCoreTest extends BaseCoreTest {
         });
 
         // Expect number id, but got string id
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "programmer", T.id, "123456",
+                            "name", "marko", "age", 18, "city", "Beijing");
+        });
+    }
+
+    @Test
+    public void testAddVertexWithCustomizeUuidIdStrategy() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .useCustomizeUUid()
+              .properties("name", "age", "city")
+              .create();
+        graph.addVertex(T.label, "programmer",
+                        T.id, "835e1153-9281-4957-8691-cf79258e90eb",
+                        "name", "marko", "age", 18, "city", "Beijing");
+        graph.addVertex(T.label, "programmer",
+                        T.id, "835e1153928149578691cf79258e90ee",
+                        "name", "marko", "age", 19, "city", "Beijing");
+        graph.tx().commit();
+
+        Object uuid = Text.uuid("835e1153928149578691cf79258e90eb");
+        List<Vertex> vertices = graph.traversal().V(uuid).toList();
+        Assert.assertEquals(1, vertices.size());
+        Id id = (Id) vertices.get(0).id();
+        Assert.assertEquals(IdType.UUID, id.type());
+        Assert.assertEquals("835e1153-9281-4957-8691-cf79258e90eb",
+                            id.asString());
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 18, "city", "Beijing");
+
+        uuid = Text.uuid("835e1153-9281-4957-8691-cf79258e90ee");
+        vertices = graph.traversal().V(uuid).toList();
+        Assert.assertEquals(1, vertices.size());
+        id = (Id) vertices.get(0).id();
+        Assert.assertEquals(IdType.UUID, id.type());
+        Assert.assertEquals("835e1153-9281-4957-8691-cf79258e90ee",
+                            id.asString());
+        assertContains(vertices,
+                       T.label, "programmer", "name", "marko",
+                       "age", 19, "city", "Beijing");
+    }
+
+    @Test
+    public void testAddVertexWithCustomizeUuidIdStrategyWithoutValidId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .useCustomizeUUid()
+              .properties("name", "age", "city")
+              .create();
+
+        // Expect id, but no id
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "programmer", "name", "marko",
+                            "age", 18, "city", "Beijing");
+        });
+
+        // Expect uuid id, but got number id
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "programmer", T.id, 123456,
+                            "name", "marko", "age", 18, "city", "Beijing");
+        });
+
+        // Expect uuid id, but got invalid string id
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "programmer", T.id, "123456",
                             "name", "marko", "age", 18, "city", "Beijing");

@@ -31,6 +31,7 @@ import org.apache.tinkerpop.shaded.kryo.io.Output;
 
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.Id.IdType;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -87,7 +88,7 @@ public class HugeGryoModule {
 
         @Override
         public void write(Kryo kryo, Output output, Id id) {
-            output.writeBoolean(id.number());
+            output.writeByte(id.type().ordinal());
             byte[] idBytes = id.asBytes();
             output.write(idBytes.length);
             output.writeBytes(id.asBytes());
@@ -95,10 +96,10 @@ public class HugeGryoModule {
 
         @Override
         public Id read(Kryo kryo, Input input, Class<Id> clazz) {
-            boolean number = input.readBoolean();
+            int type = input.readByteUnsigned();
             int length = input.read();
             byte[] idBytes = input.readBytes(length);
-            return IdGenerator.of(idBytes, number);
+            return IdGenerator.of(idBytes, IdType.values()[type]);
         }
     }
 

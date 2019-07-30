@@ -172,8 +172,8 @@ public class BinaryBackendEntry implements BackendEntry {
         }
 
         @Override
-        public boolean number() {
-            return false;
+        public IdType type() {
+            return IdType.UNKNOWN;
         }
 
         @Override

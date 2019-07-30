@@ -1107,6 +1107,7 @@ public class GraphTransaction extends IndexableTransaction {
                 }
                 break;
             case CUSTOMIZE_STRING:
+            case CUSTOMIZE_UUID:
                 E.checkArgument(id != null && !id.number(),
                                 "Must customize vertex string id when " +
                                 "id strategy is '%s' for vertex label '%s'",

@@ -21,6 +21,8 @@ package com.baidu.hugegraph.backend.id;
 
 public interface Id extends Comparable<Id> {
 
+    public static final int UUID_LENGTH = 16;
+
     public Object asObject();
 
     public String asString();
@@ -31,5 +33,24 @@ public interface Id extends Comparable<Id> {
 
     public int length();
 
-    public boolean number();
+    public IdType type();
+
+    public default boolean number() {
+        return this.type() == IdType.LONG;
+    }
+
+    public default boolean uuid() {
+        return this.type() == IdType.UUID;
+    }
+
+    public default boolean string() {
+        return this.type() == IdType.STRING;
+    }
+
+    public enum IdType {
+        UNKNOWN,
+        LONG,
+        UUID,
+        STRING,
+    }
 }
