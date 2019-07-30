@@ -173,7 +173,7 @@ public class BinaryBackendEntry implements BackendEntry {
 
         @Override
         public IdType type() {
-            return IdType.UNKONW;
+            return IdType.UNKNOWN;
         }
 
         @Override

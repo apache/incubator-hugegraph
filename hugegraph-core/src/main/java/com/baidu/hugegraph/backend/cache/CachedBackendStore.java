@@ -167,7 +167,7 @@ public class CachedBackendStore implements BackendStore {
 
         @Override
         public IdType type() {
-            return IdType.UNKONW;
+            return IdType.UNKNOWN;
         }
 
         @Override

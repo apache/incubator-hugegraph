@@ -66,7 +66,7 @@ public abstract class IdGenerator {
                 return of(LongEncoding.decode(id));
             case UUID:
                 byte[] bytes = Base64.getDecoder().decode(id);
-                return of(bytes, type);
+                return of(bytes, IdType.UUID);
             case STRING:
                 return of(id);
             default:

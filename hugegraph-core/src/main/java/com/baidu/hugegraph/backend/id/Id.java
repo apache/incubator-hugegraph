@@ -48,7 +48,7 @@ public interface Id extends Comparable<Id> {
     }
 
     public enum IdType {
-        UNKONW,
+        UNKNOWN,
         LONG,
         UUID,
         STRING,
