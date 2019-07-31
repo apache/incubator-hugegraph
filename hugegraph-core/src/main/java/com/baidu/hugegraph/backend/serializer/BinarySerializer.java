@@ -759,25 +759,16 @@ public class BinarySerializer extends AbstractSerializer {
         Id id = index.indexLabel();
         BinaryId bid = new BinaryId(id.asBytes(), id);
         BinaryBackendEntry entry = new BinaryBackendEntry(index.type(), bid);
-        switch (index.type()) {
-            case SECONDARY_INDEX:
-            case SEARCH_INDEX:
-            case SHARD_INDEX:
-                BytesBuffer buffer = BytesBuffer.allocate(id.length());
-                buffer.write(IdGenerator.of(id.asString()).asBytes());
-                entry.column(buffer.bytes(), null);
-                break;
-            case RANGE_INT_INDEX:
-            case RANGE_FLOAT_INDEX:
-            case RANGE_LONG_INDEX:
-            case RANGE_DOUBLE_INDEX:
-                buffer = BytesBuffer.allocate(4);
-                buffer.writeInt((int) id.asLong());
-                entry.column(buffer.bytes(), null);
-                break;
-            default:
-                throw new AssertionError("Invalid index type " + index.type());
-
+        if (index.type().isStringIndex()) {
+            byte[] idBytes = IdGenerator.of(id.asString()).asBytes();
+            BytesBuffer buffer = BytesBuffer.allocate(idBytes.length);
+            buffer.write(idBytes);
+            entry.column(buffer.bytes(), null);
+        } else {
+            assert index.type().isRangeIndex();
+            BytesBuffer buffer = BytesBuffer.allocate(4);
+            buffer.writeInt((int) id.asLong());
+            entry.column(buffer.bytes(), null);
         }
         return entry;
     }

@@ -48,12 +48,12 @@ public enum HugeType implements SerialEnum {
     EDGE_IN(140, "I"),
 
     SECONDARY_INDEX(150, "SI"),
-    RANGE_INT_INDEX(160, "I4I"),
-    RANGE_FLOAT_INDEX(161, "F4I"),
-    RANGE_LONG_INDEX(162, "L8I"),
-    RANGE_DOUBLE_INDEX(163, "D8I"),
-    SEARCH_INDEX(170, "FI"),
-    SHARD_INDEX(175, "PI"),
+    RANGE_INT_INDEX(160, "II"),
+    RANGE_FLOAT_INDEX(161, "FI"),
+    RANGE_LONG_INDEX(162, "LI"),
+    RANGE_DOUBLE_INDEX(163, "DI"),
+    SEARCH_INDEX(170, "EI"),
+    SHARD_INDEX(175, "HI"),
 
     TASK(180, "T"),
 
@@ -148,6 +148,16 @@ public enum HugeType implements SerialEnum {
         return this == HugeType.RANGE_INT_INDEX ||
                this == HugeType.RANGE_FLOAT_INDEX ||
                this == HugeType.RANGE_LONG_INDEX ||
+               this == HugeType.RANGE_DOUBLE_INDEX;
+    }
+
+    public boolean isRange4Index() {
+        return this == HugeType.RANGE_INT_INDEX ||
+               this == HugeType.RANGE_FLOAT_INDEX;
+    }
+
+    public boolean isRange8Index() {
+        return this == HugeType.RANGE_LONG_INDEX ||
                this == HugeType.RANGE_DOUBLE_INDEX;
     }
 

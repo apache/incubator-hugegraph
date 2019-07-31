@@ -49,6 +49,7 @@ import com.baidu.hugegraph.backend.page.PageIds;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
+import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
@@ -610,18 +611,16 @@ public class GraphIndexTransaction extends AbstractTransaction {
              * For range-index or search-index there must be only one condition.
              * The following terms are legal:
              *   1.hasSearchCondition and IndexType.SEARCH
-             *   2.hasRangeCondition and IndexType.RANGE4 or IndexType.RANGE8
+             *   2.hasRangeCondition and IndexType.RANGE
              *   3.not hasRangeCondition but has range-index equal-condition
              *   4.secondary (composite) index
              */
             IndexType indexType = indexLabel.indexType();
-            if ((reqiureSearch && indexType != IndexType.SEARCH) ||
-                (!reqiureSearch && indexType == IndexType.SEARCH)) {
+            if ((reqiureSearch && !indexType.isSearch()) ||
+                (!reqiureSearch && indexType.isSearch())) {
                 continue;
             }
-            if (reqiureRange &&
-                !indexLabel.indexType().isRange() &&
-                indexLabel.indexType() != IndexType.SHARD) {
+            if (reqiureRange && !indexType.isNumeric()) {
                 continue;
             }
             return ImmutableSet.of(indexLabel);
@@ -996,32 +995,30 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
             break;
         }
+        /*
+         * Can't have conditions after range condition for shard index,
+         * but SORT_KEYS can have redundant conditions because upper
+         * layer can do filter.
+         */
+        if (key == HugeKeys.FIELD_VALUES &&
+            processedCondCount < query.userpropKeys().size()) {
+            throw new HugeException("Invalid shard index query: %s", query);
+        }
         // 1. First range condition processed, finish shard query conditions
         if (hasRange) {
+            Number num;
             if (keyMin == null) {
                 assert keyMax != null;
-                Number num = NumericUtil.minValueOf(
-                             NumericUtil.isNumber(keyMax) ?
-                             keyMax.getClass() : Long.class);
+                num = NumericUtil.minValueOf(NumericUtil.isNumber(keyMax) ?
+                                             keyMax.getClass() : Long.class);
                 conditions.add(shardFieldValuesCondition(
-                               key, prefixes, num, Condition.RelationType.GTE));
+                               key, prefixes, num, RelationType.GTE));
             }
             if (keyMax == null) {
-                Number num = NumericUtil.maxValueOf(
-                             NumericUtil.isNumber(keyMin) ?
-                             keyMin.getClass() : Long.class);
+                num = NumericUtil.maxValueOf(NumericUtil.isNumber(keyMin) ?
+                                             keyMin.getClass() : Long.class);
                 conditions.add(shardFieldValuesCondition(
-                               key, prefixes, num, Condition.RelationType.LTE));
-            }
-
-            if (key == HugeKeys.FIELD_VALUES &&
-                processedCondCount < query.userpropKeys().size()) {
-                /*
-                 * Can't have conditions after range condition for shard index,
-                 * but SORT_KEYS can have redundant conditions because upper
-                 * layer can do filter.
-                 */
-                throw new HugeException("Invalid shard index query: %s", query);
+                               key, prefixes, num, RelationType.LTE));
             }
             return conditions;
         }
@@ -1030,10 +1027,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // 2.1 All fields have equal-conditions
         if (prefixEqualFieldsCount == fields.size()) {
             joinedValues = SplicingIdGenerator.concatValues(prefixes);
-            Condition eq = new Condition.SyspropRelation(
-                               key, Condition.RelationType.EQ,
-                               joinedValues);
-            conditions.add(eq);
+            conditions.add(Condition.eq(key, joinedValues));
             return conditions;
         }
         // 2.2 Prefix fields have equal-conditions
@@ -1043,27 +1037,25 @@ public class GraphIndexTransaction extends AbstractTransaction {
          */
         prefixes.add(Strings.EMPTY);
         joinedValues = SplicingIdGenerator.concatValues(prefixes);
-        Condition min = new Condition.SyspropRelation(
-                            key, Condition.RelationType.GTE, joinedValues);
+        Condition min = Condition.gte(key, joinedValues);
         conditions.add(min);
 
         // Increase one on prefix to get next
-        String next = increaseString(joinedValues);
-        Condition max = new Condition.SyspropRelation(
-                            key, Condition.RelationType.LT, next);
+        Condition max = Condition.lt(key, increaseString(joinedValues));
         conditions.add(max);
         return conditions;
     }
 
-    private static Relation shardFieldValuesCondition(
-                            HugeKeys key, List<Object> prefixes, Object number,
-                            Condition.RelationType type) {
+    private static Relation shardFieldValuesCondition(HugeKeys key,
+                                                      List<Object> prefixes,
+                                                      Object number,
+                                                      RelationType type) {
         String num = LongEncoding.encodeNumber(number);
-        if (type == Condition.RelationType.LTE) {
-            type = Condition.RelationType.LT;
+        if (type == RelationType.LTE) {
+            type = RelationType.LT;
             num = increaseString(num);
-        } else if (type == Condition.RelationType.GT) {
-            type = Condition.RelationType.GTE;
+        } else if (type == RelationType.GT) {
+            type = RelationType.GTE;
             num = increaseString(num);
         }
         List<Object> values = new ArrayList<>(prefixes);

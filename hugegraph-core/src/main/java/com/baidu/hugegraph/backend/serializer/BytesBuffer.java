@@ -409,15 +409,12 @@ public final class BytesBuffer {
 
         this.write(bytes);
         if (type.isStringIndex()) {
-            // TODO: use Bytes.contains() instead
             // Not allow '0xff' exist in string index id
-            for (byte b : bytes) {
-                E.checkArgument(b != STRING_ENDING_BYTE,
-                                "The %s type index id can't contains " +
-                                "byte '0x%s', but got: 0x%s", type,
-                                Integer.toHexString(STRING_ENDING_BYTE),
-                                Bytes.toHex(bytes));
-            }
+            E.checkArgument(!Bytes.contains(bytes, STRING_ENDING_BYTE),
+                            "The %s type index id can't contains " +
+                            "byte '0x%s', but got: 0x%s", type,
+                            Integer.toHexString(STRING_ENDING_BYTE),
+                            Bytes.toHex(bytes));
             if (withEnding) {
                 this.write(STRING_ENDING_BYTE);
             }

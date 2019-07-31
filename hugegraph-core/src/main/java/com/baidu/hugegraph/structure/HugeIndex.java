@@ -135,32 +135,25 @@ public class HugeIndex implements GraphType {
 
     public static Id formatIndexId(HugeType type, Id indexLabel,
                                    Object fieldValues) {
-        switch (type) {
-            case SHARD_INDEX:
-            case SEARCH_INDEX:
-            case SECONDARY_INDEX:
-                String v = fieldValues == null ? "" : fieldValues.toString();
-                /*
-                 * Modify order between index label and field-values to put the
-                 * index label in front(hugegraph-1317)
-                 */
-                return SplicingIdGenerator.splicing(indexLabel.asString(), v);
-            case RANGE_INT_INDEX:
-            case RANGE_FLOAT_INDEX:
-            case RANGE_LONG_INDEX:
-            case RANGE_DOUBLE_INDEX:
-                BytesBuffer buffer = BytesBuffer.allocate(16);
-                buffer.writeInt((int) indexLabel.asLong());
-                if (fieldValues != null) {
-                    E.checkState(fieldValues instanceof Number,
-                                 "Field value of range index must be number:" +
-                                 " %s", fieldValues.getClass().getSimpleName());
-                    byte[] bytes = number2bytes((Number) fieldValues);
-                    buffer.write(bytes);
-                }
-                return buffer.asId();
-            default:
-                throw new AssertionError("Invalid index type " + type);
+        if (type.isStringIndex()) {
+            String v = fieldValues == null ? "" : fieldValues.toString();
+            /*
+             * Modify order between index label and field-values to put the
+             * index label in front(hugegraph-1317)
+             */
+            return SplicingIdGenerator.splicing(indexLabel.asString(), v);
+        } else {
+            int length = type.isRange4Index() ? 4 : 8;
+            BytesBuffer buffer = BytesBuffer.allocate(4 + length);
+            buffer.writeInt((int) indexLabel.asLong());
+            if (fieldValues != null) {
+                E.checkState(fieldValues instanceof Number,
+                             "Field value of range index must be number:" +
+                             " %s", fieldValues.getClass().getSimpleName());
+                byte[] bytes = number2bytes((Number) fieldValues);
+                buffer.write(bytes);
+            }
+            return buffer.asId();
         }
     }
 
@@ -168,38 +161,27 @@ public class HugeIndex implements GraphType {
                                          byte[] id) {
         Object values;
         IndexLabel indexLabel;
-        switch (type) {
-            case SEARCH_INDEX:
-            case SECONDARY_INDEX:
-            case SHARD_INDEX:
-                Id idObject = IdGenerator.of(id, IdType.STRING);
-                String[] parts = SplicingIdGenerator.parse(idObject);
-                E.checkState(parts.length == 2, "Invalid secondary index id");
-                Id label = SchemaElement.schemaId(parts[0]);
-                indexLabel = IndexLabel.label(graph, label);
-                values = parts[1];
-                break;
-            case RANGE_INT_INDEX:
-            case RANGE_FLOAT_INDEX:
-            case RANGE_LONG_INDEX:
-            case RANGE_DOUBLE_INDEX:
-                final int labelLength = 4;
-                E.checkState(id.length > labelLength, "Invalid range index id");
-                BytesBuffer buffer = BytesBuffer.wrap(id);
-                label = IdGenerator.of(buffer.readInt());
-                indexLabel = IndexLabel.label(graph, label);
-                List<Id> fields = indexLabel.indexFields();
-                E.checkState(fields.size() == 1, "Invalid range index fields");
-                DataType dataType = graph.propertyKey(fields.get(0)).dataType();
-                E.checkState(dataType.isNumber() || dataType.isDate(),
-                             "Invalid range index field type");
-                Class<?> clazz = dataType.isNumber() ?
-                                 dataType.clazz() :
-                                 DataType.LONG.clazz();
-                values = bytes2number(buffer.read(id.length - labelLength), clazz);
-                break;
-            default:
-                throw new AssertionError("Invalid index type " + type);
+        if (type.isStringIndex()) {
+            Id idObject = IdGenerator.of(id, IdType.STRING);
+            String[] parts = SplicingIdGenerator.parse(idObject);
+            E.checkState(parts.length == 2, "Invalid secondary index id");
+            Id label = SchemaElement.schemaId(parts[0]);
+            indexLabel = IndexLabel.label(graph, label);
+            values = parts[1];
+        } else {
+            final int labelLength = 4;
+            E.checkState(id.length > labelLength, "Invalid range index id");
+            BytesBuffer buffer = BytesBuffer.wrap(id);
+            Id label = IdGenerator.of(buffer.readInt());
+            indexLabel = IndexLabel.label(graph, label);
+            List<Id> fields = indexLabel.indexFields();
+            E.checkState(fields.size() == 1, "Invalid range index fields");
+            DataType dataType = graph.propertyKey(fields.get(0)).dataType();
+            E.checkState(dataType.isNumber() || dataType.isDate(),
+                         "Invalid range index field type");
+            Class<?> clazz = dataType.isNumber() ?
+                             dataType.clazz() : DataType.LONG.clazz();
+            values = bytes2number(buffer.read(id.length - labelLength), clazz);
         }
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(values);

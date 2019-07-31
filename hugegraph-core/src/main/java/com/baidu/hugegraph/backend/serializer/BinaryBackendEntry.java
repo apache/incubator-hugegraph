@@ -42,12 +42,9 @@ public class BinaryBackendEntry implements BackendEntry {
     private final List<BackendColumn> columns;
 
     public BinaryBackendEntry(HugeType type, byte[] bytes) {
-        this.id = type.isIndex() ?
-                  BytesBuffer.wrap(bytes).readIndexId(type) :
-                  BytesBuffer.wrap(bytes).parseId();
-        this.type = type;
-        this.subId = null;
-        this.columns = new ArrayList<>();
+        this(type, type.isIndex() ?
+                   BytesBuffer.wrap(bytes).readIndexId(type) :
+                   BytesBuffer.wrap(bytes).parseId());
     }
 
     public BinaryBackendEntry(HugeType type, BinaryId id) {
