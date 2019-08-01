@@ -3,14 +3,14 @@
 abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [ -h "$SOURCE" ]; do
-        DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+        DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
         SOURCE="$(readlink "$SOURCE")"
         [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
     done
-    echo "$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    echo "$(cd -P "$(dirname "$SOURCE")" && pwd)"
 }
 
-if [[ $# != 3 ]] ; then
+if [[ $# -lt 3 ]]; then
     echo "USAGE: $0 GREMLIN_SERVER_CONF REST_SERVER_CONF OPEN_SECURITY_CHECK"
     echo " e.g.: $0 conf/gremlin-server.yaml conf/rest-server.properties true"
     exit 1;
@@ -19,8 +19,9 @@ fi
 GREMLIN_SERVER_CONF="$1"
 REST_SERVER_CONF="$2"
 OPEN_SECURITY_CHECK="$3"
+GC_OPTION="$4"
 
-BIN=`abs_path`
+BIN=$(abs_path)
 TOP="$(cd $BIN/../ && pwd)"
 CONF="$TOP/conf"
 LIB="$TOP/lib"
@@ -36,8 +37,8 @@ ensure_path_writable $LOG
 ensure_path_writable $PLUGINS
 
 # The maximum and minium heap memory that service can use
-MAX_MEM=$[32*1024]
-MIN_MEM=$[1*512]
+MAX_MEM=$((32 * 1024))
+MIN_MEM=$((1 * 512))
 EXPECT_JDK_VERSION=1.8
 
 # Add the slf4j-log4j12 binding
@@ -62,45 +63,53 @@ export CLASSPATH="${CLASSPATH:-}:$CP"
 cd ${TOP}
 
 # Find Java
-if [ "$JAVA_HOME" = "" ] ; then
+if [ "$JAVA_HOME" = "" ]; then
     JAVA="java -server"
 else
     JAVA="$JAVA_HOME/bin/java -server"
 fi
 
-JAVA_VERSION=`$JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}' \
-              | awk -F'_' '{print $1}'`
+JAVA_VERSION=$($JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}' \
+              | awk -F'_' '{print $1}')
 if [[ $? -ne 0 || $JAVA_VERSION < $EXPECT_JDK_VERSION ]]; then
     echo "Please make sure that the JDK is installed and the version >= $EXPECT_JDK_VERSION" \
-    >> ${OUTPUT}
+         >> ${OUTPUT}
     exit 1
 fi
 
 # Set Java options
-if [ "$JAVA_OPTIONS" = "" ] ; then
-    XMX=`calc_xmx $MIN_MEM $MAX_MEM`
+if [ "$JAVA_OPTIONS" = "" ]; then
+    XMX=$(calc_xmx $MIN_MEM $MAX_MEM)
     if [ $? -ne 0 ]; then
         echo "Failed to start HugeGraphServer, requires at least ${MIN_MEM}m free memory" \
-        >> ${OUTPUT}
+             >> ${OUTPUT}
         exit 1
     fi
     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -javaagent:$LIB/jamm-0.3.0.jar"
     
-    # Using G1GC as the default garbage collector (Recommended for large memory machines)
-    #JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
-    #              -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
-
     # Rolling out detailed GC logs
     #JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseGCLogFileRotation -XX:GCLogFileSize=10M -XX:NumberOfGCLogFiles=3 \
     #              -Xloggc:./logs/gc.log -XX:+PrintHeapAtGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
 fi
 
+# Using G1GC as the default garbage collector (Recommended for large memory machines)
+case "$GC_OPTION" in
+    g1)
+        echo "Using G1GC as the default garbage collector"
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
+                      -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
+        ;;
+    *)
+        echo "Unrecognized gc option: '$GC_OPTION', only support 'g1' now" >> ${OUTPUT}
+        exit 1
+esac
+
 JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml"
-if [[ ${OPEN_SECURITY_CHECK} == "true" ]] ; then
+if [[ ${OPEN_SECURITY_CHECK} == "true" ]]; then
     JVM_OPTIONS="${JVM_OPTIONS} -Djava.security.manager=com.baidu.hugegraph.security.HugeSecurityManager"
 fi
 
 # Turn on security check
 exec ${JAVA} -Dname="HugeGraphServer" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
--cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} \
->> ${OUTPUT} 2>&1
+     -cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} \
+     >> ${OUTPUT} 2>&1
