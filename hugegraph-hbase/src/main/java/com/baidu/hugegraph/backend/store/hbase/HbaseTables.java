@@ -45,8 +45,8 @@ public class HbaseTables {
 
     public static class Counters extends HbaseTable {
 
-        private static final String TABLE = "c";
-        private static final byte[] COL = Bytes.toBytes("c");
+        private static final String TABLE = HugeType.COUNTER.string();
+        private static final byte[] COL = Bytes.toBytes(TABLE);
 
         public Counters() {
             super(TABLE);
@@ -72,7 +72,7 @@ public class HbaseTables {
 
     public static class VertexLabel extends HbaseTable {
 
-        public static final String TABLE = "vl";
+        public static final String TABLE = HugeType.VERTEX_LABEL.string();
 
         public VertexLabel() {
             super(TABLE);
@@ -81,7 +81,7 @@ public class HbaseTables {
 
     public static class EdgeLabel extends HbaseTable {
 
-        public static final String TABLE = "el";
+        public static final String TABLE = HugeType.EDGE_LABEL.string();
 
         public EdgeLabel() {
             super(TABLE);
@@ -90,7 +90,7 @@ public class HbaseTables {
 
     public static class PropertyKey extends HbaseTable {
 
-        public static final String TABLE = "pk";
+        public static final String TABLE = HugeType.PROPERTY_KEY.string();
 
         public PropertyKey() {
             super(TABLE);
@@ -99,7 +99,7 @@ public class HbaseTables {
 
     public static class IndexLabel extends HbaseTable {
 
-        public static final String TABLE = "il";
+        public static final String TABLE = HugeType.INDEX_LABEL.string();
 
         public IndexLabel() {
             super(TABLE);
@@ -108,7 +108,7 @@ public class HbaseTables {
 
     public static class Vertex extends HbaseTable {
 
-        public static final String TABLE = "v";
+        public static final String TABLE = HugeType.VERTEX.string();
 
         public Vertex(String store) {
             super(joinTableName(store, TABLE));
@@ -117,7 +117,7 @@ public class HbaseTables {
 
     public static class Edge extends HbaseTable {
 
-        public static final String TABLE_SUFFIX = "e";
+        public static final String TABLE_SUFFIX = HugeType.EDGE.string();
 
         public Edge(String store, boolean out) {
             super(joinTableName(store, table(out)));
@@ -229,7 +229,7 @@ public class HbaseTables {
 
     public static class SecondaryIndex extends IndexTable {
 
-        public static final String TABLE = "si";
+        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
 
         public SecondaryIndex(String store) {
             super(joinTableName(store, TABLE));
@@ -238,7 +238,7 @@ public class HbaseTables {
 
     public static class SearchIndex extends IndexTable {
 
-        public static final String TABLE = "ei";
+        public static final String TABLE = HugeType.SEARCH_INDEX.string();
 
         public SearchIndex(String store) {
             super(joinTableName(store, TABLE));
@@ -252,25 +252,25 @@ public class HbaseTables {
         }
 
         public static RangeIndex rangeInt(String store) {
-            return new RangeIndex(store, "ii");
+            return new RangeIndex(store, HugeType.RANGE_INT_INDEX.string());
         }
 
         public static RangeIndex rangeFloat(String store) {
-            return new RangeIndex(store, "fi");
+            return new RangeIndex(store, HugeType.RANGE_FLOAT_INDEX.string());
         }
 
         public static RangeIndex rangeLong(String store) {
-            return new RangeIndex(store, "li");
+            return new RangeIndex(store, HugeType.RANGE_LONG_INDEX.string());
         }
 
         public static RangeIndex rangeDouble(String store) {
-            return new RangeIndex(store, "di");
+            return new RangeIndex(store, HugeType.RANGE_DOUBLE_INDEX.string());
         }
     }
 
     public static class ShardIndex extends IndexTable {
 
-        public static final String TABLE = "hi";
+        public static final String TABLE = HugeType.SHARD_INDEX.string();
 
         public ShardIndex(String store) {
             super(joinTableName(store, TABLE));

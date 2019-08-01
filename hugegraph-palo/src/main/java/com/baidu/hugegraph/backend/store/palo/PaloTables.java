@@ -72,7 +72,7 @@ public class PaloTables {
 
     public static class VertexLabel extends PaloTableTemplate {
 
-        public static final String TABLE = "vertex_labels";
+        public static final String TABLE = HugeType.VERTEX_LABEL.string();
 
         public VertexLabel() {
             super(TABLE);
@@ -94,7 +94,7 @@ public class PaloTables {
 
     public static class EdgeLabel extends PaloTableTemplate {
 
-        public static final String TABLE = "edge_labels";
+        public static final String TABLE = HugeType.EDGE_LABEL.string();
 
         public EdgeLabel() {
             super(TABLE);
@@ -118,7 +118,7 @@ public class PaloTables {
 
     public static class PropertyKey extends PaloTableTemplate {
 
-        public static final String TABLE = "property_keys";
+        public static final String TABLE = HugeType.PROPERTY_KEY.string();
 
         public PropertyKey() {
             super(TABLE);
@@ -137,7 +137,7 @@ public class PaloTables {
 
     public static class IndexLabel extends PaloTableTemplate {
 
-        public static final String TABLE = "index_labels";
+        public static final String TABLE = HugeType.INDEX_LABEL.string();
 
         public IndexLabel() {
             super(TABLE);
@@ -156,7 +156,7 @@ public class PaloTables {
 
     public static class Vertex extends PaloTableTemplate {
 
-        public static final String TABLE = "vertices";
+        public static final String TABLE = HugeType.VERTEX.string();
 
         public Vertex(String store) {
             super(joinTableName(store, TABLE));
@@ -331,7 +331,7 @@ public class PaloTables {
 
     public static class SecondaryIndex extends Index {
 
-        public static final String TABLE = "secondary_indexes";
+        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
 
         public SecondaryIndex(String store) {
             this(store, TABLE);
@@ -360,7 +360,7 @@ public class PaloTables {
 
     public static class SearchIndex extends SecondaryIndex {
 
-        public static final String TABLE = "search_indexes";
+        public static final String TABLE = HugeType.SEARCH_INDEX.string();
 
         public SearchIndex(String store) {
             super(store, TABLE);
@@ -393,7 +393,7 @@ public class PaloTables {
 
     public static class RangeIntIndex extends RangeIndex {
 
-        public static final String TABLE = "range_int_indexes";
+        public static final String TABLE = HugeType.RANGE_INT_INDEX.string();
 
         public RangeIntIndex(String store) {
             super(store, TABLE);
@@ -402,7 +402,7 @@ public class PaloTables {
 
     public static class RangeFloatIndex extends RangeIndex {
 
-        public static final String TABLE = "range_float_indexes";
+        public static final String TABLE = HugeType.RANGE_FLOAT_INDEX.string();
 
         public RangeFloatIndex(String store) {
             super(store, TABLE);
@@ -411,7 +411,7 @@ public class PaloTables {
 
     public static class RangeLongIndex extends RangeIndex {
 
-        public static final String TABLE = "range_long_indexes";
+        public static final String TABLE = HugeType.RANGE_LONG_INDEX.string();
 
         public RangeLongIndex(String store) {
             super(store, TABLE);
@@ -420,7 +420,7 @@ public class PaloTables {
 
     public static class RangeDoubleIndex extends RangeIndex {
 
-        public static final String TABLE = "range_double_indexes";
+        public static final String TABLE = HugeType.RANGE_DOUBLE_INDEX.string();
 
         public RangeDoubleIndex(String store) {
             super(store, TABLE);
@@ -429,7 +429,7 @@ public class PaloTables {
 
     public static class ShardIndex extends Index {
 
-        public static final String TABLE = "shard_indexes";
+        public static final String TABLE = HugeType.SHARD_INDEX.string();
 
         public ShardIndex(String store) {
             super(joinTableName(store, TABLE));

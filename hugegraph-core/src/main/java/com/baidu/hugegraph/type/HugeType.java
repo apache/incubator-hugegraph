@@ -34,6 +34,8 @@ public enum HugeType implements SerialEnum {
     PROPERTY_KEY(3, "PK"),
     INDEX_LABEL(4, "IL"),
 
+    COUNTER(50, "C"),
+
     /* Data types */
     VERTEX(101, "V"),
     // System meta

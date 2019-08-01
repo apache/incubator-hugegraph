@@ -216,8 +216,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             case SHARD:
                 List<Object> values = new ArrayList<>(propValues.size());
                 for (Object v : propValues) {
-                    values.add(NumericUtil.isNumber(v) || v instanceof Date ?
-                               LongEncoding.encodeNumber(v) : v);
+                    values.add(convertNumberIfNeeded(v));
                 }
                 value = SplicingIdGenerator.concatValues(values);
                 // Use `\u0000` as escape for empty String and treat it as
@@ -856,8 +855,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                                  IndexLabel indexLabel) {
         IndexType indexType = indexLabel.indexType();
         boolean requireRange = query.hasRangeCondition();
-        boolean supportRange = indexType.isRange() ||
-                               indexType == IndexType.SHARD;
+        boolean supportRange = indexType.isNumeric();
         if (requireRange && !supportRange) {
             LOG.debug("There is range query condition in '{}', " +
                       "but the index label '{}' is unable to match",
@@ -960,10 +958,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 E.checkArgument(range.keyEq() != null,
                                 "Invalid query: %s", query);
                 Object value = range.keyEq();
-                if (NumericUtil.isNumber(value) || value instanceof Date) {
-                    value = LongEncoding.encodeNumber(value);
-                }
-                prefixes.add(value);
+                // Prefix numeric values should be converted to sortable string
+                prefixes.add(convertNumberIfNeeded(value));
                 continue;
             }
 
@@ -1061,6 +1057,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         "Invalid character '%s' for String index", last);
         cbuf.put(length - 1,  (char) (last + 1));
         return cbuf.toString();
+    }
+
+    private static Object convertNumberIfNeeded(Object value) {
+        if (NumericUtil.isNumber(value) || value instanceof Date) {
+            return LongEncoding.encodeNumber(value);
+        }
+        return value;
     }
 
     private static boolean matchIndexFields(Set<Id> queryKeys,

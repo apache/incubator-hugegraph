@@ -83,7 +83,7 @@ public class MysqlTables {
 
     public static class Counters extends MysqlTableTemplate {
 
-        public static final String TABLE = "counters";
+        public static final String TABLE = HugeType.COUNTER.string();
 
         public Counters() {
             this(TYPES_MAPPING);
@@ -135,7 +135,7 @@ public class MysqlTables {
 
     public static class VertexLabel extends MysqlTableTemplate {
 
-        public static final String TABLE = "vertex_labels";
+        public static final String TABLE = HugeType.VERTEX_LABEL.string();
 
         public VertexLabel() {
             this(TYPES_MAPPING);
@@ -161,7 +161,7 @@ public class MysqlTables {
 
     public static class EdgeLabel extends MysqlTableTemplate {
 
-        public static final String TABLE = "edge_labels";
+        public static final String TABLE = HugeType.EDGE_LABEL.string();
 
         public EdgeLabel() {
             this(TYPES_MAPPING);
@@ -189,7 +189,7 @@ public class MysqlTables {
 
     public static class PropertyKey extends MysqlTableTemplate {
 
-        public static final String TABLE = "property_keys";
+        public static final String TABLE = HugeType.PROPERTY_KEY.string();
 
         public PropertyKey() {
             this(TYPES_MAPPING);
@@ -212,7 +212,7 @@ public class MysqlTables {
 
     public static class IndexLabel extends MysqlTableTemplate {
 
-        public static final String TABLE = "index_labels";
+        public static final String TABLE = HugeType.INDEX_LABEL.string();
 
         public IndexLabel() {
             this(TYPES_MAPPING);
@@ -235,7 +235,7 @@ public class MysqlTables {
 
     public static class Vertex extends MysqlTableTemplate {
 
-        public static final String TABLE = "vertices";
+        public static final String TABLE = HugeType.VERTEX.string();
 
         public Vertex(String store) {
             this(store, TYPES_MAPPING);
@@ -254,7 +254,7 @@ public class MysqlTables {
 
     public static class Edge extends MysqlTableTemplate {
 
-        public static final String TABLE_PREFIX = "edges";
+        public static final String TABLE_PREFIX = HugeType.EDGE.string();
 
         private final Directions direction;
         private final String delByLabelTemplate;
@@ -404,7 +404,7 @@ public class MysqlTables {
 
     public static class SecondaryIndex extends Index {
 
-        public static final String TABLE = "secondary_indexes";
+        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
 
         public SecondaryIndex(String store) {
             this(store, TABLE, TYPES_MAPPING);
@@ -433,7 +433,7 @@ public class MysqlTables {
 
     public static class SearchIndex extends SecondaryIndex {
 
-        public static final String TABLE = "search_indexes";
+        public static final String TABLE = HugeType.SEARCH_INDEX.string();
 
         public SearchIndex(String store) {
             super(store, TABLE, TYPES_MAPPING);
@@ -441,8 +441,6 @@ public class MysqlTables {
     }
 
     public static class RangeIndex extends Index {
-
-        public static final String TABLE = "range_indexes";
 
         public RangeIndex(String store, String table) {
             this(store, table, TYPES_MAPPING);
@@ -472,7 +470,7 @@ public class MysqlTables {
 
     public static class RangeIntIndex extends RangeIndex {
 
-        public static final String TABLE = "range_int_indexes";
+        public static final String TABLE = HugeType.RANGE_INT_INDEX.string();
 
         public RangeIntIndex(String store) {
             this(store, TABLE, TYPES_MAPPING);
@@ -494,7 +492,7 @@ public class MysqlTables {
 
     public static class RangeFloatIndex extends RangeIndex {
 
-        public static final String TABLE = "range_float_indexes";
+        public static final String TABLE = HugeType.RANGE_FLOAT_INDEX.string();
 
         public RangeFloatIndex(String store) {
             this(store, TABLE, TYPES_MAPPING);
@@ -516,7 +514,7 @@ public class MysqlTables {
 
     public static class RangeLongIndex extends RangeIndex {
 
-        public static final String TABLE = "range_long_indexes";
+        public static final String TABLE = HugeType.RANGE_LONG_INDEX.string();
 
         public RangeLongIndex(String store) {
             this(store, TABLE, TYPES_MAPPING);
@@ -538,7 +536,7 @@ public class MysqlTables {
 
     public static class RangeDoubleIndex extends RangeIndex {
 
-        public static final String TABLE = "range_double_indexes";
+        public static final String TABLE = HugeType.RANGE_DOUBLE_INDEX.string();
 
         public RangeDoubleIndex(String store) {
             this(store, TABLE, TYPES_MAPPING);
@@ -560,7 +558,7 @@ public class MysqlTables {
 
     public static class ShardIndex extends Index {
 
-        public static final String TABLE = "shard_indexes";
+        public static final String TABLE = HugeType.SHARD_INDEX.string();
 
         public ShardIndex(String store) {
             this(store, TYPES_MAPPING);

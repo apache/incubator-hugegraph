@@ -169,6 +169,7 @@ public class HugeIndex implements GraphType {
             indexLabel = IndexLabel.label(graph, label);
             values = parts[1];
         } else {
+            assert type.isRangeIndex();
             final int labelLength = 4;
             E.checkState(id.length > labelLength, "Invalid range index id");
             BytesBuffer buffer = BytesBuffer.wrap(id);

@@ -132,7 +132,7 @@ public class PostgresqlTables {
 
     public static class Vertex extends PostgresqlTableTemplate {
 
-        public static final String TABLE = "vertices";
+        public static final String TABLE = HugeType.VERTEX.string();
 
         public Vertex(String store) {
             super(new MysqlTables.Vertex(store, TYPES_MAPPING));
@@ -192,7 +192,7 @@ public class PostgresqlTables {
 
     public static class RangeIntIndex extends PostgresqlTableTemplate {
 
-        public static final String TABLE = "range_int_indexes";
+        public static final String TABLE = HugeType.RANGE_INT_INDEX.string();
 
         public RangeIntIndex(String store) {
             super(new MysqlTables.RangeIntIndex(store, TABLE, TYPES_MAPPING));
@@ -205,7 +205,7 @@ public class PostgresqlTables {
 
     public static class RangeFloatIndex extends PostgresqlTableTemplate {
 
-        public static final String TABLE = "range_float_indexes";
+        public static final String TABLE = HugeType.RANGE_FLOAT_INDEX.string();
 
         public RangeFloatIndex(String store) {
             super(new MysqlTables.RangeFloatIndex(store, TABLE, TYPES_MAPPING));
@@ -218,7 +218,7 @@ public class PostgresqlTables {
 
     public static class RangeLongIndex extends PostgresqlTableTemplate {
 
-        public static final String TABLE = "range_long_indexes";
+        public static final String TABLE = HugeType.RANGE_LONG_INDEX.string();
 
         public RangeLongIndex(String store) {
             super(new MysqlTables.RangeLongIndex(store, TABLE, TYPES_MAPPING));
@@ -231,7 +231,7 @@ public class PostgresqlTables {
 
     public static class RangeDoubleIndex extends PostgresqlTableTemplate {
 
-        public static final String TABLE = "range_double_indexes";
+        public static final String TABLE = HugeType.RANGE_DOUBLE_INDEX.string();
 
         public RangeDoubleIndex(String store) {
             super(new MysqlTables.RangeDoubleIndex(store, TABLE,
