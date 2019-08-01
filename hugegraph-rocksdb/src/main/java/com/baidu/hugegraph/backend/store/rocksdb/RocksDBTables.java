@@ -186,7 +186,7 @@ public class RocksDBTables {
 
     public static class SearchIndex extends IndexTable {
 
-        public static final String TABLE = "fi";
+        public static final String TABLE = "ei";
 
         public SearchIndex(String database) {
             super(database, TABLE);
@@ -262,7 +262,7 @@ public class RocksDBTables {
 
     public static class RangeIntIndex extends RangeIndex {
 
-        public static final String TABLE = "i4i";
+        public static final String TABLE = "ii";
 
         public RangeIntIndex(String store) {
             super(store, TABLE);
@@ -271,7 +271,7 @@ public class RocksDBTables {
 
     public static class RangeFloatIndex extends RangeIndex{
 
-        public static final String TABLE = "f4i";
+        public static final String TABLE = "fi";
 
         public RangeFloatIndex(String store) {
             super(store, TABLE);
@@ -280,7 +280,7 @@ public class RocksDBTables {
 
     public static class RangeLongIndex extends RangeIndex {
 
-        public static final String TABLE = "l8i";
+        public static final String TABLE = "li";
 
         public RangeLongIndex(String store) {
             super(store, TABLE);
@@ -289,7 +289,7 @@ public class RocksDBTables {
 
     public static class RangeDoubleIndex extends RangeIndex{
 
-        public static final String TABLE = "d8i";
+        public static final String TABLE = "di";
 
         public RangeDoubleIndex(String store) {
             super(store, TABLE);
@@ -298,7 +298,7 @@ public class RocksDBTables {
 
     public static class ShardIndex extends RangeIndex {
 
-        public static final String TABLE = "pi";
+        public static final String TABLE = "hi";
 
         public ShardIndex(String database) {
             super(database, TABLE);

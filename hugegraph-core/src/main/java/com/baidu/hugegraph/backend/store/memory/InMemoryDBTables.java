@@ -37,6 +37,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -448,47 +449,19 @@ public class InMemoryDBTables {
             }
             assert indexLabelId != null;
 
-            Object keyEq = null;
-            Object keyMin = null;
-            boolean keyMinEq = false;
-            Object keyMax = null;
-            boolean keyMaxEq = false;
-
-            for (Condition.Relation r : relations) {
-                E.checkArgument(r.key() == HugeKeys.FIELD_VALUES,
-                                "Expect FIELD_VALUES in AND condition");
-                switch (r.relation()) {
-                    case EQ:
-                        keyEq = r.value();
-                        break;
-                    case GTE:
-                        keyMinEq = true;
-                    case GT:
-                        keyMin = r.value();
-                        break;
-                    case LTE:
-                        keyMaxEq = true;
-                    case LT:
-                        keyMax = r.value();
-                        break;
-                    default:
-                        E.checkArgument(false, "Unsupported relation '%s'",
-                                        r.relation());
-                        break;
-                }
-            }
-
-            if (keyEq != null) {
+            RangeConditions range = new RangeConditions(relations);
+            if (range.keyEq() != null) {
                 Id id = HugeIndex.formatIndexId(query.resultType(),
-                                                indexLabelId, keyEq);
+                                                indexLabelId, range.keyEq());
                 IdQuery q = new IdQuery(query, id);
                 q.offset(query.offset());
                 q.limit(query.limit());
                 return super.query(session, q);
             }
             // keyMin <(=) field value <(=) keyMax
-            return this.betweenQuery(indexLabelId, keyMax, keyMaxEq,
-                                     keyMin, keyMinEq, query.resultType());
+            return this.betweenQuery(indexLabelId, range.keyMax(),
+                                     range.keyMaxEq(), range.keyMin(),
+                                     range.keyMinEq(), query.resultType());
         }
 
         private Iterator<BackendEntry> betweenQuery(Id indexLabelId,

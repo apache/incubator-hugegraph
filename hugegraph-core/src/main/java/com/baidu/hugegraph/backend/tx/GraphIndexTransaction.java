@@ -48,6 +48,7 @@ import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageIds;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -944,57 +945,59 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                                            HugeKeys key) {
         List<Condition> conditions = new ArrayList<>(2);
         boolean hasRange = false;
-        Object keyMin = null;
-        Object keyMax = null;
         int processedCondCount = 0;
-        int prefixEqualFieldsCount = 0;
         List<Object> prefixes = new ArrayList<>();
 
-        root : for (Id field : fields) {
+        for (Id field : fields) {
             List<Condition> fieldConds = query.userpropConditions(field);
             processedCondCount += fieldConds.size();
             if (fieldConds.isEmpty()) {
                 break;
             }
 
-            for (Condition condition : fieldConds) {
-                assert condition instanceof Relation;
-                Relation r = (Relation) condition;
-                switch (r.relation()) {
-                    case EQ:
-                        prefixEqualFieldsCount++;
-                        Object value = r.value();
-                        if (NumericUtil.isNumber(value) ||
-                            value instanceof Date) {
-                            value = LongEncoding.encodeNumber(value);
-                        }
-                        prefixes.add(value);
-                        continue root;
-                    case GTE:
-                    case GT:
-                        hasRange = true;
-                        keyMin = r.value();
-                        break;
-                    case LTE:
-                    case LT:
-                        hasRange = true;
-                        keyMax = r.value();
-                        break;
-                    default:
-                        E.checkArgument(false,
-                                        "Unsupported relation '%s'",
-                                        r.relation());
+            RangeConditions range = new RangeConditions(fieldConds);
+            if (!range.hasRange()) {
+                E.checkArgument(range.keyEq() != null,
+                                "Invalid query: %s", query);
+                Object value = range.keyEq();
+                if (NumericUtil.isNumber(value) || value instanceof Date) {
+                    value = LongEncoding.encodeNumber(value);
                 }
-                if (!hasRange) {
-                    // Prefix equal condition processed, continue to next field
-                    continue root;
-                }
-                conditions.add(shardFieldValuesCondition(key, prefixes,
-                                                         r.value(),
-                                                         r.relation()));
+                prefixes.add(value);
+                continue;
             }
+
+            if (range.keyMin() != null) {
+                RelationType type = range.keyMinEq() ?
+                                    RelationType.GTE : RelationType.GT;
+                conditions.add(shardFieldValuesCondition(key, prefixes,
+                                                         range.keyMin(),
+                                                         type));
+            } else {
+                assert range.keyMax() != null;
+                Object num = range.keyMax();
+                num = NumericUtil.minValueOf(NumericUtil.isNumber(num) ?
+                                             num.getClass() : Long.class);
+                conditions.add(shardFieldValuesCondition(key, prefixes, num,
+                                                         RelationType.GTE));
+            }
+
+            if (range.keyMax() != null) {
+                RelationType type = range.keyMaxEq() ?
+                                    RelationType.LTE : RelationType.LT;
+                conditions.add(shardFieldValuesCondition(key, prefixes,
+                                                         range.keyMax(), type));
+            } else {
+                Object num = range.keyMin();
+                num = NumericUtil.maxValueOf(NumericUtil.isNumber(num) ?
+                                             num.getClass() : Long.class);
+                conditions.add(shardFieldValuesCondition(key, prefixes, num,
+                                                         RelationType.LTE));
+            }
+            hasRange = true;
             break;
         }
+
         /*
          * Can't have conditions after range condition for shard index,
          * but SORT_KEYS can have redundant conditions because upper
@@ -1006,26 +1009,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
         // 1. First range condition processed, finish shard query conditions
         if (hasRange) {
-            Number num;
-            if (keyMin == null) {
-                assert keyMax != null;
-                num = NumericUtil.minValueOf(NumericUtil.isNumber(keyMax) ?
-                                             keyMax.getClass() : Long.class);
-                conditions.add(shardFieldValuesCondition(
-                               key, prefixes, num, RelationType.GTE));
-            }
-            if (keyMax == null) {
-                num = NumericUtil.maxValueOf(NumericUtil.isNumber(keyMin) ?
-                                             keyMin.getClass() : Long.class);
-                conditions.add(shardFieldValuesCondition(
-                               key, prefixes, num, RelationType.LTE));
-            }
             return conditions;
         }
         // 2. Shard query without range
         String joinedValues;
         // 2.1 All fields have equal-conditions
-        if (prefixEqualFieldsCount == fields.size()) {
+        if (prefixes.size() == fields.size()) {
             joinedValues = SplicingIdGenerator.concatValues(prefixes);
             conditions.add(Condition.eq(key, joinedValues));
             return conditions;

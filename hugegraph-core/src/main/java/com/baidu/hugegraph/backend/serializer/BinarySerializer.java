@@ -32,7 +32,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
-import com.baidu.hugegraph.backend.query.Condition.Relation;
+import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
@@ -535,41 +535,22 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer end = BytesBuffer.allocate(size);
         end.copyFrom(start);
 
-        int minEq = -1;
-        int maxEq = -1;
-        for (Condition sortValue : sortValues) {
-            Condition.Relation r = (Condition.Relation) sortValue;
-            switch (r.relation()) {
-                case GTE:
-                    minEq = 1;
-                    start.writeStringRaw((String) r.value());
-                    break;
-                case GT:
-                    minEq = 0;
-                    start.writeStringRaw((String) r.value());
-                    break;
-                case LTE:
-                    maxEq = 1;
-                    end.writeStringRaw((String) r.value());
-                    break;
-                case LT:
-                    maxEq = 0;
-                    end.writeStringRaw((String) r.value());
-                    break;
-                default:
-                    E.checkArgument(false, "Unsupported relation '%s'",
-                                    r.relation());
-            }
+        RangeConditions range = new RangeConditions(sortValues);
+        if (range.keyMin() != null) {
+            start.writeStringRaw((String) range.keyMin());
         }
-
+        if (range.keyMax() != null) {
+            end.writeStringRaw((String) range.keyMax());
+        }
         // Sort-value will be empty if there is no start sort-value
         Id startId = new BinaryId(start.bytes(), null);
         // Set endId as prefix if there is no end sort-value
         Id endId = new BinaryId(end.bytes(), null);
-        if (maxEq == -1) {
-            return new IdPrefixQuery(cq, startId, minEq == 1, endId);
+        if (range.keyMax() == null) {
+            return new IdPrefixQuery(cq, startId, range.keyMinEq(), endId);
         }
-        return new IdRangeQuery(cq, startId, minEq == 1, endId, maxEq == 1);
+        return new IdRangeQuery(cq, startId, range.keyMinEq(), endId,
+                                range.keyMaxEq());
     }
 
     private Query writeQueryEdgePrefixCondition(ConditionQuery cq) {
@@ -673,34 +654,6 @@ public class BinarySerializer extends AbstractSerializer {
         E.checkArgument(!fields.isEmpty(),
                         "Please specify the index field values");
 
-        Object keyEq = null;
-        Object keyMin = null;
-        boolean keyMinEq = false;
-        Object keyMax = null;
-        boolean keyMaxEq = false;
-
-        for (Condition c : fields) {
-            Relation r = (Relation) c;
-            switch (r.relation()) {
-                case EQ:
-                    keyEq = r.value();
-                    break;
-                case GTE:
-                    keyMinEq = true;
-                case GT:
-                    keyMin = r.value();
-                    break;
-                case LTE:
-                    keyMaxEq = true;
-                case LT:
-                    keyMax = r.value();
-                    break;
-                default:
-                    E.checkArgument(false, "Unsupported relation '%s'",
-                                    r.relation());
-            }
-        }
-
         HugeType type = query.resultType();
         Id start = null;
         if (query.paging() && !query.page().isEmpty()) {
@@ -708,8 +661,9 @@ public class BinarySerializer extends AbstractSerializer {
             start = new BinaryId(position, null);
         }
 
-        if (keyEq != null) {
-            Id id = formatIndexId(type, index, keyEq, true);
+        RangeConditions range = new RangeConditions(fields);
+        if (range.keyEq() != null) {
+            Id id = formatIndexId(type, index, range.keyEq(), true);
             if (start == null) {
                 return new IdPrefixQuery(query, id);
             }
@@ -718,6 +672,10 @@ public class BinarySerializer extends AbstractSerializer {
             return new IdPrefixQuery(query, start, id);
         }
 
+        Object keyMin = range.keyMin();
+        Object keyMax = range.keyMax();
+        boolean keyMinEq = range.keyMinEq();
+        boolean keyMaxEq = range.keyMaxEq();
         if (keyMin == null) {
             E.checkArgument(keyMax != null,
                             "Please specify at least one condition");

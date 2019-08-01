@@ -238,7 +238,7 @@ public class HbaseTables {
 
     public static class SearchIndex extends IndexTable {
 
-        public static final String TABLE = "fi";
+        public static final String TABLE = "ei";
 
         public SearchIndex(String store) {
             super(joinTableName(store, TABLE));
@@ -252,25 +252,25 @@ public class HbaseTables {
         }
 
         public static RangeIndex rangeInt(String store) {
-            return new RangeIndex(store, "i4i");
+            return new RangeIndex(store, "ii");
         }
 
         public static RangeIndex rangeFloat(String store) {
-            return new RangeIndex(store, "f4i");
+            return new RangeIndex(store, "fi");
         }
 
         public static RangeIndex rangeLong(String store) {
-            return new RangeIndex(store, "l8i");
+            return new RangeIndex(store, "li");
         }
 
         public static RangeIndex rangeDouble(String store) {
-            return new RangeIndex(store, "d8i");
+            return new RangeIndex(store, "di");
         }
     }
 
     public static class ShardIndex extends IndexTable {
 
-        public static final String TABLE = "pi";
+        public static final String TABLE = "hi";
 
         public ShardIndex(String store) {
             super(joinTableName(store, TABLE));
