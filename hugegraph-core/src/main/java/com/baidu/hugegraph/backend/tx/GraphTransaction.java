@@ -909,30 +909,23 @@ public class GraphTransaction extends IndexableTransaction {
 
     public static boolean matchEdgeSortKeys(ConditionQuery query,
                                             HugeGraph graph) {
-        return matchEdgeSortKeys(query, graph, false);
-    }
-
-    public static boolean matchEdgeSortKeys(ConditionQuery query,
-                                            HugeGraph graph, boolean strict) {
         assert query.resultType().isEdge();
-
         Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {
             return false;
         }
-        List<Id> keys = graph.edgeLabel(label).sortKeys();
-        return !keys.isEmpty() && query.matchUserpropKeys(keys, strict);
-    }
-
-    private static int matchSortKeysFields(Set<Id> queryKeys,
-                                           List<Id> sortkeys) {
-        for (int i = sortkeys.size(); i > 0; i--) {
-            List<Id> subFields = sortkeys.subList(0, i);
+        List<Id> sortKeys = graph.edgeLabel(label).sortKeys();
+        if (sortKeys.isEmpty()) {
+            return false;
+        }
+        Set<Id> queryKeys = query.userpropKeys();
+        for (int i = sortKeys.size(); i > 0; i--) {
+            List<Id> subFields = sortKeys.subList(0, i);
             if (queryKeys.containsAll(subFields)) {
-                return subFields.size();
+                return true;
             }
         }
-        return 0;
+        return false;
     }
 
     public static void verifyEdgesConditionQuery(ConditionQuery query) {
@@ -992,25 +985,23 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         // Optimize edge query
-        if (label != null && query.resultType().isEdge()) {
+        if (query.resultType().isEdge() && label != null &&
+            query.condition(HugeKeys.OWNER_VERTEX) != null &&
+            query.condition(HugeKeys.DIRECTION) != null &&
+            matchEdgeSortKeys(query, this.graph())) {
+            // Query edge by sourceVertex + direction + label + sort-values
+            query.optimized(OptimizedType.SORT_KEYS.ordinal());
+            query = query.copy();
+            // Serialize sort-values
             List<Id> keys = this.graph().edgeLabel(label).sortKeys();
-            int matchedNum = matchSortKeysFields(query.userpropKeys(), keys);
-            if (query.condition(HugeKeys.OWNER_VERTEX) != null &&
-                query.condition(HugeKeys.DIRECTION) != null &&
-                !keys.isEmpty() && matchedNum > 0) {
-                // Query edge by sourceVertex + direction + label + sort-values
-                query.optimized(OptimizedType.SORT_KEYS.ordinal());
-                query = query.copy();
-                // Serialize sort-values
-                List<Condition> conditions =
-                                GraphIndexTransaction.constructShardConditions(
-                                query, keys, HugeKeys.SORT_VALUES);
-                query.query(conditions);
-                query.resetUserpropConditions();
+            List<Condition> conditions =
+                            GraphIndexTransaction.constructShardConditions(
+                            query, keys, HugeKeys.SORT_VALUES);
+            query.query(conditions);
+            query.resetUserpropConditions();
 
-                LOG.debug("Query edges by sortKeys: {}", query);
-                return query;
-            }
+            LOG.debug("Query edges by sortKeys: {}", query);
+            return query;
         }
 
         /*

@@ -128,12 +128,9 @@ public final class HugeVertexStep<E extends Element>
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
         for (ConditionQuery q : queries) {
             // Query by sort-keys
-            boolean bySortKeys = false;
             if (withEdgeCond && edgeLabels.length > 0) {
                 TraversalUtil.fillConditionQuery(conditions, q, graph);
-                if (GraphTransaction.matchEdgeSortKeys(q, graph)) {
-                    bySortKeys = true;
-                } else {
+                if (!GraphTransaction.matchEdgeSortKeys(q, graph)) {
                     // Can't query by sysprop and by index (HugeGraph-749)
                     q.resetUserpropConditions();
                 }
@@ -153,7 +150,7 @@ public final class HugeVertexStep<E extends Element>
             Iterator<Edge> edges = graph.edges(q);
 
             // Do filter by edge conditions
-            if (withEdgeCond && !bySortKeys) {
+            if (withEdgeCond) {
                 results.extend(TraversalUtil.filterResult(conditions, edges));
             } else {
                 results.extend(edges);
