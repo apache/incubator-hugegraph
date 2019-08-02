@@ -297,6 +297,5 @@ public class RocksDBTables {
         public ShardIndex(String database) {
             super(database, TABLE);
         }
-
     }
 }

@@ -83,11 +83,6 @@ public enum IndexType implements SerialEnum {
         }
     }
 
-    public boolean isRange() {
-        return this == RANGE_INT || this == RANGE_FLOAT ||
-               this == RANGE_LONG || this == RANGE_DOUBLE;
-    }
-
     public boolean isString() {
         return this == SECONDARY || this == SEARCH || this == SHARD;
     }
@@ -100,6 +95,11 @@ public enum IndexType implements SerialEnum {
 
     public boolean isSecondary() {
         return this == SECONDARY;
+    }
+
+    public boolean isRange() {
+        return this == RANGE_INT || this == RANGE_FLOAT ||
+               this == RANGE_LONG || this == RANGE_DOUBLE;
     }
 
     public boolean isSearch() {

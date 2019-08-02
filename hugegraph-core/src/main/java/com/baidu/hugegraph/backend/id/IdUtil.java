@@ -23,7 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.baidu.hugegraph.util.E;
 
-public class IdUtil {
+public final class IdUtil {
 
     private static final String NUMBER_PREFIX = "L";
     private static final String STRING_PREFIX = "S";
