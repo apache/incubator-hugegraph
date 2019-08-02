@@ -927,9 +927,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 List<Condition> conditions = constructShardConditions(
                                              query, indexLabel.indexFields(),
                                              HugeKeys.FIELD_VALUES);
-                for (Condition c : conditions) {
-                    indexQuery.query(c);
-                }
+                indexQuery.query(conditions);
                 break;
             default:
                 throw new AssertionError(String.format(

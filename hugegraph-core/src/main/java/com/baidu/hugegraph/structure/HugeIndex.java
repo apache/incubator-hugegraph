@@ -143,6 +143,7 @@ public class HugeIndex implements GraphType {
              */
             return SplicingIdGenerator.splicing(indexLabel.asString(), v);
         } else {
+            assert type.isRangeIndex();
             int length = type.isRange4Index() ? 4 : 8;
             BytesBuffer buffer = BytesBuffer.allocate(4 + length);
             buffer.writeInt((int) indexLabel.asLong());

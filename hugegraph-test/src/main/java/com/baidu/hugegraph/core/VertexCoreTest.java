@@ -1805,6 +1805,9 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.indexLabel("numberByFloat").range()
               .onV("number").by("float").create();
 
+        final float secondBiggest = 0x1.fffffdP+127f;
+        final float secondSmallest = 0x0.000003P-126f;
+
         graph().addVertex(T.label, "number", "id", 1, "float", 7);
         graph().addVertex(T.label, "number", "id", 2, "float", 3.14f);
         graph().addVertex(T.label, "number", "id", 3, "float", 3.141592f);
@@ -1817,6 +1820,14 @@ public class VertexCoreTest extends BaseCoreTest {
                           "float", Float.MIN_VALUE);
         graph().addVertex(T.label, "number", "id", 8,
                           "float", -Float.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 9,
+                          "float", secondBiggest);
+        graph().addVertex(T.label, "number", "id", 10,
+                          "float", -secondBiggest);
+        graph().addVertex(T.label, "number", "id", 11,
+                          "float", secondSmallest);
+        graph().addVertex(T.label, "number", "id", 12,
+                          "float", -secondSmallest);
 
         graph().tx().commit();
 
@@ -1865,6 +1876,30 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices, T.label, "number", "id", 8,
                        "float", -Float.MIN_VALUE);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("float", secondBiggest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 9,
+                       "float", secondBiggest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("float", -secondBiggest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 10,
+                       "float", -secondBiggest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("float", secondSmallest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 11,
+                       "float", secondSmallest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("float", -secondSmallest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 12,
+                       "float", -secondSmallest);
     }
 
     @Test
@@ -1972,6 +2007,9 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.indexLabel("numberByDouble").range()
               .onV("number").by("double").create();
 
+        final double secondBiggest = 0x1.ffffffffffffeP+1023;
+        final double secondSmallest = 0x0.0000000000002P-1022;
+
         graph().addVertex(T.label, "number", "id", 0,
                           "double", 0.123456789012345678901d);
         graph().addVertex(T.label, "number", "id", 1,
@@ -1982,6 +2020,14 @@ public class VertexCoreTest extends BaseCoreTest {
                           "double", Double.MIN_VALUE);
         graph().addVertex(T.label, "number", "id", 4,
                           "double", -Double.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 5,
+                          "double", secondBiggest);
+        graph().addVertex(T.label, "number", "id", 6,
+                          "double", -secondBiggest);
+        graph().addVertex(T.label, "number", "id", 7,
+                          "double", secondSmallest);
+        graph().addVertex(T.label, "number", "id", 8,
+                          "double", -secondSmallest);
 
         graph().tx().commit();
 
@@ -2015,6 +2061,30 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices, T.label, "number", "id", 4,
                        "double", -Double.MIN_VALUE);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("double", secondBiggest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 5,
+                       "double", secondBiggest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("double", -secondBiggest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 6,
+                       "double", -secondBiggest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("double", secondSmallest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 7,
+                       "double", secondSmallest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("double", -secondSmallest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 8,
+                       "double", -secondSmallest);
     }
 
     @Test

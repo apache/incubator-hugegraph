@@ -325,7 +325,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                         "schema properties '%s'", fields, properties);
 
         // Range index must build on single numeric column
-        if (this.indexType.isRange()) {
+        if (this.indexType == IndexType.RANGE) {
             E.checkArgument(fields.size() == 1,
                             "Range index can only build on " +
                             "one field, but got %s fields: '%s'",

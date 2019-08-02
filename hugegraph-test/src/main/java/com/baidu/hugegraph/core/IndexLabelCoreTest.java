@@ -45,7 +45,12 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     public void testAddIndexLabelOfVertex() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
-        schema.vertexLabel("person").properties("id", "name", "age", "city")
+        schema.propertyKey("born").asDate().ifNotExist().create();
+        schema.propertyKey("fans").asLong().ifNotExist().create();
+        schema.propertyKey("height").asFloat().ifNotExist().create();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city", "born", "fans", "height",
+                          "weight")
               .primaryKeys("id").create();
         schema.indexLabel("personByName").onV("person").secondary()
               .by("name").create();
@@ -53,31 +58,61 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("city").create();
         schema.indexLabel("personByAge").onV("person").range()
               .by("age").create();
+        schema.indexLabel("personByBorn").onV("person").range()
+              .by("born").create();
+        schema.indexLabel("personByFans").onV("person").range()
+              .by("fans").create();
+        schema.indexLabel("personByHeight").onV("person").range()
+              .by("height").create();
+        schema.indexLabel("personByWeight").onV("person").range()
+              .by("weight").create();
 
         VertexLabel person = schema.getVertexLabel("person");
         IndexLabel personByName = schema.getIndexLabel("personByName");
         IndexLabel personByCity = schema.getIndexLabel("personByCity");
         IndexLabel personByAge = schema.getIndexLabel("personByAge");
+        IndexLabel personByBorn = schema.getIndexLabel("personByBorn");
+        IndexLabel personByFans = schema.getIndexLabel("personByFans");
+        IndexLabel personByHeight = schema.getIndexLabel("personByHeight");
+        IndexLabel personByWeight = schema.getIndexLabel("personByWeight");
 
         Assert.assertNotNull(personByName);
         Assert.assertNotNull(personByCity);
         Assert.assertNotNull(personByAge);
+        Assert.assertNotNull(personByBorn);
+        Assert.assertNotNull(personByFans);
+        Assert.assertNotNull(personByHeight);
+        Assert.assertNotNull(personByWeight);
 
-        Assert.assertEquals(3, person.indexLabels().size());
+        Assert.assertEquals(7, person.indexLabels().size());
         assertContainsIl(person.indexLabels(),
-                         "personByName", "personByCity", "personByAge");
+                         "personByName", "personByCity", "personByAge",
+                         "personByBorn", "personByFans","personByHeight",
+                         "personByWeight");
 
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByName.baseType());
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByCity.baseType());
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByAge.baseType());
+        Assert.assertEquals(HugeType.VERTEX_LABEL, personByBorn.baseType());
+        Assert.assertEquals(HugeType.VERTEX_LABEL, personByFans.baseType());
+        Assert.assertEquals(HugeType.VERTEX_LABEL, personByHeight.baseType());
+        Assert.assertEquals(HugeType.VERTEX_LABEL, personByWeight.baseType());
 
         assertVLEqual("person", personByName.baseValue());
         assertVLEqual("person", personByCity.baseValue());
         assertVLEqual("person", personByAge.baseValue());
+        assertVLEqual("person", personByBorn.baseValue());
+        assertVLEqual("person", personByFans.baseValue());
+        assertVLEqual("person", personByHeight.baseValue());
+        assertVLEqual("person", personByWeight.baseValue());
 
         Assert.assertEquals(IndexType.SECONDARY, personByName.indexType());
         Assert.assertEquals(IndexType.SEARCH, personByCity.indexType());
         Assert.assertEquals(IndexType.RANGE_INT, personByAge.indexType());
+        Assert.assertEquals(IndexType.RANGE_LONG, personByBorn.indexType());
+        Assert.assertEquals(IndexType.RANGE_LONG, personByFans.indexType());
+        Assert.assertEquals(IndexType.RANGE_FLOAT, personByHeight.indexType());
+        Assert.assertEquals(IndexType.RANGE_DOUBLE, personByWeight.indexType());
     }
 
     @Test

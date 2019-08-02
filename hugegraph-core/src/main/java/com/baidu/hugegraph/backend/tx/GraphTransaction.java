@@ -989,7 +989,7 @@ public class GraphTransaction extends IndexableTransaction {
             int matchedNum = matchSortKeysFields(query.userpropKeys(), keys);
             if (query.condition(HugeKeys.OWNER_VERTEX) != null &&
                 query.condition(HugeKeys.DIRECTION) != null &&
-                !keys.isEmpty() && matchedNum != 0) {
+                !keys.isEmpty() && matchedNum > 0) {
                 // Query edge by sourceVertex + direction + label + sort-values
                 query.optimized(OptimizedType.SORT_KEYS.ordinal());
                 query = query.copy();
