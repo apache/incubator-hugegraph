@@ -602,9 +602,6 @@ public abstract class TableSerializer extends AbstractSerializer {
         if (value instanceof String) {
             value = this.escapeString((String) value);
         }
-        if (value instanceof byte[]) {
-            value = ByteBuffer.wrap((byte[]) value);
-        }
         return value;
     }
 
