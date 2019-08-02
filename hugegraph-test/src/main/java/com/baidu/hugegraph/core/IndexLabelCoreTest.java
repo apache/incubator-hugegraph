@@ -49,8 +49,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         schema.propertyKey("fans").asLong().ifNotExist().create();
         schema.propertyKey("height").asFloat().ifNotExist().create();
         schema.vertexLabel("person")
-              .properties("id", "name", "age", "city", "born", "fans", "height",
-                          "weight")
+              .properties("id", "name", "age", "city", "born",
+                          "fans", "height", "weight")
               .primaryKeys("id").create();
         schema.indexLabel("personByName").onV("person").secondary()
               .by("name").create();

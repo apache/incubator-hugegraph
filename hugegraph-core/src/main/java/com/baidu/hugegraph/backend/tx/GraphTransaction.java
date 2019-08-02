@@ -909,22 +909,30 @@ public class GraphTransaction extends IndexableTransaction {
 
     public static boolean matchEdgeSortKeys(ConditionQuery query,
                                             HugeGraph graph) {
+        return matchEdgeSortKeys(query, graph, false);
+    }
+
+    public static boolean matchEdgeSortKeys(ConditionQuery query,
+                                            HugeGraph graph, boolean strict) {
         assert query.resultType().isEdge();
 
-        Id label = (Id) query.condition(HugeKeys.LABEL);
+        Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {
             return false;
         }
-        List<Id> sortKeys = graph.edgeLabel(label).sortKeys();
-        if (sortKeys.isEmpty()) {
-            return false;
+        List<Id> keys = graph.edgeLabel(label).sortKeys();
+        return !keys.isEmpty() && query.matchUserpropKeys(keys, strict);
+    }
+
+    private static int matchSortKeysFields(Set<Id> queryKeys,
+                                           List<Id> sortkeys) {
+        for (int i = sortkeys.size(); i > 0; i--) {
+            List<Id> subFields = sortkeys.subList(0, i);
+            if (queryKeys.containsAll(subFields)) {
+                return subFields.size();
+            }
         }
-        Set<Id> queryKeys = query.userpropKeys();
-        if (queryKeys.size() > sortKeys.size()) {
-            return false;
-        }
-        List<Id> prefix = sortKeys.subList(0, queryKeys.size());
-        return queryKeys.containsAll(prefix);
+        return 0;
     }
 
     public static void verifyEdgesConditionQuery(ConditionQuery query) {
@@ -1456,16 +1464,5 @@ public class GraphTransaction extends IndexableTransaction {
                 }
             } while (page != null);
         }
-    }
-
-    private static int matchSortKeysFields(Set<Id> queryKeys,
-                                           List<Id> sortkeys) {
-        for (int i = sortkeys.size(); i > 0; i--) {
-            List<Id> subFields = sortkeys.subList(0, i);
-            if (queryKeys.containsAll(subFields)) {
-                return subFields.size();
-            }
-        }
-        return 0;
     }
 }
