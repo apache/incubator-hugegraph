@@ -663,7 +663,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Set<Id> indexFields = InsertionOrderUtil.newSet();
         for (IndexLabel indexLabel : allILs) {
             // Range index equal-condition and secondary index can joint
-            if (indexLabel.indexType() == IndexType.SEARCH) {
+            if (indexLabel.indexType().isSearch()) {
                 // Search index must be handled at the previous step
                 continue;
             }
@@ -699,7 +699,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             boolean matched = false;
             for (IndexLabel indexLabel : indexLabels) {
                 if (indexLabel.indexType().isRange() ||
-                    indexLabel.indexType() == IndexType.SEARCH) {
+                    indexLabel.indexType().isSearch()) {
                     if (indexLabel.indexField().equals(key)) {
                         matched = true;
                         matchedIndexLabels.add(indexLabel);
@@ -1188,7 +1188,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         public boolean containsSearchIndex() {
             for (IndexLabel il : this.indexLabels) {
-                if (il.indexType() == IndexType.SEARCH) {
+                if (il.indexType().isSearch()) {
                     return true;
                 }
             }
@@ -1338,7 +1338,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     continue;
                 }
                 // Skip if search index is not wrong
-                if (il.indexType() == IndexType.SEARCH) {
+                if (il.indexType().isSearch()) {
                     Id field = il.indexField();
                     String cond = deletion.<String>getPropertyValue(field);
                     String actual = element.<String>getPropertyValue(field);
@@ -1353,7 +1353,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Delete index with error property
                 this.tx.updateIndex(il.id(), deletion, true);
                 // Rebuild index if delete correct index part
-                if (il.indexType() == IndexType.SECONDARY) {
+                if (il.indexType().isSecondary()) {
                     /*
                      * When it's a composite secondary index,
                      * if the suffix property is wrong and the prefix property

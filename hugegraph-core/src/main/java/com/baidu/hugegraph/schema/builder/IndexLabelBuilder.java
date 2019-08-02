@@ -325,7 +325,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                         "schema properties '%s'", fields, properties);
 
         // Range index must build on single numeric column
-        if (this.indexType == IndexType.RANGE) {
+        if (this.indexType.isRange()) {
             E.checkArgument(fields.size() == 1,
                             "Range index can only build on " +
                             "one field, but got %s fields: '%s'",
@@ -357,7 +357,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         }
 
         // Search index must build on single text column
-        if (this.indexType == IndexType.SEARCH) {
+        if (this.indexType.isSearch()) {
             E.checkArgument(fields.size() == 1,
                             "Search index can only build on " +
                             "one field, but got %s fields: '%s'",
@@ -428,8 +428,8 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         if (schemaLabel instanceof VertexLabel) {
             VertexLabel vl = (VertexLabel) schemaLabel;
             if (vl.idStrategy().isPrimaryKey()) {
-                if (this.indexType == IndexType.SECONDARY ||
-                    this.indexType == IndexType.SHARD &&
+                if (this.indexType.isSecondary() ||
+                    this.indexType.isShard() &&
                     this.allStringIndex(this.indexFields)) {
                     List<String> pks = this.transaction.graph()
                                            .mapPkId2Name(vl.primaryKeys());
@@ -495,14 +495,14 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
 
     private boolean hasSubIndex(IndexLabel indexLabel) {
         return (this.indexType == indexLabel.indexType()) ||
-               (this.indexType == IndexType.SHARD &&
-                indexLabel.indexType() == IndexType.SECONDARY) ||
-               (this.indexType == IndexType.SECONDARY &&
-                indexLabel.indexType() == IndexType.SHARD &&
+               (this.indexType.isShard() &&
+                indexLabel.indexType().isSecondary()) ||
+               (this.indexType.isSecondary() &&
+                indexLabel.indexType().isShard() &&
                 this.allStringIndex(indexLabel.indexFields())) ||
                (this.indexType.isRange() &&
-                indexLabel.indexType() == IndexType.SECONDARY ||
-                indexLabel.indexType() == IndexType.SHARD);
+                indexLabel.indexType().isSecondary() ||
+                indexLabel.indexType().isShard());
     }
 
     private boolean allStringIndex(List<?> fields) {
