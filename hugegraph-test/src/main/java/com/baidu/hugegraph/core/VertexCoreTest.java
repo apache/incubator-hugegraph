@@ -876,9 +876,31 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         // Query all with limit
-        List<Vertex> vertices = graph.traversal().V().limit(3).toList();
+        List<Vertex> vertices = graph.traversal().V().limit(6).toList();
+        Assert.assertEquals(6, vertices.size());
+    }
 
+    @Test
+    public void testQueryAllWithLimitAfterDelete() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        // Query all with limit after delete
+        graph.traversal().V().limit(6).drop().iterate();
+        Assert.assertEquals(4L, graph.traversal().V().count().next());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query with limit
+            graph.traversal().V().limit(3).toList();
+        });
+        graph.tx().commit();
+        List<Vertex> vertices = graph.traversal().V().limit(3).toList();
         Assert.assertEquals(3, vertices.size());
+
+        // Query all with limit after delete twice
+        graph.traversal().V().limit(3).drop().iterate();
+        graph.tx().commit();
+        vertices = graph.traversal().V().limit(3).toList();
+        Assert.assertEquals(1, vertices.size());
     }
 
     @Test
@@ -1066,8 +1088,7 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         // Query by vertex label
-        List<Vertex> vertices = graph.traversal().V().hasLabel("book")
-                                .toList();
+        List<Vertex> vertices = graph.traversal().V().hasLabel("book").toList();
         String bookId = graph.vertexLabel("book").id().asString();
 
         Assert.assertEquals(5, vertices.size());
@@ -1081,6 +1102,25 @@ public class VertexCoreTest extends BaseCoreTest {
                           SplicingIdGenerator.splicing(bookId, "java-4")));
         Assert.assertTrue(Utils.containsId(vertices,
                           SplicingIdGenerator.splicing(bookId, "java-5")));
+    }
+
+    @Test
+    public void testQueryByLabelWithLimit() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        // Query by vertex label with limit
+        List<Vertex> vertices = graph.traversal().V().hasLabel("book")
+                                     .limit(3).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        // Query by vertex label with limit
+        graph.traversal().V().hasLabel("book").limit(3).drop().iterate();
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().hasLabel("book")
+                        .limit(3).toList();
+        Assert.assertEquals(2, vertices.size());
     }
 
     @Test
@@ -1257,11 +1297,11 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByStringPropWithMultiResults() {
         // NOTE: InMemoryDBStore would fail due to it not support index ele-ids
 
-        // city is "Beijing"
         HugeGraph graph = graph();
         initPersonIndex(true);
         init5Persons();
 
+        // city is "Beijing"
         List<Vertex> vertices = graph.traversal().V().hasLabel("person")
                                      .has("city", "Beijing").toList();
 
@@ -1276,6 +1316,20 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices,
                        T.label, "person", "name", "Lisa",
                        "city", "Beijing", "age", 20);
+
+        // city is "Beijing" && limit 2
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("city", "Beijing").limit(2).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        // limit after delete
+        graph.traversal().V().hasLabel("person")
+             .has("city", "Beijing").limit(2)
+             .drop().iterate();
+        graph.tx().commit();
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("city", "Beijing").limit(2).toList();
+        Assert.assertEquals(1, vertices.size());
     }
 
     @Test
@@ -1608,6 +1662,22 @@ public class VertexCoreTest extends BaseCoreTest {
                         .has("age", P.between(3, 21)).toList();
 
         Assert.assertEquals(4, vertices.size());
+
+        // 3 <= age && age < 21 && limit 3
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("age", P.between(3, 21)).limit(3).toList();
+
+        Assert.assertEquals(3, vertices.size());
+
+        // limit after delete
+        graph.traversal().V().hasLabel("person")
+             .has("age", P.between(3, 21)).limit(3)
+             .drop().iterate();
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("age", P.between(3, 21)).limit(3).toList();
+        Assert.assertEquals(1, vertices.size());
     }
 
     @Test
@@ -2013,6 +2083,30 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph.traversal().V().hasLabel("person")
                         .has("birth", P.between(dates[3], dates[4]))
                         .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(dates[3], vertices.get(0).value("birth"));
+
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.between(dates[1], dates[4]))
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        // limit
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.between(dates[1], dates[4]))
+                        .limit(2).toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertEquals(dates[1], vertices.get(0).value("birth"));
+        Assert.assertEquals(dates[2], vertices.get(1).value("birth"));
+
+        // limit after delete
+        graph.traversal().V().hasLabel("person")
+             .has("birth", P.between(dates[1], dates[4]))
+             .limit(2).drop().iterate();
+        graph.tx().commit();
+        vertices = graph.traversal().V().hasLabel("person")
+                        .has("birth", P.between(dates[1], dates[4]))
+                        .limit(2).toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(dates[3], vertices.get(0).value("birth"));
     }
