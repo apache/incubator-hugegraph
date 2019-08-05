@@ -738,12 +738,11 @@ public class BinarySerializer extends AbstractSerializer {
         } else {
             edgeId = EdgeId.parse(id.asString());
         }
-        String sk = edgeId.sortValues();
         BytesBuffer buffer = BytesBuffer.allocate(256);
         buffer.writeId(edgeId.ownerVertexId());
         buffer.write(edgeId.direction().type().code());
         buffer.writeId(edgeId.edgeLabelId());
-        buffer.writeStringWithEnding(sk);
+        buffer.writeStringWithEnding(edgeId.sortValues());
         buffer.writeId(edgeId.otherVertexId());
 
         return new BinaryId(buffer.bytes(), id);
