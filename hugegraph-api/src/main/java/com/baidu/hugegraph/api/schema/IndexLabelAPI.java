@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api.schema;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -69,6 +70,7 @@ public class IndexLabelAPI extends API {
         HugeGraph g = graph(manager, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
         IndexLabel.CreatedIndexLabel il = builder.createWithTask();
+        il.indexLabel(mapIndexLabel(il.indexLabel()));
         return manager.serializer(g).writeCreatedIndexLabel(il);
     }
 
@@ -81,7 +83,7 @@ public class IndexLabelAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<IndexLabel> labels = g.schema().getIndexLabels();
-        return manager.serializer(g).writeIndexlabels(labels);
+        return manager.serializer(g).writeIndexlabels(mapIndexLabels(labels));
     }
 
     @GET
@@ -95,7 +97,7 @@ public class IndexLabelAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         IndexLabel indexLabel = g.schema().getIndexLabel(name);
-        return manager.serializer(g).writeIndexlabel(indexLabel);
+        return manager.serializer(g).writeIndexlabel(mapIndexLabel(indexLabel));
     }
 
     @DELETE
@@ -114,6 +116,25 @@ public class IndexLabelAPI extends API {
         g.schema().getIndexLabel(name);
         return ImmutableMap.of("task_id",
                                g.schema().indexLabel(name).remove());
+    }
+
+    private static List<IndexLabel> mapIndexLabels(List<IndexLabel> labels) {
+        List<IndexLabel> results = new ArrayList<>(labels.size());
+        for (IndexLabel il : labels) {
+            results.add(mapIndexLabel(il));
+        }
+        return results;
+    }
+
+    /**
+     * Map RANGE_INT/RANGE_FLOAT/RANGE_LONG/RANGE_DOUBLE to RANGE
+     */
+    private static IndexLabel mapIndexLabel(IndexLabel label) {
+        if (label.indexType().isRange()) {
+            label = (IndexLabel) label.copy();
+            label.indexType(IndexType.RANGE);
+        }
+        return label;
     }
 
     /**
