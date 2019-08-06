@@ -920,13 +920,22 @@ public class GraphTransaction extends IndexableTransaction {
     public static boolean matchEdgeSortKeys(ConditionQuery query,
                                             HugeGraph graph) {
         assert query.resultType().isEdge();
-
-        Id label = (Id) query.condition(HugeKeys.LABEL);
+        Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {
             return false;
         }
-        List<Id> keys = graph.edgeLabel(label).sortKeys();
-        return !keys.isEmpty() && query.matchUserpropKeys(keys);
+        List<Id> sortKeys = graph.edgeLabel(label).sortKeys();
+        if (sortKeys.isEmpty()) {
+            return false;
+        }
+        Set<Id> queryKeys = query.userpropKeys();
+        for (int i = sortKeys.size(); i > 0; i--) {
+            List<Id> subFields = sortKeys.subList(0, i);
+            if (queryKeys.containsAll(subFields)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void verifyEdgesConditionQuery(ConditionQuery query) {
@@ -986,43 +995,23 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         // Optimize edge query
-        if (label != null && query.resultType().isEdge()) {
+        if (query.resultType().isEdge() && label != null &&
+            query.condition(HugeKeys.OWNER_VERTEX) != null &&
+            query.condition(HugeKeys.DIRECTION) != null &&
+            matchEdgeSortKeys(query, this.graph())) {
+            // Query edge by sourceVertex + direction + label + sort-values
+            query.optimized(OptimizedType.SORT_KEYS.ordinal());
+            query = query.copy();
+            // Serialize sort-values
             List<Id> keys = this.graph().edgeLabel(label).sortKeys();
-            if (query.condition(HugeKeys.OWNER_VERTEX) != null &&
-                query.condition(HugeKeys.DIRECTION) != null &&
-                !keys.isEmpty() && query.matchUserpropKeys(keys)) {
-                // Query edge by sourceVertex + direction + label + sort-values
-                query.optimized(OptimizedType.SORT_KEYS.ordinal());
-                query = query.copy();
-                // Serialize sort-values
-                for (Condition.Relation r : query.userpropRelations()) {
-                    if (!keys.contains(r.key())) {
-                        continue;
-                    }
-                    PropertyKey pk = this.graph().propertyKey((Id) r.key());
-                    r.serialValue(pk.serialValue(r.value()));
-                }
-                // Convert to sysprop condition {SORT_VALUES=value}
-                if (query.hasRangeCondition()) {
-                    for (Condition condition : query.userpropConditions()) {
-                        assert condition instanceof Condition.Relation;
-                        Condition.Relation r = (Condition.Relation) condition;
-                        Condition.Relation sys = new Condition.SyspropRelation(
-                                                     HugeKeys.SORT_VALUES,
-                                                     r.relation(),
-                                                     r.serialValue());
-                        condition = condition.replace(r, sys);
-                        query.query(condition);
-                    }
-                } else {
-                    query.eq(HugeKeys.SORT_VALUES,
-                             query.userpropValuesString(keys));
-                }
-                query.resetUserpropConditions();
+            List<Condition> conditions =
+                            GraphIndexTransaction.constructShardConditions(
+                            query, keys, HugeKeys.SORT_VALUES);
+            query.query(conditions);
+            query.resetUserpropConditions();
 
-                LOG.debug("Query edges by sortKeys: {}", query);
-                return query;
-            }
+            LOG.debug("Query edges by sortKeys: {}", query);
+            return query;
         }
 
         /*

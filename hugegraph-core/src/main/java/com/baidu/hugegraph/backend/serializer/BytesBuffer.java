@@ -26,6 +26,8 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.Id.IdType;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -47,15 +49,18 @@ public final class BytesBuffer {
     public static final long UINT32_MAX = (-1) & 0xffffffffL;
 
     // NOTE: +1 to let code 0 represent length 1
-    public static final int ID_MAX_LEN = UINT8_MAX & 0x7e + 1; // 127
-    public static final int BIG_ID_MAX_LEN = UINT16_MAX & 0x7eff + 1; // 32512
+    public static final int ID_LEN_MASK = 0x7f;
+    public static final int ID_LEN_MAX = UINT8_MAX & 0x7e + 1; // 127
+    public static final int BIG_ID_LEN_MAX = UINT16_MAX & 0x7eff + 1; // 32512
 
     public static final long ID_MIN = Long.MIN_VALUE >> 3;
     public static final long ID_MAX = Long.MAX_VALUE >> 3;
     public static final long ID_MASK = 0x0fffffffffffffffL;
 
-    // The value must be in range [8, 127(ID_MAX_LEN)]
-    public static final int INDEX_ID_MAX_LENGTH = 32;
+    public static final byte STRING_ENDING_BYTE = (byte) 0xff;
+
+    // The value must be in range [8, 127(ID_LEN_MAX)]
+    public static final int INDEX_HASH_ID_THRESHOLD = 32;
 
     public static final int DEFAULT_CAPACITY = 64;
     public static final int MAX_BUFFER_CAPACITY = 128 * 1024 * 1024; // 128M
@@ -200,8 +205,29 @@ public final class BytesBuffer {
         return this;
     }
 
+    public BytesBuffer writeStringRaw(String val) {
+        this.write(StringEncoding.encode(val));
+        return this;
+    }
+
+    public BytesBuffer writeStringWithEnding(String val) {
+        byte[] bytes = StringEncoding.encode(val);
+        this.write(bytes);
+        /*
+         * A reasonable ending symbol should be 0x00(to ensure order), but
+         * considering that some backends like PG do not support 0x00 string,
+         * so choose 0xFF currently.
+         */
+        this.write(STRING_ENDING_BYTE);
+        return this;
+    }
+
     public byte peek() {
         return this.buffer.get(this.buffer.position());
+    }
+
+    public byte peekLast() {
+        return this.buffer.get(this.buffer.capacity() - 1);
     }
 
     public byte read() {
@@ -250,6 +276,10 @@ public final class BytesBuffer {
 
     public String readString() {
         return StringEncoding.decode(this.readBytes());
+    }
+
+    public String readStringWithEnding() {
+        return StringEncoding.decode(this.readBytesWithEnding());
     }
 
     public BytesBuffer writeUInt8(int val) {
@@ -315,15 +345,15 @@ public final class BytesBuffer {
             int len = bytes.length;
             E.checkArgument(len > 0, "Can't write empty id");
             if (!big) {
-                E.checkArgument(len <= ID_MAX_LEN,
+                E.checkArgument(len <= ID_LEN_MAX,
                                 "Id max length is %s, but got %s {%s}",
-                                ID_MAX_LEN, len, id);
+                                ID_LEN_MAX, len, id);
                 len -= 1; // mapping [1, 127] to [0, 126]
                 this.writeUInt8(len | 0x80);
             } else {
-                E.checkArgument(len <= BIG_ID_MAX_LEN,
+                E.checkArgument(len <= BIG_ID_LEN_MAX,
                                 "Big id max length is %s, but got %s",
-                                BIG_ID_MAX_LEN, len);
+                                BIG_ID_LEN_MAX, len);
                 len -= 1;
                 int high = len >> 8;
                 int low = len & 0xff;
@@ -348,7 +378,7 @@ public final class BytesBuffer {
             return IdGenerator.of(this.readNumber(b));
         } else {
             this.readUInt8();
-            int len = b & 0x7f;
+            int len = b & ID_LEN_MASK;
             IdType type = IdType.STRING;
             if (len == 0x7f) {
                 // UUID Id
@@ -366,6 +396,54 @@ public final class BytesBuffer {
             byte[] id = this.read(len);
             return IdGenerator.of(id, type);
         }
+    }
+
+    public BytesBuffer writeIndexId(Id id, HugeType type) {
+        return this.writeIndexId(id, type, true);
+    }
+
+    public BytesBuffer writeIndexId(Id id, HugeType type, boolean withEnding) {
+        byte[] bytes = id.asBytes();
+        int len = bytes.length;
+        E.checkArgument(len > 0, "Can't write empty id");
+
+        this.write(bytes);
+        if (type.isStringIndex()) {
+            // Not allow '0xff' exist in string index id
+            E.checkArgument(!Bytes.contains(bytes, STRING_ENDING_BYTE),
+                            "The %s type index id can't contains " +
+                            "byte '0x%s', but got: 0x%s", type,
+                            Integer.toHexString(STRING_ENDING_BYTE),
+                            Bytes.toHex(bytes));
+            if (withEnding) {
+                this.write(STRING_ENDING_BYTE);
+            }
+        }
+        return this;
+    }
+
+    public BinaryId readIndexId(HugeType type) {
+        byte[] id;
+        switch (type) {
+            case RANGE_INT_INDEX:
+            case RANGE_FLOAT_INDEX:
+                // IndexLabel 4 bytes + fieldValue 4 bytes
+                id = this.read(8);
+                break;
+            case RANGE_LONG_INDEX:
+            case RANGE_DOUBLE_INDEX:
+                // IndexLabel 4 bytes + fieldValue 8 bytes
+                id = this.read(12);
+                break;
+            case SECONDARY_INDEX:
+            case SEARCH_INDEX:
+            case SHARD_INDEX:
+                id = this.readBytesWithEnding();
+                break;
+            default:
+                throw new AssertionError("Invalid index type " + type);
+        }
+        return new BinaryId(id, IdGenerator.of(id, IdType.STRING));
     }
 
     public BinaryId asId() {
@@ -429,5 +507,25 @@ public final class BytesBuffer {
             default:
                 throw new AssertionError("Invalid length of number: " + length);
         }
+    }
+
+    private byte[] readBytesWithEnding() {
+        int start = this.buffer.position();
+        boolean foundEnding =false;
+        byte current;
+        while (this.remaining() > 0) {
+            current = this.read();
+            if (current == STRING_ENDING_BYTE) {
+                foundEnding = true;
+                break;
+            }
+        }
+        E.checkArgument(foundEnding, "Not found ending '0x%s'",
+                        Integer.toHexString(STRING_ENDING_BYTE));
+        int end = this.buffer.position() - 1;
+        int len = end - start;
+        byte[] bytes = new byte[len];
+        System.arraycopy(this.array(), start, bytes, 0, len);
+        return bytes;
     }
 }

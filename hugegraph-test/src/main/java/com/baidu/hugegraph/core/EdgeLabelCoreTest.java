@@ -284,7 +284,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        schema.vertexLabel("author").properties("id", "name")
+        schema.vertexLabel("book").properties("id", "name")
               .primaryKeys("id").create();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -375,8 +375,6 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        schema.vertexLabel("author").properties("id", "name")
-              .primaryKeys("id").create();
         schema.vertexLabel("book").properties("id", "name")
               .primaryKeys("id").create();
 

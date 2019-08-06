@@ -1722,8 +1722,14 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "number", "id", 2, "int", 12345678);
         graph().addVertex(T.label, "number", "id", 3, "int", 1000000001L);
         graph().addVertex(T.label, "number", "id", 4, "int", -1);
-        graph().addVertex(T.label, "number", "id", 5, "int", Integer.MAX_VALUE);
-        graph().addVertex(T.label, "number", "id", 6, "int", Integer.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 5,
+                          "int", Integer.MAX_VALUE);
+        graph().addVertex(T.label, "number", "id", 6,
+                          "int", Integer.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 7,
+                          "int", Integer.MAX_VALUE - 1);
+        graph().addVertex(T.label, "number", "id", 8,
+                          "int", Integer.MIN_VALUE + 1);
 
         graph().tx().commit();
 
@@ -1758,6 +1764,18 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices, T.label, "number", "id", 6,
                        "int", Integer.MIN_VALUE);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("int", Integer.MAX_VALUE - 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 7,
+                       "int", Integer.MAX_VALUE - 1);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("int", Integer.MIN_VALUE + 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 8,
+                       "int", Integer.MIN_VALUE + 1);
     }
 
     @Test
@@ -1781,6 +1799,10 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "number", "id", 6, "long", -largeLong);
         graph().addVertex(T.label, "number", "id", 7, "long", Long.MAX_VALUE);
         graph().addVertex(T.label, "number", "id", 8, "long", Long.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 9,
+                          "long", Long.MAX_VALUE - 1);
+        graph().addVertex(T.label, "number", "id", 10,
+                          "long", Long.MIN_VALUE + 1);
 
         graph().tx().commit();
 
@@ -1828,6 +1850,18 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices, T.label, "number", "id", 8,
                        "long", Long.MIN_VALUE);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("long", Long.MAX_VALUE - 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 9,
+                       "long", Long.MAX_VALUE - 1);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("long", Long.MIN_VALUE + 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 10,
+                       "long", Long.MIN_VALUE + 1);
     }
 
     @Test
@@ -1841,6 +1875,9 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.indexLabel("numberByFloat").range()
               .onV("number").by("float").create();
 
+        final float secondBiggest = 0x1.fffffdP+127f;
+        final float secondSmallest = 0x0.000003P-126f;
+
         graph().addVertex(T.label, "number", "id", 1, "float", 7);
         graph().addVertex(T.label, "number", "id", 2, "float", 3.14f);
         graph().addVertex(T.label, "number", "id", 3, "float", 3.141592f);
@@ -1853,6 +1890,14 @@ public class VertexCoreTest extends BaseCoreTest {
                           "float", Float.MIN_VALUE);
         graph().addVertex(T.label, "number", "id", 8,
                           "float", -Float.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 9,
+                          "float", secondBiggest);
+        graph().addVertex(T.label, "number", "id", 10,
+                          "float", -secondBiggest);
+        graph().addVertex(T.label, "number", "id", 11,
+                          "float", secondSmallest);
+        graph().addVertex(T.label, "number", "id", 12,
+                          "float", -secondSmallest);
 
         graph().tx().commit();
 
@@ -1901,6 +1946,30 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices, T.label, "number", "id", 8,
                        "float", -Float.MIN_VALUE);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("float", secondBiggest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 9,
+                       "float", secondBiggest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("float", -secondBiggest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 10,
+                       "float", -secondBiggest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("float", secondSmallest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 11,
+                       "float", secondSmallest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("float", -secondSmallest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 12,
+                       "float", -secondSmallest);
     }
 
     @Test
@@ -2008,6 +2077,9 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.indexLabel("numberByDouble").range()
               .onV("number").by("double").create();
 
+        final double secondBiggest = 0x1.ffffffffffffeP+1023;
+        final double secondSmallest = 0x0.0000000000002P-1022;
+
         graph().addVertex(T.label, "number", "id", 0,
                           "double", 0.123456789012345678901d);
         graph().addVertex(T.label, "number", "id", 1,
@@ -2018,6 +2090,14 @@ public class VertexCoreTest extends BaseCoreTest {
                           "double", Double.MIN_VALUE);
         graph().addVertex(T.label, "number", "id", 4,
                           "double", -Double.MIN_VALUE);
+        graph().addVertex(T.label, "number", "id", 5,
+                          "double", secondBiggest);
+        graph().addVertex(T.label, "number", "id", 6,
+                          "double", -secondBiggest);
+        graph().addVertex(T.label, "number", "id", 7,
+                          "double", secondSmallest);
+        graph().addVertex(T.label, "number", "id", 8,
+                          "double", -secondSmallest);
 
         graph().tx().commit();
 
@@ -2051,6 +2131,30 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices, T.label, "number", "id", 4,
                        "double", -Double.MIN_VALUE);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("double", secondBiggest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 5,
+                       "double", secondBiggest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("double", -secondBiggest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 6,
+                       "double", -secondBiggest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("double", secondSmallest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 7,
+                       "double", secondSmallest);
+
+        vertices = graph.traversal().V().hasLabel("number")
+                        .has("double", -secondSmallest).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "number", "id", 8,
+                       "double", -secondSmallest);
     }
 
     @Test
@@ -2276,7 +2380,6 @@ public class VertexCoreTest extends BaseCoreTest {
                         "name", "James Gosling",  "age", 62,
                         "lived", "San Francisco Bay Area");
         graph.tx().commit();
-
 
         // By authorByLivedSearch index
         List<Vertex> vertices = graph.traversal().V()
@@ -2815,6 +2918,340 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("city", Text.contains("Chaoyang"))
                           .toList();
         Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
+    public void testQueryByShardIndex() {
+        SchemaManager schema = graph().schema();
+
+        schema.indexLabel("personByCityAndAge").onV("person").shard()
+              .by("city", "age").create();
+
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "person", "name", "p1",
+                        "city", "Hongkong", "age", 15);
+        graph.addVertex(T.label, "person", "name", "p2",
+                        "city", "Hongkong", "age", 18);
+        graph.addVertex(T.label, "person", "name", "p3",
+                        "city", "Beijing", "age", 21);
+        graph.addVertex(T.label, "person", "name", "p4",
+                        "city", "Beijing", "age", 23);
+        graph.addVertex(T.label, "person", "name", "p5",
+                        "city", "Beijing", "age", 29);
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Hongkong")
+                                       .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Hongkong")
+                          .has("age", 15).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Hongkong")
+                          .has("age", P.between(10, 20)).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.between(20, 30)).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.lt(29)).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.lte(29)).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.gt(21)).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("city", "Beijing")
+                          .has("age", P.gte(21)).toList();
+        Assert.assertEquals(3, vertices.size());
+    }
+
+    @Test
+    public void testQueryByShardIndexWithMoreStringMoreNumericFields() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("province").asText().create();
+        schema.vertexLabel("user")
+              .properties("province", "city", "age", "weight")
+              .create();
+        graph().addVertex(T.label, "user", "province", "Shandong", "city",
+                          "Jinan", "age", 20, "weight", 60);
+        graph().addVertex(T.label, "user", "province", "Shandong", "city",
+                          "Jinan", "age", 25, "weight", 60);
+        graph().addVertex(T.label, "user", "province", "Shandong", "city",
+                          "Jinan", "age", 30, "weight", 60);
+        graph().addVertex(T.label, "user", "province", "Shandong", "city",
+                          "Jinan", "age", 30, "weight", 70);
+        graph().addVertex(T.label, "user", "province", "Shandong", "city",
+                          "Jinan", "age", 30, "weight", 80);
+        graph().addVertex(T.label, "user", "province", "Shandong", "city",
+                          "Jinan", "age", 30, "weight", 90);
+        graph().addVertex(T.label, "user", "province", "Shandong", "city",
+                          "Qingdao", "age", 20, "weight", 60);
+        graph().addVertex(T.label, "user", "province", "Guangdong", "city",
+                          "Guangzhou", "age", 20, "weight", 60);
+        graph().addVertex(T.label, "user", "province", "Guangdong", "city",
+                          "Guangzhou", "age", 31, "weight", 90);
+        graph().addVertex(T.label, "user", "province", "Guangdong", "city",
+                          "Foshan", "age", 35, "weight", 60);
+        graph().addVertex(T.label, "user", "province", "Guangdong", "city",
+                          "Foshan", "age", 38, "weight", 70);
+        graph().addVertex(T.label, "user", "province", "Guangdong", "city",
+                          "Foshan", "age", 38, "weight", 80);
+
+        schema.indexLabel("userByProvinceCityAgeWeight").onV("user").shard()
+              .by("province", "city", "age", "weight").create();
+
+        // Query by prefix "province"
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("province", "Shandong")
+                                       .toList();
+        Assert.assertEquals(7, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Guangdong")
+                          .toList();
+        Assert.assertEquals(5, vertices.size());
+
+        // Query by prefix "province", "city"
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .toList();
+        Assert.assertEquals(6, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Qingdao")
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Guangdong")
+                          .has("city", "Guangzhou")
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Guangdong")
+                          .has("city", "Foshan")
+                          .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        // Query by prefix "province", "city", "age"
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 20)
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 25)
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .toList();
+        Assert.assertEquals(4, vertices.size());
+
+        // Query by prefix "province", "city" and range "age"
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", P.lt(25))
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", P.lte(25))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", P.gt(25))
+                          .toList();
+        Assert.assertEquals(4, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", P.gte(25))
+                          .toList();
+        Assert.assertEquals(5, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", P.between(25, 31))
+                          .toList();
+        Assert.assertEquals(5, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", P.between(20, 31))
+                          .toList();
+        Assert.assertEquals(6, vertices.size());
+
+        // Query by prefix "province", "city", "age", "weight"
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", 60)
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", 70)
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", 80)
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", 90)
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // Query by prefix "province", "city", "age" and range "weight"
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", P.lt(80))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", P.lte(80))
+                          .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", P.gt(80))
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", P.gte(80))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", P.between(80, 91))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", P.between(70, 91))
+                          .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("province", "Shandong")
+                          .has("city", "Jinan")
+                          .has("age", 30)
+                          .has("weight", P.between(60, 91))
+                          .toList();
+        Assert.assertEquals(4, vertices.size());
+
+        // Invalid query
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V()
+                   .has("city", "Jinan")
+                   .toList();
+        });
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V()
+                   .has("age", 30)
+                   .toList();
+        });
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V()
+                   .has("weight", 60)
+                   .toList();
+        });
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V()
+                   .has("city", "Jinan")
+                   .has("age", 30)
+                   .toList();
+        });
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V()
+                   .has("province", "Shandong")
+                   .has("age", 30)
+                   .toList();
+        });
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V()
+                   .has("province", "Shandong")
+                   .has("age", P.between(10, 30))
+                   .toList();
+        });
     }
 
     @Test

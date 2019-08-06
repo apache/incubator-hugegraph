@@ -35,6 +35,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
@@ -414,43 +415,24 @@ public class TextSerializer extends AbstractSerializer {
 
         List<String> end = new ArrayList<>(start);
 
-        int minEq = -1;
-        int maxEq = -1;
-        for (Condition sortValue : sortValues) {
-            Condition.Relation r = (Condition.Relation) sortValue;
-            switch (r.relation()) {
-                case GTE:
-                    minEq = 1;
-                    start.add((String) r.value());
-                    break;
-                case GT:
-                    minEq = 0;
-                    start.add((String) r.value());
-                    break;
-                case LTE:
-                    maxEq = 1;
-                    end.add((String) r.value());
-                    break;
-                case LT:
-                    maxEq = 0;
-                    end.add((String) r.value());
-                    break;
-                default:
-                    E.checkArgument(false, "Unsupported relation '%s'",
-                                    r.relation());
-            }
+        RangeConditions range = new RangeConditions(sortValues);
+        if (range.keyMin() != null) {
+            start.add((String) range.keyMin());
+        }
+        if (range.keyMax() != null) {
+            end.add((String) range.keyMax());
         }
 
         // Sort-value will be empty if there is no start sort-value
         String startId = EdgeId.concat(start.toArray(new String[0]));
         // Set endId as prefix if there is no end sort-value
         String endId = EdgeId.concat(end.toArray(new String[0]));
-        if (maxEq == -1) {
-            return new IdPrefixQuery(cq, IdGenerator.of(startId), minEq == 1,
-                                     IdGenerator.of(endId));
+        if (range.keyMax() == null) {
+            return new IdPrefixQuery(cq, IdGenerator.of(startId),
+                                     range.keyMinEq(), IdGenerator.of(endId));
         }
-        return new IdRangeQuery(cq, IdGenerator.of(startId), minEq == 1,
-                                IdGenerator.of(endId), maxEq == 1);
+        return new IdRangeQuery(cq, IdGenerator.of(startId), range.keyMinEq(),
+                                IdGenerator.of(endId), range.keyMaxEq());
     }
 
     private Query writeQueryEdgePrefixCondition(ConditionQuery cq) {

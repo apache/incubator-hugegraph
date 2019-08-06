@@ -446,7 +446,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            final int LEN = BytesBuffer.BIG_ID_MAX_LEN;
+            final int LEN = BytesBuffer.BIG_ID_LEN_MAX;
             String largeTime = new String(new byte[LEN]) + "{large-time}";
             james.addEdge("write", book, "time", largeTime);
             graph.tx().commit();
@@ -1337,6 +1337,317 @@ public class EdgeCoreTest extends BaseCoreTest {
                                      .out("look").toList();
         // Expect duplicated vertex "java-1"
         Assert.assertEquals(4, vertices.size());
+    }
+
+    @Test
+    public void testQueryOutEdgesOfVertexBySortkeyWithPrefix() {
+        HugeGraph graph = graph();
+
+        SchemaManager schema = graph.schema();
+        schema.propertyKey("no").asText().create();
+        schema.propertyKey("callType").asText().create();
+        schema.propertyKey("calltime").asDate().create();
+        schema.vertexLabel("phone")
+              .properties("no")
+              .primaryKeys("no")
+              .enableLabelIndex(false)
+              .create();
+        schema.edgeLabel("call").multiTimes()
+              .properties("callType", "calltime")
+              .sourceLabel("phone").targetLabel("phone")
+              .sortKeys("callType", "calltime")
+              .create();
+
+        Vertex v1 = graph.addVertex(T.label, "phone", "no", "13812345678");
+        Vertex v2 = graph.addVertex(T.label, "phone", "no", "13866668888");
+        Vertex v10086 = graph.addVertex(T.label, "phone", "no", "10086");
+
+        v1.addEdge("call", v2, "callType", "work",
+                   "calltime", "2017-5-1 23:00:00");
+        v1.addEdge("call", v2, "callType", "work",
+                   "calltime", "2017-5-2 12:00:01");
+        v1.addEdge("call", v2, "callType", "work",
+                   "calltime", "2017-5-3 12:08:02");
+        v1.addEdge("call", v2, "callType", "fun",
+                   "calltime", "2017-5-3 22:22:03");
+        v1.addEdge("call", v2, "callType", "fun",
+                   "calltime", "2017-5-4 20:33:04");
+
+        v1.addEdge("call", v10086, "callType", "work",
+                   "calltime", "2017-5-2 15:30:05");
+        v1.addEdge("call", v10086, "callType", "work",
+                   "calltime", "2017-5-3 14:56:06");
+        v2.addEdge("call", v10086, "callType", "fun",
+                   "calltime", "2017-5-3 17:28:07");
+
+        graph.tx().commit();
+        Assert.assertEquals(8, graph.traversal().E().toList().size());
+
+        List<Edge> edges = graph.traversal().V(v1).outE("call")
+                                .has("callType", "work")
+                                .toList();
+        Assert.assertEquals(5, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call").has("callType", "work")
+                     .has("calltime", "2017-5-1 23:00:00")
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(Utils.date("2017-5-1 23:00:00"),
+                            edges.get(0).value("calltime"));
+
+        edges = graph.traversal().V(v1).outE("call").has("callType", "work")
+                     .has("calltime", P.lt("2017-5-2"))
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(Utils.date("2017-5-1 23:00:00"),
+                            edges.get(0).value("calltime"));
+
+        edges = graph.traversal().V(v1).outE("call").has("callType", "work")
+                     .has("calltime", P.gte("2017-5-2"))
+                     .toList();
+        Assert.assertEquals(4, edges.size());
+        Assert.assertEquals(Utils.date("2017-5-2 12:00:01"),
+                            edges.get(0).value("calltime"));
+        Assert.assertEquals(Utils.date("2017-5-2 15:30:05"),
+                            edges.get(1).value("calltime"));
+        Assert.assertEquals(Utils.date("2017-5-3 12:08:02"),
+                            edges.get(2).value("calltime"));
+        Assert.assertEquals(Utils.date("2017-5-3 14:56:06"),
+                            edges.get(3).value("calltime"));
+
+        edges = graph.traversal().V(v1).outE("call").has("callType", "work")
+                     .has("calltime", P.gte("2017-5-2"))
+                     .where(__.otherV().hasId(v2.id()))
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call").has("callType", "work")
+                     .has("calltime", P.between("2017-5-2", "2017-5-4"))
+                     .toList();
+        Assert.assertEquals(4, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call").has("callType", "work")
+                     .has("calltime", P.between("2017-5-2", "2017-5-4"))
+                     .where(__.not(__.otherV().hasId((v10086.id()))))
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+    }
+
+    @Test
+    public void testQueryOutEdgesOfVertexBySortkeyWithMoreFields() {
+        HugeGraph graph = graph();
+
+        SchemaManager schema = graph.schema();
+        schema.propertyKey("no").asText().create();
+        schema.propertyKey("location").asText().create();
+        schema.propertyKey("callType").asText().create();
+        schema.propertyKey("calltime").asDate().create();
+        schema.propertyKey("duration").asInt().create();
+        schema.vertexLabel("phone")
+              .properties("no")
+              .primaryKeys("no")
+              .enableLabelIndex(false)
+              .create();
+        schema.edgeLabel("call").multiTimes()
+              .properties("location", "callType", "duration", "calltime")
+              .sourceLabel("phone").targetLabel("phone")
+              .sortKeys("location", "callType", "duration", "calltime")
+              .create();
+
+        Vertex v1 = graph.addVertex(T.label, "phone", "no", "13812345678");
+        Vertex v2 = graph.addVertex(T.label, "phone", "no", "13866668888");
+        Vertex v10086 = graph.addVertex(T.label, "phone", "no", "10086");
+
+        v1.addEdge("call", v2, "location", "Beijing", "callType", "work",
+                   "duration", 3, "calltime", "2017-5-1 23:00:00");
+        v1.addEdge("call", v2, "location", "Beijing", "callType", "work",
+                   "duration", 3, "calltime", "2017-5-2 12:00:01");
+        v1.addEdge("call", v2, "location", "Beijing", "callType", "work",
+                   "duration", 3, "calltime", "2017-5-3 12:08:02");
+        v1.addEdge("call", v2, "location", "Beijing", "callType", "work",
+                   "duration", 8, "calltime", "2017-5-3 22:22:03");
+        v1.addEdge("call", v2, "location", "Beijing", "callType", "fun",
+                   "duration", 10, "calltime", "2017-5-4 20:33:04");
+
+        v1.addEdge("call", v10086, "location", "Nanjing", "callType", "work",
+                   "duration", 12, "calltime", "2017-5-2 15:30:05");
+        v1.addEdge("call", v10086, "location", "Nanjing", "callType", "work",
+                   "duration", 14, "calltime", "2017-5-3 14:56:06");
+        v2.addEdge("call", v10086, "location", "Nanjing", "callType", "fun",
+                   "duration", 15, "calltime", "2017-5-3 17:28:07");
+
+        graph.tx().commit();
+        Assert.assertEquals(8, graph.traversal().E().toList().size());
+
+        // Query by sortkey prefix "location"
+        List<Edge> edges = graph.traversal().V(v1).outE("call")
+                                .has("location", "Beijing")
+                                .toList();
+        Assert.assertEquals(5, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Nanjing")
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        // Query by sortkey prefix "location", "callType"
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .toList();
+        Assert.assertEquals(4, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "fun")
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Nanjing")
+                     .has("callType", "work")
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        // Query by sortkey prefix "location", "callType", "duration"
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 3)
+                     .toList();
+        Assert.assertEquals(3, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 8)
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "fun")
+                     .has("duration", 10)
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Nanjing")
+                     .has("callType", "work")
+                     .has("duration", 12)
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Nanjing")
+                     .has("callType", "work")
+                     .has("duration", 14)
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        // Query by sortkey prefix "location", "callType" and range "duration"
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", P.lt(8))
+                     .toList();
+        Assert.assertEquals(3, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", P.lte(8))
+                     .toList();
+        Assert.assertEquals(4, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", P.gt(3))
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", P.gte(3))
+                     .toList();
+        Assert.assertEquals(4, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", P.between(3, 9))
+                     .toList();
+        Assert.assertEquals(4, edges.size());
+
+        // Query by sortkey prefix "location", "callType", "duration",
+        // "callTime"
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 3)
+                     .has("calltime", "2017-5-1 23:00:00")
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 3)
+                     .has("calltime", "2017-5-2 12:00:01")
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 3)
+                     .has("calltime", "2017-5-3 12:08:02")
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        // Query by sortkey prefix "location", "callType", "duration" and
+        // range "callTime"
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 3)
+                     .has("calltime", P.lt("2017-5-2 12:00:01"))
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 3)
+                     .has("calltime", P.lte("2017-5-2 12:00:01"))
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 3)
+                     .has("calltime", P.gt("2017-5-2 12:00:01"))
+                     .toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 3)
+                     .has("calltime", P.gte("2017-5-2 12:00:01"))
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V(v1).outE("call")
+                     .has("location", "Beijing")
+                     .has("callType", "work")
+                     .has("duration", 3)
+                     .has("calltime", P.between("2017-5-2", "2017-5-4"))
+                     .toList();
+        Assert.assertEquals(2, edges.size());
     }
 
     @Test

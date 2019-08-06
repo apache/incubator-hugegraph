@@ -153,9 +153,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                              this.otherVertex());
 
         int len = this.id.length();
-        E.checkArgument(len <= BytesBuffer.BIG_ID_MAX_LEN,
+        E.checkArgument(len <= BytesBuffer.BIG_ID_LEN_MAX,
                         "The max length of edge id is %s, but got %s {%s}",
-                        BytesBuffer.BIG_ID_MAX_LEN, len, this.id);
+                        BytesBuffer.BIG_ID_LEN_MAX, len, this.id);
     }
 
     @Watched(prefix = "edge")

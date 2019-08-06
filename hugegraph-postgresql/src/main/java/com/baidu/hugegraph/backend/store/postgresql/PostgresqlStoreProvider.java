@@ -51,7 +51,14 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
 
     @Override
     public String version() {
-        return "1.0";
+        /*
+         * Versions history:
+         * [1.0] #441: supports PostgreSQL and Cockroach backend
+         * [1.1] #270 & #398: support shard-index and vertex + sortkey prefix,
+         *                    also split range table to rangeInt, rangeFloat,
+         *                    rangeLong and rangeDouble
+         */
+        return "1.1";
     }
 
     public static class PostgresqlSchemaStore extends PostgresqlStore {
@@ -112,10 +119,18 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
                                                            Directions.IN));
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new PostgresqlTables.SecondaryIndex(store));
-            registerTableManager(HugeType.RANGE_INDEX,
-                                 new PostgresqlTables.RangeIndex(store));
+            registerTableManager(HugeType.RANGE_INT_INDEX,
+                                 new PostgresqlTables.RangeIntIndex(store));
+            registerTableManager(HugeType.RANGE_FLOAT_INDEX,
+                                 new PostgresqlTables.RangeFloatIndex(store));
+            registerTableManager(HugeType.RANGE_LONG_INDEX,
+                                 new PostgresqlTables.RangeLongIndex(store));
+            registerTableManager(HugeType.RANGE_DOUBLE_INDEX,
+                                 new PostgresqlTables.RangeDoubleIndex(store));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new PostgresqlTables.SearchIndex(store));
+            registerTableManager(HugeType.SHARD_INDEX,
+                                 new PostgresqlTables.ShardIndex(store));
         }
 
         @Override

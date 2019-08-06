@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HugeGraph Authors
+ * Copyright 2019 HugeGraph Authors
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
@@ -17,29 +17,28 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.unit.util;
 
-import com.baidu.hugegraph.util.VersionUtil;
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class CoreVersion {
+import com.baidu.hugegraph.backend.id.IdUtil;
 
-    static {
-        // Check versions of the dependency packages
-        CoreVersion.check();
+public class IdUtilTest {
+
+    @Test
+    public void testEscape() {
+        Assert.assertEquals("a2b2c",
+                            IdUtil.escape('2', '\u0000', "a", "b", "c"));
+        Assert.assertEquals("12\u0000223",
+                            IdUtil.escape('2', '\u0000', "1", "2", "3"));
     }
 
-    public static final String NAME = "hugegraph-core";
-
-    // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(CoreVersion.class,
-                                                     "0.10.2");
-
-    public static final String GREMLIN_VERSION = "3.2.5";
-
-    public static void check() {
-        // Check version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "1.6.0", "1.7",
-                          CommonVersion.NAME);
+    @Test
+    public void testUnescape() {
+        Assert.assertArrayEquals(new String[]{"a", "b>c", "d"},
+                                 IdUtil.unescape("a>b/>c>d", ">", "/"));
+        Assert.assertEquals(1, IdUtil.unescape("", "", "").length);
+        Assert.assertEquals(1, IdUtil.unescape("foo", "bar", "baz").length);
     }
 }

@@ -54,8 +54,11 @@ public class PaloStoreProvider extends MysqlStoreProvider {
          * [1.0] HugeGraph-1328: supports backend table version checking
          * [1.1] HugeGraph-1322: add support for full-text search
          * [1.2] #296: support range sortKey feature
+         * [1.3] #270 & #398: support shard-index and vertex + sortkey prefix,
+         *                    also split range table to rangeInt, rangeFloat,
+         *                    rangeLong and rangeDouble
          */
-        return "1.2";
+        return "1.3";
     }
 
     public static class PaloSchemaStore extends PaloStore {
@@ -114,10 +117,18 @@ public class PaloStoreProvider extends MysqlStoreProvider {
                                  new PaloTables.Edge(store, Directions.IN));
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new PaloTables.SecondaryIndex(store));
-            registerTableManager(HugeType.RANGE_INDEX,
-                                 new PaloTables.RangeIndex(store));
+            registerTableManager(HugeType.RANGE_INT_INDEX,
+                                 new PaloTables.RangeIntIndex(store));
+            registerTableManager(HugeType.RANGE_FLOAT_INDEX,
+                                 new PaloTables.RangeFloatIndex(store));
+            registerTableManager(HugeType.RANGE_LONG_INDEX,
+                                 new PaloTables.RangeLongIndex(store));
+            registerTableManager(HugeType.RANGE_DOUBLE_INDEX,
+                                 new PaloTables.RangeDoubleIndex(store));
             registerTableManager(HugeType.SEARCH_INDEX,
                                  new PaloTables.SearchIndex(store));
+            registerTableManager(HugeType.SHARD_INDEX,
+                                 new PaloTables.ShardIndex(store));
         }
 
         @Override

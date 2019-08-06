@@ -41,7 +41,7 @@ public class RocksDBTables {
 
     public static class Counters extends RocksDBTable {
 
-        private static final String TABLE = "c";
+        private static final String TABLE = HugeType.COUNTER.string();
 
         public Counters(String database) {
             super(database, TABLE);
@@ -79,7 +79,7 @@ public class RocksDBTables {
 
     public static class VertexLabel extends RocksDBTable {
 
-        public static final String TABLE = "vl";
+        public static final String TABLE = HugeType.VERTEX_LABEL.string();
 
         public VertexLabel(String database) {
             super(database, TABLE);
@@ -88,7 +88,7 @@ public class RocksDBTables {
 
     public static class EdgeLabel extends RocksDBTable {
 
-        public static final String TABLE = "el";
+        public static final String TABLE = HugeType.EDGE_LABEL.string();
 
         public EdgeLabel(String database) {
             super(database, TABLE);
@@ -97,7 +97,7 @@ public class RocksDBTables {
 
     public static class PropertyKey extends RocksDBTable {
 
-        public static final String TABLE = "pk";
+        public static final String TABLE = HugeType.PROPERTY_KEY.string();
 
         public PropertyKey(String database) {
             super(database, TABLE);
@@ -106,7 +106,7 @@ public class RocksDBTables {
 
     public static class IndexLabel extends RocksDBTable {
 
-        public static final String TABLE = "il";
+        public static final String TABLE = HugeType.INDEX_LABEL.string();
 
         public IndexLabel(String database) {
             super(database, TABLE);
@@ -115,7 +115,7 @@ public class RocksDBTables {
 
     public static class Vertex extends RocksDBTable {
 
-        public static final String TABLE = "v";
+        public static final String TABLE = HugeType.VERTEX.string();
 
         public Vertex(String database) {
             super(database, TABLE);
@@ -124,7 +124,7 @@ public class RocksDBTables {
 
     public static class Edge extends RocksDBTable {
 
-        public static final String TABLE_SUFFIX = "e";
+        public static final String TABLE_SUFFIX = HugeType.EDGE.string();
 
         public Edge(boolean out, String database) {
             // Edge out/in table
@@ -177,7 +177,7 @@ public class RocksDBTables {
 
     public static class SecondaryIndex extends IndexTable {
 
-        public static final String TABLE = "si";
+        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
 
         public SecondaryIndex(String database) {
             super(database, TABLE);
@@ -186,7 +186,7 @@ public class RocksDBTables {
 
     public static class SearchIndex extends IndexTable {
 
-        public static final String TABLE = "fi";
+        public static final String TABLE = HugeType.SEARCH_INDEX.string();
 
         public SearchIndex(String database) {
             super(database, TABLE);
@@ -195,10 +195,8 @@ public class RocksDBTables {
 
     public static class RangeIndex extends IndexTable {
 
-        public static final String TABLE = "ri";
-
-        public RangeIndex(String database) {
-            super(database, TABLE);
+        public RangeIndex(String database, String table) {
+            super(database, table);
         }
 
         @Override
@@ -253,6 +251,51 @@ public class RocksDBTables {
                 int type = maxEq ? Session.SCAN_LTE_END : Session.SCAN_LT_END;
                 return session.scan(this.table(), begin, end, type);
             }
+        }
+    }
+
+    public static class RangeIntIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_INT_INDEX.string();
+
+        public RangeIntIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class RangeFloatIndex extends RangeIndex{
+
+        public static final String TABLE = HugeType.RANGE_FLOAT_INDEX.string();
+
+        public RangeFloatIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class RangeLongIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_LONG_INDEX.string();
+
+        public RangeLongIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class RangeDoubleIndex extends RangeIndex{
+
+        public static final String TABLE = HugeType.RANGE_DOUBLE_INDEX.string();
+
+        public RangeDoubleIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class ShardIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.SHARD_INDEX.string();
+
+        public ShardIndex(String database) {
+            super(database, TABLE);
         }
     }
 }

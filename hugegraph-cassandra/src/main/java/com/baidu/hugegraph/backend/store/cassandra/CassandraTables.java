@@ -63,7 +63,7 @@ public class CassandraTables {
 
     public static class Counters extends CassandraTable {
 
-        public static final String TABLE = "counters";
+        public static final String TABLE = HugeType.COUNTER.string();
 
         public Counters() {
             super(TABLE);
@@ -107,7 +107,7 @@ public class CassandraTables {
 
     public static class VertexLabel extends CassandraTable {
 
-        public static final String TABLE = "vertex_labels";
+        public static final String TABLE = HugeType.VERTEX_LABEL.string();
 
         public VertexLabel() {
             super(TABLE);
@@ -139,7 +139,7 @@ public class CassandraTables {
 
     public static class EdgeLabel extends CassandraTable {
 
-        public static final String TABLE = "edge_labels";
+        public static final String TABLE = HugeType.EDGE_LABEL.string();
 
         public EdgeLabel() {
             super(TABLE);
@@ -173,7 +173,7 @@ public class CassandraTables {
 
     public static class PropertyKey extends CassandraTable {
 
-        public static final String TABLE = "property_keys";
+        public static final String TABLE = HugeType.PROPERTY_KEY.string();
 
         public PropertyKey() {
             super(TABLE);
@@ -202,7 +202,7 @@ public class CassandraTables {
 
     public static class IndexLabel extends CassandraTable {
 
-        public static final String TABLE = "index_labels";
+        public static final String TABLE = HugeType.INDEX_LABEL.string();
 
         public IndexLabel() {
             super(TABLE);
@@ -231,7 +231,7 @@ public class CassandraTables {
 
     public static class Vertex extends CassandraTable {
 
-        public static final String TABLE = "vertices";
+        public static final String TABLE = HugeType.VERTEX.string();
 
         public Vertex(String store) {
             super(joinTableName(store, TABLE));
@@ -278,7 +278,7 @@ public class CassandraTables {
 
     public static class Edge extends CassandraTable {
 
-        public static final String TABLE_PREFIX = "edges";
+        public static final String TABLE_PREFIX = HugeType.EDGE.string();
 
         private final String store;
         private final Directions direction;
@@ -497,10 +497,10 @@ public class CassandraTables {
 
     public static class SecondaryIndex extends CassandraTable {
 
-        public static final String TABLE = "secondary_indexes";
+        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
 
         public SecondaryIndex(String store) {
-            super(joinTableName(store, TABLE));
+            this(store, TABLE);
         }
 
         protected SecondaryIndex(String store, String table) {
@@ -544,8 +544,8 @@ public class CassandraTables {
 
             Long indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
             if (indexLabel == null) {
-                throw new BackendException("SecondaryIndex deletion " +
-                          "needs INDEX_LABEL_ID, but not provided.");
+                throw new BackendException("SecondaryIndex deletion needs " +
+                                           "INDEX_LABEL_ID, but not provided.");
             }
 
             Select select = QueryBuilder.select().from(this.table());
@@ -601,19 +601,24 @@ public class CassandraTables {
 
     public static class SearchIndex extends SecondaryIndex {
 
-        public static final String TABLE = "search_indexes";
+        public static final String TABLE = HugeType.SEARCH_INDEX.string();
 
         public SearchIndex(String store) {
             super(store, TABLE);
         }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            throw new BackendException(
+                      "SearchIndex insertion is not supported.");
+        }
     }
 
-    public static class RangeIndex extends CassandraTable {
+    public abstract static class RangeIndex extends CassandraTable {
 
-        public static final String TABLE = "range_indexes";
-
-        public RangeIndex(String store) {
-            super(joinTableName(store, TABLE));
+        protected RangeIndex(String store, String table) {
+            super(joinTableName(store, table));
         }
 
         @Override
@@ -645,7 +650,7 @@ public class CassandraTables {
         @Override
         public void delete(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            Number fieldValues = entry.column(HugeKeys.FIELD_VALUES);
+            Object fieldValues = entry.column(HugeKeys.FIELD_VALUES);
             if (fieldValues != null) {
                 super.delete(session, entry);
                 return;
@@ -681,6 +686,128 @@ public class CassandraTables {
                               CassandraBackendEntry.Row entry) {
             assert entry.columns().size() == 3;
             this.delete(session, entry);
+        }
+    }
+
+    public static class RangeIntIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_INT_INDEX.string();
+
+        public RangeIntIndex(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.cint(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+    }
+
+    public static class RangeFloatIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_FLOAT_INDEX.string();
+
+        public RangeFloatIndex(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.cfloat(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+    }
+
+    public static class RangeLongIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_LONG_INDEX.string();
+
+        public RangeLongIndex(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.bigint(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+    }
+
+    public static class RangeDoubleIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_DOUBLE_INDEX.string();
+
+        public RangeDoubleIndex(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.cdouble(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+    }
+
+    public static class ShardIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.SHARD_INDEX.string();
+
+        public ShardIndex(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
+                    HugeKeys.FIELD_VALUES, DataType.text(),
+                    HugeKeys.ELEMENT_IDS, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            throw new BackendException(
+                      "ShardIndex insertion is not supported.");
         }
     }
 }

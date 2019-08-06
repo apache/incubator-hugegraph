@@ -108,8 +108,7 @@ public class IndexLabel extends SchemaElement {
     }
 
     public Id indexField() {
-        E.checkState(this.indexType == IndexType.RANGE ||
-                     this.indexType == IndexType.SEARCH,
+        E.checkState(this.indexType.isRange() || this.indexType.isSearch(),
                      "Can't call indexField() for %s index label",
                      this.indexType.string());
         E.checkState(this.indexFields.size() == 1,
@@ -209,6 +208,8 @@ public class IndexLabel extends SchemaElement {
         Builder range();
 
         Builder search();
+
+        Builder shard();
 
         Builder on(HugeType baseType, String baseValue);
 

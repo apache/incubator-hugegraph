@@ -28,9 +28,16 @@ public enum IndexType implements SerialEnum {
 
     // For range query
     RANGE(2, "range"),
+    RANGE_INT(21, "range_int"),
+    RANGE_FLOAT(22, "range_float"),
+    RANGE_LONG(23, "range_long"),
+    RANGE_DOUBLE(24, "range_double"),
 
     // For full-text query (not supported now)
-    SEARCH(3, "search");
+    SEARCH(3, "search"),
+
+    // For prefix + range query
+    SHARD(4, "shard");
 
     private byte code = 0;
     private String name = null;
@@ -58,13 +65,48 @@ public enum IndexType implements SerialEnum {
         switch (this) {
             case SECONDARY:
                 return HugeType.SECONDARY_INDEX;
-            case RANGE:
-                return HugeType.RANGE_INDEX;
+            case RANGE_INT:
+                return HugeType.RANGE_INT_INDEX;
+            case RANGE_FLOAT:
+                return HugeType.RANGE_FLOAT_INDEX;
+            case RANGE_LONG:
+                return HugeType.RANGE_LONG_INDEX;
+            case RANGE_DOUBLE:
+                return HugeType.RANGE_DOUBLE_INDEX;
             case SEARCH:
                 return HugeType.SEARCH_INDEX;
+            case SHARD:
+                return HugeType.SHARD_INDEX;
             default:
                 throw new AssertionError(String.format(
                           "Unknown index type '%s'", this));
         }
+    }
+
+    public boolean isString() {
+        return this == SECONDARY || this == SEARCH || this == SHARD;
+    }
+
+    public boolean isNumeric() {
+        return this == RANGE_INT || this == RANGE_FLOAT ||
+               this == RANGE_LONG || this == RANGE_DOUBLE ||
+               this == SHARD;
+    }
+
+    public boolean isSecondary() {
+        return this == SECONDARY;
+    }
+
+    public boolean isRange() {
+        return this == RANGE_INT || this == RANGE_FLOAT ||
+               this == RANGE_LONG || this == RANGE_DOUBLE;
+    }
+
+    public boolean isSearch() {
+        return this == SEARCH;
+    }
+
+    public boolean isShard() {
+        return this == SHARD;
     }
 }

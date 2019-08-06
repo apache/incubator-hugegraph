@@ -36,6 +36,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -418,8 +419,8 @@ public class InMemoryDBTables {
 
     public static class RangeIndex extends InMemoryDBTable {
 
-        public RangeIndex() {
-            super(HugeType.RANGE_INDEX, new ConcurrentSkipListMap<>());
+        protected RangeIndex(HugeType type) {
+            super(type, new ConcurrentSkipListMap<>());
         }
 
         @Override
@@ -447,54 +448,27 @@ public class InMemoryDBTables {
             }
             assert indexLabelId != null;
 
-            Object keyEq = null;
-            Object keyMin = null;
-            boolean keyMinEq = false;
-            Object keyMax = null;
-            boolean keyMaxEq = false;
-
-            for (Condition.Relation r : relations) {
-                E.checkArgument(r.key() == HugeKeys.FIELD_VALUES,
-                                "Expect FIELD_VALUES in AND condition");
-                switch (r.relation()) {
-                    case EQ:
-                        keyEq = r.value();
-                        break;
-                    case GTE:
-                        keyMinEq = true;
-                    case GT:
-                        keyMin = r.value();
-                        break;
-                    case LTE:
-                        keyMaxEq = true;
-                    case LT:
-                        keyMax = r.value();
-                        break;
-                    default:
-                        E.checkArgument(false, "Unsupported relation '%s'",
-                                        r.relation());
-                        break;
-                }
-            }
-
-            if (keyEq != null) {
-                Id id = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
-                                                indexLabelId, keyEq);
+            RangeConditions range = new RangeConditions(relations);
+            if (range.keyEq() != null) {
+                Id id = HugeIndex.formatIndexId(query.resultType(),
+                                                indexLabelId, range.keyEq());
                 IdQuery q = new IdQuery(query, id);
                 q.offset(query.offset());
                 q.limit(query.limit());
                 return super.query(session, q);
             }
             // keyMin <(=) field value <(=) keyMax
-            return this.betweenQuery(indexLabelId, keyMax, keyMaxEq,
-                                     keyMin, keyMinEq);
+            return this.betweenQuery(indexLabelId, range.keyMax(),
+                                     range.keyMaxEq(), range.keyMin(),
+                                     range.keyMinEq(), query.resultType());
         }
 
         private Iterator<BackendEntry> betweenQuery(Id indexLabelId,
                                                     Object keyMax,
                                                     boolean keyMaxEq,
                                                     Object keyMin,
-                                                    boolean keyMinEq) {
+                                                    boolean keyMinEq,
+                                                    HugeType type) {
             NavigableMap<Id, BackendEntry> rs = this.store();
 
             E.checkArgument(keyMin != null || keyMax != null,
@@ -503,8 +477,7 @@ public class InMemoryDBTables {
                 // Field value < keyMax
                 keyMin = NumericUtil.minValueOf(keyMax.getClass());
             }
-            Id min = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
-                                             indexLabelId, keyMin);
+            Id min = HugeIndex.formatIndexId(type, indexLabelId, keyMin);
 
             if (keyMax == null) {
                 // Field value > keyMin
@@ -512,8 +485,7 @@ public class InMemoryDBTables {
                 indexLabelId = IdGenerator.of(indexLabelId.asLong() + 1L);
                 keyMax = NumericUtil.minValueOf(keyMin.getClass());
             }
-            Id max = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
-                                             indexLabelId, keyMax);
+            Id max = HugeIndex.formatIndexId(type, indexLabelId, keyMax);
 
             max = keyMaxEq ? rs.floorKey(max) : rs.lowerKey(max);
             if (max == null) {
@@ -542,11 +514,9 @@ public class InMemoryDBTables {
             E.checkState(indexLabel != null, "Expect index label");
 
             Id indexLabelId = IdGenerator.of(indexLabel);
-            Id min = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
-                                             indexLabelId, 0L);
+            Id min = HugeIndex.formatIndexId(entry.type(), indexLabelId, 0L);
             indexLabelId = IdGenerator.of(indexLabelId.asLong() + 1L);
-            Id max = HugeIndex.formatIndexId(HugeType.RANGE_INDEX,
-                                             indexLabelId, 0L);
+            Id max = HugeIndex.formatIndexId(entry.type(), indexLabelId, 0L);
             SortedMap<Id, BackendEntry> subStore;
             subStore = this.store().subMap(min, max);
             Iterator<Entry<Id, BackendEntry>> iter;
@@ -555,6 +525,29 @@ public class InMemoryDBTables {
                 // Delete if prefix with index label
                 iter.remove();
             }
+        }
+
+        public static RangeIndex rangeInt() {
+            return new RangeIndex(HugeType.RANGE_INT_INDEX);
+        }
+
+        public static RangeIndex rangeFloat() {
+            return new RangeIndex(HugeType.RANGE_FLOAT_INDEX);
+        }
+
+        public static RangeIndex rangeLong() {
+            return new RangeIndex(HugeType.RANGE_LONG_INDEX);
+        }
+
+        public static RangeIndex rangeDouble() {
+            return new RangeIndex(HugeType.RANGE_DOUBLE_INDEX);
+        }
+    }
+
+    public static class ShardIndex extends RangeIndex {
+
+        public ShardIndex() {
+            super(HugeType.SHARD_INDEX);
         }
     }
 }

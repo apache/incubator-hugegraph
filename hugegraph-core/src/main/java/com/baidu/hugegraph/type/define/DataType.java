@@ -77,6 +77,15 @@ public enum DataType implements SerialEnum {
                this == FLOAT || this == DOUBLE;
     }
 
+    public boolean isNumber4() {
+        // Store index value of Byte using 4 bytes
+        return this == BYTE || this == INT || this == FLOAT;
+    }
+
+    public boolean isNumber8() {
+        return this == LONG || this == DOUBLE;
+    }
+
     public boolean isDate() {
         return this == DataType.DATE;
     }

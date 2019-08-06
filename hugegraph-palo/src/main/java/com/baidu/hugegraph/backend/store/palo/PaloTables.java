@@ -72,7 +72,7 @@ public class PaloTables {
 
     public static class VertexLabel extends PaloTableTemplate {
 
-        public static final String TABLE = "vertex_labels";
+        public static final String TABLE = HugeType.VERTEX_LABEL.string();
 
         public VertexLabel() {
             super(TABLE);
@@ -94,7 +94,7 @@ public class PaloTables {
 
     public static class EdgeLabel extends PaloTableTemplate {
 
-        public static final String TABLE = "edge_labels";
+        public static final String TABLE = HugeType.EDGE_LABEL.string();
 
         public EdgeLabel() {
             super(TABLE);
@@ -118,7 +118,7 @@ public class PaloTables {
 
     public static class PropertyKey extends PaloTableTemplate {
 
-        public static final String TABLE = "property_keys";
+        public static final String TABLE = HugeType.PROPERTY_KEY.string();
 
         public PropertyKey() {
             super(TABLE);
@@ -137,7 +137,7 @@ public class PaloTables {
 
     public static class IndexLabel extends PaloTableTemplate {
 
-        public static final String TABLE = "index_labels";
+        public static final String TABLE = HugeType.INDEX_LABEL.string();
 
         public IndexLabel() {
             super(TABLE);
@@ -156,7 +156,7 @@ public class PaloTables {
 
     public static class Vertex extends PaloTableTemplate {
 
-        public static final String TABLE = "vertices";
+        public static final String TABLE = HugeType.VERTEX.string();
 
         public Vertex(String store) {
             super(joinTableName(store, TABLE));
@@ -331,7 +331,7 @@ public class PaloTables {
 
     public static class SecondaryIndex extends Index {
 
-        public static final String TABLE = "secondary_indexes";
+        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
 
         public SecondaryIndex(String store) {
             this(store, TABLE);
@@ -360,23 +360,83 @@ public class PaloTables {
 
     public static class SearchIndex extends SecondaryIndex {
 
-        public static final String TABLE = "search_indexes";
+        public static final String TABLE = HugeType.SEARCH_INDEX.string();
 
         public SearchIndex(String store) {
             super(store, TABLE);
         }
     }
 
-    public static class RangeIndex extends Index {
+    public abstract static class RangeIndex extends Index {
 
-        public static final String TABLE = "range_indexes";
-
-        public RangeIndex(String store) {
-            super(joinTableName(store, TABLE));
+        public RangeIndex(String store, String table) {
+            super(joinTableName(store, table));
 
             this.define = new TableDefine();
             this.define.column(HugeKeys.INDEX_LABEL_ID, INT, NOT_NULL);
             this.define.column(HugeKeys.FIELD_VALUES, DECIMAL, NOT_NULL);
+            this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR, NOT_NULL);
+            // Unique keys/hash keys
+            this.define.keys(HugeKeys.INDEX_LABEL_ID,
+                             HugeKeys.FIELD_VALUES,
+                             HugeKeys.ELEMENT_IDS);
+        }
+
+        @Override
+        protected final String entryId(MysqlBackendEntry entry) {
+            Double fieldValue = entry.<Double>column(HugeKeys.FIELD_VALUES);
+            Integer labelId = entry.column(HugeKeys.INDEX_LABEL_ID);
+            return SplicingIdGenerator.concat(labelId.toString(),
+                                              fieldValue.toString());
+        }
+    }
+
+    public static class RangeIntIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_INT_INDEX.string();
+
+        public RangeIntIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class RangeFloatIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_FLOAT_INDEX.string();
+
+        public RangeFloatIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class RangeLongIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_LONG_INDEX.string();
+
+        public RangeLongIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class RangeDoubleIndex extends RangeIndex {
+
+        public static final String TABLE = HugeType.RANGE_DOUBLE_INDEX.string();
+
+        public RangeDoubleIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
+    public static class ShardIndex extends Index {
+
+        public static final String TABLE = HugeType.SHARD_INDEX.string();
+
+        public ShardIndex(String store) {
+            super(joinTableName(store, TABLE));
+
+            this.define = new TableDefine();
+            this.define.column(HugeKeys.INDEX_LABEL_ID, INT, NOT_NULL);
+            this.define.column(HugeKeys.FIELD_VALUES, VARCHAR, NOT_NULL);
             this.define.column(HugeKeys.ELEMENT_IDS, VARCHAR, NOT_NULL);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.INDEX_LABEL_ID,

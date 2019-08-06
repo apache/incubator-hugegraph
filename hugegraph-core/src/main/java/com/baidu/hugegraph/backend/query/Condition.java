@@ -603,4 +603,61 @@ public abstract class Condition {
             return new UserpropRelation(this.key, this.relation(), this.value);
         }
     }
+
+    public static class RangeConditions {
+
+        private Object keyEq = null;
+        private Object keyMin = null;
+        private boolean keyMinEq = false;
+        private Object keyMax = null;
+        private boolean keyMaxEq = false;
+
+        public RangeConditions(List<? extends Condition> conditions) {
+            for (Condition c : conditions) {
+                Relation r = (Relation) c;
+                switch (r.relation()) {
+                    case EQ:
+                        this.keyEq = r.value();
+                        break;
+                    case GTE:
+                        this.keyMinEq = true;
+                    case GT:
+                        this.keyMin = r.value();
+                        break;
+                    case LTE:
+                        this.keyMaxEq = true;
+                    case LT:
+                        this.keyMax = r.value();
+                        break;
+                    default:
+                        E.checkArgument(false, "Unsupported relation '%s'",
+                                        r.relation());
+                }
+            }
+        }
+
+        public Object keyEq() {
+            return this.keyEq;
+        }
+
+        public Object keyMin() {
+            return this.keyMin;
+        }
+
+        public Object keyMax() {
+            return this.keyMax;
+        }
+
+        public boolean keyMinEq() {
+            return this.keyMinEq;
+        }
+
+        public boolean keyMaxEq() {
+            return this.keyMaxEq;
+        }
+
+        public boolean hasRange() {
+            return this.keyMin != null || this.keyMax != null;
+        }
+    }
 }
