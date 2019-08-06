@@ -99,6 +99,7 @@ case "$GC_OPTION" in
         JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
                       -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
         ;;
+    "") ;;    
     *)
         echo "Unrecognized gc option: '$GC_OPTION', only support 'g1' now" >> ${OUTPUT}
         exit 1
