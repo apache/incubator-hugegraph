@@ -1693,10 +1693,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                      .has("age", P.between(3, 21)).toList();
         Assert.assertEquals(4, vertices.size());
 
-        // override vertex without age and make left index
-        graph.addVertex(T.label, "person", "name", "Baby","city", "Hongkong")
-             .remove(); // avoid merge property mode
-        graph.tx().commit();
+        // override vertex without age (in memory)
         graph.addVertex(T.label, "person", "name", "Baby","city", "Hongkong");
 
         // 3 <= age && age < 21
@@ -1704,8 +1701,12 @@ public class VertexCoreTest extends BaseCoreTest {
                         .has("age", P.between(3, 21)).toList();
         Assert.assertEquals(3, vertices.size());
 
-        // qeury again after commit
+        // override vertex without age (in backend) and make left index
+        graph.addVertex(T.label, "person", "name", "Baby","city", "Hongkong")
+             .remove(); // avoid merge property mode
         graph.tx().commit();
+
+        // qeury again after commit
         vertices = graph.traversal().V().hasLabel("person")
                         .has("age", P.between(3, 21)).toList();
         Assert.assertEquals(3, vertices.size());

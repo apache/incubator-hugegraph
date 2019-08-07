@@ -24,11 +24,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -68,7 +68,8 @@ public abstract class Condition {
         }),
         PREFIX("prefix", (v1, v2) -> {
             assert v2 != null;
-            return Bytes.prefixWith(((Id) v2).asBytes(), ((Id) v1).asBytes());
+            return v1 != null && Bytes.prefixWith(((Id) v2).asBytes(),
+                                                  ((Id) v1).asBytes());
         }),
         TEXT_CONTAINS("textcontains", (v1, v2) -> {
             return v1 != null && ((String) v1).contains((String) v2);
@@ -87,15 +88,20 @@ public abstract class Condition {
             }
             return false;
         }),
-        CONTAINS("contains", (v1, v2) -> {
+        CONTAINS_VALUE("containsv", (v1, v2) -> {
             assert v2 != null;
             return v1 != null && ((Map<?, ?>) v1).containsValue(v2);
         }),
-        CONTAINS_KEY("containskey", (v1, v2) -> {
+        CONTAINS_KEY("containsk", (v1, v2) -> {
             assert v2 != null;
             return v1 != null && ((Map<?, ?>) v1).containsKey(v2);
         }),
-        SCAN("scan", (v1, v2) -> true);
+        SCAN("scan", (v1, v2) -> {
+            assert v2 != null;
+            Shard shard = (Shard) v2;
+            return v1 != null && shard.start().compareTo((String) v1) <= 0 &&
+                   shard.end().compareTo((String) v1) > 0;
+        });
 
         private final String operator;
         private final BiFunction<Object, Object, Boolean> tester;
@@ -119,19 +125,17 @@ public abstract class Condition {
         protected static boolean equals(final Object first,
                                         final Object second) {
             assert second != null;
-            if (first == null) {
-                return second == null;
-            } else if (first instanceof Id) {
+            if (first instanceof Id) {
                 if (second instanceof String) {
                     return second.equals(((Id) first).asString());
                 } else if (second instanceof Long) {
                     return second.equals(((Id) first).asLong());
                 }
-            } else if (first instanceof Number || second instanceof Number) {
+            } else if (second instanceof Number) {
                 return compare(first, second) == 0;
             }
 
-            return first.equals(second);
+            return Objects.equals(first, second);
         }
 
         /**
@@ -151,10 +155,12 @@ public abstract class Condition {
                                                  (Number) second);
             } else if (second instanceof Date) {
                 return compareDate(first, (Date) second);
-            } else {
-                throw new BackendException("Can't compare between %s and %s",
-                                           first, second);
             }
+
+            throw new IllegalArgumentException(String.format(
+                      "Can't compare between %s(%s) and %s(%s)", first,
+                      first == null ? null : first.getClass().getSimpleName(),
+                      second, second.getClass().getSimpleName()));
         }
 
         protected static int compareDate(Object first, Date second) {
@@ -163,16 +169,19 @@ public abstract class Condition {
             }
             if (first instanceof Date) {
                 return ((Date) first).compareTo(second);
-            } else {
-                throw new BackendException(
-                          "Can't compare between %s and %s, they must be date",
-                          first, second);
             }
+
+            throw new IllegalArgumentException(String.format(
+                      "Can't compare between %s(%s) and %s(%s)",
+                      first, first.getClass().getSimpleName(),
+                      second, second.getClass().getSimpleName()));
         }
 
         @Override
         public boolean test(Object first, Object second) {
             E.checkState(this.tester != null, "Can't test %s", this.name());
+            E.checkArgument(second != null,
+                            "The second parameter of test() can't be null");
             return this.tester.apply(first, second);
         }
 
@@ -268,8 +277,8 @@ public abstract class Condition {
         return new SyspropRelation(key, RelationType.PREFIX, value);
     }
 
-    public static Condition contains(HugeKeys key, Object value) {
-        return new SyspropRelation(key, RelationType.CONTAINS, value);
+    public static Condition containsValue(HugeKeys key, Object value) {
+        return new SyspropRelation(key, RelationType.CONTAINS_VALUE, value);
     }
 
     public static Condition containsKey(HugeKeys key, Object value) {
@@ -325,6 +334,7 @@ public abstract class Condition {
      * Condition defines
      */
     public static abstract class BinCondition extends Condition {
+
         private Condition left;
         private Condition right;
 
@@ -390,6 +400,7 @@ public abstract class Condition {
     }
 
     public static class And extends BinCondition {
+
         public And(Condition left, Condition right) {
             super(left, right);
         }
@@ -416,6 +427,7 @@ public abstract class Condition {
     }
 
     public static class Or extends BinCondition {
+
         public Or(Condition left, Condition right) {
             super(left, right);
         }
@@ -442,6 +454,7 @@ public abstract class Condition {
     }
 
     public abstract static class Relation extends Condition {
+
         // Relational operator (like: =, >, <, in, ...)
         protected RelationType relation;
         // Single-type value or a list of single-type value
@@ -487,7 +500,7 @@ public abstract class Condition {
 
         @Override
         public boolean test(Object value) {
-            return this.relation.test(value, this.value);
+            return this.relation.test(value, this.serialValue());
         }
 
         @Override
@@ -569,20 +582,26 @@ public abstract class Condition {
 
         @Override
         public boolean test(HugeElement element) {
+            E.checkNotNull(element, "element");
             if (this.relation == RelationType.SCAN) {
                 return true;
             }
             Object value = element.sysprop(this.key);
-            return this.relation.test(value, this.value);
+            return this.relation.test(value, this.serialValue());
         }
 
         @Override
         public Condition copy() {
-            return new SyspropRelation(this.key, this.relation(), this.value);
+            Relation clone = new SyspropRelation(this.key, this.relation(),
+                                                 this.value);
+            clone.serialKey(this.serialKey);
+            clone.serialValue(this.serialValue);
+            return clone;
         }
     }
 
     public static class UserpropRelation extends Relation {
+
         // Id of property key
         private Id key;
 
@@ -609,7 +628,7 @@ public abstract class Condition {
 
         @Override
         public boolean test(HugeElement element) {
-            HugeProperty<?> prop = element.getProperty(this.key());
+            HugeProperty<?> prop = element.getProperty(this.key);
             Object value = prop != null ? prop.value() : null;
             if (value == null) {
                 /*
@@ -619,12 +638,16 @@ public abstract class Condition {
                  */
                 return false;
             }
-            return this.relation.test(value, this.value);
+            return this.relation.test(value, this.serialValue());
         }
 
         @Override
         public Condition copy() {
-            return new UserpropRelation(this.key, this.relation(), this.value);
+            Relation clone = new UserpropRelation(this.key, this.relation(),
+                                                  this.value);
+            clone.serialKey(this.serialKey);
+            clone.serialValue(this.serialValue);
+            return clone;
         }
     }
 
