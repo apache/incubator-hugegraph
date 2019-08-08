@@ -70,8 +70,7 @@ public class ConditionTest extends BaseUnitTest {
         r2.serialValue("1234");
         Assert.assertEquals("1234", r2.serialValue());
         Assert.assertEquals("123", r1.serialValue());
-        Assert.assertFalse(r2.test("123"));
-        Assert.assertTrue(r2.test("1234"));
+        Assert.assertTrue(r2.test("123"));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.eq(HugeKeys.ID, null).test("any");
@@ -115,8 +114,7 @@ public class ConditionTest extends BaseUnitTest {
         r2.serialValue("1234");
         Assert.assertEquals("1234", r2.serialValue());
         Assert.assertEquals("123", r1.serialValue());
-        Assert.assertFalse(r2.test("123"));
-        Assert.assertTrue(r2.test("1234"));
+        Assert.assertTrue(r2.test("123"));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.eq(IdGenerator.of("1"), null).test("any");

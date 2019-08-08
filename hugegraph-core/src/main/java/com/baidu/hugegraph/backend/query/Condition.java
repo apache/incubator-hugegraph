@@ -500,7 +500,7 @@ public abstract class Condition {
 
         @Override
         public boolean test(Object value) {
-            return this.relation.test(value, this.serialValue());
+            return this.relation.test(value, this.value());
         }
 
         @Override
@@ -587,7 +587,7 @@ public abstract class Condition {
                 return true;
             }
             Object value = element.sysprop(this.key);
-            return this.relation.test(value, this.serialValue());
+            return this.relation.test(value, this.value());
         }
 
         @Override
@@ -638,7 +638,7 @@ public abstract class Condition {
                  */
                 return false;
             }
-            return this.relation.test(value, this.serialValue());
+            return this.relation.test(value, this.value());
         }
 
         @Override
