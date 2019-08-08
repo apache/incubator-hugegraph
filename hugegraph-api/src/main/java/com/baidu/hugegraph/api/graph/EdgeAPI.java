@@ -79,7 +79,7 @@ public class EdgeAPI extends BatchAPI {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     @POST
-    @Timed
+    @Timed(name = "single-create")
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -118,7 +118,7 @@ public class EdgeAPI extends BatchAPI {
     }
 
     @POST
-    @Timed
+    @Timed(name = "batch-create")
     @Decompress
     @Path("batch")
     @Status(Status.CREATED)
@@ -163,7 +163,7 @@ public class EdgeAPI extends BatchAPI {
      * Batch update steps are same like vertices
      */
     @PUT
-    @Timed
+    @Timed(name = "single-update")
     @Decompress
     @Path("batch")
     @Consumes(APPLICATION_JSON)
@@ -218,7 +218,7 @@ public class EdgeAPI extends BatchAPI {
     }
 
     @PUT
-    @Timed
+    @Timed(name = "batch-update")
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
