@@ -236,6 +236,25 @@ public class HbaseTables {
         }
     }
 
+
+    public static class VertexLabelIndex extends IndexTable {
+
+        public static final String TABLE = HugeType.VERTEX_LABEL_INDEX.string();
+
+        public VertexLabelIndex(String store) {
+            super(joinTableName(store, TABLE));
+        }
+    }
+
+    public static class EdgeLabelIndex extends IndexTable {
+
+        public static final String TABLE = HugeType.EDGE_LABEL_INDEX.string();
+
+        public EdgeLabelIndex(String store) {
+            super(joinTableName(store, TABLE));
+        }
+    }
+
     public static class SearchIndex extends IndexTable {
 
         public static final String TABLE = HugeType.SEARCH_INDEX.string();
