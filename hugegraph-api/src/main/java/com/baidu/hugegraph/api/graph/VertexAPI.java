@@ -122,7 +122,7 @@ public class VertexAPI extends BatchAPI {
      * 3. Add the final vertex together
      */
     @PUT
-    @Timed(name = "single-update")
+    @Timed(name = "batch-update")
     @Decompress
     @Path("batch")
     @Consumes(APPLICATION_JSON)
@@ -174,7 +174,7 @@ public class VertexAPI extends BatchAPI {
     }
 
     @PUT
-    @Timed(name = "batch-update")
+    @Timed(name = "single-update")
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)

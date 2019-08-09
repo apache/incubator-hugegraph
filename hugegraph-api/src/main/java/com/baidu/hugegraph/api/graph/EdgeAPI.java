@@ -163,7 +163,7 @@ public class EdgeAPI extends BatchAPI {
      * Batch update steps are same like vertices
      */
     @PUT
-    @Timed(name = "single-update")
+    @Timed(name = "batch-update")
     @Decompress
     @Path("batch")
     @Consumes(APPLICATION_JSON)
@@ -218,7 +218,7 @@ public class EdgeAPI extends BatchAPI {
     }
 
     @PUT
-    @Timed(name = "batch-update")
+    @Timed(name = "single-update")
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
