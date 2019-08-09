@@ -103,7 +103,7 @@ public class MysqlTables {
             String idCol = formatKey(HugeKeys.ID);
 
             String select = String.format("SELECT ID FROM %s WHERE %s = '%s';",
-                                          TABLE, schemaCol, type.name());
+                                          this.table(), schemaCol, type.name());
             try {
                 ResultSet resultSet = session.select(select);
                 if (resultSet.next()) {
@@ -123,7 +123,7 @@ public class MysqlTables {
             String update = String.format(
                             "INSERT INTO %s VALUES ('%s', %s) " +
                             "ON DUPLICATE KEY UPDATE ID = ID + %s;",
-                            TABLE, type.name(), increment, increment);
+                            this.table(), type.name(), increment, increment);
             try {
                 session.execute(update);
             } catch (SQLException e) {
