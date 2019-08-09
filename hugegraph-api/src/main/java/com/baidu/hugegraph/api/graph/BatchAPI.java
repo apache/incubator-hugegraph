@@ -57,7 +57,7 @@ public class BatchAPI extends API {
 
     public BatchAPI() {
         this.batchMeter = MetricsUtil.registerMeter(this.getClass(),
-                                                    "batch-insert");
+                                                    "batch-commit");
     }
 
     public <R> R commit(HugeConfig config, HugeGraph g, int size,

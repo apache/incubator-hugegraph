@@ -73,7 +73,7 @@ public class VertexAPI extends BatchAPI {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     @POST
-    @Timed
+    @Timed(name = "single-create")
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -90,7 +90,7 @@ public class VertexAPI extends BatchAPI {
     }
 
     @POST
-    @Timed
+    @Timed(name = "batch-create")
     @Decompress
     @Path("batch")
     @Status(Status.CREATED)
@@ -122,7 +122,7 @@ public class VertexAPI extends BatchAPI {
      * 3. Add the final vertex together
      */
     @PUT
-    @Timed
+    @Timed(name = "batch-update")
     @Decompress
     @Path("batch")
     @Consumes(APPLICATION_JSON)
@@ -174,7 +174,7 @@ public class VertexAPI extends BatchAPI {
     }
 
     @PUT
-    @Timed
+    @Timed(name = "single-update")
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -311,8 +311,8 @@ public class VertexAPI extends BatchAPI {
                       "the maximum number is '%s'", max));
         }
         if (vertices.size() == 0) {
-            throw new IllegalArgumentException(String.format(
-                      "The number of vertices can't be 0"));
+            throw new IllegalArgumentException(
+                      "The number of vertices can't be 0");
         }
     }
 
