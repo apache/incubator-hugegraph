@@ -366,8 +366,8 @@ public class EdgeAPI extends BatchAPI {
                       "the maximum number is '%s'", max));
         }
         if (edges.size() == 0) {
-            throw new IllegalArgumentException(String.format(
-                      "The number of edges can't be 0"));
+            throw new IllegalArgumentException(
+                      "The number of edges can't be 0");
         }
     }
 
