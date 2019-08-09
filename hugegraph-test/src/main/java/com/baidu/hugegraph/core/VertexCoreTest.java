@@ -58,6 +58,7 @@ import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.testutil.Utils;
@@ -444,7 +445,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testAddVertexWithNotExistsPropKey() {
         HugeGraph graph = graph();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            graph.addVertex(T.label, "book", "not-exists-porp", "test");
+            graph.addVertex(T.label, "book", "not-exists-prop", "test");
         });
     }
 
@@ -1688,17 +1689,17 @@ public class VertexCoreTest extends BaseCoreTest {
         initPersonIndex(false);
         init5Persons();
 
-        // 19 <= age && age < 21
+        // -1 <= age && age < 21
         List<Vertex> vertices = graph.traversal().V().hasLabel("person")
-                                     .has("age", P.between(3, 21)).toList();
+                                     .has("age", P.between(-1, 21)).toList();
         Assert.assertEquals(4, vertices.size());
 
         // override vertex without age (in memory)
         graph.addVertex(T.label, "person", "name", "Baby","city", "Hongkong");
 
-        // 3 <= age && age < 21
+        // -1 <= age && age < 21
         vertices = graph.traversal().V().hasLabel("person")
-                        .has("age", P.between(3, 21)).toList();
+                        .has("age", P.between(-1, 21)).toList();
         Assert.assertEquals(3, vertices.size());
 
         // override vertex without age (in backend) and make left index
@@ -1708,7 +1709,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // qeury again after commit
         vertices = graph.traversal().V().hasLabel("person")
-                        .has("age", P.between(3, 21)).toList();
+                        .has("age", P.between(-1, 21)).toList();
         Assert.assertEquals(3, vertices.size());
     }
 
@@ -1808,6 +1809,15 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices, T.label, "number", "id", 8,
                        "int", Integer.MIN_VALUE + 1);
+
+        // query by null property
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("person")
+                 .has("age", (Object) null).toList();
+        }, e -> {
+            String error = "Invalid data type of query value";
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(error));
+        });
     }
 
     @Test
@@ -4156,7 +4166,9 @@ public class VertexCoreTest extends BaseCoreTest {
             query.page(page);
             Iterator<Vertex> iterator = graph.vertices(query);
             while (iterator.hasNext()) {
-                vertices.add(iterator.next());
+                Vertex vertex = iterator.next();
+                Assert.assertTrue(query.test((HugeElement) vertex));
+                vertices.add(vertex);
             }
             page = PageInfo.page(iterator);
         }

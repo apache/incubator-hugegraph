@@ -492,6 +492,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public Object sysprop(HugeKeys key) {
         switch (key) {
+            case ID:
+                return this.id();
             case LABEL:
                 return this.schemaLabel().id();
             case PRIMARY_VALUES:

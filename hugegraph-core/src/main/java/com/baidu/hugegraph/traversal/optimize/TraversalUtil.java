@@ -570,7 +570,7 @@ public final class TraversalUtil {
                                "Invalid data type of query value, " +
                                "expect '%s', actual '%s'",
                                pkey.dataType().clazz(),
-                               value.getClass());
+                               value == null ? null : value.getClass());
         return validValue;
     }
 

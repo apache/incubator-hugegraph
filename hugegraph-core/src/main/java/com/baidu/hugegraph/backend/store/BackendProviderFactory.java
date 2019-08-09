@@ -34,6 +34,7 @@ public class BackendProviderFactory {
     }
 
     public static BackendStoreProvider open(String backend, String graph) {
+        backend = backend.toLowerCase();
         if (InMemoryDBStoreProvider.matchType(backend)) {
             return InMemoryDBStoreProvider.instance(graph);
         }
@@ -50,7 +51,7 @@ public class BackendProviderFactory {
             throw new BackendException(e);
         }
 
-        BackendException.check(backend.equalsIgnoreCase(instance.type()),
+        BackendException.check(backend.equals(instance.type()),
                                "BackendStoreProvider with type '%s' " +
                                "can't be opened by key '%s'",
                                instance.type(), backend);

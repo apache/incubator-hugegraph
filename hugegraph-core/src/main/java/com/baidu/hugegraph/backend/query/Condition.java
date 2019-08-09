@@ -98,9 +98,11 @@ public abstract class Condition {
         }),
         SCAN("scan", (v1, v2) -> {
             assert v2 != null;
-            Shard shard = (Shard) v2;
-            return v1 != null && shard.start().compareTo((String) v1) <= 0 &&
-                   shard.end().compareTo((String) v1) > 0;
+            /*
+             * TODO: we still have no way to determine accurately, since
+             * some backends may scan with token(column) like cassandra.
+             */
+            return true;
         });
 
         private final String operator;
@@ -583,9 +585,6 @@ public abstract class Condition {
         @Override
         public boolean test(HugeElement element) {
             E.checkNotNull(element, "element");
-            if (this.relation == RelationType.SCAN) {
-                return true;
-            }
             Object value = element.sysprop(this.key);
             return this.relation.test(value, this.value());
         }
@@ -633,8 +632,10 @@ public abstract class Condition {
             if (value == null) {
                 /*
                  * Fix #611
-                 * TODO: It is possible some scenes cannot be returned false
-                 * directly, such as NEQ, null != 123 should be true.
+                 * TODO: It's possible some scenes can't be returned false
+                 * directly, such as: EQ with p1 == null, it should be returned
+                 * true, but the query has(p, null) is not allowed by
+                 * TraversalUtil.validPredicateValue().
                  */
                 return false;
             }

@@ -405,10 +405,11 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertTrue(c1.test("abd"));
         Assert.assertTrue(c1.test("abz"));
         Assert.assertTrue(c1.test("axx"));
-        Assert.assertFalse(c1.test("abb"));
-        Assert.assertFalse(c1.test("axy"));
-        Assert.assertFalse(c1.test("axz"));
-        Assert.assertFalse(c1.test((Object) null));
+        // test of scan will return true for any case
+        Assert.assertTrue(c1.test("abb"));
+        Assert.assertTrue(c1.test("axy"));
+        Assert.assertTrue(c1.test("axz"));
+        Assert.assertTrue(c1.test((Object) null));
     }
 
     @Test
