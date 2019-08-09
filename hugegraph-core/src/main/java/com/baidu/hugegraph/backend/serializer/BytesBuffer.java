@@ -424,24 +424,15 @@ public final class BytesBuffer {
 
     public BinaryId readIndexId(HugeType type) {
         byte[] id;
-        switch (type) {
-            case RANGE_INT_INDEX:
-            case RANGE_FLOAT_INDEX:
-                // IndexLabel 4 bytes + fieldValue 4 bytes
-                id = this.read(8);
-                break;
-            case RANGE_LONG_INDEX:
-            case RANGE_DOUBLE_INDEX:
-                // IndexLabel 4 bytes + fieldValue 8 bytes
-                id = this.read(12);
-                break;
-            case SECONDARY_INDEX:
-            case SEARCH_INDEX:
-            case SHARD_INDEX:
-                id = this.readBytesWithEnding();
-                break;
-            default:
-                throw new AssertionError("Invalid index type " + type);
+        if (type.isRange4Index()) {
+            // IndexLabel 4 bytes + fieldValue 4 bytes
+            id = this.read(8);
+        } else if (type.isRange8Index()) {
+            // IndexLabel 4 bytes + fieldValue 8 bytes
+            id = this.read(12);
+        } else {
+            assert type.isStringIndex();
+            id = this.readBytesWithEnding();
         }
         return new BinaryId(id, IdGenerator.of(id, IdType.STRING));
     }

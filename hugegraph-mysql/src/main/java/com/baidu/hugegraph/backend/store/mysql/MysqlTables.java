@@ -254,7 +254,7 @@ public class MysqlTables {
 
     public static class Edge extends MysqlTableTemplate {
 
-        public static final String TABLE_PREFIX = HugeType.EDGE.string();
+        public static final String TABLE_SUFFIX = HugeType.EDGE.string();
 
         private final Directions direction;
         private final String delByLabelTemplate;
@@ -381,7 +381,7 @@ public class MysqlTables {
 
         public static String table(Directions direction) {
             assert direction == Directions.OUT || direction == Directions.IN;
-            return TABLE_PREFIX + "_" + direction.string();
+            return direction.type().string() + TABLE_SUFFIX;
         }
 
         public static MysqlTable out(String store) {

@@ -50,11 +50,13 @@ public enum HugeType implements SerialEnum {
     EDGE_IN(140, "I"),
 
     SECONDARY_INDEX(150, "SI"),
+    VERTEX_LABEL_INDEX(151, "VI"),
+    EDGE_LABEL_INDEX(152, "EI"),
     RANGE_INT_INDEX(160, "II"),
     RANGE_FLOAT_INDEX(161, "FI"),
     RANGE_LONG_INDEX(162, "LI"),
     RANGE_DOUBLE_INDEX(163, "DI"),
-    SEARCH_INDEX(170, "EI"),
+    SEARCH_INDEX(170, "AI"),
     SHARD_INDEX(175, "HI"),
 
     TASK(180, "T"),
@@ -116,6 +118,8 @@ public enum HugeType implements SerialEnum {
 
     public boolean isIndex() {
         return this == HugeType.SECONDARY_INDEX ||
+               this == HugeType.VERTEX_LABEL_INDEX ||
+               this == HugeType.EDGE_LABEL_INDEX ||
                this == HugeType.SEARCH_INDEX ||
                this == HugeType.RANGE_INT_INDEX ||
                this == HugeType.RANGE_FLOAT_INDEX ||
@@ -126,6 +130,8 @@ public enum HugeType implements SerialEnum {
 
     public boolean isStringIndex() {
         return this == HugeType.SECONDARY_INDEX ||
+               this == HugeType.VERTEX_LABEL_INDEX ||
+               this == HugeType.EDGE_LABEL_INDEX ||
                this == HugeType.SEARCH_INDEX ||
                this == HugeType.SHARD_INDEX;
     }
@@ -139,7 +145,9 @@ public enum HugeType implements SerialEnum {
     }
 
     public boolean isSecondaryIndex() {
-        return this == HugeType.SECONDARY_INDEX;
+        return this == HugeType.SECONDARY_INDEX ||
+               this == HugeType.VERTEX_LABEL_INDEX ||
+               this == HugeType.EDGE_LABEL_INDEX;
     }
 
     public boolean isSearchIndex() {
