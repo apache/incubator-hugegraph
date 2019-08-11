@@ -129,6 +129,8 @@ public class PaloStoreProvider extends MysqlStoreProvider {
                                  new PaloTables.SearchIndex(store));
             registerTableManager(HugeType.SHARD_INDEX,
                                  new PaloTables.ShardIndex(store));
+            registerTableManager(HugeType.UNIQUE_INDEX,
+                                 new PaloTables.UniqueIndex(store));
         }
 
         @Override

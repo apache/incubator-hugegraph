@@ -615,6 +615,22 @@ public class CassandraTables {
         }
     }
 
+    public static class UniqueIndex extends SecondaryIndex {
+
+        public static final String TABLE = HugeType.UNIQUE_INDEX.string();
+
+        public UniqueIndex(String store) {
+            super(store, TABLE);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            throw new BackendException(
+                      "UniqueIndex insertion is not supported.");
+        }
+    }
+
     public abstract static class RangeIndex extends CassandraTable {
 
         protected RangeIndex(String store, String table) {

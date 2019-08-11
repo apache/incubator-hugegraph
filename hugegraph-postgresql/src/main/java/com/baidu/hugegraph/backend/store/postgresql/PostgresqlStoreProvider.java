@@ -131,6 +131,8 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
                                  new PostgresqlTables.SearchIndex(store));
             registerTableManager(HugeType.SHARD_INDEX,
                                  new PostgresqlTables.ShardIndex(store));
+            registerTableManager(HugeType.UNIQUE_INDEX,
+                                 new PostgresqlTables.UniqueIndex(store));
         }
 
         @Override

@@ -211,6 +211,15 @@ public class RocksDBTables {
         }
     }
 
+    public static class UniqueIndex extends IndexTable {
+
+        public static final String TABLE = HugeType.UNIQUE_INDEX.string();
+
+        public UniqueIndex(String database) {
+            super(database, TABLE);
+        }
+    }
+
     public static class RangeIndex extends IndexTable {
 
         public RangeIndex(String database, String table) {

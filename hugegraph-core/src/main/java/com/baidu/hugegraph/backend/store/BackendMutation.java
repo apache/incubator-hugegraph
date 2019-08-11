@@ -97,6 +97,14 @@ public class BackendMutation {
                         originAction == Action.DELETE) {
                         throw incompatibleActionException(action, originAction);
                     } else {
+                        if (entry.type().isUniqueIndex() &&
+                            action == Action.APPEND &&
+                            originAction == Action.APPEND) {
+                            throw new IllegalArgumentException(String.format(
+                                      "Unique constraint conflict is found " +
+                                      "in tx between %s and %s",
+                                      entry, originItem.entry()));
+                        }
                         Id subId = entry.subId();
                         Id originSubId = originItem.entry().subId();
                         assert subId != null;

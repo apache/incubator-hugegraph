@@ -3255,6 +3255,37 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testAddVertexWithUniqueIndex() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("user")
+              .properties("name")
+              .create();
+        schema.indexLabel("userByName").onV("user").by("name").unique()
+              .create();
+        graph().addVertex(T.label, "user", "name", "Tom");
+        graph().tx().commit();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph().addVertex(T.label, "user", "name", "Tom");
+            graph().tx().commit();
+        });
+    }
+
+    @Test
+    public void testAddVerticesWithUniqueIndexInTx() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("user")
+              .properties("name")
+              .create();
+        schema.indexLabel("userByName").onV("user").by("name").unique()
+              .create();
+        graph().addVertex(T.label, "user", "name", "Tom");
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph().addVertex(T.label, "user", "name", "Tom");
+            graph().tx().commit();
+        });
+    }
+
+    @Test
     public void testRemoveVertex() {
         HugeGraph graph = graph();
         init10Vertices();

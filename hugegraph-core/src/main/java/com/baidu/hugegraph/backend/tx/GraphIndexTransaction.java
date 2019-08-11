@@ -229,6 +229,23 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
                 this.updateIndex(indexLabel, value, element.id(), removed);
                 break;
+            case UNIQUE:
+                value = SplicingIdGenerator.concatValues(propValues);
+                // Use `\u0000` as escape for empty String and treat it as
+                // illegal value for text property
+                E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
+                                "Illegal value of index property: '%s'",
+                                INDEX_EMPTY_SYM);
+                if (((String) value).isEmpty()) {
+                    value = INDEX_EMPTY_SYM;
+                }
+                if (!removed && this.existUniqueValue(indexLabel, value)) {
+                    throw new IllegalArgumentException(String.format(
+                              "Unique constraint %s conflict is found for %s",
+                              indexLabel, element));
+                }
+                this.updateIndex(indexLabel, value, element.id(), removed);
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Unknown index type '%s'", indexLabel.indexType()));
@@ -246,6 +263,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         } else {
             this.doAppend(this.serializer.writeIndex(index));
         }
+    }
+
+    private boolean existUniqueValue(IndexLabel indexLabel, Object value) {
+        ConditionQuery query = new ConditionQuery(HugeType.UNIQUE_INDEX);
+        query.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+        query.eq(HugeKeys.FIELD_VALUES, value);
+        return this.query(query).hasNext();
     }
 
     /**
