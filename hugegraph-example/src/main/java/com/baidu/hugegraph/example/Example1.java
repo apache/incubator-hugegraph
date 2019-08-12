@@ -452,8 +452,6 @@ public class Example1 {
         // test for process left index when addVertex to override prior vertex
         graph.schema().indexLabel("personByCityAndAge").by("city", "age")
              .onV("person").ifNotExist().create();
-        graph.schema().indexLabel("personByAgeSecond").by("age")
-             .onV("person").secondary().ifNotExist().create();
 
         ExampleUtil.waitAllTaskDone(graph);
 
