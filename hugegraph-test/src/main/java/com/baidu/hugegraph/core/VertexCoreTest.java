@@ -3262,12 +3262,16 @@ public class VertexCoreTest extends BaseCoreTest {
               .create();
         schema.indexLabel("userByName").onV("user").by("name").unique()
               .create();
-        graph().addVertex(T.label, "user", "name", "Tom");
+        Vertex v = graph().addVertex(T.label, "user", "name", "Tom");
         graph().tx().commit();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "user", "name", "Tom");
             graph().tx().commit();
         });
+
+        v.remove();
+        graph().addVertex(T.label, "user", "name", "Tom");
+        graph().tx().commit();
     }
 
     @Test

@@ -56,7 +56,8 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
          * [1.4] #270 & #398: support shard-index and vertex + sortkey prefix,
          *                    also split range table to rangeInt, rangeFloat,
          *                    rangeLong and rangeDouble
+         * [1.5] #633: support unique index
          */
-        return "1.4";
+        return "1.5";
     }
 }

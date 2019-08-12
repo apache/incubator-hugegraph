@@ -72,6 +72,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -239,7 +240,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (((String) value).isEmpty()) {
                     value = INDEX_EMPTY_SYM;
                 }
-                if (!removed && this.existUniqueValue(indexLabel, value)) {
+                boolean hasEliminateInTx =
+                        this.hasEliminateInTx(indexLabel, value, element.id());
+                if (!removed && !hasEliminateInTx &&
+                    this.existUniqueValueInStore(indexLabel, value)) {
                     throw new IllegalArgumentException(String.format(
                               "Unique constraint %s conflict is found for %s",
                               indexLabel, element));
@@ -265,10 +269,21 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
     }
 
-    private boolean existUniqueValue(IndexLabel indexLabel, Object value) {
+    private boolean hasEliminateInTx(IndexLabel indexLabel, Object value,
+                                     Id elementId) {
+        HugeIndex index = new HugeIndex(indexLabel);
+        index.fieldValues(value);
+        index.elementIds(elementId);
+        BackendEntry entry = this.serializer.writeIndex(index);
+        return this.mutation().contains(entry, Action.ELIMINATE);
+    }
+
+    private boolean existUniqueValueInStore(IndexLabel indexLabel,
+                                            Object value) {
         ConditionQuery query = new ConditionQuery(HugeType.UNIQUE_INDEX);
         query.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
         query.eq(HugeKeys.FIELD_VALUES, value);
+        query.limit(1L);
         return this.query(query).hasNext();
     }
 

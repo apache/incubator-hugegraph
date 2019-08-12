@@ -89,8 +89,8 @@ public enum IndexType implements SerialEnum {
     }
 
     public boolean isString() {
-        return this == SECONDARY || this == SEARCH || this == SHARD ||
-               this == UNIQUE;
+        return this == SECONDARY || this == SEARCH ||
+               this == SHARD || this == UNIQUE;
     }
 
     public boolean isNumeric() {

@@ -57,8 +57,9 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          * [1.1] #270 & #398: support shard-index and vertex + sortkey prefix,
          *                    also split range table to rangeInt, rangeFloat,
          *                    rangeLong and rangeDouble
+         * [1.2] #633: support unique index
          */
-        return "1.1";
+        return "1.2";
     }
 
     public static class PostgresqlSchemaStore extends PostgresqlStore {
