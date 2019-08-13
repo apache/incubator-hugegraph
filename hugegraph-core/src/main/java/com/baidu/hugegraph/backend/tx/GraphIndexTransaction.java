@@ -87,6 +87,7 @@ import com.google.common.collect.ImmutableSet;
 public class GraphIndexTransaction extends AbstractTransaction {
 
     private static final String INDEX_EMPTY_SYM = "\u0000";
+    private static final String INDEX_NULL_SYM = "\u0001";
 
     private final Analyzer textAnalyzer;
 
@@ -159,22 +160,34 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         "Not exist index label with id '%s'", ilId);
 
         // Collect property values of index fields
-        List<Object> propValues = new ArrayList<>();
+        List<Object> allPropValues = new ArrayList<>();
+        int firstNullIndex = 0;
+        boolean hasNull = false;
         for (Id fieldId : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(fieldId);
             if (property == null) {
                 E.checkState(hasNullableProp(element, fieldId),
                              "Non-null property '%s' is null for '%s'",
                              this.graph().propertyKey(fieldId) , element);
-                // Not build index for record with nullable field
-                break;
+                allPropValues.add(INDEX_NULL_SYM);
+                hasNull = true;
+            } else {
+                E.checkArgument(property.value() != INDEX_NULL_SYM,
+                                "Illegal value of index property: '%s'",
+                                INDEX_NULL_SYM);
+                allPropValues.add(property.value());
             }
-            propValues.add(property.value());
+            if (!hasNull) {
+                firstNullIndex++;
+            }
         }
-        if (propValues.isEmpty()) {
+
+        if (firstNullIndex == 0 && !indexLabel.indexType().isUniuqe()) {
             // The property value of first index field is null
             return;
         }
+        // Not build index for record with nullable field except unique index
+        List<Object> propValues = allPropValues.subList(0, firstNullIndex);
 
         // Update index for each index type
         switch (indexLabel.indexType()) {
@@ -231,7 +244,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 this.updateIndex(indexLabel, value, element.id(), removed);
                 break;
             case UNIQUE:
-                value = SplicingIdGenerator.concatValues(propValues);
+                value = SplicingIdGenerator.concatValues(allPropValues);
                 // Use `\u0000` as escape for empty String and treat it as
                 // illegal value for text property
                 E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
