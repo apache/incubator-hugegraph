@@ -615,7 +615,9 @@ public class CassandraTables {
         }
     }
 
-    // TODO: set field value as key and set element id as value
+    /**
+     * TODO: set field value as key and set element id as value
+     */
     public static class UniqueIndex extends SecondaryIndex {
 
         public static final String TABLE = HugeType.UNIQUE_INDEX.string();

@@ -161,7 +161,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Collect property values of index fields
         List<Object> allPropValues = new ArrayList<>();
-        int firstNullIndex = 0;
+        int firstNullField = 0;
         boolean hasNull = false;
         for (Id fieldId : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(fieldId);
@@ -172,22 +172,22 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 allPropValues.add(INDEX_NULL_SYM);
                 hasNull = true;
             } else {
-                E.checkArgument(property.value() != INDEX_NULL_SYM,
+                E.checkArgument(INDEX_NULL_SYM.equals(property.value()),
                                 "Illegal value of index property: '%s'",
                                 INDEX_NULL_SYM);
                 allPropValues.add(property.value());
             }
             if (!hasNull) {
-                firstNullIndex++;
+                firstNullField++;
             }
         }
 
-        if (firstNullIndex == 0 && !indexLabel.indexType().isUniuqe()) {
+        if (firstNullField == 0 && !indexLabel.indexType().isUniuqe()) {
             // The property value of first index field is null
             return;
         }
         // Not build index for record with nullable field except unique index
-        List<Object> propValues = allPropValues.subList(0, firstNullIndex);
+        List<Object> propValues = allPropValues.subList(0, firstNullField);
 
         // Update index for each index type
         switch (indexLabel.indexType()) {
@@ -253,10 +253,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (((String) value).isEmpty()) {
                     value = INDEX_EMPTY_SYM;
                 }
-                boolean hasEliminateInTx =
-                        this.hasEliminateInTx(indexLabel, value, element.id());
-                if (!removed && !hasEliminateInTx &&
-                    this.existUniqueValueInStore(indexLabel, value)) {
+                Id id = element.id();
+                if (!removed && this.existUniqueValue(indexLabel, value, id)) {
                     throw new IllegalArgumentException(String.format(
                               "Unique constraint %s conflict is found for %s",
                               indexLabel, element));
@@ -280,6 +278,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         } else {
             this.doAppend(this.serializer.writeIndex(index));
         }
+    }
+
+    private boolean existUniqueValue(IndexLabel indexLabel,
+                                     Object value, Id id) {
+        return !this.hasEliminateInTx(indexLabel, value, id) &&
+               this.existUniqueValueInStore(indexLabel, value);
     }
 
     private boolean hasEliminateInTx(IndexLabel indexLabel, Object value,

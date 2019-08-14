@@ -3316,7 +3316,6 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().tx().commit();
         graph().addVertex(T.label, "user");
         graph().tx().commit();
-        graph().tx().commit();
 
         // Empty String properties
         graph().addVertex(T.label, "user", "name", "", "city", "", "age", 18);
@@ -3335,6 +3334,7 @@ public class VertexCoreTest extends BaseCoreTest {
         });
         graph().addVertex(T.label, "user", "city", "");
         graph().tx().commit();
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "user");
             graph().tx().commit();
