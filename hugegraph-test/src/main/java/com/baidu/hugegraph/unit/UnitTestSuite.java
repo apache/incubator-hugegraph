@@ -28,6 +28,7 @@ import com.baidu.hugegraph.unit.cache.CachedSchemaTransactionTest;
 import com.baidu.hugegraph.unit.cache.RamCacheTest;
 import com.baidu.hugegraph.unit.core.AnalyzerTest;
 import com.baidu.hugegraph.unit.core.BackendMutationTest;
+import com.baidu.hugegraph.unit.core.BytesBufferTest;
 import com.baidu.hugegraph.unit.core.CassandraTest;
 import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
 import com.baidu.hugegraph.unit.core.ConditionTest;
@@ -70,6 +71,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     QueryTest.class,
     SecurityManagerTest.class,
     ExceptionTest.class,
+    BytesBufferTest.class,
 
     /* cassandra */
     CassandraTest.class,

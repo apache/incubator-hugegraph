@@ -135,6 +135,14 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
         return IdGenerator.of(Long.parseLong(id));
     }
 
+    public static int schemaId(Id id) {
+        long l = id.asLong();
+        // Currently we limit the schema id to within 4 bytes
+        E.checkArgument(Integer.MIN_VALUE <= l && l <= Integer.MAX_VALUE,
+                        "Schema id is out of bound: %s", l);
+        return (int) l;
+    }
+
     public static void checkName(String name, HugeConfig config) {
         String illegalReg = config.get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX);
 

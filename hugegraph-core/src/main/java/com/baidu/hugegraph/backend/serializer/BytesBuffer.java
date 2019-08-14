@@ -21,14 +21,20 @@ package com.baidu.hugegraph.backend.serializer;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.UUID;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.Id.IdType;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.KryoUtil;
+import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
 /**
@@ -99,6 +105,11 @@ public final class BytesBuffer {
         return this.buffer;
     }
 
+    public BytesBuffer flip() {
+        this.buffer.flip();
+        return this;
+    }
+
     public byte[] array() {
         return this.buffer.array();
     }
@@ -149,6 +160,12 @@ public final class BytesBuffer {
         return this;
     }
 
+    public BytesBuffer write(byte[] val, int offset, int length) {
+        require(BYTE_LEN * length);
+        this.buffer.put(val, offset, length);
+        return this;
+    }
+
     public BytesBuffer writeBoolean(boolean val) {
         return this.write((byte) (val ? 1 : 0));
     }
@@ -186,39 +203,6 @@ public final class BytesBuffer {
     public BytesBuffer writeDouble(double val) {
         require(DOUBLE_LEN);
         this.buffer.putDouble(val);
-        return this;
-    }
-
-    public BytesBuffer writeBytes(byte[] bytes) {
-        E.checkArgument(bytes.length <= UINT16_MAX,
-                        "The max length of bytes is %s, got %s",
-                        UINT16_MAX, bytes.length);
-        require(SHORT_LEN + bytes.length);
-        this.writeUInt16(bytes.length);
-        this.write(bytes);
-        return this;
-    }
-
-    public BytesBuffer writeString(String val) {
-        byte[] bytes = StringEncoding.encode(val);
-        this.writeBytes(bytes);
-        return this;
-    }
-
-    public BytesBuffer writeStringRaw(String val) {
-        this.write(StringEncoding.encode(val));
-        return this;
-    }
-
-    public BytesBuffer writeStringWithEnding(String val) {
-        byte[] bytes = StringEncoding.encode(val);
-        this.write(bytes);
-        /*
-         * A reasonable ending symbol should be 0x00(to ensure order), but
-         * considering that some backends like PG do not support 0x00 string,
-         * so choose 0xFF currently.
-         */
-        this.write(STRING_ENDING_BYTE);
         return this;
     }
 
@@ -268,18 +252,63 @@ public final class BytesBuffer {
         return this.buffer.getDouble();
     }
 
+    public BytesBuffer writeBytes(byte[] bytes) {
+        E.checkArgument(bytes.length <= UINT16_MAX,
+                        "The max length of bytes is %s, got %s",
+                        UINT16_MAX, bytes.length);
+        require(SHORT_LEN + bytes.length);
+        this.writeUInt16(bytes.length);
+        this.write(bytes);
+        return this;
+    }
+
     public byte[] readBytes() {
         int length = this.readUInt16();
         byte[] bytes = this.read(length);
         return bytes;
     }
 
+    public BytesBuffer writeStringRaw(String val) {
+        this.write(StringEncoding.encode(val));
+        return this;
+    }
+
+    public BytesBuffer writeString(String val) {
+        byte[] bytes = StringEncoding.encode(val);
+        this.writeBytes(bytes);
+        return this;
+    }
+
     public String readString() {
         return StringEncoding.decode(this.readBytes());
     }
 
+    public BytesBuffer writeStringWithEnding(String val) {
+        byte[] bytes = StringEncoding.encode(val);
+        this.write(bytes);
+        /*
+         * A reasonable ending symbol should be 0x00(to ensure order), but
+         * considering that some backends like PG do not support 0x00 string,
+         * so choose 0xFF currently.
+         */
+        this.write(STRING_ENDING_BYTE);
+        return this;
+    }
+
     public String readStringWithEnding() {
         return StringEncoding.decode(this.readBytesWithEnding());
+    }
+
+    public BytesBuffer writeStringToRemaining(String value) {
+        byte[] bytes = StringEncoding.encode(value);
+        this.write(bytes);
+        return this;
+    }
+
+    public String readStringFromRemaining() {
+        byte[] bytes = new byte[this.buffer.remaining()];
+        this.buffer.get(bytes);
+        return StringEncoding.decode(bytes);
     }
 
     public BytesBuffer writeUInt8(int val) {
@@ -312,16 +341,197 @@ public final class BytesBuffer {
         return this.readInt() & 0xffffffff;
     }
 
-    public BytesBuffer writeStringToRemaining(String value) {
-        byte[] bytes = StringEncoding.encode(value);
-        this.write(bytes);
+    public BytesBuffer writeVInt(int value) {
+        // NOTE: negative numbers are not compressed
+        if(value > 0x0FFFFFFF || value < 0) {
+            this.write((byte) (0x80 | ((value >>> 28) & 0x7F)));
+        }
+        if(value > 0x1FFFFF || value < 0) {
+            this.write((byte) (0x80 | ((value >>> 21) & 0x7F)));
+        }
+        if(value > 0x3FFF || value < 0) {
+            this.write((byte) (0x80 | ((value >>> 14) & 0x7F)));
+        }
+        if(value > 0x7F || value < 0) {
+            this.write((byte) (0x80 | ((value >>>  7) & 0x7F)));
+        }
+        this.write((byte) (value & 0x7F));
+
         return this;
     }
 
-    public String readStringFromRemaining() {
-        byte[] bytes = new byte[this.buffer.remaining()];
-        this.buffer.get(bytes);
-        return StringEncoding.decode(bytes);
+    public int readVInt() {
+        byte leading = this.read();
+        E.checkArgument(leading != 0x80,
+                        "Unexpected varint with leading byte '0x%s'",
+                        Integer.toHexString(leading));
+        int value = leading & 0x7F;
+        if (leading >= 0) {
+            assert (leading & 0x80) == 0;
+            return value;
+        }
+
+        int i;
+        for (i = 0; i < 5; i++) {
+            byte b = this.read();
+            if (b >= 0) {
+                value = b | (value << 7);
+                break;
+            } else {
+                value = (b & 0x7F) | (value << 7);
+            }
+        }
+
+        E.checkArgument(i < 5,
+                        "Unexpected varint %s with too many bytes(%s)",
+                        value, i + 1);
+        E.checkArgument(i < 4 || (leading & 0x70) == 0,
+                        "Unexpected varint %s with leading byte '0x%s'",
+                        value, Integer.toHexString(leading));
+        return value;
+    }
+
+    public BytesBuffer writeVLong(long value) {
+        if(value < 0) {
+            this.write((byte) 0x81);
+        }
+        if(value > 0xFFFFFFFFFFFFFFL || value < 0L) {
+            this.write((byte) (0x80 | ((value >>> 56) & 0x7FL)));
+        }
+        if(value > 0x1FFFFFFFFFFFFL || value < 0L) {
+            this.write((byte) (0x80 | ((value >>> 49) & 0x7FL)));
+        }
+        if(value > 0x3FFFFFFFFFFL || value < 0L) {
+            this.write((byte) (0x80 | ((value >>> 42) & 0x7FL)));
+        }
+        if(value > 0x7FFFFFFFFL || value < 0L) {
+            this.write((byte) (0x80 | ((value >>> 35) & 0x7FL)));
+        }
+        if(value > 0xFFFFFFFL || value < 0L) {
+            this.write((byte) (0x80 | ((value >>> 28) & 0x7FL)));
+        }
+        if(value > 0x1FFFFFL || value < 0L) {
+            this.write((byte) (0x80 | ((value >>> 21) & 0x7FL)));
+        }
+        if(value > 0x3FFFL || value < 0L) {
+            this.write((byte) (0x80 | ((value >>> 14) & 0x7FL)));
+        }
+        if(value > 0x7FL || value < 0L) {
+            this.write((byte) (0x80 | ((value >>>  7) & 0x7FL)));
+        }
+        this.write((byte) (value & 0x7FL));
+
+        return this;
+    }
+
+    public long readVLong() {
+        byte leading = this.read();
+        E.checkArgument(leading != 0x80,
+                        "Unexpected varlong with leading byte '0x%s'",
+                        Integer.toHexString(leading));
+        long value = leading & 0x7FL;
+        if (leading >= 0) {
+            assert (leading & 0x80) == 0;
+            return value;
+        }
+
+        int i;
+        for (i = 0; i < 10; i++) {
+            byte b = this.read();
+            if (b >= 0) {
+                value = b | (value << 7);
+                break;
+            } else {
+                value = (b & 0x7F) | (value << 7);
+            }
+        }
+
+        E.checkArgument(i < 10,
+                        "Unexpected varlong %s with too many bytes(%s)",
+                        value, i + 1);
+        E.checkArgument(i < 9 || (leading & 0x7e) == 0,
+                        "Unexpected varlong %s with leading byte '0x%s'",
+                        value, Integer.toHexString(leading));
+        return value;
+    }
+
+    public BytesBuffer writeProperty(PropertyKey pkey, Object value) {
+        if (pkey.cardinality() != Cardinality.SINGLE) {
+            this.writeBytes(KryoUtil.toKryo(value));
+            return this;
+        }
+        switch (pkey.dataType()) {
+            case BOOLEAN:
+                this.writeVInt(((Boolean) value) ? 1 : 0);
+                break;
+            case BYTE:
+                this.writeVInt((Byte) value);
+                break;
+            case INT:
+                this.writeVInt((Integer) value);
+                break;
+            case FLOAT:
+                this.writeVInt(NumericUtil.floatToSortableInt((Float) value));
+                break;
+            case LONG:
+                this.writeVLong((Long) value);
+                break;
+            case DATE:
+                this.writeVLong(((Date) value).getTime());
+                break;
+            case DOUBLE:
+                long l = NumericUtil.doubleToSortableLong((Double) value);
+                this.writeVLong(l);
+                break;
+            case TEXT:
+                this.writeString((String) value);
+                break;
+            case BLOB:
+                this.writeBytes((byte[]) value);
+                break;
+            case UUID:
+                UUID uuid = (UUID) value;
+                // Generally writeVLong(uuid) can't save space
+                this.writeLong(uuid.getMostSignificantBits());
+                this.writeLong(uuid.getLeastSignificantBits());
+                break;
+            default:
+                this.writeBytes(KryoUtil.toKryo(value));
+                break;
+        }
+        return this;
+    }
+
+    public Object readProperty(PropertyKey pkey) {
+        if (pkey.cardinality() != Cardinality.SINGLE) {
+            return KryoUtil.fromKryo(this.readBytes(),
+                                     pkey.implementClazz());
+        }
+        switch (pkey.dataType()) {
+            case BOOLEAN:
+                return this.readVInt() == 1;
+            case BYTE:
+                return (byte) this.readVInt();
+            case INT:
+                return this.readVInt();
+            case FLOAT:
+                return NumericUtil.sortableIntToFloat(this.readVInt());
+            case LONG:
+                return this.readVLong();
+            case DATE:
+                return new Date(this.readVLong());
+            case DOUBLE:
+                return NumericUtil.sortableLongToDouble(this.readVLong());
+            case TEXT:
+                return this.readString();
+            case BLOB:
+                return this.readBytes();
+            case UUID:
+                return new UUID(this.readLong(), this.readLong());
+            default:
+                return KryoUtil.fromKryo(this.readBytes(),
+                                         pkey.implementClazz());
+        }
     }
 
     public BytesBuffer writeId(Id id) {
@@ -352,8 +562,8 @@ public final class BytesBuffer {
                 this.writeUInt8(len | 0x80);
             } else {
                 E.checkArgument(len <= BIG_ID_LEN_MAX,
-                                "Big id max length is %s, but got %s",
-                                BIG_ID_LEN_MAX, len);
+                                "Big id max length is %s, but got %s {%s}",
+                                BIG_ID_LEN_MAX, len, id);
                 len -= 1;
                 int high = len >> 8;
                 int low = len & 0xff;
@@ -464,7 +674,7 @@ public final class BytesBuffer {
             this.writeUInt8(0x40 | positive);
             this.writeInt((int) val);
         } else {
-            E.checkArgument(ID_MIN < val && val < ID_MAX,
+            E.checkArgument(ID_MIN <= val && val <= ID_MAX,
                             "Id value must be in [%s, %s], but got %s",
                             ID_MIN, ID_MAX, val);
             this.writeLong((val & ID_MASK) | ((0x60L | positive) << 56));
@@ -492,7 +702,8 @@ public final class BytesBuffer {
                 long value = this.readLong();
                 value &= ID_MASK;
                 if (!positive) {
-                    value |= Long.MIN_VALUE;
+                    // Restore the bits of the original negative number
+                    value |= ~ID_MASK;
                 }
                 return value;
             default:

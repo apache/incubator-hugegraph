@@ -14,9 +14,16 @@
 
 package com.baidu.hugegraph.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.google.common.base.CharMatcher;
 
 /**
@@ -81,6 +88,33 @@ public final class StringEncoding {
             return new String(bytes, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new HugeException("Failed to decode string", e);
+        }
+    }
+
+    public static byte[] compress(String value) {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             GZIPOutputStream out = new GZIPOutputStream(bos, 256)) {
+            byte[] bytes = StringEncoding.encode(value);
+            out.write(bytes);
+            out.finish();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new BackendException("Failed to compress: %s", e, value);
+        }
+    }
+
+    public static String decompress(byte[] value) {
+        BytesBuffer buf = BytesBuffer.allocate(value.length * 2);
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(value);
+             GZIPInputStream in = new GZIPInputStream(bis)) {
+            byte[] bytes = new byte[64];
+            int len;
+            while ((len = in.read(bytes)) > 0) {
+                buf.write(bytes, 0, len);
+            }
+            return decode(buf.bytes());
+        } catch (IOException e) {
+            throw new BackendException("Failed to decompress: %s", e, value);
         }
     }
 
