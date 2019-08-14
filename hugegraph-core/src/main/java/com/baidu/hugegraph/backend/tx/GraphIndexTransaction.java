@@ -172,7 +172,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 allPropValues.add(INDEX_NULL_SYM);
                 hasNull = true;
             } else {
-                E.checkArgument(INDEX_NULL_SYM.equals(property.value()),
+                E.checkArgument(!INDEX_NULL_SYM.equals(property.value()),
                                 "Illegal value of index property: '%s'",
                                 INDEX_NULL_SYM);
                 allPropValues.add(property.value());
