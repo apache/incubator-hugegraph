@@ -35,7 +35,7 @@ public class CoreVersion {
     public static final Version VERSION = Version.of(CoreVersion.class,
                                                      "0.10.3");
 
-    public static final String GREMLIN_VERSION = "3.2.5";
+    public static final String GREMLIN_VERSION = "3.4.3";
 
     public static void check() {
         // Check version of hugegraph-common

@@ -1,4 +1,5 @@
 import org.apache.tinkerpop.gremlin.server.util.LifeCycleHook
+import com.baidu.hugegraph.util.DateUtil
 
 // an init script that returns a Map allows explicit setting of global bindings.
 def globals = [:]

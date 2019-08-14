@@ -39,7 +39,7 @@ public class Example2 {
 
     private static final Logger LOG = Log.logger(Example2.class);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
         LOG.info("Example2 start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
@@ -147,7 +147,7 @@ public class Example2 {
         schema.propertyKey("city").asText().ifNotExist().create();
         schema.propertyKey("weight").asDouble().ifNotExist().create();
         schema.propertyKey("lang").asText().ifNotExist().create();
-        schema.propertyKey("date").asText().ifNotExist().create();
+        schema.propertyKey("date").asDate().ifNotExist().create();
         schema.propertyKey("price").asInt().ifNotExist().create();
 
         schema.vertexLabel("person")
@@ -205,7 +205,7 @@ public class Example2 {
         schema.indexLabel("createdByDate")
               .onE("created")
               .by("date")
-              .secondary()
+              .range()
               .ifNotExist()
               .create();
 
@@ -238,12 +238,12 @@ public class Example2 {
         Vertex peter = graph.addVertex(T.label, "person", "name", "peter",
                                        "age", 35, "city", "Shanghai");
 
-        marko.addEdge("knows", vadas, "date", "20160110", "weight", 0.5);
-        marko.addEdge("knows", josh, "date", "20130220", "weight", 1.0);
-        marko.addEdge("created", lop, "date", "20171210", "weight", 0.4);
-        josh.addEdge("created", lop, "date", "20091111", "weight", 0.4);
-        josh.addEdge("created", ripple, "date", "20171210", "weight", 1.0);
-        peter.addEdge("created", lop, "date", "20170324", "weight", 0.2);
+        marko.addEdge("knows", vadas, "date", "2016-01-10", "weight", 0.5);
+        marko.addEdge("knows", josh, "date", "2013-02-20", "weight", 1.0);
+        marko.addEdge("created", lop, "date", "2017-12-10", "weight", 0.4);
+        josh.addEdge("created", lop, "date", "2009-11-11", "weight", 0.4);
+        josh.addEdge("created", ripple, "date", "2017-12-10", "weight", 1.0);
+        peter.addEdge("created", lop, "date", "2017-03-24", "weight", 0.2);
 
         graph.tx().commit();
     }

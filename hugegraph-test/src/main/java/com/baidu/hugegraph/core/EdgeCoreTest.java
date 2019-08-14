@@ -753,21 +753,28 @@ public class EdgeCoreTest extends BaseCoreTest {
                                 .range(1, 6)
                                 .range(4, 8)
                                 .toList();
-        // [4, 6)
-        Assert.assertEquals(2, edges.size());
+        // [5, 6)
+        Assert.assertEquals(1, edges.size());
 
         edges = graph.traversal().E()
                                  .range(1, -1)
                                  .range(6, 8)
                                  .toList();
-        // [6, 8)
+        // [7, 9)
         Assert.assertEquals(2, edges.size());
 
         edges = graph.traversal().E()
                                  .range(1, 6)
                                  .range(6, 8)
                                  .toList();
-        // [6, 6)
+        // [7, 6) will be converted to NoneStep by EarlyLimitStrategy
+        Assert.assertEquals(0, edges.size());
+
+        edges = graph.traversal().E()
+                                 .range(1, 6)
+                                 .range(7, 8)
+                                 .toList();
+        // [8, 6) will be converted to NoneStep by EarlyLimitStrategy
         Assert.assertEquals(0, edges.size());
     }
 
@@ -790,11 +797,6 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().E().range(-4, -2).toList();
-        });
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            // [7, 6)
-            graph.traversal().E().range(1, 6).range(7, 8).toList();
         });
     }
 

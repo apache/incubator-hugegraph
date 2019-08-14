@@ -65,6 +65,10 @@ public final class DateUtil {
         return dateFormat.parse(value);
     }
 
+    public static Date now() {
+        return new Date();
+    }
+
     private static SafeDateFormat getDateFormat(String df) {
         SafeDateFormat dateFormat = DATE_FORMATS.get(df);
         if (dateFormat == null) {

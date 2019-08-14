@@ -256,7 +256,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
         public ContextThreadPoolExecutor(int corePoolSize, int maxPoolSize,
                                          ThreadFactory threadFactory) {
             super(corePoolSize, maxPoolSize, 0L, TimeUnit.MILLISECONDS,
-                  new LinkedBlockingQueue<Runnable>(), threadFactory);
+                  new LinkedBlockingQueue<>(), threadFactory);
         }
 
         @Override
