@@ -66,7 +66,7 @@ public abstract class AbstractSerializer
             for (Id id : query.ids()) {
                 result.query(this.writeQueryId(type, id));
             }
-            return result;
+            query = result;
         }
 
         // Serialize condition(key/value) in query

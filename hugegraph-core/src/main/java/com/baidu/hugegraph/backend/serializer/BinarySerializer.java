@@ -581,7 +581,7 @@ public class BinarySerializer extends AbstractSerializer {
                 buffer.writeId((Id) value);
             } else if (key == HugeKeys.SORT_VALUES) {
                 assert value instanceof String;
-                buffer.writeStringRaw((String) value);
+                buffer.writeStringWithEnding((String) value);
             } else {
                 assert false : key;
             }
