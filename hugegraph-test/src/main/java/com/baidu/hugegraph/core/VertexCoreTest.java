@@ -3331,6 +3331,10 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "user", "age", 18);
             graph().tx().commit();
+        }, e -> {
+            String message = e.getMessage();
+            Assert.assertTrue(message.contains("Unique constraint userByName"));
+            Assert.assertTrue(message.contains("conflict is found"));
         });
         graph().addVertex(T.label, "user", "city", "");
         graph().tx().commit();

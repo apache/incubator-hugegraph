@@ -161,24 +161,23 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Collect property values of index fields
         List<Object> allPropValues = new ArrayList<>();
-        int firstNullField = 0;
-        boolean hasNull = false;
+        int fieldsNum = indexLabel.indexFields().size();
+        int firstNullField = fieldsNum;
         for (Id fieldId : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(fieldId);
             if (property == null) {
                 E.checkState(hasNullableProp(element, fieldId),
                              "Non-null property '%s' is null for '%s'",
                              this.graph().propertyKey(fieldId) , element);
+                if (firstNullField == fieldsNum) {
+                    firstNullField = allPropValues.size();
+                }
                 allPropValues.add(INDEX_NULL_SYM);
-                hasNull = true;
             } else {
                 E.checkArgument(!INDEX_NULL_SYM.equals(property.value()),
                                 "Illegal value of index property: '%s'",
                                 INDEX_NULL_SYM);
                 allPropValues.add(property.value());
-            }
-            if (!hasNull) {
-                firstNullField++;
             }
         }
 
@@ -254,6 +253,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     value = INDEX_EMPTY_SYM;
                 }
                 Id id = element.id();
+                // TODO: add lock for updating unique index
                 if (!removed && this.existUniqueValue(indexLabel, value, id)) {
                     throw new IllegalArgumentException(String.format(
                               "Unique constraint %s conflict is found for %s",
@@ -300,8 +300,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
         ConditionQuery query = new ConditionQuery(HugeType.UNIQUE_INDEX);
         query.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
         query.eq(HugeKeys.FIELD_VALUES, value);
-        query.limit(1L);
-        return this.query(query).hasNext();
+        Iterator<BackendEntry> iterator = this.query(query);
+        boolean exist = iterator.hasNext();
+        if (exist) {
+            LOG.debug("Already has existed unique index record {}",
+                      iterator.next());
+        }
+        while (iterator.hasNext()) {
+            LOG.warn("Unique constraint conflict found by record {}",
+                     iterator.next());
+        }
+        return exist;
     }
 
     /**
