@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.Id.IdType;
@@ -39,11 +40,12 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.HashUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 
-public class HugeIndex implements GraphType {
+public class HugeIndex implements GraphType, Cloneable {
 
     private Object fieldValues;
     private IndexLabel indexLabel;
     private Set<Id> elementIds;
+    private long expiredTime;
 
     public HugeIndex(IndexLabel indexLabel) {
         E.checkNotNull(indexLabel, "label");
@@ -51,6 +53,7 @@ public class HugeIndex implements GraphType {
         this.indexLabel = indexLabel;
         this.elementIds = new LinkedHashSet<>();
         this.fieldValues = null;
+        this.expiredTime = 0L;
     }
 
     @Override
@@ -109,6 +112,23 @@ public class HugeIndex implements GraphType {
 
     public void resetElementIds() {
         this.elementIds = new LinkedHashSet<>();
+    }
+
+    public long expiredTime() {
+        return this.expiredTime;
+    }
+
+    public void expiredTime(long expiredTime) {
+        this.expiredTime = expiredTime;
+    }
+
+    @Override
+    public HugeIndex clone() {
+        try {
+            return (HugeIndex) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new HugeException("Failed to clone HugeIndex", e);
+        }
     }
 
     @Override

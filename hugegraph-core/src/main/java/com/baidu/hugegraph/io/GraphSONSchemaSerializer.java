@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -73,6 +74,11 @@ public class GraphSONSchemaSerializer {
                 graph.mapIlId2Name(edgeLabel.indexLabels()));
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(edgeLabel.properties()));
+        map.put(HugeKeys.TTL, edgeLabel.ttl());
+        if (!IdGenerator.ZERO.equals(edgeLabel.ttlStartTime())) {
+            map.put(HugeKeys.TTL_START_TIME,
+                    graph.propertyKey(edgeLabel.ttlStartTime()).name());
+        }
         map.put(HugeKeys.ENABLE_LABEL_INDEX, edgeLabel.enableLabelIndex());
         map.put(HugeKeys.USER_DATA, edgeLabel.userdata());
         return map;

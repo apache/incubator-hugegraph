@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -585,6 +586,23 @@ public class HugeTask<V> extends FutureTask<V> {
             throw new LimitExceedException(
                       "Task %s size %s exceeded limit %s bytes",
                       P.unhide(propertyName), propertyLength, propertyLimit);
+        }
+    }
+
+    public void syncWait() {
+        try {
+            this.get();
+            assert this.completed();
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new HugeException("Async task failed with error: %s",
+                                    cause, cause.getMessage());
+        } catch (Exception e) {
+            throw new HugeException("Async task failed with error: %s",
+                                    e, e.getMessage());
         }
     }
 

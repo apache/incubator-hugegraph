@@ -58,6 +58,7 @@ public class Query implements Cloneable {
     private long capacity;
     private boolean showHidden;
     private boolean showDeleting;
+    private boolean showExpired;
 
     private Aggregate aggregate;
 
@@ -84,6 +85,7 @@ public class Query implements Cloneable {
         this.showDeleting = false;
 
         this.aggregate = null;
+        this.showExpired = false;
     }
 
     public void copyBasic(Query query) {
@@ -95,6 +97,7 @@ public class Query implements Cloneable {
         this.showHidden = query.showHidden();
         this.showDeleting = query.showDeleting();
         this.aggregate = query.aggregate();
+        this.showExpired = query.showExpired();
         if (query.orders != null) {
             this.orders(query.orders);
         }
@@ -345,6 +348,14 @@ public class Query implements Cloneable {
 
     public void showDeleting(boolean showDeleting) {
         this.showDeleting = showDeleting;
+    }
+
+    public boolean showExpired() {
+        return this.showExpired;
+    }
+
+    public void showExpired(boolean showExpired) {
+        this.showExpired = showExpired;
     }
 
     public Set<Id> ids() {

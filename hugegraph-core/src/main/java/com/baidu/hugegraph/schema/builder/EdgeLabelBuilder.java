@@ -57,6 +57,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
     private Set<String> properties;
     private List<String> sortKeys;
     private Set<String> nullableKeys;
+    private long ttl;
+    private String ttlStartTime;
     private Boolean enableLabelIndex;
     private Userdata userdata;
     private boolean checkExist;
@@ -73,6 +75,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
         this.properties = new HashSet<>();
         this.sortKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
+        this.ttl = 0L;
+        this.ttlStartTime = null;
         this.enableLabelIndex = null;
         this.userdata = new Userdata();
         this.checkExist = true;
@@ -87,6 +91,11 @@ public class EdgeLabelBuilder extends AbstractBuilder
         edgeLabel.sourceLabel(graph.vertexLabel(this.sourceLabel).id());
         edgeLabel.targetLabel(graph.vertexLabel(this.targetLabel).id());
         edgeLabel.frequency(this.frequency);
+        edgeLabel.ttl(this.ttl);
+        if (this.ttlStartTime != null) {
+            edgeLabel.ttlStartTime(this.graph().propertyKey(
+                                   this.ttlStartTime).id());
+        }
         edgeLabel.enableLabelIndex(this.enableLabelIndex == null ||
                                    this.enableLabelIndex);
         for (String key : this.properties) {
@@ -129,6 +138,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
             this.checkSortKeys();
             this.checkNullableKeys(Action.INSERT);
             Userdata.check(this.userdata, Action.INSERT);
+            this.checkTtl();
+            this.checkUserdata(Action.INSERT);
 
             edgeLabel = this.build();
             assert edgeLabel.name().equals(name);
@@ -275,6 +286,18 @@ public class EdgeLabelBuilder extends AbstractBuilder
     @Override
     public EdgeLabelBuilder frequency(Frequency frequency) {
         this.frequency = frequency;
+        return this;
+    }
+
+    @Override
+    public EdgeLabel.Builder ttl(long ttl) {
+        this.ttl = ttl;
+        return this;
+    }
+
+    @Override
+    public EdgeLabel.Builder ttlStartTime(String ttlStartTime) {
+        this.ttlStartTime = ttlStartTime;
         return this;
     }
 
@@ -438,6 +461,53 @@ public class EdgeLabelBuilder extends AbstractBuilder
             throw new NotAllowException(
                       "Not allowed to update enable_label_index " +
                       "for edge label '%s'", this.name);
+        }
+    }
+
+    private void checkTtl() {
+        E.checkArgument(this.ttl >= 0,
+                        "The ttl must be >= 0, but got: %s", this.ttl);
+        if (this.ttl == 0L) {
+            E.checkArgument(this.ttlStartTime == null,
+                            "Can't set ttl start time if ttl is not set");
+            return;
+        }
+        if (this.ttlStartTime == null) {
+            return;
+        }
+        // Check whether the properties contains the specified keys
+        E.checkArgument(!this.properties.isEmpty(),
+                        "The properties can't be empty when exist " +
+                        "ttl start time for edge label '%s'", this.name);
+        E.checkArgument(this.properties.contains(this.ttlStartTime),
+                        "The ttl start time '%s' must be contained in " +
+                        "properties '%s' for edge label '%s'",
+                        this.ttlStartTime, this.name, this.properties);
+        PropertyKey pkey = this.graph().propertyKey(this.ttlStartTime);
+        E.checkArgument(pkey.dataType().isDate(),
+                        "The ttl start time property must be date type," +
+                        "but got '%s(%s)'", this.ttlStartTime, pkey.dataType());
+    }
+
+    private void checkUserdata(Action action) {
+        switch (action) {
+            case INSERT:
+            case APPEND:
+                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
+                    if (e.getValue() == null) {
+                        throw new NotAllowException(
+                                  "Not allowed pass null userdata value when " +
+                                  "create or append edge label");
+                    }
+                }
+                break;
+            case ELIMINATE:
+            case DELETE:
+                // pass
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown schema action '%s'", action));
         }
     }
 }

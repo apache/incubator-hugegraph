@@ -41,6 +41,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -65,6 +66,7 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Bytes;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.NumericUtil;
@@ -215,6 +217,14 @@ public class BinarySerializer extends AbstractSerializer {
         }
     }
 
+    protected void formatExpiredTime(long expiredTime, BytesBuffer buffer) {
+        buffer.writeVLong(expiredTime);
+    }
+
+    protected void parseExpiredTime(BytesBuffer buffer, HugeEdge edge) {
+        edge.expiredTime(buffer.readVLong());
+    }
+
     protected byte[] formatEdgeName(HugeEdge edge) {
         // owner-vertex + dir + edge-label + sort-values + other-vertex
         return BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID)
@@ -228,6 +238,8 @@ public class BinarySerializer extends AbstractSerializer {
         // Write edge id
         //buffer.writeId(edge.id());
 
+        // Write edge expired time
+        this.formatExpiredTime(edge.expiredTime(), buffer);
         // Write edge properties
         this.formatProperties(edge.getProperties().values(), buffer);
 
@@ -283,6 +295,8 @@ public class BinarySerializer extends AbstractSerializer {
 
         //Id id = buffer.readId();
 
+        // Parse edge expired time
+        this.parseExpiredTime(buffer, edge);
         // Parse edge properties
         this.parseProperties(buffer, edge);
     }
@@ -331,6 +345,8 @@ public class BinarySerializer extends AbstractSerializer {
             Id elemId = index.elementId();
             int idLen = 1 + elemId.length();
             buffer = BytesBuffer.allocate(idLen);
+            // Write expiredTime
+            buffer.writeVLong(index.expiredTime());
             // Write element-id
             buffer.writeId(elemId);
         } else {
@@ -344,6 +360,8 @@ public class BinarySerializer extends AbstractSerializer {
             buffer = BytesBuffer.allocate(idLen);
             // Write index-id
             buffer.writeIndexId(indexId, type);
+            // Write expiredTime
+            buffer.writeVLong(index.expiredTime());
             // Write element-id
             buffer.writeId(elemId);
         }
@@ -351,8 +369,10 @@ public class BinarySerializer extends AbstractSerializer {
         return buffer.bytes();
     }
 
-    protected void parseIndexName(BinaryBackendEntry entry, HugeIndex index,
-                                  Object fieldValues) {
+    protected void parseIndexName(HugeGraph graph, ConditionQuery query,
+                                  BinaryBackendEntry entry,
+                                  HugeIndex index, Object fieldValues) {
+        long now = DateUtil.now().getTime();
         for (BackendColumn col : entry.columns()) {
             if (indexFieldValuesUnmatched(col.value, fieldValues)) {
                 // Skip if field-values is not matched (just the same hash)
@@ -362,7 +382,18 @@ public class BinarySerializer extends AbstractSerializer {
             if (this.indexWithIdPrefix) {
                 buffer.readIndexId(index.type());
             }
-            index.elementIds(buffer.readId());
+            long expiredTime = buffer.readVLong();
+            if (!graph.graphTransaction().store().features().supportsTtl() &&
+                !query.showExpired() &&
+                expiredTime != 0L && expiredTime < now) {
+                HugeIndex removeIndex = index.clone();
+                removeIndex.expiredTime(expiredTime);
+                removeIndex.resetElementIds();
+                removeIndex.elementIds(buffer.readId());
+                GraphTransaction.asyncDeleteExpiredObject(graph, removeIndex);
+            } else {
+                index.elementIds(buffer.readId());
+            }
         }
     }
 
@@ -497,7 +528,7 @@ public class BinarySerializer extends AbstractSerializer {
             }
         }
 
-        this.parseIndexName(entry, index, fieldValues);
+        this.parseIndexName(graph, query, entry, index, fieldValues);
         return index;
     }
 
@@ -939,6 +970,8 @@ public class BinarySerializer extends AbstractSerializer {
             writeIds(HugeKeys.INDEX_LABELS, schema.indexLabels());
             writeBool(HugeKeys.ENABLE_LABEL_INDEX, schema.enableLabelIndex());
             writeEnum(HugeKeys.STATUS, schema.status());
+            writeLong(HugeKeys.TTL, schema.ttl());
+            writeId(HugeKeys.TTL_START_TIME, schema.ttlStartTime());
             writeUserdata(schema);
             return this.entry;
         }
@@ -960,7 +993,10 @@ public class BinarySerializer extends AbstractSerializer {
             edgeLabel.indexLabels(readIds(HugeKeys.INDEX_LABELS));
             edgeLabel.enableLabelIndex(readBool(HugeKeys.ENABLE_LABEL_INDEX));
             edgeLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
+            edgeLabel.ttl(readLong(HugeKeys.TTL));
+            edgeLabel.ttlStartTime(readId(HugeKeys.TTL_START_TIME));
             readUserdata(edgeLabel);
+
             return edgeLabel;
         }
 
@@ -1062,6 +1098,18 @@ public class BinarySerializer extends AbstractSerializer {
                          "The length of column '%s' must be 1, but is '%s'",
                          key, value.length);
             return SerialEnum.fromCode(clazz, value[0]);
+        }
+
+        private void writeLong(HugeKeys key, long value) {
+            BytesBuffer buffer = new BytesBuffer(8);
+            buffer.writeVLong(value);
+            this.entry.column(formatColumnName(key), buffer.bytes());
+        }
+
+        private long readLong(HugeKeys key) {
+            byte[] value = column(key);
+            BytesBuffer buffer = BytesBuffer.wrap(value);
+            return buffer.readVLong();
         }
 
         private void writeId(HugeKeys key, Id value) {

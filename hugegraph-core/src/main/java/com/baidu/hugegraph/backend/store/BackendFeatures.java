@@ -60,4 +60,6 @@ public interface BackendFeatures {
     public boolean supportsNumberType();
 
     public boolean supportsAggregateProperty();
+
+    public boolean supportsTtl();
 }

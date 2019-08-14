@@ -531,6 +531,19 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
+         * Add a row record to a table with ttl
+         */
+        public void put(String table, byte[] family, byte[] rowkey,
+                        Collection<BackendColumn> columns, long ttl) {
+            Put put = new Put(rowkey);
+            for (BackendColumn column : columns) {
+                put.addColumn(family, column.name, column.value);
+            }
+            put.setTTL(ttl);
+            this.batch(table, put);
+        }
+
+        /**
          * Add a row record to a table(can be used when adding an index)
          */
         @Override
@@ -542,6 +555,28 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
+<<<<<<< HEAD
+=======
+         * Add a row record to a table with ttl for index
+         */
+        public void put(String table, byte[] family, byte[] rowkey,
+                        byte[] qualifier, byte[] value, long ttl) {
+            Put put = new Put(rowkey);
+            put.addColumn(family, qualifier, value);
+            put.setTTL(ttl);
+            this.batch(table, put);
+        }
+
+        /**
+         * Delete a record by rowkey and qualifier from a table
+         */
+        public void remove(String table, byte[] family,
+                           byte[] rowkey, byte[] qualifier) {
+            this.remove(table, family, rowkey, qualifier, false);
+        }
+
+        /**
+>>>>>>> support edgeLabel ttl
          * Delete a record by rowkey and qualifier from a table,
          * just delete the latest version of the specified column if need
          */

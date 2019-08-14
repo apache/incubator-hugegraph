@@ -42,6 +42,7 @@ import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -64,6 +65,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -188,6 +190,11 @@ public class TextSerializer extends AbstractSerializer {
         StringBuilder sb = new StringBuilder(256 * edge.getProperties().size());
         // Edge id
         sb.append(edge.id().asString());
+        // Write edge expired time
+        sb.append(VALUE_SPLITOR);
+        sb.append(this.formatSyspropName(HugeKeys.EXPIRED_TIME));
+        sb.append(VALUE_SPLITOR);
+        sb.append(edge.expiredTime());
         // Edge properties
         for (HugeProperty<?> property : edge.getProperties().values()) {
             sb.append(VALUE_SPLITOR);
@@ -240,8 +247,14 @@ public class TextSerializer extends AbstractSerializer {
         otherVertex.propNotLoaded();
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
+        // Parse edge expired time
+        String name = this.formatSyspropName(HugeKeys.EXPIRED_TIME);
+        E.checkState(valParts[1].equals(name),
+                     "Invalid system property name '%s'", valParts[1]);
+        edge.expiredTime(JsonUtil.fromJson(valParts[2], Long.class));
+
         // Edge properties
-        for (int i = 1; i < valParts.length; i += 2) {
+        for (int i = 3; i < valParts.length; i += 2) {
             this.parseProperty(valParts[i], valParts[i + 1], edge);
         }
     }
@@ -360,6 +373,8 @@ public class TextSerializer extends AbstractSerializer {
                          writeId(index.indexLabelId()));
             entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
                          writeIds(index.elementIds()));
+            entry.column(formatSyspropName(HugeKeys.EXPIRED_TIME),
+                         JsonUtil.toJson(index.expiredTime()));
             entry.subId(index.elementId());
         }
         return entry;
@@ -375,11 +390,13 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.convertEntry(backendEntry);
         String indexValues = entry.column(
-                formatSyspropName(HugeKeys.FIELD_VALUES));
+                             formatSyspropName(HugeKeys.FIELD_VALUES));
         String indexLabelId = entry.column(
-                formatSyspropName(HugeKeys.INDEX_LABEL_ID));
+                              formatSyspropName(HugeKeys.INDEX_LABEL_ID));
         String elemIds = entry.column(
-                formatSyspropName(HugeKeys.ELEMENT_IDS));
+                         formatSyspropName(HugeKeys.ELEMENT_IDS));
+        String expiredTime = entry.column(
+                             formatSyspropName(HugeKeys.EXPIRED_TIME));
 
         IndexLabel indexLabel = IndexLabel.label(graph, readId(indexLabelId));
         HugeIndex index = new HugeIndex(indexLabel);
@@ -390,7 +407,20 @@ public class TextSerializer extends AbstractSerializer {
             }
             index.elementIds(elemId);
         }
-        return index;
+        // Memory backend might return empty BackendEntry
+        if (index.elementIds().isEmpty()) {
+            return index;
+        }
+        index.expiredTime(JsonUtil.fromJson(expiredTime, Long.class));
+        long now = DateUtil.now().getTime();
+        if (!graph.graphTransaction().store().features().supportsTtl() &&
+            !query.showExpired() &&
+            index.expiredTime() != 0L && index.expiredTime() < now) {
+            GraphTransaction.asyncDeleteExpiredObject(graph, index);
+            return null;
+        } else {
+            return index;
+        }
     }
 
     @Override
@@ -594,6 +624,9 @@ public class TextSerializer extends AbstractSerializer {
         writeUserdata(edgeLabel, entry);
         entry.column(HugeKeys.STATUS,
                      JsonUtil.toJson(edgeLabel.status()));
+        entry.column(HugeKeys.TTL, JsonUtil.toJson(edgeLabel.ttl()));
+        entry.column(HugeKeys.TTL_START_TIME,
+                     writeId(edgeLabel.ttlStartTime()));
         return entry;
     }
 
@@ -617,6 +650,8 @@ public class TextSerializer extends AbstractSerializer {
         String indexLabels = entry.column(HugeKeys.INDEX_LABELS);
         String enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
         String status = entry.column(HugeKeys.STATUS);
+        String ttl = entry.column(HugeKeys.TTL);
+        String ttlStartTime = entry.column(HugeKeys.TTL_START_TIME);
 
         EdgeLabel edgeLabel = new EdgeLabel(graph, id, name);
         edgeLabel.sourceLabel(readId(sourceLabel));
@@ -630,6 +665,8 @@ public class TextSerializer extends AbstractSerializer {
                                                      Boolean.class));
         readUserdata(edgeLabel, entry);
         edgeLabel.status(JsonUtil.fromJson(status, SchemaStatus.class));
+        edgeLabel.ttl(JsonUtil.fromJson(ttl, Long.class));
+        edgeLabel.ttlStartTime(readId(ttlStartTime));
         return edgeLabel;
     }
 

@@ -34,6 +34,8 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public abstract class IdGenerator {
 
+    public static final Id ZERO = IdGenerator.of(0L);
+
     public abstract Id generate(HugeVertex vertex);
 
     public final static Id of(String id) {

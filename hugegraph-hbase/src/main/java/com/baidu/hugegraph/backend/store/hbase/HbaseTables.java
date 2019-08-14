@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
@@ -32,12 +33,14 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.RowIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 
@@ -138,12 +141,24 @@ public class HbaseTables {
 
         @Override
         public void insert(Session session, BackendEntry entry) {
-            for (BackendColumn col : entry.columns()) {
-                E.checkArgument(col.name.length == 0,
-                                "Expect empty column name, " +
-                                "please ensure hbase serializer is used");
+            Collection<BackendColumn> columns = entry.columns();
+            assert columns.size() == 1;
+            BackendColumn col = columns.iterator().next();
+            E.checkArgument(col.name.length == 0,
+                            "Expect empty column name, " +
+                            "please ensure hbase serializer is used");
+            long expiredTime = BytesBuffer.wrap(col.value).readVLong();
+            if (expiredTime == 0) {
+                session.put(this.table(), CF, entry.id().asBytes(),
+                            entry.columns());
+            } else {
+                long ttl = expiredTime - DateUtil.now().getTime();
+                if (ttl <= 0) {
+                    return;
+                }
+                session.put(this.table(), CF, entry.id().asBytes(),
+                            entry.columns(), ttl);
             }
-            super.insert(session, entry);
         }
 
         @Override
@@ -169,17 +184,34 @@ public class HbaseTables {
     public static class IndexTable extends HbaseTable {
 
         private static final long INDEX_DELETE_BATCH = Query.COMMIT_BATCH;
+        protected HugeType type;
 
         public IndexTable(String table) {
             super(table);
+        }
+
+        public HugeType type() {
+            return this.type;
         }
 
         @Override
         public void insert(Session session, BackendEntry entry) {
             assert entry.columns().size() == 1;
             BackendColumn col = entry.columns().iterator().next();
-            session.put(this.table(), CF, col.name,
-                        BinarySerializer.EMPTY_BYTES, col.value);
+            BytesBuffer buffer = BytesBuffer.wrap(col.name);
+            buffer.readIndexId(this.type());
+            long expiredTime = buffer.readVLong();
+            if (expiredTime == 0) {
+                session.put(this.table(), CF, col.name,
+                            BinarySerializer.EMPTY_BYTES, col.value);
+            } else {
+                long ttl = expiredTime - DateUtil.now().getTime();
+                if (ttl <= 0) {
+                    return;
+                }
+                session.put(this.table(), CF, col.name,
+                            BinarySerializer.EMPTY_BYTES, col.value, ttl);
+            }
         }
 
         @Override
@@ -233,6 +265,7 @@ public class HbaseTables {
 
         public VertexLabelIndex(String store) {
             super(joinTableName(store, TABLE));
+            this.type = HugeType.SECONDARY_INDEX;
         }
     }
 
@@ -242,6 +275,7 @@ public class HbaseTables {
 
         public EdgeLabelIndex(String store) {
             super(joinTableName(store, TABLE));
+            this.type = HugeType.SECONDARY_INDEX;
         }
     }
 
@@ -251,6 +285,7 @@ public class HbaseTables {
 
         public SecondaryIndex(String store) {
             super(joinTableName(store, TABLE));
+            this.type = HugeType.SECONDARY_INDEX;
         }
     }
 
@@ -260,6 +295,7 @@ public class HbaseTables {
 
         public SearchIndex(String store) {
             super(joinTableName(store, TABLE));
+            this.type = HugeType.SECONDARY_INDEX;
         }
     }
 
@@ -269,29 +305,31 @@ public class HbaseTables {
 
         public UniqueIndex(String store) {
             super(joinTableName(store, TABLE));
+            this.type = HugeType.SECONDARY_INDEX;
         }
     }
 
     public static class RangeIndex extends IndexTable {
 
-        public RangeIndex(String store, String table) {
-            super(joinTableName(store, table));
+        public RangeIndex(String store, HugeType type) {
+            super(joinTableName(store, type.string()));
+            this.type = type;
         }
 
         public static RangeIndex rangeInt(String store) {
-            return new RangeIndex(store, HugeType.RANGE_INT_INDEX.string());
+            return new RangeIndex(store, HugeType.RANGE_INT_INDEX);
         }
 
         public static RangeIndex rangeFloat(String store) {
-            return new RangeIndex(store, HugeType.RANGE_FLOAT_INDEX.string());
+            return new RangeIndex(store, HugeType.RANGE_FLOAT_INDEX);
         }
 
         public static RangeIndex rangeLong(String store) {
-            return new RangeIndex(store, HugeType.RANGE_LONG_INDEX.string());
+            return new RangeIndex(store, HugeType.RANGE_LONG_INDEX);
         }
 
         public static RangeIndex rangeDouble(String store) {
-            return new RangeIndex(store, HugeType.RANGE_DOUBLE_INDEX.string());
+            return new RangeIndex(store, HugeType.RANGE_DOUBLE_INDEX);
         }
     }
 
@@ -301,6 +339,7 @@ public class HbaseTables {
 
         public ShardIndex(String store) {
             super(joinTableName(store, TABLE));
+            this.type = HugeType.SECONDARY_INDEX;
         }
     }
 }

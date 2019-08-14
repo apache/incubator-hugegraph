@@ -436,14 +436,7 @@ public abstract class CassandraTable
     @Override
     public void insert(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
-        assert entry.columns().size() > 0;
-        Insert insert = QueryBuilder.insertInto(this.table());
-
-        for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
-            insert.value(formatKey(c.getKey()), c.getValue());
-        }
-
-        session.add(insert);
+        session.add(this.buildInsert(entry));
     }
 
     /**
@@ -452,7 +445,38 @@ public abstract class CassandraTable
     @Override
     public void append(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
+        session.add(this.buildAppend(entry));
+    }
 
+    /**
+     * Eliminate several elements from the collection column of a row
+     */
+    @Override
+    public void eliminate(CassandraSessionPool.Session session,
+                          CassandraBackendEntry.Row entry) {
+        session.add(this.buildEliminate(entry));
+    }
+
+    /**
+     * Delete an entire row
+     */
+    @Override
+    public void delete(CassandraSessionPool.Session session,
+                       CassandraBackendEntry.Row entry) {
+        session.add(this.buildDelete(entry));
+    }
+
+    protected Insert buildInsert(CassandraBackendEntry.Row entry) {
+        assert entry.columns().size() > 0;
+        Insert insert = QueryBuilder.insertInto(this.table());
+
+        for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
+            insert.value(formatKey(c.getKey()), c.getValue());
+        }
+        return insert;
+    }
+
+    protected Update buildAppend(CassandraBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
         List<HugeKeys> colNames = this.modifiableColumnName();
 
@@ -481,17 +505,10 @@ public abstract class CassandraTable
             assert columns.containsKey(idName);
             update.where(formatEQ(idName, columns.get(idName)));
         }
-
-        session.add(update);
+        return update;
     }
 
-    /**
-     * Eliminate several elements from the collection column of a row
-     */
-    @Override
-    public void eliminate(CassandraSessionPool.Session session,
-                          CassandraBackendEntry.Row entry) {
-
+    protected Update buildEliminate(CassandraBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
         List<HugeKeys> colNames = this.modifiableColumnName();
 
@@ -533,16 +550,10 @@ public abstract class CassandraTable
             assert columns.containsKey(idName);
             update.where(formatEQ(idName, columns.get(idName)));
         }
-
-        session.add(update);
+        return update;
     }
 
-    /**
-     * Delete an entire row
-     */
-    @Override
-    public void delete(CassandraSessionPool.Session session,
-                       CassandraBackendEntry.Row entry) {
+    protected Delete buildDelete(CassandraBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
         Delete delete = QueryBuilder.delete().from(this.table());
 
@@ -565,8 +576,7 @@ public abstract class CassandraTable
              * has been replaced by eliminate() method)
              */
         }
-
-        session.add(delete);
+        return delete;
     }
 
     protected void createTable(CassandraSessionPool.Session session,

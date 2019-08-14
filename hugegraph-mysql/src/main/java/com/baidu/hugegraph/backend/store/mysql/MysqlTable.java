@@ -188,9 +188,18 @@ public abstract class MysqlTable
         return this.insertTemplate;
     }
 
-    protected String buildDeleteTemplate(List<HugeKeys> idNames) {
-        if (this.deleteTemplate != null) {
-            return this.deleteTemplate;
+    protected String buildDeleteTemplate(List<HugeKeys> idNames,
+                                         Long expiredTime) {
+        boolean cached;
+        if (expiredTime == null || expiredTime == 0L) {
+            cached = true;
+            if (this.deleteTemplate != null) {
+                return this.deleteTemplate;
+            }
+        } else {
+            cached = false;
+            // Set delete with ttl to avoid mistaken deletion
+            idNames.add(HugeKeys.EXPIRED_TIME);
         }
 
         StringBuilder delete = new StringBuilder();
@@ -201,8 +210,24 @@ public abstract class MysqlTable
         where.and(formatKeys(idNames), "=");
         delete.append(where.build());
 
-        this.deleteTemplate = delete.toString();
-        return this.deleteTemplate;
+        if (cached) {
+            this.deleteTemplate = delete.toString();
+            return this.deleteTemplate;
+        } else {
+            return delete.toString();
+        }
+    }
+
+    protected String buildDeleteTemplateWithoutCache(List<HugeKeys> idNames) {
+        StringBuilder delete = new StringBuilder();
+        delete.append("DELETE FROM ").append(this.table());
+        this.appendPartition(delete);
+
+        WhereBuilder where = this.newWhereBuilder();
+        where.and(formatKeys(idNames), "=");
+        delete.append(where.build());
+
+        return delete.toString();
     }
 
     protected String buildDropTemplate() {
@@ -254,9 +279,9 @@ public abstract class MysqlTable
 
     @Override
     public void delete(Session session, MysqlBackendEntry.Row entry) {
-        List<HugeKeys> idNames = this.idColumnName();
-        String template = this.buildDeleteTemplate(idNames);
-
+        List<HugeKeys> idNames = new ArrayList<>(this.idColumnName());
+        String template = this.buildDeleteTemplate(
+                          idNames, entry.column(HugeKeys.EXPIRED_TIME));
         PreparedStatement deleteStmt;
         try {
             deleteStmt = session.prepareStatement(template);
