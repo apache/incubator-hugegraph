@@ -41,19 +41,7 @@ public final class KryoUtil {
         }
 
         kryo = new Kryo();
-        kryo.addDefaultSerializer(UUID.class, new Serializer<UUID>() {
-
-            @Override
-            public UUID read(Kryo kryo, Input input, Class<UUID> c) {
-                return new UUID(input.readLong(), input.readLong());
-            }
-
-            @Override
-            public void write(Kryo kryo, Output output, UUID uuid) {
-                output.writeLong(uuid.getMostSignificantBits());
-                output.writeLong(uuid.getLeastSignificantBits());
-            }
-        });
+        registerSerializers(kryo);
         kryos.set(kryo);
         return kryo;
     }
@@ -74,5 +62,38 @@ public final class KryoUtil {
                      "Kryo value can't be null for '%s'",
                      clazz.getSimpleName());
         return kryo().readObject(new Input(value), clazz);
+    }
+
+    public static byte[] toKryoWithType(Object value) {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             Output output = new Output(bos, 256)) {
+            kryo().writeClassAndObject(output, value);
+            output.flush();
+            return bos.toByteArray();
+       } catch (IOException e) {
+           throw new BackendException("Failed to serialize: %s", e, value);
+       }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T fromKryoWithType(byte[] value) {
+        E.checkState(value != null,  "Kryo value can't be null for object");
+        return (T) kryo().readClassAndObject(new Input(value));
+    }
+
+    private static void registerSerializers(Kryo kryo) {
+        kryo.addDefaultSerializer(UUID.class, new Serializer<UUID>() {
+
+            @Override
+            public UUID read(Kryo kryo, Input input, Class<UUID> c) {
+                return new UUID(input.readLong(), input.readLong());
+            }
+
+            @Override
+            public void write(Kryo kryo, Output output, UUID uuid) {
+                output.writeLong(uuid.getMostSignificantBits());
+                output.writeLong(uuid.getLeastSignificantBits());
+            }
+        });
     }
 }

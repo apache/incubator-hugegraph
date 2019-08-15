@@ -19,8 +19,14 @@
 
 package com.baidu.hugegraph.unit.core;
 
+import java.awt.Point;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.Test;
@@ -29,8 +35,14 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdGenerator.UuidId;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.unit.BaseUnitTest;
+import com.baidu.hugegraph.unit.FakeObjects;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class BytesBufferTest extends BaseUnitTest {
 
@@ -42,37 +54,37 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertEquals(4, BytesBuffer.allocate(4).array().length);
         Assert.assertEquals(0, BytesBuffer.allocate(4).bytes().length);
 
-        BytesBuffer buffer4 = BytesBuffer.allocate(4);
+        BytesBuffer buf4 = BytesBuffer.allocate(4);
         Assert.assertArrayEquals(new byte[]{0, 0, 0, 0},
-                                 buffer4.write(new byte[4]).bytes());
+                                 buf4.write(new byte[4]).bytes());
 
-        BytesBuffer buffer2 = BytesBuffer.allocate(2);
+        BytesBuffer buf2 = BytesBuffer.allocate(2);
         Assert.assertArrayEquals(new byte[]{0, 0, 0, 0},
-                                 buffer2.write(new byte[4]).bytes());
+                                 buf2.write(new byte[4]).bytes());
 
-        BytesBuffer buffer0 = BytesBuffer.allocate(0);
+        BytesBuffer buf0 = BytesBuffer.allocate(0);
         Assert.assertArrayEquals(new byte[]{0, 0, 0, 0},
-                                 buffer0.write(new byte[4]).bytes());
+                                 buf0.write(new byte[4]).bytes());
     }
 
     @Test
     public void testWrap() {
-        BytesBuffer buffer4 = BytesBuffer.wrap(new byte[]{1, 2, 3, 4});
-        Assert.assertArrayEquals(new byte[]{1, 2, 3, 4}, buffer4.array());
-        Assert.assertArrayEquals(new byte[]{1, 2, 3, 4}, buffer4.read(4));
+        BytesBuffer buf4 = BytesBuffer.wrap(new byte[]{1, 2, 3, 4});
+        Assert.assertArrayEquals(new byte[]{1, 2, 3, 4}, buf4.array());
+        Assert.assertArrayEquals(new byte[]{1, 2, 3, 4}, buf4.read(4));
     }
 
     @Test
     public void testStringId() {
         Id id = IdGenerator.of("abc");
-        byte[] bytes = new byte[]{-126, 97, 98, 99};
+        byte[] bytes = new byte[]{(byte) 0x82, 97, 98, 99};
 
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(4)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of("abcd");
-        bytes = new byte[]{-125, 97, 98, 99, 100};
+        bytes = new byte[]{(byte) 0x83, 97, 98, 99, 100};
 
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(5)
                                                    .writeId(id).bytes());
@@ -297,6 +309,10 @@ public class BytesBufferTest extends BaseUnitTest {
                                  BytesBuffer.allocate(5).writeVInt(0).bytes());
         Assert.assertArrayEquals(new byte[]{1},
                                  BytesBuffer.allocate(5).writeVInt(1).bytes());
+        Assert.assertArrayEquals(new byte[]{(byte) 0x7f},
+                                 BytesBuffer.allocate(5)
+                                            .writeVInt(127)
+                                            .bytes());
         Assert.assertArrayEquals(new byte[]{(byte) 0x81, 0},
                                  BytesBuffer.allocate(5)
                                             .writeVInt(128)
@@ -326,14 +342,14 @@ public class BytesBufferTest extends BaseUnitTest {
                                             .bytes());
 
         for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
-            BytesBuffer buffer = BytesBuffer.allocate(5).writeVInt(i);
-            Assert.assertEquals(i, buffer.flip().readVInt());
+            BytesBuffer buf = BytesBuffer.allocate(5).writeVInt(i);
+            Assert.assertEquals(i, buf.flip().readVInt());
         }
 
         Random random = new Random();
         for (int i = Integer.MIN_VALUE; i < Integer.MAX_VALUE;) {
-            BytesBuffer buffer = BytesBuffer.allocate(5).writeVInt(i);
-            Assert.assertEquals(i, buffer.flip().readVInt());
+            BytesBuffer buf = BytesBuffer.allocate(5).writeVInt(i);
+            Assert.assertEquals(i, buf.flip().readVInt());
 
             int old = i;
             i += random.nextInt(Short.MAX_VALUE);
@@ -350,6 +366,10 @@ public class BytesBufferTest extends BaseUnitTest {
                                  BytesBuffer.allocate(5).writeVLong(0).bytes());
         Assert.assertArrayEquals(new byte[]{1},
                                  BytesBuffer.allocate(5).writeVLong(1).bytes());
+        Assert.assertArrayEquals(new byte[]{(byte) 0x7f},
+                                 BytesBuffer.allocate(5)
+                                            .writeVLong(127)
+                                            .bytes());
         Assert.assertArrayEquals(new byte[]{(byte) 0x81, 0},
                                  BytesBuffer.allocate(5)
                                             .writeVLong(128)
@@ -391,14 +411,14 @@ public class BytesBufferTest extends BaseUnitTest {
                                             .bytes());
 
         for (long i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
-            BytesBuffer buffer = BytesBuffer.allocate(10).writeVLong(i);
-            Assert.assertEquals(i, buffer.flip().readVLong());
+            BytesBuffer buf = BytesBuffer.allocate(10).writeVLong(i);
+            Assert.assertEquals(i, buf.flip().readVLong());
         }
 
         Random random = new Random();
         for (long i = Long.MIN_VALUE; i < Long.MAX_VALUE;) {
-            BytesBuffer buffer = BytesBuffer.allocate(10).writeVLong(i);
-            Assert.assertEquals(i, buffer.flip().readVLong());
+            BytesBuffer buf = BytesBuffer.allocate(10).writeVLong(i);
+            Assert.assertEquals(i, buf.flip().readVLong());
 
             long old = i;
             i += (random.nextLong() >>> 8);
@@ -411,12 +431,373 @@ public class BytesBufferTest extends BaseUnitTest {
 
     @Test
     public void testProperty() {
+        BytesBuffer buf = BytesBuffer.allocate(0);
+        PropertyKey pkey = genPkey(DataType.BOOLEAN);
+        Object value = true;
+        byte[] bytes = genBytes("01");
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
 
+        value = false;
+        bytes = genBytes("00");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.BYTE);
+        value = (byte) 127;
+        bytes = genBytes("7f");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.INT);
+        value = 127;
+        bytes = genBytes("7f");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.INT);
+        value = 128;
+        bytes = genBytes("8100");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.FLOAT);
+        value = 1.0f;
+        bytes = genBytes("3f800000");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.FLOAT);
+        value = 3.14f;
+        bytes = genBytes("4048f5c3");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.FLOAT);
+        value = -1.0f;
+        bytes = genBytes("bf800000");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.FLOAT);
+        value = Float.MAX_VALUE;
+        bytes = genBytes("7f7fffff");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.LONG);
+        value = 127L;
+        bytes = genBytes("7f");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.DOUBLE);
+        value = 3.14d;
+        bytes = genBytes("40091eb851eb851f");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.DATE);
+        Calendar c = Calendar.getInstance(TimeZone.getTimeZone("Beijing"));
+        c.setTimeInMillis(1565851529514L);
+        value = c.getTime();
+        bytes = genBytes("adc9a098e22a");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.TEXT);
+        value = "abc";
+        bytes = genBytes("03616263");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.BLOB);
+        value = genBytes("001199aabbcc");
+        bytes = genBytes("06001199aabbcc");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertArrayEquals((byte[]) value, (byte[])
+                                 BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.UUID);
+        value = UUID.fromString("3cfcafc8-7906-4ab7-a207-4ded056f58de");
+        bytes = genBytes("3cfcafc879064ab7a2074ded056f58de");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.OBJECT);
+        value = new Point(3, 8);
+        bytes = genBytes("1301006a6176612e6177742e506f696ef4010610");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.OBJECT);
+        value = new int[]{1, 3, 8};
+        bytes = genBytes("0901005bc90104020610");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertArrayEquals((int[]) value, (int[])
+                                 BytesBuffer.wrap(bytes).readProperty(pkey));
+    }
+
+    @Test
+    public void testPropertyWithList() {
+        BytesBuffer buf = BytesBuffer.allocate(0);
+        PropertyKey pkey = genListPkey(DataType.BOOLEAN);
+        Object value = ImmutableList.of(true, false);
+        byte[] bytes = genBytes("020100");
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.BYTE);
+        value = ImmutableList.of();
+        bytes = genBytes("00");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.BYTE);
+        value = ImmutableList.of((byte) 127, (byte) 128);
+        bytes = genBytes("027f8fffffff00");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.INT);
+        value = ImmutableList.of(127, 128);;
+        bytes = genBytes("027f8100");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.FLOAT);
+        value = ImmutableList.of(1.0f, 3.14f);
+        bytes = genBytes("023f8000004048f5c3");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.LONG);
+        value = ImmutableList.of(127L, 128L);
+        bytes = genBytes("027f8100");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.DOUBLE);
+        value = ImmutableList.of(1.0d, 3.14d);
+        bytes = genBytes("023ff000000000000040091eb851eb851f");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.DATE);
+        Calendar c = Calendar.getInstance(TimeZone.getTimeZone("Beijing"));
+        c.setTimeInMillis(1565851529514L);
+        value = ImmutableList.of(c.getTime(), c.getTime());
+        bytes = genBytes("02adc9a098e22aadc9a098e22a");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.TEXT);
+        value = ImmutableList.of("abc", "123");
+        bytes = genBytes("020361626303313233");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.BLOB);
+        value = ImmutableList.of(genBytes("001199aabbcc"), genBytes("5566"));
+        bytes = genBytes("0206001199aabbcc025566");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        List<?> list = (List<?>) BytesBuffer.wrap(bytes).readProperty(pkey);
+        Assert.assertArrayEquals(genBytes("001199aabbcc"),
+                                 (byte[]) list.get(0));
+        Assert.assertArrayEquals(genBytes("5566"), (byte[]) list.get(1));
+
+        pkey = genListPkey(DataType.UUID);
+        UUID uuid = UUID.fromString("3cfcafc8-7906-4ab7-a207-4ded056f58de");
+        value = ImmutableList.of(uuid, uuid);
+        bytes = genBytes("023cfcafc879064ab7a2074ded056f58de" +
+                         "3cfcafc879064ab7a2074ded056f58de");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.OBJECT);
+        value = ImmutableList.of(new Point(3, 8), new Point(3, 9));
+        bytes = genBytes("021301006a6176612e6177742e506f696ef4010610" +
+                         "1301006a6176612e6177742e506f696ef4010612");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genListPkey(DataType.OBJECT);
+        value = ImmutableList.of(new int[]{1, 3}, new int[]{2, 5});
+        bytes = genBytes("020801005bc9010302060801005bc90103040a");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        list = (List<?>) BytesBuffer.wrap(bytes).readProperty(pkey);
+        Assert.assertArrayEquals(new int[]{1, 3}, (int[]) list.get(0));
+        Assert.assertArrayEquals(new int[]{2, 5}, (int[]) list.get(1));
+    }
+
+    @Test
+    public void testPropertyWithSet() {
+        BytesBuffer buf = BytesBuffer.allocate(0);
+        PropertyKey pkey = genSetPkey(DataType.BOOLEAN);
+        Object value = ImmutableSet.of(true, false);
+        byte[] bytes = genBytes("020100");
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.BYTE);
+        value = ImmutableSet.of();
+        bytes = genBytes("00");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.BYTE);
+        value = ImmutableSet.of((byte) 127, (byte) 128);
+        bytes = genBytes("027f8fffffff00");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.INT);
+        value = ImmutableSet.of(127, 128);;
+        bytes = genBytes("027f8100");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.FLOAT);
+        value = ImmutableSet.of(1.0f, 3.14f);
+        bytes = genBytes("023f8000004048f5c3");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.LONG);
+        value = ImmutableSet.of(127L, 128L);
+        bytes = genBytes("027f8100");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.DOUBLE);
+        value = ImmutableSet.of(1.0d, 3.14d);
+        bytes = genBytes("023ff000000000000040091eb851eb851f");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.DATE);
+        Calendar c = Calendar.getInstance(TimeZone.getTimeZone("Beijing"));
+        c.setTimeInMillis(1565851529514L);
+        value = ImmutableSet.of(c.getTime(), c.getTime());
+        bytes = genBytes("01adc9a098e22a");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.TEXT);
+        value = ImmutableSet.of("abc", "123");
+        bytes = genBytes("020361626303313233");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.BLOB);
+        value = ImmutableSet.of(genBytes("001199aabbcc"), genBytes("5566"));
+        bytes = genBytes("0206001199aabbcc025566");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Set<?> set = (Set<?>) BytesBuffer.wrap(bytes).readProperty(pkey);
+        Iterator<?> iterator = set.iterator();
+        Assert.assertArrayEquals(genBytes("001199aabbcc"),
+                                 (byte[]) iterator.next());
+        Assert.assertArrayEquals(genBytes("5566"), (byte[]) iterator.next());
+
+        pkey = genSetPkey(DataType.UUID);
+        UUID uuid = UUID.fromString("3cfcafc8-7906-4ab7-a207-4ded056f58de");
+        value = ImmutableSet.of(uuid, uuid);
+        bytes = genBytes("013cfcafc879064ab7a2074ded056f58de");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.OBJECT);
+        value = ImmutableSet.of(new Point(3, 8), new Point(3, 9));
+        bytes = genBytes("021301006a6176612e6177742e506f696ef4010610" +
+                         "1301006a6176612e6177742e506f696ef4010612");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genSetPkey(DataType.OBJECT);
+        value = ImmutableSet.of(new int[]{1, 3}, new int[]{2, 5});
+        bytes = genBytes("020801005bc9010302060801005bc90103040a");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        set = (Set<?>) BytesBuffer.wrap(bytes).readProperty(pkey);
+        iterator = set.iterator();
+        Assert.assertArrayEquals(new int[]{1, 3}, (int[]) iterator.next());
+        Assert.assertArrayEquals(new int[]{2, 5}, (int[]) iterator.next());
     }
 
     @Test
     public void testString() {
+        BytesBuffer buf = BytesBuffer.allocate(0);
+        buf.writeStringRaw("any");
+        byte[] bytes = genBytes("616e79");
+        Assert.assertArrayEquals(bytes, buf.bytes());
 
+        buf.flip();
+        Assert.assertEquals("any", buf.readStringFromRemaining());
+
+        bytes = genBytes("0461626364");
+        buf = BytesBuffer.allocate(0);
+        Assert.assertArrayEquals(bytes, buf.writeString("abcd").bytes());
+        Assert.assertEquals("abcd", BytesBuffer.wrap(bytes).readString());
+
+        bytes = genBytes("61626364ff");
+        buf = BytesBuffer.allocate(0);
+        Assert.assertArrayEquals(bytes,
+                                 buf.writeStringWithEnding("abcd").bytes());
+        Assert.assertEquals("abcd",
+                            BytesBuffer.wrap(bytes).readStringWithEnding());
+
+        bytes = genBytes("616200ff");
+        buf = BytesBuffer.allocate(0);
+        Assert.assertArrayEquals(bytes,
+                                 buf.writeStringWithEnding("ab\u0000").bytes());
+        Assert.assertEquals("ab\u0000",
+                            BytesBuffer.wrap(bytes).readStringWithEnding());
+
+        bytes = genBytes("616201ff");
+        buf = BytesBuffer.allocate(0);
+        Assert.assertArrayEquals(bytes,
+                                 buf.writeStringWithEnding("ab\u0001").bytes());
+        Assert.assertEquals("ab\u0001",
+                            BytesBuffer.wrap(bytes).readStringWithEnding());
     }
 
     private static String genString(int len) {
@@ -437,5 +818,22 @@ public class BytesBufferTest extends BaseUnitTest {
             bytes[i] = Integer.valueOf(b, 16).byteValue();
         }
         return bytes;
+    }
+
+    private static PropertyKey genPkey(DataType type) {
+        Id id = IdGenerator.of(0L);
+        return new FakeObjects().newPropertyKey(id, "fake-name", type);
+    }
+
+    private static PropertyKey genListPkey(DataType type) {
+        Id id = IdGenerator.of(0L);
+        return new FakeObjects().newPropertyKey(id, "fake-name", type,
+                                                Cardinality.LIST);
+    }
+
+    private static PropertyKey genSetPkey(DataType type) {
+        Id id = IdGenerator.of(0L);
+        return new FakeObjects().newPropertyKey(id, "fake-name", type,
+                                                Cardinality.SET);
     }
 }
