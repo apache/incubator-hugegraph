@@ -252,6 +252,21 @@ public class HbaseSessions extends BackendSessionPool {
             return size;
         }
 
+        private void checkBatchResults(Object[] results, List<Row> rows)
+                                       throws Throwable {
+            assert rows.size() == results.length;
+            for (int i = 0; i < results.length; i++) {
+                Object result = results[i];
+                if (result instanceof Throwable) {
+                    throw (Throwable) result;
+                }
+                if (result == null || !((Result) result).isEmpty()) {
+                    throw new BackendException("Failed batch for row: %s",
+                                               rows.get(i));
+                }
+            }
+        }
+
         @Override
         public void close() {
             assert this.closeable();
@@ -287,12 +302,11 @@ public class HbaseSessions extends BackendSessionPool {
                 Object[] results = new Object[rows.size()];
                 try (Table table = table(action.getKey())) {
                     table.batch(rows, results);
-                } catch (InterruptedException e) {
-                    // Try again
-                    continue;
-                } catch (IOException e) {
+                    checkBatchResults(results, rows);
+                } catch (Throwable e) {
                     // TODO: Mark and delete committed records
-                    throw new BackendException(e);
+                    throw new BackendException("Failed to commit, " +
+                              "there may be inconsistent states for HBase", e);
                 }
             }
 
