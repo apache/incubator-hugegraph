@@ -85,6 +85,10 @@ public final class Bytes {
         return Arrays.equals(bytes1, bytes2);
     }
 
+    public static String toHex(byte b) {
+        return toHex(new byte[]{b});
+    }
+
     public static String toHex(byte[] bytes) {
         return new String(Hex.encodeHex(bytes));
     }

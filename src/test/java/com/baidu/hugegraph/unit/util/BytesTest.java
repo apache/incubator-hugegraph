@@ -138,6 +138,21 @@ public class BytesTest extends BaseUnitTest {
     }
 
     @Test
+    public void testByteToHex() {
+        byte value = 0;
+        Assert.assertEquals("00", Bytes.toHex(value));
+
+        value = 127;
+        Assert.assertEquals("7f", Bytes.toHex(value));
+
+        value = -128;
+        Assert.assertEquals("80", Bytes.toHex(value));
+
+        value = -1;
+        Assert.assertEquals("ff", Bytes.toHex(value));
+    }
+
+    @Test
     public void testBytesToHex() {
         int value = 0x0103807f;
         byte[] bytes = NumericUtil.intToBytes(value);
