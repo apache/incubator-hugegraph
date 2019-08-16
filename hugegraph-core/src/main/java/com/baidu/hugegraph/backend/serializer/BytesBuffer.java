@@ -60,10 +60,6 @@ public final class BytesBuffer {
     public static final int ID_LEN_MAX = UINT8_MAX & 0x7e + 1; // 127
     public static final int BIG_ID_LEN_MAX = UINT16_MAX & 0x7eff + 1; // 32512
 
-    public static final long ID_MIN = Long.MIN_VALUE >> 3;
-    public static final long ID_MAX = Long.MAX_VALUE >> 3;
-    public static final long ID_MASK = 0x0fffffffffffffffL;
-
     public static final byte STRING_ENDING_BYTE = (byte) 0xff;
 
     // The value must be in range [8, 127(ID_LEN_MAX)]
@@ -155,6 +151,13 @@ public final class BytesBuffer {
         return this;
     }
 
+    public BytesBuffer write(int val) {
+        assert val <= UINT8_MAX;
+        require(BYTE_LEN);
+        this.buffer.put((byte) val);
+        return this;
+    }
+
     public BytesBuffer write(byte[] val) {
         require(BYTE_LEN * val.length);
         this.buffer.put(val);
@@ -168,7 +171,7 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer writeBoolean(boolean val) {
-        return this.write((byte) (val ? 1 : 0));
+        return this.write(val ? 1 : 0);
     }
 
     public BytesBuffer writeChar(char val) {
@@ -319,7 +322,7 @@ public final class BytesBuffer {
 
     public BytesBuffer writeUInt8(int val) {
         assert val <= UINT8_MAX;
-        this.write((byte) val);
+        this.write(val);
         return this;
     }
 
@@ -344,24 +347,24 @@ public final class BytesBuffer {
     }
 
     public long readUInt32() {
-        return this.readInt() & 0xffffffff;
+        return this.readInt() & 0xffffffffL;
     }
 
     public BytesBuffer writeVInt(int value) {
         // NOTE: negative numbers are not compressed
-        if(value > 0x0FFFFFFF || value < 0) {
-            this.write((byte) (0x80 | ((value >>> 28) & 0x7F)));
+        if(value > 0x0fffffff || value < 0) {
+            this.write(0x80 | ((value >>> 28) & 0x7f));
         }
-        if(value > 0x1FFFFF || value < 0) {
-            this.write((byte) (0x80 | ((value >>> 21) & 0x7F)));
+        if(value > 0x1fffff || value < 0) {
+            this.write(0x80 | ((value >>> 21) & 0x7f));
         }
-        if(value > 0x3FFF || value < 0) {
-            this.write((byte) (0x80 | ((value >>> 14) & 0x7F)));
+        if(value > 0x3fff || value < 0) {
+            this.write(0x80 | ((value >>> 14) & 0x7f));
         }
-        if(value > 0x7F || value < 0) {
-            this.write((byte) (0x80 | ((value >>>  7) & 0x7F)));
+        if(value > 0x7f || value < 0) {
+            this.write(0x80 | ((value >>>  7) & 0x7f));
         }
-        this.write((byte) (value & 0x7F));
+        this.write(value & 0x7f);
 
         return this;
     }
@@ -371,7 +374,7 @@ public final class BytesBuffer {
         E.checkArgument(leading != 0x80,
                         "Unexpected varint with leading byte '0x%s'",
                         Bytes.toHex(leading));
-        int value = leading & 0x7F;
+        int value = leading & 0x7f;
         if (leading >= 0) {
             assert (leading & 0x80) == 0;
             return value;
@@ -384,7 +387,7 @@ public final class BytesBuffer {
                 value = b | (value << 7);
                 break;
             } else {
-                value = (b & 0x7F) | (value << 7);
+                value = (b & 0x7f) | (value << 7);
             }
         }
 
@@ -401,31 +404,31 @@ public final class BytesBuffer {
         if(value < 0) {
             this.write((byte) 0x81);
         }
-        if(value > 0xFFFFFFFFFFFFFFL || value < 0L) {
-            this.write((byte) (0x80 | ((value >>> 56) & 0x7FL)));
+        if(value > 0xffffffffffffffL || value < 0L) {
+            this.write(0x80 | ((int) (value >>> 56) & 0x7f));
         }
-        if(value > 0x1FFFFFFFFFFFFL || value < 0L) {
-            this.write((byte) (0x80 | ((value >>> 49) & 0x7FL)));
+        if(value > 0x1ffffffffffffL || value < 0L) {
+            this.write(0x80 | ((int) (value >>> 49) & 0x7f));
         }
-        if(value > 0x3FFFFFFFFFFL || value < 0L) {
-            this.write((byte) (0x80 | ((value >>> 42) & 0x7FL)));
+        if(value > 0x3ffffffffffL || value < 0L) {
+            this.write(0x80 | ((int) (value >>> 42) & 0x7f));
         }
-        if(value > 0x7FFFFFFFFL || value < 0L) {
-            this.write((byte) (0x80 | ((value >>> 35) & 0x7FL)));
+        if(value > 0x7ffffffffL || value < 0L) {
+            this.write(0x80 | ((int) (value >>> 35) & 0x7f));
         }
-        if(value > 0xFFFFFFFL || value < 0L) {
-            this.write((byte) (0x80 | ((value >>> 28) & 0x7FL)));
+        if(value > 0xfffffffL || value < 0L) {
+            this.write(0x80 | ((int) (value >>> 28) & 0x7f));
         }
-        if(value > 0x1FFFFFL || value < 0L) {
-            this.write((byte) (0x80 | ((value >>> 21) & 0x7FL)));
+        if(value > 0x1fffffL || value < 0L) {
+            this.write(0x80 | ((int) (value >>> 21) & 0x7f));
         }
-        if(value > 0x3FFFL || value < 0L) {
-            this.write((byte) (0x80 | ((value >>> 14) & 0x7FL)));
+        if(value > 0x3fffL || value < 0L) {
+            this.write(0x80 | ((int) (value >>> 14) & 0x7f));
         }
-        if(value > 0x7FL || value < 0L) {
-            this.write((byte) (0x80 | ((value >>>  7) & 0x7FL)));
+        if(value > 0x7fL || value < 0L) {
+            this.write(0x80 | ((int) (value >>>  7) & 0x7f));
         }
-        this.write((byte) (value & 0x7FL));
+        this.write((int) value & 0x7f);
 
         return this;
     }
@@ -435,7 +438,7 @@ public final class BytesBuffer {
         E.checkArgument(leading != 0x80,
                         "Unexpected varlong with leading byte '0x%s'",
                         Bytes.toHex(leading));
-        long value = leading & 0x7FL;
+        long value = leading & 0x7fL;
         if (leading >= 0) {
             assert (leading & 0x80) == 0;
             return value;
@@ -448,7 +451,7 @@ public final class BytesBuffer {
                 value = b | (value << 7);
                 break;
             } else {
-                value = (b & 0x7F) | (value << 7);
+                value = (b & 0x7f) | (value << 7);
             }
         }
 
@@ -539,13 +542,12 @@ public final class BytesBuffer {
     }
 
     public Id readId(boolean big) {
-        int b = this.peek();
+        byte b = this.read();
         boolean number = (b & 0x80) == 0;
         if (number) {
             // Number Id
             return IdGenerator.of(this.readNumber(b));
         } else {
-            this.readUInt8();
             int len = b & ID_LEN_MASK;
             IdType type = IdType.STRING;
             if (len == 0x7f) {
@@ -621,52 +623,117 @@ public final class BytesBuffer {
     }
 
     private void writeNumber(long val) {
-        int positive = val >= 0 ? 0x10 : 0x00;
-        if (Byte.MIN_VALUE <= val && val <= Byte.MAX_VALUE) {
-            this.writeUInt8(0x00 | positive);
-            this.write((byte) val);
-        } else if (Short.MIN_VALUE <= val && val <= Short.MAX_VALUE) {
-            this.writeUInt8(0x20 | positive);
+        /*
+         * 8 kinds of number, 2 ~ 9 bytes number:
+         * 0b 0kkksxxx X...
+         * 0(1 bit) + kind(3 bits) + signed(1 bit) + number(n bits)
+         *
+         * 2 byte : 0b 0000 1xxx X(8 bits)                  [0, 2047]
+         *          0b 0000 0xxx X(8 bits)                  [-2048, -1]
+         * 3 bytes: 0b 0001 1xxx X X                        [0, 524287]
+         *          0b 0001 0xxx X X                        [-524288, -1]
+         * 4 bytes: 0b 0010 1xxx X X X                      [0, 134217727]
+         *          0b 0010 0xxx X X X                      [-134217728, -1]
+         * 5 bytes: 0b 0011 1xxx X X X X                    [0, 2^35 - 1]
+         *          0b 0011 0xxx X X X X                    [-2^35, -1]
+         * 6 bytes: 0b 0100 1xxx X X X X X                  [0, 2^43 - 1]
+         *          0b 0100 0xxx X X X X X                  [-2^43, -1]
+         * 7 bytes: 0b 0101 1xxx X X X X X X                [0, 2^51 - 1]
+         *          0b 0101 0xxx X X X X X X                [-2^51, -1]
+         * 8 bytes: 0b 0110 1xxx X X X X X X X              [0, 2^59 - 1]
+         *          0b 0110 0xxx X X X X X X X              [-2^59, -1]
+         * 9 bytes: 0b 0111 1000 X X X X X X X X            [0, 2^64 - 1]
+         *          0b 0111 0000 X X X X X X X X            [-2^64, -1]
+         *
+         * NOTE:    0b 0111 1111 is used by 128 bits UUID
+         */
+        int positive = val >= 0 ? 0x08 : 0x00;
+        if (~0x7ffL <= val && val <= 0x7ffL) {
+            int high3bits = (int) (val >> 8) & 0x07;
+            this.writeUInt8(0x00 | positive | high3bits);
+            this.writeUInt8((byte) val);
+        } else if (~0x7ffffL <= val && val <= 0x7ffffL) {
+            int high3bits = (int) (val >> 16) & 0x07;
+            this.writeUInt8(0x10 | positive | high3bits);
             this.writeShort((short) val);
-        } else if (Integer.MIN_VALUE <= val && val <= Integer.MAX_VALUE) {
-            this.writeUInt8(0x40 | positive);
+        } else if (~0x7ffffffL <= val && val <= 0x7ffffffL) {
+            int high3bits = (int) (val >> 24 & 0x07);
+            this.writeUInt8(0x20 | positive | high3bits);
+            this.write((byte) (val >> 16));
+            this.writeShort((short) val);
+        } else if (~0x7ffffffffL <= val && val <= 0x7ffffffffL) {
+            int high3bits = (int) (val >> 32) & 0x07;
+            this.writeUInt8(0x30 | positive | high3bits);
+            this.writeInt((int) val);
+        } else if (~0x7ffffffffffL <= val && val <= 0x7ffffffffffL) {
+            int high3bits = (int) (val >> 40) & 0x07;
+            this.writeUInt8(0x40 | positive | high3bits);
+            this.write((byte) (val >> 32));
+            this.writeInt((int) val);
+        } else if (~0x7ffffffffffffL <= val && val <= 0x7ffffffffffffL) {
+            int high3bits = (int) (val >> 48) & 0x07;
+            this.writeUInt8(0x50 | positive | high3bits);
+            this.writeShort((short) (val >> 32));
+            this.writeInt((int) val);
+        } else if (~0x7ffffffffffffffL <= val && val <= 0x7ffffffffffffffL) {
+            int high3bits = (int) (val >> 56) & 0x07;
+            this.writeUInt8(0x60 | positive | high3bits);
+            this.write((byte) (val >> 48));
+            this.writeShort((short) (val >> 32));
             this.writeInt((int) val);
         } else {
-            E.checkArgument(ID_MIN <= val && val <= ID_MAX,
-                            "Id value must be in [%s, %s], but got %s",
-                            ID_MIN, ID_MAX, val);
-            this.writeLong((val & ID_MASK) | ((0x60L | positive) << 56));
+            // high3bits is always 0b000 for 9 bytes number
+            this.writeUInt8(0x70 | positive);
+            this.writeLong(val);
         }
     }
 
-    private long readNumber(int b) {
-        // Parse length from byte 0b0llsnnnn: bits `ll` is the number length
+    private long readNumber(byte b) {
         E.checkArgument((b & 0x80) == 0,
                         "Not a number type with prefix byte '0x%s'",
-                        Bytes.toHex((byte) b));
-        int length = b >> 5;
-        boolean positive = (b & 0x10) > 0;
-        switch (length) {
+                        Bytes.toHex(b));
+        // Parse the kind from byte 0kkksxxx
+        int kind = b >>> 4;
+        boolean positive = (b & 0x08) > 0;
+        long high3bits = b & 0x07;
+        long value = high3bits << ((kind + 1) * 8);
+        switch (kind) {
             case 0:
-                this.read();
-                return this.read();
+                value |= this.readUInt8();
+                break;
             case 1:
-                this.read();
-                return this.readShort();
+                value |= this.readUInt16();
+                break;
             case 2:
-                this.read();
-                return this.readInt();
+                value |= this.readUInt8() << 16 | this.readUInt16();
+                break;
             case 3:
-                long value = this.readLong();
-                value &= ID_MASK;
-                if (!positive) {
-                    // Restore the bits of the original negative number
-                    value |= ~ID_MASK;
-                }
-                return value;
+                value |= this.readUInt32();
+                break;
+            case 4:
+                value |= (long) this.readUInt8() << 32 | this.readUInt32();
+                break;
+            case 5:
+                value |= (long) this.readUInt16() << 32 | this.readUInt32();
+                break;
+            case 6:
+                value |= (long) this.readUInt8() << 48 |
+                         (long) this.readUInt16() << 32 |
+                         this.readUInt32();
+                break;
+            case 7:
+                assert high3bits == 0L;
+                value |= this.readLong();
+                break;
             default:
-                throw new AssertionError("Invalid length of number: " + length);
+                throw new AssertionError("Invalid length of number: " + kind);
         }
+        if (!positive && kind < 7) {
+            // Restore the bits of the original negative number
+            long mask = Long.MIN_VALUE >> (52 - kind * 8);
+            value |= mask;
+        }
+        return value;
     }
 
     private byte[] readBytesWithEnding() {

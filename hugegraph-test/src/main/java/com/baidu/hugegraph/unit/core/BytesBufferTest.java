@@ -135,158 +135,344 @@ public class BytesBufferTest extends BaseUnitTest {
 
     @Test
     public void testNumberId() {
+        // 2 bytes
         Id id = IdGenerator.of(0);
-        byte[] bytes = new byte[]{16, 0};
+        byte[] bytes = genBytes("0800");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(1);
-        bytes = new byte[]{16, 1};
+        bytes = genBytes("0801");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
-        id = IdGenerator.of(Byte.MAX_VALUE);
-        bytes = new byte[]{16, 127};
+        id = IdGenerator.of(127);
+        bytes = genBytes("087f");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
-        id = IdGenerator.of(Byte.MAX_VALUE + 1);
-        bytes = new byte[]{48, 0, -128};
+        id = IdGenerator.of(128);
+        bytes = genBytes("0880");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(255);
-        bytes = new byte[]{48, 0, -1};
+        bytes = genBytes("08ff");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(256);
-        bytes = new byte[]{48, 1, 0};
+        bytes = genBytes("0900");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
+        id = IdGenerator.of(1573);
+        bytes = genBytes("0e25");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(0x7ff);
+        bytes = genBytes("0fff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 3 bytes
+        id = IdGenerator.of(0x7ff + 1);
+        bytes = genBytes("180800");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(0x7ffff);
+        bytes = genBytes("1fffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 4 bytes
+        id = IdGenerator.of(0x7ffff + 1);
+        bytes = genBytes("28080000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(0x7ffffff);
+        bytes = genBytes("2fffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 5 bytes
+        id = IdGenerator.of(0x7ffffff + 1);
+        bytes = genBytes("3808000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(0x7ffffffffL);
+        bytes = genBytes("3fffffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 6 bytes
+        id = IdGenerator.of(0x7ffffffffL + 1L);
+        bytes = genBytes("480800000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(0x7ffffffffffL);
+        bytes = genBytes("4fffffffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 7 bytes
+        id = IdGenerator.of(0x7ffffffffffL + 1L);
+        bytes = genBytes("58080000000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(0x7ffffffffffffL);
+        bytes = genBytes("5fffffffffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 8 bytes
+        id = IdGenerator.of(0x7ffffffffffffL + 1L);
+        bytes = genBytes("6808000000000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(0x7ffffffffffffffL);
+        bytes = genBytes("6fffffffffffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 9 bytes
+        id = IdGenerator.of(0x7ffffffffffffffL + 1L);
+        bytes = genBytes("780800000000000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // others
         id = IdGenerator.of(Short.MAX_VALUE);
-        bytes = new byte[]{48, 127, -1};
+        bytes = genBytes("187fff");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(Short.MAX_VALUE + 1);
-        bytes = new byte[]{80, 0, 0, -128, 0};
+        bytes = genBytes("188000");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(Integer.MAX_VALUE);
-        bytes = new byte[]{80, 127, -1, -1, -1};
+        bytes = genBytes("387fffffff");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(Integer.MAX_VALUE + 1L);
-        bytes = new byte[]{112, 0, 0, 0, -128, 0, 0, 0};
+        bytes = genBytes("3880000000");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
-        id = IdGenerator.of(BytesBuffer.ID_MAX);
-        bytes = new byte[]{127, -1, -1, -1, -1, -1, -1, -1};
+        id = IdGenerator.of(Long.MAX_VALUE);
+        bytes = genBytes("787fffffffffffffff");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            Id bigiId = IdGenerator.of(BytesBuffer.ID_MAX + 1L);
-            BytesBuffer.allocate(2).writeId(bigiId);
-        });
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            Id bigiId = IdGenerator.of(Long.MAX_VALUE);
-            BytesBuffer.allocate(2).writeId(bigiId);
-        });
     }
 
     @Test
     public void testNumberIdWithNegValue() {
+        // 2 bytes
         Id id = IdGenerator.of(0);
-        byte[] bytes = new byte[]{16, 0};
+        byte[] bytes = genBytes("0800");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(-1);
-        bytes = new byte[]{0, -1};
+        bytes = genBytes("07ff");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
-        id = IdGenerator.of(Byte.MIN_VALUE);
-        bytes = new byte[]{0, -128};
+        id = IdGenerator.of(-127);
+        bytes = genBytes("0781");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
-        id = IdGenerator.of(Byte.MIN_VALUE - 1);
-        bytes = new byte[]{32, -1, 127};
+        id = IdGenerator.of(-128);
+        bytes = genBytes("0780");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(-129);
+        bytes = genBytes("077f");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(-255);
-        bytes = new byte[]{32, -1, 1};
+        bytes = genBytes("0701");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(-256);
-        bytes = new byte[]{32, -1, 0};
+        bytes = genBytes("0700");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
+        id = IdGenerator.of(-1573);
+        bytes = genBytes("01db");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(~0x7ff);
+        bytes = genBytes("0000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 3 bytes
+        id = IdGenerator.of(~0x7ff - 1);
+        bytes = genBytes("17f7ff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(~0x7ffff);
+        bytes = genBytes("100000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 4 bytes
+        id = IdGenerator.of(~0x7ffff - 1);
+        bytes = genBytes("27f7ffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(~0x7ffffff);
+        bytes = genBytes("20000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 5 bytes
+        id = IdGenerator.of(~0x7ffffff - 1);
+        bytes = genBytes("37f7ffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(~0x7ffffffffL);
+        bytes = genBytes("3000000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 6 bytes
+        id = IdGenerator.of(~0x7ffffffffL - 1L);
+        bytes = genBytes("47f7ffffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(~0x7ffffffffffL);
+        bytes = genBytes("400000000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 7 bytes
+        id = IdGenerator.of(~0x7ffffffffffL - 1L);
+        bytes = genBytes("57f7ffffffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(~0x7ffffffffffffL);
+        bytes = genBytes("50000000000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 8 bytes
+        id = IdGenerator.of(~0x7ffffffffffffL - 1L);
+        bytes = genBytes("67f7ffffffffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        id = IdGenerator.of(~0x7ffffffffffffffL);
+        bytes = genBytes("6000000000000000");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // 9 bytes
+        id = IdGenerator.of(~0x7ffffffffffffffL - 1L);
+        bytes = genBytes("70f7ffffffffffffff");
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
+
+        // others
         id = IdGenerator.of(Short.MIN_VALUE);
-        bytes = new byte[]{32, -128, 0};
+        bytes = genBytes("178000");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(Short.MIN_VALUE - 1);
-        bytes = new byte[]{64, -1, -1, 127, -1};
+        bytes = genBytes("177fff");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(Integer.MIN_VALUE);
-        bytes = new byte[]{64, -128, 0, 0, 0};
+        bytes = genBytes("3780000000");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(Integer.MIN_VALUE - 1L);
-        bytes = new byte[]{111, -1, -1, -1, 127, -1, -1, -1};
+        bytes = genBytes("377fffffff");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
-        id = IdGenerator.of(BytesBuffer.ID_MIN);
-        bytes = new byte[]{96, 0, 0, 0, 0, 0, 0, 0};
+        id = IdGenerator.of(Long.MIN_VALUE);
+        bytes = genBytes("708000000000000000");
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(2)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            Id bigiId = IdGenerator.of(BytesBuffer.ID_MIN - 1L);
-            BytesBuffer.allocate(2).writeId(bigiId);
-        });
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            Id bigiId = IdGenerator.of(Long.MIN_VALUE);
-            BytesBuffer.allocate(2).writeId(bigiId);
-        });
     }
 
     @Test
