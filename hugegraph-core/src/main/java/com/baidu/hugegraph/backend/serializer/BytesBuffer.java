@@ -57,12 +57,12 @@ public final class BytesBuffer {
 
     // NOTE: +1 to let code 0 represent length 1
     public static final int ID_LEN_MASK = 0x7f;
-    public static final int ID_LEN_MAX = UINT8_MAX & 0x7e + 1; // 127
-    public static final int BIG_ID_LEN_MAX = UINT16_MAX & 0x7eff + 1; // 32512
+    public static final int ID_LEN_MAX = 0x7f + 1; // 128
+    public static final int BIG_ID_LEN_MAX = 0x7fff + 1; // 32768
 
     public static final byte STRING_ENDING_BYTE = (byte) 0xff;
 
-    // The value must be in range [8, 127(ID_LEN_MAX)]
+    // The value must be in range [8, ID_LEN_MAX]
     public static final int INDEX_HASH_ID_THRESHOLD = 32;
 
     public static final int DEFAULT_CAPACITY = 64;
@@ -508,7 +508,7 @@ public final class BytesBuffer {
             // UUID Id
             byte[] bytes = id.asBytes();
             assert bytes.length == Id.UUID_LENGTH;
-            this.writeUInt8(0xff); // 0b11111111 means UUID
+            this.writeUInt8(0x7f); // 0b01111111 means UUID
             this.write(bytes);
         } else {
             // String Id
@@ -519,7 +519,7 @@ public final class BytesBuffer {
                 E.checkArgument(len <= ID_LEN_MAX,
                                 "Id max length is %s, but got %s {%s}",
                                 ID_LEN_MAX, len, id);
-                len -= 1; // mapping [1, 127] to [0, 126]
+                len -= 1; // mapping [1, 128] to [0, 127]
                 this.writeUInt8(len | 0x80);
             } else {
                 E.checkArgument(len <= BIG_ID_LEN_MAX,
@@ -528,7 +528,6 @@ public final class BytesBuffer {
                 len -= 1;
                 int high = len >> 8;
                 int low = len & 0xff;
-                assert high != 0x7f; // The tail 7 bits 1 reserved for UUID
                 this.writeUInt8(high | 0x80);
                 this.writeUInt8(low);
             }
@@ -545,26 +544,23 @@ public final class BytesBuffer {
         byte b = this.read();
         boolean number = (b & 0x80) == 0;
         if (number) {
+            // UUID Id
+            if (b == 0x7f) {
+                return IdGenerator.of(this.read(Id.UUID_LENGTH), IdType.UUID);
+            }
             // Number Id
             return IdGenerator.of(this.readNumber(b));
         } else {
+            // String Id
             int len = b & ID_LEN_MASK;
-            IdType type = IdType.STRING;
-            if (len == 0x7f) {
-                // UUID Id
-                type = IdType.UUID;
-                len = Id.UUID_LENGTH;
-            } else {
-                // String Id
-                if (big) {
-                    int high = len << 8;
-                    int low = this.readUInt8();
-                    len = high + low;
-                }
-                len += 1; // mapping [0, 126] to [1, 127]
+            if (big) {
+                int high = len << 8;
+                int low = this.readUInt8();
+                len = high + low;
             }
+            len += 1; // mapping [0, 127] to [1, 128]
             byte[] id = this.read(len);
-            return IdGenerator.of(id, type);
+            return IdGenerator.of(id, IdType.STRING);
         }
     }
 

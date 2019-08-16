@@ -96,13 +96,19 @@ public class BytesBufferTest extends BaseUnitTest {
         Id id = IdGenerator.of(genString(127));
         byte[] bytes = genBytes(128);
         bytes[0] = (byte) 0xfe;
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(0)
+                                                   .writeId(id).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
+        id = IdGenerator.of(genString(128));
+        bytes = genBytes(129);
+        bytes[0] = (byte) 0xff;
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(0)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(128)));
+            BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(129)));
         });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(130)));
@@ -127,8 +133,16 @@ public class BytesBufferTest extends BaseUnitTest {
                                                    .writeId(id, true).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId(true));
 
+        id = IdGenerator.of(genString(32768));
+        bytes = genBytes(32770);
+        bytes[0] = (byte) 0xff;
+        bytes[1] = (byte) 0xff;
+        Assert.assertArrayEquals(bytes, BytesBuffer.allocate(0)
+                                                   .writeId(id, true).bytes());
+        Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId(true));
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(32513)),
+            BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(32769)),
                                             true);
         });
     }
@@ -478,7 +492,7 @@ public class BytesBufferTest extends BaseUnitTest {
     @Test
     public void testUuidId() {
         Id id = IdGenerator.of("835e1153928149578691cf79258e90eb", true);
-        byte[] bytes = genBytes("ff835e1153928149578691cf79258e90eb");
+        byte[] bytes = genBytes("7f835e1153928149578691cf79258e90eb");
 
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(17)
                                                    .writeId(id).bytes());
