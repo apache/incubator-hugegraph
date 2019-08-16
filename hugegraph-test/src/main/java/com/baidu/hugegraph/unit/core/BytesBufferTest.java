@@ -746,6 +746,14 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
 
         pkey = genPkey(DataType.OBJECT);
+        value = UUID.fromString("3cfcafc8-7906-4ab7-a207-4ded056f58de");
+        bytes = genBytes("2101006a6176612e7574696c2e555549c401" +
+                         "3cfcafc879064ab7a2074ded056f58de");
+        buf.flip();
+        Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
+        Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
+
+        pkey = genPkey(DataType.OBJECT);
         value = new int[]{1, 3, 8};
         bytes = genBytes("0901005bc90104020610");
         buf.flip();
@@ -972,6 +980,13 @@ public class BytesBufferTest extends BaseUnitTest {
 
         buf.flip();
         Assert.assertEquals("any", buf.readStringFromRemaining());
+
+        bytes = genBytes("61626364");
+        buf = BytesBuffer.allocate(0);
+        Assert.assertArrayEquals(bytes,
+                                 buf.writeStringToRemaining("abcd").bytes());
+        Assert.assertEquals("abcd",
+                            BytesBuffer.wrap(bytes).readStringFromRemaining());
 
         bytes = genBytes("0461626364");
         buf = BytesBuffer.allocate(0);

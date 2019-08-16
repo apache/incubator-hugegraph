@@ -45,6 +45,7 @@ import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
 import com.baidu.hugegraph.unit.util.IdUtilTest;
 import com.baidu.hugegraph.unit.util.JsonUtilTest;
+import com.baidu.hugegraph.unit.util.StringEncodingTest;
 import com.baidu.hugegraph.unit.util.VersionTest;
 
 @RunWith(Suite.class)
@@ -83,7 +84,8 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     /* utils */
     VersionTest.class,
     JsonUtilTest.class,
-    IdUtilTest.class
+    IdUtilTest.class,
+    StringEncodingTest.class
 })
 public class UnitTestSuite {
 }

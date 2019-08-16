@@ -32,36 +32,34 @@ import com.google.common.base.CharMatcher;
 public final class StringEncoding {
 
     // Similar to {@link StringSerializer}
-    public static int writeAsciiString(byte[] array,
-                                       int startPos,
-                                       String attribute) {
-        E.checkArgument(CharMatcher.ascii().matchesAllOf(attribute),
-                        "'%s' must be ASCII string", attribute);
-        int len = attribute.length();
+    public static int writeAsciiString(byte[] array, int offset, String value) {
+        E.checkArgument(CharMatcher.ascii().matchesAllOf(value),
+                        "'%s' must be ASCII string", value);
+        int len = value.length();
         if (len == 0) {
-            array[startPos++] = (byte) 0x80;
-            return startPos;
+            array[offset++] = (byte) 0x80;
+            return offset;
         }
 
         int i = 0;
         do {
-            int c = attribute.charAt(i);
+            int c = value.charAt(i);
             assert c <= 127;
             byte b = (byte) c;
             if (++i == len) {
                 b |= 0x80; // End marker
             }
-            array[startPos++] = b;
+            array[offset++] = b;
         } while (i < len);
 
-        return startPos;
+        return offset;
     }
 
-    public static String readAsciiString(byte[] array, int startPos) {
+    public static String readAsciiString(byte[] array, int offset) {
         StringBuilder sb = new StringBuilder();
         int c = 0;
         do {
-            c = 0xFF & array[startPos++];
+            c = 0xFF & array[offset++];
             if (c != 0x80) {
                 sb.append((char) (c & 0x7F));
             }
@@ -69,10 +67,10 @@ public final class StringEncoding {
         return sb.toString();
     }
 
-    public static int getAsciiByteLength(String attribute) {
-        E.checkArgument(CharMatcher.ascii().matchesAllOf(attribute),
-                        "'%s' must be ASCII string", attribute);
-        return attribute.isEmpty() ? 1 : attribute.length();
+    public static int getAsciiByteLength(String value) {
+        E.checkArgument(CharMatcher.ascii().matchesAllOf(value),
+                        "'%s' must be ASCII string", value);
+        return value.isEmpty() ? 1 : value.length();
     }
 
     public static byte[] encode(String value) {
