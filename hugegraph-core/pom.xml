@@ -19,7 +19,7 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
-            <version>1.6.12</version>
+            <version>1.6.13</version>
         </dependency>
 
         <!-- tinkerpop -->
@@ -105,12 +105,6 @@
             <groupId>com.janeluo</groupId>
             <artifactId>ikanalyzer</artifactId>
             <version>2012_u6</version>
-        </dependency>
-
-        <dependency>
-            <groupId>de.schlichtherle.truelicense</groupId>
-            <artifactId>truelicense-core</artifactId>
-            <version>1.33</version>
         </dependency>
     </dependencies>
 

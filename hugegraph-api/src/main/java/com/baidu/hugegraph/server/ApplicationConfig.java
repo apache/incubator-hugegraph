@@ -37,6 +37,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
+import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
@@ -68,7 +69,7 @@ public class ApplicationConfig extends ResourceConfig {
     }
 
     private void installLicense() {
-//        LicenseVerifier.instance().install();
+        LicenseVerifier.instance().install();
     }
 
     private class ConfFactory extends AbstractBinder

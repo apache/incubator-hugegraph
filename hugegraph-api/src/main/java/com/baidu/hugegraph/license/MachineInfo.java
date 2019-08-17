@@ -34,7 +34,7 @@ import com.baidu.hugegraph.HugeException;
 public class MachineInfo {
 
     public List<String> getIpAddress() {
-        List<String> result = null;
+        List<String> result = new ArrayList<>();
         List<InetAddress> inetAddresses = this.getLocalAllInetAddress();
         if (inetAddresses != null && inetAddresses.size() > 0) {
             result = inetAddresses.stream().map(InetAddress::getHostAddress)
@@ -45,7 +45,7 @@ public class MachineInfo {
     }
 
     public List<String> getMacAddress() {
-        List<String> result = null;
+        List<String> result = new ArrayList<>();
         List<InetAddress> inetAddresses = this.getLocalAllInetAddress();
         if (inetAddresses != null && inetAddresses.size() > 0) {
             // Get the Mac address of all network interfaces

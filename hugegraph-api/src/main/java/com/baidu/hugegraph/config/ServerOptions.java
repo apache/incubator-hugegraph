@@ -48,6 +48,14 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:8080"
             );
 
+    public static final ConfigOption<String> SERVER_ID =
+            new ConfigOption<>(
+                    "server.id",
+                    "The id of server.",
+                    disallowEmpty(),
+                    "server-1"
+            );
+
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",

@@ -19,30 +19,24 @@
 
 package com.baidu.hugegraph.license;
 
+import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
+
 public class LicenseVerifyParam {
 
+    @JsonProperty("subject")
     private String subject;
 
+    @JsonProperty("public_alias")
     private String publicAlias;
 
+    @JsonProperty("store_password")
     private String storePassword;
 
-    private String licensePath;
-
+    @JsonProperty("publickey_path")
     private String publicKeyPath;
 
-    public LicenseVerifyParam() {
-    }
-
-    public LicenseVerifyParam(String subject, String publicAlias,
-                              String storePassword, String licensePath,
-                              String publicKeyPath) {
-        this.subject = subject;
-        this.publicAlias = publicAlias;
-        this.storePassword = storePassword;
-        this.licensePath = licensePath;
-        this.publicKeyPath = publicKeyPath;
-    }
+    @JsonProperty("license_path")
+    private String licensePath;
 
     public String getSubject() {
         return this.subject;
